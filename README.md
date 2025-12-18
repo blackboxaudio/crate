@@ -1,4 +1,4 @@
-# Crate
+# 💿 Crate
 
 [![Build](https://github.com/blackboxaudio/crate/actions/workflows/ci.build.yml/badge.svg)](https://github.com/blackboxaudio/crate/actions/workflows/ci.build.yml)
 [![Lint](https://github.com/blackboxaudio/crate/actions/workflows/ci.lint.yml/badge.svg)](https://github.com/blackboxaudio/crate/actions/workflows/ci.lint.yml)
@@ -7,7 +7,7 @@
 
 ---
 
-## Overview
+## ⚡ Overview
 
 Crate is a cross-platform desktop application for managing DJ audio libraries. Built for those who demand speed and control over their collections without the overhead of full DJ software suites.
 
@@ -29,7 +29,7 @@ The problem is simple: existing library management tools are buried inside bloat
 
 ---
 
-## Getting Started
+## 🎧 Getting Started
 
 ### Prerequisites
 
@@ -80,7 +80,7 @@ Platform targets:
 
 ---
 
-## Commands
+## 🎛️ Commands
 
 | Command | Description |
 |---------|-------------|
@@ -95,7 +95,7 @@ Platform targets:
 | `yarn lint` | Lint code (fix) |
 | `yarn lint:check` | Check linting |
 
-## Roadmap
+## 🔊 Roadmap
 
 This project is under active development. Current version: **0.1.0**
 
