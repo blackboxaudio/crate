@@ -56,6 +56,6 @@
 	"lint-staged": {
 		"**/*.{ts,js,svelte,json,css}": "yarn format",
 		"**/*.{ts,js,svelte}": "yarn lint",
-		"**/*.rs": "rustup run nightly -- rustfmt --emit=files"
+		"**/*.rs": "cd src-tauri/ && cargo +nightly fmt"
 	}
 }

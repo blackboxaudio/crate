@@ -22,7 +22,7 @@ pub fn run() {
 
     // Initialize database
     let db_path = get_db_path();
-    log::info!("Database path: {:?}", db_path);
+    log::info!("Database path: {db_path:?}");
 
     let db = Database::new(db_path).expect("Failed to initialize database");
     let conn = db.connection();

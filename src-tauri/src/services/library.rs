@@ -47,10 +47,7 @@ impl LibraryService {
         // Check if supported format
         let supported_formats = ["mp3", "wav", "aiff", "aif", "flac", "m4a", "aac"];
         if !supported_formats.contains(&format.as_str()) {
-            return Err(CrateError::Import(format!(
-                "Unsupported format: {}",
-                format
-            )));
+            return Err(CrateError::Import(format!("Unsupported format: {format}")));
         }
 
         // Read metadata using lofty
@@ -193,7 +190,7 @@ impl LibraryService {
 
         if let Some(ref filter) = filter {
             if let Some(ref search) = filter.search {
-                let search_param = format!("%{}%", search);
+                let search_param = format!("%{search}%");
                 conditions
                     .push("(t.title LIKE ?1 OR t.artist LIKE ?1 OR t.album LIKE ?1)".to_string());
                 params.push(Box::new(search_param));
@@ -339,10 +336,7 @@ impl LibraryService {
         let mut tags_by_track: std::collections::HashMap<String, Vec<Tag>> =
             std::collections::HashMap::new();
         for (track_id, tag) in tag_rows {
-            tags_by_track
-                .entry(track_id)
-                .or_insert_with(Vec::new)
-                .push(tag);
+            tags_by_track.entry(track_id).or_default().push(tag);
         }
 
         // Assign tags to tracks
@@ -424,47 +418,47 @@ impl LibraryService {
         let mut param_idx = 2;
 
         if let Some(ref title) = update.title {
-            updates.push(format!("title = ?{}", param_idx));
+            updates.push(format!("title = ?{param_idx}"));
             params.push(Box::new(title.clone()));
             param_idx += 1;
         }
         if let Some(ref artist) = update.artist {
-            updates.push(format!("artist = ?{}", param_idx));
+            updates.push(format!("artist = ?{param_idx}"));
             params.push(Box::new(artist.clone()));
             param_idx += 1;
         }
         if let Some(ref album) = update.album {
-            updates.push(format!("album = ?{}", param_idx));
+            updates.push(format!("album = ?{param_idx}"));
             params.push(Box::new(album.clone()));
             param_idx += 1;
         }
         if let Some(year) = update.year {
-            updates.push(format!("year = ?{}", param_idx));
+            updates.push(format!("year = ?{param_idx}"));
             params.push(Box::new(year));
             param_idx += 1;
         }
         if let Some(ref genre) = update.genre {
-            updates.push(format!("genre = ?{}", param_idx));
+            updates.push(format!("genre = ?{param_idx}"));
             params.push(Box::new(genre.clone()));
             param_idx += 1;
         }
         if let Some(ref label) = update.label {
-            updates.push(format!("label = ?{}", param_idx));
+            updates.push(format!("label = ?{param_idx}"));
             params.push(Box::new(label.clone()));
             param_idx += 1;
         }
         if let Some(bpm) = update.bpm {
-            updates.push(format!("bpm = ?{}", param_idx));
+            updates.push(format!("bpm = ?{param_idx}"));
             params.push(Box::new(bpm));
             param_idx += 1;
         }
         if let Some(ref key) = update.key {
-            updates.push(format!("key = ?{}", param_idx));
+            updates.push(format!("key = ?{param_idx}"));
             params.push(Box::new(key.clone()));
             param_idx += 1;
         }
         if let Some(rating) = update.rating {
-            updates.push(format!("rating = ?{}", param_idx));
+            updates.push(format!("rating = ?{param_idx}"));
             params.push(Box::new(rating));
             param_idx += 1;
         }

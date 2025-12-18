@@ -27,7 +27,7 @@ impl std::str::FromStr for CueType {
             "memory" => Ok(CueType::Memory),
             "hot" => Ok(CueType::Hot),
             "loop" => Ok(CueType::Loop),
-            _ => Err(format!("Invalid cue type: {}", s)),
+            _ => Err(format!("Invalid cue type: {s}")),
         }
     }
 }

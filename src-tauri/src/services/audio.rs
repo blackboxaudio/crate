@@ -83,7 +83,7 @@ impl AudioService {
     fn send_command(&self, cmd: AudioCommand) -> Result<AudioResponse> {
         self.command_tx
             .send(cmd)
-            .map_err(|e| CrateError::Audio(format!("Failed to send command: {}", e)))?;
+            .map_err(|e| CrateError::Audio(format!("Failed to send command: {e}")))?;
 
         let rx = self
             .response_rx
@@ -91,7 +91,7 @@ impl AudioService {
             .map_err(|_| CrateError::Audio("Failed to acquire response lock".to_string()))?;
 
         rx.recv_timeout(Duration::from_secs(5))
-            .map_err(|e| CrateError::Audio(format!("Failed to receive response: {}", e)))
+            .map_err(|e| CrateError::Audio(format!("Failed to receive response: {e}")))
     }
 
     pub fn play_track(&self, track_id: String, file_path: PathBuf) -> Result<PlaybackState> {
@@ -224,25 +224,25 @@ fn handle_command(
             let (stream, stream_handle) = match OutputStream::try_default() {
                 Ok(s) => s,
                 Err(e) => {
-                    return AudioResponse::Error(format!("Failed to create audio output: {}", e))
+                    return AudioResponse::Error(format!("Failed to create audio output: {e}"))
                 }
             };
 
             let sink = match Sink::try_new(&stream_handle) {
                 Ok(s) => s,
-                Err(e) => return AudioResponse::Error(format!("Failed to create sink: {}", e)),
+                Err(e) => return AudioResponse::Error(format!("Failed to create sink: {e}")),
             };
 
             // Open and decode file
             let file = match File::open(&file_path) {
                 Ok(f) => f,
-                Err(e) => return AudioResponse::Error(format!("Failed to open file: {}", e)),
+                Err(e) => return AudioResponse::Error(format!("Failed to open file: {e}")),
             };
 
             let reader = BufReader::new(file);
             let source = match Decoder::new(reader) {
                 Ok(s) => s,
-                Err(e) => return AudioResponse::Error(format!("Failed to decode audio: {}", e)),
+                Err(e) => return AudioResponse::Error(format!("Failed to decode audio: {e}")),
             };
 
             sink.append(source);

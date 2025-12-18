@@ -65,7 +65,7 @@ impl Database {
         for (version, sql) in migrations.iter().enumerate() {
             let version = version as i32 + 1;
             if version > current_version {
-                log::info!("Running migration {}", version);
+                log::info!("Running migration {version}");
                 conn.execute_batch(sql)?;
                 conn.execute(
                     "INSERT INTO schema_version (version) VALUES (?1)",
