@@ -41,6 +41,7 @@ impl Playlist {
     }
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlaylistTrack {
     pub playlist_id: String,
