@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "crate",
+  "productName": "Crate",
   "version": "0.1.0",
   "identifier": "com.mystictwin.crate",
   "build": {
@@ -12,9 +12,12 @@
   "app": {
     "windows": [
       {
-        "title": "crate",
-        "width": 800,
-        "height": 600
+        "title": "Crate",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 600,
+        "resizable": true
       }
     ],
     "security": {
