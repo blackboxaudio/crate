@@ -44,6 +44,7 @@ pub struct Cue {
     pub color: Option<String>,
 }
 
+#[allow(dead_code)]
 impl Cue {
     pub fn new_memory(track_id: String, position_ms: i64) -> Self {
         Self {

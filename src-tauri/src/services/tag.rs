@@ -268,6 +268,7 @@ impl TagService {
         Ok(())
     }
 
+    #[allow(dead_code)]
     pub fn get_tracks_by_tag(&self, tag_id: &str) -> Result<Vec<String>> {
         let conn = self.conn.lock().map_err(|_| {
             CrateError::Database(rusqlite::Error::ExecuteReturnedResults)

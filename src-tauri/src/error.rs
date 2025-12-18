@@ -15,6 +15,7 @@ pub enum CrateError {
     #[error("Import error: {0}")]
     Import(String),
 
+    #[allow(dead_code)]
     #[error("Export error: {0}")]
     Export(String),
 

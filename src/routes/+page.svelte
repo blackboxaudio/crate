@@ -1,156 +1,227 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api/core";
+  import { onMount } from 'svelte';
+  import { open } from '@tauri-apps/plugin-dialog';
 
-  let name = $state("");
-  let greetMsg = $state("");
+  import type { Track, SortConfig, Playlist, TagCategory } from '$lib/types';
+  import {
+    libraryStore,
+    sortedTracks,
+    trackCount,
+    playerStore,
+    currentTrack,
+    tagsStore,
+    playlistsStore,
+    uiStore,
+    selectedTrackIds
+  } from '$lib/stores';
 
-  async function greet(event: Event) {
-    event.preventDefault();
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    greetMsg = await invoke("greet", { name });
+  import { Sidebar, Toolbar } from '$lib/components/layout';
+  import { TrackList } from '$lib/components/library';
+  import { Player } from '$lib/components/player';
+
+  // Local state
+  let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' });
+  let playlists = $state<Playlist[]>([]);
+  let tagCategories = $state<TagCategory[]>([]);
+  let selectedPlaylistId = $state<string | null>(null);
+  let selectedTagId = $state<string | null>(null);
+
+  // Subscribe to stores
+  $effect(() => {
+    const unsubPlaylists = playlistsStore.subscribe((state) => {
+      playlists = state.playlists;
+    });
+    const unsubTags = tagsStore.subscribe((state) => {
+      tagCategories = state.categories;
+    });
+    const unsubUI = uiStore.subscribe((state) => {
+      selectedPlaylistId = state.selectedPlaylistId;
+      selectedTagId = state.selectedTagId;
+    });
+
+    return () => {
+      unsubPlaylists();
+      unsubTags();
+      unsubUI();
+    };
+  });
+
+  // Initialize on mount
+  onMount(async () => {
+    await Promise.all([
+      libraryStore.loadTracks(),
+      tagsStore.load(),
+      playlistsStore.load()
+    ]);
+
+    // Set up keyboard shortcuts
+    window.addEventListener('keydown', handleKeydown);
+
+    // Set up drag and drop
+    window.addEventListener('dragover', handleDragOver);
+    window.addEventListener('drop', handleDrop);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('dragover', handleDragOver);
+      window.removeEventListener('drop', handleDrop);
+    };
+  });
+
+  // Keyboard shortcuts
+  function handleKeydown(e: KeyboardEvent) {
+    // Space: toggle play/pause
+    if (e.code === 'Space' && !isInputFocused()) {
+      e.preventDefault();
+      playerStore.togglePlayPause();
+    }
+
+    // Cmd/Ctrl+F: focus search
+    if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+      e.preventDefault();
+      const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
+      searchInput?.focus();
+    }
+
+    // Escape: clear selection
+    if (e.key === 'Escape') {
+      uiStore.clearSelection();
+    }
+
+    // Cmd/Ctrl+A: select all
+    if ((e.metaKey || e.ctrlKey) && e.key === 'a' && !isInputFocused()) {
+      e.preventDefault();
+      const allIds = new Set($sortedTracks.map((t) => t.id));
+      uiStore.setSelectedTracks(allIds);
+    }
+  }
+
+  function isInputFocused() {
+    const active = document.activeElement;
+    return active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement;
+  }
+
+  // Drag and drop
+  function handleDragOver(e: DragEvent) {
+    e.preventDefault();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }
+
+  async function handleDrop(e: DragEvent) {
+    e.preventDefault();
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const paths: string[] = [];
+    for (const file of files) {
+      // In Tauri, we can get the path from the file
+      if ('path' in file && typeof file.path === 'string') {
+        paths.push(file.path);
+      }
+    }
+
+    if (paths.length > 0) {
+      await libraryStore.importTracks(paths);
+    }
+  }
+
+  // Import handler
+  async function handleImport() {
+    const selected = await open({
+      multiple: true,
+      filters: [
+        {
+          name: 'Audio Files',
+          extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac']
+        }
+      ]
+    });
+
+    if (selected && Array.isArray(selected)) {
+      await libraryStore.importTracks(selected);
+    }
+  }
+
+  // Track playback
+  function handleTrackPlay(track: Track) {
+    playerStore.play(track);
+  }
+
+  // Selection change
+  function handleSelectionChange(ids: Set<string>) {
+    uiStore.setSelectedTracks(ids);
+  }
+
+  // Sort change
+  function handleSortChange(config: SortConfig) {
+    sortConfig = config;
+    libraryStore.setSort(config);
+  }
+
+  // Sidebar handlers
+  function handleLibraryClick() {
+    uiStore.selectPlaylist(null);
+    uiStore.selectTag(null);
+    libraryStore.clearFilters();
+  }
+
+  function handlePlaylistSelect(playlist: Playlist) {
+    uiStore.selectPlaylist(playlist.id);
+  }
+
+  function handleTagSelect(tagId: string) {
+    uiStore.selectTag(tagId);
+    libraryStore.setFilter({ tag_ids: [tagId] });
+  }
+
+  async function handleCreatePlaylist() {
+    const name = prompt('Playlist name:');
+    if (name) {
+      await playlistsStore.createPlaylist(name);
+    }
+  }
+
+  async function handleCreateCategory() {
+    const name = prompt('Category name:');
+    if (name) {
+      await tagsStore.createCategory(name);
+    }
   }
 </script>
 
-<main class="container">
-  <h1>Welcome to Tauri + Svelte</h1>
+<div class="flex flex-col h-full">
+  <Toolbar onImport={handleImport} />
 
-  <div class="row">
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo vite" alt="Vite Logo" />
-    </a>
-    <a href="https://tauri.app" target="_blank">
-      <img src="/tauri.svg" class="logo tauri" alt="Tauri Logo" />
-    </a>
-    <a href="https://svelte.dev" target="_blank">
-      <img src="/svelte.svg" class="logo svelte-kit" alt="SvelteKit Logo" />
-    </a>
+  <div class="flex flex-1 overflow-hidden">
+    <div class="w-60 flex-shrink-0">
+      <Sidebar
+        {playlists}
+        {tagCategories}
+        {selectedPlaylistId}
+        {selectedTagId}
+        trackCount={$trackCount}
+        onLibraryClick={handleLibraryClick}
+        onPlaylistSelect={handlePlaylistSelect}
+        onTagSelect={handleTagSelect}
+        onCreatePlaylist={handleCreatePlaylist}
+        onCreateCategory={handleCreateCategory}
+      />
+    </div>
+
+    <div class="flex-1 overflow-hidden">
+      <TrackList
+        tracks={$sortedTracks}
+        selectedIds={$selectedTrackIds}
+        playingTrackId={$currentTrack?.id ?? null}
+        {sortConfig}
+        onSelectionChange={handleSelectionChange}
+        onTrackPlay={handleTrackPlay}
+        onSortChange={handleSortChange}
+      />
+    </div>
   </div>
-  <p>Click on the Tauri, Vite, and SvelteKit logos to learn more.</p>
 
-  <form class="row" onsubmit={greet}>
-    <input id="greet-input" placeholder="Enter a name..." bind:value={name} />
-    <button type="submit">Greet</button>
-  </form>
-  <p>{greetMsg}</p>
-</main>
-
-<style>
-.logo.vite:hover {
-  filter: drop-shadow(0 0 2em #747bff);
-}
-
-.logo.svelte-kit:hover {
-  filter: drop-shadow(0 0 2em #ff3e00);
-}
-
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
-  line-height: 24px;
-  font-weight: 400;
-
-  color: #0f0f0f;
-  background-color: #f6f6f6;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  -webkit-text-size-adjust: 100%;
-}
-
-.container {
-  margin: 0;
-  padding-top: 10vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: 0.75s;
-}
-
-.logo.tauri:hover {
-  filter: drop-shadow(0 0 2em #24c8db);
-}
-
-.row {
-  display: flex;
-  justify-content: center;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-
-a:hover {
-  color: #535bf2;
-}
-
-h1 {
-  text-align: center;
-}
-
-input,
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  color: #0f0f0f;
-  background-color: #ffffff;
-  transition: border-color 0.25s;
-  box-shadow: 0 2px 2px rgba(0, 0, 0, 0.2);
-}
-
-button {
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: #396cd8;
-}
-button:active {
-  border-color: #396cd8;
-  background-color: #e8e8e8;
-}
-
-input,
-button {
-  outline: none;
-}
-
-#greet-input {
-  margin-right: 5px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    color: #f6f6f6;
-    background-color: #2f2f2f;
-  }
-
-  a:hover {
-    color: #24c8db;
-  }
-
-  input,
-  button {
-    color: #ffffff;
-    background-color: #0f0f0f98;
-  }
-  button:active {
-    background-color: #0f0f0f69;
-  }
-}
-
-</style>
+  <Player />
+</div>

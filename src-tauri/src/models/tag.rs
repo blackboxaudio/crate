@@ -10,6 +10,7 @@ pub struct TagCategory {
     pub tags: Vec<Tag>,
 }
 
+#[allow(dead_code)]
 impl TagCategory {
     pub fn new(name: String) -> Self {
         Self {
@@ -30,6 +31,7 @@ pub struct Tag {
     pub sort_order: i32,
 }
 
+#[allow(dead_code)]
 impl Tag {
     pub fn new(category_id: String, name: String, color: Option<String>) -> Self {
         Self {

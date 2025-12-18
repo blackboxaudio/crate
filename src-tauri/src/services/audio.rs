@@ -48,6 +48,7 @@ enum AudioCommand {
     Seek(u64),
     SetVolume(f32),
     GetState,
+    #[allow(dead_code)]
     Shutdown,
 }
 

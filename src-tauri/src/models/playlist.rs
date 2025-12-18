@@ -16,6 +16,7 @@ pub struct Playlist {
     pub track_count: i32,
 }
 
+#[allow(dead_code)]
 impl Playlist {
     pub fn new(name: String, parent_id: Option<String>) -> Self {
         let now = chrono::Utc::now().to_rfc3339();
