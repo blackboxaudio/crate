@@ -1,0 +1,21 @@
+# Package Managers
+**/package-lock.json
+**/pnpm-lock.yaml
+**/yarn.lock
+**/bun.lock
+**/bun.lockb
+
+# Miscellaneous
+static/
+
+# Rust backend
+src-tauri/
+
+# Build and output
+**/build/
+**/dist/
+**/output/
+**/node_modules/
+
+# Svelte
+**/.svelte-kit/
