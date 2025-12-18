@@ -54,8 +54,8 @@ impl LibraryService {
         }
 
         // Read metadata using lofty
-        let tagged_file = lofty::read_from_path(path)
-            .map_err(|e| CrateError::Metadata(e.to_string()))?;
+        let tagged_file =
+            lofty::read_from_path(path).map_err(|e| CrateError::Metadata(e.to_string()))?;
 
         let properties = tagged_file.properties();
         let duration_ms = properties.duration().as_millis() as i64;
@@ -71,7 +71,10 @@ impl LibraryService {
         track.sample_rate = properties.sample_rate().map(|s| s as i32);
 
         // Extract tags
-        if let Some(tag) = tagged_file.primary_tag().or_else(|| tagged_file.first_tag()) {
+        if let Some(tag) = tagged_file
+            .primary_tag()
+            .or_else(|| tagged_file.first_tag())
+        {
             track.title = tag.title().map(|s| s.to_string());
             track.artist = tag.artist().map(|s| s.to_string());
             track.album = tag.album().map(|s| s.to_string());
@@ -102,9 +105,10 @@ impl LibraryService {
     }
 
     fn insert_track(&self, track: &Track) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         conn.execute(
             r#"
@@ -165,9 +169,10 @@ impl LibraryService {
     }
 
     pub fn get_tracks(&self, filter: Option<TrackFilter>) -> Result<Vec<Track>> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut sql = String::from(
             r#"
@@ -189,9 +194,8 @@ impl LibraryService {
         if let Some(ref filter) = filter {
             if let Some(ref search) = filter.search {
                 let search_param = format!("%{}%", search);
-                conditions.push(
-                    "(t.title LIKE ?1 OR t.artist LIKE ?1 OR t.album LIKE ?1)".to_string(),
-                );
+                conditions
+                    .push("(t.title LIKE ?1 OR t.artist LIKE ?1 OR t.album LIKE ?1)".to_string());
                 params.push(Box::new(search_param));
             }
 
@@ -243,8 +247,7 @@ impl LibraryService {
 
         sql.push_str(" ORDER BY t.date_added DESC");
 
-        let params_refs: Vec<&dyn rusqlite::ToSql> =
-            params.iter().map(|p| p.as_ref()).collect();
+        let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
 
         let mut stmt = conn.prepare(&sql)?;
         let tracks = stmt
@@ -311,8 +314,10 @@ impl LibraryService {
             placeholders.join(", ")
         );
 
-        let params_refs: Vec<&dyn rusqlite::ToSql> =
-            track_ids.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
+        let params_refs: Vec<&dyn rusqlite::ToSql> = track_ids
+            .iter()
+            .map(|s| s as &dyn rusqlite::ToSql)
+            .collect();
 
         let mut stmt = conn.prepare(&sql)?;
         let tag_rows = stmt
@@ -351,9 +356,10 @@ impl LibraryService {
     }
 
     pub fn get_track(&self, id: &str) -> Result<Track> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let track = conn.query_row(
             r#"
@@ -405,9 +411,10 @@ impl LibraryService {
     }
 
     pub fn update_track(&self, id: &str, update: TrackUpdate) -> Result<Track> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -470,8 +477,7 @@ impl LibraryService {
             param_idx
         );
 
-        let params_refs: Vec<&dyn rusqlite::ToSql> =
-            params.iter().map(|p| p.as_ref()).collect();
+        let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
 
         conn.execute(&sql, params_refs.as_slice())?;
 
@@ -480,9 +486,10 @@ impl LibraryService {
     }
 
     pub fn delete_tracks(&self, ids: Vec<String>) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let placeholders: Vec<String> = ids
             .iter()

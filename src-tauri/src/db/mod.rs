@@ -37,9 +37,10 @@ impl Database {
     }
 
     fn migrate(&self) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         // Create schema version table
         conn.execute(

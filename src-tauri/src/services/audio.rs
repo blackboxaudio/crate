@@ -85,9 +85,10 @@ impl AudioService {
             .send(cmd)
             .map_err(|e| CrateError::Audio(format!("Failed to send command: {}", e)))?;
 
-        let rx = self.response_rx.lock().map_err(|_| {
-            CrateError::Audio("Failed to acquire response lock".to_string())
-        })?;
+        let rx = self
+            .response_rx
+            .lock()
+            .map_err(|_| CrateError::Audio("Failed to acquire response lock".to_string()))?;
 
         rx.recv_timeout(Duration::from_secs(5))
             .map_err(|e| CrateError::Audio(format!("Failed to receive response: {}", e)))
@@ -99,8 +100,8 @@ impl AudioService {
         }
 
         // Get duration
-        let tagged_file = lofty::read_from_path(&file_path)
-            .map_err(|e| CrateError::Audio(e.to_string()))?;
+        let tagged_file =
+            lofty::read_from_path(&file_path).map_err(|e| CrateError::Audio(e.to_string()))?;
         let duration_ms = tagged_file.properties().duration().as_millis() as u64;
 
         match self.send_command(AudioCommand::Play {
@@ -222,7 +223,9 @@ fn handle_command(
             // Create new audio output
             let (stream, stream_handle) = match OutputStream::try_default() {
                 Ok(s) => s,
-                Err(e) => return AudioResponse::Error(format!("Failed to create audio output: {}", e)),
+                Err(e) => {
+                    return AudioResponse::Error(format!("Failed to create audio output: {}", e))
+                }
             };
 
             let sink = match Sink::try_new(&stream_handle) {

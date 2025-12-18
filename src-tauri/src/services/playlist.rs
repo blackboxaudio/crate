@@ -15,9 +15,10 @@ impl PlaylistService {
     }
 
     pub fn get_playlists(&self) -> Result<Vec<Playlist>> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut stmt = conn.prepare(
             r#"
@@ -51,9 +52,10 @@ impl PlaylistService {
     }
 
     pub fn create_playlist(&self, name: String, parent_id: Option<String>) -> Result<Playlist> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         // Get next sort order
         let max_order: i32 = conn
@@ -99,9 +101,10 @@ impl PlaylistService {
     }
 
     pub fn create_folder(&self, name: String, parent_id: Option<String>) -> Result<Playlist> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let max_order: i32 = conn
             .query_row(
@@ -146,9 +149,10 @@ impl PlaylistService {
     }
 
     pub fn rename_playlist(&self, id: &str, name: String) -> Result<Playlist> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -162,9 +166,10 @@ impl PlaylistService {
     }
 
     pub fn delete_playlist(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         // Foreign key cascade will delete playlist_tracks entries
         conn.execute("DELETE FROM playlists WHERE id = ?1", [id])?;
@@ -173,9 +178,10 @@ impl PlaylistService {
     }
 
     pub fn get_playlist(&self, id: &str) -> Result<Playlist> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         conn.query_row(
             r#"
@@ -206,9 +212,10 @@ impl PlaylistService {
     }
 
     pub fn get_playlist_tracks(&self, playlist_id: &str) -> Result<Vec<Track>> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut stmt = conn.prepare(
             r#"
@@ -263,9 +270,10 @@ impl PlaylistService {
     }
 
     pub fn add_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         // Get current max position
         let max_position: i32 = conn
@@ -296,9 +304,10 @@ impl PlaylistService {
     }
 
     pub fn remove_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         for track_id in &track_ids {
             conn.execute(
@@ -334,9 +343,10 @@ impl PlaylistService {
     }
 
     pub fn reorder_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         for (i, track_id) in track_ids.iter().enumerate() {
             conn.execute(

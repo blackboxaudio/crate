@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::error::CrateError;
-use crate::services::{AudioService, LibraryService};
 use crate::services::audio::PlaybackState;
+use crate::services::{AudioService, LibraryService};
 
 #[tauri::command]
 pub async fn play_track(

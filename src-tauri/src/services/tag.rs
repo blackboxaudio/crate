@@ -15,14 +15,14 @@ impl TagService {
     }
 
     pub fn get_categories(&self) -> Result<Vec<TagCategory>> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         // Get categories
-        let mut stmt = conn.prepare(
-            "SELECT id, name, sort_order FROM tag_categories ORDER BY sort_order, name",
-        )?;
+        let mut stmt = conn
+            .prepare("SELECT id, name, sort_order FROM tag_categories ORDER BY sort_order, name")?;
 
         let categories: Vec<TagCategory> = stmt
             .query_map([], |row| {
@@ -64,16 +64,14 @@ impl TagService {
     }
 
     pub fn create_category(&self, name: String) -> Result<TagCategory> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         // Check category count (max 4)
-        let count: i32 = conn.query_row(
-            "SELECT COUNT(*) FROM tag_categories",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: i32 =
+            conn.query_row("SELECT COUNT(*) FROM tag_categories", [], |row| row.get(0))?;
 
         if count >= 4 {
             return Err(CrateError::InvalidOperation(
@@ -106,9 +104,10 @@ impl TagService {
     }
 
     pub fn update_category(&self, id: &str, name: String) -> Result<TagCategory> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         conn.execute(
             "UPDATE tag_categories SET name = ?1 WHERE id = ?2",
@@ -120,18 +119,20 @@ impl TagService {
     }
 
     pub fn delete_category(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         conn.execute("DELETE FROM tag_categories WHERE id = ?1", [id])?;
         Ok(())
     }
 
     fn get_category(&self, id: &str) -> Result<TagCategory> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut category = conn.query_row(
             "SELECT id, name, sort_order FROM tag_categories WHERE id = ?1",
@@ -166,10 +167,16 @@ impl TagService {
         Ok(category)
     }
 
-    pub fn create_tag(&self, category_id: String, name: String, color: Option<String>) -> Result<Tag> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+    pub fn create_tag(
+        &self,
+        category_id: String,
+        name: String,
+        color: Option<String>,
+    ) -> Result<Tag> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         // Get next sort order
         let max_order: i32 = conn
@@ -197,16 +204,23 @@ impl TagService {
     }
 
     pub fn update_tag(&self, id: &str, name: Option<String>, color: Option<String>) -> Result<Tag> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         if let Some(ref n) = name {
-            conn.execute("UPDATE tags SET name = ?1 WHERE id = ?2", rusqlite::params![n, id])?;
+            conn.execute(
+                "UPDATE tags SET name = ?1 WHERE id = ?2",
+                rusqlite::params![n, id],
+            )?;
         }
 
         if let Some(ref c) = color {
-            conn.execute("UPDATE tags SET color = ?1 WHERE id = ?2", rusqlite::params![c, id])?;
+            conn.execute(
+                "UPDATE tags SET color = ?1 WHERE id = ?2",
+                rusqlite::params![c, id],
+            )?;
         }
 
         conn.query_row(
@@ -226,18 +240,20 @@ impl TagService {
     }
 
     pub fn delete_tag(&self, id: &str) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         conn.execute("DELETE FROM tags WHERE id = ?1", [id])?;
         Ok(())
     }
 
     pub fn assign_tags(&self, track_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         for track_id in &track_ids {
             for tag_id in &tag_ids {
@@ -252,9 +268,10 @@ impl TagService {
     }
 
     pub fn remove_tags(&self, track_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         for track_id in &track_ids {
             for tag_id in &tag_ids {
@@ -270,9 +287,10 @@ impl TagService {
 
     #[allow(dead_code)]
     pub fn get_tracks_by_tag(&self, tag_id: &str) -> Result<Vec<String>> {
-        let conn = self.conn.lock().map_err(|_| {
-            CrateError::Database(rusqlite::Error::ExecuteReturnedResults)
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut stmt = conn.prepare("SELECT track_id FROM track_tags WHERE tag_id = ?1")?;
 

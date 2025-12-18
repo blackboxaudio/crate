@@ -57,10 +57,7 @@ pub async fn update_tag(
 }
 
 #[tauri::command]
-pub async fn delete_tag(
-    id: String,
-    tags: State<'_, TagService>,
-) -> Result<(), CrateError> {
+pub async fn delete_tag(id: String, tags: State<'_, TagService>) -> Result<(), CrateError> {
     tags.delete_tag(&id)
 }
 
