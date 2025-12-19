@@ -42,24 +42,28 @@
 			items.push({
 				id: 'rename-tag',
 				label: 'Rename Tag',
+				icon: 'pencil',
 				action: () => onRenameTag(target.tag),
 			})
 			items.push({ id: 'divider-1', label: '', divider: true })
 			items.push({
 				id: 'delete-tag',
 				label: 'Delete Tag',
+				icon: 'trash',
 				action: () => onDeleteTag(target.tag),
 			})
 		} else if (target.type === 'category') {
 			items.push({
 				id: 'rename-category',
 				label: 'Rename Category',
+				icon: 'pencil',
 				action: () => onRenameCategory(target.category),
 			})
 			if (onChangeColor) {
 				items.push({
 					id: 'change-color',
 					label: 'Change Color',
+					icon: 'palette',
 					action: () => onChangeColor(target.category),
 				})
 			}
@@ -67,6 +71,7 @@
 			items.push({
 				id: 'delete-category',
 				label: 'Delete Category',
+				icon: 'trash',
 				action: () => onDeleteCategory(target.category),
 			})
 		}

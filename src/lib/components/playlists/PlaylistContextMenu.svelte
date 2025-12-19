@@ -25,6 +25,7 @@
 		items.push({
 			id: 'rename',
 			label: 'Rename',
+			icon: 'pencil',
 			action: () => onRename(playlist),
 		})
 
@@ -56,6 +57,7 @@
 				items.push({
 					id: 'move',
 					label: 'Move to Folder',
+					icon: 'folder-arrow',
 					submenu: moveSubmenu,
 				})
 			}
@@ -67,6 +69,7 @@
 		items.push({
 			id: 'delete',
 			label: playlist.is_folder ? 'Delete Folder' : 'Delete Playlist',
+			icon: 'trash',
 			action: () => onDelete(playlist),
 		})
 

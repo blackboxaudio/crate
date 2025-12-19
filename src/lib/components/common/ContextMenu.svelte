@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import type { ContextMenuItem } from '$lib/types'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		open: boolean
@@ -137,6 +138,9 @@
 					disabled={item.disabled}
 					role="menuitem"
 				>
+					{#if item.icon}
+						<Icon name={item.icon} />
+					{/if}
 					<span class="flex-1">{item.label}</span>
 					{#if item.shortcut}
 						<span class="text-xs text-text-tertiary">{item.shortcut}</span>

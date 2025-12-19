@@ -61,6 +61,7 @@
 			items.push({
 				id: 'add-to-playlist',
 				label: 'Add to Playlist',
+				icon: 'list-plus',
 				submenu: playlistItems.map((playlist) => ({
 					id: `playlist-${playlist.id}`,
 					label: playlist.name,
@@ -71,6 +72,7 @@
 			items.push({
 				id: 'add-to-playlist',
 				label: 'Add to Playlist',
+				icon: 'list-plus',
 				disabled: true,
 			})
 		}
@@ -97,12 +99,14 @@
 			items.push({
 				id: 'add-tag',
 				label: 'Add Tag',
+				icon: 'tag-plus',
 				submenu: tagSubmenu,
 			})
 		} else {
 			items.push({
 				id: 'add-tag',
 				label: 'Add Tag',
+				icon: 'tag-plus',
 				disabled: true,
 			})
 		}
@@ -113,6 +117,7 @@
 			items.push({
 				id: 'remove-tag',
 				label: 'Remove Tag',
+				icon: 'tag-minus',
 				submenu: tagsToRemove.map((tag) => ({
 					id: `remove-tag-${tag.id}`,
 					label: tag.name,

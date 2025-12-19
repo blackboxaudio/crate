@@ -11,7 +11,7 @@
 </script>
 
 <div
-	class="flex items-center gap-2 rounded px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2/50 hover:text-text-primary"
+	class="flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary"
 	oncontextmenu={(e) => {
 		e.preventDefault()
 		onContextMenu?.(e, device)
@@ -25,7 +25,7 @@
 			stroke-linecap="round"
 			stroke-linejoin="round"
 			stroke-width="2"
-			d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"
+			d="M15 3h-6a1 1 0 00-1 1v3H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-2V4a1 1 0 00-1-1zM9 3v4m6-4v4"
 		/>
 	</svg>
 

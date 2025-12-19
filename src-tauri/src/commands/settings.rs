@@ -5,9 +5,7 @@ use crate::models::AppSettings;
 use crate::services::SettingsService;
 
 #[tauri::command]
-pub async fn get_settings(
-    settings: State<'_, SettingsService>,
-) -> Result<AppSettings, CrateError> {
+pub async fn get_settings(settings: State<'_, SettingsService>) -> Result<AppSettings, CrateError> {
     settings.get_settings()
 }
 

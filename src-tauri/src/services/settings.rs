@@ -51,11 +51,9 @@ impl SettingsService {
     }
 
     fn get_setting_value(&self, conn: &Connection, key: &str) -> Result<Option<String>> {
-        let result = conn.query_row(
-            "SELECT value FROM settings WHERE key = ?1",
-            [key],
-            |row| row.get(0),
-        );
+        let result = conn.query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
+            row.get(0)
+        });
 
         match result {
             Ok(value) => Ok(Some(value)),

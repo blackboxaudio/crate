@@ -34,7 +34,9 @@
 	{disabled}
 	class="inline-flex items-center justify-center rounded-md transition-colors focus:ring-2 focus:ring-brand-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 {active
 		? 'bg-surface-2 text-text-primary'
-		: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'} {sizeStyles[size]} {className}"
+		: 'text-text-secondary hover:cursor-pointer hover:bg-surface-2 hover:text-text-primary'} {sizeStyles[
+		size
+	]} {className}"
 	{onclick}
 >
 	{@render children()}

@@ -52,10 +52,7 @@
 	let activeSection = $state<'playlists' | 'tags'>('playlists')
 </script>
 
-<div
-	class="flex h-full flex-col border-r border-stroke bg-surface-1"
-	ondragover={(e) => console.log('[Sidebar DragOver]', e.target)}
->
+<div class="flex h-full flex-col" ondragover={(e) => console.log('[Sidebar DragOver]', e.target)}>
 	<!-- Devices -->
 	<div class="p-2">
 		<DeviceList {devices} onContextMenu={onDeviceContextMenu} />
@@ -63,24 +60,10 @@
 
 	<!-- Library -->
 	<div class="p-2">
-		<button
-			type="button"
-			class="flex w-full items-center gap-2 rounded px-3 py-2 transition-colors {!selectedPlaylistId && !selectedTagId
-				? 'bg-surface-2 text-text-primary'
-				: 'text-text-secondary hover:bg-surface-2/50 hover:text-text-primary'}"
-			onclick={onLibraryClick}
-		>
-			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-				/>
-			</svg>
-			<span class="flex-1 text-left text-sm font-medium">Library</span>
-			<span class="text-xs text-text-tertiary">{trackCount}</span>
-		</button>
+		<div class="flex items-center px-3 py-1.5">
+			<span class="text-xs font-medium tracking-wide text-text-tertiary uppercase">Library</span>
+			<span class="ml-auto text-xs text-text-tertiary">{trackCount}</span>
+		</div>
 	</div>
 
 	<!-- Section tabs -->

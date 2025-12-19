@@ -7,7 +7,9 @@ mod services;
 use std::path::PathBuf;
 
 use db::Database;
-use services::{AudioService, DeviceService, LibraryService, PlaylistService, SettingsService, TagService};
+use services::{
+    AudioService, DeviceService, LibraryService, PlaylistService, SettingsService, TagService,
+};
 use tauri::Manager;
 
 fn get_db_path() -> PathBuf {

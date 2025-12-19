@@ -82,7 +82,7 @@
 					<button
 						type="button"
 						class="flex w-full items-center gap-2 rounded-md bg-brand-muted px-3 py-2
-							text-sm font-medium text-brand-primary"
+							text-sm font-medium text-brand-primary hover:cursor-pointer"
 					>
 						<!-- Paint brush icon -->
 						<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -111,7 +111,7 @@
 									class="flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4
 										transition-colors {$theme === option.value
 										? 'border-brand-primary bg-brand-muted'
-										: 'border-stroke hover:border-text-tertiary'}"
+										: 'border-stroke hover:cursor-pointer hover:border-text-tertiary'}"
 									onclick={() => handleThemeChange(option.value)}
 								>
 									{#if option.value === 'light'}
@@ -159,7 +159,7 @@
 								<button
 									type="button"
 									class="group flex flex-col items-center gap-2 rounded-lg p-3
-										transition-colors hover:bg-surface-2"
+										transition-colors hover:cursor-pointer hover:bg-surface-2"
 									onclick={() => handleAccentChange(color.value)}
 									title={color.label}
 								>

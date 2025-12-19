@@ -19,6 +19,7 @@
 					{
 						id: 'eject',
 						label: 'Eject',
+						icon: 'eject',
 						action: () => onEject(device),
 					},
 				]
