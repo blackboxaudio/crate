@@ -41,12 +41,12 @@
 			<!-- Info Grid -->
 			<div class="grid grid-cols-2 gap-4 rounded-lg bg-surface-2 p-4">
 				<div>
-					<p class="text-xs font-medium text-text-tertiary uppercase">File System</p>
-					<p class="text-sm font-medium text-text-primary">{device.file_system || 'Unknown'}</p>
-				</div>
-				<div>
 					<p class="text-xs font-medium text-text-tertiary uppercase">Disk Type</p>
 					<p class="text-sm font-medium text-text-primary">{device.disk_kind}</p>
+				</div>
+				<div>
+					<p class="text-xs font-medium text-text-tertiary uppercase">File System</p>
+					<p class="text-sm font-medium text-text-primary">{device.file_system || 'Unknown'}</p>
 				</div>
 			</div>
 

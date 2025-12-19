@@ -98,4 +98,5 @@ pub struct AppSettings {
 pub struct AudioDevice {
     pub name: String,
     pub is_default: bool,
+    pub is_built_in: bool,
 }

@@ -13,9 +13,15 @@ use services::{
 use tauri::Manager;
 
 fn get_db_path() -> PathBuf {
+    let app_dir_name = if cfg!(debug_assertions) {
+        "com.crate.app.dev"
+    } else {
+        "com.crate.app"
+    };
+
     let app_data = dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join("com.crate.app");
+        .join(app_dir_name);
     app_data.join("crate.db")
 }
 
@@ -58,6 +64,8 @@ pub fn run() {
         .manage(audio_service)
         .manage(device_service)
         .invoke_handler(tauri::generate_handler![
+            // App commands
+            commands::app::get_app_info,
             // Library commands
             commands::library::import_tracks,
             commands::library::get_tracks,

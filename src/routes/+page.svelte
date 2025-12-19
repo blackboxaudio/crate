@@ -15,6 +15,7 @@
 		BreadcrumbItem,
 	} from '$lib/types'
 	import {
+		appStore,
 		libraryStore,
 		sortedTracks,
 		displayedTracks,
@@ -37,7 +38,7 @@
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView, TrackContextMenu } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
-	import { InputModal, ConfirmModal, ColorPicker, ResizeHandle } from '$lib/components/common'
+	import { InputModal, ConfirmModal, ColorPicker, ResizeHandle, ContextMenu } from '$lib/components/common'
 	import { PlaylistContextMenu, PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TagContextMenu } from '$lib/components/tags'
 	import { DeviceContextMenu, DeviceInfoModal } from '$lib/components/devices'
@@ -60,7 +61,9 @@
 
 	// Modal state
 	let showPlaylistModal = $state(false)
+	let playlistModalParentId = $state<string | null>(null)
 	let showFolderModal = $state(false)
+	let folderModalParentId = $state<string | null>(null)
 	let showCategoryModal = $state(false)
 	let showTagModal = $state(false)
 	let tagModalCategoryId = $state<string | null>(null)
@@ -78,6 +81,11 @@
 	let playlistContextMenuOpen = $state(false)
 	let playlistContextMenuPosition = $state({ x: 0, y: 0 })
 	let playlistContextMenuPlaylist = $state<Playlist | null>(null)
+
+	// Folder view context menu state (for empty space right-click)
+	let folderViewContextMenuOpen = $state(false)
+	let folderViewContextMenuPosition = $state({ x: 0, y: 0 })
+	let folderViewContextMenuFolderId = $state<string | null>(null)
 
 	// Playlist modal states
 	let showRenamePlaylistModal = $state(false)
@@ -167,6 +175,7 @@
 	// Initialize on mount
 	onMount(async () => {
 		await Promise.all([
+			appStore.load(),
 			libraryStore.loadTracks(),
 			tagsStore.load(),
 			playlistsStore.load(),
@@ -279,6 +288,12 @@
 			e.preventDefault()
 			const allIds = new Set($sortedTracks.map((t) => t.id))
 			uiStore.setSelectedTracks(allIds)
+		}
+
+		// Cmd/Ctrl+,: toggle settings
+		if ((e.metaKey || e.ctrlKey) && e.key === ',') {
+			e.preventDefault()
+			showSettings = !showSettings
 		}
 	}
 
@@ -422,7 +437,8 @@
 
 	async function handlePlaylistModalSubmit(name: string) {
 		showPlaylistModal = false
-		await playlistsStore.createPlaylist(name)
+		await playlistsStore.createPlaylist(name, playlistModalParentId ?? undefined)
+		playlistModalParentId = null
 	}
 
 	function handleCreateFolder() {
@@ -431,7 +447,8 @@
 
 	async function handleFolderModalSubmit(name: string) {
 		showFolderModal = false
-		await playlistsStore.createFolder(name)
+		await playlistsStore.createFolder(name, folderModalParentId ?? undefined)
+		folderModalParentId = null
 	}
 
 	function handleCreateCategory() {
@@ -460,6 +477,7 @@
 	function closeAllContextMenus() {
 		contextMenuOpen = false
 		playlistContextMenuOpen = false
+		folderViewContextMenuOpen = false
 		tagContextMenuOpen = false
 		deviceContextMenuOpen = false
 	}
@@ -508,6 +526,26 @@
 		playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
 		playlistContextMenuPlaylist = playlist
 		playlistContextMenuOpen = true
+	}
+
+	// Folder view context menu handlers (right-click on empty space)
+	function handleFolderViewContextMenu(e: MouseEvent, folderId: string) {
+		closeAllContextMenus()
+		folderViewContextMenuPosition = { x: e.clientX, y: e.clientY }
+		folderViewContextMenuFolderId = folderId
+		folderViewContextMenuOpen = true
+	}
+
+	function handleFolderViewCreatePlaylist() {
+		folderViewContextMenuOpen = false
+		playlistModalParentId = folderViewContextMenuFolderId
+		showPlaylistModal = true
+	}
+
+	function handleFolderViewCreateFolder() {
+		folderViewContextMenuOpen = false
+		folderModalParentId = folderViewContextMenuFolderId
+		showFolderModal = true
 	}
 
 	function handlePlaylistRename(playlist: Playlist) {
@@ -812,6 +850,7 @@
 					{breadcrumbItems}
 					onBreadcrumbNavigate={handleBreadcrumbNavigate}
 					onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+					onEmptySpaceContextMenu={handleFolderViewContextMenu}
 				/>
 			{:else if selectedPlaylistId}
 				{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
@@ -916,6 +955,18 @@
 	onRename={handlePlaylistRename}
 	onDelete={handlePlaylistDelete}
 	onMove={handlePlaylistMove}
+/>
+
+<!-- Folder View Context Menu (empty space right-click) -->
+<ContextMenu
+	open={folderViewContextMenuOpen}
+	x={folderViewContextMenuPosition.x}
+	y={folderViewContextMenuPosition.y}
+	items={[
+		{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handleFolderViewCreateFolder },
+		{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handleFolderViewCreatePlaylist },
+	]}
+	onClose={() => (folderViewContextMenuOpen = false)}
 />
 
 <!-- Rename Playlist Modal -->

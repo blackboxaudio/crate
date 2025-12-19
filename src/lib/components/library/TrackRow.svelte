@@ -44,7 +44,7 @@
 	role="row"
 	tabindex="0"
 	draggable="true"
-	class="grid cursor-pointer grid-cols-[1fr_1fr_80px_60px_80px_1fr] gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors {selected
+	class="grid cursor-pointer grid-cols-[1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'}"
 	{onclick}
@@ -84,7 +84,7 @@
 	</div>
 
 	<!-- Tags -->
-	<div class="flex gap-1 overflow-hidden">
+	<div class="flex h-6 items-center gap-1 overflow-hidden">
 		{#each track.tags.slice(0, 3) as tag (tag.id)}
 			<TagChip {tag} size="sm" color={categoryColors?.get(tag.category_id)} />
 		{/each}

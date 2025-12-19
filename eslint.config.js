@@ -22,6 +22,7 @@ export default defineConfig(
 			'**/.vercel',
 			'**/build',
 			'**/dist',
+			'**/target',
 			'**/node_modules',
 			'**/static',
 			'**/StructuredData.svelte',

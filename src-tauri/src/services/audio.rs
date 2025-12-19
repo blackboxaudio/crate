@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use lofty::config::{ParseOptions, ParsingMode};
 use lofty::file::AudioFile;
@@ -246,11 +246,56 @@ impl AudioService {
         for device in devices {
             if let Ok(name) = device.name() {
                 let is_default = default_name.as_ref() == Some(&name);
-                result.push(AudioDevice { name, is_default });
+                let is_built_in = Self::is_built_in_device(&name);
+                result.push(AudioDevice {
+                    name,
+                    is_default,
+                    is_built_in,
+                });
             }
         }
 
         Ok(result)
+    }
+
+    /// Determines if an audio device is a built-in/system device based on name heuristics.
+    fn is_built_in_device(name: &str) -> bool {
+        let name_lower = name.to_lowercase();
+
+        #[cfg(target_os = "macos")]
+        {
+            name_lower.contains("built-in")
+                || name_lower.contains("macbook")
+                || name_lower.contains("internal")
+                || (name_lower.contains("speakers") && !name_lower.contains("bluetooth"))
+                || name_lower.starts_with("mac")
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            name_lower.contains("speakers")
+                || name_lower.contains("realtek")
+                || name_lower.contains("intel")
+                || name_lower.contains("high definition audio")
+                || name_lower.contains("built-in")
+                || name_lower.contains("internal")
+                || name_lower.contains("conexant")
+                || name_lower.contains("synaptics")
+        }
+
+        #[cfg(target_os = "linux")]
+        {
+            name_lower.contains("built-in")
+                || name_lower.contains("internal")
+                || name_lower.contains("hda intel")
+                || (name_lower.contains("analog stereo") && !name_lower.contains("usb"))
+                || name_lower.contains("pch")
+        }
+
+        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+        {
+            name_lower.contains("built-in") || name_lower.contains("internal")
+        }
     }
 }
 
@@ -267,6 +312,24 @@ struct AudioPlayer {
     _stream: OutputStream,
     sink: Sink,
     state: PlaybackState,
+    // For tracking playback position
+    started_at: Option<Instant>,
+    started_position_ms: u64,
+}
+
+impl AudioPlayer {
+    /// Calculate the current playback position based on elapsed time
+    fn get_current_position_ms(&self) -> u64 {
+        if let Some(started) = self.started_at {
+            if !self.sink.is_paused() && !self.sink.empty() {
+                let elapsed = started.elapsed().as_millis() as u64;
+                let position = self.started_position_ms + elapsed;
+                // Don't exceed duration
+                return position.min(self.state.duration_ms);
+            }
+        }
+        self.state.position_ms
+    }
 }
 
 fn audio_thread(command_rx: Receiver<AudioCommand>, response_tx: Sender<AudioResponse>) {
@@ -395,6 +458,8 @@ fn handle_command(
                 _stream: stream,
                 sink,
                 state: state.clone(),
+                started_at: Some(Instant::now()),
+                started_position_ms: 0,
             });
 
             AudioResponse::State(state)
@@ -402,6 +467,11 @@ fn handle_command(
 
         AudioCommand::Pause => {
             if let Some(ref mut p) = player {
+                // Save current position before pausing
+                p.state.position_ms = p.get_current_position_ms();
+                p.started_position_ms = p.state.position_ms;
+                p.started_at = None;
+
                 p.sink.pause();
                 p.state.is_playing = false;
                 AudioResponse::State(p.state.clone())
@@ -414,6 +484,8 @@ fn handle_command(
             if let Some(ref mut p) = player {
                 p.sink.play();
                 p.state.is_playing = true;
+                // Restart the timer from current position
+                p.started_at = Some(Instant::now());
                 AudioResponse::State(p.state.clone())
             } else {
                 AudioResponse::State(PlaybackState::default())
@@ -435,6 +507,11 @@ fn handle_command(
             if let Some(ref mut p) = player {
                 let _ = p.sink.try_seek(Duration::from_millis(position_ms));
                 p.state.position_ms = position_ms;
+                // Reset timer from new position
+                p.started_position_ms = position_ms;
+                if !p.sink.is_paused() {
+                    p.started_at = Some(Instant::now());
+                }
                 AudioResponse::State(p.state.clone())
             } else {
                 AudioResponse::State(PlaybackState::default())
@@ -458,7 +535,106 @@ fn handle_command(
         }
 
         AudioCommand::SetDevice(device_name) => {
-            *selected_device = device_name;
+            *selected_device = device_name.clone();
+
+            // If currently playing, restart on the new device
+            if let Some(ref p) = player {
+                let is_playing = !p.sink.is_paused() && !p.sink.empty();
+                let current_pos = p.get_current_position_ms();
+                let track_id = p.state.current_track_id.clone();
+                let track_path = p.state.current_track_path.clone();
+                let duration_ms = p.state.duration_ms;
+
+                if let (Some(id), Some(path)) = (track_id, track_path) {
+                    // Stop current playback
+                    *player = None;
+
+                    // Create new stream with the new device
+                    let (stream, stream_handle) = if let Some(ref dev_name) = device_name {
+                        if let Some(device) = find_device_by_name(dev_name) {
+                            match OutputStream::try_from_device(&device) {
+                                Ok(s) => s,
+                                Err(e) => {
+                                    log::warn!(
+                                        "Failed to switch to device '{dev_name}': {e}, keeping current"
+                                    );
+                                    return AudioResponse::Ok;
+                                }
+                            }
+                        } else {
+                            log::warn!("Device '{dev_name}' not found");
+                            return AudioResponse::Ok;
+                        }
+                    } else {
+                        match OutputStream::try_default() {
+                            Ok(s) => s,
+                            Err(e) => {
+                                log::warn!("Failed to switch to default device: {e}");
+                                return AudioResponse::Ok;
+                            }
+                        }
+                    };
+
+                    let sink = match Sink::try_new(&stream_handle) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            log::warn!("Failed to create sink on new device: {e}");
+                            return AudioResponse::Ok;
+                        }
+                    };
+
+                    // Open and decode file
+                    let file = match File::open(&path) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            log::warn!("Failed to reopen file: {e}");
+                            return AudioResponse::Ok;
+                        }
+                    };
+
+                    let reader = BufReader::new(file);
+                    let source = match Decoder::new(reader) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            log::warn!("Failed to decode audio: {e}");
+                            return AudioResponse::Ok;
+                        }
+                    };
+
+                    sink.append(source);
+                    sink.set_volume(*current_volume);
+
+                    // Seek to the saved position
+                    let _ = sink.try_seek(Duration::from_millis(current_pos));
+
+                    // If it wasn't playing before, pause it
+                    if !is_playing {
+                        sink.pause();
+                    }
+
+                    let state = PlaybackState {
+                        is_playing,
+                        position_ms: current_pos,
+                        duration_ms,
+                        volume: *current_volume,
+                        current_track_id: Some(id),
+                        current_track_path: Some(path),
+                    };
+
+                    *player = Some(AudioPlayer {
+                        _stream: stream,
+                        sink,
+                        state,
+                        started_at: if is_playing {
+                            Some(Instant::now())
+                        } else {
+                            None
+                        },
+                        started_position_ms: current_pos,
+                    });
+                }
+            }
+
             AudioResponse::Ok
         }
 

@@ -245,4 +245,5 @@ export interface AppSettings {
 export interface AudioDevice {
 	name: string
 	isDefault: boolean
+	isBuiltIn: boolean
 }

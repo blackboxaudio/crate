@@ -3,6 +3,7 @@
 	import { Button, IconButton } from '$lib/components/common'
 	import { SearchBar } from '$lib/components/library'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { isDev } from '$lib/stores'
 
 	type Props = {
 		activeFilterTags?: Tag[]
@@ -32,6 +33,9 @@
 	<div class="flex items-center gap-2">
 		<Icon name="logo" class="h-6 w-6 text-brand-primary" fill />
 		<span class="text-lg font-bold text-text-primary">Crate</span>
+		{#if $isDev}
+			<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-500"> DEV </span>
+		{/if}
 	</div>
 
 	<!-- Search -->

@@ -1,7 +1,8 @@
 <script lang="ts">
 	import type { Theme, AccentColor } from '$lib/types'
 	import { settingsStore, theme, accentColor, audioDevice, audioDevices } from '$lib/stores/settings'
-	import { Button } from '$lib/components/common'
+	import { appInfo } from '$lib/stores/app'
+	import { Button, Select } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
@@ -9,12 +10,19 @@
 		onClose: () => void
 	}
 
-	type SettingsPage = 'appearance' | 'sound'
+	type SettingsPage = 'appearance' | 'sound' | 'about'
 
 	let { open, onClose }: Props = $props()
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
 	let activePage: SettingsPage = $state('appearance')
+
+	// Reset to first page when opening
+	$effect(() => {
+		if (open) {
+			activePage = 'appearance'
+		}
+	})
 
 	// Sync dialog open state
 	$effect(() => {
@@ -75,11 +83,40 @@
 		settingsStore.setAccentColor(newColor)
 	}
 
-	function handleAudioDeviceChange(e: Event) {
-		const select = e.target as HTMLSelectElement
-		const value = select.value
+	function handleAudioDeviceChange(value: string) {
 		settingsStore.setAudioDevice(value === '' ? null : value)
 	}
+
+	// Build grouped audio device options for Select component
+	const audioDeviceOptions = $derived.by(() => {
+		type SelectOption = { value: string; label: string }
+		type SelectOptionGroup = { label: string; options: SelectOption[] }
+
+		const systemDevices: SelectOption[] = [{ value: '', label: 'Default' }]
+		const externalDevices: SelectOption[] = []
+
+		for (const device of $audioDevices) {
+			const option: SelectOption = {
+				value: device.name,
+				label: device.isDefault ? `${device.name} (Default)` : device.name,
+			}
+
+			if (device.isBuiltIn) {
+				systemDevices.push(option)
+			} else {
+				externalDevices.push(option)
+			}
+		}
+
+		const groups: SelectOptionGroup[] = [{ label: 'System', options: systemDevices }]
+
+		// Only add External section if there are external devices
+		if (externalDevices.length > 0) {
+			groups.push({ label: 'External', options: externalDevices })
+		}
+
+		return groups
+	})
 </script>
 
 <dialog
@@ -115,8 +152,19 @@
 							: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 						onclick={() => (activePage = 'sound')}
 					>
-						<Icon name="volume-2" class="h-4 w-4" />
+						<Icon name="volume-full" class="h-4 w-4" fill />
 						Sound
+					</button>
+					<button
+						type="button"
+						class="flex w-full items-center gap-2 rounded-md px-3 py-2
+							text-sm font-medium hover:cursor-pointer {activePage === 'about'
+							? 'bg-brand-muted text-brand-primary'
+							: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+						onclick={() => (activePage = 'about')}
+					>
+						<Icon name="info" class="h-4 w-4" />
+						About
 					</button>
 				</nav>
 			</div>
@@ -182,23 +230,36 @@
 						<section>
 							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Output Device</h3>
 							<div class="max-w-md">
-								<select
-									class="w-full rounded-lg border border-stroke bg-surface-2 px-4 py-2.5
-										text-sm text-text-primary focus:border-brand-primary focus:ring-1
-										focus:ring-brand-primary focus:outline-none"
+								<Select
 									value={$audioDevice ?? ''}
+									options={audioDeviceOptions}
+									placeholder="System Default"
 									onchange={handleAudioDeviceChange}
-								>
-									<option value="">System Default</option>
-									{#each $audioDevices as device (device.name)}
-										<option value={device.name}>
-											{device.name}{device.isDefault ? ' (Default)' : ''}
-										</option>
-									{/each}
-								</select>
-								<p class="mt-2 text-xs text-text-tertiary">
-									Select the audio output device for playback. Changes take effect on the next track.
-								</p>
+								/>
+								<p class="mt-2 text-xs text-text-tertiary">Select the audio output device for playback.</p>
+							</div>
+						</section>
+					</div>
+				{:else if activePage === 'about'}
+					<div class="space-y-8">
+						<!-- Application Section -->
+						<section>
+							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Application</h3>
+							<div class="space-y-3 text-sm">
+								<div class="flex justify-between">
+									<span class="text-text-secondary">Version</span>
+									<span class="text-text-primary">{$appInfo?.version ?? 'Unknown'}</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-text-secondary">Environment</span>
+									<span class="text-text-primary capitalize">{$appInfo?.environment ?? 'Unknown'}</span>
+								</div>
+								<div class="flex justify-between">
+									<span class="text-text-secondary">Data Directory</span>
+									<span class="max-w-xs truncate font-mono text-xs text-text-primary" title={$appInfo?.dataDir}>
+										{$appInfo?.dataDir ?? 'Unknown'}
+									</span>
+								</div>
 							</div>
 						</section>
 					</div>
