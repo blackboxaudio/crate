@@ -10,6 +10,7 @@
 		playlists: Playlist[]
 		currentPlaylistId: string | null
 		onClose: () => void
+		onRevealInExplorer: () => void
 		onAddToPlaylist: (playlistId: string) => void
 		onRemoveFromPlaylist: () => void
 		onRemoveFromLibrary: () => void
@@ -23,14 +24,38 @@
 		playlists,
 		currentPlaylistId,
 		onClose,
+		onRevealInExplorer,
 		onAddToPlaylist,
 		onRemoveFromPlaylist,
 		onRemoveFromLibrary,
 	}: Props = $props()
 
+	// Platform-specific label for "View in Finder/Explorer"
+	const revealLabel = $derived(() => {
+		const ua = navigator.userAgent
+		if (ua.includes('Mac')) return 'View in Finder'
+		if (ua.includes('Windows')) return 'View in Explorer'
+		return 'View in File Manager'
+	})
+
 	// Build menu items
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
+
+		// "View in Finder/Explorer" - only for single track selection
+		if (selectedTracks.length === 1) {
+			items.push({
+				id: 'reveal-in-explorer',
+				label: revealLabel(),
+				icon: 'folder-open',
+				action: onRevealInExplorer,
+			})
+			items.push({
+				id: 'reveal-divider',
+				label: '',
+				divider: true,
+			})
+		}
 
 		// Add to Playlist submenu
 		const playlistItems = playlists.filter((p) => !p.is_folder)

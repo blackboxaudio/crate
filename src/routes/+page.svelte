@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { open } from '@tauri-apps/plugin-dialog'
+	import { revealItemInDir } from '@tauri-apps/plugin-opener'
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 	import { getCurrentWindow } from '@tauri-apps/api/window'
 
@@ -520,6 +521,13 @@
 		contextMenuOpen = false
 		const trackIds = contextMenuTracks.map((t) => t.id)
 		await playlistsStore.addTracks(playlistId, trackIds)
+	}
+
+	async function handleRevealInExplorer() {
+		contextMenuOpen = false
+		if (contextMenuTracks.length === 1) {
+			await revealItemInDir(contextMenuTracks[0].file_path)
+		}
 	}
 
 	// Track removal handlers
@@ -1063,6 +1071,7 @@
 	{playlists}
 	currentPlaylistId={selectedPlaylistId}
 	onClose={() => (contextMenuOpen = false)}
+	onRevealInExplorer={handleRevealInExplorer}
 	onAddToPlaylist={handleAddToPlaylist}
 	onRemoveFromPlaylist={handleRemoveFromPlaylistClick}
 	onRemoveFromLibrary={handleRemoveFromLibraryClick}

@@ -1,3 +1,5 @@
+use tauri::Manager;
+
 #[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppInfo {
@@ -8,21 +10,15 @@ pub struct AppInfo {
 }
 
 #[tauri::command]
-pub fn get_app_info() -> AppInfo {
+pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
     let is_dev = cfg!(debug_assertions);
-    let app_dir_name = if is_dev {
-        "com.crate.app.dev"
-    } else {
-        "com.crate.app"
-    };
 
-    let data_dir = dirs::data_dir()
-        .unwrap_or_else(|| std::path::PathBuf::from("."))
-        .join(app_dir_name)
+    let data_dir = app.path().app_data_dir()
+        .map_err(|e| e.to_string())?
         .to_string_lossy()
         .to_string();
 
-    AppInfo {
+    Ok(AppInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
         environment: if is_dev {
             "development".to_string()
@@ -31,5 +27,5 @@ pub fn get_app_info() -> AppInfo {
         },
         is_dev,
         data_dir,
-    }
+    })
 }

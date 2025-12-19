@@ -6,6 +6,7 @@ use image::ImageFormat;
 use lofty::file::TaggedFile;
 use lofty::picture::PictureType;
 use lofty::prelude::*;
+use lofty::tag::{Tag, TagType};
 
 /// Service for managing album artwork extraction and storage.
 /// Artwork is stored as 500x500 WEBP images in the app data directory.
@@ -27,26 +28,55 @@ impl ArtworkService {
 
     /// Extracts album art from a tagged audio file and saves it as WEBP.
     /// Returns the relative path (e.g., "artwork/{track_id}.webp") if successful.
-    /// Iterates through ALL tags to find pictures (important for AIFF which has dual tag systems).
+    /// Uses multiple strategies to find pictures across different tag systems.
     pub fn extract_and_save(&self, tagged_file: &TaggedFile, track_id: &str) -> Option<String> {
-        // Search through ALL tags to find pictures
-        // This is important for formats like AIFF that can have metadata in multiple places
-        // (native AIFF chunks + ID3v2 tags), where pictures are only in ID3v2
-        for tag in tagged_file.tags() {
-            // Find the front cover picture, or fall back to first available
-            let picture = tag
-                .pictures()
-                .iter()
-                .find(|p| p.pic_type() == PictureType::CoverFront)
-                .or_else(|| tag.pictures().first());
-
-            if let Some(pic) = picture {
-                if let Some(path) = self.save_picture(pic.data(), track_id) {
-                    return Some(path);
-                }
+        // First try the primary tag (most reliable for common formats)
+        if let Some(tag) = tagged_file.primary_tag() {
+            if let Some(path) = self.extract_from_tag(tag, track_id) {
+                return Some(path);
             }
         }
+
+        // Then try all available tags through the generic interface
+        for tag in tagged_file.tags() {
+            if let Some(path) = self.extract_from_tag(tag, track_id) {
+                return Some(path);
+            }
+        }
+
+        // For AIFF and MP3 files, explicitly check ID3v2 tag
+        // (pictures are stored in ID3v2, not in native AIFF chunks)
+        if let Some(tag) = tagged_file.tag(TagType::Id3v2) {
+            if let Some(path) = self.extract_from_tag(tag, track_id) {
+                return Some(path);
+            }
+        }
+
+        // Also try APE tags (sometimes used in MP3 files)
+        if let Some(tag) = tagged_file.tag(TagType::Ape) {
+            if let Some(path) = self.extract_from_tag(tag, track_id) {
+                return Some(path);
+            }
+        }
+
+        log::debug!("No artwork found for track {}", track_id);
         None
+    }
+
+    /// Extracts a picture from a single tag and saves it.
+    fn extract_from_tag(&self, tag: &Tag, track_id: &str) -> Option<String> {
+        let pictures = tag.pictures();
+        if pictures.is_empty() {
+            return None;
+        }
+
+        // Prefer front cover, fall back to first available
+        let picture = pictures
+            .iter()
+            .find(|p| p.pic_type() == PictureType::CoverFront)
+            .or_else(|| pictures.first())?;
+
+        self.save_picture(picture.data(), track_id)
     }
 
     /// Saves picture data to disk as a WEBP image.
