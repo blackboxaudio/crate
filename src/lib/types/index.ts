@@ -47,6 +47,7 @@ export interface Track {
 export interface TrackFilter {
 	search?: string
 	tag_ids?: string[]
+	tag_filter_mode?: TagFilterMode
 	playlist_id?: string
 	bpm_min?: number
 	bpm_max?: number
@@ -92,6 +93,8 @@ export interface Tag {
 }
 
 export type TagSelectionState = 'active' | 'inactive' | 'mixed'
+
+export type TagFilterMode = 'and' | 'or'
 
 // =============================================================================
 // Playlist Types
@@ -236,4 +239,10 @@ export type AccentColor =
 export interface AppSettings {
 	theme: Theme
 	accentColor: AccentColor
+	audioDevice: string | null
+}
+
+export interface AudioDevice {
+	name: string
+	isDefault: boolean
 }

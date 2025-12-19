@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor } from '$lib/types'
+import type { Theme, AccentColor, AudioDevice } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 
 // =============================================================================
@@ -10,6 +10,8 @@ interface SettingsState {
 	theme: Theme
 	accentColor: AccentColor
 	resolvedTheme: 'light' | 'dark' // Actual theme after resolving 'system'
+	audioDevice: string | null
+	audioDevices: AudioDevice[]
 	loading: boolean
 	error: string | null
 }
@@ -18,6 +20,8 @@ const initialState: SettingsState = {
 	theme: 'system',
 	accentColor: 'blue',
 	resolvedTheme: 'dark',
+	audioDevice: null,
+	audioDevices: [],
 	loading: false,
 	error: null,
 }
@@ -89,13 +93,15 @@ function createSettingsStore() {
 			update((s) => ({ ...s, loading: true, error: null }))
 
 			try {
-				const settings = await settingsApi.getSettings()
+				const [settings, audioDevices] = await Promise.all([settingsApi.getSettings(), settingsApi.getAudioDevices()])
 				const resolvedTheme = resolveTheme(settings.theme)
 
 				update((s) => ({
 					...s,
 					theme: settings.theme,
 					accentColor: settings.accentColor,
+					audioDevice: settings.audioDevice,
+					audioDevices,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -149,6 +155,31 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set audio output device
+		 */
+		async setAudioDevice(deviceName: string | null) {
+			update((s) => ({ ...s, audioDevice: deviceName }))
+
+			try {
+				await settingsApi.setAudioDevice(deviceName)
+			} catch (error) {
+				console.error('Failed to save audio device setting:', error)
+			}
+		},
+
+		/**
+		 * Refresh the list of available audio devices
+		 */
+		async refreshAudioDevices() {
+			try {
+				const audioDevices = await settingsApi.getAudioDevices()
+				update((s) => ({ ...s, audioDevices }))
+			} catch (error) {
+				console.error('Failed to refresh audio devices:', error)
+			}
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {
@@ -168,5 +199,9 @@ export const theme = derived(settingsStore, ($s) => $s.theme)
 export const accentColor = derived(settingsStore, ($s) => $s.accentColor)
 
 export const resolvedTheme = derived(settingsStore, ($s) => $s.resolvedTheme)
+
+export const audioDevice = derived(settingsStore, ($s) => $s.audioDevice)
+
+export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

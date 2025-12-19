@@ -9,12 +9,14 @@ use std::time::Duration;
 use lofty::config::{ParseOptions, ParsingMode};
 use lofty::file::AudioFile;
 use lofty::probe::Probe;
+use rodio::cpal::traits::{DeviceTrait, HostTrait};
 use rodio::{Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
 
 use crate::error::{CrateError, Result};
+use crate::models::AudioDevice;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlaybackState {
@@ -51,6 +53,7 @@ enum AudioCommand {
     Stop,
     Seek(u64),
     SetVolume(f32),
+    SetDevice(Option<String>),
     GetState,
     #[allow(dead_code)]
     Shutdown,
@@ -221,6 +224,34 @@ impl AudioService {
             AudioResponse::Ok => Ok(PlaybackState::default()),
         }
     }
+
+    pub fn set_device(&self, device_name: Option<String>) -> Result<()> {
+        match self.send_command(AudioCommand::SetDevice(device_name))? {
+            AudioResponse::Ok => Ok(()),
+            AudioResponse::Error(e) => Err(CrateError::Audio(e)),
+            _ => Ok(()),
+        }
+    }
+
+    pub fn get_output_devices() -> Result<Vec<AudioDevice>> {
+        let host = rodio::cpal::default_host();
+        let default_device = host.default_output_device();
+        let default_name = default_device.as_ref().and_then(|d| d.name().ok());
+
+        let devices = host
+            .output_devices()
+            .map_err(|e| CrateError::Audio(format!("Failed to enumerate devices: {e}")))?;
+
+        let mut result = Vec::new();
+        for device in devices {
+            if let Ok(name) = device.name() {
+                let is_default = default_name.as_ref() == Some(&name);
+                result.push(AudioDevice { name, is_default });
+            }
+        }
+
+        Ok(result)
+    }
 }
 
 impl Clone for AudioService {
@@ -241,11 +272,13 @@ struct AudioPlayer {
 fn audio_thread(command_rx: Receiver<AudioCommand>, response_tx: Sender<AudioResponse>) {
     let mut player: Option<AudioPlayer> = None;
     let mut current_volume: f32 = 1.0;
+    let mut selected_device: Option<String> = None;
 
     loop {
         match command_rx.recv() {
             Ok(cmd) => {
-                let response = handle_command(cmd, &mut player, &mut current_volume);
+                let response =
+                    handle_command(cmd, &mut player, &mut current_volume, &mut selected_device);
 
                 // Check if we should shutdown
                 if matches!(response, AudioResponse::Ok) && player.is_none() {
@@ -265,10 +298,18 @@ fn audio_thread(command_rx: Receiver<AudioCommand>, response_tx: Sender<AudioRes
     }
 }
 
+fn find_device_by_name(name: &str) -> Option<rodio::cpal::Device> {
+    let host = rodio::cpal::default_host();
+    host.output_devices()
+        .ok()?
+        .find(|d| d.name().ok().as_deref() == Some(name))
+}
+
 fn handle_command(
     cmd: AudioCommand,
     player: &mut Option<AudioPlayer>,
     current_volume: &mut f32,
+    selected_device: &mut Option<String>,
 ) -> AudioResponse {
     match cmd {
         AudioCommand::Play {
@@ -279,11 +320,45 @@ fn handle_command(
             // Stop any existing playback
             *player = None;
 
-            // Create new audio output
-            let (stream, stream_handle) = match OutputStream::try_default() {
-                Ok(s) => s,
-                Err(e) => {
-                    return AudioResponse::Error(format!("Failed to create audio output: {e}"))
+            // Create audio output using selected device or default
+            let (stream, stream_handle) = if let Some(ref device_name) = selected_device {
+                if let Some(device) = find_device_by_name(device_name) {
+                    match OutputStream::try_from_device(&device) {
+                        Ok(s) => s,
+                        Err(e) => {
+                            log::warn!(
+                                "Failed to use device '{device_name}': {e}, falling back to default"
+                            );
+                            // Fallback to default
+                            match OutputStream::try_default() {
+                                Ok(s) => s,
+                                Err(e) => {
+                                    return AudioResponse::Error(format!(
+                                        "Failed to create audio output: {e}"
+                                    ))
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    log::warn!("Device '{device_name}' not found, falling back to default");
+                    // Device not found, fallback to default
+                    match OutputStream::try_default() {
+                        Ok(s) => s,
+                        Err(e) => {
+                            return AudioResponse::Error(format!(
+                                "Failed to create audio output: {e}"
+                            ))
+                        }
+                    }
+                }
+            } else {
+                // Use default device
+                match OutputStream::try_default() {
+                    Ok(s) => s,
+                    Err(e) => {
+                        return AudioResponse::Error(format!("Failed to create audio output: {e}"))
+                    }
                 }
             };
 
@@ -380,6 +455,11 @@ fn handle_command(
                     ..Default::default()
                 })
             }
+        }
+
+        AudioCommand::SetDevice(device_name) => {
+            *selected_device = device_name;
+            AudioResponse::Ok
         }
 
         AudioCommand::GetState => {

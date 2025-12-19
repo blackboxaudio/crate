@@ -30,9 +30,12 @@ impl SettingsService {
             .and_then(|v| v.parse().ok())
             .unwrap_or_default();
 
+        let audio_device = self.get_setting_value(&conn, "audio_device")?;
+
         Ok(AppSettings {
             theme,
             accent_color,
+            audio_device,
         })
     }
 

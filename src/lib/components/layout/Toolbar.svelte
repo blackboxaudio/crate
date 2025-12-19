@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Tag } from '$lib/types'
+	import type { Tag, TagFilterMode } from '$lib/types'
 	import { Button, IconButton } from '$lib/components/common'
 	import { SearchBar } from '$lib/components/library'
 	import Icon from '$lib/components/common/Icon.svelte'
@@ -7,13 +7,24 @@
 	type Props = {
 		activeFilterTags?: Tag[]
 		tagColors?: Map<string, string | null>
+		tagFilterMode?: TagFilterMode
 		onRemoveTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
+		onToggleTagFilterMode?: () => void
 		onImport?: () => void
 		onSettings?: () => void
 	}
 
-	let { activeFilterTags, tagColors, onRemoveTagFilter, onClearAllTagFilters, onImport, onSettings }: Props = $props()
+	let {
+		activeFilterTags,
+		tagColors,
+		tagFilterMode,
+		onRemoveTagFilter,
+		onClearAllTagFilters,
+		onToggleTagFilterMode,
+		onImport,
+		onSettings,
+	}: Props = $props()
 </script>
 
 <div class="relative z-20 flex items-center gap-4 border-b border-stroke bg-surface-1 px-4 py-2">
@@ -25,7 +36,14 @@
 
 	<!-- Search -->
 	<div class="max-w-md flex-1">
-		<SearchBar {activeFilterTags} {tagColors} {onRemoveTagFilter} {onClearAllTagFilters} />
+		<SearchBar
+			{activeFilterTags}
+			{tagColors}
+			{tagFilterMode}
+			{onRemoveTagFilter}
+			{onClearAllTagFilters}
+			{onToggleTagFilterMode}
+		/>
 	</div>
 
 	<!-- Spacer -->

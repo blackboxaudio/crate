@@ -38,6 +38,15 @@ pub fn run() {
     let audio_service = AudioService::new().expect("Failed to initialize audio service");
     let device_service = DeviceService::new();
 
+    // Load saved audio device setting
+    if let Ok(settings) = settings_service.get_settings() {
+        if let Some(device_name) = settings.audio_device {
+            if !device_name.is_empty() {
+                let _ = audio_service.set_device(Some(device_name));
+            }
+        }
+    }
+
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -64,6 +73,8 @@ pub fn run() {
             commands::playback::seek,
             commands::playback::set_volume,
             commands::playback::get_playback_state,
+            commands::playback::get_audio_devices,
+            commands::playback::set_audio_device,
             // Tag commands
             commands::tag::get_tag_categories,
             commands::tag::create_tag_category,

@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store'
-import type { SidebarView } from '$lib/types'
+import type { SidebarView, TagFilterMode } from '$lib/types'
 import { getStoredNumber, setStoredNumber } from '$lib/utils/storage'
 
 // =============================================================================
@@ -16,6 +16,7 @@ interface UIState {
 	selectedPlaylistId: string | null
 	selectedFolderId: string | null
 	selectedTagIds: string[]
+	tagFilterMode: TagFilterMode
 	sidebarWidth: number
 
 	// Search
@@ -40,6 +41,7 @@ const initialState: UIState = {
 	selectedPlaylistId: null,
 	selectedFolderId: null,
 	selectedTagIds: [],
+	tagFilterMode: 'or',
 	sidebarWidth: getStoredNumber('sidebarWidth', 240),
 	searchQuery: '',
 	searchFocused: false,
@@ -197,6 +199,26 @@ function createUIStore() {
 				...state,
 				sidebarView: 'library',
 				selectedTagIds: [],
+			}))
+		},
+
+		/**
+		 * Set tag filter mode (AND/OR)
+		 */
+		setTagFilterMode(mode: TagFilterMode) {
+			update((state) => ({
+				...state,
+				tagFilterMode: mode,
+			}))
+		},
+
+		/**
+		 * Toggle tag filter mode between AND and OR
+		 */
+		toggleTagFilterMode() {
+			update((state) => ({
+				...state,
+				tagFilterMode: state.tagFilterMode === 'or' ? 'and' : 'or',
 			}))
 		},
 
@@ -360,3 +382,5 @@ export const isSearchActive = derived(uiStore, ($ui) => $ui.searchQuery.length >
 export const recentlyToggledMixedTags = derived(uiStore, ($ui) => $ui.recentlyToggledMixedTags)
 
 export const selectedTagIds = derived(uiStore, ($ui) => $ui.selectedTagIds)
+
+export const tagFilterMode = derived(uiStore, ($ui) => $ui.tagFilterMode)

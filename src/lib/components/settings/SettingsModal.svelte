@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Theme, AccentColor } from '$lib/types'
-	import { settingsStore, theme, accentColor } from '$lib/stores/settings'
+	import { settingsStore, theme, accentColor, audioDevice, audioDevices } from '$lib/stores/settings'
 	import { Button } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 
@@ -9,9 +9,12 @@
 		onClose: () => void
 	}
 
+	type SettingsPage = 'appearance' | 'sound'
+
 	let { open, onClose }: Props = $props()
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
+	let activePage: SettingsPage = $state('appearance')
 
 	// Sync dialog open state
 	$effect(() => {
@@ -20,6 +23,13 @@
 			dialogEl.showModal()
 		} else if (!open && dialogEl.open) {
 			dialogEl.close()
+		}
+	})
+
+	// Refresh audio devices when opening sound settings
+	$effect(() => {
+		if (open && activePage === 'sound') {
+			settingsStore.refreshAudioDevices()
 		}
 	})
 
@@ -64,6 +74,12 @@
 	function handleAccentChange(newColor: AccentColor) {
 		settingsStore.setAccentColor(newColor)
 	}
+
+	function handleAudioDeviceChange(e: Event) {
+		const select = e.target as HTMLSelectElement
+		const value = select.value
+		settingsStore.setAudioDevice(value === '' ? null : value)
+	}
 </script>
 
 <dialog
@@ -82,69 +98,111 @@
 				<nav class="space-y-1">
 					<button
 						type="button"
-						class="flex w-full items-center gap-2 rounded-md bg-brand-muted px-3 py-2
-							text-sm font-medium text-brand-primary hover:cursor-pointer"
+						class="flex w-full items-center gap-2 rounded-md px-3 py-2
+							text-sm font-medium hover:cursor-pointer {activePage === 'appearance'
+							? 'bg-brand-muted text-brand-primary'
+							: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+						onclick={() => (activePage = 'appearance')}
 					>
 						<Icon name="palette" class="h-4 w-4" />
 						Appearance
+					</button>
+					<button
+						type="button"
+						class="flex w-full items-center gap-2 rounded-md px-3 py-2
+							text-sm font-medium hover:cursor-pointer {activePage === 'sound'
+							? 'bg-brand-muted text-brand-primary'
+							: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+						onclick={() => (activePage = 'sound')}
+					>
+						<Icon name="volume-2" class="h-4 w-4" />
+						Sound
 					</button>
 				</nav>
 			</div>
 
 			<!-- Content -->
 			<div class="flex-1 overflow-auto p-6">
-				<div class="space-y-8">
-					<!-- Theme Section -->
-					<section>
-						<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Theme</h3>
-						<div class="flex gap-3">
-							{#each themeOptions as option (option.value)}
-								<button
-									type="button"
-									class="flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4
-										transition-colors {$theme === option.value
-										? 'border-brand-primary bg-brand-muted'
-										: 'border-stroke hover:cursor-pointer hover:border-text-tertiary'}"
-									onclick={() => handleThemeChange(option.value)}
-								>
-									{#if option.value === 'light'}
-										<Icon name="sun" class="h-6 w-6" />
-									{:else if option.value === 'dark'}
-										<Icon name="moon" class="h-6 w-6" />
-									{:else}
-										<Icon name="monitor" class="h-6 w-6" />
-									{/if}
-									<span class="text-sm font-medium">{option.label}</span>
-								</button>
-							{/each}
-						</div>
-					</section>
+				{#if activePage === 'appearance'}
+					<div class="space-y-8">
+						<!-- Theme Section -->
+						<section>
+							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Theme</h3>
+							<div class="flex gap-3">
+								{#each themeOptions as option (option.value)}
+									<button
+										type="button"
+										class="flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4
+											transition-colors {$theme === option.value
+											? 'border-brand-primary bg-brand-muted'
+											: 'border-stroke hover:cursor-pointer hover:border-text-tertiary'}"
+										onclick={() => handleThemeChange(option.value)}
+									>
+										{#if option.value === 'light'}
+											<Icon name="sun" class="h-6 w-6" />
+										{:else if option.value === 'dark'}
+											<Icon name="moon" class="h-6 w-6" />
+										{:else}
+											<Icon name="monitor" class="h-6 w-6" />
+										{/if}
+										<span class="text-sm font-medium">{option.label}</span>
+									</button>
+								{/each}
+							</div>
+						</section>
 
-					<!-- Accent Color Section -->
-					<section>
-						<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Accent Color</h3>
-						<div class="grid grid-cols-5 gap-3">
-							{#each accentColors as color (color.value)}
-								<button
-									type="button"
-									class="group flex flex-col items-center gap-2 rounded-lg p-3
-										transition-colors hover:cursor-pointer hover:bg-surface-2"
-									onclick={() => handleAccentChange(color.value)}
-									title={color.label}
+						<!-- Accent Color Section -->
+						<section>
+							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Accent Color</h3>
+							<div class="grid grid-cols-5 gap-3">
+								{#each accentColors as color (color.value)}
+									<button
+										type="button"
+										class="group flex flex-col items-center gap-2 rounded-lg p-3
+											transition-colors hover:cursor-pointer hover:bg-surface-2"
+										onclick={() => handleAccentChange(color.value)}
+										title={color.label}
+									>
+										<div
+											class="h-8 w-8 rounded-full transition-transform
+												group-hover:scale-110 {$accentColor === color.value
+												? 'ring-2 ring-text-primary ring-offset-2 ring-offset-surface-1'
+												: ''}"
+											style="background-color: {color.hex};"
+										></div>
+										<span class="text-xs text-text-secondary">{color.label}</span>
+									</button>
+								{/each}
+							</div>
+						</section>
+					</div>
+				{:else if activePage === 'sound'}
+					<div class="space-y-8">
+						<!-- Output Device Section -->
+						<section>
+							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Output Device</h3>
+							<div class="max-w-md">
+								<select
+									class="w-full rounded-lg border border-stroke bg-surface-2 px-4 py-2.5
+										text-sm text-text-primary focus:border-brand-primary focus:ring-1
+										focus:ring-brand-primary focus:outline-none"
+									value={$audioDevice ?? ''}
+									onchange={handleAudioDeviceChange}
 								>
-									<div
-										class="h-8 w-8 rounded-full transition-transform
-											group-hover:scale-110 {$accentColor === color.value
-											? 'ring-2 ring-text-primary ring-offset-2 ring-offset-surface-1'
-											: ''}"
-										style="background-color: {color.hex};"
-									></div>
-									<span class="text-xs text-text-secondary">{color.label}</span>
-								</button>
-							{/each}
-						</div>
-					</section>
-				</div>
+									<option value="">System Default</option>
+									{#each $audioDevices as device (device.name)}
+										<option value={device.name}>
+											{device.name}{device.isDefault ? ' (Default)' : ''}
+										</option>
+									{/each}
+								</select>
+								<p class="mt-2 text-xs text-text-tertiary">
+									Select the audio output device for playback. Changes take effect on the next track.
+								</p>
+							</div>
+						</section>
+					</div>
+				{/if}
 			</div>
 		</div>
 

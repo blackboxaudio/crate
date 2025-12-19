@@ -26,6 +26,7 @@
 		uiStore,
 		selectedTrackIds,
 		recentlyToggledMixedTags,
+		tagFilterMode,
 		settingsStore,
 		devicesStore,
 		computeTagStates,
@@ -351,7 +352,7 @@
 			? selectedTagIds.filter((id) => id !== tagId)
 			: [...selectedTagIds, tagId]
 		if (updatedTagIds.length > 0) {
-			await libraryStore.loadTracks({ tag_ids: updatedTagIds })
+			await libraryStore.loadTracks({ tag_ids: updatedTagIds, tag_filter_mode: $tagFilterMode })
 		} else {
 			await libraryStore.loadTracks()
 		}
@@ -398,10 +399,20 @@
 		uiStore.removeTagFilter(tagId)
 		const updatedTagIds = selectedTagIds.filter((id) => id !== tagId)
 		if (updatedTagIds.length > 0) {
-			await libraryStore.loadTracks({ tag_ids: updatedTagIds })
+			await libraryStore.loadTracks({ tag_ids: updatedTagIds, tag_filter_mode: $tagFilterMode })
 		} else {
 			libraryStore.clearFilters()
 			await libraryStore.loadTracks()
+		}
+	}
+
+	// Toggle tag filter mode (AND/OR)
+	async function handleToggleTagFilterMode() {
+		uiStore.toggleTagFilterMode()
+		// Reload tracks with the new mode if tags are selected
+		if (selectedTagIds.length > 0) {
+			const newMode = $tagFilterMode === 'or' ? 'and' : 'or'
+			await libraryStore.loadTracks({ tag_ids: selectedTagIds, tag_filter_mode: newMode })
 		}
 	}
 
@@ -753,8 +764,10 @@
 	<Toolbar
 		{activeFilterTags}
 		{tagColors}
+		tagFilterMode={$tagFilterMode}
 		onRemoveTagFilter={handleRemoveTagFilter}
 		onClearAllTagFilters={handleClearTagFilter}
+		onToggleTagFilterMode={handleToggleTagFilterMode}
 		onImport={handleImport}
 		onSettings={() => (showSettings = true)}
 	/>

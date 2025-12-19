@@ -82,6 +82,7 @@ impl Track {
 pub struct TrackFilter {
     pub search: Option<String>,
     pub tag_ids: Option<Vec<String>>,
+    pub tag_filter_mode: Option<String>,
     pub playlist_id: Option<String>,
     pub bpm_min: Option<f64>,
     pub bpm_max: Option<f64>,

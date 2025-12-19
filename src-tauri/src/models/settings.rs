@@ -90,4 +90,12 @@ impl std::str::FromStr for AccentColor {
 pub struct AppSettings {
     pub theme: Theme,
     pub accent_color: AccentColor,
+    pub audio_device: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AudioDevice {
+    pub name: String,
+    pub is_default: bool,
 }

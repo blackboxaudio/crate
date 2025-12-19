@@ -21,6 +21,7 @@ export {
 	isSearchActive,
 	recentlyToggledMixedTags,
 	selectedTagIds,
+	tagFilterMode,
 } from './ui'
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'

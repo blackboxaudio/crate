@@ -283,10 +283,29 @@ impl LibraryService {
                         .enumerate()
                         .map(|(i, _)| format!("?{}", params.len() + i + 1))
                         .collect();
-                    conditions.push(format!(
-                        "t.id IN (SELECT track_id FROM track_tags WHERE tag_id IN ({}))",
-                        placeholders.join(", ")
-                    ));
+
+                    // Check filter mode: "and" requires all tags, "or" (default) requires any tag
+                    let is_and_mode = filter
+                        .tag_filter_mode
+                        .as_ref()
+                        .map(|m| m == "and")
+                        .unwrap_or(false);
+
+                    if is_and_mode {
+                        // AND mode: track must have ALL selected tags
+                        conditions.push(format!(
+                            "t.id IN (SELECT track_id FROM track_tags WHERE tag_id IN ({}) GROUP BY track_id HAVING COUNT(DISTINCT tag_id) = {})",
+                            placeholders.join(", "),
+                            tag_ids.len()
+                        ));
+                    } else {
+                        // OR mode: track must have ANY of the selected tags
+                        conditions.push(format!(
+                            "t.id IN (SELECT track_id FROM track_tags WHERE tag_id IN ({}))",
+                            placeholders.join(", ")
+                        ));
+                    }
+
                     for tag_id in tag_ids {
                         params.push(Box::new(tag_id.clone()));
                     }

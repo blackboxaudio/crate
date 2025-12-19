@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::error::CrateError;
+use crate::models::AudioDevice;
 use crate::services::audio::PlaybackState;
-use crate::services::{AudioService, LibraryService};
+use crate::services::{AudioService, LibraryService, SettingsService};
 
 #[tauri::command]
 pub async fn play_track(
@@ -53,4 +54,27 @@ pub async fn get_playback_state(
     audio: State<'_, AudioService>,
 ) -> Result<PlaybackState, CrateError> {
     audio.get_state()
+}
+
+#[tauri::command]
+pub async fn get_audio_devices() -> Result<Vec<AudioDevice>, CrateError> {
+    AudioService::get_output_devices()
+}
+
+#[tauri::command]
+pub async fn set_audio_device(
+    device_name: Option<String>,
+    audio: State<'_, AudioService>,
+    settings: State<'_, SettingsService>,
+) -> Result<(), CrateError> {
+    // Set the device in the audio service
+    audio.set_device(device_name.clone())?;
+
+    // Persist the setting
+    match device_name {
+        Some(name) => settings.set_setting("audio_device", &name)?,
+        None => settings.set_setting("audio_device", "")?,
+    }
+
+    Ok(())
 }

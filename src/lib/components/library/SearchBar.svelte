@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Tag } from '$lib/types'
+	import type { Tag, TagFilterMode } from '$lib/types'
 	import { libraryStore, uiStore } from '$lib/stores'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import TagChip from '$lib/components/tags/TagChip.svelte'
@@ -7,11 +7,20 @@
 	type Props = {
 		activeFilterTags?: Tag[]
 		tagColors?: Map<string, string | null>
+		tagFilterMode?: TagFilterMode
 		onRemoveTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
+		onToggleTagFilterMode?: () => void
 	}
 
-	let { activeFilterTags = [], tagColors, onRemoveTagFilter, onClearAllTagFilters }: Props = $props()
+	let {
+		activeFilterTags = [],
+		tagColors,
+		tagFilterMode = 'or',
+		onRemoveTagFilter,
+		onClearAllTagFilters,
+		onToggleTagFilterMode,
+	}: Props = $props()
 
 	// Compute remaining tags count for "+N" badge
 	const remainingTagsCount = $derived(activeFilterTags && activeFilterTags.length > 1 ? activeFilterTags.length - 1 : 0)
@@ -72,7 +81,11 @@
 
 	<!-- Tag filters container (right side, shifts left when clear button is visible) -->
 	{#if activeFilterTags && activeFilterTags.length > 0}
-		<div class="absolute inset-y-0 flex items-center gap-1 {inputValue ? 'right-8' : 'right-0 pr-3'}">
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="absolute inset-y-0 flex items-center gap-1 {inputValue ? 'right-8' : 'right-0 pr-3'}"
+			onmouseleave={() => (showTagPopup = false)}
+		>
 			<TagChip
 				tag={activeFilterTags[0]}
 				color={tagColors?.get(activeFilterTags[0].category_id)}
@@ -82,7 +95,7 @@
 			/>
 			{#if remainingTagsCount > 0}
 				<!-- Hover container for +N badge and popup -->
-				<div class="relative" onmouseenter={() => (showTagPopup = true)} onmouseleave={() => (showTagPopup = false)}>
+				<div class="relative" onmouseenter={() => (showTagPopup = true)}>
 					<span
 						class="hover:bg-surface-3 flex h-5 min-w-5 cursor-pointer items-center justify-center rounded bg-surface-2 px-1 text-xs text-text-secondary"
 					>
@@ -93,6 +106,30 @@
 					{#if showTagPopup}
 						<div class="absolute top-full right-0 pt-1">
 							<div class="min-w-[180px] rounded-md border border-stroke bg-surface-1 p-2 shadow-lg">
+								<!-- Filter mode toggle -->
+								<div class="mb-2 flex items-center justify-between border-b border-stroke pb-2 pl-1">
+									<span class="text-xs text-text-tertiary">Matching</span>
+									<button
+										type="button"
+										class="flex items-center gap-0.5 rounded-full border border-stroke bg-surface-2 p-0.5 text-xs font-medium hover:cursor-pointer"
+										onclick={() => onToggleTagFilterMode?.()}
+									>
+										<span
+											class="rounded-full px-2 py-0.5 transition-colors {tagFilterMode === 'or'
+												? 'bg-brand-primary text-white'
+												: 'text-text-tertiary hover:text-text-secondary'}"
+										>
+											OR
+										</span>
+										<span
+											class="rounded-full px-2 py-0.5 transition-colors {tagFilterMode === 'and'
+												? 'bg-brand-primary text-white'
+												: 'text-text-tertiary hover:text-text-secondary'}"
+										>
+											AND
+										</span>
+									</button>
+								</div>
 								<div class="flex flex-col gap-1.5">
 									{#each activeFilterTags as tag (tag.id)}
 										<div
