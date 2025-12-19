@@ -94,4 +94,4 @@ jobs:
           components: clippy
 
       - name: Run clippy
-        run: cargo +nightly clippy --release -- -D warnings
+        run: cargo +nightly clippy -- -D warnings
