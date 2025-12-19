@@ -30,7 +30,7 @@
 
 		<button
 			type="button"
-			class="flex items-center gap-2 rounded px-2 py-1 text-sm transition-colors hover:bg-surface-2
+			class="flex items-center gap-2 rounded px-2 py-1 text-sm transition-colors hover:cursor-pointer hover:bg-surface-2
 				{index === items.length - 1 ? 'font-medium text-text-primary' : 'text-text-secondary'}"
 			onclick={() => onNavigate(item)}
 			oncontextmenu={(e) => {
@@ -42,7 +42,7 @@
 			<span>{item.name}</span>
 
 			{#if index === items.length - 1 && item.count !== undefined}
-				<span class="text-text-tertiary">
+				<span class="ml-2 text-text-tertiary">
 					{item.count}
 					{item.countLabel}
 				</span>

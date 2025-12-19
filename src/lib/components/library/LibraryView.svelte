@@ -44,7 +44,7 @@
 				/>
 			</svg>
 			<span>Library</span>
-			<span class="text-text-tertiary">
+			<span class="ml-2 text-text-tertiary">
 				{trackCount}
 				{trackCount === 1 ? 'track' : 'tracks'}
 			</span>
