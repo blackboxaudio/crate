@@ -3,14 +3,14 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::error::CrateError;
-use crate::models::{Track, TrackFilter, TrackUpdate};
+use crate::models::{ImportResult, Track, TrackFilter, TrackUpdate};
 use crate::services::LibraryService;
 
 #[tauri::command]
 pub async fn import_tracks(
     paths: Vec<String>,
     library: State<'_, LibraryService>,
-) -> Result<Vec<Track>, CrateError> {
+) -> Result<ImportResult, CrateError> {
     let pathbufs: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
     library.import_tracks(pathbufs)
 }

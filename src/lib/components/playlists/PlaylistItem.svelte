@@ -27,36 +27,63 @@
 
 	let paddingLeft = $derived(`${depth * 12 + 8}px`)
 	let isDragOver = $state(false)
+	let dragEnterCounter = $state(0)
+
+	// Check if dataTransfer contains our custom track mime type
+	function hasTrackData(dataTransfer: DataTransfer | null): boolean {
+		if (!dataTransfer?.types) return false
+		// Always use Array.from for reliable cross-browser compatibility
+		return Array.from(dataTransfer.types).includes('application/x-crate-tracks')
+	}
 
 	function handleDragOver(e: DragEvent) {
 		// Only accept drops on playlists, not folders
 		if (playlist.is_folder) return
 
-		if (e.dataTransfer?.types.includes('application/x-crate-tracks')) {
+		console.log('[DragOver]', playlist.name, {
+			types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : null,
+			hasData: hasTrackData(e.dataTransfer),
+		})
+
+		if (hasTrackData(e.dataTransfer)) {
 			e.preventDefault()
-			e.dataTransfer.dropEffect = 'copy'
+			e.stopPropagation()
+			e.dataTransfer!.dropEffect = 'copy'
 		}
 	}
 
 	function handleDragEnter(e: DragEvent) {
 		if (playlist.is_folder) return
 
-		if (e.dataTransfer?.types.includes('application/x-crate-tracks')) {
+		if (hasTrackData(e.dataTransfer)) {
+			e.preventDefault() // Required to indicate valid drop target
+			e.stopPropagation()
+			dragEnterCounter++
 			isDragOver = true
 		}
 	}
 
-	function handleDragLeave() {
-		isDragOver = false
+	function handleDragLeave(e: DragEvent) {
+		if (playlist.is_folder) return
+
+		if (hasTrackData(e.dataTransfer)) {
+			dragEnterCounter--
+			if (dragEnterCounter <= 0) {
+				dragEnterCounter = 0
+				isDragOver = false
+			}
+		}
 	}
 
 	function handleDrop(e: DragEvent) {
+		e.preventDefault()
+		e.stopPropagation()
+		dragEnterCounter = 0
 		isDragOver = false
 		if (playlist.is_folder) return
 
 		const data = e.dataTransfer?.getData('application/x-crate-tracks')
 		if (data) {
-			e.preventDefault()
 			try {
 				const trackIds = JSON.parse(data) as string[]
 				onTracksDrop?.(trackIds)

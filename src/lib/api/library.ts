@@ -1,11 +1,11 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { Track, TrackFilter, TrackUpdate } from '$lib/types'
+import type { ImportResult, Track, TrackFilter, TrackUpdate } from '$lib/types'
 
 /**
  * Import tracks from file paths into the library
  */
-export async function importTracks(paths: string[]): Promise<Track[]> {
-	return invoke<Track[]>('import_tracks', { paths })
+export async function importTracks(paths: string[]): Promise<ImportResult> {
+	return invoke<ImportResult>('import_tracks', { paths })
 }
 
 /**

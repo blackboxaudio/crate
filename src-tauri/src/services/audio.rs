@@ -6,9 +6,13 @@ use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
+use lofty::config::{ParseOptions, ParsingMode};
 use lofty::file::AudioFile;
+use lofty::probe::Probe;
 use rodio::{Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};
+use symphonia::core::io::MediaSourceStream;
+use symphonia::core::probe::Hint;
 
 use crate::error::{CrateError, Result};
 
@@ -99,10 +103,8 @@ impl AudioService {
             return Err(CrateError::FileNotFound(file_path));
         }
 
-        // Get duration
-        let tagged_file =
-            lofty::read_from_path(&file_path).map_err(|e| CrateError::Audio(e.to_string()))?;
-        let duration_ms = tagged_file.properties().duration().as_millis() as u64;
+        // Get duration using lenient parsing, with symphonia fallback
+        let duration_ms = self.get_track_duration(&file_path)?;
 
         match self.send_command(AudioCommand::Play {
             track_id,
@@ -113,6 +115,63 @@ impl AudioService {
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
             AudioResponse::Ok => Ok(PlaybackState::default()),
         }
+    }
+
+    /// Gets track duration, trying lofty with lenient options first, then symphonia fallback.
+    fn get_track_duration(&self, path: &PathBuf) -> Result<u64> {
+        // Try lofty with lenient options
+        if let Some(tagged_file) = Self::read_metadata_lenient(path) {
+            return Ok(tagged_file.properties().duration().as_millis() as u64);
+        }
+
+        // Fall back to symphonia
+        log::warn!(
+            "Lofty failed for {}, falling back to symphonia for duration",
+            path.display()
+        );
+
+        let file =
+            File::open(path).map_err(|e| CrateError::Audio(format!("Failed to open: {e}")))?;
+
+        let mss = MediaSourceStream::new(Box::new(file), Default::default());
+
+        let mut hint = Hint::new();
+        if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+            hint.with_extension(ext);
+        }
+
+        let probed = symphonia::default::get_probe()
+            .format(&hint, mss, &Default::default(), &Default::default())
+            .map_err(|e| CrateError::Audio(format!("Failed to probe audio: {e}")))?;
+
+        let track = probed
+            .format
+            .default_track()
+            .ok_or_else(|| CrateError::Audio("No audio track found".to_string()))?;
+
+        match (track.codec_params.n_frames, track.codec_params.sample_rate) {
+            (Some(frames), Some(sample_rate)) => {
+                Ok(((frames as f64 / sample_rate as f64) * 1000.0) as u64)
+            }
+            _ => Ok(0), // Duration unknown, player can still work
+        }
+    }
+
+    /// Attempts to read audio file metadata with lenient parsing options.
+    fn read_metadata_lenient(path: &PathBuf) -> Option<lofty::file::TaggedFile> {
+        let file = File::open(path).ok()?;
+        let reader = BufReader::new(file);
+
+        let parse_options = ParseOptions::new()
+            .parsing_mode(ParsingMode::Relaxed)
+            .max_junk_bytes(4096);
+
+        Probe::new(reader)
+            .options(parse_options)
+            .guess_file_type()
+            .ok()?
+            .read()
+            .ok()
     }
 
     pub fn pause(&self) -> Result<PlaybackState> {

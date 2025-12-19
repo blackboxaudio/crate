@@ -45,7 +45,10 @@
 	let activeSection = $state<'playlists' | 'tags'>('playlists')
 </script>
 
-<div class="flex h-full flex-col border-r border-zinc-800 bg-zinc-900">
+<div
+	class="flex h-full flex-col border-r border-zinc-800 bg-zinc-900"
+	ondragover={(e) => console.log('[Sidebar DragOver]', e.target)}
+>
 	<!-- Library -->
 	<div class="p-2">
 		<button
@@ -104,7 +107,15 @@
 	</div>
 
 	<!-- Content -->
-	<div class="flex-1 overflow-auto p-2">
+	<div
+		class="flex-1 overflow-auto p-2"
+		onclick={(e) => {
+			if (e.target === e.currentTarget && (selectedPlaylistId || selectedTagId)) {
+				onLibraryClick?.()
+			}
+		}}
+		role="region"
+	>
 		{#if activeSection === 'playlists'}
 			<PlaylistTree
 				{playlists}

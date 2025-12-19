@@ -26,6 +26,7 @@
 	}: Props = $props()
 
 	function handleDragStart(e: DragEvent) {
+		console.log('[DragStart]', track.title, { dataTransfer: !!e.dataTransfer })
 		if (!e.dataTransfer) return
 
 		// If this track is selected, drag all selected tracks; otherwise just this track
@@ -34,6 +35,7 @@
 		e.dataTransfer.effectAllowed = 'copy'
 		e.dataTransfer.setData('application/x-crate-tracks', JSON.stringify(trackIds))
 		e.dataTransfer.setData('text/plain', getTrackDisplayName(track))
+		console.log('[DragStart] Set data:', { trackIds, types: Array.from(e.dataTransfer.types) })
 	}
 </script>
 

@@ -65,6 +65,12 @@ export interface TrackUpdate {
 	rating?: number
 }
 
+export interface ImportResult {
+	tracks: Track[]
+	failed_count: number
+	errors: string[]
+}
+
 // =============================================================================
 // Tag Types
 // =============================================================================
@@ -168,10 +174,11 @@ export interface ContextMenuItem {
 // Sidebar View Types
 // =============================================================================
 
-export type SidebarView = 'library' | 'playlist' | 'tag'
+export type SidebarView = 'library' | 'playlist' | 'tag' | 'folder'
 
 export interface SidebarState {
 	view: SidebarView
 	selectedPlaylistId: string | null
+	selectedFolderId: string | null
 	selectedTagId: string | null
 }

@@ -100,3 +100,10 @@ pub struct TrackUpdate {
     pub key: Option<String>,
     pub rating: Option<i32>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportResult {
+    pub tracks: Vec<Track>,
+    pub failed_count: usize,
+    pub errors: Vec<String>,
+}

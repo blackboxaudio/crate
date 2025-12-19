@@ -1,7 +1,9 @@
 import { writable, derived } from 'svelte/store'
-import type { Track, TrackFilter, SortConfig } from '$lib/types'
+import type { Track, TrackFilter, SortConfig, ImportResult } from '$lib/types'
 import { sortTracks } from '$lib/utils/sorting'
 import * as libraryApi from '$lib/api/library'
+import * as playlistsApi from '$lib/api/playlists'
+import { toastStore } from './toast'
 
 // =============================================================================
 // State
@@ -13,6 +15,8 @@ interface LibraryState {
 	error: string | null
 	filter: TrackFilter
 	sort: SortConfig
+	playlistTracks: Track[]
+	selectedPlaylistId: string | null
 }
 
 const initialState: LibraryState = {
@@ -24,6 +28,8 @@ const initialState: LibraryState = {
 		field: 'date_added',
 		direction: 'desc',
 	},
+	playlistTracks: [],
+	selectedPlaylistId: null,
 }
 
 // =============================================================================
@@ -62,24 +68,44 @@ function createLibraryStore() {
 		/**
 		 * Import tracks from file paths
 		 */
-		async importTracks(paths: string[]) {
+		async importTracks(paths: string[]): Promise<ImportResult> {
 			update((state) => ({ ...state, loading: true, error: null }))
 
 			try {
-				const imported = await libraryApi.importTracks(paths)
+				const result = await libraryApi.importTracks(paths)
+
 				update((state) => ({
 					...state,
-					tracks: [...imported, ...state.tracks],
+					tracks: [...result.tracks, ...state.tracks],
 					loading: false,
 				}))
-				return imported
+
+				// Show appropriate toast based on result
+				const successCount = result.tracks.length
+				const failedCount = result.failed_count
+
+				if (successCount > 0 && failedCount === 0) {
+					// All succeeded
+					toastStore.success(successCount === 1 ? '1 track imported' : `${successCount} tracks imported`)
+				} else if (successCount > 0 && failedCount > 0) {
+					// Partial success
+					toastStore.warning(`${successCount} track${successCount !== 1 ? 's' : ''} imported, ${failedCount} failed`)
+				} else if (successCount === 0 && failedCount > 0) {
+					// All failed
+					const firstError = result.errors[0] || 'Unknown error'
+					toastStore.error(`Failed to import tracks: ${firstError}`)
+				}
+
+				return result
 			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : 'Failed to import tracks'
 				update((state) => ({
 					...state,
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to import tracks',
+					error: errorMessage,
 				}))
-				return []
+				toastStore.error(errorMessage)
+				return { tracks: [], failed_count: paths.length, errors: [errorMessage] }
 			}
 		},
 
@@ -133,6 +159,40 @@ function createLibraryStore() {
 		},
 
 		/**
+		 * Load tracks for a specific playlist
+		 */
+		async loadPlaylistTracks(playlistId: string) {
+			update((state) => ({ ...state, loading: true, error: null }))
+
+			try {
+				const tracks = await playlistsApi.getPlaylistTracks(playlistId)
+				update((state) => ({
+					...state,
+					playlistTracks: tracks,
+					selectedPlaylistId: playlistId,
+					loading: false,
+				}))
+			} catch (error) {
+				update((state) => ({
+					...state,
+					loading: false,
+					error: error instanceof Error ? error.message : 'Failed to load playlist tracks',
+				}))
+			}
+		},
+
+		/**
+		 * Clear playlist tracks and return to library view
+		 */
+		clearPlaylistTracks() {
+			update((state) => ({
+				...state,
+				playlistTracks: [],
+				selectedPlaylistId: null,
+			}))
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {
@@ -177,3 +237,45 @@ export const trackCount = derived(sortedTracks, ($tracks) => $tracks.length)
  * Loading state
  */
 export const isLoading = derived(libraryStore, ($library) => $library.loading)
+
+/**
+ * Displayed tracks - shows playlist tracks when a playlist is selected,
+ * otherwise shows the full library (filtered and sorted)
+ */
+export const displayedTracks = derived(libraryStore, ($library) => {
+	// If a playlist is selected, show playlist tracks
+	if ($library.selectedPlaylistId) {
+		let tracks = $library.playlistTracks
+
+		// Apply client-side search filter if needed
+		if ($library.filter.search) {
+			const search = $library.filter.search.toLowerCase()
+			tracks = tracks.filter(
+				(t) =>
+					t.title?.toLowerCase().includes(search) ||
+					t.artist?.toLowerCase().includes(search) ||
+					t.album?.toLowerCase().includes(search)
+			)
+		}
+
+		// Apply sorting
+		return sortTracks(tracks, $library.sort)
+	}
+
+	// Otherwise, show all library tracks (filtered and sorted)
+	let tracks = $library.tracks
+
+	// Apply client-side search filter if needed
+	if ($library.filter.search) {
+		const search = $library.filter.search.toLowerCase()
+		tracks = tracks.filter(
+			(t) =>
+				t.title?.toLowerCase().includes(search) ||
+				t.artist?.toLowerCase().includes(search) ||
+				t.album?.toLowerCase().includes(search)
+		)
+	}
+
+	// Apply sorting
+	return sortTracks(tracks, $library.sort)
+})

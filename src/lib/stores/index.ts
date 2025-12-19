@@ -1,5 +1,5 @@
 // Re-export all stores
-export { libraryStore, sortedTracks, trackCount, isLoading } from './library'
+export { libraryStore, sortedTracks, displayedTracks, trackCount, isLoading } from './library'
 export {
 	playerStore,
 	isPlaying,
@@ -13,3 +13,5 @@ export { tagsStore, allTags, getTagById, getCategoryById } from './tags'
 export { playlistsStore, rootPlaylists, getPlaylistChildren, buildPlaylistTree } from './playlists'
 export type { PlaylistTreeNode } from './playlists'
 export { uiStore, selectedTrackIds, selectedTrackCount, hasSelection, searchQuery, isSearchActive } from './ui'
+export { toastStore, toasts, hasToasts } from './toast'
+export type { Toast, ToastType } from './toast'

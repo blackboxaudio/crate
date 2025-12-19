@@ -13,6 +13,7 @@ interface UIState {
 	// Sidebar
 	sidebarView: SidebarView
 	selectedPlaylistId: string | null
+	selectedFolderId: string | null
 	selectedTagId: string | null
 	sidebarWidth: number
 
@@ -33,6 +34,7 @@ const initialState: UIState = {
 	lastSelectedTrackId: null,
 	sidebarView: 'library',
 	selectedPlaylistId: null,
+	selectedFolderId: null,
 	selectedTagId: null,
 	sidebarWidth: 240,
 	searchQuery: '',
@@ -120,6 +122,7 @@ function createUIStore() {
 				...state,
 				sidebarView: view,
 				selectedPlaylistId: view === 'playlist' ? state.selectedPlaylistId : null,
+				selectedFolderId: view === 'folder' ? state.selectedFolderId : null,
 				selectedTagId: view === 'tag' ? state.selectedTagId : null,
 			}))
 		},
@@ -132,6 +135,7 @@ function createUIStore() {
 				...state,
 				sidebarView: id ? 'playlist' : 'library',
 				selectedPlaylistId: id,
+				selectedFolderId: null,
 				selectedTagId: null,
 			}))
 		},
@@ -145,6 +149,20 @@ function createUIStore() {
 				sidebarView: id ? 'tag' : 'library',
 				selectedTagId: id,
 				selectedPlaylistId: null,
+				selectedFolderId: null,
+			}))
+		},
+
+		/**
+		 * Select a folder
+		 */
+		selectFolder(id: string | null) {
+			update((state) => ({
+				...state,
+				sidebarView: id ? 'folder' : 'library',
+				selectedFolderId: id,
+				selectedPlaylistId: null,
+				selectedTagId: null,
 			}))
 		},
 

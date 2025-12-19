@@ -8,6 +8,7 @@
 	import {
 		libraryStore,
 		sortedTracks,
+		displayedTracks,
 		trackCount,
 		playerStore,
 		currentTrack,
@@ -16,12 +17,13 @@
 		uiStore,
 		selectedTrackIds,
 	} from '$lib/stores'
+	import { toastStore } from '$lib/stores/toast'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { TrackList, TrackContextMenu } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
 	import { InputModal, ConfirmModal, ColorPicker } from '$lib/components/common'
-	import { PlaylistContextMenu } from '$lib/components/playlists'
+	import { PlaylistContextMenu, FolderView } from '$lib/components/playlists'
 	import { TagContextMenu } from '$lib/components/tags'
 
 	// Local state
@@ -29,6 +31,7 @@
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
 	let selectedPlaylistId = $state<string | null>(null)
+	let selectedFolderId = $state<string | null>(null)
 	let selectedTagId = $state<string | null>(null)
 
 	// Modal state
@@ -93,6 +96,7 @@
 		})
 		const unsubUI = uiStore.subscribe((state) => {
 			selectedPlaylistId = state.selectedPlaylistId
+			selectedFolderId = state.selectedFolderId
 			selectedTagId = state.selectedTagId
 		})
 
@@ -118,8 +122,10 @@
 		const setupDragDrop = async () => {
 			const appWindow = getCurrentWindow()
 
-			// Listen for file drop
-			unlistenDrop = await appWindow.onDragDropEvent((event) => {
+			// Listen for file drop from OS file explorer
+			// Note: Tauri's onDragDropEvent only fires for external OS file drags,
+			// not for internal HTML5 drags (like dragging tracks to playlists)
+			unlistenDrop = await appWindow.onDragDropEvent(async (event) => {
 				if (event.payload.type === 'drop') {
 					isDragOver = false
 					const paths = event.payload.paths
@@ -131,11 +137,15 @@
 							return ext && audioExtensions.includes(ext)
 						})
 						if (audioPaths.length > 0) {
-							libraryStore.importTracks(audioPaths)
+							await libraryStore.importTracks(audioPaths)
 						}
 					}
-				} else if (event.payload.type === 'over') {
-					isDragOver = true
+				} else if (event.payload.type === 'enter') {
+					// 'enter' event fires when external files are dragged into the window
+					// and includes the file paths. 'over' events don't include paths.
+					if (event.payload.paths && event.payload.paths.length > 0) {
+						isDragOver = true
+					}
 				} else if (event.payload.type === 'leave' || event.payload.type === 'cancel') {
 					isDragOver = false
 				}
@@ -221,12 +231,19 @@
 	// Sidebar handlers
 	function handleLibraryClick() {
 		uiStore.selectPlaylist(null)
+		uiStore.selectFolder(null)
 		uiStore.selectTag(null)
 		libraryStore.clearFilters()
+		libraryStore.clearPlaylistTracks()
 	}
 
-	function handlePlaylistSelect(playlist: Playlist) {
-		uiStore.selectPlaylist(playlist.id)
+	async function handlePlaylistSelect(playlist: Playlist) {
+		if (playlist.is_folder) {
+			uiStore.selectFolder(playlist.id)
+		} else {
+			uiStore.selectPlaylist(playlist.id)
+			await libraryStore.loadPlaylistTracks(playlist.id)
+		}
 	}
 
 	function handleTagSelect(tagId: string) {
@@ -315,7 +332,16 @@
 
 	// Drag and drop handlers
 	async function handleTracksDropOnPlaylist(playlistId: string, trackIds: string[]) {
-		await playlistsStore.addTracks(playlistId, trackIds)
+		try {
+			await playlistsStore.addTracks(playlistId, trackIds)
+			// Find playlist name for the toast message
+			const playlist = playlists.find((p) => p.id === playlistId)
+			const playlistName = playlist?.name || 'playlist'
+			const count = trackIds.length
+			toastStore.success(count === 1 ? `1 track added to ${playlistName}` : `${count} tracks added to ${playlistName}`)
+		} catch (error) {
+			toastStore.error('Failed to add tracks to playlist')
+		}
 	}
 
 	// Playlist context menu handlers
@@ -505,18 +531,22 @@
 		</div>
 
 		<div class="flex-1 overflow-hidden">
-			<TrackList
-				tracks={$sortedTracks}
-				selectedIds={$selectedTrackIds}
-				playingTrackId={$currentTrack?.id ?? null}
-				{sortConfig}
-				{isDragOver}
-				{categoryColors}
-				onSelectionChange={handleSelectionChange}
-				onTrackPlay={handleTrackPlay}
-				onSortChange={handleSortChange}
-				onContextMenu={handleTrackContextMenu}
-			/>
+			{#if selectedFolderId}
+				<FolderView folderId={selectedFolderId} {playlists} onSelect={handlePlaylistSelect} />
+			{:else}
+				<TrackList
+					tracks={$displayedTracks}
+					selectedIds={$selectedTrackIds}
+					playingTrackId={$currentTrack?.id ?? null}
+					{sortConfig}
+					{isDragOver}
+					{categoryColors}
+					onSelectionChange={handleSelectionChange}
+					onTrackPlay={handleTrackPlay}
+					onSortChange={handleSortChange}
+					onContextMenu={handleTrackContextMenu}
+				/>
+			{/if}
 		</div>
 	</div>
 

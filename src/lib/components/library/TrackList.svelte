@@ -59,7 +59,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col bg-zinc-900 {isDragOver ? 'ring-2 ring-blue-500 ring-inset' : ''}">
+<div class="flex h-full flex-col bg-zinc-950 {isDragOver ? 'ring-2 ring-blue-500 ring-inset' : ''}">
 	<TrackListHeader {sortConfig} onSort={onSortChange} />
 
 	<div class="relative flex-1 overflow-auto">

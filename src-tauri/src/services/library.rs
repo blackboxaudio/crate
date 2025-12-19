@@ -1,12 +1,18 @@
+use std::fs::File;
+use std::io::BufReader;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-use lofty::file::AudioFile;
+use lofty::config::{ParseOptions, ParsingMode};
+use lofty::file::{AudioFile, TaggedFile};
 use lofty::prelude::*;
+use lofty::probe::Probe;
 use rusqlite::Connection;
+use symphonia::core::io::MediaSourceStream;
+use symphonia::core::probe::Hint;
 
 use crate::error::{CrateError, Result};
-use crate::models::{Tag, Track, TrackFilter, TrackUpdate};
+use crate::models::{ImportResult, Tag, Track, TrackFilter, TrackUpdate};
 
 pub struct LibraryService {
     conn: Arc<Mutex<Connection>>,
@@ -17,19 +23,26 @@ impl LibraryService {
         Self { conn }
     }
 
-    pub fn import_tracks(&self, paths: Vec<PathBuf>) -> Result<Vec<Track>> {
-        let mut imported = Vec::new();
+    pub fn import_tracks(&self, paths: Vec<PathBuf>) -> Result<ImportResult> {
+        let mut tracks = Vec::new();
+        let mut errors = Vec::new();
 
         for path in paths {
             match self.import_single_track(&path) {
-                Ok(track) => imported.push(track),
+                Ok(track) => tracks.push(track),
                 Err(e) => {
-                    log::warn!("Failed to import {}: {}", path.display(), e);
+                    let error_msg = format!("{}: {}", path.display(), e);
+                    log::warn!("Failed to import {error_msg}");
+                    errors.push(error_msg);
                 }
             }
         }
 
-        Ok(imported)
+        Ok(ImportResult {
+            tracks,
+            failed_count: errors.len(),
+            errors,
+        })
     }
 
     fn import_single_track(&self, path: &PathBuf) -> Result<Track> {
@@ -50,39 +63,48 @@ impl LibraryService {
             return Err(CrateError::Import(format!("Unsupported format: {format}")));
         }
 
-        // Read metadata using lofty
-        let tagged_file =
-            lofty::read_from_path(path).map_err(|e| CrateError::Metadata(e.to_string()))?;
-
-        let properties = tagged_file.properties();
-        let duration_ms = properties.duration().as_millis() as i64;
-
+        // Try to read metadata with lenient parsing first
         let mut track = Track::new(
             path.to_string_lossy().to_string(),
             format.clone(),
-            duration_ms,
+            0, // Duration will be set below
         );
 
-        // Extract audio properties
-        track.bitrate = properties.audio_bitrate().map(|b| b as i32);
-        track.sample_rate = properties.sample_rate().map(|s| s as i32);
+        if let Some(tagged_file) = self.read_metadata_lenient(path) {
+            // Successfully read with lofty
+            let properties = tagged_file.properties();
+            track.duration_ms = properties.duration().as_millis() as i64;
+            track.bitrate = properties.audio_bitrate().map(|b| b as i32);
+            track.sample_rate = properties.sample_rate().map(|s| s as i32);
 
-        // Extract tags
-        if let Some(tag) = tagged_file
-            .primary_tag()
-            .or_else(|| tagged_file.first_tag())
-        {
-            track.title = tag.title().map(|s| s.to_string());
-            track.artist = tag.artist().map(|s| s.to_string());
-            track.album = tag.album().map(|s| s.to_string());
-            track.year = tag.year().map(|y| y as i32);
-            track.genre = tag.genre().map(|s| s.to_string());
+            // Extract tags if available
+            if let Some(tag) = tagged_file
+                .primary_tag()
+                .or_else(|| tagged_file.first_tag())
+            {
+                track.title = tag.title().map(|s| s.to_string());
+                track.artist = tag.artist().map(|s| s.to_string());
+                track.album = tag.album().map(|s| s.to_string());
+                track.year = tag.year().map(|y| y as i32);
+                track.genre = tag.genre().map(|s| s.to_string());
 
-            // Try to get BPM from various tag formats
-            track.bpm = self.extract_bpm(tag);
+                // Try to get BPM from various tag formats
+                track.bpm = self.extract_bpm(tag);
 
-            // Try to get key
-            track.key = self.extract_key(tag);
+                // Try to get key
+                track.key = self.extract_key(tag);
+            }
+        } else {
+            // Lofty failed completely, use symphonia fallback
+            log::warn!(
+                "Metadata extraction failed for {}, falling back to symphonia",
+                path.display()
+            );
+
+            let (dur, sr, br) = self.read_audio_properties_symphonia(path)?;
+            track.duration_ms = dur;
+            track.sample_rate = sr;
+            track.bitrate = br;
         }
 
         // Insert into database
@@ -99,6 +121,64 @@ impl LibraryService {
     fn extract_key(&self, _tag: &dyn Accessor) -> Option<String> {
         // Key is often stored in a custom tag
         None // Will be populated by Rekordbox import or analysis
+    }
+
+    /// Attempts to read audio file metadata with lenient parsing options.
+    /// Returns None if parsing fails completely.
+    fn read_metadata_lenient(&self, path: &PathBuf) -> Option<TaggedFile> {
+        let file = File::open(path).ok()?;
+        let reader = BufReader::new(file);
+
+        let parse_options = ParseOptions::new()
+            .parsing_mode(ParsingMode::Relaxed)
+            .max_junk_bytes(4096);
+
+        Probe::new(reader)
+            .options(parse_options)
+            .guess_file_type()
+            .ok()?
+            .read()
+            .ok()
+    }
+
+    /// Fallback to extract audio properties using symphonia when lofty fails.
+    /// Returns (duration_ms, sample_rate, bitrate).
+    fn read_audio_properties_symphonia(
+        &self,
+        path: &PathBuf,
+    ) -> Result<(i64, Option<i32>, Option<i32>)> {
+        let file =
+            File::open(path).map_err(|e| CrateError::Metadata(format!("Failed to open: {e}")))?;
+
+        let mss = MediaSourceStream::new(Box::new(file), Default::default());
+
+        let mut hint = Hint::new();
+        if let Some(ext) = path.extension().and_then(|e| e.to_str()) {
+            hint.with_extension(ext);
+        }
+
+        let probed = symphonia::default::get_probe()
+            .format(&hint, mss, &Default::default(), &Default::default())
+            .map_err(|e| CrateError::Metadata(format!("Symphonia probe failed: {e}")))?;
+
+        let track = probed
+            .format
+            .default_track()
+            .ok_or_else(|| CrateError::Metadata("No audio track found".to_string()))?;
+
+        let params = &track.codec_params;
+
+        let duration_ms = match (params.n_frames, params.sample_rate) {
+            (Some(frames), Some(sample_rate)) => {
+                ((frames as f64 / sample_rate as f64) * 1000.0) as i64
+            }
+            _ => 0,
+        };
+
+        let sample_rate = params.sample_rate.map(|s| s as i32);
+        let bitrate = params.bits_per_sample.map(|b| b as i32);
+
+        Ok((duration_ms, sample_rate, bitrate))
     }
 
     fn insert_track(&self, track: &Track) -> Result<()> {
