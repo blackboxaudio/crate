@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Playlist, TagCategory, Tag, UsbDevice } from '$lib/types'
+	import type { Playlist, TagCategory, Tag, TagSelectionState, UsbDevice } from '$lib/types'
 	import { Button } from '$lib/components/common'
 	import { PlaylistTree } from '$lib/components/playlists'
 	import { TagList } from '$lib/components/tags'
@@ -11,13 +11,17 @@
 		tagCategories: TagCategory[]
 		devices: UsbDevice[]
 		selectedPlaylistId?: string | null
-		selectedTagId?: string | null
+		selectedTagIds?: string[]
+		selectedTrackIds?: Set<string>
+		tagStates?: Map<string, TagSelectionState>
+		tagCounts?: Map<string, number>
 		trackCount: number
 		onLibraryClick?: () => void
 		onPlaylistSelect?: (playlist: Playlist) => void
 		onPlaylistContextMenu?: (e: MouseEvent, playlist: Playlist) => void
 		onDeviceContextMenu?: (e: MouseEvent, device: UsbDevice) => void
 		onTagSelect?: (tagId: string) => void
+		onTagToggle?: (tagId: string, state: TagSelectionState) => void
 		onTagContextMenu?: (e: MouseEvent, tag: Tag, category: TagCategory) => void
 		onCategoryContextMenu?: (e: MouseEvent, category: TagCategory) => void
 		onCreatePlaylist?: () => void
@@ -33,13 +37,17 @@
 		tagCategories,
 		devices,
 		selectedPlaylistId = null,
-		selectedTagId = null,
+		selectedTagIds = [],
+		selectedTrackIds,
+		tagStates,
+		tagCounts,
 		trackCount,
 		onLibraryClick,
 		onPlaylistSelect,
 		onPlaylistContextMenu,
 		onDeviceContextMenu,
 		onTagSelect,
+		onTagToggle,
 		onTagContextMenu,
 		onCategoryContextMenu,
 		onCreatePlaylist,
@@ -51,6 +59,9 @@
 	}: Props = $props()
 
 	let activeSection = $state<'playlists' | 'tags'>('playlists')
+
+	// When tracks are selected and we're on the Tags tab, enable toggle mode
+	let isTagToggleMode = $derived(activeSection === 'tags' && (selectedTrackIds?.size ?? 0) > 0)
 </script>
 
 <div class="flex h-full flex-col">
@@ -95,12 +106,12 @@
 	<div
 		class="flex-1 overflow-auto p-2"
 		onclick={(e) => {
-			if (e.target === e.currentTarget && (selectedPlaylistId || selectedTagId)) {
+			if (e.target === e.currentTarget && (selectedPlaylistId || selectedTagIds.length > 0)) {
 				onLibraryClick?.()
 			}
 		}}
 		onkeydown={(e) => {
-			if (e.key === 'Escape' && (selectedPlaylistId || selectedTagId)) {
+			if (e.key === 'Escape' && (selectedPlaylistId || selectedTagIds.length > 0)) {
 				onLibraryClick?.()
 			}
 		}}
@@ -119,8 +130,13 @@
 		{:else}
 			<TagList
 				categories={tagCategories}
-				{selectedTagId}
+				selectedTagId={isTagToggleMode ? null : selectedTagIds.length > 0 ? selectedTagIds[0] : null}
+				isToggleMode={isTagToggleMode}
+				{tagStates}
+				{tagCounts}
+				selectedTrackCount={selectedTrackIds?.size ?? 0}
 				onTagClick={onTagSelect}
+				{onTagToggle}
 				{onCreateTag}
 				{onTagContextMenu}
 				{onCategoryContextMenu}

@@ -8,4 +8,6 @@ pub struct UsbDevice {
     pub total_space_bytes: u64,
     pub available_space_bytes: u64,
     pub is_removable: bool,
+    pub file_system: String,
+    pub disk_kind: String,
 }

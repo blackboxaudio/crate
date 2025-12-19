@@ -54,6 +54,12 @@ impl DeviceService {
                     total_space_bytes: disk.total_space(),
                     available_space_bytes: disk.available_space(),
                     is_removable: true,
+                    file_system: disk.file_system().to_string_lossy().to_string(),
+                    disk_kind: match disk.kind() {
+                        sysinfo::DiskKind::SSD => "SSD".to_string(),
+                        sysinfo::DiskKind::HDD => "HDD".to_string(),
+                        sysinfo::DiskKind::Unknown(_) => "Unknown".to_string(),
+                    },
                 }
             })
             .collect()
@@ -109,6 +115,12 @@ impl DeviceService {
                                     total_space_bytes: disk.total_space(),
                                     available_space_bytes: disk.available_space(),
                                     is_removable: true,
+                                    file_system: disk.file_system().to_string_lossy().to_string(),
+                                    disk_kind: match disk.kind() {
+                                        sysinfo::DiskKind::SSD => "SSD".to_string(),
+                                        sysinfo::DiskKind::HDD => "HDD".to_string(),
+                                        sysinfo::DiskKind::Unknown(_) => "Unknown".to_string(),
+                                    },
                                 }
                             })
                             .collect();

@@ -1,6 +1,23 @@
 <script lang="ts">
+	import type { Tag } from '$lib/types'
 	import { libraryStore, uiStore } from '$lib/stores'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import TagChip from '$lib/components/tags/TagChip.svelte'
+
+	type Props = {
+		activeFilterTags?: Tag[]
+		tagColors?: Map<string, string | null>
+		onRemoveTagFilter?: (tagId: string) => void
+		onClearAllTagFilters?: () => void
+	}
+
+	let { activeFilterTags = [], tagColors, onRemoveTagFilter, onClearAllTagFilters }: Props = $props()
+
+	// Compute remaining tags count for "+N" badge
+	const remainingTagsCount = $derived(activeFilterTags && activeFilterTags.length > 1 ? activeFilterTags.length - 1 : 0)
+
+	// State for hover popup
+	let showTagPopup = $state(false)
 
 	let inputValue = $state('')
 
@@ -43,13 +60,82 @@
 		type="search"
 		placeholder="Search tracks..."
 		value={inputValue}
-		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pr-8 pl-10 text-sm text-text-primary placeholder-text-tertiary focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
+		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pl-10 text-sm text-text-primary placeholder-text-tertiary focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none {activeFilterTags &&
+		activeFilterTags.length > 0
+			? 'pr-[8.5rem]'
+			: 'pr-8'}"
 		oninput={handleInput}
 		onkeydown={handleKeydown}
 		onfocus={() => uiStore.setSearchFocused(true)}
 		onblur={() => uiStore.setSearchFocused(false)}
 	/>
 
+	<!-- Tag filters container (right side, shifts left when clear button is visible) -->
+	{#if activeFilterTags && activeFilterTags.length > 0}
+		<div class="absolute inset-y-0 flex items-center gap-1 {inputValue ? 'right-8' : 'right-0 pr-3'}">
+			<TagChip
+				tag={activeFilterTags[0]}
+				color={tagColors?.get(activeFilterTags[0].category_id)}
+				size="sm"
+				removable
+				onremove={() => onRemoveTagFilter?.(activeFilterTags[0].id)}
+			/>
+			{#if remainingTagsCount > 0}
+				<!-- Hover container for +N badge and popup -->
+				<div class="relative" onmouseenter={() => (showTagPopup = true)} onmouseleave={() => (showTagPopup = false)}>
+					<span
+						class="hover:bg-surface-3 flex h-5 min-w-5 cursor-pointer items-center justify-center rounded bg-surface-2 px-1 text-xs text-text-secondary"
+					>
+						+{remainingTagsCount}
+					</span>
+
+					<!-- Hover popup with padding-top to create hoverable bridge -->
+					{#if showTagPopup}
+						<div class="absolute top-full right-0 pt-1">
+							<div class="min-w-[180px] rounded-md border border-stroke bg-surface-1 p-2 shadow-lg">
+								<div class="flex flex-col gap-1.5">
+									{#each activeFilterTags as tag (tag.id)}
+										<div
+											class="flex w-full items-center justify-between gap-2 rounded px-1.5 py-0.5 text-xs font-medium"
+											style="background-color: {tagColors?.get(tag.category_id) ||
+												tag.color ||
+												'#6366f1'}20; color: {tagColors?.get(tag.category_id) ||
+												tag.color ||
+												'#6366f1'}; border: 1px solid {tagColors?.get(tag.category_id) || tag.color || '#6366f1'}40;"
+										>
+											<span>{tag.name}</span>
+											<button
+												type="button"
+												aria-label="Remove tag"
+												class="hover:cursor-pointer hover:opacity-70"
+												onclick={() => onRemoveTagFilter?.(tag.id)}
+											>
+												<Icon name="x" class="h-3 w-3" />
+											</button>
+										</div>
+									{/each}
+								</div>
+								<div class="mt-2 border-t border-stroke pt-2">
+									<button
+										type="button"
+										class="w-full rounded px-2 py-1 text-left text-xs text-text-secondary hover:cursor-pointer hover:bg-surface-2 hover:text-text-primary"
+										onclick={() => {
+											onClearAllTagFilters?.()
+											showTagPopup = false
+										}}
+									>
+										Clear all
+									</button>
+								</div>
+							</div>
+						</div>
+					{/if}
+				</div>
+			{/if}
+		</div>
+	{/if}
+
+	<!-- Clear button -->
 	{#if inputValue}
 		<button
 			type="button"

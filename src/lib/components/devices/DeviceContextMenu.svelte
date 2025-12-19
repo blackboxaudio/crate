@@ -8,14 +8,22 @@
 		y: number
 		device: UsbDevice | null
 		onClose: () => void
+		onViewInfo: (device: UsbDevice) => void
 		onEject: (device: UsbDevice) => void
 	}
 
-	let { open, x, y, device, onClose, onEject }: Props = $props()
+	let { open, x, y, device, onClose, onViewInfo, onEject }: Props = $props()
 
 	const menuItems = $derived<ContextMenuItem[]>(
 		device
 			? [
+					{
+						id: 'view-info',
+						label: 'View info',
+						icon: 'info',
+						action: () => onViewInfo(device),
+					},
+					{ id: 'divider-1', label: '', divider: true },
 					{
 						id: 'eject',
 						label: 'Eject',

@@ -1,12 +1,17 @@
 <script lang="ts">
-	import type { Tag, TagCategory } from '$lib/types'
+	import type { Tag, TagCategory, TagSelectionState } from '$lib/types'
 	import TagChip from './TagChip.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		categories: TagCategory[]
 		selectedTagId?: string | null
+		isToggleMode?: boolean
+		tagStates?: Map<string, TagSelectionState>
+		tagCounts?: Map<string, number>
+		selectedTrackCount?: number
 		onTagClick?: (tagId: string) => void
+		onTagToggle?: (tagId: string, state: TagSelectionState) => void
 		onCreateTag?: (categoryId: string) => void
 		onTagContextMenu?: (e: MouseEvent, tag: Tag, category: TagCategory) => void
 		onCategoryContextMenu?: (e: MouseEvent, category: TagCategory) => void
@@ -15,7 +20,12 @@
 	let {
 		categories,
 		selectedTagId = null,
+		isToggleMode = false,
+		tagStates,
+		tagCounts,
+		selectedTrackCount = 0,
 		onTagClick,
+		onTagToggle,
 		onCreateTag,
 		onTagContextMenu,
 		onCategoryContextMenu,
@@ -29,6 +39,15 @@
 	function handleTagContextMenu(e: MouseEvent, tag: Tag, category: TagCategory) {
 		e.preventDefault()
 		onTagContextMenu?.(e, tag, category)
+	}
+
+	function handleTagClick(tag: Tag) {
+		if (isToggleMode && onTagToggle && tagStates) {
+			const state = tagStates.get(tag.id) || 'inactive'
+			onTagToggle(tag.id, state)
+		} else {
+			onTagClick?.(tag.id)
+		}
 	}
 </script>
 
@@ -58,7 +77,10 @@
 					<TagChip
 						{tag}
 						color={category.color}
-						onclick={() => onTagClick?.(tag.id)}
+						state={isToggleMode ? tagStates?.get(tag.id) : undefined}
+						selectionCount={isToggleMode ? tagCounts?.get(tag.id) : undefined}
+						selectionTotal={isToggleMode ? selectedTrackCount : undefined}
+						onclick={() => handleTagClick(tag)}
 						oncontextmenu={(e) => handleTagContextMenu(e, tag, category)}
 					/>
 				{/each}

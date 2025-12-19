@@ -15,7 +15,7 @@ interface UIState {
 	sidebarView: SidebarView
 	selectedPlaylistId: string | null
 	selectedFolderId: string | null
-	selectedTagId: string | null
+	selectedTagIds: string[]
 	sidebarWidth: number
 
 	// Search
@@ -28,6 +28,9 @@ interface UIState {
 	// Context menu
 	contextMenuOpen: boolean
 	contextMenuPosition: { x: number; y: number }
+
+	// Tag toggle tracking (for "mixed removes first" behavior)
+	recentlyToggledMixedTags: Set<string>
 }
 
 const initialState: UIState = {
@@ -36,13 +39,14 @@ const initialState: UIState = {
 	sidebarView: 'library',
 	selectedPlaylistId: null,
 	selectedFolderId: null,
-	selectedTagId: null,
+	selectedTagIds: [],
 	sidebarWidth: getStoredNumber('sidebarWidth', 240),
 	searchQuery: '',
 	searchFocused: false,
 	activeModal: null,
 	contextMenuOpen: false,
 	contextMenuPosition: { x: 0, y: 0 },
+	recentlyToggledMixedTags: new Set(),
 }
 
 // =============================================================================
@@ -124,7 +128,7 @@ function createUIStore() {
 				sidebarView: view,
 				selectedPlaylistId: view === 'playlist' ? state.selectedPlaylistId : null,
 				selectedFolderId: view === 'folder' ? state.selectedFolderId : null,
-				selectedTagId: view === 'tag' ? state.selectedTagId : null,
+				selectedTagIds: view === 'tag' ? state.selectedTagIds : [],
 			}))
 		},
 
@@ -137,20 +141,62 @@ function createUIStore() {
 				sidebarView: id ? 'playlist' : 'library',
 				selectedPlaylistId: id,
 				selectedFolderId: null,
-				selectedTagId: null,
+				selectedTagIds: [],
 			}))
 		},
 
 		/**
-		 * Select a tag for filtering
+		 * Toggle a tag filter (add if not present, remove if present)
 		 */
-		selectTag(id: string | null) {
+		toggleTagFilter(id: string) {
+			update((state) => {
+				const exists = state.selectedTagIds.includes(id)
+				const newIds = exists ? state.selectedTagIds.filter((tid) => tid !== id) : [...state.selectedTagIds, id]
+				return {
+					...state,
+					sidebarView: newIds.length > 0 ? 'tag' : 'library',
+					selectedTagIds: newIds,
+					selectedPlaylistId: null,
+					selectedFolderId: null,
+				}
+			})
+		},
+
+		/**
+		 * Add a tag to filters
+		 */
+		addTagFilter(id: string) {
 			update((state) => ({
 				...state,
-				sidebarView: id ? 'tag' : 'library',
-				selectedTagId: id,
+				sidebarView: 'tag',
+				selectedTagIds: state.selectedTagIds.includes(id) ? state.selectedTagIds : [...state.selectedTagIds, id],
 				selectedPlaylistId: null,
 				selectedFolderId: null,
+			}))
+		},
+
+		/**
+		 * Remove a tag from filters
+		 */
+		removeTagFilter(id: string) {
+			update((state) => {
+				const newIds = state.selectedTagIds.filter((tid) => tid !== id)
+				return {
+					...state,
+					sidebarView: newIds.length > 0 ? 'tag' : 'library',
+					selectedTagIds: newIds,
+				}
+			})
+		},
+
+		/**
+		 * Clear all tag filters
+		 */
+		clearTagFilters() {
+			update((state) => ({
+				...state,
+				sidebarView: 'library',
+				selectedTagIds: [],
 			}))
 		},
 
@@ -163,7 +209,7 @@ function createUIStore() {
 				sidebarView: id ? 'folder' : 'library',
 				selectedFolderId: id,
 				selectedPlaylistId: null,
-				selectedTagId: null,
+				selectedTagIds: [],
 			}))
 		},
 
@@ -248,6 +294,41 @@ function createUIStore() {
 		},
 
 		// =========================================================================
+		// Tag Toggle Tracking
+		// =========================================================================
+
+		/**
+		 * Mark a tag as recently toggled (for mixed state "remove first" behavior)
+		 */
+		markTagAsRecentlyToggled(tagId: string) {
+			update((state) => ({
+				...state,
+				recentlyToggledMixedTags: new Set([...state.recentlyToggledMixedTags, tagId]),
+			}))
+		},
+
+		/**
+		 * Clear a tag from the recently toggled set
+		 */
+		clearRecentlyToggledTag(tagId: string) {
+			update((state) => {
+				const newSet = new Set(state.recentlyToggledMixedTags)
+				newSet.delete(tagId)
+				return { ...state, recentlyToggledMixedTags: newSet }
+			})
+		},
+
+		/**
+		 * Clear all recently toggled tags (call when selection changes)
+		 */
+		clearAllRecentlyToggledTags() {
+			update((state) => ({
+				...state,
+				recentlyToggledMixedTags: new Set(),
+			}))
+		},
+
+		// =========================================================================
 		// Reset
 		// =========================================================================
 
@@ -275,3 +356,7 @@ export const hasSelection = derived(uiStore, ($ui) => $ui.selectedTrackIds.size 
 export const searchQuery = derived(uiStore, ($ui) => $ui.searchQuery)
 
 export const isSearchActive = derived(uiStore, ($ui) => $ui.searchQuery.length > 0)
+
+export const recentlyToggledMixedTags = derived(uiStore, ($ui) => $ui.recentlyToggledMixedTags)
+
+export const selectedTagIds = derived(uiStore, ($ui) => $ui.selectedTagIds)

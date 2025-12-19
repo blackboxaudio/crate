@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store'
-import type { TagCategory, Tag } from '$lib/types'
+import type { TagCategory, Tag, TagSelectionState, Track } from '$lib/types'
 import * as tagsApi from '$lib/api/tags'
 
 // =============================================================================
@@ -237,4 +237,55 @@ export function getTagById(tags: Tag[], id: string): Tag | undefined {
  */
 export function getCategoryById(categories: TagCategory[], id: string): TagCategory | undefined {
 	return categories.find((c) => c.id === id)
+}
+
+/**
+ * Compute tag selection states for selected tracks
+ * Returns a map of tag ID to its selection state (active, inactive, mixed)
+ * and a map of tag ID to count (how many selected tracks have that tag)
+ */
+export function computeTagStates(
+	categories: TagCategory[],
+	tracks: Track[],
+	selectedIds: Set<string>
+): { states: Map<string, TagSelectionState>; counts: Map<string, number> } {
+	const states = new Map<string, TagSelectionState>()
+	const counts = new Map<string, number>()
+
+	if (selectedIds.size === 0) {
+		return { states, counts }
+	}
+
+	// Get selected tracks
+	const selectedTracks = tracks.filter((t) => selectedIds.has(t.id))
+	const totalSelected = selectedTracks.length
+
+	if (totalSelected === 0) {
+		return { states, counts }
+	}
+
+	// Count occurrences of each tag across selected tracks
+	const tagCounts = new Map<string, number>()
+	for (const track of selectedTracks) {
+		for (const tag of track.tags) {
+			tagCounts.set(tag.id, (tagCounts.get(tag.id) || 0) + 1)
+		}
+	}
+
+	// Compute states for all tags
+	const allTags = categories.flatMap((c) => c.tags)
+	for (const tag of allTags) {
+		const count = tagCounts.get(tag.id) || 0
+		counts.set(tag.id, count)
+
+		if (count === 0) {
+			states.set(tag.id, 'inactive')
+		} else if (count === totalSelected) {
+			states.set(tag.id, 'active')
+		} else {
+			states.set(tag.id, 'mixed')
+		}
+	}
+
+	return { states, counts }
 }

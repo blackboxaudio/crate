@@ -4,7 +4,16 @@
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 	import { getCurrentWindow } from '@tauri-apps/api/window'
 
-	import type { Track, SortConfig, Playlist, TagCategory, Tag, UsbDevice, BreadcrumbItem } from '$lib/types'
+	import type {
+		Track,
+		SortConfig,
+		Playlist,
+		TagCategory,
+		Tag,
+		TagSelectionState,
+		UsbDevice,
+		BreadcrumbItem,
+	} from '$lib/types'
 	import {
 		libraryStore,
 		sortedTracks,
@@ -16,8 +25,10 @@
 		playlistsStore,
 		uiStore,
 		selectedTrackIds,
+		recentlyToggledMixedTags,
 		settingsStore,
 		devicesStore,
+		computeTagStates,
 	} from '$lib/stores'
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
@@ -28,7 +39,7 @@
 	import { InputModal, ConfirmModal, ColorPicker, ResizeHandle } from '$lib/components/common'
 	import { PlaylistContextMenu, PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TagContextMenu } from '$lib/components/tags'
-	import { DeviceContextMenu } from '$lib/components/devices'
+	import { DeviceContextMenu, DeviceInfoModal } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
 	import * as devicesApi from '$lib/api/devices'
 
@@ -39,8 +50,12 @@
 	let devices = $state<UsbDevice[]>([])
 	let selectedPlaylistId = $state<string | null>(null)
 	let selectedFolderId = $state<string | null>(null)
-	let selectedTagId = $state<string | null>(null)
+	let selectedTagIds = $state<string[]>([])
 	let sidebarWidth = $state(240)
+
+	// Tag toggle state
+	let tagStates = $state<Map<string, TagSelectionState>>(new Map())
+	let tagCounts = $state<Map<string, number>>(new Map())
 
 	// Modal state
 	let showPlaylistModal = $state(false)
@@ -85,6 +100,10 @@
 	let deviceContextMenuPosition = $state({ x: 0, y: 0 })
 	let deviceContextMenuDevice = $state<UsbDevice | null>(null)
 
+	// Device info modal state
+	let showDeviceInfoModal = $state(false)
+	let deviceInfoDevice = $state<UsbDevice | null>(null)
+
 	// Tag modal states
 	let showRenameTagModal = $state(false)
 	let renameTagId = $state<string | null>(null)
@@ -111,7 +130,7 @@
 		const unsubUI = uiStore.subscribe((state) => {
 			selectedPlaylistId = state.selectedPlaylistId
 			selectedFolderId = state.selectedFolderId
-			selectedTagId = state.selectedTagId
+			selectedTagIds = state.selectedTagIds
 			sidebarWidth = state.sidebarWidth
 		})
 		const unsubDevices = devicesStore.subscribe((state) => {
@@ -123,6 +142,24 @@
 			unsubTags()
 			unsubUI()
 			unsubDevices()
+		}
+	})
+
+	// Compute tag states when selection or tracks change
+	$effect(() => {
+		const result = computeTagStates(tagCategories, $displayedTracks, $selectedTrackIds)
+		tagStates = result.states
+		tagCounts = result.counts
+	})
+
+	// Clear recently toggled tags when selection changes
+	let previousSelectedIds = $state<Set<string>>(new Set())
+	$effect(() => {
+		const currentIds = $selectedTrackIds
+		// Only clear if selection actually changed
+		if (currentIds.size !== previousSelectedIds.size || ![...currentIds].every((id) => previousSelectedIds.has(id))) {
+			uiStore.clearAllRecentlyToggledTags()
+			previousSelectedIds = new Set(currentIds)
 		}
 	})
 
@@ -286,7 +323,7 @@
 	function handleLibraryClick() {
 		uiStore.selectPlaylist(null)
 		uiStore.selectFolder(null)
-		uiStore.selectTag(null)
+		uiStore.clearTagFilters()
 		libraryStore.clearFilters()
 		libraryStore.clearPlaylistTracks()
 	}
@@ -296,6 +333,9 @@
 	}
 
 	async function handlePlaylistSelect(playlist: Playlist) {
+		// Clear track selection when selecting a folder or playlist
+		uiStore.clearSelection()
+
 		if (playlist.is_folder) {
 			uiStore.selectFolder(playlist.id)
 		} else {
@@ -304,9 +344,65 @@
 		}
 	}
 
-	function handleTagSelect(tagId: string) {
-		uiStore.selectTag(tagId)
-		libraryStore.setFilter({ tag_ids: [tagId] })
+	async function handleTagSelect(tagId: string) {
+		uiStore.toggleTagFilter(tagId)
+		// Get updated selectedTagIds after toggle
+		const updatedTagIds = selectedTagIds.includes(tagId)
+			? selectedTagIds.filter((id) => id !== tagId)
+			: [...selectedTagIds, tagId]
+		if (updatedTagIds.length > 0) {
+			await libraryStore.loadTracks({ tag_ids: updatedTagIds })
+		} else {
+			await libraryStore.loadTracks()
+		}
+	}
+
+	// Tag toggle handler for when tracks are selected
+	async function handleTagToggle(tagId: string, currentState: TagSelectionState) {
+		const trackIds = Array.from($selectedTrackIds)
+
+		if (currentState === 'active') {
+			// Remove from all selected tracks
+			await tagsStore.removeTags(trackIds, [tagId])
+		} else if (currentState === 'inactive') {
+			// Add to all selected tracks
+			await tagsStore.assignTags(trackIds, [tagId])
+		} else if (currentState === 'mixed') {
+			// Check if this tag was recently toggled
+			const wasRecentlyToggled = $recentlyToggledMixedTags.has(tagId)
+
+			if (wasRecentlyToggled) {
+				// Second click on mixed = add to all
+				await tagsStore.assignTags(trackIds, [tagId])
+				uiStore.clearRecentlyToggledTag(tagId)
+			} else {
+				// First click on mixed = remove from all
+				await tagsStore.removeTags(trackIds, [tagId])
+				uiStore.markTagAsRecentlyToggled(tagId)
+			}
+		}
+
+		// Reload tracks to reflect tag changes
+		await libraryStore.loadTracks()
+	}
+
+	// Clear tag filter
+	function handleClearTagFilter() {
+		uiStore.clearTagFilters()
+		libraryStore.clearFilters()
+		libraryStore.loadTracks()
+	}
+
+	// Remove a single tag from filter
+	async function handleRemoveTagFilter(tagId: string) {
+		uiStore.removeTagFilter(tagId)
+		const updatedTagIds = selectedTagIds.filter((id) => id !== tagId)
+		if (updatedTagIds.length > 0) {
+			await libraryStore.loadTracks({ tag_ids: updatedTagIds })
+		} else {
+			libraryStore.clearFilters()
+			await libraryStore.loadTracks()
+		}
 	}
 
 	function handleCreatePlaylist() {
@@ -378,22 +474,6 @@
 		contextMenuOpen = false
 		const trackIds = contextMenuTracks.map((t) => t.id)
 		await playlistsStore.addTracks(playlistId, trackIds)
-	}
-
-	async function handleAssignTag(tagId: string) {
-		contextMenuOpen = false
-		const trackIds = contextMenuTracks.map((t) => t.id)
-		await tagsStore.assignTags(trackIds, [tagId])
-		// Reload tracks to reflect tag changes
-		await libraryStore.loadTracks()
-	}
-
-	async function handleRemoveTag(tagId: string) {
-		contextMenuOpen = false
-		const trackIds = contextMenuTracks.map((t) => t.id)
-		await tagsStore.removeTags(trackIds, [tagId])
-		// Reload tracks to reflect tag changes
-		await libraryStore.loadTracks()
 	}
 
 	// Drag and drop handlers
@@ -474,6 +554,23 @@
 
 	// Category colors map for track list
 	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
+
+	// Active filter tags for toolbar display
+	const activeFilterTags = $derived.by(() => {
+		if (selectedTagIds.length === 0) return []
+		const tags: Tag[] = []
+		for (const category of tagCategories) {
+			for (const tag of category.tags) {
+				if (selectedTagIds.includes(tag.id)) {
+					tags.push(tag)
+				}
+			}
+		}
+		return tags
+	})
+
+	// Tag colors map for toolbar (maps tag.category_id to category.color)
+	const tagColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 
 	// Breadcrumb items for navigation
 	const currentFolderChildCount = $derived(
@@ -644,10 +741,23 @@
 			console.error('Eject error:', error)
 		}
 	}
+
+	function handleViewDeviceInfo(device: UsbDevice) {
+		deviceContextMenuOpen = false
+		deviceInfoDevice = device
+		showDeviceInfoModal = true
+	}
 </script>
 
 <div class="flex h-full flex-col">
-	<Toolbar onImport={handleImport} onSettings={() => (showSettings = true)} />
+	<Toolbar
+		{activeFilterTags}
+		{tagColors}
+		onRemoveTagFilter={handleRemoveTagFilter}
+		onClearAllTagFilters={handleClearTagFilter}
+		onImport={handleImport}
+		onSettings={() => (showSettings = true)}
+	/>
 
 	<div class="flex flex-1 overflow-hidden">
 		<div class="flex-shrink-0" style="width: {sidebarWidth}px">
@@ -656,13 +766,17 @@
 				{tagCategories}
 				{devices}
 				{selectedPlaylistId}
-				{selectedTagId}
+				{selectedTagIds}
+				selectedTrackIds={$selectedTrackIds}
+				{tagStates}
+				{tagCounts}
 				trackCount={$trackCount}
 				onLibraryClick={handleLibraryClick}
 				onPlaylistSelect={handlePlaylistSelect}
 				onPlaylistContextMenu={handlePlaylistContextMenu}
 				onDeviceContextMenu={handleDeviceContextMenu}
 				onTagSelect={handleTagSelect}
+				onTagToggle={handleTagToggle}
 				onTagContextMenu={handleTagContextMenu}
 				onCategoryContextMenu={handleCategoryContextMenu}
 				onCreatePlaylist={handleCreatePlaylist}
@@ -774,11 +888,8 @@
 	y={contextMenuPosition.y}
 	selectedTracks={contextMenuTracks}
 	{playlists}
-	{tagCategories}
 	onClose={() => (contextMenuOpen = false)}
 	onAddToPlaylist={handleAddToPlaylist}
-	onAssignTag={handleAssignTag}
-	onRemoveTag={handleRemoveTag}
 />
 
 <!-- Playlist Context Menu -->
@@ -851,7 +962,18 @@
 	y={deviceContextMenuPosition.y}
 	device={deviceContextMenuDevice}
 	onClose={() => (deviceContextMenuOpen = false)}
+	onViewInfo={handleViewDeviceInfo}
 	onEject={handleEjectDevice}
+/>
+
+<!-- Device Info Modal -->
+<DeviceInfoModal
+	open={showDeviceInfoModal}
+	device={deviceInfoDevice}
+	onClose={() => {
+		showDeviceInfoModal = false
+		deviceInfoDevice = null
+	}}
 />
 
 <!-- Rename Tag Modal -->

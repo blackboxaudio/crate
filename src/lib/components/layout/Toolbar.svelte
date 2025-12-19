@@ -1,17 +1,22 @@
 <script lang="ts">
+	import type { Tag } from '$lib/types'
 	import { Button, IconButton } from '$lib/components/common'
 	import { SearchBar } from '$lib/components/library'
 	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
+		activeFilterTags?: Tag[]
+		tagColors?: Map<string, string | null>
+		onRemoveTagFilter?: (tagId: string) => void
+		onClearAllTagFilters?: () => void
 		onImport?: () => void
 		onSettings?: () => void
 	}
 
-	let { onImport, onSettings }: Props = $props()
+	let { activeFilterTags, tagColors, onRemoveTagFilter, onClearAllTagFilters, onImport, onSettings }: Props = $props()
 </script>
 
-<div class="flex items-center gap-4 border-b border-stroke bg-surface-1 px-4 py-2">
+<div class="relative z-20 flex items-center gap-4 border-b border-stroke bg-surface-1 px-4 py-2">
 	<!-- Logo/Title -->
 	<div class="flex items-center gap-2">
 		<Icon name="logo" class="h-6 w-6 text-brand-primary" fill />
@@ -20,7 +25,7 @@
 
 	<!-- Search -->
 	<div class="max-w-md flex-1">
-		<SearchBar />
+		<SearchBar {activeFilterTags} {tagColors} {onRemoveTagFilter} {onClearAllTagFilters} />
 	</div>
 
 	<!-- Spacer -->

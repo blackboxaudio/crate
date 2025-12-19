@@ -133,7 +133,7 @@
 				<button
 					type="button"
 					class="flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors
-						{item.disabled ? 'cursor-not-allowed text-text-tertiary' : 'text-text-primary hover:bg-surface-2'}"
+						{item.disabled ? 'cursor-not-allowed text-text-tertiary' : 'text-text-primary hover:cursor-pointer hover:bg-surface-2'}"
 					onclick={() => handleItemClick(item)}
 					disabled={item.disabled}
 					role="menuitem"

@@ -91,6 +91,8 @@ export interface Tag {
 	sort_order: number
 }
 
+export type TagSelectionState = 'active' | 'inactive' | 'mixed'
+
 // =============================================================================
 // Playlist Types
 // =============================================================================
@@ -209,6 +211,8 @@ export interface UsbDevice {
 	total_space_bytes: number
 	available_space_bytes: number
 	is_removable: boolean
+	file_system: string
+	disk_kind: string
 }
 
 // =============================================================================
