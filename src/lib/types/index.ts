@@ -72,6 +72,7 @@ export interface TrackUpdate {
 export interface TagCategory {
 	id: string
 	name: string
+	color: string | null
 	sort_order: number
 	tags: Tag[]
 }

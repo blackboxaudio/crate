@@ -177,6 +177,32 @@ impl PlaylistService {
         Ok(())
     }
 
+    pub fn move_playlist(&self, id: &str, parent_id: Option<String>) -> Result<Playlist> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Get next sort order in the target location
+        let max_order: i32 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(sort_order), -1) FROM playlists WHERE parent_id IS ?1",
+                rusqlite::params![parent_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(-1);
+
+        conn.execute(
+            "UPDATE playlists SET parent_id = ?1, sort_order = ?2, date_modified = ?3 WHERE id = ?4",
+            rusqlite::params![parent_id, max_order + 1, now, id],
+        )?;
+
+        drop(conn);
+        self.get_playlist(id)
+    }
+
     pub fn get_playlist(&self, id: &str) -> Result<Playlist> {
         let conn = self
             .conn

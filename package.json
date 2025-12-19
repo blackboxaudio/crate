@@ -6,7 +6,9 @@
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
-		"check": "svelte-kit sync && svelte-check --tsconfig tsconfig.json",
+		"check": "yarn check:cargo && yarn check:svelte",
+		"check:cargo": "cd src-tauri/ && cargo check --release",
+		"check:svelte": "svelte-kit sync && svelte-check --tsconfig tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig tsconfig.json --watch",
 		"format": "yarn format:fix",
 		"format:check": "prettier --check \"**/*.{ts,js,json,svelte,css}\"",

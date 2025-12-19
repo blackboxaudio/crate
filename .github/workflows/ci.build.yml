@@ -35,4 +35,4 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build Tauri app
-        run: yarn tauri build
+        run: yarn tauri build --release

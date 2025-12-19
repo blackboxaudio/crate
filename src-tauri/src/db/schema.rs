@@ -114,5 +114,9 @@ CREATE TABLE settings (
     value TEXT NOT NULL
 );
 "#,
+        // Migration 2: Add color to tag_categories
+        r#"
+ALTER TABLE tag_categories ADD COLUMN color TEXT DEFAULT '#6366f1';
+"#,
     ]
 }

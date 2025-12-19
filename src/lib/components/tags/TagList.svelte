@@ -1,25 +1,67 @@
 <script lang="ts">
-	import type { TagCategory } from '$lib/types'
+	import type { Tag, TagCategory } from '$lib/types'
 	import TagChip from './TagChip.svelte'
 
 	type Props = {
 		categories: TagCategory[]
 		selectedTagId?: string | null
 		onTagClick?: (tagId: string) => void
+		onCreateTag?: (categoryId: string) => void
+		onTagContextMenu?: (e: MouseEvent, tag: Tag, category: TagCategory) => void
+		onCategoryContextMenu?: (e: MouseEvent, category: TagCategory) => void
 	}
 
-	let { categories, selectedTagId = null, onTagClick }: Props = $props()
+	let {
+		categories,
+		selectedTagId = null,
+		onTagClick,
+		onCreateTag,
+		onTagContextMenu,
+		onCategoryContextMenu,
+	}: Props = $props()
+
+	function handleCategoryContextMenu(e: MouseEvent, category: TagCategory) {
+		e.preventDefault()
+		onCategoryContextMenu?.(e, category)
+	}
+
+	function handleTagContextMenu(e: MouseEvent, tag: Tag, category: TagCategory) {
+		e.preventDefault()
+		onTagContextMenu?.(e, tag, category)
+	}
 </script>
 
 <div class="space-y-4">
 	{#each categories as category (category.id)}
 		<div>
-			<h3 class="mb-2 text-xs font-semibold tracking-wider text-zinc-500 uppercase">
-				{category.name}
-			</h3>
+			<div
+				class="group mb-2 flex items-center justify-between"
+				role="group"
+				aria-label="{category.name} category"
+				oncontextmenu={(e) => handleCategoryContextMenu(e, category)}
+			>
+				<h3 class="cursor-default text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+					{category.name}
+				</h3>
+				<button
+					type="button"
+					class="rounded p-0.5 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+					onclick={() => onCreateTag?.(category.id)}
+					title="Add tag to {category.name}"
+				>
+					<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+					</svg>
+				</button>
+			</div>
 			<div class="flex flex-wrap gap-1.5">
 				{#each category.tags as tag (tag.id)}
-					<TagChip {tag} onclick={() => onTagClick?.(tag.id)} />
+					<TagChip
+						{tag}
+						color={category.color}
+						onclick={() => onTagClick?.(tag.id)}
+						oncontextmenu={(e) => handleTagContextMenu(e, tag, category)}
+					/>
 				{/each}
 				{#if category.tags.length === 0}
 					<span class="text-xs text-zinc-600 italic">No tags</span>

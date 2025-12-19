@@ -10,6 +10,7 @@
 		onclick?: () => void
 		onToggle?: () => void
 		oncontextmenu?: (e: MouseEvent) => void
+		onTracksDrop?: (trackIds: string[]) => void
 	}
 
 	let {
@@ -21,9 +22,49 @@
 		onclick,
 		onToggle,
 		oncontextmenu,
+		onTracksDrop,
 	}: Props = $props()
 
 	let paddingLeft = $derived(`${depth * 12 + 8}px`)
+	let isDragOver = $state(false)
+
+	function handleDragOver(e: DragEvent) {
+		// Only accept drops on playlists, not folders
+		if (playlist.is_folder) return
+
+		if (e.dataTransfer?.types.includes('application/x-crate-tracks')) {
+			e.preventDefault()
+			e.dataTransfer.dropEffect = 'copy'
+		}
+	}
+
+	function handleDragEnter(e: DragEvent) {
+		if (playlist.is_folder) return
+
+		if (e.dataTransfer?.types.includes('application/x-crate-tracks')) {
+			isDragOver = true
+		}
+	}
+
+	function handleDragLeave() {
+		isDragOver = false
+	}
+
+	function handleDrop(e: DragEvent) {
+		isDragOver = false
+		if (playlist.is_folder) return
+
+		const data = e.dataTransfer?.getData('application/x-crate-tracks')
+		if (data) {
+			e.preventDefault()
+			try {
+				const trackIds = JSON.parse(data) as string[]
+				onTracksDrop?.(trackIds)
+			} catch {
+				// Invalid data
+			}
+		}
+	}
 </script>
 
 <div
@@ -33,10 +74,16 @@
 	aria-expanded={playlist.is_folder ? expanded : undefined}
 	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-2 transition-colors {selected
 		? 'bg-blue-600/20 text-zinc-100'
-		: 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}"
+		: isDragOver
+			? 'bg-blue-600/30 text-zinc-100 ring-1 ring-blue-500'
+			: 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}"
 	style="padding-left: {paddingLeft}"
 	{onclick}
 	{oncontextmenu}
+	ondragover={handleDragOver}
+	ondragenter={handleDragEnter}
+	ondragleave={handleDragLeave}
+	ondrop={handleDrop}
 	onkeydown={(e) => e.key === 'Enter' && onclick?.()}
 >
 	<!-- Expand/Collapse toggle for folders -->

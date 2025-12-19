@@ -73,6 +73,7 @@ pub fn run() {
             commands::playlist::create_folder,
             commands::playlist::rename_playlist,
             commands::playlist::delete_playlist,
+            commands::playlist::move_playlist,
             commands::playlist::get_playlist_tracks,
             commands::playlist::add_to_playlist,
             commands::playlist::remove_from_playlist,

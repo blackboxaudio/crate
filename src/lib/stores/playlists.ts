@@ -129,6 +129,26 @@ function createPlaylistsStore() {
 		},
 
 		/**
+		 * Move a playlist to a different folder
+		 */
+		async move(id: string, parentId: string | null) {
+			try {
+				const updated = await playlistsApi.movePlaylist(id, parentId)
+				update((state) => ({
+					...state,
+					playlists: state.playlists.map((p) => (p.id === id ? updated : p)),
+				}))
+				return updated
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to move playlist',
+				}))
+				return null
+			}
+		},
+
+		/**
 		 * Get tracks in a playlist
 		 */
 		async getPlaylistTracks(playlistId: string): Promise<Track[]> {

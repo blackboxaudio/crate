@@ -9,9 +9,10 @@
 		selectedId?: string | null
 		onSelect?: (playlist: Playlist) => void
 		onContextMenu?: (e: MouseEvent, playlist: Playlist) => void
+		onTracksDrop?: (playlistId: string, trackIds: string[]) => void
 	}
 
-	let { playlists, selectedId = null, onSelect, onContextMenu }: Props = $props()
+	let { playlists, selectedId = null, onSelect, onContextMenu, onTracksDrop }: Props = $props()
 
 	let expandedIds = $state<Set<string>>(new Set())
 
@@ -41,6 +42,7 @@
 			e.preventDefault()
 			onContextMenu?.(e, node.playlist)
 		}}
+		onTracksDrop={(trackIds) => onTracksDrop?.(node.playlist.id, trackIds)}
 	/>
 
 	{#if node.playlist.is_folder && expandedIds.has(node.playlist.id)}

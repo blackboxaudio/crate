@@ -22,14 +22,15 @@ impl TagService {
 
         // Get categories
         let mut stmt = conn
-            .prepare("SELECT id, name, sort_order FROM tag_categories ORDER BY sort_order, name")?;
+            .prepare("SELECT id, name, color, sort_order FROM tag_categories ORDER BY sort_order, name")?;
 
         let categories: Vec<TagCategory> = stmt
             .query_map([], |row| {
                 Ok(TagCategory {
                     id: row.get(0)?,
                     name: row.get(1)?,
-                    sort_order: row.get(2)?,
+                    color: row.get(2)?,
+                    sort_order: row.get(3)?,
                     tags: Vec::new(),
                 })
             })?
@@ -63,7 +64,7 @@ impl TagService {
         Ok(result)
     }
 
-    pub fn create_category(&self, name: String) -> Result<TagCategory> {
+    pub fn create_category(&self, name: String, color: Option<String>) -> Result<TagCategory> {
         let conn = self
             .conn
             .lock()
@@ -88,31 +89,49 @@ impl TagService {
             )
             .unwrap_or(-1);
 
+        // Default color if not provided
+        let category_color = color.or_else(|| Some("#6366f1".to_string()));
+
         let category = TagCategory {
             id: uuid::Uuid::new_v4().to_string(),
             name,
+            color: category_color,
             sort_order: max_order + 1,
             tags: Vec::new(),
         };
 
         conn.execute(
-            "INSERT INTO tag_categories (id, name, sort_order) VALUES (?1, ?2, ?3)",
-            rusqlite::params![category.id, category.name, category.sort_order],
+            "INSERT INTO tag_categories (id, name, color, sort_order) VALUES (?1, ?2, ?3, ?4)",
+            rusqlite::params![category.id, category.name, category.color, category.sort_order],
         )?;
 
         Ok(category)
     }
 
-    pub fn update_category(&self, id: &str, name: String) -> Result<TagCategory> {
+    pub fn update_category(
+        &self,
+        id: &str,
+        name: Option<String>,
+        color: Option<String>,
+    ) -> Result<TagCategory> {
         let conn = self
             .conn
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
-        conn.execute(
-            "UPDATE tag_categories SET name = ?1 WHERE id = ?2",
-            rusqlite::params![name, id],
-        )?;
+        if let Some(ref n) = name {
+            conn.execute(
+                "UPDATE tag_categories SET name = ?1 WHERE id = ?2",
+                rusqlite::params![n, id],
+            )?;
+        }
+
+        if let Some(ref c) = color {
+            conn.execute(
+                "UPDATE tag_categories SET color = ?1 WHERE id = ?2",
+                rusqlite::params![c, id],
+            )?;
+        }
 
         drop(conn);
         self.get_category(id)
@@ -135,13 +154,14 @@ impl TagService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut category = conn.query_row(
-            "SELECT id, name, sort_order FROM tag_categories WHERE id = ?1",
+            "SELECT id, name, color, sort_order FROM tag_categories WHERE id = ?1",
             [id],
             |row| {
                 Ok(TagCategory {
                     id: row.get(0)?,
                     name: row.get(1)?,
-                    sort_order: row.get(2)?,
+                    color: row.get(2)?,
+                    sort_order: row.get(3)?,
                     tags: Vec::new(),
                 })
             },

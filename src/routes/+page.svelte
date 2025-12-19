@@ -1,8 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { open } from '@tauri-apps/plugin-dialog'
+	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
+	import { getCurrentWindow } from '@tauri-apps/api/window'
 
-	import type { Track, SortConfig, Playlist, TagCategory } from '$lib/types'
+	import type { Track, SortConfig, Playlist, TagCategory, Tag } from '$lib/types'
 	import {
 		libraryStore,
 		sortedTracks,
@@ -16,8 +18,11 @@
 	} from '$lib/stores'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
-	import { TrackList } from '$lib/components/library'
+	import { TrackList, TrackContextMenu } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
+	import { InputModal, ConfirmModal, ColorPicker } from '$lib/components/common'
+	import { PlaylistContextMenu } from '$lib/components/playlists'
+	import { TagContextMenu } from '$lib/components/tags'
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
@@ -25,6 +30,58 @@
 	let tagCategories = $state<TagCategory[]>([])
 	let selectedPlaylistId = $state<string | null>(null)
 	let selectedTagId = $state<string | null>(null)
+
+	// Modal state
+	let showPlaylistModal = $state(false)
+	let showFolderModal = $state(false)
+	let showCategoryModal = $state(false)
+	let showTagModal = $state(false)
+	let tagModalCategoryId = $state<string | null>(null)
+
+	// Drag and drop state
+	let isDragOver = $state(false)
+
+	// Track context menu state
+	let contextMenuOpen = $state(false)
+	let contextMenuPosition = $state({ x: 0, y: 0 })
+	let contextMenuTracks = $state<Track[]>([])
+
+	// Playlist context menu state
+	let playlistContextMenuOpen = $state(false)
+	let playlistContextMenuPosition = $state({ x: 0, y: 0 })
+	let playlistContextMenuPlaylist = $state<Playlist | null>(null)
+
+	// Playlist modal states
+	let showRenamePlaylistModal = $state(false)
+	let renamePlaylistId = $state<string | null>(null)
+	let renamePlaylistValue = $state('')
+	let showDeletePlaylistConfirm = $state(false)
+	let deletePlaylistId = $state<string | null>(null)
+	let deletePlaylistIsFolder = $state(false)
+	let deletePlaylistHasChildren = $state(false)
+	let deleteTracksFromCollection = $state(false)
+
+	// Tag context menu state
+	let tagContextMenuOpen = $state(false)
+	let tagContextMenuPosition = $state({ x: 0, y: 0 })
+	let tagContextMenuTarget = $state<
+		{ type: 'tag'; tag: Tag; category: TagCategory } | { type: 'category'; category: TagCategory } | null
+	>(null)
+
+	// Tag modal states
+	let showRenameTagModal = $state(false)
+	let renameTagId = $state<string | null>(null)
+	let renameTagValue = $state('')
+	let showRenameCategoryModal = $state(false)
+	let renameCategoryId = $state<string | null>(null)
+	let renameCategoryValue = $state('')
+	let showDeleteTagConfirm = $state(false)
+	let deleteTagId = $state<string | null>(null)
+	let showDeleteCategoryConfirm = $state(false)
+	let deleteCategoryId = $state<string | null>(null)
+	let showColorPicker = $state(false)
+	let colorPickerCategoryId = $state<string | null>(null)
+	let colorPickerCurrentColor = $state<string | null>(null)
 
 	// Subscribe to stores
 	$effect(() => {
@@ -53,14 +110,45 @@
 		// Set up keyboard shortcuts
 		window.addEventListener('keydown', handleKeydown)
 
-		// Set up drag and drop
-		window.addEventListener('dragover', handleDragOver)
-		window.addEventListener('drop', handleDrop)
+		// Set up Tauri drag and drop events
+		let unlistenDrop: UnlistenFn | undefined
+		let unlistenDragOver: UnlistenFn | undefined
+		let unlistenDragLeave: UnlistenFn | undefined
+
+		const setupDragDrop = async () => {
+			const appWindow = getCurrentWindow()
+
+			// Listen for file drop
+			unlistenDrop = await appWindow.onDragDropEvent((event) => {
+				if (event.payload.type === 'drop') {
+					isDragOver = false
+					const paths = event.payload.paths
+					if (paths && paths.length > 0) {
+						// Filter for audio files
+						const audioExtensions = ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac']
+						const audioPaths = paths.filter((p) => {
+							const ext = p.split('.').pop()?.toLowerCase()
+							return ext && audioExtensions.includes(ext)
+						})
+						if (audioPaths.length > 0) {
+							libraryStore.importTracks(audioPaths)
+						}
+					}
+				} else if (event.payload.type === 'over') {
+					isDragOver = true
+				} else if (event.payload.type === 'leave' || event.payload.type === 'cancel') {
+					isDragOver = false
+				}
+			})
+		}
+
+		setupDragDrop()
 
 		return () => {
 			window.removeEventListener('keydown', handleKeydown)
-			window.removeEventListener('dragover', handleDragOver)
-			window.removeEventListener('drop', handleDrop)
+			unlistenDrop?.()
+			unlistenDragOver?.()
+			unlistenDragLeave?.()
 		}
 	})
 
@@ -95,32 +183,6 @@
 	function isInputFocused() {
 		const active = document.activeElement
 		return active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
-	}
-
-	// Drag and drop
-	function handleDragOver(e: DragEvent) {
-		e.preventDefault()
-		if (e.dataTransfer) {
-			e.dataTransfer.dropEffect = 'copy'
-		}
-	}
-
-	async function handleDrop(e: DragEvent) {
-		e.preventDefault()
-		const files = e.dataTransfer?.files
-		if (!files || files.length === 0) return
-
-		const paths: string[] = []
-		for (const file of files) {
-			// In Tauri, we can get the path from the file
-			if ('path' in file && typeof file.path === 'string') {
-				paths.push(file.path)
-			}
-		}
-
-		if (paths.length > 0) {
-			await libraryStore.importTracks(paths)
-		}
 	}
 
 	// Import handler
@@ -172,17 +234,247 @@
 		libraryStore.setFilter({ tag_ids: [tagId] })
 	}
 
-	async function handleCreatePlaylist() {
-		const name = prompt('Playlist name:')
-		if (name) {
-			await playlistsStore.createPlaylist(name)
+	function handleCreatePlaylist() {
+		showPlaylistModal = true
+	}
+
+	async function handlePlaylistModalSubmit(name: string) {
+		showPlaylistModal = false
+		await playlistsStore.createPlaylist(name)
+	}
+
+	function handleCreateFolder() {
+		showFolderModal = true
+	}
+
+	async function handleFolderModalSubmit(name: string) {
+		showFolderModal = false
+		await playlistsStore.createFolder(name)
+	}
+
+	function handleCreateCategory() {
+		showCategoryModal = true
+	}
+
+	async function handleCategoryModalSubmit(name: string) {
+		showCategoryModal = false
+		await tagsStore.createCategory(name)
+	}
+
+	function handleCreateTag(categoryId: string) {
+		tagModalCategoryId = categoryId
+		showTagModal = true
+	}
+
+	async function handleTagModalSubmit(name: string) {
+		showTagModal = false
+		if (tagModalCategoryId) {
+			await tagsStore.createTag(tagModalCategoryId, name)
+			tagModalCategoryId = null
 		}
 	}
 
-	async function handleCreateCategory() {
-		const name = prompt('Category name:')
-		if (name) {
-			await tagsStore.createCategory(name)
+	// Context menu handlers
+	function handleTrackContextMenu(e: MouseEvent, track: Track) {
+		e.preventDefault()
+		contextMenuPosition = { x: e.clientX, y: e.clientY }
+
+		// If the clicked track is in the selection, use the selection
+		// Otherwise, use just the clicked track
+		const currentSelection = $selectedTrackIds
+		if (currentSelection.has(track.id)) {
+			contextMenuTracks = $sortedTracks.filter((t) => currentSelection.has(t.id))
+		} else {
+			contextMenuTracks = [track]
+		}
+
+		contextMenuOpen = true
+	}
+
+	async function handleAddToPlaylist(playlistId: string) {
+		contextMenuOpen = false
+		const trackIds = contextMenuTracks.map((t) => t.id)
+		await playlistsStore.addTracks(playlistId, trackIds)
+	}
+
+	async function handleAssignTag(tagId: string) {
+		contextMenuOpen = false
+		const trackIds = contextMenuTracks.map((t) => t.id)
+		await tagsStore.assignTags(trackIds, [tagId])
+		// Reload tracks to reflect tag changes
+		await libraryStore.loadTracks()
+	}
+
+	async function handleRemoveTag(tagId: string) {
+		contextMenuOpen = false
+		const trackIds = contextMenuTracks.map((t) => t.id)
+		await tagsStore.removeTags(trackIds, [tagId])
+		// Reload tracks to reflect tag changes
+		await libraryStore.loadTracks()
+	}
+
+	// Drag and drop handlers
+	async function handleTracksDropOnPlaylist(playlistId: string, trackIds: string[]) {
+		await playlistsStore.addTracks(playlistId, trackIds)
+	}
+
+	// Playlist context menu handlers
+	function handlePlaylistContextMenu(e: MouseEvent, playlist: Playlist) {
+		e.preventDefault()
+		playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
+		playlistContextMenuPlaylist = playlist
+		playlistContextMenuOpen = true
+	}
+
+	function handlePlaylistRename(playlist: Playlist) {
+		playlistContextMenuOpen = false
+		renamePlaylistId = playlist.id
+		renamePlaylistValue = playlist.name
+		showRenamePlaylistModal = true
+	}
+
+	async function handleRenamePlaylistSubmit(name: string) {
+		showRenamePlaylistModal = false
+		if (renamePlaylistId) {
+			await playlistsStore.rename(renamePlaylistId, name)
+			renamePlaylistId = null
+			renamePlaylistValue = ''
+		}
+	}
+
+	function handlePlaylistDelete(playlist: Playlist) {
+		playlistContextMenuOpen = false
+		deletePlaylistId = playlist.id
+		deletePlaylistIsFolder = playlist.is_folder
+		// Check if folder has children
+		deletePlaylistHasChildren = playlists.some((p) => p.parent_id === playlist.id)
+		deleteTracksFromCollection = false
+		showDeletePlaylistConfirm = true
+	}
+
+	async function handleDeletePlaylistConfirm(deleteTracksToo: boolean) {
+		showDeletePlaylistConfirm = false
+		if (deletePlaylistId) {
+			// TODO: If deleteTracksToo is true, delete tracks from collection first
+			await playlistsStore.delete(deletePlaylistId)
+			deletePlaylistId = null
+			deletePlaylistIsFolder = false
+			deletePlaylistHasChildren = false
+		}
+	}
+
+	async function handlePlaylistMove(playlist: Playlist, folderId: string | null) {
+		playlistContextMenuOpen = false
+		await playlistsStore.move(playlist.id, folderId)
+	}
+
+	// Helper to get folders for move menu
+	const playlistFolders = $derived(playlists.filter((p) => p.is_folder))
+
+	// Category colors map for track list
+	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
+
+	// Helper to generate delete warnings
+	function getDeleteWarnings(): string[] {
+		const warnings: string[] = []
+		if (deletePlaylistIsFolder && deletePlaylistHasChildren) {
+			warnings.push('This folder contains playlists that will also be deleted.')
+		}
+		return warnings
+	}
+
+	// Tag context menu handlers
+	function handleTagContextMenu(e: MouseEvent, tag: Tag, category: TagCategory) {
+		e.preventDefault()
+		tagContextMenuPosition = { x: e.clientX, y: e.clientY }
+		tagContextMenuTarget = { type: 'tag', tag, category }
+		tagContextMenuOpen = true
+	}
+
+	function handleCategoryContextMenu(e: MouseEvent, category: TagCategory) {
+		e.preventDefault()
+		tagContextMenuPosition = { x: e.clientX, y: e.clientY }
+		tagContextMenuTarget = { type: 'category', category }
+		tagContextMenuOpen = true
+	}
+
+	function handleRenameTag(tag: Tag) {
+		tagContextMenuOpen = false
+		renameTagId = tag.id
+		renameTagValue = tag.name
+		showRenameTagModal = true
+	}
+
+	async function handleRenameTagSubmit(name: string) {
+		showRenameTagModal = false
+		if (renameTagId) {
+			await tagsStore.updateTag(renameTagId, name)
+			renameTagId = null
+			renameTagValue = ''
+		}
+	}
+
+	function handleDeleteTag(tag: Tag) {
+		tagContextMenuOpen = false
+		deleteTagId = tag.id
+		showDeleteTagConfirm = true
+	}
+
+	async function handleDeleteTagConfirm() {
+		showDeleteTagConfirm = false
+		if (deleteTagId) {
+			await tagsStore.deleteTag(deleteTagId)
+			deleteTagId = null
+			// Reload tracks to reflect tag changes
+			await libraryStore.loadTracks()
+		}
+	}
+
+	function handleRenameCategory(category: TagCategory) {
+		tagContextMenuOpen = false
+		renameCategoryId = category.id
+		renameCategoryValue = category.name
+		showRenameCategoryModal = true
+	}
+
+	async function handleRenameCategorySubmit(name: string) {
+		showRenameCategoryModal = false
+		if (renameCategoryId) {
+			await tagsStore.updateCategory(renameCategoryId, name)
+			renameCategoryId = null
+			renameCategoryValue = ''
+		}
+	}
+
+	function handleDeleteCategory(category: TagCategory) {
+		tagContextMenuOpen = false
+		deleteCategoryId = category.id
+		showDeleteCategoryConfirm = true
+	}
+
+	function handleChangeCategoryColor(category: TagCategory) {
+		tagContextMenuOpen = false
+		colorPickerCategoryId = category.id
+		colorPickerCurrentColor = category.color
+		showColorPicker = true
+	}
+
+	async function handleColorPickerSelect(color: string) {
+		showColorPicker = false
+		if (colorPickerCategoryId) {
+			await tagsStore.updateCategory(colorPickerCategoryId, undefined, color)
+			colorPickerCategoryId = null
+			colorPickerCurrentColor = null
+		}
+	}
+
+	async function handleDeleteCategoryConfirm() {
+		showDeleteCategoryConfirm = false
+		if (deleteCategoryId) {
+			await tagsStore.deleteCategory(deleteCategoryId)
+			deleteCategoryId = null
+			// Reload tracks to reflect tag changes
+			await libraryStore.loadTracks()
 		}
 	}
 </script>
@@ -200,9 +492,15 @@
 				trackCount={$trackCount}
 				onLibraryClick={handleLibraryClick}
 				onPlaylistSelect={handlePlaylistSelect}
+				onPlaylistContextMenu={handlePlaylistContextMenu}
 				onTagSelect={handleTagSelect}
+				onTagContextMenu={handleTagContextMenu}
+				onCategoryContextMenu={handleCategoryContextMenu}
 				onCreatePlaylist={handleCreatePlaylist}
+				onCreateFolder={handleCreateFolder}
 				onCreateCategory={handleCreateCategory}
+				onCreateTag={handleCreateTag}
+				onTracksDrop={handleTracksDropOnPlaylist}
 			/>
 		</div>
 
@@ -212,12 +510,203 @@
 				selectedIds={$selectedTrackIds}
 				playingTrackId={$currentTrack?.id ?? null}
 				{sortConfig}
+				{isDragOver}
+				{categoryColors}
 				onSelectionChange={handleSelectionChange}
 				onTrackPlay={handleTrackPlay}
 				onSortChange={handleSortChange}
+				onContextMenu={handleTrackContextMenu}
 			/>
 		</div>
 	</div>
 
 	<Player />
 </div>
+
+<!-- Modals -->
+<InputModal
+	open={showPlaylistModal}
+	title="New Playlist"
+	placeholder="Playlist name"
+	submitLabel="Create"
+	onSubmit={handlePlaylistModalSubmit}
+	onCancel={() => (showPlaylistModal = false)}
+/>
+
+<InputModal
+	open={showFolderModal}
+	title="New Folder"
+	placeholder="Folder name"
+	submitLabel="Create"
+	onSubmit={handleFolderModalSubmit}
+	onCancel={() => (showFolderModal = false)}
+/>
+
+<InputModal
+	open={showCategoryModal}
+	title="New Tag Category"
+	placeholder="Category name"
+	submitLabel="Create"
+	onSubmit={handleCategoryModalSubmit}
+	onCancel={() => (showCategoryModal = false)}
+/>
+
+<InputModal
+	open={showTagModal}
+	title="New Tag"
+	placeholder="Tag name"
+	submitLabel="Create"
+	onSubmit={handleTagModalSubmit}
+	onCancel={() => {
+		showTagModal = false
+		tagModalCategoryId = null
+	}}
+/>
+
+<!-- Track Context Menu -->
+<TrackContextMenu
+	open={contextMenuOpen}
+	x={contextMenuPosition.x}
+	y={contextMenuPosition.y}
+	selectedTracks={contextMenuTracks}
+	{playlists}
+	{tagCategories}
+	onClose={() => (contextMenuOpen = false)}
+	onAddToPlaylist={handleAddToPlaylist}
+	onAssignTag={handleAssignTag}
+	onRemoveTag={handleRemoveTag}
+/>
+
+<!-- Playlist Context Menu -->
+<PlaylistContextMenu
+	open={playlistContextMenuOpen}
+	x={playlistContextMenuPosition.x}
+	y={playlistContextMenuPosition.y}
+	playlist={playlistContextMenuPlaylist}
+	folders={playlistFolders}
+	onClose={() => (playlistContextMenuOpen = false)}
+	onRename={handlePlaylistRename}
+	onDelete={handlePlaylistDelete}
+	onMove={handlePlaylistMove}
+/>
+
+<!-- Rename Playlist Modal -->
+<InputModal
+	open={showRenamePlaylistModal}
+	title="Rename"
+	placeholder="Name"
+	submitLabel="Save"
+	initialValue={renamePlaylistValue}
+	onSubmit={handleRenamePlaylistSubmit}
+	onCancel={() => {
+		showRenamePlaylistModal = false
+		renamePlaylistId = null
+		renamePlaylistValue = ''
+	}}
+/>
+
+<!-- Delete Playlist Confirmation -->
+<ConfirmModal
+	open={showDeletePlaylistConfirm}
+	title={deletePlaylistIsFolder ? 'Delete Folder' : 'Delete Playlist'}
+	message={deletePlaylistIsFolder
+		? 'Are you sure you want to delete this folder?'
+		: 'Are you sure you want to delete this playlist?'}
+	warnings={getDeleteWarnings()}
+	checkboxLabel="Also delete tracks from my collection"
+	bind:checkboxChecked={deleteTracksFromCollection}
+	confirmLabel="Delete"
+	destructive={true}
+	onConfirm={handleDeletePlaylistConfirm}
+	onCancel={() => {
+		showDeletePlaylistConfirm = false
+		deletePlaylistId = null
+		deletePlaylistIsFolder = false
+		deletePlaylistHasChildren = false
+	}}
+/>
+
+<!-- Tag Context Menu -->
+<TagContextMenu
+	open={tagContextMenuOpen}
+	x={tagContextMenuPosition.x}
+	y={tagContextMenuPosition.y}
+	target={tagContextMenuTarget}
+	onClose={() => (tagContextMenuOpen = false)}
+	onRenameTag={handleRenameTag}
+	onDeleteTag={handleDeleteTag}
+	onRenameCategory={handleRenameCategory}
+	onDeleteCategory={handleDeleteCategory}
+	onChangeColor={handleChangeCategoryColor}
+/>
+
+<!-- Rename Tag Modal -->
+<InputModal
+	open={showRenameTagModal}
+	title="Rename Tag"
+	placeholder="Tag name"
+	submitLabel="Save"
+	initialValue={renameTagValue}
+	onSubmit={handleRenameTagSubmit}
+	onCancel={() => {
+		showRenameTagModal = false
+		renameTagId = null
+		renameTagValue = ''
+	}}
+/>
+
+<!-- Delete Tag Confirmation -->
+<ConfirmModal
+	open={showDeleteTagConfirm}
+	title="Delete Tag"
+	message="Are you sure you want to delete this tag? It will be removed from all tracks."
+	confirmLabel="Delete"
+	destructive={true}
+	onConfirm={handleDeleteTagConfirm}
+	onCancel={() => {
+		showDeleteTagConfirm = false
+		deleteTagId = null
+	}}
+/>
+
+<!-- Rename Category Modal -->
+<InputModal
+	open={showRenameCategoryModal}
+	title="Rename Category"
+	placeholder="Category name"
+	submitLabel="Save"
+	initialValue={renameCategoryValue}
+	onSubmit={handleRenameCategorySubmit}
+	onCancel={() => {
+		showRenameCategoryModal = false
+		renameCategoryId = null
+		renameCategoryValue = ''
+	}}
+/>
+
+<!-- Delete Category Confirmation -->
+<ConfirmModal
+	open={showDeleteCategoryConfirm}
+	title="Delete Category"
+	message="Are you sure you want to delete this category? All tags in this category will be removed from all tracks."
+	confirmLabel="Delete"
+	destructive={true}
+	onConfirm={handleDeleteCategoryConfirm}
+	onCancel={() => {
+		showDeleteCategoryConfirm = false
+		deleteCategoryId = null
+	}}
+/>
+
+<!-- Category Color Picker -->
+<ColorPicker
+	open={showColorPicker}
+	title="Category Color"
+	selectedColor={colorPickerCurrentColor}
+	onSelect={handleColorPickerSelect}
+	onCancel={() => {
+		showColorPicker = false
+		colorPickerCategoryId = null
+		colorPickerCurrentColor = null
+	}}
+/>

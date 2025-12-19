@@ -43,6 +43,13 @@ export async function deletePlaylist(id: string): Promise<void> {
 }
 
 /**
+ * Move a playlist to a different folder
+ */
+export async function movePlaylist(id: string, parentId: string | null): Promise<Playlist> {
+	return invoke<Playlist>('move_playlist', { id, parentId })
+}
+
+/**
  * Get tracks in a playlist
  */
 export async function getPlaylistTracks(playlistId: string): Promise<Track[]> {

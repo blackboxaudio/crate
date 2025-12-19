@@ -7,23 +7,47 @@
 		track: Track
 		selected?: boolean
 		playing?: boolean
+		dragTrackIds?: string[]
+		categoryColors?: Map<string, string | null>
 		onclick?: (e: MouseEvent) => void
 		ondblclick?: (e: MouseEvent) => void
 		oncontextmenu?: (e: MouseEvent) => void
 	}
 
-	let { track, selected = false, playing = false, onclick, ondblclick, oncontextmenu }: Props = $props()
+	let {
+		track,
+		selected = false,
+		playing = false,
+		dragTrackIds = [],
+		categoryColors,
+		onclick,
+		ondblclick,
+		oncontextmenu,
+	}: Props = $props()
+
+	function handleDragStart(e: DragEvent) {
+		if (!e.dataTransfer) return
+
+		// If this track is selected, drag all selected tracks; otherwise just this track
+		const trackIds = selected && dragTrackIds.length > 0 ? dragTrackIds : [track.id]
+
+		e.dataTransfer.effectAllowed = 'copy'
+		e.dataTransfer.setData('application/x-crate-tracks', JSON.stringify(trackIds))
+		e.dataTransfer.setData('text/plain', getTrackDisplayName(track))
+	}
 </script>
 
 <div
 	role="row"
 	tabindex="0"
+	draggable="true"
 	class="grid cursor-pointer grid-cols-[1fr_1fr_80px_60px_80px_1fr] gap-2 border-b border-zinc-800 px-3 py-2 text-sm transition-colors {selected
 		? 'bg-blue-600/20'
 		: 'hover:bg-zinc-800/50'} {playing ? 'text-blue-400' : 'text-zinc-300'}"
 	{onclick}
 	{ondblclick}
 	{oncontextmenu}
+	ondragstart={handleDragStart}
 	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
 	<!-- Title -->
@@ -61,7 +85,7 @@
 	<!-- Tags -->
 	<div class="flex gap-1 overflow-hidden">
 		{#each track.tags.slice(0, 3) as tag (tag.id)}
-			<TagChip {tag} size="sm" />
+			<TagChip {tag} size="sm" color={categoryColors?.get(tag.category_id)} />
 		{/each}
 		{#if track.tags.length > 3}
 			<span class="text-xs text-zinc-500">+{track.tags.length - 3}</span>

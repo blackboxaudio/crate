@@ -11,15 +11,19 @@ export async function getTagCategories(): Promise<TagCategory[]> {
 /**
  * Create a new tag category (max 4 allowed)
  */
-export async function createTagCategory(name: string): Promise<TagCategory> {
-	return invoke<TagCategory>('create_tag_category', { name })
+export async function createTagCategory(name: string, color?: string): Promise<TagCategory> {
+	return invoke<TagCategory>('create_tag_category', { name, color: color ?? null })
 }
 
 /**
- * Update a tag category's name
+ * Update a tag category's name and/or color
  */
-export async function updateTagCategory(id: string, name: string): Promise<TagCategory> {
-	return invoke<TagCategory>('update_tag_category', { id, name })
+export async function updateTagCategory(id: string, name?: string, color?: string): Promise<TagCategory> {
+	return invoke<TagCategory>('update_tag_category', {
+		id,
+		name: name ?? null,
+		color: color ?? null,
+	})
 }
 
 /**

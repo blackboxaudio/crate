@@ -53,9 +53,9 @@ function createTagsStore() {
 		/**
 		 * Create a new tag category
 		 */
-		async createCategory(name: string) {
+		async createCategory(name: string, color?: string) {
 			try {
-				const category = await tagsApi.createTagCategory(name)
+				const category = await tagsApi.createTagCategory(name, color)
 				update((state) => ({
 					...state,
 					categories: [...state.categories, category],
@@ -73,9 +73,9 @@ function createTagsStore() {
 		/**
 		 * Update a tag category
 		 */
-		async updateCategory(id: string, name: string) {
+		async updateCategory(id: string, name?: string, color?: string) {
 			try {
-				const updated = await tagsApi.updateTagCategory(id, name)
+				const updated = await tagsApi.updateTagCategory(id, name, color)
 				update((state) => ({
 					...state,
 					categories: state.categories.map((c) => (c.id === id ? updated : c)),

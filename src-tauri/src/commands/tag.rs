@@ -14,18 +14,20 @@ pub async fn get_tag_categories(
 #[tauri::command]
 pub async fn create_tag_category(
     name: String,
+    color: Option<String>,
     tags: State<'_, TagService>,
 ) -> Result<TagCategory, CrateError> {
-    tags.create_category(name)
+    tags.create_category(name, color)
 }
 
 #[tauri::command]
 pub async fn update_tag_category(
     id: String,
-    name: String,
+    name: Option<String>,
+    color: Option<String>,
     tags: State<'_, TagService>,
 ) -> Result<TagCategory, CrateError> {
-    tags.update_category(&id, name)
+    tags.update_category(&id, name, color)
 }
 
 #[tauri::command]

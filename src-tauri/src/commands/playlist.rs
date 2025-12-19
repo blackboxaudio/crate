@@ -47,6 +47,15 @@ pub async fn delete_playlist(
 }
 
 #[tauri::command]
+pub async fn move_playlist(
+    id: String,
+    parent_id: Option<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Playlist, CrateError> {
+    playlists.move_playlist(&id, parent_id)
+}
+
+#[tauri::command]
 pub async fn get_playlist_tracks(
     playlist_id: String,
     playlists: State<'_, PlaylistService>,

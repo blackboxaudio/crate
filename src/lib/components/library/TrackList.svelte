@@ -9,6 +9,8 @@
 		selectedIds: Set<string>
 		playingTrackId?: string | null
 		sortConfig: SortConfig
+		isDragOver?: boolean
+		categoryColors?: Map<string, string | null>
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onSortChange?: (config: SortConfig) => void
@@ -20,6 +22,8 @@
 		selectedIds,
 		playingTrackId = null,
 		sortConfig,
+		isDragOver = false,
+		categoryColors,
 		onSelectionChange,
 		onTrackPlay,
 		onSortChange,
@@ -55,10 +59,25 @@
 	}
 </script>
 
-<div class="flex h-full flex-col bg-zinc-900">
+<div class="flex h-full flex-col bg-zinc-900 {isDragOver ? 'ring-2 ring-blue-500 ring-inset' : ''}">
 	<TrackListHeader {sortConfig} onSort={onSortChange} />
 
-	<div class="flex-1 overflow-auto">
+	<div class="relative flex-1 overflow-auto">
+		{#if isDragOver}
+			<div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-blue-500/10">
+				<div class="rounded-lg border-2 border-dashed border-blue-500 bg-zinc-900/90 px-8 py-6 text-center">
+					<svg class="mx-auto mb-2 h-10 w-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+						/>
+					</svg>
+					<p class="text-sm font-medium text-blue-500">Drop audio files to import</p>
+				</div>
+			</div>
+		{/if}
 		{#if tracks.length === 0}
 			<div class="flex h-full flex-col items-center justify-center p-8 text-zinc-500">
 				<svg class="mb-4 h-16 w-16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -78,6 +97,8 @@
 					{track}
 					selected={selectedIds.has(track.id)}
 					playing={playingTrackId === track.id}
+					dragTrackIds={Array.from(selectedIds)}
+					{categoryColors}
 					onclick={(e) => handleTrackClick(track, e)}
 					ondblclick={() => handleTrackDoubleClick(track)}
 					oncontextmenu={(e) => handleTrackContextMenu(track, e)}

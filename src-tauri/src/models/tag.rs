@@ -5,6 +5,7 @@ use uuid::Uuid;
 pub struct TagCategory {
     pub id: String,
     pub name: String,
+    pub color: Option<String>,
     pub sort_order: i32,
     #[serde(default)]
     pub tags: Vec<Tag>,
@@ -12,10 +13,11 @@ pub struct TagCategory {
 
 #[allow(dead_code)]
 impl TagCategory {
-    pub fn new(name: String) -> Self {
+    pub fn new(name: String, color: Option<String>) -> Self {
         Self {
             id: Uuid::new_v4().to_string(),
             name,
+            color,
             sort_order: 0,
             tags: Vec::new(),
         }
