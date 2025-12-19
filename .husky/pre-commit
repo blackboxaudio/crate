@@ -8,4 +8,4 @@ if [ ! -d "node_modules" ]; then
     yarn
 fi
 
-# yarn pre-commit
+yarn pre-commit
