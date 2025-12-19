@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Track, SortConfig } from '$lib/types'
+	import type { Track, TrackColor, SortConfig } from '$lib/types'
 	import TrackList from './TrackList.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 
@@ -16,6 +16,7 @@
 		onSortChange?: (config: SortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
+		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
 	}
 
 	let {
@@ -31,6 +32,7 @@
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
+		onTrackColorChange,
 	}: Props = $props()
 </script>
 
@@ -61,6 +63,7 @@
 			{onSortChange}
 			{onContextMenu}
 			{onEmptySpaceContextMenu}
+			{onTrackColorChange}
 		/>
 	</div>
 </div>

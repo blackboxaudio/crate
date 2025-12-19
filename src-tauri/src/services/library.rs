@@ -215,7 +215,7 @@ impl LibraryService {
                 analysis_source, waveform_data,
                 rating, play_count,
                 date_added, date_modified, last_played,
-                rekordbox_id, artwork_path
+                rekordbox_id, artwork_path, color
             ) VALUES (
                 ?1, ?2, ?3,
                 ?4, ?5, ?6, ?7, ?8, ?9, ?10,
@@ -223,7 +223,7 @@ impl LibraryService {
                 ?17, ?18,
                 ?19, ?20,
                 ?21, ?22, ?23,
-                ?24, ?25
+                ?24, ?25, ?26
             )
             ON CONFLICT(file_path) DO UPDATE SET
                 title = excluded.title,
@@ -260,6 +260,7 @@ impl LibraryService {
                 track.last_played,
                 track.rekordbox_id,
                 track.artwork_path,
+                track.color,
             ],
         )?;
 
@@ -281,7 +282,7 @@ impl LibraryService {
                 t.analysis_source, t.waveform_data,
                 t.rating, t.play_count,
                 t.date_added, t.date_modified, t.last_played,
-                t.rekordbox_id, t.artwork_path
+                t.rekordbox_id, t.artwork_path, t.color
             FROM tracks t
             "#,
         );
@@ -395,6 +396,7 @@ impl LibraryService {
                     last_played: row.get(22)?,
                     rekordbox_id: row.get(23)?,
                     artwork_path: row.get(24)?,
+                    color: row.get(25)?,
                     tags: Vec::new(),
                 })
             })?
@@ -485,7 +487,7 @@ impl LibraryService {
                 analysis_source, waveform_data,
                 rating, play_count,
                 date_added, date_modified, last_played,
-                rekordbox_id, artwork_path
+                rekordbox_id, artwork_path, color
             FROM tracks WHERE id = ?1
             "#,
             [id],
@@ -516,6 +518,7 @@ impl LibraryService {
                     last_played: row.get(22)?,
                     rekordbox_id: row.get(23)?,
                     artwork_path: row.get(24)?,
+                    color: row.get(25)?,
                     tags: Vec::new(),
                 })
             },
@@ -799,6 +802,42 @@ impl LibraryService {
 
         drop(conn);
         self.get_track(id)
+    }
+
+    /// Set color for multiple tracks (bulk operation)
+    pub fn set_track_colors(&self, track_ids: Vec<String>, color: Option<String>) -> Result<()> {
+        if track_ids.is_empty() {
+            return Ok(());
+        }
+
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        let placeholders: Vec<String> = track_ids
+            .iter()
+            .enumerate()
+            .map(|(i, _)| format!("?{}", i + 3))
+            .collect();
+
+        let sql = format!(
+            "UPDATE tracks SET color = ?1, date_modified = ?2 WHERE id IN ({})",
+            placeholders.join(", ")
+        );
+
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(color), Box::new(now)];
+
+        for id in track_ids {
+            params.push(Box::new(id));
+        }
+
+        let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+        conn.execute(&sql, params_refs.as_slice())?;
+
+        Ok(())
     }
 }
 

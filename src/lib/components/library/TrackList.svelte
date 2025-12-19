@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Track, SortConfig } from '$lib/types'
+	import type { Track, TrackColor, SortConfig } from '$lib/types'
 	import { handleSelection } from '$lib/utils'
 	import TrackListHeader from './TrackListHeader.svelte'
 	import TrackRow from './TrackRow.svelte'
@@ -17,6 +17,7 @@
 		onSortChange?: (config: SortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
+		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
 	}
 
 	let {
@@ -31,6 +32,7 @@
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
+		onTrackColorChange,
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
@@ -77,6 +79,12 @@
 			onEmptySpaceContextMenu(e)
 		}
 	}
+
+	function handleColorChange(track: Track, color: TrackColor | null) {
+		// If track is selected, apply to all selected tracks; otherwise just this track
+		const ids = selectedIds.has(track.id) ? Array.from(selectedIds) : [track.id]
+		onTrackColorChange?.(ids, color)
+	}
 </script>
 
 <div class="flex h-full flex-col bg-surface-0 {isDragOver ? 'ring-2 ring-brand-primary ring-inset' : ''}">
@@ -110,6 +118,7 @@
 					onclick={(e) => handleTrackClick(track, e)}
 					ondblclick={() => handleTrackDoubleClick(track)}
 					oncontextmenu={(e) => handleTrackContextMenu(track, e)}
+					onColorChange={(color) => handleColorChange(track, color)}
 				/>
 			{/each}
 		{/if}

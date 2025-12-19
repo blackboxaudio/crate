@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Playlist, Track, SortConfig, BreadcrumbItem } from '$lib/types'
+	import type { Playlist, Track, TrackColor, SortConfig, BreadcrumbItem } from '$lib/types'
 	import { TrackList } from '$lib/components/library'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 
@@ -19,6 +19,7 @@
 		onEmptySpaceContextMenu?: (e: MouseEvent, playlist: Playlist) => void
 		onBreadcrumbNavigate: (item: BreadcrumbItem) => void
 		onBreadcrumbContextMenu: (e: MouseEvent, item: BreadcrumbItem) => void
+		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
 	}
 
 	let {
@@ -37,6 +38,7 @@
 		onEmptySpaceContextMenu,
 		onBreadcrumbNavigate,
 		onBreadcrumbContextMenu,
+		onTrackColorChange,
 	}: Props = $props()
 
 	function handleEmptySpaceContextMenu(e: MouseEvent) {
@@ -62,6 +64,7 @@
 			{onSortChange}
 			{onContextMenu}
 			onEmptySpaceContextMenu={handleEmptySpaceContextMenu}
+			{onTrackColorChange}
 		/>
 	</div>
 </div>

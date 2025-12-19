@@ -197,11 +197,12 @@
    ============================================================================= */
 
 html {
-	scroll-behavior: smooth;
+	overflow: hidden;
 }
 
 body {
-	background-color: var(--surface-1);
+	overflow: hidden;
+	background-color: var(--surface-0);
 	color: var(--text-primary);
 	font-family: var(--font-family);
 	-webkit-user-select: none;

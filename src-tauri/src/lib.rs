@@ -33,6 +33,7 @@ pub fn run() {
             commands::library::check_file_exists,
             commands::library::validate_replacement_file,
             commands::library::relocate_track,
+            commands::library::set_track_colors,
             // Playback commands
             commands::playback::play_track,
             commands::playback::pause,

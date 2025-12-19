@@ -1,10 +1,11 @@
 <script lang="ts">
-	import type { Track } from '$lib/types'
+	import type { Track, TrackColor } from '$lib/types'
 	import { formatDurationCompact, formatBpm, formatKey, getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { AlbumArt, AlbumArtModal } from '$lib/components/common'
 	import { missingTrackIds } from '$lib/stores'
+	import TrackColorCell from './TrackColorCell.svelte'
 
 	type Props = {
 		track: Track
@@ -15,6 +16,7 @@
 		onclick?: (e: MouseEvent) => void
 		ondblclick?: (e: MouseEvent) => void
 		oncontextmenu?: (e: MouseEvent) => void
+		onColorChange?: (color: TrackColor | null) => void
 	}
 
 	let {
@@ -26,6 +28,7 @@
 		onclick,
 		ondblclick,
 		oncontextmenu,
+		onColorChange,
 	}: Props = $props()
 
 	let showArtworkModal = $state(false)
@@ -57,7 +60,7 @@
 	tabindex="0"
 	draggable="true"
 	data-track-row
-	class="relative grid cursor-pointer grid-cols-[40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors {selected
+	class="relative grid cursor-pointer grid-cols-[24px_40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'} {isMissing
 		? 'bg-red-500/5'
@@ -72,6 +75,9 @@
 	{#if isMissing}
 		<div class="pointer-events-none absolute inset-0 border-l-2 border-red-500/50"></div>
 	{/if}
+	<!-- Color -->
+	<TrackColorCell color={track.color} onselect={onColorChange} />
+
 	<!-- Artwork -->
 	<div class="flex justify-center">
 		<AlbumArt

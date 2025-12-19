@@ -1,4 +1,33 @@
 // =============================================================================
+// Track Color Types
+// =============================================================================
+
+export type TrackColor = 'pink' | 'red' | 'orange' | 'yellow' | 'green' | 'aqua' | 'blue' | 'purple'
+
+export const TRACK_COLORS: { id: TrackColor; label: string; hex: string }[] = [
+	{ id: 'pink', label: 'Pink', hex: '#FF6B9D' },
+	{ id: 'red', label: 'Red', hex: '#FF5252' },
+	{ id: 'orange', label: 'Orange', hex: '#FF9500' },
+	{ id: 'yellow', label: 'Yellow', hex: '#FFCC00' },
+	{ id: 'green', label: 'Green', hex: '#50C878' },
+	{ id: 'aqua', label: 'Aqua', hex: '#00CED1' },
+	{ id: 'blue', label: 'Blue', hex: '#1E90FF' },
+	{ id: 'purple', label: 'Purple', hex: '#9370DB' },
+]
+
+// ROYGBIV sort order (no-color at end with 999)
+export const COLOR_SORT_ORDER: Record<TrackColor, number> = {
+	red: 0,
+	orange: 1,
+	yellow: 2,
+	green: 3,
+	aqua: 4,
+	blue: 5,
+	purple: 6,
+	pink: 7,
+}
+
+// =============================================================================
 // Track Types
 // =============================================================================
 
@@ -42,6 +71,9 @@ export interface Track {
 
 	// Album artwork
 	artwork_path: string | null
+
+	// Track color (Rekordbox-compatible)
+	color: TrackColor | null
 
 	// Related data
 	tags: Tag[]
@@ -159,7 +191,16 @@ export interface Cue {
 
 export type SortDirection = 'asc' | 'desc'
 
-export type TrackSortField = 'title' | 'artist' | 'album' | 'bpm' | 'key' | 'duration_ms' | 'date_added' | 'rating'
+export type TrackSortField =
+	| 'title'
+	| 'artist'
+	| 'album'
+	| 'bpm'
+	| 'key'
+	| 'duration_ms'
+	| 'date_added'
+	| 'rating'
+	| 'color'
 
 export interface SortConfig {
 	field: TrackSortField

@@ -102,3 +102,12 @@ pub async fn relocate_track(
 ) -> Result<Track, CrateError> {
     library.relocate_track(&track_id, &PathBuf::from(new_path), force)
 }
+
+#[tauri::command]
+pub async fn set_track_colors(
+    track_ids: Vec<String>,
+    color: Option<String>,
+    library: State<'_, LibraryService>,
+) -> Result<(), CrateError> {
+    library.set_track_colors(track_ids, color)
+}

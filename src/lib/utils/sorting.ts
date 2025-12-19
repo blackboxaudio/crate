@@ -1,4 +1,5 @@
-import type { Track, SortConfig, TrackSortField, SortDirection } from '$lib/types'
+import type { Track, SortConfig, TrackSortField, SortDirection, TrackColor } from '$lib/types'
+import { COLOR_SORT_ORDER } from '$lib/types'
 
 /**
  * Sort tracks by the given configuration
@@ -48,6 +49,10 @@ function getTrackSortValue(track: Track, field: TrackSortField): string | number
 			return track.date_added
 		case 'rating':
 			return track.rating
+		case 'color':
+			// No color goes to end (use 999), otherwise use ROYGBIV order
+			if (!track.color) return 999
+			return COLOR_SORT_ORDER[track.color as TrackColor] ?? 999
 		default:
 			return null
 	}

@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store'
-import type { Track, TrackFilter, SortConfig, ImportResult } from '$lib/types'
+import type { Track, TrackColor, TrackFilter, SortConfig, ImportResult } from '$lib/types'
 import { sortTracks } from '$lib/utils/sorting'
 import * as libraryApi from '$lib/api/library'
 import * as playlistsApi from '$lib/api/playlists'
@@ -157,6 +157,27 @@ function createLibraryStore() {
 		 */
 		clearFilters() {
 			update((state) => ({ ...state, filter: {} }))
+		},
+
+		/**
+		 * Set color for tracks
+		 */
+		async setTrackColors(trackIds: string[], color: TrackColor | null) {
+			try {
+				await libraryApi.setTrackColors(trackIds, color)
+
+				// Update local state
+				update((state) => ({
+					...state,
+					tracks: state.tracks.map((t) => (trackIds.includes(t.id) ? { ...t, color } : t)),
+					playlistTracks: state.playlistTracks.map((t) => (trackIds.includes(t.id) ? { ...t, color } : t)),
+				}))
+
+				const label = color ? `Color set to ${color}` : 'Color removed'
+				toastStore.success(trackIds.length === 1 ? label : `${label} for ${trackIds.length} tracks`)
+			} catch (error) {
+				toastStore.error('Failed to set track color')
+			}
 		},
 
 		/**

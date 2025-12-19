@@ -7,6 +7,7 @@
 
 	import type {
 		Track,
+		TrackColor,
 		SortConfig,
 		Playlist,
 		TagCategory,
@@ -960,6 +961,18 @@
 		showRelocateModal = false
 		relocateTrack = null
 	}
+
+	// Track color change handler
+	async function handleTrackColorChange(trackIds: string[], color: TrackColor | null) {
+		await libraryStore.setTrackColors(trackIds, color)
+	}
+
+	// Context menu color handler
+	async function handleContextMenuSetColor(color: TrackColor | null) {
+		contextMenuOpen = false
+		const trackIds = contextMenuTracks.map((t) => t.id)
+		await libraryStore.setTrackColors(trackIds, color)
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -1036,6 +1049,7 @@
 						onEmptySpaceContextMenu={handlePlaylistViewContextMenu}
 						onBreadcrumbNavigate={handleBreadcrumbNavigate}
 						onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+						onTrackColorChange={handleTrackColorChange}
 					/>
 				{/if}
 			{:else}
@@ -1052,6 +1066,7 @@
 					onSortChange={handleSortChange}
 					onContextMenu={handleTrackContextMenu}
 					onEmptySpaceContextMenu={handleLibraryViewContextMenu}
+					onTrackColorChange={handleTrackColorChange}
 				/>
 			{/if}
 		</div>
@@ -1114,6 +1129,7 @@
 	onRemoveFromPlaylist={handleRemoveFromPlaylistClick}
 	onRemoveFromLibrary={handleRemoveFromLibraryClick}
 	onRelocate={handleOpenRelocateModal}
+	onSetColor={handleContextMenuSetColor}
 />
 
 <!-- Playlist Context Menu -->

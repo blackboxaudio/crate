@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { FileMatchResult, ImportResult, Track, TrackFilter, TrackUpdate } from '$lib/types'
+import type { FileMatchResult, ImportResult, Track, TrackColor, TrackFilter, TrackUpdate } from '$lib/types'
 
 /**
  * Import tracks from file paths into the library
@@ -84,4 +84,13 @@ export async function validateReplacementFile(trackId: string, newPath: string):
  */
 export async function relocateTrack(trackId: string, newPath: string, force: boolean = false): Promise<Track> {
 	return invoke<Track>('relocate_track', { trackId, newPath, force })
+}
+
+/**
+ * Set color for multiple tracks
+ * @param trackIds - Array of track IDs to update
+ * @param color - Color to set (null to remove color)
+ */
+export async function setTrackColors(trackIds: string[], color: TrackColor | null): Promise<void> {
+	return invoke<void>('set_track_colors', { trackIds, color })
 }

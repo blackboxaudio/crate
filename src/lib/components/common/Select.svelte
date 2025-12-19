@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte'
+	import { onMount } from 'svelte'
 	import Icon from './Icon.svelte'
 
 	type SelectOption = {
@@ -47,40 +47,34 @@
 	// Get the label for the current value
 	const selectedLabel = $derived(flatOptions.find((o) => o.value === value)?.label ?? '')
 
-	// Position the dropdown (using fixed positioning for portal)
+	// Position the dropdown
 	let dropdownStyle = $state('')
 
-	function updatePosition() {
-		if (!triggerEl || !menuEl) return
+	$effect(() => {
+		if (open && triggerEl && menuEl) {
+			const triggerRect = triggerEl.getBoundingClientRect()
+			const menuHeight = menuEl.offsetHeight
+			const viewportHeight = window.innerHeight
 
-		const triggerRect = triggerEl.getBoundingClientRect()
-		const menuHeight = menuEl.offsetHeight
-		const viewportHeight = window.innerHeight
+			// Check if dropdown fits below
+			const spaceBelow = viewportHeight - triggerRect.bottom
+			const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
 
-		// Check if dropdown fits below
-		const spaceBelow = viewportHeight - triggerRect.bottom
-		const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
-
-		const left = triggerRect.left
-		const width = triggerRect.width
-
-		if (openUpward) {
-			dropdownStyle = `position: fixed; left: ${left}px; bottom: ${viewportHeight - triggerRect.top + 4}px; width: ${width}px;`
-		} else {
-			dropdownStyle = `position: fixed; left: ${left}px; top: ${triggerRect.bottom + 4}px; width: ${width}px;`
+			if (openUpward) {
+				dropdownStyle = `bottom: 100%; margin-bottom: 4px;`
+			} else {
+				dropdownStyle = `top: 100%; margin-top: 4px;`
+			}
 		}
-	}
+	})
 
-	async function handleTriggerClick() {
+	function handleTriggerClick() {
 		if (disabled) return
 		open = !open
 		if (open) {
 			// Set initial focus to current value
 			focusedIndex = flatOptions.findIndex((o) => o.value === value)
 			if (focusedIndex === -1) focusedIndex = 0
-			// Wait for menu to render, then position it
-			await tick()
-			updatePosition()
 		}
 	}
 
@@ -97,15 +91,13 @@
 		open = false
 	}
 
-	async function handleKeydown(e: KeyboardEvent) {
+	function handleKeydown(e: KeyboardEvent) {
 		if (!open) {
 			if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
 				e.preventDefault()
 				open = true
 				focusedIndex = flatOptions.findIndex((o) => o.value === value)
 				if (focusedIndex === -1) focusedIndex = 0
-				await tick()
-				updatePosition()
 			}
 			return
 		}
@@ -139,22 +131,6 @@
 
 	function getFlatIndex(option: SelectOption): number {
 		return flatOptions.findIndex((o) => o.value === option.value)
-	}
-
-	// Portal action to move element to nearest dialog (for top-layer support) or body
-	function portal(node: HTMLElement) {
-		// Find the closest dialog ancestor to stay in the top layer
-		const dialog = node.closest('dialog')
-		const target = dialog || document.body
-		target.appendChild(node)
-
-		return {
-			destroy() {
-				if (node.parentNode) {
-					node.parentNode.removeChild(node)
-				}
-			},
-		}
 	}
 
 	onMount(() => {
@@ -198,8 +174,7 @@
 	{#if open}
 		<div
 			bind:this={menuEl}
-			use:portal
-			class="z-[9999] max-h-60 overflow-auto rounded-lg border border-stroke
+			class="absolute right-0 left-0 z-50 max-h-60 overflow-auto rounded-lg border border-stroke
 				bg-surface-1 py-1 shadow-lg"
 			style={dropdownStyle}
 			role="listbox"

@@ -122,5 +122,10 @@ ALTER TABLE tag_categories ADD COLUMN color TEXT DEFAULT '#6366f1';
         r#"
 ALTER TABLE tracks ADD COLUMN artwork_path TEXT;
 "#,
+        // Migration 4: Add color to tracks (Rekordbox-compatible track colors)
+        r#"
+ALTER TABLE tracks ADD COLUMN color TEXT;
+CREATE INDEX idx_tracks_color ON tracks(color);
+"#,
     ]
 }

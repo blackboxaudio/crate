@@ -212,6 +212,15 @@
 							</div>
 						</section>
 
+						<!-- Font Section -->
+						<section>
+							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Font</h3>
+							<div class="max-w-md">
+								<Select value={$font} options={fontOptions} placeholder="Select a font" onchange={handleFontChange} />
+								<p class="mt-2 text-xs text-text-tertiary">Choose the font used throughout the application.</p>
+							</div>
+						</section>
+
 						<!-- Accent Color Section -->
 						<section>
 							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Accent Color</h3>
@@ -234,15 +243,6 @@
 										<span class="text-xs text-text-secondary">{color.label}</span>
 									</button>
 								{/each}
-							</div>
-						</section>
-
-						<!-- Font Section -->
-						<section>
-							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Font</h3>
-							<div class="max-w-md">
-								<Select value={$font} options={fontOptions} placeholder="Select a font" onchange={handleFontChange} />
-								<p class="mt-2 text-xs text-text-tertiary">Choose the font used throughout the application.</p>
 							</div>
 						</section>
 					</div>

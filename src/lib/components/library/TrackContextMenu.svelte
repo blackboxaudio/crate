@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { Track, Playlist, ContextMenuItem } from '$lib/types'
+	import type { Track, TrackColor, Playlist, ContextMenuItem } from '$lib/types'
+	import { TRACK_COLORS } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { missingTrackIds } from '$lib/stores'
 
@@ -16,6 +17,7 @@
 		onRemoveFromPlaylist: () => void
 		onRemoveFromLibrary: () => void
 		onRelocate?: (track: Track) => void
+		onSetColor?: (color: TrackColor | null) => void
 	}
 
 	let {
@@ -31,6 +33,7 @@
 		onRemoveFromPlaylist,
 		onRemoveFromLibrary,
 		onRelocate,
+		onSetColor,
 	}: Props = $props()
 
 	// Platform-specific label for "View in Finder/Explorer"
@@ -99,6 +102,31 @@
 				label: 'Add to Playlist',
 				icon: 'list-plus',
 				disabled: true,
+			})
+		}
+
+		// Set Color submenu
+		if (onSetColor) {
+			const colorItems: ContextMenuItem[] = TRACK_COLORS.map((color) => ({
+				id: `color-${color.id}`,
+				label: color.label,
+				action: () => onSetColor(color.id),
+			}))
+			colorItems.push({
+				id: 'color-divider',
+				label: '',
+				divider: true,
+			})
+			colorItems.push({
+				id: 'remove-color',
+				label: 'Remove Color',
+				action: () => onSetColor(null),
+			})
+			items.push({
+				id: 'set-color',
+				label: 'Set Color',
+				icon: 'palette',
+				submenu: colorItems,
 			})
 		}
 

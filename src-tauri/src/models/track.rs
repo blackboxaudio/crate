@@ -43,6 +43,9 @@ pub struct Track {
     // Album artwork
     pub artwork_path: Option<String>,
 
+    // Track color (Rekordbox-compatible)
+    pub color: Option<String>,
+
     // Tags (populated when fetching tracks)
     #[serde(default)]
     pub tags: Vec<super::Tag>,
@@ -77,6 +80,7 @@ impl Track {
             last_played: None,
             rekordbox_id: None,
             artwork_path: None,
+            color: None,
             tags: Vec::new(),
         }
     }
