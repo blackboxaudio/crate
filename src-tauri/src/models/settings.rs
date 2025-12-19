@@ -27,7 +27,7 @@ impl std::str::FromStr for Theme {
             "light" => Ok(Theme::Light),
             "dark" => Ok(Theme::Dark),
             "system" => Ok(Theme::System),
-            _ => Err(format!("Unknown theme: {}", s)),
+            _ => Err(format!("Unknown theme: {s}")),
         }
     }
 }
@@ -80,23 +80,14 @@ impl std::str::FromStr for AccentColor {
             "amber" => Ok(AccentColor::Amber),
             "emerald" => Ok(AccentColor::Emerald),
             "teal" => Ok(AccentColor::Teal),
-            _ => Err(format!("Unknown accent color: {}", s)),
+            _ => Err(format!("Unknown accent color: {s}")),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub theme: Theme,
     pub accent_color: AccentColor,
-}
-
-impl Default for AppSettings {
-    fn default() -> Self {
-        Self {
-            theme: Theme::default(),
-            accent_color: AccentColor::default(),
-        }
-    }
 }

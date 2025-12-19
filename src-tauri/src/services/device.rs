@@ -44,7 +44,7 @@ impl DeviceService {
                         // Use mount point as name if no name available
                         mount_point
                             .split('/')
-                            .last()
+                            .next_back()
                             .unwrap_or("USB Device")
                             .to_string()
                     } else {
@@ -101,7 +101,7 @@ impl DeviceService {
                                 UsbDevice {
                                     id: mount_point.clone(),
                                     name: if name.is_empty() {
-                                        mount_point.split('/').last().unwrap_or("USB Device").to_string()
+                                        mount_point.split('/').next_back().unwrap_or("USB Device").to_string()
                                     } else {
                                         name
                                     },
@@ -162,21 +162,21 @@ impl DeviceService {
 
     /// Eject a device by its mount point
     pub fn eject_device(&self, mount_point: &str) -> Result<()> {
-        log::info!("Ejecting device at: {}", mount_point);
+        log::info!("Ejecting device at: {mount_point}");
 
         #[cfg(target_os = "macos")]
         {
             let output = Command::new("diskutil")
                 .args(["eject", mount_point])
                 .output()
-                .map_err(|e| CrateError::Device(format!("Failed to run diskutil: {}", e)))?;
+                .map_err(|e| CrateError::Device(format!("Failed to run diskutil: {e}")))?;
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(CrateError::Device(format!("Failed to eject: {}", stderr)));
+                return Err(CrateError::Device(format!("Failed to eject: {stderr}")));
             }
 
-            log::info!("Successfully ejected device at: {}", mount_point);
+            log::info!("Successfully ejected device at: {mount_point}");
             Ok(())
         }
 
@@ -185,14 +185,14 @@ impl DeviceService {
             let output = Command::new("umount")
                 .arg(mount_point)
                 .output()
-                .map_err(|e| CrateError::Device(format!("Failed to run umount: {}", e)))?;
+                .map_err(|e| CrateError::Device(format!("Failed to run umount: {e}")))?;
 
             if !output.status.success() {
                 let stderr = String::from_utf8_lossy(&output.stderr);
-                return Err(CrateError::Device(format!("Failed to eject: {}", stderr)));
+                return Err(CrateError::Device(format!("Failed to eject: {stderr}")));
             }
 
-            log::info!("Successfully ejected device at: {}", mount_point);
+            log::info!("Successfully ejected device at: {mount_point}");
             Ok(())
         }
 
