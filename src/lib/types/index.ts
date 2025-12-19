@@ -75,6 +75,13 @@ export interface ImportResult {
 	errors: string[]
 }
 
+export interface FileMatchResult {
+	matches: boolean
+	original_hash: string | null
+	new_hash: string
+	format_valid: boolean
+}
+
 // =============================================================================
 // Tag Types
 // =============================================================================
@@ -239,9 +246,12 @@ export type AccentColor =
 	| 'emerald'
 	| 'teal'
 
+export type Font = 'ibm-plex-mono' | 'jetbrains-mono' | 'fira-code' | 'inter' | 'open-sans'
+
 export interface AppSettings {
 	theme: Theme
 	accentColor: AccentColor
+	font: Font
 	audioDevice: string | null
 }
 

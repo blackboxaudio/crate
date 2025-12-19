@@ -30,6 +30,9 @@ pub fn run() {
             commands::library::search_tracks,
             commands::library::rescan_artwork,
             commands::library::rescan_track_artwork,
+            commands::library::check_file_exists,
+            commands::library::validate_replacement_file,
+            commands::library::relocate_track,
             // Playback commands
             commands::playback::play_track,
             commands::playback::pause,
@@ -70,12 +73,13 @@ pub fn run() {
         ])
         .setup(|app| {
             // Get Tauri's app data directory
-            let app_data_dir = app.path().app_data_dir()
+            let app_data_dir = app
+                .path()
+                .app_data_dir()
                 .expect("Failed to get app data directory");
 
             // Ensure directory exists
-            std::fs::create_dir_all(&app_data_dir)
-                .expect("Failed to create app data directory");
+            std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data directory");
 
             let db_path = app_data_dir.join("crate.db");
             log::info!("Database path: {db_path:?}");

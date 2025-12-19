@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::error::CrateError;
-use crate::models::{ImportResult, Track, TrackFilter, TrackUpdate};
+use crate::models::{FileMatchResult, ImportResult, Track, TrackFilter, TrackUpdate};
 use crate::services::library::RescanResult;
 use crate::services::LibraryService;
 
@@ -74,4 +74,31 @@ pub async fn rescan_track_artwork(
     library: State<'_, LibraryService>,
 ) -> Result<bool, CrateError> {
     library.rescan_track_artwork(&id)
+}
+
+#[tauri::command]
+pub async fn check_file_exists(
+    track_id: String,
+    library: State<'_, LibraryService>,
+) -> Result<bool, CrateError> {
+    library.check_track_file_exists(&track_id)
+}
+
+#[tauri::command]
+pub async fn validate_replacement_file(
+    track_id: String,
+    new_path: String,
+    library: State<'_, LibraryService>,
+) -> Result<FileMatchResult, CrateError> {
+    library.validate_replacement_file(&track_id, &PathBuf::from(new_path))
+}
+
+#[tauri::command]
+pub async fn relocate_track(
+    track_id: String,
+    new_path: String,
+    force: bool,
+    library: State<'_, LibraryService>,
+) -> Result<Track, CrateError> {
+    library.relocate_track(&track_id, &PathBuf::from(new_path), force)
 }

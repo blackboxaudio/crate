@@ -1,6 +1,7 @@
 pub mod artwork;
 pub mod audio;
 pub mod device;
+pub mod hash;
 pub mod library;
 pub mod playlist;
 pub mod settings;

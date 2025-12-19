@@ -13,7 +13,9 @@ pub struct AppInfo {
 pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
     let is_dev = cfg!(debug_assertions);
 
-    let data_dir = app.path().app_data_dir()
+    let data_dir = app
+        .path()
+        .app_data_dir()
         .map_err(|e| e.to_string())?
         .to_string_lossy()
         .to_string();

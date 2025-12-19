@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store'
 import type { Track, PlaybackState } from '$lib/types'
 import * as playerApi from '$lib/api/player'
+import { missingTracksStore } from './missingTracks'
 
 // =============================================================================
 // State
@@ -78,9 +79,16 @@ function createPlayerStore() {
 				}))
 				startPositionTracking()
 			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Failed to play track'
+
+				// Check if this is a file-not-found error
+				if (errorMsg.toLowerCase().includes('file not found') || errorMsg.toLowerCase().includes('filenotfound')) {
+					missingTracksStore.markMissing(track.id)
+				}
+
 				update((state) => ({
 					...state,
-					error: error instanceof Error ? error.message : 'Failed to play track',
+					error: errorMsg,
 				}))
 			}
 		},

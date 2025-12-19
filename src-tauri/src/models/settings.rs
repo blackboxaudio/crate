@@ -85,11 +85,50 @@ impl std::str::FromStr for AccentColor {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum Font {
+    #[default]
+    IbmPlexMono,
+    JetBrainsMono,
+    FiraCode,
+    Inter,
+    OpenSans,
+}
+
+impl std::fmt::Display for Font {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Font::IbmPlexMono => write!(f, "ibm-plex-mono"),
+            Font::JetBrainsMono => write!(f, "jetbrains-mono"),
+            Font::FiraCode => write!(f, "fira-code"),
+            Font::Inter => write!(f, "inter"),
+            Font::OpenSans => write!(f, "open-sans"),
+        }
+    }
+}
+
+impl std::str::FromStr for Font {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "ibm-plex-mono" => Ok(Font::IbmPlexMono),
+            "jetbrains-mono" => Ok(Font::JetBrainsMono),
+            "fira-code" => Ok(Font::FiraCode),
+            "inter" => Ok(Font::Inter),
+            "open-sans" => Ok(Font::OpenSans),
+            _ => Err(format!("Unknown font: {s}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub theme: Theme,
     pub accent_color: AccentColor,
+    pub font: Font,
     pub audio_device: Option<String>,
 }
 

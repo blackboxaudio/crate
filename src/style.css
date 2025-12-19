@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:ital,wght@0,300..800;1,300..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300..700&family=JetBrains+Mono:wght@300..700&family=Open+Sans:wght@300..700&display=swap');
 @import 'tailwindcss';
 
 /* =============================================================================
@@ -38,8 +38,6 @@
 
 :root,
 [data-theme='dark'] {
-	--font-family: 'Google Sans Code', monospace;
-
 	--surface-0: #09090b; /* zinc-950 - deepest background */
 	--surface-1: #18181b; /* zinc-900 - main background */
 	--surface-2: #27272a; /* zinc-800 - elevated surfaces */
@@ -59,8 +57,6 @@
    ============================================================================= */
 
 [data-theme='light'] {
-	--font-family: 'Google Sans Code', monospace;
-
 	--surface-0: #ffffff; /* white - deepest background */
 	--surface-1: #fafafa; /* zinc-50 - main background */
 	--surface-2: #f4f4f5; /* zinc-100 - elevated surfaces */
@@ -138,6 +134,31 @@
 	--brand-primary: #14b8a6;
 	--brand-hover: #0d9488;
 	--brand-muted: rgba(20, 184, 166, 0.2);
+}
+
+/* =============================================================================
+   Font Family Variants
+   ============================================================================= */
+
+:root,
+[data-font='ibm-plex-mono'] {
+	--font-family: 'IBM Plex Mono', monospace;
+}
+
+[data-font='jetbrains-mono'] {
+	--font-family: 'JetBrains Mono', monospace;
+}
+
+[data-font='fira-code'] {
+	--font-family: 'Fira Code', monospace;
+}
+
+[data-font='inter'] {
+	--font-family: 'Inter', sans-serif;
+}
+
+[data-font='open-sans'] {
+	--font-family: 'Open Sans', sans-serif;
 }
 
 /* =============================================================================

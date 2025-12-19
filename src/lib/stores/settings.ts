@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor, AudioDevice } from '$lib/types'
+import type { Theme, AccentColor, Font, AudioDevice } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 
 // =============================================================================
@@ -9,6 +9,7 @@ import * as settingsApi from '$lib/api/settings'
 interface SettingsState {
 	theme: Theme
 	accentColor: AccentColor
+	font: Font
 	resolvedTheme: 'light' | 'dark' // Actual theme after resolving 'system'
 	audioDevice: string | null
 	audioDevices: AudioDevice[]
@@ -19,6 +20,7 @@ interface SettingsState {
 const initialState: SettingsState = {
 	theme: 'system',
 	accentColor: 'blue',
+	font: 'ibm-plex-mono',
 	resolvedTheme: 'dark',
 	audioDevice: null,
 	audioDevices: [],
@@ -61,6 +63,11 @@ function createSettingsStore() {
 		document.documentElement.setAttribute('data-accent', color)
 	}
 
+	function applyFont(font: Font) {
+		if (typeof document === 'undefined') return
+		document.documentElement.setAttribute('data-font', font)
+	}
+
 	function setupSystemThemeListener() {
 		if (typeof window === 'undefined') return
 
@@ -100,6 +107,7 @@ function createSettingsStore() {
 					...s,
 					theme: settings.theme,
 					accentColor: settings.accentColor,
+					font: settings.font,
 					audioDevice: settings.audioDevice,
 					audioDevices,
 					resolvedTheme,
@@ -108,6 +116,7 @@ function createSettingsStore() {
 
 				applyTheme(resolvedTheme)
 				applyAccentColor(settings.accentColor)
+				applyFont(settings.font)
 				setupSystemThemeListener()
 			} catch (error) {
 				update((s) => ({
@@ -120,6 +129,7 @@ function createSettingsStore() {
 				const resolvedTheme = resolveTheme('system')
 				applyTheme(resolvedTheme)
 				applyAccentColor('blue')
+				applyFont('ibm-plex-mono')
 				setupSystemThemeListener()
 			}
 		},
@@ -151,6 +161,20 @@ function createSettingsStore() {
 				await settingsApi.setSetting('accent_color', color)
 			} catch (error) {
 				console.error('Failed to save accent color setting:', error)
+			}
+		},
+
+		/**
+		 * Set font family
+		 */
+		async setFont(font: Font) {
+			update((s) => ({ ...s, font }))
+			applyFont(font)
+
+			try {
+				await settingsApi.setSetting('font', font)
+			} catch (error) {
+				console.error('Failed to save font setting:', error)
 			}
 		},
 
@@ -197,6 +221,8 @@ export const settingsStore = createSettingsStore()
 export const theme = derived(settingsStore, ($s) => $s.theme)
 
 export const accentColor = derived(settingsStore, ($s) => $s.accentColor)
+
+export const font = derived(settingsStore, ($s) => $s.font)
 
 export const resolvedTheme = derived(settingsStore, ($s) => $s.resolvedTheme)
 

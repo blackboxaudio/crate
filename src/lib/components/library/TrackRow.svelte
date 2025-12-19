@@ -4,6 +4,7 @@
 	import { TagChip } from '$lib/components/tags'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { AlbumArt, AlbumArtModal } from '$lib/components/common'
+	import { missingTrackIds } from '$lib/stores'
 
 	type Props = {
 		track: Track
@@ -47,6 +48,8 @@
 			showArtworkModal = true
 		}
 	}
+
+	const isMissing = $derived($missingTrackIds.has(track.id))
 </script>
 
 <div
@@ -54,15 +57,21 @@
 	tabindex="0"
 	draggable="true"
 	data-track-row
-	class="grid cursor-pointer grid-cols-[40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors {selected
+	class="relative grid cursor-pointer grid-cols-[40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors {selected
 		? 'bg-brand-muted'
-		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'}"
+		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'} {isMissing
+		? 'bg-red-500/5'
+		: ''}"
 	{onclick}
 	{ondblclick}
 	{oncontextmenu}
 	ondragstart={handleDragStart}
 	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
+	<!-- Missing file indicator -->
+	{#if isMissing}
+		<div class="pointer-events-none absolute inset-0 border-l-2 border-red-500/50"></div>
+	{/if}
 	<!-- Artwork -->
 	<div class="flex justify-center">
 		<AlbumArt
@@ -74,13 +83,17 @@
 	</div>
 
 	<!-- Title -->
-	<div class="truncate font-medium {playing ? 'text-brand-primary' : 'text-text-primary'}">
-		{#if playing}
-			<span class="mr-1 inline-block w-4">
+	<div class="flex items-center truncate font-medium {playing ? 'text-brand-primary' : 'text-text-primary'}">
+		{#if isMissing}
+			<span class="mr-1.5 flex-shrink-0" title="File not found">
+				<Icon name="warning" class="h-3.5 w-3.5 text-red-500" />
+			</span>
+		{:else if playing}
+			<span class="mr-1 inline-block w-4 flex-shrink-0">
 				<Icon name="play" class="h-3 w-3 animate-pulse" fill />
 			</span>
 		{/if}
-		{getTrackDisplayName(track)}
+		<span class="truncate">{getTrackDisplayName(track)}</span>
 	</div>
 
 	<!-- Artist -->

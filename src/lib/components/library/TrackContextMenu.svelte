@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Track, Playlist, ContextMenuItem } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import { missingTrackIds } from '$lib/stores'
 
 	type Props = {
 		open: boolean
@@ -14,6 +15,7 @@
 		onAddToPlaylist: (playlistId: string) => void
 		onRemoveFromPlaylist: () => void
 		onRemoveFromLibrary: () => void
+		onRelocate?: (track: Track) => void
 	}
 
 	let {
@@ -28,6 +30,7 @@
 		onAddToPlaylist,
 		onRemoveFromPlaylist,
 		onRemoveFromLibrary,
+		onRelocate,
 	}: Props = $props()
 
 	// Platform-specific label for "View in Finder/Explorer"
@@ -38,9 +41,29 @@
 		return 'View in File Manager'
 	})
 
+	// Check if any selected track is missing
+	const hasMissingTrack = $derived(() => {
+		return selectedTracks.length === 1 && $missingTrackIds.has(selectedTracks[0].id)
+	})
+
 	// Build menu items
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
+
+		// "Relocate..." - only for single missing track
+		if (hasMissingTrack() && onRelocate) {
+			items.push({
+				id: 'relocate',
+				label: 'Relocate...',
+				icon: 'folder',
+				action: () => onRelocate(selectedTracks[0]),
+			})
+			items.push({
+				id: 'relocate-divider',
+				label: '',
+				divider: true,
+			})
+		}
 
 		// "View in Finder/Explorer" - only for single track selection
 		if (selectedTracks.length === 1) {

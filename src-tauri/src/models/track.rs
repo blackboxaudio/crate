@@ -112,3 +112,16 @@ pub struct ImportResult {
     pub failed_count: usize,
     pub errors: Vec<String>,
 }
+
+/// Result of validating a replacement file for a missing track
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FileMatchResult {
+    /// Whether the file content hash matches the original
+    pub matches: bool,
+    /// The original file's hash (if available)
+    pub original_hash: Option<String>,
+    /// The new file's computed hash
+    pub new_hash: String,
+    /// Whether the file format is valid/supported
+    pub format_valid: bool,
+}

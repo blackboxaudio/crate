@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
+	import { onMount, tick } from 'svelte'
 	import Icon from './Icon.svelte'
 
 	type SelectOption = {
 		value: string
 		label: string
+		style?: string
 	}
 
 	type SelectOptionGroup = {
@@ -46,34 +47,40 @@
 	// Get the label for the current value
 	const selectedLabel = $derived(flatOptions.find((o) => o.value === value)?.label ?? '')
 
-	// Position the dropdown
+	// Position the dropdown (using fixed positioning for portal)
 	let dropdownStyle = $state('')
 
-	$effect(() => {
-		if (open && triggerEl && menuEl) {
-			const triggerRect = triggerEl.getBoundingClientRect()
-			const menuHeight = menuEl.offsetHeight
-			const viewportHeight = window.innerHeight
+	function updatePosition() {
+		if (!triggerEl || !menuEl) return
 
-			// Check if dropdown fits below
-			const spaceBelow = viewportHeight - triggerRect.bottom
-			const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
+		const triggerRect = triggerEl.getBoundingClientRect()
+		const menuHeight = menuEl.offsetHeight
+		const viewportHeight = window.innerHeight
 
-			if (openUpward) {
-				dropdownStyle = `bottom: 100%; margin-bottom: 4px;`
-			} else {
-				dropdownStyle = `top: 100%; margin-top: 4px;`
-			}
+		// Check if dropdown fits below
+		const spaceBelow = viewportHeight - triggerRect.bottom
+		const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
+
+		const left = triggerRect.left
+		const width = triggerRect.width
+
+		if (openUpward) {
+			dropdownStyle = `position: fixed; left: ${left}px; bottom: ${viewportHeight - triggerRect.top + 4}px; width: ${width}px;`
+		} else {
+			dropdownStyle = `position: fixed; left: ${left}px; top: ${triggerRect.bottom + 4}px; width: ${width}px;`
 		}
-	})
+	}
 
-	function handleTriggerClick() {
+	async function handleTriggerClick() {
 		if (disabled) return
 		open = !open
 		if (open) {
 			// Set initial focus to current value
 			focusedIndex = flatOptions.findIndex((o) => o.value === value)
 			if (focusedIndex === -1) focusedIndex = 0
+			// Wait for menu to render, then position it
+			await tick()
+			updatePosition()
 		}
 	}
 
@@ -90,13 +97,15 @@
 		open = false
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
+	async function handleKeydown(e: KeyboardEvent) {
 		if (!open) {
 			if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') {
 				e.preventDefault()
 				open = true
 				focusedIndex = flatOptions.findIndex((o) => o.value === value)
 				if (focusedIndex === -1) focusedIndex = 0
+				await tick()
+				updatePosition()
 			}
 			return
 		}
@@ -130,6 +139,22 @@
 
 	function getFlatIndex(option: SelectOption): number {
 		return flatOptions.findIndex((o) => o.value === option.value)
+	}
+
+	// Portal action to move element to nearest dialog (for top-layer support) or body
+	function portal(node: HTMLElement) {
+		// Find the closest dialog ancestor to stay in the top layer
+		const dialog = node.closest('dialog')
+		const target = dialog || document.body
+		target.appendChild(node)
+
+		return {
+			destroy() {
+				if (node.parentNode) {
+					node.parentNode.removeChild(node)
+				}
+			},
+		}
 	}
 
 	onMount(() => {
@@ -173,7 +198,8 @@
 	{#if open}
 		<div
 			bind:this={menuEl}
-			class="absolute right-0 left-0 z-50 max-h-60 overflow-auto rounded-lg border border-stroke
+			use:portal
+			class="z-[9999] max-h-60 overflow-auto rounded-lg border border-stroke
 				bg-surface-1 py-1 shadow-lg"
 			style={dropdownStyle}
 			role="listbox"
@@ -199,6 +225,7 @@
 								: focusedIndex === flatIndex
 									? 'bg-surface-2 text-text-primary'
 									: 'text-text-primary hover:bg-surface-2'}"
+							style={option.style}
 							onclick={() => handleOptionClick(option.value)}
 							onmouseenter={() => (focusedIndex = flatIndex)}
 							role="option"
@@ -223,6 +250,7 @@
 							: focusedIndex === index
 								? 'bg-surface-2 text-text-primary'
 								: 'text-text-primary hover:bg-surface-2'}"
+						style={optionData.style}
 						onclick={() => handleOptionClick(optionData.value)}
 						onmouseenter={() => (focusedIndex = index)}
 						role="option"

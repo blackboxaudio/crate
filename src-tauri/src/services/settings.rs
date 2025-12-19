@@ -30,11 +30,17 @@ impl SettingsService {
             .and_then(|v| v.parse().ok())
             .unwrap_or_default();
 
+        let font = self
+            .get_setting_value(&conn, "font")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
         let audio_device = self.get_setting_value(&conn, "audio_device")?;
 
         Ok(AppSettings {
             theme,
             accent_color,
+            font,
             audio_device,
         })
     }

@@ -37,6 +37,9 @@ tokio = { version = "1", features = ["full"] }
 # Image processing
 image = "0.25"
 
+# Hashing
+blake3 = "1.5"
+
 # Utilities
 uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }

@@ -32,12 +32,14 @@
 		settingsStore,
 		devicesStore,
 		computeTagStates,
+		missingTracksStore,
+		missingTrackIds,
 	} from '$lib/stores'
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
-	import { LibraryView, TrackContextMenu } from '$lib/components/library'
+	import { LibraryView, TrackContextMenu, RelocateTrackModal } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
 	import { InputModal, ConfirmModal, ColorPicker, ResizeHandle, ContextMenu } from '$lib/components/common'
 	import { PlaylistContextMenu, PlaylistView, FolderView } from '$lib/components/playlists'
@@ -128,6 +130,10 @@
 	// Device info modal state
 	let showDeviceInfoModal = $state(false)
 	let deviceInfoDevice = $state<UsbDevice | null>(null)
+
+	// Relocate track modal state
+	let showRelocateModal = $state(false)
+	let relocateTrack = $state<Track | null>(null)
 
 	// Tag modal states
 	let showRenameTagModal = $state(false)
@@ -337,12 +343,27 @@
 
 	// Track playback
 	function handleTrackPlay(track: Track) {
+		// If track is missing, open relocate modal instead of trying to play
+		if ($missingTrackIds.has(track.id)) {
+			handleOpenRelocateModal(track)
+			return
+		}
 		playerStore.play(track)
 	}
 
 	// Selection change
 	function handleSelectionChange(ids: Set<string>) {
 		uiStore.setSelectedTracks(ids)
+
+		// Check file existence for newly selected tracks (lazy load)
+		// Only check when selecting a single track to avoid excessive checks
+		if (ids.size === 1) {
+			const trackId = [...ids][0]
+			// Don't check if already known to be missing or currently checking
+			if (!$missingTrackIds.has(trackId) && !missingTracksStore.isChecking(trackId)) {
+				missingTracksStore.checkTrack(trackId)
+			}
+		}
 	}
 
 	// Sort change
@@ -922,6 +943,23 @@
 		deviceInfoDevice = device
 		showDeviceInfoModal = true
 	}
+
+	// Relocate track handlers
+	function handleOpenRelocateModal(track: Track) {
+		relocateTrack = track
+		showRelocateModal = true
+	}
+
+	function handleRelocateComplete(updatedTrack: Track) {
+		// Update the track in the library store
+		libraryStore.loadTracks()
+		toastStore.success(`Relocated "${updatedTrack.title || 'track'}"`)
+	}
+
+	function handleCloseRelocateModal() {
+		showRelocateModal = false
+		relocateTrack = null
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -1075,6 +1113,7 @@
 	onAddToPlaylist={handleAddToPlaylist}
 	onRemoveFromPlaylist={handleRemoveFromPlaylistClick}
 	onRemoveFromLibrary={handleRemoveFromLibraryClick}
+	onRelocate={handleOpenRelocateModal}
 />
 
 <!-- Playlist Context Menu -->
@@ -1298,3 +1337,11 @@
 
 <!-- Settings Modal -->
 <SettingsModal open={showSettings} onClose={() => (showSettings = false)} />
+
+<!-- Relocate Track Modal -->
+<RelocateTrackModal
+	open={showRelocateModal}
+	track={relocateTrack}
+	onClose={handleCloseRelocateModal}
+	onRelocate={handleRelocateComplete}
+/>

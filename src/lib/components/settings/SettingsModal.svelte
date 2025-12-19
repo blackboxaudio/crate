@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Theme, AccentColor } from '$lib/types'
-	import { settingsStore, theme, accentColor, audioDevice, audioDevices } from '$lib/stores/settings'
+	import type { Theme, AccentColor, Font } from '$lib/types'
+	import { settingsStore, theme, accentColor, font, audioDevice, audioDevices } from '$lib/stores/settings'
 	import { appInfo } from '$lib/stores/app'
 	import { Button, Select } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
@@ -75,12 +75,25 @@
 		{ value: 'teal', hex: '#14b8a6', label: 'Teal' },
 	]
 
+	// Font options
+	const fontOptions: { value: Font; label: string; style: string }[] = [
+		{ value: 'ibm-plex-mono', label: 'IBM Plex Mono', style: "font-family: 'IBM Plex Mono', monospace" },
+		{ value: 'jetbrains-mono', label: 'JetBrains Mono', style: "font-family: 'JetBrains Mono', monospace" },
+		{ value: 'fira-code', label: 'Fira Code', style: "font-family: 'Fira Code', monospace" },
+		{ value: 'inter', label: 'Inter', style: "font-family: 'Inter', sans-serif" },
+		{ value: 'open-sans', label: 'Open Sans', style: "font-family: 'Open Sans', sans-serif" },
+	]
+
 	function handleThemeChange(newTheme: Theme) {
 		settingsStore.setTheme(newTheme)
 	}
 
 	function handleAccentChange(newColor: AccentColor) {
 		settingsStore.setAccentColor(newColor)
+	}
+
+	function handleFontChange(value: string) {
+		settingsStore.setFont(value as Font)
 	}
 
 	function handleAudioDeviceChange(value: string) {
@@ -221,6 +234,15 @@
 										<span class="text-xs text-text-secondary">{color.label}</span>
 									</button>
 								{/each}
+							</div>
+						</section>
+
+						<!-- Font Section -->
+						<section>
+							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Font</h3>
+							<div class="max-w-md">
+								<Select value={$font} options={fontOptions} placeholder="Select a font" onchange={handleFontChange} />
+								<p class="mt-2 text-xs text-text-tertiary">Choose the font used throughout the application.</p>
 							</div>
 						</section>
 					</div>

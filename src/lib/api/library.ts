@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { ImportResult, Track, TrackFilter, TrackUpdate } from '$lib/types'
+import type { FileMatchResult, ImportResult, Track, TrackFilter, TrackUpdate } from '$lib/types'
 
 /**
  * Import tracks from file paths into the library
@@ -63,4 +63,25 @@ export async function rescanArtwork(): Promise<RescanResult> {
  */
 export async function rescanTrackArtwork(id: string): Promise<boolean> {
 	return invoke<boolean>('rescan_track_artwork', { id })
+}
+
+/**
+ * Check if a track's file exists on disk
+ */
+export async function checkFileExists(trackId: string): Promise<boolean> {
+	return invoke<boolean>('check_file_exists', { trackId })
+}
+
+/**
+ * Validate if a replacement file matches the original track
+ */
+export async function validateReplacementFile(trackId: string, newPath: string): Promise<FileMatchResult> {
+	return invoke<FileMatchResult>('validate_replacement_file', { trackId, newPath })
+}
+
+/**
+ * Relocate a track to a new file path
+ */
+export async function relocateTrack(trackId: string, newPath: string, force: boolean = false): Promise<Track> {
+	return invoke<Track>('relocate_track', { trackId, newPath, force })
 }
