@@ -21,8 +21,9 @@ impl TagService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         // Get categories
-        let mut stmt = conn
-            .prepare("SELECT id, name, color, sort_order FROM tag_categories ORDER BY sort_order, name")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, name, color, sort_order FROM tag_categories ORDER BY sort_order, name",
+        )?;
 
         let categories: Vec<TagCategory> = stmt
             .query_map([], |row| {
@@ -102,7 +103,12 @@ impl TagService {
 
         conn.execute(
             "INSERT INTO tag_categories (id, name, color, sort_order) VALUES (?1, ?2, ?3, ?4)",
-            rusqlite::params![category.id, category.name, category.color, category.sort_order],
+            rusqlite::params![
+                category.id,
+                category.name,
+                category.color,
+                category.sort_order
+            ],
         )?;
 
         Ok(category)
