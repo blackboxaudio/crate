@@ -186,6 +186,15 @@
 			<div class="flex-1 overflow-auto p-6">
 				{#if activePage === 'appearance'}
 					<div class="space-y-8">
+						<!-- Font Section -->
+						<section>
+							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Font</h3>
+							<div class="max-w-md">
+								<Select value={$font} options={fontOptions} placeholder="Select a font" onchange={handleFontChange} />
+								<p class="mt-2 text-xs text-text-tertiary">Choose the font used throughout the application.</p>
+							</div>
+						</section>
+
 						<!-- Theme Section -->
 						<section>
 							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Theme</h3>
@@ -209,15 +218,6 @@
 										<span class="text-sm font-medium">{option.label}</span>
 									</button>
 								{/each}
-							</div>
-						</section>
-
-						<!-- Font Section -->
-						<section>
-							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Font</h3>
-							<div class="max-w-md">
-								<Select value={$font} options={fontOptions} placeholder="Select a font" onchange={handleFontChange} />
-								<p class="mt-2 text-xs text-text-tertiary">Choose the font used throughout the application.</p>
 							</div>
 						</section>
 
