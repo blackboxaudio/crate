@@ -40,6 +40,9 @@ pub struct Track {
     // External references
     pub rekordbox_id: Option<String>,
 
+    // Album artwork
+    pub artwork_path: Option<String>,
+
     // Tags (populated when fetching tracks)
     #[serde(default)]
     pub tags: Vec<super::Tag>,
@@ -73,6 +76,7 @@ impl Track {
             date_modified: now,
             last_played: None,
             rekordbox_id: None,
+            artwork_path: None,
             tags: Vec::new(),
         }
     }

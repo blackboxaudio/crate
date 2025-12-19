@@ -8,11 +8,25 @@
 		y: number
 		selectedTracks: Track[]
 		playlists: Playlist[]
+		currentPlaylistId: string | null
 		onClose: () => void
 		onAddToPlaylist: (playlistId: string) => void
+		onRemoveFromPlaylist: () => void
+		onRemoveFromLibrary: () => void
 	}
 
-	let { open, x, y, selectedTracks, playlists, onClose, onAddToPlaylist }: Props = $props()
+	let {
+		open,
+		x,
+		y,
+		selectedTracks,
+		playlists,
+		currentPlaylistId,
+		onClose,
+		onAddToPlaylist,
+		onRemoveFromPlaylist,
+		onRemoveFromLibrary,
+	}: Props = $props()
 
 	// Build menu items
 	const menuItems = $derived<ContextMenuItem[]>(() => {
@@ -39,6 +53,35 @@
 				disabled: true,
 			})
 		}
+
+		// Build Remove submenu items
+		const removeItems: ContextMenuItem[] = []
+
+		// "Remove from Playlist" - only when viewing a playlist
+		if (currentPlaylistId) {
+			removeItems.push({
+				id: 'remove-from-playlist',
+				label: 'Remove from Playlist',
+				icon: 'list-minus',
+				action: onRemoveFromPlaylist,
+			})
+		}
+
+		// "Remove from Library" - always visible
+		removeItems.push({
+			id: 'remove-from-library',
+			label: 'Remove from Library',
+			icon: 'trash',
+			action: onRemoveFromLibrary,
+		})
+
+		// Add Remove submenu
+		items.push({
+			id: 'remove',
+			label: 'Remove',
+			icon: 'minus-circle',
+			submenu: removeItems,
+		})
 
 		return items
 	})

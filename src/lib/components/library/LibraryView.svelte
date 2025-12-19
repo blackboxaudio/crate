@@ -15,6 +15,7 @@
 		onTrackPlay?: (track: Track) => void
 		onSortChange?: (config: SortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
+		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 	}
 
 	let {
@@ -29,6 +30,7 @@
 		onTrackPlay,
 		onSortChange,
 		onContextMenu,
+		onEmptySpaceContextMenu,
 	}: Props = $props()
 </script>
 
@@ -58,6 +60,7 @@
 			{onTrackPlay}
 			{onSortChange}
 			{onContextMenu}
+			{onEmptySpaceContextMenu}
 		/>
 	</div>
 </div>

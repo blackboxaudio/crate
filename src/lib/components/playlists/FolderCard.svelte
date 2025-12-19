@@ -6,15 +6,17 @@
 		playlist: Playlist
 		childCount?: number
 		onclick?: () => void
+		oncontextmenu?: (e: MouseEvent) => void
 	}
 
-	let { playlist, childCount = 0, onclick }: Props = $props()
+	let { playlist, childCount = 0, onclick, oncontextmenu }: Props = $props()
 </script>
 
 <button
 	type="button"
-	class="flex flex-col items-center gap-3 rounded-lg bg-surface-2 p-6 text-center transition-colors hover:bg-stroke"
+	class="flex flex-col items-center gap-3 rounded-lg bg-surface-1 p-6 text-center transition-colors hover:cursor-pointer hover:bg-surface-2"
 	{onclick}
+	{oncontextmenu}
 >
 	<!-- Icon -->
 	<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-stroke">

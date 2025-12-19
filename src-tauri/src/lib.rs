@@ -12,17 +12,16 @@ use services::{
 };
 use tauri::Manager;
 
-fn get_db_path() -> PathBuf {
+fn get_app_data_dir() -> PathBuf {
     let app_dir_name = if cfg!(debug_assertions) {
         "com.crate.app.dev"
     } else {
         "com.crate.app"
     };
 
-    let app_data = dirs::data_dir()
+    dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("."))
-        .join(app_dir_name);
-    app_data.join("crate.db")
+        .join(app_dir_name)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -30,14 +29,15 @@ pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     // Initialize database
-    let db_path = get_db_path();
+    let app_data_dir = get_app_data_dir();
+    let db_path = app_data_dir.join("crate.db");
     log::info!("Database path: {db_path:?}");
 
     let db = Database::new(db_path).expect("Failed to initialize database");
     let conn = db.connection();
 
     // Initialize services
-    let library_service = LibraryService::new(conn.clone());
+    let library_service = LibraryService::new(conn.clone(), app_data_dir.clone());
     let tag_service = TagService::new(conn.clone());
     let playlist_service = PlaylistService::new(conn.clone());
     let settings_service = SettingsService::new(conn.clone());
@@ -73,6 +73,8 @@ pub fn run() {
             commands::library::update_track,
             commands::library::delete_tracks,
             commands::library::search_tracks,
+            commands::library::rescan_artwork,
+            commands::library::rescan_track_artwork,
             // Playback commands
             commands::playback::play_track,
             commands::playback::pause,

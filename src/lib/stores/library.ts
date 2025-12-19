@@ -118,6 +118,7 @@ function createLibraryStore() {
 				update((state) => ({
 					...state,
 					tracks: state.tracks.filter((t) => !ids.includes(t.id)),
+					playlistTracks: state.playlistTracks.filter((t) => !ids.includes(t.id)),
 				}))
 			} catch (error) {
 				update((state) => ({

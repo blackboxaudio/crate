@@ -87,6 +87,15 @@
 	let folderViewContextMenuPosition = $state({ x: 0, y: 0 })
 	let folderViewContextMenuFolderId = $state<string | null>(null)
 
+	// Library view context menu state (for empty space right-click)
+	let libraryViewContextMenuOpen = $state(false)
+	let libraryViewContextMenuPosition = $state({ x: 0, y: 0 })
+
+	// Playlist view context menu state (for empty space right-click)
+	let playlistViewContextMenuOpen = $state(false)
+	let playlistViewContextMenuPosition = $state({ x: 0, y: 0 })
+	let playlistViewContextMenuPlaylist = $state<Playlist | null>(null)
+
 	// Playlist modal states
 	let showRenamePlaylistModal = $state(false)
 	let renamePlaylistId = $state<string | null>(null)
@@ -96,6 +105,12 @@
 	let deletePlaylistIsFolder = $state(false)
 	let deletePlaylistHasChildren = $state(false)
 	let deleteTracksFromCollection = $state(false)
+
+	// Track removal confirmation state
+	let showRemoveFromPlaylistConfirm = $state(false)
+	let showRemoveFromLibraryConfirm = $state(false)
+	let removeTrackIds = $state<string[]>([])
+	let removePlaylistId = $state<string | null>(null)
 
 	// Tag context menu state
 	let tagContextMenuOpen = $state(false)
@@ -478,6 +493,8 @@
 		contextMenuOpen = false
 		playlistContextMenuOpen = false
 		folderViewContextMenuOpen = false
+		libraryViewContextMenuOpen = false
+		playlistViewContextMenuOpen = false
 		tagContextMenuOpen = false
 		deviceContextMenuOpen = false
 	}
@@ -503,6 +520,48 @@
 		contextMenuOpen = false
 		const trackIds = contextMenuTracks.map((t) => t.id)
 		await playlistsStore.addTracks(playlistId, trackIds)
+	}
+
+	// Track removal handlers
+	function handleRemoveFromPlaylistClick() {
+		contextMenuOpen = false
+		removeTrackIds = contextMenuTracks.map((t) => t.id)
+		removePlaylistId = selectedPlaylistId
+		showRemoveFromPlaylistConfirm = true
+	}
+
+	async function handleRemoveFromPlaylistConfirm() {
+		showRemoveFromPlaylistConfirm = false
+		if (removePlaylistId && removeTrackIds.length > 0) {
+			await playlistsStore.removeTracks(removePlaylistId, removeTrackIds)
+			await libraryStore.loadPlaylistTracks(removePlaylistId)
+			uiStore.clearSelection()
+			const count = removeTrackIds.length
+			toastStore.success(count === 1 ? '1 track removed from playlist' : `${count} tracks removed from playlist`)
+		}
+		removeTrackIds = []
+		removePlaylistId = null
+	}
+
+	function handleRemoveFromLibraryClick() {
+		contextMenuOpen = false
+		removeTrackIds = contextMenuTracks.map((t) => t.id)
+		showRemoveFromLibraryConfirm = true
+	}
+
+	async function handleRemoveFromLibraryConfirm() {
+		showRemoveFromLibraryConfirm = false
+		if (removeTrackIds.length > 0) {
+			await libraryStore.deleteTracks(removeTrackIds)
+			uiStore.clearSelection()
+			if (selectedPlaylistId) {
+				await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+				await playlistsStore.load()
+			}
+			const count = removeTrackIds.length
+			toastStore.success(count === 1 ? '1 track removed from library' : `${count} tracks removed from library`)
+		}
+		removeTrackIds = []
 	}
 
 	// Drag and drop handlers
@@ -546,6 +605,65 @@
 		folderViewContextMenuOpen = false
 		folderModalParentId = folderViewContextMenuFolderId
 		showFolderModal = true
+	}
+
+	// Library view context menu handlers (right-click on empty space)
+	function handleLibraryViewContextMenu(e: MouseEvent) {
+		closeAllContextMenus()
+		e.preventDefault()
+		libraryViewContextMenuPosition = { x: e.clientX, y: e.clientY }
+		libraryViewContextMenuOpen = true
+	}
+
+	async function handleLibraryViewImport() {
+		libraryViewContextMenuOpen = false
+		await handleImport()
+	}
+
+	// Playlist view context menu handlers (right-click on empty space)
+	function handlePlaylistViewContextMenu(e: MouseEvent, playlist: Playlist) {
+		closeAllContextMenus()
+		e.preventDefault()
+		playlistViewContextMenuPosition = { x: e.clientX, y: e.clientY }
+		playlistViewContextMenuPlaylist = playlist
+		playlistViewContextMenuOpen = true
+	}
+
+	async function handlePlaylistViewImport() {
+		playlistViewContextMenuOpen = false
+		const playlist = playlistViewContextMenuPlaylist
+		if (!playlist) return
+
+		// Open file dialog
+		const selected = await open({
+			multiple: true,
+			filters: [
+				{
+					name: 'Audio Files',
+					extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'],
+				},
+			],
+		})
+
+		if (selected && Array.isArray(selected)) {
+			// Import tracks to collection
+			const result = await libraryStore.importTracks(selected)
+
+			// Add imported tracks to the playlist
+			if (result.tracks.length > 0) {
+				const trackIds = result.tracks.map((t) => t.id)
+				await playlistsStore.addTracks(playlist.id, trackIds)
+
+				// Reload playlist tracks to show the new additions
+				await libraryStore.loadPlaylistTracks(playlist.id)
+
+				// Show toast notification
+				const count = trackIds.length
+				toastStore.success(
+					count === 1 ? `1 track added to ${playlist.name}` : `${count} tracks added to ${playlist.name}`
+				)
+			}
+		}
 	}
 
 	function handlePlaylistRename(playlist: Playlist) {
@@ -851,6 +969,7 @@
 					onBreadcrumbNavigate={handleBreadcrumbNavigate}
 					onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 					onEmptySpaceContextMenu={handleFolderViewContextMenu}
+					onCardContextMenu={handlePlaylistContextMenu}
 				/>
 			{:else if selectedPlaylistId}
 				{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
@@ -868,6 +987,7 @@
 						onTrackPlay={handleTrackPlay}
 						onSortChange={handleSortChange}
 						onContextMenu={handleTrackContextMenu}
+						onEmptySpaceContextMenu={handlePlaylistViewContextMenu}
 						onBreadcrumbNavigate={handleBreadcrumbNavigate}
 						onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 					/>
@@ -885,6 +1005,7 @@
 					onTrackPlay={handleTrackPlay}
 					onSortChange={handleSortChange}
 					onContextMenu={handleTrackContextMenu}
+					onEmptySpaceContextMenu={handleLibraryViewContextMenu}
 				/>
 			{/if}
 		</div>
@@ -940,8 +1061,11 @@
 	y={contextMenuPosition.y}
 	selectedTracks={contextMenuTracks}
 	{playlists}
+	currentPlaylistId={selectedPlaylistId}
 	onClose={() => (contextMenuOpen = false)}
 	onAddToPlaylist={handleAddToPlaylist}
+	onRemoveFromPlaylist={handleRemoveFromPlaylistClick}
+	onRemoveFromLibrary={handleRemoveFromLibraryClick}
 />
 
 <!-- Playlist Context Menu -->
@@ -967,6 +1091,24 @@
 		{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handleFolderViewCreatePlaylist },
 	]}
 	onClose={() => (folderViewContextMenuOpen = false)}
+/>
+
+<!-- Library View Context Menu (empty space right-click) -->
+<ContextMenu
+	open={libraryViewContextMenuOpen}
+	x={libraryViewContextMenuPosition.x}
+	y={libraryViewContextMenuPosition.y}
+	items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handleLibraryViewImport }]}
+	onClose={() => (libraryViewContextMenuOpen = false)}
+/>
+
+<!-- Playlist View Context Menu (empty space right-click) -->
+<ContextMenu
+	open={playlistViewContextMenuOpen}
+	x={playlistViewContextMenuPosition.x}
+	y={playlistViewContextMenuPosition.y}
+	items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handlePlaylistViewImport }]}
+	onClose={() => (playlistViewContextMenuOpen = false)}
 />
 
 <!-- Rename Playlist Modal -->
@@ -1002,6 +1144,40 @@
 		deletePlaylistId = null
 		deletePlaylistIsFolder = false
 		deletePlaylistHasChildren = false
+	}}
+/>
+
+<!-- Remove from Playlist Confirmation -->
+<ConfirmModal
+	open={showRemoveFromPlaylistConfirm}
+	title="Remove from Playlist"
+	message={removeTrackIds.length === 1
+		? 'Are you sure you want to remove this track from the playlist?'
+		: `Are you sure you want to remove ${removeTrackIds.length} tracks from the playlist?`}
+	confirmLabel="Remove"
+	destructive={true}
+	onConfirm={handleRemoveFromPlaylistConfirm}
+	onCancel={() => {
+		showRemoveFromPlaylistConfirm = false
+		removeTrackIds = []
+		removePlaylistId = null
+	}}
+/>
+
+<!-- Remove from Library Confirmation -->
+<ConfirmModal
+	open={showRemoveFromLibraryConfirm}
+	title="Remove from Library"
+	message={removeTrackIds.length === 1
+		? 'Are you sure you want to remove this track from your library?'
+		: `Are you sure you want to remove ${removeTrackIds.length} tracks from your library?`}
+	warnings={['This action cannot be undone. Tracks will be removed from all playlists.']}
+	confirmLabel="Remove"
+	destructive={true}
+	onConfirm={handleRemoveFromLibraryConfirm}
+	onCancel={() => {
+		showRemoveFromLibraryConfirm = false
+		removeTrackIds = []
 	}}
 />
 

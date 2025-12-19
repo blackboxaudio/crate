@@ -42,3 +42,25 @@ export async function deleteTracks(ids: string[]): Promise<void> {
 export async function searchTracks(query: string): Promise<Track[]> {
 	return invoke<Track[]>('search_tracks', { query })
 }
+
+/**
+ * Result of a rescan artwork operation
+ */
+export interface RescanResult {
+	updated_count: number
+	failed_count: number
+}
+
+/**
+ * Rescan artwork for all tracks that don't have artwork yet
+ */
+export async function rescanArtwork(): Promise<RescanResult> {
+	return invoke<RescanResult>('rescan_artwork')
+}
+
+/**
+ * Rescan artwork for a single track
+ */
+export async function rescanTrackArtwork(id: string): Promise<boolean> {
+	return invoke<boolean>('rescan_track_artwork', { id })
+}

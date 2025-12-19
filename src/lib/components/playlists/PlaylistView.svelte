@@ -16,6 +16,7 @@
 		onTrackPlay?: (track: Track) => void
 		onSortChange?: (config: SortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
+		onEmptySpaceContextMenu?: (e: MouseEvent, playlist: Playlist) => void
 		onBreadcrumbNavigate: (item: BreadcrumbItem) => void
 		onBreadcrumbContextMenu: (e: MouseEvent, item: BreadcrumbItem) => void
 	}
@@ -33,9 +34,14 @@
 		onTrackPlay,
 		onSortChange,
 		onContextMenu,
+		onEmptySpaceContextMenu,
 		onBreadcrumbNavigate,
 		onBreadcrumbContextMenu,
 	}: Props = $props()
+
+	function handleEmptySpaceContextMenu(e: MouseEvent) {
+		onEmptySpaceContextMenu?.(e, playlist)
+	}
 </script>
 
 <div class="flex h-full flex-col overflow-hidden bg-surface-0">
@@ -55,6 +61,7 @@
 			{onTrackPlay}
 			{onSortChange}
 			{onContextMenu}
+			onEmptySpaceContextMenu={handleEmptySpaceContextMenu}
 		/>
 	</div>
 </div>

@@ -13,6 +13,7 @@
 		onBreadcrumbNavigate: (item: BreadcrumbItem) => void
 		onBreadcrumbContextMenu: (e: MouseEvent, item: BreadcrumbItem) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent, folderId: string) => void
+		onCardContextMenu?: (e: MouseEvent, playlist: Playlist) => void
 	}
 
 	let {
@@ -23,18 +24,15 @@
 		onBreadcrumbNavigate,
 		onBreadcrumbContextMenu,
 		onEmptySpaceContextMenu,
+		onCardContextMenu,
 	}: Props = $props()
 
-	function handleEmptySpaceContextMenu(e: MouseEvent) {
-		if (onEmptySpaceContextMenu) {
-			e.preventDefault()
-			onEmptySpaceContextMenu(e, folderId)
-		}
-	}
+	function handleContentContextMenu(e: MouseEvent) {
+		// Don't trigger if clicking on a FolderCard (button element)
+		const target = e.target as HTMLElement
+		if (target.closest('button')) return
 
-	function handleGridContextMenu(e: MouseEvent) {
-		// Only trigger if clicking on the grid itself, not on a card
-		if (e.target === e.currentTarget && onEmptySpaceContextMenu) {
+		if (onEmptySpaceContextMenu) {
 			e.preventDefault()
 			onEmptySpaceContextMenu(e, folderId)
 		}
@@ -64,21 +62,25 @@
 	<Breadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} onContextMenu={onBreadcrumbContextMenu} />
 
 	<!-- Content -->
-	<div class="flex-1 overflow-auto p-6">
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="flex-1 overflow-auto p-6" oncontextmenu={handleContentContextMenu}>
 		{#if sortedChildren.length === 0}
-			<div
-				class="flex h-full flex-col items-center justify-center text-text-tertiary"
-				oncontextmenu={handleEmptySpaceContextMenu}
-				role="region"
-			>
+			<div class="flex h-full flex-col items-center justify-center text-text-tertiary" role="region">
 				<Icon name="folder" class="mb-3 h-12 w-12" />
 				<p class="text-sm">This folder is empty</p>
 			</div>
 		{:else}
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div class="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4" oncontextmenu={handleGridContextMenu}>
+			<div class="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">
 				{#each sortedChildren as child (child.id)}
-					<FolderCard playlist={child} childCount={getChildCount(child)} onclick={() => onSelect(child)} />
+					<FolderCard
+						playlist={child}
+						childCount={getChildCount(child)}
+						onclick={() => onSelect(child)}
+						oncontextmenu={(e) => {
+							e.preventDefault()
+							onCardContextMenu?.(e, child)
+						}}
+					/>
 				{/each}
 			</div>
 		{/if}

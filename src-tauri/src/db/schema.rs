@@ -118,5 +118,9 @@ CREATE TABLE settings (
         r#"
 ALTER TABLE tag_categories ADD COLUMN color TEXT DEFAULT '#6366f1';
 "#,
+        // Migration 3: Add artwork_path to tracks
+        r#"
+ALTER TABLE tracks ADD COLUMN artwork_path TEXT;
+"#,
     ]
 }

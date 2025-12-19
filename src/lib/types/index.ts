@@ -40,6 +40,9 @@ export interface Track {
 	// External references
 	rekordbox_id: string | null
 
+	// Album artwork
+	artwork_path: string | null
+
 	// Related data
 	tags: Tag[]
 }

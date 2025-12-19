@@ -4,6 +4,7 @@ use tauri::State;
 
 use crate::error::CrateError;
 use crate::models::{ImportResult, Track, TrackFilter, TrackUpdate};
+use crate::services::library::RescanResult;
 use crate::services::LibraryService;
 
 #[tauri::command]
@@ -58,4 +59,19 @@ pub async fn search_tracks(
         ..Default::default()
     };
     library.get_tracks(Some(filter))
+}
+
+#[tauri::command]
+pub async fn rescan_artwork(
+    library: State<'_, LibraryService>,
+) -> Result<RescanResult, CrateError> {
+    library.rescan_all_artwork()
+}
+
+#[tauri::command]
+pub async fn rescan_track_artwork(
+    id: String,
+    library: State<'_, LibraryService>,
+) -> Result<bool, CrateError> {
+    library.rescan_track_artwork(&id)
 }

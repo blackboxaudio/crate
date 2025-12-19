@@ -141,7 +141,7 @@
 					{#if item.icon}
 						<Icon name={item.icon} />
 					{/if}
-					<span class="flex-1">{item.label}</span>
+					<span class="flex-1 whitespace-nowrap">{item.label}</span>
 					{#if item.shortcut}
 						<span class="text-xs text-text-tertiary">{item.shortcut}</span>
 					{/if}

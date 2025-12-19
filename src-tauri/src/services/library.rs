@@ -13,14 +13,19 @@ use symphonia::core::probe::Hint;
 
 use crate::error::{CrateError, Result};
 use crate::models::{ImportResult, Tag, Track, TrackFilter, TrackUpdate};
+use crate::services::ArtworkService;
 
 pub struct LibraryService {
     conn: Arc<Mutex<Connection>>,
+    artwork_service: ArtworkService,
 }
 
 impl LibraryService {
-    pub fn new(conn: Arc<Mutex<Connection>>) -> Self {
-        Self { conn }
+    pub fn new(conn: Arc<Mutex<Connection>>, app_data_dir: PathBuf) -> Self {
+        Self {
+            conn,
+            artwork_service: ArtworkService::new(app_data_dir),
+        }
     }
 
     pub fn import_tracks(&self, paths: Vec<PathBuf>) -> Result<ImportResult> {
@@ -93,6 +98,14 @@ impl LibraryService {
 
                 // Try to get key
                 track.key = self.extract_key(tag);
+            }
+
+            // Extract album artwork
+            if let Some(artwork_path) = self
+                .artwork_service
+                .extract_and_save(&tagged_file, &track.id)
+            {
+                track.artwork_path = Some(artwork_path);
             }
         } else {
             // Lofty failed completely, use symphonia fallback
@@ -196,7 +209,7 @@ impl LibraryService {
                 analysis_source, waveform_data,
                 rating, play_count,
                 date_added, date_modified, last_played,
-                rekordbox_id
+                rekordbox_id, artwork_path
             ) VALUES (
                 ?1, ?2, ?3,
                 ?4, ?5, ?6, ?7, ?8, ?9, ?10,
@@ -204,7 +217,7 @@ impl LibraryService {
                 ?17, ?18,
                 ?19, ?20,
                 ?21, ?22, ?23,
-                ?24
+                ?24, ?25
             )
             ON CONFLICT(file_path) DO UPDATE SET
                 title = excluded.title,
@@ -212,6 +225,7 @@ impl LibraryService {
                 album = excluded.album,
                 year = excluded.year,
                 genre = excluded.genre,
+                artwork_path = excluded.artwork_path,
                 date_modified = excluded.date_modified
             "#,
             rusqlite::params![
@@ -239,6 +253,7 @@ impl LibraryService {
                 track.date_modified,
                 track.last_played,
                 track.rekordbox_id,
+                track.artwork_path,
             ],
         )?;
 
@@ -260,7 +275,7 @@ impl LibraryService {
                 t.analysis_source, t.waveform_data,
                 t.rating, t.play_count,
                 t.date_added, t.date_modified, t.last_played,
-                t.rekordbox_id
+                t.rekordbox_id, t.artwork_path
             FROM tracks t
             "#,
         );
@@ -373,6 +388,7 @@ impl LibraryService {
                     date_modified: row.get(21)?,
                     last_played: row.get(22)?,
                     rekordbox_id: row.get(23)?,
+                    artwork_path: row.get(24)?,
                     tags: Vec::new(),
                 })
             })?
@@ -463,7 +479,7 @@ impl LibraryService {
                 analysis_source, waveform_data,
                 rating, play_count,
                 date_added, date_modified, last_played,
-                rekordbox_id
+                rekordbox_id, artwork_path
             FROM tracks WHERE id = ?1
             "#,
             [id],
@@ -493,6 +509,7 @@ impl LibraryService {
                     date_modified: row.get(21)?,
                     last_played: row.get(22)?,
                     rekordbox_id: row.get(23)?,
+                    artwork_path: row.get(24)?,
                     tags: Vec::new(),
                 })
             },
@@ -579,6 +596,11 @@ impl LibraryService {
     }
 
     pub fn delete_tracks(&self, ids: Vec<String>) -> Result<()> {
+        // Delete artwork files for each track
+        for id in &ids {
+            self.artwork_service.delete(id);
+        }
+
         let conn = self
             .conn
             .lock()
@@ -602,4 +624,92 @@ impl LibraryService {
 
         Ok(())
     }
+
+    /// Rescan artwork for a single track by re-reading the audio file
+    pub fn rescan_track_artwork(&self, track_id: &str) -> Result<bool> {
+        let track = self.get_track(track_id)?;
+        let path = std::path::PathBuf::from(&track.file_path);
+
+        // Try to read metadata and extract artwork
+        if let Some(tagged_file) = self.read_metadata_lenient(&path) {
+            if let Some(artwork_path) = self
+                .artwork_service
+                .extract_and_save(&tagged_file, track_id)
+            {
+                // Update database with new artwork path
+                let conn = self
+                    .conn
+                    .lock()
+                    .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+                conn.execute(
+                    "UPDATE tracks SET artwork_path = ?1 WHERE id = ?2",
+                    rusqlite::params![artwork_path, track_id],
+                )?;
+
+                return Ok(true);
+            }
+        }
+
+        Ok(false)
+    }
+
+    /// Rescan artwork for all tracks that don't have artwork yet
+    pub fn rescan_all_artwork(&self) -> Result<RescanResult> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        // Get all tracks without artwork
+        let mut stmt =
+            conn.prepare("SELECT id, file_path FROM tracks WHERE artwork_path IS NULL")?;
+
+        let tracks: Vec<(String, String)> = stmt
+            .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        drop(stmt);
+        drop(conn);
+
+        let mut updated_count = 0;
+        let mut failed_count = 0;
+
+        for (track_id, file_path) in tracks {
+            let path = std::path::PathBuf::from(&file_path);
+
+            if let Some(tagged_file) = self.read_metadata_lenient(&path) {
+                if let Some(artwork_path) = self
+                    .artwork_service
+                    .extract_and_save(&tagged_file, &track_id)
+                {
+                    // Update database
+                    if let Ok(conn) = self.conn.lock() {
+                        if conn
+                            .execute(
+                                "UPDATE tracks SET artwork_path = ?1 WHERE id = ?2",
+                                rusqlite::params![artwork_path, track_id],
+                            )
+                            .is_ok()
+                        {
+                            updated_count += 1;
+                            continue;
+                        }
+                    }
+                }
+            }
+            failed_count += 1;
+        }
+
+        Ok(RescanResult {
+            updated_count,
+            failed_count,
+        })
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct RescanResult {
+    pub updated_count: usize,
+    pub failed_count: usize,
 }

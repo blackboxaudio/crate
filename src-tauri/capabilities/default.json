@@ -9,6 +9,8 @@
     "dialog:default",
     "fs:default",
     "fs:allow-read-file",
-    "fs:allow-read-dir"
+    "fs:allow-read-dir",
+    "fs:allow-appdata-write-recursive",
+    "fs:allow-mkdir"
   ]
 }

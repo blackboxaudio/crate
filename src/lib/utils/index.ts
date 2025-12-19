@@ -1,3 +1,4 @@
+export * from './artwork'
 export * from './format'
 export * from './sorting'
 export * from './selection'
