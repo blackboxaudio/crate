@@ -31,8 +31,8 @@
 	{step}
 	{disabled}
 	bind:value
-	class="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 {className}"
-	style="background: linear-gradient(to right, #3b82f6 0%, #3b82f6 {percentage}%, #3f3f46 {percentage}%, #3f3f46 100%)"
+	class="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50 {className}"
+	style="background: linear-gradient(to right, var(--brand-primary) 0%, var(--brand-primary) {percentage}%, var(--stroke) {percentage}%, var(--stroke) 100%)"
 	{oninput}
 	{onchange}
 />

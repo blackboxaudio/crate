@@ -7,7 +7,7 @@ mod services;
 use std::path::PathBuf;
 
 use db::Database;
-use services::{AudioService, LibraryService, PlaylistService, TagService};
+use services::{AudioService, LibraryService, PlaylistService, SettingsService, TagService};
 
 fn get_db_path() -> PathBuf {
     let app_data = dirs::data_dir()
@@ -31,6 +31,7 @@ pub fn run() {
     let library_service = LibraryService::new(conn.clone());
     let tag_service = TagService::new(conn.clone());
     let playlist_service = PlaylistService::new(conn.clone());
+    let settings_service = SettingsService::new(conn.clone());
     let audio_service = AudioService::new().expect("Failed to initialize audio service");
 
     tauri::Builder::default()
@@ -40,6 +41,7 @@ pub fn run() {
         .manage(library_service)
         .manage(tag_service)
         .manage(playlist_service)
+        .manage(settings_service)
         .manage(audio_service)
         .invoke_handler(tauri::generate_handler![
             // Library commands
@@ -78,6 +80,9 @@ pub fn run() {
             commands::playlist::add_to_playlist,
             commands::playlist::remove_from_playlist,
             commands::playlist::reorder_playlist,
+            // Settings commands
+            commands::settings::get_settings,
+            commands::settings::set_setting,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

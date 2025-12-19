@@ -43,9 +43,9 @@
 	role="row"
 	tabindex="0"
 	draggable="true"
-	class="grid cursor-pointer grid-cols-[1fr_1fr_80px_60px_80px_1fr] gap-2 border-b border-zinc-800 px-3 py-2 text-sm transition-colors {selected
-		? 'bg-blue-600/20'
-		: 'hover:bg-zinc-800/50'} {playing ? 'text-blue-400' : 'text-zinc-300'}"
+	class="grid cursor-pointer grid-cols-[1fr_1fr_80px_60px_80px_1fr] gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors {selected
+		? 'bg-brand-muted'
+		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'}"
 	{onclick}
 	{ondblclick}
 	{oncontextmenu}
@@ -53,7 +53,7 @@
 	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
 	<!-- Title -->
-	<div class="truncate font-medium {playing ? 'text-blue-400' : 'text-zinc-100'}">
+	<div class="truncate font-medium {playing ? 'text-brand-primary' : 'text-text-primary'}">
 		{#if playing}
 			<span class="mr-1 inline-block w-4">
 				<svg class="h-3 w-3 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
@@ -65,22 +65,22 @@
 	</div>
 
 	<!-- Artist -->
-	<div class="truncate text-zinc-400">
+	<div class="truncate text-text-secondary">
 		{getTrackDisplayArtist(track)}
 	</div>
 
 	<!-- BPM -->
-	<div class="text-right text-zinc-400 tabular-nums">
+	<div class="text-right text-text-secondary tabular-nums">
 		{formatBpm(track.bpm)}
 	</div>
 
 	<!-- Key -->
-	<div class="text-center text-zinc-400">
+	<div class="text-center text-text-secondary">
 		{formatKey(track.key)}
 	</div>
 
 	<!-- Duration -->
-	<div class="text-right text-zinc-400 tabular-nums">
+	<div class="text-right text-text-secondary tabular-nums">
 		{formatDurationCompact(track.duration_ms)}
 	</div>
 
@@ -90,7 +90,7 @@
 			<TagChip {tag} size="sm" color={categoryColors?.get(tag.category_id)} />
 		{/each}
 		{#if track.tags.length > 3}
-			<span class="text-xs text-zinc-500">+{track.tags.length - 3}</span>
+			<span class="text-xs text-text-tertiary">+{track.tags.length - 3}</span>
 		{/if}
 	</div>
 </div>

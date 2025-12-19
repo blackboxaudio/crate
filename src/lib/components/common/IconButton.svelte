@@ -32,9 +32,9 @@
 	type="button"
 	{title}
 	{disabled}
-	class="inline-flex items-center justify-center rounded-md transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 {active
-		? 'bg-zinc-700 text-zinc-100'
-		: 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100'} {sizeStyles[size]} {className}"
+	class="inline-flex items-center justify-center rounded-md transition-colors focus:ring-2 focus:ring-brand-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 {active
+		? 'bg-surface-2 text-text-primary'
+		: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'} {sizeStyles[size]} {className}"
 	{onclick}
 >
 	{@render children()}

@@ -182,3 +182,26 @@ export interface SidebarState {
 	selectedFolderId: string | null
 	selectedTagId: string | null
 }
+
+// =============================================================================
+// Settings Types
+// =============================================================================
+
+export type Theme = 'light' | 'dark' | 'system'
+
+export type AccentColor =
+	| 'blue'
+	| 'indigo'
+	| 'violet'
+	| 'purple'
+	| 'pink'
+	| 'rose'
+	| 'orange'
+	| 'amber'
+	| 'emerald'
+	| 'teal'
+
+export interface AppSettings {
+	theme: Theme
+	accentColor: AccentColor
+}

@@ -49,7 +49,7 @@
 </script>
 
 <div class="flex w-full items-center gap-2">
-	<span class="w-10 text-right text-xs text-zinc-400 tabular-nums">
+	<span class="w-10 text-right text-xs text-text-secondary tabular-nums">
 		{formatDuration(displayPosition)}
 	</span>
 
@@ -60,13 +60,13 @@
 		aria-valuemin={0}
 		aria-valuemax={duration}
 		aria-valuenow={displayPosition}
-		class="seek-bar group relative h-1.5 flex-1 cursor-pointer rounded-full bg-zinc-700"
+		class="seek-bar group relative h-1.5 flex-1 cursor-pointer rounded-full bg-surface-2"
 		class:opacity-50={disabled}
 		class:cursor-not-allowed={disabled}
 		onmousedown={handleMouseDown}
 	>
 		<!-- Progress -->
-		<div class="absolute inset-y-0 left-0 rounded-full bg-blue-500" style="width: {progress}%"></div>
+		<div class="absolute inset-y-0 left-0 rounded-full bg-brand-primary" style="width: {progress}%"></div>
 
 		<!-- Thumb -->
 		<div
@@ -75,7 +75,7 @@
 		></div>
 	</div>
 
-	<span class="w-10 text-xs text-zinc-400 tabular-nums">
+	<span class="w-10 text-xs text-text-secondary tabular-nums">
 		{formatDuration(duration)}
 	</span>
 </div>

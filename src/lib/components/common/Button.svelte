@@ -22,13 +22,13 @@
 	}: Props = $props()
 
 	const baseStyles =
-		'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed'
+		'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-1 disabled:opacity-50 disabled:cursor-not-allowed'
 
 	const variantStyles = {
-		primary: 'bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500',
-		secondary: 'bg-zinc-700 text-zinc-100 hover:bg-zinc-600 focus:ring-zinc-500',
-		ghost: 'bg-transparent text-zinc-300 hover:bg-zinc-800 hover:text-zinc-100 focus:ring-zinc-500',
-		danger: 'bg-red-600 text-white hover:bg-red-700 focus:ring-red-500',
+		primary: 'bg-brand-primary text-white hover:bg-brand-hover focus:ring-brand-primary',
+		secondary: 'bg-surface-2 text-text-primary hover:bg-surface-2/80 focus:ring-stroke',
+		ghost: 'bg-transparent text-text-secondary hover:bg-surface-2 hover:text-text-primary focus:ring-stroke',
+		danger: 'bg-danger text-white hover:bg-danger/90 focus:ring-danger',
 	}
 
 	const sizeStyles = {

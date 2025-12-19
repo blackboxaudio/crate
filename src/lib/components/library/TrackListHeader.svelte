@@ -36,13 +36,13 @@
 </script>
 
 <div
-	class="sticky top-0 z-10 grid grid-cols-[1fr_1fr_80px_60px_80px_1fr] gap-2 border-b border-zinc-700 bg-zinc-900/50 px-3 py-2 text-xs font-medium tracking-wider text-zinc-500 uppercase"
+	class="sticky top-0 z-10 grid grid-cols-[1fr_1fr_80px_60px_80px_1fr] gap-2 border-b border-stroke bg-surface-1/50 px-3 py-2 text-xs font-medium tracking-wider text-text-tertiary uppercase backdrop-blur-sm"
 >
 	{#each columns as column (column.field)}
 		{#if column.field}
 			<button
 				type="button"
-				class="text-{column.align} transition-colors hover:text-zinc-300"
+				class="text-{column.align} transition-colors hover:text-text-secondary"
 				onclick={() => column.field && handleSort(column.field)}
 			>
 				{column.label}{getSortIndicator(column.field)}

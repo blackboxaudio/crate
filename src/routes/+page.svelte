@@ -16,6 +16,7 @@
 		playlistsStore,
 		uiStore,
 		selectedTrackIds,
+		settingsStore,
 	} from '$lib/stores'
 	import { toastStore } from '$lib/stores/toast'
 
@@ -25,6 +26,7 @@
 	import { InputModal, ConfirmModal, ColorPicker } from '$lib/components/common'
 	import { PlaylistContextMenu, FolderView } from '$lib/components/playlists'
 	import { TagContextMenu } from '$lib/components/tags'
+	import { SettingsModal } from '$lib/components/settings'
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
@@ -40,6 +42,7 @@
 	let showCategoryModal = $state(false)
 	let showTagModal = $state(false)
 	let tagModalCategoryId = $state<string | null>(null)
+	let showSettings = $state(false)
 
 	// Drag and drop state
 	let isDragOver = $state(false)
@@ -109,7 +112,7 @@
 
 	// Initialize on mount
 	onMount(async () => {
-		await Promise.all([libraryStore.loadTracks(), tagsStore.load(), playlistsStore.load()])
+		await Promise.all([libraryStore.loadTracks(), tagsStore.load(), playlistsStore.load(), settingsStore.load()])
 
 		// Set up keyboard shortcuts
 		window.addEventListener('keydown', handleKeydown)
@@ -506,7 +509,7 @@
 </script>
 
 <div class="flex h-full flex-col">
-	<Toolbar onImport={handleImport} />
+	<Toolbar onImport={handleImport} onSettings={() => (showSettings = true)} />
 
 	<div class="flex flex-1 overflow-hidden">
 		<div class="w-60 flex-shrink-0">
@@ -740,3 +743,6 @@
 		colorPickerCurrentColor = null
 	}}
 />
+
+<!-- Settings Modal -->
+<SettingsModal open={showSettings} onClose={() => (showSettings = false)} />

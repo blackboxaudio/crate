@@ -46,7 +46,7 @@
 </script>
 
 <div
-	class="flex h-full flex-col border-r border-zinc-800 bg-zinc-900"
+	class="flex h-full flex-col border-r border-stroke bg-surface-1"
 	ondragover={(e) => console.log('[Sidebar DragOver]', e.target)}
 >
 	<!-- Library -->
@@ -54,8 +54,8 @@
 		<button
 			type="button"
 			class="flex w-full items-center gap-2 rounded px-3 py-2 transition-colors {!selectedPlaylistId && !selectedTagId
-				? 'bg-zinc-800 text-zinc-100'
-				: 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200'}"
+				? 'bg-surface-2 text-text-primary'
+				: 'text-text-secondary hover:bg-surface-2/50 hover:text-text-primary'}"
 			onclick={onLibraryClick}
 		>
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,18 +67,18 @@
 				/>
 			</svg>
 			<span class="flex-1 text-left text-sm font-medium">Library</span>
-			<span class="text-xs text-zinc-500">{trackCount}</span>
+			<span class="text-xs text-text-tertiary">{trackCount}</span>
 		</button>
 	</div>
 
 	<!-- Section tabs -->
-	<div class="flex border-b border-zinc-800">
+	<div class="flex border-b border-stroke">
 		<button
 			type="button"
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
 			'playlists'
-				? 'border-b-2 border-blue-500 text-zinc-100'
-				: 'text-zinc-500 hover:text-zinc-300'}"
+				? 'border-b-2 border-brand-primary text-text-primary'
+				: 'text-text-tertiary hover:text-text-secondary'}"
 			onclick={() => (activeSection = 'playlists')}
 		>
 			<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -90,8 +90,8 @@
 			type="button"
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
 			'tags'
-				? 'border-b-2 border-blue-500 text-zinc-100'
-				: 'text-zinc-500 hover:text-zinc-300'}"
+				? 'border-b-2 border-brand-primary text-text-primary'
+				: 'text-text-tertiary hover:text-text-secondary'}"
 			onclick={() => (activeSection = 'tags')}
 		>
 			<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -137,7 +137,7 @@
 	</div>
 
 	<!-- Actions -->
-	<div class="space-y-1 border-t border-zinc-800 p-2">
+	<div class="space-y-1 border-t border-stroke p-2">
 		{#if activeSection === 'playlists'}
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreatePlaylist}>
 				<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

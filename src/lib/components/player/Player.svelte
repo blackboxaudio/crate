@@ -22,7 +22,7 @@
 	}
 </script>
 
-<div class="flex items-center gap-4 border-t border-zinc-800 bg-zinc-900 px-4 py-3">
+<div class="flex items-center gap-4 border-t border-stroke bg-surface-1 px-4 py-3">
 	<!-- Track Info -->
 	<div class="w-64 flex-shrink-0">
 		<TrackInfo track={$currentTrack} />
