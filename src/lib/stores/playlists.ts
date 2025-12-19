@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store'
-import type { Playlist, Track } from '$lib/types'
+import type { Playlist, Track, BreadcrumbItem } from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
 
 // =============================================================================
@@ -278,4 +278,85 @@ export function buildPlaylistTree(playlists: Playlist[]): PlaylistTreeNode[] {
 		playlist,
 		children: buildChildren(playlist.id),
 	}))
+}
+
+// =============================================================================
+// Breadcrumb Helpers
+// =============================================================================
+
+/**
+ * Get the full path from root to a playlist/folder by traversing parent_id chain
+ * Returns array from root to target (inclusive)
+ */
+export function getPlaylistPath(playlists: Playlist[], targetId: string): Playlist[] {
+	const path: Playlist[] = []
+	let current = playlists.find((p) => p.id === targetId)
+
+	while (current) {
+		path.unshift(current)
+		if (current.parent_id) {
+			current = playlists.find((p) => p.id === current!.parent_id)
+		} else {
+			break
+		}
+	}
+
+	return path
+}
+
+/**
+ * Build breadcrumb items for the current navigation state
+ */
+export function buildBreadcrumbItems(
+	playlists: Playlist[],
+	selectedFolderId: string | null,
+	selectedPlaylistId: string | null,
+	trackCount?: number,
+	childCount?: number
+): BreadcrumbItem[] {
+	const items: BreadcrumbItem[] = []
+
+	// Determine the target ID
+	const targetId = selectedPlaylistId || selectedFolderId
+
+	if (!targetId) {
+		// At library root - no breadcrumbs needed
+		return []
+	}
+
+	// Add Library as root
+	items.push({
+		id: null,
+		name: 'Library',
+		type: 'library',
+	})
+
+	// Get path from root to target
+	const path = getPlaylistPath(playlists, targetId)
+
+	// Add each item in the path
+	path.forEach((playlist, index) => {
+		const isLast = index === path.length - 1
+		const item: BreadcrumbItem = {
+			id: playlist.id,
+			name: playlist.name,
+			type: playlist.is_folder ? 'folder' : 'playlist',
+			playlist,
+		}
+
+		// Add count info for the last item
+		if (isLast) {
+			if (playlist.is_folder) {
+				item.count = childCount
+				item.countLabel = childCount === 1 ? 'item' : 'items'
+			} else {
+				item.count = trackCount ?? playlist.track_count
+				item.countLabel = (trackCount ?? playlist.track_count) === 1 ? 'track' : 'tracks'
+			}
+		}
+
+		items.push(item)
+	})
+
+	return items
 }

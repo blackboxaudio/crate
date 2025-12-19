@@ -10,7 +10,7 @@
 	let { devices, onContextMenu }: Props = $props()
 </script>
 
-<div class="border-b border-stroke pb-2">
+<div class="border-b border-stroke p-2">
 	<div class="flex items-center px-3 py-1.5">
 		<span class="text-xs font-medium tracking-wide text-text-tertiary uppercase">Devices</span>
 		<span class="ml-auto text-xs text-text-tertiary">{devices.length}</span>

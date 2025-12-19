@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { Playlist, Track, SortConfig } from '$lib/types'
+	import type { Playlist, Track, SortConfig, BreadcrumbItem } from '$lib/types'
 	import { TrackList } from '$lib/components/library'
+	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 
 	type Props = {
 		playlist: Playlist
@@ -10,10 +11,13 @@
 		sortConfig: SortConfig
 		isDragOver?: boolean
 		categoryColors?: Map<string, string | null>
+		breadcrumbItems: BreadcrumbItem[]
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onSortChange?: (config: SortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
+		onBreadcrumbNavigate: (item: BreadcrumbItem) => void
+		onBreadcrumbContextMenu: (e: MouseEvent, item: BreadcrumbItem) => void
 	}
 
 	let {
@@ -24,30 +28,19 @@
 		sortConfig,
 		isDragOver = false,
 		categoryColors,
+		breadcrumbItems,
 		onSelectionChange,
 		onTrackPlay,
 		onSortChange,
 		onContextMenu,
+		onBreadcrumbNavigate,
+		onBreadcrumbContextMenu,
 	}: Props = $props()
 </script>
 
 <div class="flex h-full flex-col overflow-hidden bg-surface-0">
-	<!-- Header -->
-	<div class="flex items-center gap-3 border-b border-stroke px-6 py-4">
-		<svg class="h-5 w-5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"
-			/>
-		</svg>
-		<h2 class="text-lg font-medium text-text-primary">{playlist.name}</h2>
-		<span class="text-sm text-text-tertiary">
-			{tracks.length}
-			{tracks.length === 1 ? 'track' : 'tracks'}
-		</span>
-	</div>
+	<!-- Breadcrumb Navigation -->
+	<Breadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} onContextMenu={onBreadcrumbContextMenu} />
 
 	<!-- Content -->
 	<div class="flex-1 overflow-hidden">

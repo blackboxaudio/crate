@@ -171,6 +171,21 @@ export interface ContextMenuItem {
 }
 
 // =============================================================================
+// Breadcrumb Types
+// =============================================================================
+
+export type BreadcrumbType = 'library' | 'folder' | 'playlist'
+
+export interface BreadcrumbItem {
+	id: string | null // null for Library root
+	name: string
+	type: BreadcrumbType
+	playlist?: Playlist // Reference to playlist/folder for context menu
+	count?: number // Track count or child count (last item only)
+	countLabel?: string // "tracks" or "items"
+}
+
+// =============================================================================
 // Sidebar View Types
 // =============================================================================
 

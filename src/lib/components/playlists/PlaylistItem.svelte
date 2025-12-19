@@ -197,6 +197,7 @@
 			: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 	style="padding-left: {paddingLeft}"
 	{onclick}
+	ondblclick={() => playlist.is_folder && onToggle?.()}
 	{oncontextmenu}
 	ondragstart={handleDragStart}
 	ondragover={handleDragOver}

@@ -53,13 +53,10 @@
 </script>
 
 <div class="flex h-full flex-col" ondragover={(e) => console.log('[Sidebar DragOver]', e.target)}>
-	<!-- Devices -->
-	<div class="p-2">
-		<DeviceList {devices} onContextMenu={onDeviceContextMenu} />
-	</div>
+	<DeviceList {devices} onContextMenu={onDeviceContextMenu} />
 
 	<!-- Library -->
-	<div class="p-2">
+	<div class="mt-2 p-2">
 		<div class="flex items-center px-3 py-1.5">
 			<span class="text-xs font-medium tracking-wide text-text-tertiary uppercase">Library</span>
 			<span class="ml-auto text-xs text-text-tertiary">{trackCount}</span>
@@ -73,7 +70,7 @@
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
 			'playlists'
 				? 'border-b-2 border-brand-primary text-text-primary'
-				: 'text-text-tertiary hover:text-text-secondary'}"
+				: 'border-b-2 border-[#00000000] text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
 			onclick={() => (activeSection = 'playlists')}
 		>
 			<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -86,7 +83,7 @@
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
 			'tags'
 				? 'border-b-2 border-brand-primary text-text-primary'
-				: 'text-text-tertiary hover:text-text-secondary'}"
+				: 'border-b-2 border-[#00000000] text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
 			onclick={() => (activeSection = 'tags')}
 		>
 			<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -4,7 +4,7 @@
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 	import { getCurrentWindow } from '@tauri-apps/api/window'
 
-	import type { Track, SortConfig, Playlist, TagCategory, Tag, UsbDevice } from '$lib/types'
+	import type { Track, SortConfig, Playlist, TagCategory, Tag, UsbDevice, BreadcrumbItem } from '$lib/types'
 	import {
 		libraryStore,
 		sortedTracks,
@@ -20,6 +20,7 @@
 		devicesStore,
 	} from '$lib/stores'
 	import { toastStore } from '$lib/stores/toast'
+	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView, TrackContextMenu } from '$lib/components/library'
@@ -349,7 +350,15 @@
 	}
 
 	// Context menu handlers
+	function closeAllContextMenus() {
+		contextMenuOpen = false
+		playlistContextMenuOpen = false
+		tagContextMenuOpen = false
+		deviceContextMenuOpen = false
+	}
+
 	function handleTrackContextMenu(e: MouseEvent, track: Track) {
+		closeAllContextMenus()
 		e.preventDefault()
 		contextMenuPosition = { x: e.clientX, y: e.clientY }
 
@@ -403,6 +412,7 @@
 
 	// Playlist context menu handlers
 	function handlePlaylistContextMenu(e: MouseEvent, playlist: Playlist) {
+		closeAllContextMenus()
 		e.preventDefault()
 		playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
 		playlistContextMenuPlaylist = playlist
@@ -465,6 +475,50 @@
 	// Category colors map for track list
 	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 
+	// Breadcrumb items for navigation
+	const currentFolderChildCount = $derived(
+		selectedFolderId ? getPlaylistChildren(playlists, selectedFolderId).length : 0
+	)
+
+	const breadcrumbItems = $derived(
+		buildBreadcrumbItems(
+			playlists,
+			selectedFolderId,
+			selectedPlaylistId,
+			selectedPlaylistId ? $displayedTracks.length : undefined,
+			currentFolderChildCount
+		)
+	)
+
+	// Breadcrumb navigation handler
+	function handleBreadcrumbNavigate(item: BreadcrumbItem) {
+		if (item.id === null) {
+			// Navigate to Library root
+			handleLibraryClick()
+		} else if (item.playlist) {
+			handlePlaylistSelect(item.playlist)
+		}
+	}
+
+	// Breadcrumb context menu handler
+	function handleBreadcrumbContextMenu(e: MouseEvent, item: BreadcrumbItem) {
+		closeAllContextMenus()
+		e.preventDefault()
+
+		if (item.type === 'library') {
+			// Library context menu - placeholder for now
+			// TODO: Could show "New Playlist", "New Folder", "Import Tracks"
+			return
+		}
+
+		// Reuse playlist context menu for folders/playlists
+		if (item.playlist) {
+			playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
+			playlistContextMenuPlaylist = item.playlist
+			playlistContextMenuOpen = true
+		}
+	}
+
 	// Helper to generate delete warnings
 	function getDeleteWarnings(): string[] {
 		const warnings: string[] = []
@@ -476,6 +530,7 @@
 
 	// Tag context menu handlers
 	function handleTagContextMenu(e: MouseEvent, tag: Tag, category: TagCategory) {
+		closeAllContextMenus()
 		e.preventDefault()
 		tagContextMenuPosition = { x: e.clientX, y: e.clientY }
 		tagContextMenuTarget = { type: 'tag', tag, category }
@@ -483,6 +538,7 @@
 	}
 
 	function handleCategoryContextMenu(e: MouseEvent, category: TagCategory) {
+		closeAllContextMenus()
 		e.preventDefault()
 		tagContextMenuPosition = { x: e.clientX, y: e.clientY }
 		tagContextMenuTarget = { type: 'category', category }
@@ -571,6 +627,7 @@
 
 	// Device context menu handlers
 	function handleDeviceContextMenu(e: MouseEvent, device: UsbDevice) {
+		closeAllContextMenus()
 		e.preventDefault()
 		deviceContextMenuPosition = { x: e.clientX, y: e.clientY }
 		deviceContextMenuDevice = device
@@ -621,7 +678,14 @@
 
 		<div class="flex-1 overflow-hidden">
 			{#if selectedFolderId}
-				<FolderView folderId={selectedFolderId} {playlists} onSelect={handlePlaylistSelect} />
+				<FolderView
+					folderId={selectedFolderId}
+					{playlists}
+					onSelect={handlePlaylistSelect}
+					{breadcrumbItems}
+					onBreadcrumbNavigate={handleBreadcrumbNavigate}
+					onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+				/>
 			{:else if selectedPlaylistId}
 				{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
 				{#if playlist}
@@ -633,10 +697,13 @@
 						{sortConfig}
 						{isDragOver}
 						{categoryColors}
+						{breadcrumbItems}
 						onSelectionChange={handleSelectionChange}
 						onTrackPlay={handleTrackPlay}
 						onSortChange={handleSortChange}
 						onContextMenu={handleTrackContextMenu}
+						onBreadcrumbNavigate={handleBreadcrumbNavigate}
+						onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 					/>
 				{/if}
 			{:else}
