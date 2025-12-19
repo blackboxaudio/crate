@@ -7,7 +7,8 @@ mod services;
 use std::path::PathBuf;
 
 use db::Database;
-use services::{AudioService, LibraryService, PlaylistService, SettingsService, TagService};
+use services::{AudioService, DeviceService, LibraryService, PlaylistService, SettingsService, TagService};
+use tauri::Manager;
 
 fn get_db_path() -> PathBuf {
     let app_data = dirs::data_dir()
@@ -33,6 +34,7 @@ pub fn run() {
     let playlist_service = PlaylistService::new(conn.clone());
     let settings_service = SettingsService::new(conn.clone());
     let audio_service = AudioService::new().expect("Failed to initialize audio service");
+    let device_service = DeviceService::new();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -43,6 +45,7 @@ pub fn run() {
         .manage(playlist_service)
         .manage(settings_service)
         .manage(audio_service)
+        .manage(device_service)
         .invoke_handler(tauri::generate_handler![
             // Library commands
             commands::library::import_tracks,
@@ -83,7 +86,16 @@ pub fn run() {
             // Settings commands
             commands::settings::get_settings,
             commands::settings::set_setting,
+            // Device commands
+            commands::device::get_devices,
+            commands::device::eject_device,
         ])
+        .setup(|app| {
+            // Start device monitoring
+            let device_service = app.state::<DeviceService>();
+            device_service.start_monitoring(app.handle().clone());
+            Ok(())
+        })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

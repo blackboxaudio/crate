@@ -180,6 +180,16 @@ body {
 	font-family:
 		-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue',
 		sans-serif;
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+/* Re-enable text selection for inputs and editable content */
+input,
+textarea,
+[contenteditable='true'] {
+	-webkit-user-select: text;
+	user-select: text;
 }
 
 /* Prevent text selection in UI elements */

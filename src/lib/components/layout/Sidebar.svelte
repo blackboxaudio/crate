@@ -1,18 +1,21 @@
 <script lang="ts">
-	import type { Playlist, TagCategory, Tag } from '$lib/types'
+	import type { Playlist, TagCategory, Tag, UsbDevice } from '$lib/types'
 	import { Button } from '$lib/components/common'
 	import { PlaylistTree } from '$lib/components/playlists'
 	import { TagList } from '$lib/components/tags'
+	import { DeviceList } from '$lib/components/devices'
 
 	type Props = {
 		playlists: Playlist[]
 		tagCategories: TagCategory[]
+		devices: UsbDevice[]
 		selectedPlaylistId?: string | null
 		selectedTagId?: string | null
 		trackCount: number
 		onLibraryClick?: () => void
 		onPlaylistSelect?: (playlist: Playlist) => void
 		onPlaylistContextMenu?: (e: MouseEvent, playlist: Playlist) => void
+		onDeviceContextMenu?: (e: MouseEvent, device: UsbDevice) => void
 		onTagSelect?: (tagId: string) => void
 		onTagContextMenu?: (e: MouseEvent, tag: Tag, category: TagCategory) => void
 		onCategoryContextMenu?: (e: MouseEvent, category: TagCategory) => void
@@ -21,17 +24,20 @@
 		onCreateCategory?: () => void
 		onCreateTag?: (categoryId: string) => void
 		onTracksDrop?: (playlistId: string, trackIds: string[]) => void
+		onPlaylistMove?: (playlistId: string, targetFolderId: string | null) => void
 	}
 
 	let {
 		playlists,
 		tagCategories,
+		devices,
 		selectedPlaylistId = null,
 		selectedTagId = null,
 		trackCount,
 		onLibraryClick,
 		onPlaylistSelect,
 		onPlaylistContextMenu,
+		onDeviceContextMenu,
 		onTagSelect,
 		onTagContextMenu,
 		onCategoryContextMenu,
@@ -40,6 +46,7 @@
 		onCreateCategory,
 		onCreateTag,
 		onTracksDrop,
+		onPlaylistMove,
 	}: Props = $props()
 
 	let activeSection = $state<'playlists' | 'tags'>('playlists')
@@ -49,6 +56,11 @@
 	class="flex h-full flex-col border-r border-stroke bg-surface-1"
 	ondragover={(e) => console.log('[Sidebar DragOver]', e.target)}
 >
+	<!-- Devices -->
+	<div class="p-2">
+		<DeviceList {devices} onContextMenu={onDeviceContextMenu} />
+	</div>
+
 	<!-- Library -->
 	<div class="p-2">
 		<button
@@ -123,6 +135,7 @@
 				onSelect={onPlaylistSelect}
 				onContextMenu={onPlaylistContextMenu}
 				{onTracksDrop}
+				{onPlaylistMove}
 			/>
 		{:else}
 			<TagList

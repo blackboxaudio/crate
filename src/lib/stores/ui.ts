@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store'
 import type { SidebarView } from '$lib/types'
+import { getStoredNumber, setStoredNumber } from '$lib/utils/storage'
 
 // =============================================================================
 // State
@@ -36,7 +37,7 @@ const initialState: UIState = {
 	selectedPlaylistId: null,
 	selectedFolderId: null,
 	selectedTagId: null,
-	sidebarWidth: 240,
+	sidebarWidth: getStoredNumber('sidebarWidth', 240),
 	searchQuery: '',
 	searchFocused: false,
 	activeModal: null,
@@ -170,9 +171,11 @@ function createUIStore() {
 		 * Set sidebar width
 		 */
 		setSidebarWidth(width: number) {
+			const clampedWidth = Math.max(200, Math.min(400, width))
+			setStoredNumber('sidebarWidth', clampedWidth)
 			update((state) => ({
 				...state,
-				sidebarWidth: Math.max(180, Math.min(400, width)),
+				sidebarWidth: clampedWidth,
 			}))
 		},
 

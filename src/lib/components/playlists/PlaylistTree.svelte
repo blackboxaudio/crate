@@ -1,8 +1,11 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
 	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
+	import { getStoredSet, setStoredSet } from '$lib/utils'
 	import PlaylistItem from './PlaylistItem.svelte'
 	import { SvelteSet } from 'svelte/reactivity'
+
+	const EXPANDED_STORAGE_KEY = 'expandedPlaylistIds'
 
 	type Props = {
 		playlists: Playlist[]
@@ -10,18 +13,31 @@
 		onSelect?: (playlist: Playlist) => void
 		onContextMenu?: (e: MouseEvent, playlist: Playlist) => void
 		onTracksDrop?: (playlistId: string, trackIds: string[]) => void
+		onPlaylistMove?: (playlistId: string, targetFolderId: string | null) => void
 	}
 
-	let { playlists, selectedId = null, onSelect, onContextMenu, onTracksDrop }: Props = $props()
+	let { playlists, selectedId = null, onSelect, onContextMenu, onTracksDrop, onPlaylistMove }: Props = $props()
 
-	let expandedIds = $state<Set<string>>(new Set())
+	let expandedIds = $state<Set<string>>(getStoredSet(EXPANDED_STORAGE_KEY))
+
+	$effect(() => {
+		setStoredSet(EXPANDED_STORAGE_KEY, expandedIds)
+	})
 
 	let tree = $derived(buildPlaylistTree(playlists))
+
+	function getDescendantIds(parentId: string): string[] {
+		const children = playlists.filter((p) => p.parent_id === parentId)
+		return children.flatMap((child) => [child.id, ...getDescendantIds(child.id)])
+	}
 
 	function toggleExpanded(id: string) {
 		const newExpanded = new SvelteSet(expandedIds)
 		if (newExpanded.has(id)) {
 			newExpanded.delete(id)
+			for (const descendantId of getDescendantIds(id)) {
+				newExpanded.delete(descendantId)
+			}
 		} else {
 			newExpanded.add(id)
 		}
@@ -32,6 +48,7 @@
 {#snippet renderNode(node: PlaylistTreeNode, depth: number)}
 	<PlaylistItem
 		playlist={node.playlist}
+		{playlists}
 		selected={selectedId === node.playlist.id}
 		{depth}
 		expanded={expandedIds.has(node.playlist.id)}
@@ -43,6 +60,7 @@
 			onContextMenu?.(e, node.playlist)
 		}}
 		onTracksDrop={(trackIds) => onTracksDrop?.(node.playlist.id, trackIds)}
+		onPlaylistDrop={(droppedId) => onPlaylistMove?.(droppedId, node.playlist.id)}
 	/>
 
 	{#if node.playlist.is_folder && expandedIds.has(node.playlist.id)}

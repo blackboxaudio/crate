@@ -19,6 +19,9 @@ pub enum CrateError {
     #[error("Export error: {0}")]
     Export(String),
 
+    #[error("Device error: {0}")]
+    Device(String),
+
     #[error("Invalid operation: {0}")]
     InvalidOperation(String),
 

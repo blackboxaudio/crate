@@ -4,7 +4,7 @@
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 	import { getCurrentWindow } from '@tauri-apps/api/window'
 
-	import type { Track, SortConfig, Playlist, TagCategory, Tag } from '$lib/types'
+	import type { Track, SortConfig, Playlist, TagCategory, Tag, UsbDevice } from '$lib/types'
 	import {
 		libraryStore,
 		sortedTracks,
@@ -17,24 +17,29 @@
 		uiStore,
 		selectedTrackIds,
 		settingsStore,
+		devicesStore,
 	} from '$lib/stores'
 	import { toastStore } from '$lib/stores/toast'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
-	import { TrackList, TrackContextMenu } from '$lib/components/library'
+	import { LibraryView, TrackContextMenu } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
-	import { InputModal, ConfirmModal, ColorPicker } from '$lib/components/common'
-	import { PlaylistContextMenu, FolderView } from '$lib/components/playlists'
+	import { InputModal, ConfirmModal, ColorPicker, ResizeHandle } from '$lib/components/common'
+	import { PlaylistContextMenu, PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TagContextMenu } from '$lib/components/tags'
+	import { DeviceContextMenu } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
+	import * as devicesApi from '$lib/api/devices'
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
+	let devices = $state<UsbDevice[]>([])
 	let selectedPlaylistId = $state<string | null>(null)
 	let selectedFolderId = $state<string | null>(null)
 	let selectedTagId = $state<string | null>(null)
+	let sidebarWidth = $state(240)
 
 	// Modal state
 	let showPlaylistModal = $state(false)
@@ -74,6 +79,11 @@
 		{ type: 'tag'; tag: Tag; category: TagCategory } | { type: 'category'; category: TagCategory } | null
 	>(null)
 
+	// Device context menu state
+	let deviceContextMenuOpen = $state(false)
+	let deviceContextMenuPosition = $state({ x: 0, y: 0 })
+	let deviceContextMenuDevice = $state<UsbDevice | null>(null)
+
 	// Tag modal states
 	let showRenameTagModal = $state(false)
 	let renameTagId = $state<string | null>(null)
@@ -101,18 +111,29 @@
 			selectedPlaylistId = state.selectedPlaylistId
 			selectedFolderId = state.selectedFolderId
 			selectedTagId = state.selectedTagId
+			sidebarWidth = state.sidebarWidth
+		})
+		const unsubDevices = devicesStore.subscribe((state) => {
+			devices = state.devices
 		})
 
 		return () => {
 			unsubPlaylists()
 			unsubTags()
 			unsubUI()
+			unsubDevices()
 		}
 	})
 
 	// Initialize on mount
 	onMount(async () => {
-		await Promise.all([libraryStore.loadTracks(), tagsStore.load(), playlistsStore.load(), settingsStore.load()])
+		await Promise.all([
+			libraryStore.loadTracks(),
+			tagsStore.load(),
+			playlistsStore.load(),
+			settingsStore.load(),
+			devicesStore.loadDevices(),
+		])
 
 		// Set up keyboard shortcuts
 		window.addEventListener('keydown', handleKeydown)
@@ -121,6 +142,7 @@
 		let unlistenDrop: UnlistenFn | undefined
 		let unlistenDragOver: UnlistenFn | undefined
 		let unlistenDragLeave: UnlistenFn | undefined
+		let unlistenDevices: UnlistenFn | undefined
 
 		const setupDragDrop = async () => {
 			const appWindow = getCurrentWindow()
@@ -155,13 +177,41 @@
 			})
 		}
 
+		// Set up device change listener
+		const setupDeviceListener = async () => {
+			unlistenDevices = await listen<UsbDevice[]>('devices-changed', (event) => {
+				const previousDevices = devicesStore.getDevices()
+				const newDevices = event.payload
+
+				// Detect new devices (connected)
+				const prevIds = new Set(previousDevices.map((d) => d.id))
+				for (const device of newDevices) {
+					if (!prevIds.has(device.id)) {
+						toastStore.info(`${device.name} connected`)
+					}
+				}
+
+				// Detect removed devices (disconnected)
+				const newIds = new Set(newDevices.map((d) => d.id))
+				for (const device of previousDevices) {
+					if (!newIds.has(device.id)) {
+						toastStore.info(`${device.name} disconnected`)
+					}
+				}
+
+				devicesStore.setDevices(newDevices)
+			})
+		}
+
 		setupDragDrop()
+		setupDeviceListener()
 
 		return () => {
 			window.removeEventListener('keydown', handleKeydown)
 			unlistenDrop?.()
 			unlistenDragOver?.()
 			unlistenDragLeave?.()
+			unlistenDevices?.()
 		}
 	})
 
@@ -238,6 +288,10 @@
 		uiStore.selectTag(null)
 		libraryStore.clearFilters()
 		libraryStore.clearPlaylistTracks()
+	}
+
+	function handleSidebarResize(delta: number) {
+		uiStore.setSidebarWidth(sidebarWidth + delta)
 	}
 
 	async function handlePlaylistSelect(playlist: Playlist) {
@@ -397,6 +451,14 @@
 		await playlistsStore.move(playlist.id, folderId)
 	}
 
+	// Handler for drag-drop playlist move
+	async function handlePlaylistDragMove(playlistId: string, targetFolderId: string | null) {
+		const result = await playlistsStore.move(playlistId, targetFolderId)
+		if (result) {
+			toastStore.success('Playlist moved successfully')
+		}
+	}
+
 	// Helper to get folders for move menu
 	const playlistFolders = $derived(playlists.filter((p) => p.is_folder))
 
@@ -506,22 +568,43 @@
 			await libraryStore.loadTracks()
 		}
 	}
+
+	// Device context menu handlers
+	function handleDeviceContextMenu(e: MouseEvent, device: UsbDevice) {
+		e.preventDefault()
+		deviceContextMenuPosition = { x: e.clientX, y: e.clientY }
+		deviceContextMenuDevice = device
+		deviceContextMenuOpen = true
+	}
+
+	async function handleEjectDevice(device: UsbDevice) {
+		deviceContextMenuOpen = false
+		try {
+			await devicesApi.ejectDevice(device.mount_point)
+			toastStore.success(`${device.name} ejected`)
+		} catch (error) {
+			toastStore.error(`Failed to eject ${device.name}`)
+			console.error('Eject error:', error)
+		}
+	}
 </script>
 
 <div class="flex h-full flex-col">
 	<Toolbar onImport={handleImport} onSettings={() => (showSettings = true)} />
 
 	<div class="flex flex-1 overflow-hidden">
-		<div class="w-60 flex-shrink-0">
+		<div class="flex-shrink-0" style="width: {sidebarWidth}px">
 			<Sidebar
 				{playlists}
 				{tagCategories}
+				{devices}
 				{selectedPlaylistId}
 				{selectedTagId}
 				trackCount={$trackCount}
 				onLibraryClick={handleLibraryClick}
 				onPlaylistSelect={handlePlaylistSelect}
 				onPlaylistContextMenu={handlePlaylistContextMenu}
+				onDeviceContextMenu={handleDeviceContextMenu}
 				onTagSelect={handleTagSelect}
 				onTagContextMenu={handleTagContextMenu}
 				onCategoryContextMenu={handleCategoryContextMenu}
@@ -530,15 +613,36 @@
 				onCreateCategory={handleCreateCategory}
 				onCreateTag={handleCreateTag}
 				onTracksDrop={handleTracksDropOnPlaylist}
+				onPlaylistMove={handlePlaylistDragMove}
 			/>
 		</div>
+
+		<ResizeHandle onResize={handleSidebarResize} />
 
 		<div class="flex-1 overflow-hidden">
 			{#if selectedFolderId}
 				<FolderView folderId={selectedFolderId} {playlists} onSelect={handlePlaylistSelect} />
+			{:else if selectedPlaylistId}
+				{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
+				{#if playlist}
+					<PlaylistView
+						{playlist}
+						tracks={$displayedTracks}
+						selectedIds={$selectedTrackIds}
+						playingTrackId={$currentTrack?.id ?? null}
+						{sortConfig}
+						{isDragOver}
+						{categoryColors}
+						onSelectionChange={handleSelectionChange}
+						onTrackPlay={handleTrackPlay}
+						onSortChange={handleSortChange}
+						onContextMenu={handleTrackContextMenu}
+					/>
+				{/if}
 			{:else}
-				<TrackList
+				<LibraryView
 					tracks={$displayedTracks}
+					trackCount={$trackCount}
 					selectedIds={$selectedTrackIds}
 					playingTrackId={$currentTrack?.id ?? null}
 					{sortConfig}
@@ -671,6 +775,16 @@
 	onRenameCategory={handleRenameCategory}
 	onDeleteCategory={handleDeleteCategory}
 	onChangeColor={handleChangeCategoryColor}
+/>
+
+<!-- Device Context Menu -->
+<DeviceContextMenu
+	open={deviceContextMenuOpen}
+	x={deviceContextMenuPosition.x}
+	y={deviceContextMenuPosition.y}
+	device={deviceContextMenuDevice}
+	onClose={() => (deviceContextMenuOpen = false)}
+	onEject={handleEjectDevice}
 />
 
 <!-- Rename Tag Modal -->

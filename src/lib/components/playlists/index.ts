@@ -1,5 +1,6 @@
 export { default as PlaylistItem } from './PlaylistItem.svelte'
 export { default as PlaylistTree } from './PlaylistTree.svelte'
 export { default as PlaylistContextMenu } from './PlaylistContextMenu.svelte'
+export { default as PlaylistView } from './PlaylistView.svelte'
 export { default as FolderView } from './FolderView.svelte'
 export { default as FolderCard } from './FolderCard.svelte'

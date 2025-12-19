@@ -16,3 +16,4 @@ export { uiStore, selectedTrackIds, selectedTrackCount, hasSelection, searchQuer
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'
 export { settingsStore, theme, accentColor, resolvedTheme, settingsLoading } from './settings'
+export { devicesStore, devices, deviceCount, hasDevices, devicesLoading } from './devices'

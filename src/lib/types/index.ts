@@ -184,6 +184,19 @@ export interface SidebarState {
 }
 
 // =============================================================================
+// Device Types
+// =============================================================================
+
+export interface UsbDevice {
+	id: string
+	name: string
+	mount_point: string
+	total_space_bytes: number
+	available_space_bytes: number
+	is_removable: boolean
+}
+
+// =============================================================================
 // Settings Types
 // =============================================================================
 
