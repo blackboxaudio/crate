@@ -2,6 +2,7 @@
 	import type { Track } from '$lib/types'
 	import { formatDurationCompact, formatBpm, formatKey, getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		track: Track
@@ -56,9 +57,7 @@
 	<div class="truncate font-medium {playing ? 'text-brand-primary' : 'text-text-primary'}">
 		{#if playing}
 			<span class="mr-1 inline-block w-4">
-				<svg class="h-3 w-3 animate-pulse" fill="currentColor" viewBox="0 0 24 24">
-					<path d="M8 5v14l11-7z" />
-				</svg>
+				<Icon name="play" class="h-3 w-3 animate-pulse" fill />
 			</span>
 		{/if}
 		{getTrackDisplayName(track)}

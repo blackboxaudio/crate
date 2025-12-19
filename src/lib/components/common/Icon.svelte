@@ -2,11 +2,13 @@
 	type Props = {
 		name: string
 		class?: string
+		fill?: boolean
 	}
 
-	let { name, class: className = 'h-4 w-4' }: Props = $props()
+	let { name, class: className = 'h-4 w-4', fill = false }: Props = $props()
 
-	const icons: Record<string, string> = {
+	// Stroke-based icons (default)
+	const strokeIcons: Record<string, string> = {
 		// Context menu icons
 		'list-plus':
 			'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
@@ -30,11 +32,52 @@
 		playlist:
 			'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3',
 		'chevron-right': 'M9 5l7 7-7 7',
+		// Additional stroke icons
+		usb: 'M15 3h-6a1 1 0 00-1 1v3H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-2V4a1 1 0 00-1-1zM9 3v4m6-4v4',
+		check: 'M5 13l4 4L19 7',
+		x: 'M6 18L18 6M6 6l12 12',
+		warning:
+			'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z',
+		info: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z',
+		upload: 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12',
+		search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+		settings:
+			'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+		plus: 'M12 4v16m8-8H4',
+		grid: 'M4 6h16M4 10h16M4 14h16M4 18h16',
+		tag: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z',
+		bolt: 'M13 10V3L4 14h7v7l9-11h-7z',
+		'chevron-down': 'M19 9l-7 7-7-7',
+		sun: 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z',
+		moon: 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z',
+		monitor:
+			'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
+		'music-note':
+			'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3',
+	}
+
+	// Fill-based icons (use fill={true})
+	const fillIcons: Record<string, string> = {
+		'volume-muted':
+			'M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z',
+		'volume-low': 'M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z',
+		'volume-full':
+			'M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z',
+		'skip-back': 'M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z',
+		play: 'M8 5v14l11-7z',
+		pause: 'M6 19h4V5H6v14zm8-14v14h4V5h-4z',
+		stop: 'M6 6h12v12H6z',
+		'skip-forward': 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z',
+		logo: 'M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z',
 	}
 </script>
 
-{#if icons[name]}
+{#if fill && fillIcons[name]}
+	<svg class="{className} shrink-0" fill="currentColor" viewBox="0 0 24 24">
+		<path d={fillIcons[name]} />
+	</svg>
+{:else if strokeIcons[name]}
 	<svg class="{className} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={icons[name]} />
+		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={strokeIcons[name]} />
 	</svg>
 {/if}

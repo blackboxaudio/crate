@@ -4,6 +4,7 @@
 	import { PlaylistTree } from '$lib/components/playlists'
 	import { TagList } from '$lib/components/tags'
 	import { DeviceList } from '$lib/components/devices'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		playlists: Playlist[]
@@ -52,7 +53,7 @@
 	let activeSection = $state<'playlists' | 'tags'>('playlists')
 </script>
 
-<div class="flex h-full flex-col" ondragover={(e) => console.log('[Sidebar DragOver]', e.target)}>
+<div class="flex h-full flex-col">
 	<DeviceList {devices} onContextMenu={onDeviceContextMenu} />
 
 	<!-- Library -->
@@ -73,9 +74,7 @@
 				: 'border-b-2 border-[#00000000] text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
 			onclick={() => (activeSection = 'playlists')}
 		>
-			<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-			</svg>
+			<Icon name="grid" class="h-3.5 w-3.5" />
 			Playlists
 		</button>
 		<button
@@ -86,19 +85,13 @@
 				: 'border-b-2 border-[#00000000] text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
 			onclick={() => (activeSection = 'tags')}
 		>
-			<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path
-					stroke-linecap="round"
-					stroke-linejoin="round"
-					stroke-width="2"
-					d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
-				/>
-			</svg>
+			<Icon name="tag" class="h-3.5 w-3.5" />
 			Tags
 		</button>
 	</div>
 
 	<!-- Content -->
+	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
 		class="flex-1 overflow-auto p-2"
 		onclick={(e) => {
@@ -106,7 +99,13 @@
 				onLibraryClick?.()
 			}
 		}}
+		onkeydown={(e) => {
+			if (e.key === 'Escape' && (selectedPlaylistId || selectedTagId)) {
+				onLibraryClick?.()
+			}
+		}}
 		role="region"
+		tabindex="-1"
 	>
 		{#if activeSection === 'playlists'}
 			<PlaylistTree
@@ -133,27 +132,16 @@
 	<div class="space-y-1 border-t border-stroke p-2">
 		{#if activeSection === 'playlists'}
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreatePlaylist}>
-				<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-				</svg>
+				<Icon name="plus" class="mr-2 h-4 w-4" />
 				New Playlist
 			</Button>
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateFolder}>
-				<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						stroke-width="2"
-						d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
-					/>
-				</svg>
+				<Icon name="folder" class="mr-2 h-4 w-4" />
 				New Folder
 			</Button>
 		{:else}
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateCategory}>
-				<svg class="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-				</svg>
+				<Icon name="plus" class="mr-2 h-4 w-4" />
 				New Category
 			</Button>
 		{/if}

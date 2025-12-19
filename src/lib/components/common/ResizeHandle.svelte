@@ -34,9 +34,12 @@
 	}
 </script>
 
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <div
 	role="separator"
 	aria-orientation="vertical"
+	tabindex="0"
 	class="group relative h-full w-1 cursor-col-resize"
 	onmousedown={handleMouseDown}
 >

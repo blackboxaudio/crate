@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { UsbDevice } from '$lib/types'
 	import { formatFileSize } from '$lib/utils'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		device: UsbDevice
@@ -20,14 +21,7 @@
 	tabindex="0"
 >
 	<!-- USB Icon -->
-	<svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-		<path
-			stroke-linecap="round"
-			stroke-linejoin="round"
-			stroke-width="2"
-			d="M15 3h-6a1 1 0 00-1 1v3H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-2V4a1 1 0 00-1-1zM9 3v4m6-4v4"
-		/>
-	</svg>
+	<Icon name="usb" class="h-4 w-4 shrink-0" />
 
 	<div class="min-w-0 flex-1">
 		<div class="truncate text-sm font-medium">{device.name}</div>

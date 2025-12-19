@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { IconButton } from '$lib/components/common'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		isPlaying: boolean
@@ -16,35 +17,25 @@
 <div class="flex items-center gap-1">
 	<!-- Previous -->
 	<IconButton title="Previous" disabled={!hasTrack} onclick={onPrevious}>
-		<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-			<path d="M6 6h2v12H6V6zm3.5 6l8.5 6V6l-8.5 6z" />
-		</svg>
+		<Icon name="skip-back" fill />
 	</IconButton>
 
 	<!-- Play/Pause -->
 	<IconButton title={isPlaying ? 'Pause' : 'Play'} disabled={!hasTrack} size="lg" onclick={onPlayPause}>
 		{#if isPlaying}
-			<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-				<path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-			</svg>
+			<Icon name="pause" class="h-6 w-6" fill />
 		{:else}
-			<svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-				<path d="M8 5v14l11-7z" />
-			</svg>
+			<Icon name="play" class="h-6 w-6" fill />
 		{/if}
 	</IconButton>
 
 	<!-- Stop -->
 	<IconButton title="Stop" disabled={!hasTrack} onclick={onStop}>
-		<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-			<path d="M6 6h12v12H6z" />
-		</svg>
+		<Icon name="stop" fill />
 	</IconButton>
 
 	<!-- Next -->
 	<IconButton title="Next" disabled={!hasTrack} onclick={onNext}>
-		<svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-			<path d="M6 18l8.5-6L6 6v12zm2 0V6l6.5 6L8 18zM16 6v12h2V6h-2z" />
-		</svg>
+		<Icon name="skip-forward" fill />
 	</IconButton>
 </div>

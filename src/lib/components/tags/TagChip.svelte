@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Tag } from '$lib/types'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		tag: Tag
@@ -44,9 +45,7 @@
 				onremove()
 			}}
 		>
-			<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-			</svg>
+			<Icon name="x" class="h-3 w-3" />
 		</button>
 	{/if}
 </span>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { libraryStore, uiStore } from '$lib/stores'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	let inputValue = $state('')
 
@@ -35,14 +36,7 @@
 
 <div class="relative">
 	<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-		<svg class="h-4 w-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-			<path
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				stroke-width="2"
-				d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-			/>
-		</svg>
+		<Icon name="search" class="h-4 w-4 text-text-tertiary" />
 	</div>
 
 	<input
@@ -63,9 +57,7 @@
 			class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-tertiary hover:text-text-secondary"
 			onclick={handleClear}
 		>
-			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-			</svg>
+			<Icon name="x" />
 		</button>
 	{/if}
 </div>
