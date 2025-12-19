@@ -55,9 +55,9 @@
 		{#each colors as color (color)}
 			<button
 				type="button"
-				class="h-8 w-8 rounded-md transition-transform hover:scale-110 focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-zinc-800 focus:outline-none {currentSelection ===
+				class="h-8 w-8 rounded-md transition-transform hover:scale-110 focus:ring-2 focus:ring-text-primary focus:ring-offset-2 focus:ring-offset-surface-1 focus:outline-none {currentSelection ===
 				color
-					? 'ring-2 ring-white ring-offset-2 ring-offset-zinc-800'
+					? 'ring-2 ring-text-primary ring-offset-2 ring-offset-surface-1'
 					: ''}"
 				style="background-color: {color};"
 				onclick={() => handleColorClick(color)}
@@ -68,7 +68,7 @@
 
 	<div class="mt-4 flex items-center gap-3">
 		<div class="h-6 w-6 rounded" style="background-color: {currentSelection};"></div>
-		<span class="text-sm text-zinc-400">{currentSelection}</span>
+		<span class="text-sm text-text-secondary">{currentSelection}</span>
 	</div>
 
 	{#snippet footer()}

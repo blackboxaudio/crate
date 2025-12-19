@@ -126,23 +126,23 @@
 {#snippet menuItems(itemList: ContextMenuItem[], depth: number)}
 	{#each itemList as item (item.id)}
 		{#if item.divider}
-			<div class="my-1 border-t border-zinc-700"></div>
+			<div class="my-1 border-t border-stroke"></div>
 		{:else}
 			<div class="group relative" role="none" onmouseenter={() => handleItemMouseEnter(item, depth)}>
 				<button
 					type="button"
 					class="flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors
-						{item.disabled ? 'cursor-not-allowed text-zinc-500' : 'text-zinc-200 hover:bg-zinc-700'}"
+						{item.disabled ? 'cursor-not-allowed text-text-tertiary' : 'text-text-primary hover:bg-surface-2'}"
 					onclick={() => handleItemClick(item)}
 					disabled={item.disabled}
 					role="menuitem"
 				>
 					<span class="flex-1">{item.label}</span>
 					{#if item.shortcut}
-						<span class="text-xs text-zinc-500">{item.shortcut}</span>
+						<span class="text-xs text-text-tertiary">{item.shortcut}</span>
 					{/if}
 					{#if item.submenu}
-						<svg class="h-4 w-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<svg class="h-4 w-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
 						</svg>
 					{/if}
@@ -150,7 +150,7 @@
 
 				{#if item.submenu && isSubmenuActive(item.id, depth)}
 					<div
-						class="absolute z-50 min-w-48 rounded-md border border-zinc-700 bg-zinc-800 py-1 shadow-lg"
+						class="absolute z-50 min-w-48 rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
 						style={getSubmenuStyle(null)}
 						role="menu"
 					>
@@ -165,7 +165,7 @@
 {#if open}
 	<div
 		bind:this={menuEl}
-		class="fixed z-50 min-w-48 rounded-md border border-zinc-700 bg-zinc-800 py-1 shadow-lg"
+		class="fixed z-50 min-w-48 rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
 		style="left: {adjustedPosition.x}px; top: {adjustedPosition.y}px;"
 		role="menu"
 	>

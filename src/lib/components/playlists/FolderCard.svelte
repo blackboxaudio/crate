@@ -12,13 +12,13 @@
 
 <button
 	type="button"
-	class="flex flex-col items-center gap-3 rounded-lg bg-zinc-800/50 p-6 text-center transition-colors hover:bg-zinc-700/50"
+	class="flex flex-col items-center gap-3 rounded-lg bg-surface-2 p-6 text-center transition-colors hover:bg-stroke"
 	{onclick}
 >
 	<!-- Icon -->
-	<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-zinc-700/50">
+	<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-stroke">
 		{#if playlist.is_folder}
-			<svg class="h-6 w-6 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<svg class="h-6 w-6 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"
@@ -31,7 +31,7 @@
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
 			</svg>
 		{:else}
-			<svg class="h-6 w-6 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+			<svg class="h-6 w-6 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path
 					stroke-linecap="round"
 					stroke-linejoin="round"
@@ -43,12 +43,12 @@
 	</div>
 
 	<!-- Name -->
-	<span class="w-full truncate text-sm font-medium text-zinc-200">
+	<span class="w-full truncate text-sm font-medium text-text-primary">
 		{playlist.name}
 	</span>
 
 	<!-- Count -->
-	<span class="text-xs text-zinc-500">
+	<span class="text-xs text-text-tertiary">
 		{#if playlist.is_folder}
 			{childCount} {childCount === 1 ? 'item' : 'items'}
 		{:else}

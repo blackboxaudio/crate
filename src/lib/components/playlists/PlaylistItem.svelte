@@ -100,10 +100,10 @@
 	aria-selected={selected}
 	aria-expanded={playlist.is_folder ? expanded : undefined}
 	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-2 transition-colors {selected
-		? 'bg-blue-600/20 text-zinc-100'
+		? 'bg-brand-muted text-text-primary'
 		: isDragOver
-			? 'bg-blue-600/30 text-zinc-100 ring-1 ring-blue-500'
-			: 'text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200'}"
+			? 'bg-brand-muted text-text-primary ring-1 ring-brand-primary'
+			: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 	style="padding-left: {paddingLeft}"
 	{onclick}
 	{oncontextmenu}
@@ -118,7 +118,7 @@
 		<button
 			type="button"
 			aria-label={expanded ? 'Collapse' : 'Expand'}
-			class="flex h-4 w-4 items-center justify-center text-zinc-500 hover:text-zinc-300"
+			class="flex h-4 w-4 items-center justify-center text-text-tertiary hover:text-text-secondary"
 			onclick={(e) => {
 				e.stopPropagation()
 				onToggle?.()
@@ -166,7 +166,7 @@
 
 	<!-- Track count -->
 	{#if !playlist.is_folder}
-		<span class="text-xs text-zinc-500">
+		<span class="text-xs text-text-tertiary">
 			{playlist.track_count}
 		</span>
 	{/if}

@@ -40,12 +40,12 @@
 				aria-label="{category.name} category"
 				oncontextmenu={(e) => handleCategoryContextMenu(e, category)}
 			>
-				<h3 class="cursor-default text-xs font-semibold tracking-wider text-zinc-500 uppercase">
+				<h3 class="cursor-default text-xs font-semibold tracking-wider text-text-tertiary uppercase">
 					{category.name}
 				</h3>
 				<button
 					type="button"
-					class="rounded p-0.5 text-zinc-500 transition-colors hover:bg-zinc-800 hover:text-zinc-300"
+					class="rounded p-0.5 text-text-tertiary transition-colors hover:bg-surface-2 hover:text-text-secondary"
 					onclick={() => onCreateTag?.(category.id)}
 					title="Add tag to {category.name}"
 				>
@@ -64,13 +64,13 @@
 					/>
 				{/each}
 				{#if category.tags.length === 0}
-					<span class="text-xs text-zinc-600 italic">No tags</span>
+					<span class="text-xs text-text-tertiary italic">No tags</span>
 				{/if}
 			</div>
 		</div>
 	{/each}
 
 	{#if categories.length === 0}
-		<p class="py-4 text-center text-sm text-zinc-500">No tag categories yet</p>
+		<p class="py-4 text-center text-sm text-text-tertiary">No tag categories yet</p>
 	{/if}
 </div>

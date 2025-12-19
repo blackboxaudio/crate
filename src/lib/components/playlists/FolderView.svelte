@@ -33,10 +33,10 @@
 	}
 </script>
 
-<div class="flex h-full flex-col overflow-hidden bg-zinc-950">
+<div class="flex h-full flex-col overflow-hidden bg-surface-0">
 	<!-- Header -->
-	<div class="flex items-center gap-3 border-b border-zinc-800 px-6 py-4">
-		<svg class="h-5 w-5 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+	<div class="flex items-center gap-3 border-b border-stroke px-6 py-4">
+		<svg class="h-5 w-5 text-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
@@ -44,8 +44,8 @@
 				d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
 			/>
 		</svg>
-		<h2 class="text-lg font-medium text-zinc-100">{folder?.name ?? 'Folder'}</h2>
-		<span class="text-sm text-zinc-500">
+		<h2 class="text-lg font-medium text-text-primary">{folder?.name ?? 'Folder'}</h2>
+		<span class="text-sm text-text-tertiary">
 			{children.length}
 			{children.length === 1 ? 'item' : 'items'}
 		</span>
@@ -54,7 +54,7 @@
 	<!-- Content -->
 	<div class="flex-1 overflow-auto p-6">
 		{#if sortedChildren.length === 0}
-			<div class="flex h-full flex-col items-center justify-center text-zinc-500">
+			<div class="flex h-full flex-col items-center justify-center text-text-tertiary">
 				<svg class="mb-3 h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path
 						stroke-linecap="round"

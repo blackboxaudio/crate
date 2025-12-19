@@ -35,7 +35,7 @@
 
 <div class="relative">
 	<div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-		<svg class="h-4 w-4 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+		<svg class="h-4 w-4 text-text-tertiary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 			<path
 				stroke-linecap="round"
 				stroke-linejoin="round"
@@ -49,7 +49,7 @@
 		type="search"
 		placeholder="Search tracks..."
 		value={inputValue}
-		class="w-full rounded-md border border-zinc-700 bg-zinc-800 py-1.5 pr-8 pl-10 text-sm text-zinc-100 placeholder-zinc-500 focus:border-transparent focus:ring-2 focus:ring-blue-500 focus:outline-none"
+		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pr-8 pl-10 text-sm text-text-primary placeholder-text-tertiary focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
 		oninput={handleInput}
 		onkeydown={handleKeydown}
 		onfocus={() => uiStore.setSearchFocused(true)}
@@ -60,7 +60,7 @@
 		<button
 			type="button"
 			aria-label="Clear search"
-			class="absolute inset-y-0 right-0 flex items-center pr-3 text-zinc-500 hover:text-zinc-300"
+			class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-tertiary hover:text-text-secondary"
 			onclick={handleClear}
 		>
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

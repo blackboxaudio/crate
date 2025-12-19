@@ -37,12 +37,12 @@
 
 <Modal {open} {title} onClose={onCancel}>
 	<div class="space-y-4">
-		<p class="text-sm text-zinc-300">{message}</p>
+		<p class="text-sm text-text-secondary">{message}</p>
 
 		{#if warnings.length > 0}
-			<div class="rounded-md border border-amber-500/20 bg-amber-500/10 p-3">
+			<div class="rounded-md border border-warning/20 bg-warning/10 p-3">
 				<div class="flex gap-2">
-					<svg class="h-5 w-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<svg class="h-5 w-5 flex-shrink-0 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
 							stroke-linecap="round"
 							stroke-linejoin="round"
@@ -52,7 +52,7 @@
 					</svg>
 					<div class="space-y-1">
 						{#each warnings as warning (warning)}
-							<p class="text-sm text-amber-500">{warning}</p>
+							<p class="text-sm text-warning">{warning}</p>
 						{/each}
 					</div>
 				</div>
@@ -64,9 +64,9 @@
 				<input
 					type="checkbox"
 					bind:checked={checkboxChecked}
-					class="h-4 w-4 rounded border-zinc-600 bg-zinc-800 text-blue-500 focus:ring-blue-500 focus:ring-offset-0"
+					class="h-4 w-4 rounded border-stroke bg-surface-2 text-brand-primary focus:ring-brand-primary focus:ring-offset-0"
 				/>
-				<span class="text-sm text-zinc-300">{checkboxLabel}</span>
+				<span class="text-sm text-text-secondary">{checkboxLabel}</span>
 			</label>
 		{/if}
 	</div>

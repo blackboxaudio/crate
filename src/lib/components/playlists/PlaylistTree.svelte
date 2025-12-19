@@ -58,6 +58,6 @@
 	{/each}
 
 	{#if playlists.length === 0}
-		<p class="py-4 text-center text-xs text-zinc-500">No playlists yet</p>
+		<p class="py-4 text-center text-xs text-text-tertiary">No playlists yet</p>
 	{/if}
 </div>
