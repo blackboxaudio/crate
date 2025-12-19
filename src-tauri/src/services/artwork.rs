@@ -21,7 +21,7 @@ impl ArtworkService {
         let artwork_dir = app_data_dir.join("artwork");
         // Ensure artwork directory exists
         if let Err(e) = fs::create_dir_all(&artwork_dir) {
-            log::warn!("Failed to create artwork directory: {}", e);
+            log::warn!("Failed to create artwork directory: {e}");
         }
         Self { artwork_dir }
     }
@@ -59,7 +59,7 @@ impl ArtworkService {
             }
         }
 
-        log::debug!("No artwork found for track {}", track_id);
+        log::debug!("No artwork found for track {track_id}");
         None
     }
 
@@ -93,30 +93,31 @@ impl ArtworkService {
         };
 
         // Build the output path
-        let filename = format!("{}.webp", track_id);
+        let filename = format!("{track_id}.webp");
         let path = self.artwork_dir.join(&filename);
 
         // Save as WEBP
         if let Err(e) = img.save_with_format(&path, ImageFormat::WebP) {
-            log::warn!("Failed to save artwork for track {}: {}", track_id, e);
+            log::warn!("Failed to save artwork for track {track_id}: {e}");
             return None;
         }
 
         // Return the relative path for database storage
-        Some(format!("artwork/{}", filename))
+        Some(format!("artwork/{filename}"))
     }
 
     /// Deletes the artwork file for a track.
     pub fn delete(&self, track_id: &str) {
-        let path = self.artwork_dir.join(format!("{}.webp", track_id));
+        let path = self.artwork_dir.join(format!("{track_id}.webp"));
         if let Err(e) = fs::remove_file(&path) {
             // Only log if the file existed (ignore NotFound errors)
             if e.kind() != std::io::ErrorKind::NotFound {
-                log::warn!("Failed to delete artwork for track {}: {}", track_id, e);
+                log::warn!("Failed to delete artwork for track {track_id}: {e}");
             }
         }
     }
 
+    #[allow(dead_code)]
     /// Returns the full filesystem path for an artwork file.
     pub fn get_full_path(&self, relative_path: &str) -> PathBuf {
         self.artwork_dir
