@@ -50,6 +50,7 @@
 	import { SettingsModal } from '$lib/components/settings'
 	import * as devicesApi from '$lib/api/devices'
 	import * as libraryApi from '$lib/api/library'
+	import { onMenuAction, type MenuAction } from '$lib/api/menu'
 	import { openDevTools } from '$lib/api/app'
 
 	// Local state
@@ -233,6 +234,7 @@
 		let unlistenDragOver: UnlistenFn | undefined
 		let unlistenDragLeave: UnlistenFn | undefined
 		let unlistenDevices: UnlistenFn | undefined
+		let unlistenMenu: UnlistenFn | undefined
 
 		const setupDragDrop = async () => {
 			const appWindow = getCurrentWindow()
@@ -293,8 +295,14 @@
 			})
 		}
 
+		// Set up menu action listener
+		const setupMenuListener = async () => {
+			unlistenMenu = await onMenuAction(handleMenuAction)
+		}
+
 		setupDragDrop()
 		setupDeviceListener()
+		setupMenuListener()
 
 		return () => {
 			window.removeEventListener('keydown', handleKeydown)
@@ -302,6 +310,7 @@
 			unlistenDragOver?.()
 			unlistenDragLeave?.()
 			unlistenDevices?.()
+			unlistenMenu?.()
 		}
 	})
 
@@ -342,6 +351,50 @@
 	function isInputFocused() {
 		const active = document.activeElement
 		return active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+	}
+
+	// Menu action handler
+	function handleMenuAction(action: MenuAction) {
+		switch (action) {
+			case 'import_tracks':
+				handleImport()
+				break
+			case 'new_playlist':
+				handleCreatePlaylist()
+				break
+			case 'new_folder':
+				handleCreateFolder()
+				break
+			case 'select_all':
+				if (!isInputFocused()) {
+					const allIds = new Set($sortedTracks.map((t) => t.id))
+					uiStore.setSelectedTracks(allIds)
+				}
+				break
+			case 'deselect_all':
+				uiStore.clearSelection()
+				break
+			case 'play_pause':
+				if (!isInputFocused()) {
+					playerStore.togglePlayPause()
+				}
+				break
+			case 'stop':
+				playerStore.stop()
+				break
+			case 'toggle_sidebar':
+				// TODO: Implement sidebar toggle
+				break
+			case 'settings':
+				showSettings = true
+				break
+			case 'documentation':
+				// TODO: Open documentation
+				break
+			case 'report_issue':
+				// TODO: Open issue reporting
+				break
+		}
 	}
 
 	// External file drop handler (from OS file explorer)
@@ -430,12 +483,17 @@
 	}
 
 	// Sidebar handlers
-	function handleLibraryClick() {
+	async function handleLibraryClick() {
 		uiStore.selectPlaylist(null)
 		uiStore.selectFolder(null)
-		uiStore.clearTagFilters()
-		libraryStore.clearFilters()
 		libraryStore.clearPlaylistTracks()
+		// Reload library with current tag filters (if any)
+		if (selectedTagIds.length > 0) {
+			await libraryStore.loadTracks({ tag_ids: selectedTagIds, tag_filter_mode: $tagFilterMode })
+		} else {
+			libraryStore.clearFilters()
+			await libraryStore.loadTracks()
+		}
 	}
 
 	function handleSidebarResize(delta: number) {
@@ -450,7 +508,17 @@
 			uiStore.selectFolder(playlist.id)
 		} else {
 			uiStore.selectPlaylist(playlist.id)
-			await libraryStore.loadPlaylistTracks(playlist.id)
+			// Apply existing tag filters to the playlist (if any)
+			if (selectedTagIds.length > 0) {
+				const filter: TrackFilter = {
+					playlist_id: playlist.id,
+					tag_ids: selectedTagIds,
+					tag_filter_mode: $tagFilterMode,
+				}
+				await libraryStore.loadTracks(filter)
+			} else {
+				await libraryStore.loadPlaylistTracks(playlist.id)
+			}
 		}
 	}
 
@@ -460,11 +528,16 @@
 		const updatedTagIds = selectedTagIds.includes(tagId)
 			? selectedTagIds.filter((id) => id !== tagId)
 			: [...selectedTagIds, tagId]
+
+		const filter: TrackFilter = {}
 		if (updatedTagIds.length > 0) {
-			await libraryStore.loadTracks({ tag_ids: updatedTagIds, tag_filter_mode: $tagFilterMode })
-		} else {
-			await libraryStore.loadTracks()
+			filter.tag_ids = updatedTagIds
+			filter.tag_filter_mode = $tagFilterMode
 		}
+		if (selectedPlaylistId) {
+			filter.playlist_id = selectedPlaylistId
+		}
+		await libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
 	}
 
 	// Tag toggle handler for when tracks are selected
@@ -497,18 +570,32 @@
 	}
 
 	// Clear tag filter
-	function handleClearTagFilter() {
+	async function handleClearTagFilter() {
 		uiStore.clearTagFilters()
 		libraryStore.clearFilters()
-		libraryStore.loadTracks()
+		if (selectedPlaylistId) {
+			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+		} else {
+			await libraryStore.loadTracks()
+		}
 	}
 
 	// Remove a single tag from filter
 	async function handleRemoveTagFilter(tagId: string) {
 		uiStore.removeTagFilter(tagId)
 		const updatedTagIds = selectedTagIds.filter((id) => id !== tagId)
+
+		const filter: TrackFilter = {}
 		if (updatedTagIds.length > 0) {
-			await libraryStore.loadTracks({ tag_ids: updatedTagIds, tag_filter_mode: $tagFilterMode })
+			filter.tag_ids = updatedTagIds
+			filter.tag_filter_mode = $tagFilterMode
+		}
+		if (selectedPlaylistId) {
+			filter.playlist_id = selectedPlaylistId
+		}
+
+		if (Object.keys(filter).length > 0) {
+			await libraryStore.loadTracks(filter)
 		} else {
 			libraryStore.clearFilters()
 			await libraryStore.loadTracks()
@@ -520,8 +607,14 @@
 		uiStore.toggleTagFilterMode()
 		// Reload tracks with the new mode if tags are selected
 		if (selectedTagIds.length > 0) {
-			const newMode = $tagFilterMode === 'or' ? 'and' : 'or'
-			await libraryStore.loadTracks({ tag_ids: selectedTagIds, tag_filter_mode: newMode })
+			const filter: TrackFilter = {
+				tag_ids: selectedTagIds,
+				tag_filter_mode: $tagFilterMode,
+			}
+			if (selectedPlaylistId) {
+				filter.playlist_id = selectedPlaylistId
+			}
+			await libraryStore.loadTracks(filter)
 		}
 	}
 

@@ -272,27 +272,24 @@ export const isLoading = derived(libraryStore, ($library) => $library.loading)
  * otherwise shows the full library (filtered and sorted)
  */
 export const displayedTracks = derived(libraryStore, ($library) => {
-	// If a playlist is selected, show playlist tracks
-	if ($library.selectedPlaylistId) {
-		let tracks = $library.playlistTracks
+	// Check if tag filters are active
+	const hasTagFilter = $library.filter.tag_ids && $library.filter.tag_ids.length > 0
 
-		// Apply client-side search filter if needed
-		if ($library.filter.search) {
-			const search = $library.filter.search.toLowerCase()
-			tracks = tracks.filter(
-				(t) =>
-					t.title?.toLowerCase().includes(search) ||
-					t.artist?.toLowerCase().includes(search) ||
-					t.album?.toLowerCase().includes(search)
-			)
-		}
-
-		// Apply sorting
-		return sortTracks(tracks, $library.sort)
+	// Determine which tracks to use:
+	// - If tag filters are active, use $library.tracks (contains filtered results from backend)
+	// - If playlist is selected without tag filters, use playlistTracks
+	// - Otherwise, use library tracks
+	let tracks: Track[]
+	if (hasTagFilter) {
+		// Tag filters active: tracks contains filtered results (library or playlist)
+		tracks = $library.tracks
+	} else if ($library.selectedPlaylistId) {
+		// Playlist selected without tag filters: use playlistTracks
+		tracks = $library.playlistTracks
+	} else {
+		// Library view: use tracks
+		tracks = $library.tracks
 	}
-
-	// Otherwise, show all library tracks (filtered and sorted)
-	let tracks = $library.tracks
 
 	// Apply client-side search filter if needed
 	if ($library.filter.search) {

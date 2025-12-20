@@ -1,6 +1,7 @@
 mod commands;
 mod db;
 mod error;
+mod menu;
 mod models;
 mod services;
 
@@ -117,6 +118,11 @@ pub fn run() {
             // Start device monitoring
             let device_service = app.state::<DeviceService>();
             device_service.start_monitoring(app.handle().clone());
+
+            // Build and set the application menu
+            let menu = menu::build_menu(&app.handle())?;
+            app.set_menu(menu)?;
+            menu::setup_menu_handlers(&app.handle());
 
             Ok(())
         })
