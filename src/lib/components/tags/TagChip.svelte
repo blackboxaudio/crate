@@ -59,6 +59,7 @@
 		? 'cursor-pointer hover:opacity-80'
 		: ''}"
 	style="background-color: {bgColor}20; color: {bgColor}; border: 1px solid {bgColor}40;"
+	data-tag
 	{onclick}
 	{oncontextmenu}
 	onkeydown={(e) => e.key === 'Enter' && onclick?.()}

@@ -52,7 +52,7 @@
 		ContextMenu,
 	} from '$lib/components/common'
 	import { PlaylistContextMenu, PlaylistView, FolderView } from '$lib/components/playlists'
-	import { TagContextMenu } from '$lib/components/tags'
+	import { TagContextMenu, TagsSidebarContextMenu, TagInputModal } from '$lib/components/tags'
 	import { DeviceContextMenu, DeviceInfoModal } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
 	import * as devicesApi from '$lib/api/devices'
@@ -137,6 +137,13 @@
 	let tagContextMenuTarget = $state<
 		{ type: 'tag'; tag: Tag; category: TagCategory } | { type: 'category'; category: TagCategory } | null
 	>(null)
+
+	// Tags sidebar context menu state (whitespace right-click)
+	let tagsSidebarContextMenuOpen = $state(false)
+	let tagsSidebarContextMenuPosition = $state({ x: 0, y: 0 })
+
+	// Tag input modal state (for adding tag from context menu)
+	let showTagInputModal = $state(false)
 
 	// Device context menu state
 	let deviceContextMenuOpen = $state(false)
@@ -589,6 +596,7 @@
 		libraryViewContextMenuOpen = false
 		playlistViewContextMenuOpen = false
 		tagContextMenuOpen = false
+		tagsSidebarContextMenuOpen = false
 		deviceContextMenuOpen = false
 	}
 
@@ -715,6 +723,29 @@
 		playlistTreeContextMenuOpen = false
 		folderModalParentId = null
 		showFolderModal = true
+	}
+
+	// Tags sidebar context menu handlers (right-click on whitespace)
+	function handleTagsWhitespaceContextMenu(e: MouseEvent) {
+		closeAllContextMenus()
+		e.preventDefault()
+		tagsSidebarContextMenuPosition = { x: e.clientX, y: e.clientY }
+		tagsSidebarContextMenuOpen = true
+	}
+
+	function handleTagsSidebarAddCategory() {
+		tagsSidebarContextMenuOpen = false
+		showCategoryModal = true
+	}
+
+	function handleTagsSidebarAddTag() {
+		tagsSidebarContextMenuOpen = false
+		showTagInputModal = true
+	}
+
+	async function handleTagInputModalSubmit(categoryId: string, tagName: string) {
+		showTagInputModal = false
+		await tagsStore.createTag(categoryId, tagName)
 	}
 
 	// Folder view context menu handlers (right-click on empty space)
@@ -1234,6 +1265,7 @@
 				onCreateFolder={handleCreateFolder}
 				onCreateCategory={handleCreateCategory}
 				onCreateTag={handleCreateTag}
+				onTagsWhitespaceContextMenu={handleTagsWhitespaceContextMenu}
 				onTracksDrop={handleTracksDropOnPlaylist}
 				onPlaylistMove={handlePlaylistDragMove}
 			/>
@@ -1505,6 +1537,17 @@
 	onChangeColor={handleChangeCategoryColor}
 />
 
+<!-- Tags Sidebar Context Menu (whitespace right-click) -->
+<TagsSidebarContextMenu
+	open={tagsSidebarContextMenuOpen}
+	x={tagsSidebarContextMenuPosition.x}
+	y={tagsSidebarContextMenuPosition.y}
+	categoryCount={tagCategories.length}
+	onClose={() => (tagsSidebarContextMenuOpen = false)}
+	onAddCategory={handleTagsSidebarAddCategory}
+	onAddTag={handleTagsSidebarAddTag}
+/>
+
 <!-- Device Context Menu -->
 <DeviceContextMenu
 	open={deviceContextMenuOpen}
@@ -1524,6 +1567,14 @@
 		showDeviceInfoModal = false
 		deviceInfoDevice = null
 	}}
+/>
+
+<!-- Tag Input Modal (for adding tag from context menu) -->
+<TagInputModal
+	open={showTagInputModal}
+	categories={tagCategories}
+	onSubmit={handleTagInputModalSubmit}
+	onCancel={() => (showTagInputModal = false)}
 />
 
 <!-- Rename Tag Modal -->

@@ -15,6 +15,7 @@
 		onCreateTag?: (categoryId: string) => void
 		onTagContextMenu?: (e: MouseEvent, tag: Tag, category: TagCategory) => void
 		onCategoryContextMenu?: (e: MouseEvent, category: TagCategory) => void
+		onWhitespaceContextMenu?: (e: MouseEvent) => void
 	}
 
 	let {
@@ -29,7 +30,18 @@
 		onCreateTag,
 		onTagContextMenu,
 		onCategoryContextMenu,
+		onWhitespaceContextMenu,
 	}: Props = $props()
+
+	function handleContainerContextMenu(e: MouseEvent) {
+		const target = e.target as HTMLElement
+		// Don't trigger if clicking on a tag, category, or button
+		if (target.closest('[data-tag]') || target.closest('[role="group"]') || target.closest('button')) return
+		if (onWhitespaceContextMenu) {
+			e.preventDefault()
+			onWhitespaceContextMenu(e)
+		}
+	}
 
 	function handleCategoryContextMenu(e: MouseEvent, category: TagCategory) {
 		e.preventDefault()
@@ -51,7 +63,7 @@
 	}
 </script>
 
-<div class="space-y-4">
+<div class="h-full space-y-4" oncontextmenu={handleContainerContextMenu}>
 	{#each categories as category (category.id)}
 		<div>
 			<div
@@ -65,7 +77,7 @@
 				</h3>
 				<button
 					type="button"
-					class="rounded p-0.5 text-text-tertiary transition-colors hover:bg-surface-2 hover:text-text-secondary"
+					class="rounded p-0.5 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-secondary"
 					onclick={() => onCreateTag?.(category.id)}
 					title="Add tag to {category.name}"
 				>

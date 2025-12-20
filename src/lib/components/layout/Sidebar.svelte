@@ -31,6 +31,7 @@
 		onCreateFolder?: () => void
 		onCreateCategory?: () => void
 		onCreateTag?: (categoryId: string) => void
+		onTagsWhitespaceContextMenu?: (e: MouseEvent) => void
 		onTracksDrop?: (playlistId: string, trackIds: string[]) => void
 		onPlaylistMove?: (playlistId: string, targetFolderId: string | null) => void
 	}
@@ -60,6 +61,7 @@
 		onCreateFolder,
 		onCreateCategory,
 		onCreateTag,
+		onTagsWhitespaceContextMenu,
 		onTracksDrop,
 		onPlaylistMove,
 	}: Props = $props()
@@ -149,6 +151,7 @@
 				{onCreateTag}
 				{onTagContextMenu}
 				{onCategoryContextMenu}
+				onWhitespaceContextMenu={onTagsWhitespaceContextMenu}
 			/>
 		{/if}
 	</div>
