@@ -11,7 +11,6 @@ export interface MenuActionHandlers {
 	onCreatePlaylist: () => void
 	onCreateFolder: () => void
 	onSelectAll: () => void
-	onDeselectAll: () => void
 	onPlayPause: () => void
 	onStop: () => void
 	onOpenSettings: () => void
@@ -28,8 +27,7 @@ export interface MenuActionHandlers {
  * - import_tracks: Import audio files
  * - new_playlist: Create new playlist
  * - new_folder: Create new folder
- * - select_all: Select all tracks (when not typing)
- * - deselect_all: Clear selection
+ * - select_all: Select all (text in input, or tracks)
  * - play_pause: Toggle playback (when not typing)
  * - stop: Stop playback
  * - settings: Open settings modal
@@ -38,16 +36,7 @@ export interface MenuActionHandlers {
  * @returns Promise of cleanup function to remove the listener
  */
 export async function useMenuActions(handlers: MenuActionHandlers): Promise<() => void> {
-	const {
-		onImport,
-		onCreatePlaylist,
-		onCreateFolder,
-		onSelectAll,
-		onDeselectAll,
-		onPlayPause,
-		onStop,
-		onOpenSettings,
-	} = handlers
+	const { onImport, onCreatePlaylist, onCreateFolder, onSelectAll, onPlayPause, onStop, onOpenSettings } = handlers
 
 	let unlistenMenu: UnlistenFn | null = null
 
@@ -63,12 +52,12 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				onCreateFolder()
 				break
 			case 'select_all':
-				if (!isInputFocused()) {
+				if (isInputFocused()) {
+					const input = document.activeElement as HTMLInputElement | HTMLTextAreaElement
+					input.select()
+				} else {
 					onSelectAll()
 				}
-				break
-			case 'deselect_all':
-				onDeselectAll()
 				break
 			case 'play_pause':
 				if (!isInputFocused()) {

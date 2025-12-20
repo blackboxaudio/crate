@@ -306,7 +306,6 @@
 				const allIds = new Set($sortedTracks.map((t) => t.id))
 				uiStore.setSelectedTracks(allIds)
 			},
-			onDeselectAll: () => uiStore.clearSelection(),
 			onPlayPause: () => playerStore.togglePlayPause(),
 			onStop: () => playerStore.stop(),
 			onOpenSettings: () => modalOrchestrator.openSettingsModal(),

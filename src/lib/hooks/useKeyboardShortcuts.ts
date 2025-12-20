@@ -24,7 +24,7 @@ export interface KeyboardShortcutHandlers {
  * - Space: toggle play/pause (when not typing)
  * - Cmd/Ctrl+F: focus search input
  * - Escape: clear selection
- * - Cmd/Ctrl+A: select all tracks (when not typing)
+ * - Cmd/Ctrl+A: select all (text in input, or tracks)
  * - Cmd/Ctrl+,: open settings
  * - Cmd/Ctrl+I: toggle track inspector
  *
@@ -51,10 +51,15 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 			onClearSelection()
 		}
 
-		// Cmd/Ctrl+A: select all
-		if ((e.metaKey || e.ctrlKey) && e.key === 'a' && !isInputFocused()) {
+		// Cmd/Ctrl+A: select all (text in input, or tracks)
+		if ((e.metaKey || e.ctrlKey) && e.key === 'a') {
 			e.preventDefault()
-			onSelectAll()
+			if (isInputFocused()) {
+				const input = document.activeElement as HTMLInputElement | HTMLTextAreaElement
+				input.select()
+			} else {
+				onSelectAll()
+			}
 		}
 
 		// Cmd/Ctrl+,: open settings

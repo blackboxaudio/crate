@@ -14,7 +14,6 @@ pub mod ids {
 
     // Edit menu
     pub const SELECT_ALL: &str = "select_all";
-    pub const DESELECT_ALL: &str = "deselect_all";
 
     // Playback menu
     pub const PLAY_PAUSE: &str = "play_pause";
@@ -106,19 +105,21 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
 
 fn build_edit_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     SubmenuBuilder::new(app, "Edit")
+        // Native text editing items (handled by OS/webview)
+        .undo()
+        .redo()
+        .separator()
+        .cut()
+        .copy()
+        .paste()
+        .separator()
+        // Custom track selection item (also handles text selection when input focused)
         .item(&MenuItem::with_id(
             app,
             ids::SELECT_ALL,
-            "Select All",
+            "Select All Tracks",
             true,
             Some("CmdOrCtrl+A"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::DESELECT_ALL,
-            "Deselect All",
-            true,
-            Some("CmdOrCtrl+Shift+A"),
         )?)
         .build()
 }

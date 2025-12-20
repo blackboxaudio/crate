@@ -5,7 +5,6 @@ export type MenuAction =
 	| 'new_playlist'
 	| 'new_folder'
 	| 'select_all'
-	| 'deselect_all'
 	| 'play_pause'
 	| 'stop'
 	| 'toggle_sidebar'
