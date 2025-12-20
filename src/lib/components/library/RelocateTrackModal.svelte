@@ -2,6 +2,7 @@
 	import { open } from '@tauri-apps/plugin-dialog'
 	import Modal from '$lib/components/common/Modal.svelte'
 	import Button from '$lib/components/common/Button.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import * as libraryApi from '$lib/api/library'
 	import { missingTracksStore } from '$lib/stores'
@@ -107,12 +108,12 @@
 	<div class="space-y-4">
 		<!-- Track Info -->
 		<div class="rounded-md bg-surface-2 p-3">
-			<p class="truncate font-medium">{displayTitle}</p>
-			<p class="truncate text-sm text-text-secondary">{displayArtist}</p>
+			<Text variant="body-2" truncate>{displayTitle}</Text>
+			<Text color="secondary" truncate>{displayArtist}</Text>
 			{#if track}
-				<p class="text-text-muted mt-2 truncate text-xs" title={track.file_path}>
+				<Text variant="caption" color="tertiary" truncate class="mt-2" title={track.file_path}>
 					{track.file_path}
-				</p>
+				</Text>
 			{/if}
 		</div>
 
@@ -130,9 +131,9 @@
 			</Button>
 
 			{#if selectedPath}
-				<p class="truncate text-sm text-text-secondary" title={selectedPath}>
+				<Text color="secondary" truncate title={selectedPath}>
 					{selectedPath}
-				</p>
+				</Text>
 			{/if}
 		</div>
 
@@ -171,7 +172,7 @@
 							bind:checked={forceRelocate}
 							class="h-4 w-4 rounded border-stroke bg-surface-2 text-brand-primary focus:ring-brand-primary focus:ring-offset-0"
 						/>
-						<span class="text-sm text-text-secondary">Use this file anyway</span>
+						<Text color="secondary" as="span">Use this file anyway</Text>
 					</label>
 				</div>
 			{/if}

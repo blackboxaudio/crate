@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import Icon from './Icon.svelte'
+	import Text from './Text.svelte'
 
 	type SelectOption = {
 		value: string
@@ -183,12 +184,14 @@
 				{#each options as group, groupIndex ((group as SelectOptionGroup).label)}
 					{@const groupData = group as SelectOptionGroup}
 					<!-- Group Header -->
-					<div
-						class="px-3 py-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase
-						{groupIndex > 0 ? 'mt-1 border-t border-stroke pt-2' : ''}"
+					<Text
+						variant="header-4"
+						as="div"
+						weight="semibold"
+						class="px-3 py-1.5 {groupIndex > 0 ? 'mt-1 border-t border-stroke pt-2' : ''}"
 					>
 						{groupData.label}
-					</div>
+					</Text>
 					<!-- Group Options -->
 					{#each groupData.options as option (option.value)}
 						{@const flatIndex = getFlatIndex(option)}

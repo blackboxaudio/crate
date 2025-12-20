@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Playlist, TagCategory, Tag, TagSelectionState, UsbDevice } from '$lib/types'
-	import { Button } from '$lib/components/common'
+	import { Button, Text } from '$lib/components/common'
 	import { PlaylistTree } from '$lib/components/playlists'
 	import { TagList } from '$lib/components/tags'
 	import { DeviceList } from '$lib/components/devices'
@@ -78,8 +78,8 @@
 	<!-- Library -->
 	<div class="mt-2 p-2">
 		<div class="flex items-center px-3 py-1.5">
-			<span class="text-xs font-medium tracking-wide text-text-tertiary uppercase">Library</span>
-			<span class="ml-auto text-xs text-text-tertiary">{trackCount}</span>
+			<Text variant="header-4">Library</Text>
+			<Text variant="caption" class="ml-auto">{trackCount}</Text>
 		</div>
 	</div>
 

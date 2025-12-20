@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Modal from './Modal.svelte'
 	import Button from './Button.svelte'
+	import Text from './Text.svelte'
 	import Icon from './Icon.svelte'
 
 	type Props = {
@@ -38,7 +39,7 @@
 
 <Modal {open} {title} onClose={onCancel}>
 	<div class="space-y-4">
-		<p class="text-sm text-text-secondary">{message}</p>
+		<Text color="secondary">{message}</Text>
 
 		{#if warnings.length > 0}
 			<div class="rounded-md border border-warning/20 bg-warning/10 p-3">
@@ -60,7 +61,7 @@
 					bind:checked={checkboxChecked}
 					class="h-4 w-4 rounded border-stroke bg-surface-2 text-brand-primary"
 				/>
-				<span class="text-sm text-text-secondary">{checkboxLabel}</span>
+				<Text color="secondary" as="span">{checkboxLabel}</Text>
 			</label>
 		{/if}
 	</div>

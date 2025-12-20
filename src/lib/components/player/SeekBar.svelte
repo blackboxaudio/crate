@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { formatDuration } from '$lib/utils'
+	import { Text } from '$lib/components/common'
 
 	type Props = {
 		position: number
@@ -49,9 +50,9 @@
 </script>
 
 <div class="flex w-full items-center gap-2">
-	<span class="w-10 text-right text-xs text-text-secondary tabular-nums">
+	<Text variant="caption" color="secondary" tabular class="w-10 text-right">
 		{formatDuration(displayPosition)}
-	</span>
+	</Text>
 
 	<div
 		role="slider"
@@ -75,7 +76,7 @@
 		></div>
 	</div>
 
-	<span class="w-10 text-xs text-text-secondary tabular-nums">
+	<Text variant="caption" color="secondary" tabular class="w-10">
 		{formatDuration(duration)}
-	</span>
+	</Text>
 </div>

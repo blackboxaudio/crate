@@ -3,6 +3,7 @@
 	import { formatFileSize } from '$lib/utils'
 	import Modal from '$lib/components/common/Modal.svelte'
 	import Button from '$lib/components/common/Button.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
@@ -33,26 +34,26 @@
 			<div class="flex items-center gap-3">
 				<Icon name="usb" class="h-8 w-8 text-text-secondary" />
 				<div>
-					<h3 class="text-lg font-semibold text-text-primary">{device.name}</h3>
-					<p class="text-sm text-text-tertiary">{device.mount_point}</p>
+					<Text variant="header-1" as="h3">{device.name}</Text>
+					<Text color="tertiary">{device.mount_point}</Text>
 				</div>
 			</div>
 
 			<!-- Info Grid -->
 			<div class="grid grid-cols-2 gap-4 rounded-lg bg-surface-2 p-4">
 				<div>
-					<p class="text-xs font-medium text-text-tertiary uppercase">Disk Type</p>
-					<p class="text-sm font-medium text-text-primary">{device.disk_kind}</p>
+					<Text variant="header-4" as="p">Disk Type</Text>
+					<Text variant="body-2">{device.disk_kind}</Text>
 				</div>
 				<div>
-					<p class="text-xs font-medium text-text-tertiary uppercase">File System</p>
-					<p class="text-sm font-medium text-text-primary">{device.file_system || 'Unknown'}</p>
+					<Text variant="header-4" as="p">File System</Text>
+					<Text variant="body-2">{device.file_system || 'Unknown'}</Text>
 				</div>
 			</div>
 
 			<!-- Storage Section -->
 			<div class="space-y-3">
-				<p class="text-xs font-medium text-text-tertiary uppercase">Storage</p>
+				<Text variant="header-4" as="p">Storage</Text>
 
 				<!-- Progress Bar -->
 				<div class="h-3 w-full overflow-hidden rounded-full border border-stroke-subtle bg-surface-2">
@@ -60,28 +61,28 @@
 				</div>
 
 				<!-- Storage Breakdown -->
-				<div class="flex justify-between text-sm">
+				<div class="flex justify-between">
 					<div>
-						<span class="text-text-secondary">Used:</span>
-						<span class="ml-1 font-medium text-text-primary">
+						<Text size="sm" color="secondary" as="span">Used:</Text>
+						<Text size="sm" weight="medium" as="span" class="ml-1">
 							{formatFileSize(usedSpace)}
-						</span>
+						</Text>
 					</div>
 					<div>
-						<span class="text-text-secondary">Available:</span>
-						<span class="ml-1 font-medium text-text-primary">
+						<Text size="sm" color="secondary" as="span">Available:</Text>
+						<Text size="sm" weight="medium" as="span" class="ml-1">
 							{formatFileSize(device.available_space_bytes)}
-						</span>
+						</Text>
 					</div>
 				</div>
 
 				<!-- Total capacity -->
-				<div class="text-center text-sm">
-					<span class="text-text-secondary">Total:</span>
-					<span class="ml-1 font-medium text-text-primary">
+				<div class="text-center">
+					<Text size="sm" color="secondary" as="span">Total:</Text>
+					<Text size="sm" weight="medium" as="span" class="ml-1">
 						{formatFileSize(device.total_space_bytes)}
-					</span>
-					<span class="ml-1 text-text-tertiary">({usagePercentage}% used)</span>
+					</Text>
+					<Text size="sm" color="tertiary" as="span" class="ml-1">({usagePercentage}% used)</Text>
 				</div>
 			</div>
 		</div>

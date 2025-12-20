@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { UsbDevice } from '$lib/types'
 	import DeviceItem from './DeviceItem.svelte'
+	import { Text } from '$lib/components/common'
 
 	type Props = {
 		devices: UsbDevice[]
@@ -12,8 +13,8 @@
 
 <div class="border-b border-stroke p-2">
 	<div class="flex items-center px-3 py-1.5">
-		<span class="text-xs font-medium tracking-wide text-text-tertiary uppercase">Devices</span>
-		<span class="ml-auto text-xs text-text-tertiary">{devices.length}</span>
+		<Text variant="header-4">Devices</Text>
+		<Text variant="caption" class="ml-auto">{devices.length}</Text>
 	</div>
 	{#if devices.length > 0}
 		<div class="space-y-0.5">
@@ -22,6 +23,6 @@
 			{/each}
 		</div>
 	{:else}
-		<div class="px-3 py-2 text-xs text-text-tertiary italic">No devices connected</div>
+		<Text variant="caption" as="div" italic class="px-3 py-2">No devices connected</Text>
 	{/if}
 </div>

@@ -2,7 +2,7 @@
 	import type { Theme, AccentColor, Font } from '$lib/types'
 	import { settingsStore, theme, accentColor, font, audioDevice, audioDevices } from '$lib/stores/settings'
 	import { appInfo } from '$lib/stores/app'
-	import { Button, Select } from '$lib/components/common'
+	import { Button, Select, Text } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
@@ -144,7 +144,7 @@
 		<div class="flex h-[500px]">
 			<!-- Sidebar -->
 			<div class="flex w-48 flex-col border-r border-stroke bg-surface-0 p-4">
-				<h2 class="mb-4 text-lg font-semibold">Settings</h2>
+				<Text variant="header-1" class="mb-4">Settings</Text>
 				<nav class="space-y-1">
 					<button
 						type="button"
@@ -188,16 +188,16 @@
 					<div class="space-y-8">
 						<!-- Font Section -->
 						<section>
-							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Font</h3>
+							<Text variant="header-3" class="mb-4">Font</Text>
 							<div class="max-w-md">
 								<Select value={$font} options={fontOptions} placeholder="Select a font" onchange={handleFontChange} />
-								<p class="mt-2 text-xs text-text-tertiary">Choose the font used throughout the application.</p>
+								<Text variant="caption" as="p" class="mt-2">Choose the font used throughout the application.</Text>
 							</div>
 						</section>
 
 						<!-- Theme Section -->
 						<section>
-							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Theme</h3>
+							<Text variant="header-3" class="mb-4">Theme</Text>
 							<div class="flex gap-3">
 								{#each themeOptions as option (option.value)}
 									<button
@@ -215,7 +215,7 @@
 										{:else}
 											<Icon name="monitor" class="h-6 w-6" />
 										{/if}
-										<span class="text-sm font-medium">{option.label}</span>
+										<Text variant="body-2" as="span">{option.label}</Text>
 									</button>
 								{/each}
 							</div>
@@ -223,7 +223,7 @@
 
 						<!-- Accent Color Section -->
 						<section>
-							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Accent Color</h3>
+							<Text variant="header-3" class="mb-4">Accent Color</Text>
 							<div class="grid grid-cols-5 gap-3">
 								{#each accentColors as color (color.value)}
 									<button
@@ -240,7 +240,7 @@
 												: ''}"
 											style="background-color: {color.hex};"
 										></div>
-										<span class="text-xs text-text-secondary">{color.label}</span>
+										<Text variant="caption" color="secondary">{color.label}</Text>
 									</button>
 								{/each}
 							</div>
@@ -250,7 +250,7 @@
 					<div class="space-y-8">
 						<!-- Output Device Section -->
 						<section>
-							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Output Device</h3>
+							<Text variant="header-3" class="mb-4">Output Device</Text>
 							<div class="max-w-md">
 								<Select
 									value={$audioDevice ?? ''}
@@ -258,7 +258,7 @@
 									placeholder="System Default"
 									onchange={handleAudioDeviceChange}
 								/>
-								<p class="mt-2 text-xs text-text-tertiary">Select the audio output device for playback.</p>
+								<Text variant="caption" as="p" class="mt-2">Select the audio output device for playback.</Text>
 							</div>
 						</section>
 					</div>
@@ -266,21 +266,21 @@
 					<div class="space-y-8">
 						<!-- Application Section -->
 						<section>
-							<h3 class="mb-4 text-sm font-semibold tracking-wide text-text-secondary uppercase">Application</h3>
-							<div class="space-y-3 text-sm">
+							<Text variant="header-3" class="mb-4">Application</Text>
+							<div class="space-y-3">
 								<div class="flex justify-between">
-									<span class="text-text-secondary">Version</span>
-									<span class="text-text-primary">{$appInfo?.version ?? 'Unknown'}</span>
+									<Text size="sm" color="secondary" as="span">Version</Text>
+									<Text size="sm" as="span">{$appInfo?.version ?? 'Unknown'}</Text>
 								</div>
 								<div class="flex justify-between">
-									<span class="text-text-secondary">Environment</span>
-									<span class="text-text-primary capitalize">{$appInfo?.environment ?? 'Unknown'}</span>
+									<Text size="sm" color="secondary" as="span">Environment</Text>
+									<Text size="sm" as="span" class="capitalize">{$appInfo?.environment ?? 'Unknown'}</Text>
 								</div>
 								<div class="flex justify-between">
-									<span class="text-text-secondary">Data Directory</span>
-									<span class="max-w-xs truncate font-mono text-xs text-text-primary" title={$appInfo?.dataDir}>
+									<Text size="sm" color="secondary" as="span">Data Directory</Text>
+									<Text variant="code" truncate class="max-w-xs" title={$appInfo?.dataDir}>
 										{$appInfo?.dataDir ?? 'Unknown'}
-									</span>
+									</Text>
 								</div>
 							</div>
 						</section>

@@ -3,7 +3,7 @@
 	import { formatDurationCompact, formatBpm, formatKey, getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { AlbumArt, AlbumArtModal } from '$lib/components/common'
+	import { AlbumArt, AlbumArtModal, Text } from '$lib/components/common'
 	import { missingTrackIds, dragStore } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import TrackColorCell from './TrackColorCell.svelte'
@@ -156,7 +156,7 @@
 			<TagChip {tag} size="sm" color={categoryColors?.get(tag.category_id)} />
 		{/each}
 		{#if track.tags.length > 3}
-			<span class="text-xs text-text-tertiary">+{track.tags.length - 3}</span>
+			<Text variant="caption">+{track.tags.length - 3}</Text>
 		{/if}
 	</div>
 </div>

@@ -3,6 +3,7 @@
 	import { dragStore, hoveredDropTarget, isDragging, isDraggingTracks, isDraggingPlaylist } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { Text } from '$lib/components/common'
 
 	type Props = {
 		playlist: Playlist
@@ -164,14 +165,14 @@
 	</span>
 
 	<!-- Name -->
-	<span class="flex-1 truncate text-sm">
+	<Text as="span" truncate class="flex-1">
 		{playlist.name}
-	</span>
+	</Text>
 
 	<!-- Track count -->
 	{#if !playlist.is_folder}
-		<span class="text-xs text-text-tertiary">
+		<Text variant="caption">
 			{playlist.track_count}
-		</span>
+		</Text>
 	{/if}
 </div>

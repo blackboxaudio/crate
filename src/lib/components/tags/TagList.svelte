@@ -2,6 +2,7 @@
 	import type { Tag, TagCategory, TagSelectionState } from '$lib/types'
 	import TagChip from './TagChip.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { Text } from '$lib/components/common'
 
 	type Props = {
 		categories: TagCategory[]
@@ -72,9 +73,9 @@
 				aria-label="{category.name} category"
 				oncontextmenu={(e) => handleCategoryContextMenu(e, category)}
 			>
-				<h3 class="cursor-default text-xs font-semibold tracking-wider text-text-tertiary uppercase">
+				<Text variant="header-table" as="h3" weight="semibold" class="cursor-default">
 					{category.name}
-				</h3>
+				</Text>
 				<button
 					type="button"
 					class="rounded p-0.5 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-secondary"
@@ -97,13 +98,13 @@
 					/>
 				{/each}
 				{#if category.tags.length === 0}
-					<span class="text-xs text-text-tertiary italic">No tags</span>
+					<Text variant="caption" italic>No tags</Text>
 				{/if}
 			</div>
 		</div>
 	{/each}
 
 	{#if categories.length === 0}
-		<p class="py-4 text-center text-xs text-text-tertiary">No tag categories yet</p>
+		<Text variant="caption" as="p" class="py-4 text-center">No tag categories yet</Text>
 	{/if}
 </div>

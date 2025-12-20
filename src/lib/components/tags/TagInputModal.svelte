@@ -4,6 +4,7 @@
 	import Select from '$lib/components/common/Select.svelte'
 	import Input from '$lib/components/common/Input.svelte'
 	import Button from '$lib/components/common/Button.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 
 	type Props = {
 		open: boolean
@@ -60,11 +61,11 @@
 <Modal {open} title="Add Tag" onClose={handleCancel}>
 	<div class="space-y-4">
 		<div>
-			<label for="tag-category" class="mb-1.5 block text-sm font-medium text-text-secondary">Category</label>
+			<Text as="label" variant="body-2" color="secondary" class="mb-1.5 block" for="tag-category">Category</Text>
 			<Select bind:value={selectedCategoryId} options={categoryOptions} placeholder="Select a category" />
 		</div>
 		<div>
-			<label for="tag-name" class="mb-1.5 block text-sm font-medium text-text-secondary">Tag name</label>
+			<Text as="label" variant="body-2" color="secondary" class="mb-1.5 block" for="tag-name">Tag name</Text>
 			<Input bind:value={tagName} placeholder="Enter tag name" onkeydown={handleKeydown} />
 		</div>
 	</div>

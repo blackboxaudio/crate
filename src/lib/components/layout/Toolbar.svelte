@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Tag, TagFilterMode } from '$lib/types'
-	import { Button, IconButton } from '$lib/components/common'
+	import { Button, IconButton, Text } from '$lib/components/common'
 	import { SearchBar } from '$lib/components/library'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { isDev } from '$lib/stores'
@@ -34,7 +34,7 @@
 	<!-- Logo/Title -->
 	<div class="flex items-center gap-2">
 		<Icon name="logo" class="h-6 w-6 text-brand-primary" fill />
-		<span class="text-lg font-bold text-text-primary">Crate</span>
+		<Text variant="header-1" as="span" weight="bold">Crate</Text>
 		{#if $isDev}
 			<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-500"> DEV </span>
 		{/if}
