@@ -28,6 +28,35 @@ export const COLOR_SORT_ORDER: Record<TrackColor, number> = {
 }
 
 // =============================================================================
+// Tag Category Color Types
+// =============================================================================
+
+export type TagCategoryColor =
+	| 'red'
+	| 'orange'
+	| 'amber'
+	| 'green'
+	| 'teal'
+	| 'blue'
+	| 'indigo'
+	| 'violet'
+	| 'pink'
+	| 'rose'
+
+export const TAG_CATEGORY_COLORS: { id: TagCategoryColor; label: string; hex: string }[] = [
+	{ id: 'red', label: 'Red', hex: '#ef4444' },
+	{ id: 'orange', label: 'Orange', hex: '#f97316' },
+	{ id: 'amber', label: 'Amber', hex: '#f59e0b' },
+	{ id: 'green', label: 'Green', hex: '#22c55e' },
+	{ id: 'teal', label: 'Teal', hex: '#14b8a6' },
+	{ id: 'blue', label: 'Blue', hex: '#3b82f6' },
+	{ id: 'indigo', label: 'Indigo', hex: '#6366f1' },
+	{ id: 'violet', label: 'Violet', hex: '#8b5cf6' },
+	{ id: 'pink', label: 'Pink', hex: '#ec4899' },
+	{ id: 'rose', label: 'Rose', hex: '#f43f5e' },
+]
+
+// =============================================================================
 // Track Types
 // =============================================================================
 

@@ -43,14 +43,7 @@
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView, TrackContextMenu, RelocateTrackModal } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
-	import {
-		InputModal,
-		ConfirmModal,
-		MoveConflictModal,
-		ColorPicker,
-		ResizeHandle,
-		ContextMenu,
-	} from '$lib/components/common'
+	import { InputModal, ConfirmModal, MoveConflictModal, ResizeHandle, ContextMenu } from '$lib/components/common'
 	import { PlaylistContextMenu, PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TagContextMenu, TagsSidebarContextMenu, TagInputModal } from '$lib/components/tags'
 	import { DeviceContextMenu, DeviceInfoModal } from '$lib/components/devices'
@@ -176,9 +169,6 @@
 	let deleteTagId = $state<string | null>(null)
 	let showDeleteCategoryConfirm = $state(false)
 	let deleteCategoryId = $state<string | null>(null)
-	let showColorPicker = $state(false)
-	let colorPickerCategoryId = $state<string | null>(null)
-	let colorPickerCurrentColor = $state<string | null>(null)
 
 	// Subscribe to stores
 	$effect(() => {
@@ -1141,20 +1131,9 @@
 		showDeleteCategoryConfirm = true
 	}
 
-	function handleChangeCategoryColor(category: TagCategory) {
+	async function handleChangeCategoryColor(category: TagCategory, color: string | null) {
 		tagContextMenuOpen = false
-		colorPickerCategoryId = category.id
-		colorPickerCurrentColor = category.color
-		showColorPicker = true
-	}
-
-	async function handleColorPickerSelect(color: string) {
-		showColorPicker = false
-		if (colorPickerCategoryId) {
-			await tagsStore.updateCategory(colorPickerCategoryId, undefined, color)
-			colorPickerCategoryId = null
-			colorPickerCurrentColor = null
-		}
+		await tagsStore.updateCategory(category.id, undefined, color ?? undefined)
 	}
 
 	async function handleDeleteCategoryConfirm() {
@@ -1632,19 +1611,6 @@
 	onCancel={() => {
 		showDeleteCategoryConfirm = false
 		deleteCategoryId = null
-	}}
-/>
-
-<!-- Category Color Picker -->
-<ColorPicker
-	open={showColorPicker}
-	title="Category Color"
-	selectedColor={colorPickerCurrentColor}
-	onSelect={handleColorPickerSelect}
-	onCancel={() => {
-		showColorPicker = false
-		colorPickerCategoryId = null
-		colorPickerCurrentColor = null
 	}}
 />
 

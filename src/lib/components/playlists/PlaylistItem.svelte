@@ -193,7 +193,7 @@
 	draggable="true"
 	aria-selected={selected}
 	aria-expanded={playlist.is_folder ? expanded : undefined}
-	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-2 transition-colors {selected || isContextMenuActive
+	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-colors {selected || isContextMenuActive
 		? 'bg-brand-muted text-text-primary'
 		: isDragOver || isPlaylistDragOver
 			? 'bg-brand-muted text-text-primary ring-1 ring-brand-primary'

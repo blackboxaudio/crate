@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Tag, TagCategory, ContextMenuItem } from '$lib/types'
+	import { TAG_CATEGORY_COLORS } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 
 	type ContextTarget =
@@ -17,7 +18,7 @@
 		onDeleteTag: (tag: Tag) => void
 		onRenameCategory: (category: TagCategory) => void
 		onDeleteCategory: (category: TagCategory) => void
-		onChangeColor?: (category: TagCategory) => void
+		onChangeColor?: (category: TagCategory, color: string | null) => void
 	}
 
 	let {
@@ -61,11 +62,29 @@
 				action: () => onRenameCategory(target.category),
 			})
 			if (onChangeColor) {
+				const colorItems: ContextMenuItem[] = TAG_CATEGORY_COLORS.map((color) => ({
+					id: `color-${color.id}`,
+					label: color.label,
+					colorDot: color.hex,
+					selected: target.category.color === color.hex,
+					action: () => onChangeColor(target.category, color.hex),
+				}))
+				colorItems.push({
+					id: 'color-divider',
+					label: '',
+					divider: true,
+				})
+				colorItems.push({
+					id: 'remove-color',
+					label: 'Remove Color',
+					icon: 'trash',
+					action: () => onChangeColor(target.category, null),
+				})
 				items.push({
-					id: 'change-color',
-					label: 'Change Color',
+					id: 'set-color',
+					label: 'Set Color',
 					icon: 'palette',
-					action: () => onChangeColor(target.category),
+					submenu: colorItems,
 				})
 			}
 			items.push({ id: 'divider-1', label: '', divider: true })

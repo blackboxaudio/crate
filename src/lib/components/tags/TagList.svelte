@@ -63,11 +63,11 @@
 	}
 </script>
 
-<div class="h-full space-y-4" oncontextmenu={handleContainerContextMenu}>
+<div class="h-full space-y-4" oncontextmenu={handleContainerContextMenu} role="group">
 	{#each categories as category (category.id)}
 		<div>
 			<div
-				class="group mb-2 flex items-center justify-between"
+				class="group mb-2 flex items-center justify-between py-1.5 pr-1.5 pl-3"
 				role="group"
 				aria-label="{category.name} category"
 				oncontextmenu={(e) => handleCategoryContextMenu(e, category)}
@@ -84,7 +84,7 @@
 					<Icon name="plus" class="h-3.5 w-3.5" />
 				</button>
 			</div>
-			<div class="flex flex-wrap gap-1.5">
+			<div class="flex flex-wrap gap-1.5 px-3">
 				{#each category.tags as tag (tag.id)}
 					<TagChip
 						{tag}
