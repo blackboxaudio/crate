@@ -523,11 +523,11 @@
 	}
 
 	async function handleTagSelect(tagId: string) {
+		// Capture current state BEFORE toggling (subscription updates synchronously)
+		const wasSelected = selectedTagIds.includes(tagId)
+		const updatedTagIds = wasSelected ? selectedTagIds.filter((id) => id !== tagId) : [...selectedTagIds, tagId]
+
 		uiStore.toggleTagFilter(tagId)
-		// Get updated selectedTagIds after toggle
-		const updatedTagIds = selectedTagIds.includes(tagId)
-			? selectedTagIds.filter((id) => id !== tagId)
-			: [...selectedTagIds, tagId]
 
 		const filter: TrackFilter = {}
 		if (updatedTagIds.length > 0) {
