@@ -90,15 +90,15 @@
 	<DeviceList {devices} onContextMenu={onDeviceContextMenu} />
 
 	<!-- Library -->
-	<div class="mt-2 p-2">
-		<div class="flex items-center px-3 py-1.5">
+	<div class="mx-0 border-t border-stroke px-2 pt-6">
+		<div class="-mx-0 flex items-center px-3 py-1.5">
 			<Text variant="header-4">Library</Text>
 			<Text variant="caption" class="ml-auto">{trackCount}</Text>
 		</div>
 	</div>
 
 	<!-- Section tabs -->
-	<div class="flex border-b border-stroke">
+	<div class="mx-0 flex border-b border-stroke">
 		<button
 			type="button"
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===

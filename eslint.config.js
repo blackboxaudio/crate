@@ -26,6 +26,8 @@ export default defineConfig(
 			'**/node_modules',
 			'**/static',
 			'**/StructuredData.svelte',
+			'./docs/.astro',
+			'./docs/**/*.mjs',
 		],
 	},
 	{

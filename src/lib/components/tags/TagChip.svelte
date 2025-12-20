@@ -52,33 +52,35 @@
 	let showMixedBadge = $derived(state === 'mixed' && selectionCount !== undefined && selectionTotal !== undefined)
 </script>
 
-<span
-	role={onclick ? 'button' : 'presentation'}
-	tabindex="-1"
-	class="inline-flex items-center gap-1 rounded font-medium {sizeStyles[size]} {stateStyles()} {onclick
-		? 'cursor-pointer hover:opacity-80'
-		: ''}"
-	style="background-color: {bgColor}20; color: {bgColor}; border: 1px solid {bgColor}40;"
-	data-tag
-	{onclick}
-	{oncontextmenu}
-	onkeydown={(e) => e.key === 'Enter' && onclick?.()}
->
-	{tag.name}
-	{#if showMixedBadge}
-		<span class="ml-0.5 text-[10px] opacity-60">{selectionCount}/{selectionTotal}</span>
-	{/if}
-	{#if removable && onremove}
-		<button
-			type="button"
-			aria-label="Remove tag"
-			class="ml-0.5 hover:cursor-pointer hover:opacity-70"
-			onclick={(e) => {
-				e.stopPropagation()
-				onremove()
-			}}
-		>
-			<Icon name="x" class="h-3 w-3" />
-		</button>
-	{/if}
+<span class="rounded bg-surface-0">
+	<span
+		role={onclick ? 'button' : 'presentation'}
+		tabindex="-1"
+		class="inline-flex items-center gap-1 rounded font-medium transition-all {sizeStyles[size]} {stateStyles()} {onclick
+			? 'cursor-pointer hover:opacity-80'
+			: ''}"
+		style="background-color: {bgColor}20; color: {bgColor}; border: 1px solid {bgColor}40;"
+		data-tag
+		{onclick}
+		{oncontextmenu}
+		onkeydown={(e) => e.key === 'Enter' && onclick?.()}
+	>
+		{tag.name}
+		{#if showMixedBadge}
+			<span class="ml-0.5 text-[10px] opacity-60">{selectionCount}/{selectionTotal}</span>
+		{/if}
+		{#if removable && onremove}
+			<button
+				type="button"
+				aria-label="Remove tag"
+				class="ml-0.5 hover:cursor-pointer hover:opacity-70"
+				onclick={(e) => {
+					e.stopPropagation()
+					onremove()
+				}}
+			>
+				<Icon name="x" class="h-3 w-3" />
+			</button>
+		{/if}
+	</span>
 </span>

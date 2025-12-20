@@ -11,6 +11,8 @@ interface PlayerState {
 	currentTrack: Track | null
 	playbackState: PlaybackState
 	error: string | null
+	isMuted: boolean
+	volumeBeforeMute: number
 }
 
 const initialPlaybackState: PlaybackState = {
@@ -26,6 +28,8 @@ const initialState: PlayerState = {
 	currentTrack: null,
 	playbackState: initialPlaybackState,
 	error: null,
+	isMuted: false,
+	volumeBeforeMute: 1.0,
 }
 
 // =============================================================================
@@ -210,6 +214,70 @@ function createPlayerStore() {
 		},
 
 		/**
+		 * Seek relative to current position
+		 */
+		async seekRelative(offsetMs: number) {
+			let currentPosition = 0
+			let duration = 0
+			const unsubscribe = subscribe((state) => {
+				currentPosition = state.playbackState.position_ms
+				duration = state.playbackState.duration_ms
+			})
+			unsubscribe()
+
+			// Clamp to valid range
+			const newPosition = Math.max(0, Math.min(duration, currentPosition + offsetMs))
+			await this.seek(newPosition)
+		},
+
+		/**
+		 * Adjust volume by a relative amount
+		 */
+		async adjustVolume(delta: number) {
+			let currentVolume = 1.0
+			let isMuted = false
+			const unsubscribe = subscribe((state) => {
+				currentVolume = state.playbackState.volume
+				isMuted = state.isMuted
+			})
+			unsubscribe()
+
+			// If muted and trying to increase volume, unmute first
+			if (isMuted && delta > 0) {
+				update((state) => ({ ...state, isMuted: false }))
+			}
+
+			// Clamp to valid range (0.0 - 1.0)
+			const newVolume = Math.max(0, Math.min(1, currentVolume + delta))
+			await this.setVolume(newVolume)
+		},
+
+		/**
+		 * Toggle mute/unmute
+		 */
+		async toggleMute() {
+			let currentVolume = 1.0
+			let isMuted = false
+			let volumeBeforeMute = 1.0
+			const unsubscribe = subscribe((state) => {
+				currentVolume = state.playbackState.volume
+				isMuted = state.isMuted
+				volumeBeforeMute = state.volumeBeforeMute
+			})
+			unsubscribe()
+
+			if (isMuted) {
+				// Unmute: restore previous volume
+				update((state) => ({ ...state, isMuted: false }))
+				await this.setVolume(volumeBeforeMute)
+			} else {
+				// Mute: save current volume and set to 0
+				update((state) => ({ ...state, isMuted: true, volumeBeforeMute: currentVolume }))
+				await this.setVolume(0)
+			}
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {
@@ -240,3 +308,5 @@ export const playbackProgress = derived(playerStore, ($player) => {
 	if (duration_ms === 0) return 0
 	return (position_ms / duration_ms) * 100
 })
+
+export const isMuted = derived(playerStore, ($player) => $player.isMuted)

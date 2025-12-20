@@ -11,8 +11,8 @@
 	let { devices, onContextMenu }: Props = $props()
 </script>
 
-<div class="border-b border-stroke p-2">
-	<div class="flex items-center px-3 py-1.5">
+<div class="p-2 pt-0">
+	<div class="flex items-center px-3 pb-1.5">
 		<Text variant="header-4">Devices</Text>
 		<Text variant="caption" class="ml-auto">{devices.length}</Text>
 	</div>

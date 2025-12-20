@@ -1,0 +1,111 @@
+/* Import IBM Plex Mono font */
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap');
+
+/* =============================================================================
+   Starlight CSS Custom Properties - Dark Theme (Default)
+   Mirrors Crate's design tokens from src/style.css
+   ============================================================================= */
+
+:root {
+	/* Dark theme - matches Crate's zinc palette */
+	--sl-color-bg: #09090b; /* zinc-950 - surface-0 */
+	--sl-color-bg-nav: #18181b; /* zinc-900 - surface-1 */
+	--sl-color-bg-sidebar: #18181b; /* zinc-900 - surface-1 */
+	--sl-color-bg-inline-code: #27272a; /* zinc-800 - surface-2 */
+
+	/* Text colors */
+	--sl-color-text: #fafafa; /* zinc-50 - text-primary */
+	--sl-color-text-accent: #a1a1aa; /* zinc-400 - text-secondary */
+
+	/* Accent color - blue (default) */
+	--sl-color-accent: #3b82f6;
+	--sl-color-accent-high: #2563eb;
+	--sl-color-accent-low: rgba(59, 130, 246, 0.2);
+
+	/* Borders */
+	--sl-color-hairline: #3f3f46; /* zinc-700 - stroke */
+	--sl-color-hairline-light: #27272a; /* zinc-800 - stroke-subtle */
+
+	/* Font */
+	--sl-font: 'IBM Plex Mono', ui-monospace, monospace;
+	--sl-font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+/* =============================================================================
+   Light Theme Overrides
+   ============================================================================= */
+
+:root[data-theme='light'] {
+	--sl-color-bg: #ffffff;
+	--sl-color-bg-nav: #fafafa; /* zinc-50 */
+	--sl-color-bg-sidebar: #fafafa; /* zinc-50 */
+	--sl-color-bg-inline-code: #f4f4f5; /* zinc-100 */
+
+	--sl-color-text: #18181b; /* zinc-900 */
+	--sl-color-text-accent: #52525b; /* zinc-600 */
+
+	--sl-color-hairline: #d4d4d8; /* zinc-300 */
+	--sl-color-hairline-light: #e4e4e7; /* zinc-200 */
+}
+
+/* =============================================================================
+   Scrollbar Styling (matches Crate app)
+   ============================================================================= */
+
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--sl-color-hairline);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--sl-color-text-accent);
+}
+
+/* =============================================================================
+   Focus Styles
+   ============================================================================= */
+
+*:focus-visible {
+	outline: 2px solid var(--sl-color-accent);
+	outline-offset: 2px;
+}
+
+/* =============================================================================
+   Typography Refinements
+   ============================================================================= */
+
+.sl-markdown-content h1,
+.sl-markdown-content h2,
+.sl-markdown-content h3 {
+	font-weight: 600;
+}
+
+/* Code block styling */
+.expressive-code {
+	--ec-brdCol: var(--sl-color-hairline);
+}
+
+/* =============================================================================
+   Navigation Styling
+   ============================================================================= */
+
+/* Logo styling */
+.site-title {
+	font-weight: 600;
+	letter-spacing: -0.025em;
+}
+
+/* Active sidebar link */
+nav.sidebar a[aria-current='page'] {
+	background-color: var(--sl-color-accent-low);
+	border-left: 2px solid var(--sl-color-accent);
+}

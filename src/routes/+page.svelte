@@ -295,6 +295,90 @@
 			},
 			onOpenSettings: () => modalOrchestrator.openSettingsModal(),
 			onToggleInspector: () => uiStore.toggleRightSidebar(),
+			// New shortcuts
+			onNewPlaylist: () => modalOrchestrator.openCreatePlaylistModal(selectedFolderId),
+			onNewFolder: () => modalOrchestrator.openCreateFolderModal(selectedFolderId),
+			onImport: () => trackController.handleImport(),
+			onDeleteSelected: () => {
+				const ids = [...$selectedTrackIds]
+				if (ids.length > 0) {
+					if (selectedPlaylistId) {
+						modalOrchestrator.openRemoveFromPlaylistModal(ids, selectedPlaylistId)
+					} else {
+						modalOrchestrator.openRemoveFromLibraryModal(ids)
+					}
+				}
+			},
+			onPlaySelected: () => {
+				// Play the first selected track
+				const selectedIds = $selectedTrackIds
+				if (selectedIds.size > 0) {
+					const firstSelectedId = [...selectedIds][0]
+					const track = $displayedTracks.find((t) => t.id === firstSelectedId)
+					if (track) {
+						trackController.play(track)
+					}
+				}
+			},
+			onSeekBackward: () => playerStore.seekRelative(-5000),
+			onSeekForward: () => playerStore.seekRelative(5000),
+			onPreviousTrack: () => {
+				// Play the previous track in the list
+				const currentTrackId = $currentTrack?.id
+				if (!currentTrackId) return
+				const tracks = $displayedTracks
+				const currentIndex = tracks.findIndex((t) => t.id === currentTrackId)
+				if (currentIndex > 0) {
+					trackController.play(tracks[currentIndex - 1])
+				}
+			},
+			onNextTrack: () => {
+				// Play the next track in the list
+				const currentTrackId = $currentTrack?.id
+				if (!currentTrackId) return
+				const tracks = $displayedTracks
+				const currentIndex = tracks.findIndex((t) => t.id === currentTrackId)
+				if (currentIndex >= 0 && currentIndex < tracks.length - 1) {
+					trackController.play(tracks[currentIndex + 1])
+				}
+			},
+			onVolumeUp: () => playerStore.adjustVolume(0.1),
+			onVolumeDown: () => playerStore.adjustVolume(-0.1),
+			onToggleMute: () => playerStore.toggleMute(),
+			onSelectPreviousTrack: () => {
+				// Select the previous track in the list
+				const tracks = $displayedTracks
+				if (tracks.length === 0) return
+				const selectedIds = $selectedTrackIds
+				if (selectedIds.size === 0) {
+					// Nothing selected, select the last track
+					uiStore.selectTrack(tracks[tracks.length - 1].id)
+				} else {
+					// Find the first selected track and move selection up
+					const firstSelectedId = [...selectedIds][0]
+					const currentIndex = tracks.findIndex((t) => t.id === firstSelectedId)
+					if (currentIndex > 0) {
+						uiStore.selectTrack(tracks[currentIndex - 1].id)
+					}
+				}
+			},
+			onSelectNextTrack: () => {
+				// Select the next track in the list
+				const tracks = $displayedTracks
+				if (tracks.length === 0) return
+				const selectedIds = $selectedTrackIds
+				if (selectedIds.size === 0) {
+					// Nothing selected, select the first track
+					uiStore.selectTrack(tracks[0].id)
+				} else {
+					// Find the last selected track and move selection down
+					const lastSelectedId = [...selectedIds].pop()
+					const currentIndex = tracks.findIndex((t) => t.id === lastSelectedId)
+					if (currentIndex >= 0 && currentIndex < tracks.length - 1) {
+						uiStore.selectTrack(tracks[currentIndex + 1].id)
+					}
+				}
+			},
 		})
 
 		// Set up menu action listener
