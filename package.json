@@ -4,7 +4,7 @@
 	"description": "",
 	"type": "module",
 	"scripts": {
-		"dev": "cross-env CRATE_ENV=development tauri dev --config src-tauri/tauri.dev.conf.json -- --features devtools",
+		"dev": "cross-env CRATE_ENV=development tauri dev --config src-tauri/tauri.dev.conf.json -- --release --features devtools",
 		"dev:vite": "vite dev",
 		"build": "yarn build:production",
 		"build:production": "cross-env CRATE_ENV=production tauri build --config src-tauri/tauri.prod.conf.json",

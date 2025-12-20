@@ -46,6 +46,14 @@
 		onWhitespaceClick?.()
 	}
 
+	function handleContainerKeyDown(e: KeyboardEvent) {
+		if (e.key !== 'Enter' && e.key !== ' ') return
+		const target = e.target as HTMLElement
+		if (target.closest('[role="treeitem"]')) return
+		e.preventDefault()
+		onWhitespaceClick?.()
+	}
+
 	let expandedIds = $state<Set<string>>(getStoredSet(EXPANDED_STORAGE_KEY))
 
 	$effect(() => {
@@ -99,7 +107,14 @@
 	{/if}
 {/snippet}
 
-<div role="tree" class="h-full space-y-0.5" onclick={handleContainerClick} oncontextmenu={handleContainerContextMenu}>
+<div
+	role="tree"
+	tabindex="0"
+	class="h-full space-y-0.5"
+	onclick={handleContainerClick}
+	onkeydown={handleContainerKeyDown}
+	oncontextmenu={handleContainerContextMenu}
+>
 	{#each tree as node, index (index)}
 		{@render renderNode(node, 0)}
 	{/each}
