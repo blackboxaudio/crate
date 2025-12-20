@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { open } from '@tauri-apps/plugin-dialog'
-	import { revealItemInDir } from '@tauri-apps/plugin-opener'
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 	import { getCurrentWindow } from '@tauri-apps/api/window'
 
 	import type {
 		Track,
-		TrackColor,
 		TrackFilter,
 		SortConfig,
 		Playlist,
@@ -40,7 +38,7 @@
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 	import { findConflictingItem, getPlaylistById, hasChildren } from '$lib/utils'
-	import { createTagController } from '$lib/controllers'
+	import { createTagController, createTrackController } from '$lib/controllers'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
@@ -48,7 +46,6 @@
 	import { ResizeHandle, ContextMenuOrchestrator, ModalOrchestrator } from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import * as devicesApi from '$lib/api/devices'
-	import * as libraryApi from '$lib/api/library'
 	import { onMenuAction, type MenuAction } from '$lib/api/menu'
 	import { openDevTools } from '$lib/api/app'
 
@@ -84,6 +81,27 @@
 		getSelectedTrackIds: () => $selectedTrackIds,
 		getRecentlyToggledMixedTags: () => $recentlyToggledMixedTags,
 	})
+
+	// Track controller
+	const trackController = createTrackController(
+		{
+			playerStore,
+			libraryStore,
+			playlistsStore,
+			missingTracksStore,
+			uiStore,
+			toastStore,
+			getSelectedPlaylistId: () => selectedPlaylistId,
+			getPlaylists: () => playlists,
+			getMissingTrackIds: () => $missingTrackIds,
+		},
+		{
+			openRelocateModal: (track) => modalOrchestrator.openRelocateModal(track),
+			openRemoveFromPlaylistModal: (trackIds, playlistId) =>
+				modalOrchestrator.openRemoveFromPlaylistModal(trackIds, playlistId),
+			openRemoveFromLibraryModal: (trackIds) => modalOrchestrator.openRemoveFromLibraryModal(trackIds),
+		}
+	)
 
 	// Subscribe to stores
 	$effect(() => {
@@ -168,7 +186,7 @@
 							return ext && audioExtensions.includes(ext)
 						})
 						if (audioPaths.length > 0) {
-							await handleExternalFileDrop(audioPaths)
+							await trackController.handleExternalFileDrop(audioPaths)
 						}
 					}
 				} else if (event.payload.type === 'enter') {
@@ -271,7 +289,7 @@
 	function handleMenuAction(action: MenuAction) {
 		switch (action) {
 			case 'import_tracks':
-				handleImport()
+				trackController.handleImport()
 				break
 			case 'new_playlist':
 				handleCreatePlaylist()
@@ -308,85 +326,6 @@
 			case 'report_issue':
 				// TODO: Open issue reporting
 				break
-		}
-	}
-
-	// External file drop handler (from OS file explorer)
-	async function handleExternalFileDrop(audioPaths: string[]) {
-		if (selectedPlaylistId) {
-			// Import and add to playlist with combined toast
-			const result = await libraryApi.importTracks(audioPaths)
-
-			// Update library store state
-			libraryStore.addTracksToState(result.tracks)
-
-			if (result.tracks.length > 0) {
-				const trackIds = result.tracks.map((t) => t.id)
-				const playlist = playlists.find((p) => p.id === selectedPlaylistId)
-				const playlistName = playlist?.name || 'playlist'
-
-				try {
-					await playlistsStore.addTracks(selectedPlaylistId, trackIds)
-					const count = result.tracks.length
-					const trackWord = count === 1 ? 'track' : 'tracks'
-					if (result.failed_count > 0) {
-						toastStore.warning(
-							`${count} ${trackWord} imported and added to ${playlistName}, ${result.failed_count} failed`
-						)
-					} else {
-						toastStore.success(`${count} ${trackWord} imported and added to ${playlistName}`)
-					}
-				} catch {
-					toastStore.warning(`Tracks imported but failed to add to ${playlistName}`)
-				}
-			} else if (result.failed_count > 0) {
-				toastStore.error(`Failed to import tracks: ${result.errors[0] || 'Unknown error'}`)
-			}
-		} else {
-			// Library/folder view - use standard import with its own toast
-			await libraryStore.importTracks(audioPaths)
-		}
-	}
-
-	// Import handler
-	async function handleImport() {
-		const selected = await open({
-			multiple: true,
-			filters: [
-				{
-					name: 'Audio Files',
-					extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'],
-				},
-			],
-		})
-
-		if (selected && Array.isArray(selected)) {
-			await libraryStore.importTracks(selected)
-		}
-	}
-
-	// Track playback
-	function handleTrackPlay(track: Track) {
-		// If track is missing, open relocate modal instead of trying to play
-		if ($missingTrackIds.has(track.id)) {
-			handleOpenRelocateModal(track)
-			return
-		}
-		playerStore.play(track)
-	}
-
-	// Selection change
-	function handleSelectionChange(ids: Set<string>) {
-		uiStore.setSelectedTracks(ids)
-
-		// Check file existence for newly selected tracks (lazy load)
-		// Only check when selecting a single track to avoid excessive checks
-		if (ids.size === 1) {
-			const trackId = [...ids][0]
-			// Don't check if already known to be missing or currently checking
-			if (!$missingTrackIds.has(trackId) && !missingTracksStore.isChecking(trackId)) {
-				missingTracksStore.checkTrack(trackId)
-			}
 		}
 	}
 
@@ -466,42 +405,6 @@
 		contextMenuOrchestrator.openTrackMenu(e, tracks)
 	}
 
-	async function handleAddToPlaylist(playlistId: string, tracks: Track[]) {
-		const trackIds = tracks.map((t) => t.id)
-		await playlistsStore.addTracks(playlistId, trackIds)
-	}
-
-	async function handleRevealInExplorer(track: Track) {
-		await revealItemInDir(track.file_path)
-	}
-
-	// Track removal handlers
-	function handleRemoveFromPlaylistClick(tracks: Track[]) {
-		if (selectedPlaylistId) {
-			const trackIds = tracks.map((t) => t.id)
-			modalOrchestrator.openRemoveFromPlaylistModal(trackIds, selectedPlaylistId)
-		}
-	}
-
-	function handleRemoveFromLibraryClick(tracks: Track[]) {
-		const trackIds = tracks.map((t) => t.id)
-		modalOrchestrator.openRemoveFromLibraryModal(trackIds)
-	}
-
-	// Drag and drop handlers
-	async function handleTracksDropOnPlaylist(playlistId: string, trackIds: string[]) {
-		try {
-			await playlistsStore.addTracks(playlistId, trackIds)
-			// Find playlist name for the toast message
-			const playlist = playlists.find((p) => p.id === playlistId)
-			const playlistName = playlist?.name || 'playlist'
-			const count = trackIds.length
-			toastStore.success(count === 1 ? `1 track added to ${playlistName}` : `${count} tracks added to ${playlistName}`)
-		} catch (error) {
-			toastStore.error('Failed to add tracks to playlist')
-		}
-	}
-
 	// Playlist context menu handlers
 	function handlePlaylistContextMenu(e: MouseEvent, playlist: Playlist) {
 		contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'tree')
@@ -553,10 +456,6 @@
 	// Library view context menu handlers (right-click on empty space)
 	function handleLibraryViewContextMenu(e: MouseEvent) {
 		contextMenuOrchestrator.openLibraryViewMenu(e)
-	}
-
-	async function handleLibraryViewImport() {
-		await handleImport()
 	}
 
 	// Playlist view context menu handlers (right-click on empty space)
@@ -728,26 +627,11 @@
 		modalOrchestrator.openDeviceInfoModal(device)
 	}
 
-	// Relocate track handlers
-	function handleOpenRelocateModal(track: Track) {
-		modalOrchestrator.openRelocateModal(track)
-	}
-
+	// Relocate track complete handler
 	function handleRelocateComplete(updatedTrack: Track) {
 		// Update the track in the library store
 		libraryStore.loadTracks()
 		toastStore.success(`Relocated "${updatedTrack.title || 'track'}"`)
-	}
-
-	// Track color change handler
-	async function handleTrackColorChange(trackIds: string[], color: TrackColor | null) {
-		await libraryStore.setTrackColors(trackIds, color)
-	}
-
-	// Context menu color handler
-	async function handleContextMenuSetColor(color: TrackColor | null, tracks: Track[]) {
-		const trackIds = tracks.map((t) => t.id)
-		await libraryStore.setTrackColors(trackIds, color)
 	}
 </script>
 
@@ -759,7 +643,7 @@
 		onRemoveTagFilter={tagController.removeTagFilter}
 		onClearAllTagFilters={tagController.clearTagFilters}
 		onToggleTagFilterMode={tagController.toggleTagFilterMode}
-		onImport={handleImport}
+		onImport={trackController.handleImport}
 		onSettings={() => modalOrchestrator.openSettingsModal()}
 		onDevTools={openDevTools}
 	/>
@@ -792,7 +676,7 @@
 				onCreateCategory={handleCreateCategory}
 				onCreateTag={handleCreateTag}
 				onTagsWhitespaceContextMenu={handleTagsWhitespaceContextMenu}
-				onTracksDrop={handleTracksDropOnPlaylist}
+				onTracksDrop={trackController.handleTracksDropOnPlaylist}
 				onPlaylistMove={handlePlaylistDragMove}
 			/>
 		</div>
@@ -823,14 +707,14 @@
 						{isDragOver}
 						{categoryColors}
 						{breadcrumbItems}
-						onSelectionChange={handleSelectionChange}
-						onTrackPlay={handleTrackPlay}
+						onSelectionChange={trackController.handleSelectionChange}
+						onTrackPlay={trackController.play}
 						onSortChange={handleSortChange}
 						onContextMenu={handleTrackContextMenu}
 						onEmptySpaceContextMenu={handlePlaylistViewContextMenu}
 						onBreadcrumbNavigate={handleBreadcrumbNavigate}
 						onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-						onTrackColorChange={handleTrackColorChange}
+						onTrackColorChange={trackController.setColor}
 					/>
 				{/if}
 			{:else}
@@ -842,12 +726,12 @@
 					{sortConfig}
 					{isDragOver}
 					{categoryColors}
-					onSelectionChange={handleSelectionChange}
-					onTrackPlay={handleTrackPlay}
+					onSelectionChange={trackController.handleSelectionChange}
+					onTrackPlay={trackController.play}
 					onSortChange={handleSortChange}
 					onContextMenu={handleTrackContextMenu}
 					onEmptySpaceContextMenu={handleLibraryViewContextMenu}
-					onTrackColorChange={handleTrackColorChange}
+					onTrackColorChange={trackController.setColor}
 				/>
 			{/if}
 		</div>
@@ -863,12 +747,12 @@
 	currentPlaylistId={selectedPlaylistId}
 	{playlistFolders}
 	categoryCount={tagCategories.length}
-	onTrackAddToPlaylist={handleAddToPlaylist}
-	onTrackRevealInExplorer={handleRevealInExplorer}
-	onTrackRemoveFromPlaylist={handleRemoveFromPlaylistClick}
-	onTrackRemoveFromLibrary={handleRemoveFromLibraryClick}
-	onTrackRelocate={handleOpenRelocateModal}
-	onTrackSetColor={handleContextMenuSetColor}
+	onTrackAddToPlaylist={trackController.addToPlaylist}
+	onTrackRevealInExplorer={trackController.revealInExplorer}
+	onTrackRemoveFromPlaylist={trackController.removeFromPlaylistClick}
+	onTrackRemoveFromLibrary={trackController.removeFromLibraryClick}
+	onTrackRelocate={(track) => modalOrchestrator.openRelocateModal(track)}
+	onTrackSetColor={trackController.setColorFromContextMenu}
 	onPlaylistRename={handlePlaylistRename}
 	onPlaylistDelete={handlePlaylistDelete}
 	onPlaylistMove={handlePlaylistMove}
@@ -876,7 +760,7 @@
 	onFolderViewCreateFolder={handleFolderViewCreateFolder}
 	onPlaylistTreeCreatePlaylist={handlePlaylistTreeCreatePlaylist}
 	onPlaylistTreeCreateFolder={handlePlaylistTreeCreateFolder}
-	onLibraryViewImport={handleLibraryViewImport}
+	onLibraryViewImport={trackController.handleImport}
 	onPlaylistViewImport={handlePlaylistViewImport}
 	onTagRename={(tag) => modalOrchestrator.openRenameTagModal(tag)}
 	onTagDelete={(tag) => modalOrchestrator.openDeleteTagModal(tag)}
