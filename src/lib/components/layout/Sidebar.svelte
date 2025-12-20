@@ -5,6 +5,7 @@
 	import { TagList } from '$lib/components/tags'
 	import { DeviceList } from '$lib/components/devices'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { isDev } from '$lib/stores'
 
 	type Props = {
 		playlists: Playlist[]
@@ -18,6 +19,7 @@
 		tagStates?: Map<string, TagSelectionState>
 		tagCounts?: Map<string, number>
 		trackCount: number
+		showHeader?: boolean
 		onLibraryClick?: () => void
 		onPlaylistSelect?: (playlist: Playlist) => void
 		onPlaylistContextMenu?: (e: MouseEvent, playlist: Playlist) => void
@@ -48,6 +50,7 @@
 		tagStates,
 		tagCounts,
 		trackCount,
+		showHeader = true,
 		onLibraryClick,
 		onPlaylistSelect,
 		onPlaylistContextMenu,
@@ -72,7 +75,18 @@
 	let isTagToggleMode = $derived(activeSection === 'tags' && (selectedTrackIds?.size ?? 0) > 0)
 </script>
 
-<div class="flex h-full flex-col">
+<div class="flex h-full flex-col rounded-tr-md bg-surface-1">
+	{#if showHeader}
+		<!-- Logo section -->
+		<div class="flex items-center justify-center gap-2 py-4">
+			<Icon name="logo" class="h-6 w-6 text-brand-primary" fill />
+			<Text variant="header-1" as="span" weight="bold">Crate</Text>
+			{#if $isDev}
+				<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-500"> DEV </span>
+			{/if}
+		</div>
+	{/if}
+
 	<DeviceList {devices} onContextMenu={onDeviceContextMenu} />
 
 	<!-- Library -->

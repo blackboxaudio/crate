@@ -20,3 +20,4 @@ export type { ActiveContextMenu, TagContextTarget } from './ContextMenuOrchestra
 export { default as ModalOrchestrator } from './ModalOrchestrator.svelte'
 export type { ActiveModal, MoveResult } from './ModalOrchestrator.svelte'
 export { default as DragPreview } from './DragPreview.svelte'
+export { default as Icon } from './Icon.svelte'

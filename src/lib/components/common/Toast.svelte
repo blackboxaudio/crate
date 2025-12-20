@@ -13,15 +13,15 @@
 	const baseStyles = 'flex items-center gap-3 rounded-lg border px-4 py-3 shadow-lg min-w-[300px] max-w-[400px]'
 
 	const typeStyles: Record<ToastType, string> = {
-		success: 'bg-green-600/20 border-green-500/50 text-green-100',
-		error: 'bg-red-600/20 border-red-500/50 text-red-100',
-		warning: 'bg-amber-600/20 border-amber-500/50 text-amber-100',
-		info: 'bg-blue-600/20 border-blue-500/50 text-blue-100',
+		success: 'bg-green-600/80 border-green-500/50 text-green-100',
+		error: 'bg-red-600/80 border-red-500/50 text-red-100',
+		warning: 'bg-amber-600/80 border-amber-500/50 text-amber-100',
+		info: 'bg-blue-600/80 border-blue-500/50 text-blue-100',
 	}
 
 	const iconNames: Record<ToastType, string> = {
 		success: 'check',
-		error: 'x',
+		error: 'alert-circle',
 		warning: 'warning',
 		info: 'info',
 	}
