@@ -1,5 +1,6 @@
 export * from './artwork'
 export * from './format'
+export * from './playlist'
 export * from './sorting'
 export * from './selection'
 export * from './storage'

@@ -38,6 +38,7 @@
 	} from '$lib/stores'
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
+	import { findConflictingItem, getPlaylistById, hasChildren } from '$lib/utils'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
@@ -683,26 +684,12 @@
 	}
 
 	function handlePlaylistDelete(playlist: Playlist) {
-		const hasChildren = playlists.some((p) => p.parent_id === playlist.id)
-		modalOrchestrator.openDeletePlaylistModal(playlist, hasChildren)
-	}
-
-	// Helper to find a conflicting item in the target folder
-	function findConflictingItem(movingItem: Playlist, targetParentId: string | null): Playlist | null {
-		return (
-			playlists.find((p) => p.parent_id === targetParentId && p.name === movingItem.name && p.id !== movingItem.id) ??
-			null
-		)
-	}
-
-	// Helper to get a playlist by ID
-	function getPlaylistById(id: string): Playlist | null {
-		return playlists.find((p) => p.id === id) ?? null
+		modalOrchestrator.openDeletePlaylistModal(playlist, hasChildren(playlists, playlist.id))
 	}
 
 	async function handlePlaylistMove(playlist: Playlist, folderId: string | null) {
 		// Check for conflict
-		const conflict = findConflictingItem(playlist, folderId)
+		const conflict = findConflictingItem(playlists, playlist, folderId)
 
 		if (conflict) {
 			modalOrchestrator.openMoveConflictModal(playlist, conflict, folderId)
@@ -715,11 +702,11 @@
 
 	// Handler for drag-drop playlist move
 	async function handlePlaylistDragMove(playlistId: string, targetFolderId: string | null) {
-		const playlist = getPlaylistById(playlistId)
+		const playlist = getPlaylistById(playlists, playlistId)
 		if (!playlist) return
 
 		// Check for conflict
-		const conflict = findConflictingItem(playlist, targetFolderId)
+		const conflict = findConflictingItem(playlists, playlist, targetFolderId)
 
 		if (conflict) {
 			modalOrchestrator.openMoveConflictModal(playlist, conflict, targetFolderId)
