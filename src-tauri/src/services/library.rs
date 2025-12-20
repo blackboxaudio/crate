@@ -1262,7 +1262,11 @@ impl LibraryService {
     }
 
     /// Resolve a duplicate by updating the existing track's file path only
-    fn resolve_duplicate_update_path(&self, existing_track_id: &str, new_path: &str) -> Result<Track> {
+    fn resolve_duplicate_update_path(
+        &self,
+        existing_track_id: &str,
+        new_path: &str,
+    ) -> Result<Track> {
         let conn = self
             .conn
             .lock()
