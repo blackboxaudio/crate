@@ -8,6 +8,7 @@
 	import type {
 		Track,
 		TrackColor,
+		TrackFilter,
 		SortConfig,
 		Playlist,
 		TagCategory,
@@ -39,6 +40,7 @@
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 	import { findConflictingItem, getPlaylistById, hasChildren } from '$lib/utils'
+	import { createTagController } from '$lib/controllers'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
@@ -70,6 +72,18 @@
 	// Orchestrator bindings
 	let contextMenuOrchestrator: ReturnType<typeof ContextMenuOrchestrator>
 	let modalOrchestrator: ReturnType<typeof ModalOrchestrator>
+
+	// Tag controller
+	const tagController = createTagController({
+		tagsStore,
+		libraryStore,
+		uiStore,
+		getSelectedTagIds: () => selectedTagIds,
+		getSelectedPlaylistId: () => selectedPlaylistId,
+		getTagFilterMode: () => $tagFilterMode,
+		getSelectedTrackIds: () => $selectedTrackIds,
+		getRecentlyToggledMixedTags: () => $recentlyToggledMixedTags,
+	})
 
 	// Subscribe to stores
 	$effect(() => {
@@ -422,102 +436,6 @@
 		}
 	}
 
-	async function handleTagSelect(tagId: string) {
-		// Capture current state BEFORE toggling (subscription updates synchronously)
-		const wasSelected = selectedTagIds.includes(tagId)
-		const updatedTagIds = wasSelected ? selectedTagIds.filter((id) => id !== tagId) : [...selectedTagIds, tagId]
-
-		uiStore.toggleTagFilter(tagId)
-
-		const filter: TrackFilter = {}
-		if (updatedTagIds.length > 0) {
-			filter.tag_ids = updatedTagIds
-			filter.tag_filter_mode = $tagFilterMode
-		}
-		if (selectedPlaylistId) {
-			filter.playlist_id = selectedPlaylistId
-		}
-		await libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
-	}
-
-	// Tag toggle handler for when tracks are selected
-	async function handleTagToggle(tagId: string, currentState: TagSelectionState) {
-		const trackIds = Array.from($selectedTrackIds)
-
-		if (currentState === 'active') {
-			// Remove from all selected tracks
-			await tagsStore.removeTags(trackIds, [tagId])
-		} else if (currentState === 'inactive') {
-			// Add to all selected tracks
-			await tagsStore.assignTags(trackIds, [tagId])
-		} else if (currentState === 'mixed') {
-			// Check if this tag was recently toggled
-			const wasRecentlyToggled = $recentlyToggledMixedTags.has(tagId)
-
-			if (wasRecentlyToggled) {
-				// Second click on mixed = add to all
-				await tagsStore.assignTags(trackIds, [tagId])
-				uiStore.clearRecentlyToggledTag(tagId)
-			} else {
-				// First click on mixed = remove from all
-				await tagsStore.removeTags(trackIds, [tagId])
-				uiStore.markTagAsRecentlyToggled(tagId)
-			}
-		}
-
-		// Reload tracks to reflect tag changes
-		await libraryStore.loadTracks()
-	}
-
-	// Clear tag filter
-	async function handleClearTagFilter() {
-		uiStore.clearTagFilters()
-		libraryStore.clearFilters()
-		if (selectedPlaylistId) {
-			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
-		} else {
-			await libraryStore.loadTracks()
-		}
-	}
-
-	// Remove a single tag from filter
-	async function handleRemoveTagFilter(tagId: string) {
-		uiStore.removeTagFilter(tagId)
-		const updatedTagIds = selectedTagIds.filter((id) => id !== tagId)
-
-		const filter: TrackFilter = {}
-		if (updatedTagIds.length > 0) {
-			filter.tag_ids = updatedTagIds
-			filter.tag_filter_mode = $tagFilterMode
-		}
-		if (selectedPlaylistId) {
-			filter.playlist_id = selectedPlaylistId
-		}
-
-		if (Object.keys(filter).length > 0) {
-			await libraryStore.loadTracks(filter)
-		} else {
-			libraryStore.clearFilters()
-			await libraryStore.loadTracks()
-		}
-	}
-
-	// Toggle tag filter mode (AND/OR)
-	async function handleToggleTagFilterMode() {
-		uiStore.toggleTagFilterMode()
-		// Reload tracks with the new mode if tags are selected
-		if (selectedTagIds.length > 0) {
-			const filter: TrackFilter = {
-				tag_ids: selectedTagIds,
-				tag_filter_mode: $tagFilterMode,
-			}
-			if (selectedPlaylistId) {
-				filter.playlist_id = selectedPlaylistId
-			}
-			await libraryStore.loadTracks(filter)
-		}
-	}
-
 	function handleCreatePlaylist() {
 		modalOrchestrator.openCreatePlaylistModal(selectedFolderId)
 	}
@@ -791,26 +709,6 @@
 		contextMenuOrchestrator.openTagMenu(e, { type: 'category', category })
 	}
 
-	function handleRenameTag(tag: Tag) {
-		modalOrchestrator.openRenameTagModal(tag)
-	}
-
-	function handleDeleteTag(tag: Tag) {
-		modalOrchestrator.openDeleteTagModal(tag)
-	}
-
-	function handleRenameCategory(category: TagCategory) {
-		modalOrchestrator.openRenameCategoryModal(category)
-	}
-
-	function handleDeleteCategory(category: TagCategory) {
-		modalOrchestrator.openDeleteCategoryModal(category)
-	}
-
-	async function handleChangeCategoryColor(category: TagCategory, color: string | null) {
-		await tagsStore.updateCategory(category.id, undefined, color ?? undefined)
-	}
-
 	// Device context menu handlers
 	function handleDeviceContextMenu(e: MouseEvent, device: UsbDevice) {
 		contextMenuOrchestrator.openDeviceMenu(e, device)
@@ -858,9 +756,9 @@
 		{activeFilterTags}
 		{tagColors}
 		tagFilterMode={$tagFilterMode}
-		onRemoveTagFilter={handleRemoveTagFilter}
-		onClearAllTagFilters={handleClearTagFilter}
-		onToggleTagFilterMode={handleToggleTagFilterMode}
+		onRemoveTagFilter={tagController.removeTagFilter}
+		onClearAllTagFilters={tagController.clearTagFilters}
+		onToggleTagFilterMode={tagController.toggleTagFilterMode}
 		onImport={handleImport}
 		onSettings={() => modalOrchestrator.openSettingsModal()}
 		onDevTools={openDevTools}
@@ -885,8 +783,8 @@
 				onPlaylistContextMenu={handlePlaylistContextMenu}
 				onPlaylistTreeContextMenu={handlePlaylistTreeContextMenu}
 				onDeviceContextMenu={handleDeviceContextMenu}
-				onTagSelect={handleTagSelect}
-				onTagToggle={handleTagToggle}
+				onTagSelect={tagController.selectTag}
+				onTagToggle={tagController.toggleTagOnTracks}
 				onTagContextMenu={handleTagContextMenu}
 				onCategoryContextMenu={handleCategoryContextMenu}
 				onCreatePlaylist={handleCreatePlaylist}
@@ -980,11 +878,11 @@
 	onPlaylistTreeCreateFolder={handlePlaylistTreeCreateFolder}
 	onLibraryViewImport={handleLibraryViewImport}
 	onPlaylistViewImport={handlePlaylistViewImport}
-	onTagRename={handleRenameTag}
-	onTagDelete={handleDeleteTag}
-	onCategoryRename={handleRenameCategory}
-	onCategoryDelete={handleDeleteCategory}
-	onCategoryChangeColor={handleChangeCategoryColor}
+	onTagRename={(tag) => modalOrchestrator.openRenameTagModal(tag)}
+	onTagDelete={(tag) => modalOrchestrator.openDeleteTagModal(tag)}
+	onCategoryRename={(category) => modalOrchestrator.openRenameCategoryModal(category)}
+	onCategoryDelete={(category) => modalOrchestrator.openDeleteCategoryModal(category)}
+	onCategoryChangeColor={tagController.changeCategoryColor}
 	onTagsSidebarAddCategory={handleTagsSidebarAddCategory}
 	onTagsSidebarAddTag={handleTagsSidebarAddTag}
 	onDeviceViewInfo={handleViewDeviceInfo}
