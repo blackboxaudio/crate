@@ -1,5 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { Playlist, Track } from '$lib/types'
+import type { MoveConflictResolution, MovePlaylistResult, Playlist, Track } from '$lib/types'
 
 /**
  * Get all playlists
@@ -45,8 +45,12 @@ export async function deletePlaylist(id: string): Promise<void> {
 /**
  * Move a playlist to a different folder
  */
-export async function movePlaylist(id: string, parentId: string | null): Promise<Playlist> {
-	return invoke<Playlist>('move_playlist', { id, parentId })
+export async function movePlaylist(
+	id: string,
+	parentId: string | null,
+	resolution?: MoveConflictResolution
+): Promise<MovePlaylistResult> {
+	return invoke<MovePlaylistResult>('move_playlist', { id, parentId, resolution })
 }
 
 /**

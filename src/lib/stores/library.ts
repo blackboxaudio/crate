@@ -215,6 +215,16 @@ function createLibraryStore() {
 		},
 
 		/**
+		 * Add tracks to state without showing toast (for custom toast handling)
+		 */
+		addTracksToState(tracks: Track[]) {
+			update((state) => ({
+				...state,
+				tracks: [...tracks, ...state.tracks],
+			}))
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {

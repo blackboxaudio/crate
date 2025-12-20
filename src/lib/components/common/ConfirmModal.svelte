@@ -54,11 +54,11 @@
 		{/if}
 
 		{#if checkboxLabel}
-			<label class="flex cursor-pointer items-center gap-2">
+			<label class="flex cursor-pointer items-center gap-3">
 				<input
 					type="checkbox"
 					bind:checked={checkboxChecked}
-					class="h-4 w-4 rounded border-stroke bg-surface-2 text-brand-primary focus:ring-brand-primary focus:ring-offset-0"
+					class="h-4 w-4 rounded border-stroke bg-surface-2 text-brand-primary"
 				/>
 				<span class="text-sm text-text-secondary">{checkboxLabel}</span>
 			</label>

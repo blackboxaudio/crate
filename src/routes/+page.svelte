@@ -15,6 +15,7 @@
 		TagSelectionState,
 		UsbDevice,
 		BreadcrumbItem,
+		MoveConflict,
 	} from '$lib/types'
 	import {
 		appStore,
@@ -42,12 +43,21 @@
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView, TrackContextMenu, RelocateTrackModal } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
-	import { InputModal, ConfirmModal, ColorPicker, ResizeHandle, ContextMenu } from '$lib/components/common'
+	import {
+		InputModal,
+		ConfirmModal,
+		MoveConflictModal,
+		ColorPicker,
+		ResizeHandle,
+		ContextMenu,
+	} from '$lib/components/common'
 	import { PlaylistContextMenu, PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TagContextMenu } from '$lib/components/tags'
 	import { DeviceContextMenu, DeviceInfoModal } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
 	import * as devicesApi from '$lib/api/devices'
+	import * as libraryApi from '$lib/api/library'
+	import { openDevTools } from '$lib/api/app'
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
@@ -85,11 +95,16 @@
 	let playlistContextMenuOpen = $state(false)
 	let playlistContextMenuPosition = $state({ x: 0, y: 0 })
 	let playlistContextMenuPlaylist = $state<Playlist | null>(null)
+	let playlistContextMenuSource = $state<'tree' | 'folder' | null>(null)
 
 	// Folder view context menu state (for empty space right-click)
 	let folderViewContextMenuOpen = $state(false)
 	let folderViewContextMenuPosition = $state({ x: 0, y: 0 })
 	let folderViewContextMenuFolderId = $state<string | null>(null)
+
+	// Playlist tree context menu state (for whitespace right-click)
+	let playlistTreeContextMenuOpen = $state(false)
+	let playlistTreeContextMenuPosition = $state({ x: 0, y: 0 })
 
 	// Library view context menu state (for empty space right-click)
 	let libraryViewContextMenuOpen = $state(false)
@@ -135,6 +150,13 @@
 	// Relocate track modal state
 	let showRelocateModal = $state(false)
 	let relocateTrack = $state<Track | null>(null)
+
+	// Move conflict modal state
+	let showMoveConflictModal = $state(false)
+	let moveConflictMovingItem = $state<Playlist | null>(null)
+	let moveConflictExistingItem = $state<Playlist | null>(null)
+	let moveConflictTargetParentId = $state<string | null>(null)
+	let pendingMergeConflicts = $state<MoveConflict[]>([])
 
 	// Tag modal states
 	let showRenameTagModal = $state(false)
@@ -233,7 +255,7 @@
 							return ext && audioExtensions.includes(ext)
 						})
 						if (audioPaths.length > 0) {
-							await libraryStore.importTracks(audioPaths)
+							await handleExternalFileDrop(audioPaths)
 						}
 					}
 				} else if (event.payload.type === 'enter') {
@@ -323,6 +345,43 @@
 	function isInputFocused() {
 		const active = document.activeElement
 		return active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
+	}
+
+	// External file drop handler (from OS file explorer)
+	async function handleExternalFileDrop(audioPaths: string[]) {
+		if (selectedPlaylistId) {
+			// Import and add to playlist with combined toast
+			const result = await libraryApi.importTracks(audioPaths)
+
+			// Update library store state
+			libraryStore.addTracksToState(result.tracks)
+
+			if (result.tracks.length > 0) {
+				const trackIds = result.tracks.map((t) => t.id)
+				const playlist = playlists.find((p) => p.id === selectedPlaylistId)
+				const playlistName = playlist?.name || 'playlist'
+
+				try {
+					await playlistsStore.addTracks(selectedPlaylistId, trackIds)
+					const count = result.tracks.length
+					const trackWord = count === 1 ? 'track' : 'tracks'
+					if (result.failed_count > 0) {
+						toastStore.warning(
+							`${count} ${trackWord} imported and added to ${playlistName}, ${result.failed_count} failed`
+						)
+					} else {
+						toastStore.success(`${count} ${trackWord} imported and added to ${playlistName}`)
+					}
+				} catch {
+					toastStore.warning(`Tracks imported but failed to add to ${playlistName}`)
+				}
+			} else if (result.failed_count > 0) {
+				toastStore.error(`Failed to import tracks: ${result.errors[0] || 'Unknown error'}`)
+			}
+		} else {
+			// Library/folder view - use standard import with its own toast
+			await libraryStore.importTracks(audioPaths)
+		}
 	}
 
 	// Import handler
@@ -524,6 +583,8 @@
 	function closeAllContextMenus() {
 		contextMenuOpen = false
 		playlistContextMenuOpen = false
+		playlistContextMenuSource = null
+		playlistTreeContextMenuOpen = false
 		folderViewContextMenuOpen = false
 		libraryViewContextMenuOpen = false
 		playlistViewContextMenuOpen = false
@@ -623,7 +684,37 @@
 		e.preventDefault()
 		playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
 		playlistContextMenuPlaylist = playlist
+		playlistContextMenuSource = 'tree'
 		playlistContextMenuOpen = true
+	}
+
+	function handleFolderViewCardContextMenu(e: MouseEvent, playlist: Playlist) {
+		closeAllContextMenus()
+		e.preventDefault()
+		playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
+		playlistContextMenuPlaylist = playlist
+		playlistContextMenuSource = 'folder'
+		playlistContextMenuOpen = true
+	}
+
+	// Playlist tree context menu handlers (right-click on whitespace)
+	function handlePlaylistTreeContextMenu(e: MouseEvent) {
+		closeAllContextMenus()
+		e.preventDefault()
+		playlistTreeContextMenuPosition = { x: e.clientX, y: e.clientY }
+		playlistTreeContextMenuOpen = true
+	}
+
+	function handlePlaylistTreeCreatePlaylist() {
+		playlistTreeContextMenuOpen = false
+		playlistModalParentId = null
+		showPlaylistModal = true
+	}
+
+	function handlePlaylistTreeCreateFolder() {
+		playlistTreeContextMenuOpen = false
+		folderModalParentId = null
+		showFolderModal = true
 	}
 
 	// Folder view context menu handlers (right-click on empty space)
@@ -742,17 +833,134 @@
 		}
 	}
 
+	// Helper to find a conflicting item in the target folder
+	function findConflictingItem(movingItem: Playlist, targetParentId: string | null): Playlist | null {
+		return (
+			playlists.find((p) => p.parent_id === targetParentId && p.name === movingItem.name && p.id !== movingItem.id) ??
+			null
+		)
+	}
+
+	// Helper to get a playlist by ID
+	function getPlaylistById(id: string): Playlist | null {
+		return playlists.find((p) => p.id === id) ?? null
+	}
+
 	async function handlePlaylistMove(playlist: Playlist, folderId: string | null) {
 		playlistContextMenuOpen = false
+
+		// Check for conflict
+		const conflict = findConflictingItem(playlist, folderId)
+
+		if (conflict) {
+			// Store context and show modal
+			moveConflictMovingItem = playlist
+			moveConflictExistingItem = conflict
+			moveConflictTargetParentId = folderId
+			showMoveConflictModal = true
+			return
+		}
+
+		// No conflict, proceed with move
 		await playlistsStore.move(playlist.id, folderId)
 	}
 
 	// Handler for drag-drop playlist move
 	async function handlePlaylistDragMove(playlistId: string, targetFolderId: string | null) {
+		const playlist = getPlaylistById(playlistId)
+		if (!playlist) return
+
+		// Check for conflict
+		const conflict = findConflictingItem(playlist, targetFolderId)
+
+		if (conflict) {
+			// Store context and show modal
+			moveConflictMovingItem = playlist
+			moveConflictExistingItem = conflict
+			moveConflictTargetParentId = targetFolderId
+			showMoveConflictModal = true
+			return
+		}
+
+		// No conflict, proceed with move
 		const result = await playlistsStore.move(playlistId, targetFolderId)
 		if (result) {
-			toastStore.success('Playlist moved successfully')
+			toastStore.success('Moved successfully')
 		}
+	}
+
+	// Move conflict resolution handlers
+	function resetMoveConflictState() {
+		moveConflictMovingItem = null
+		moveConflictExistingItem = null
+		moveConflictTargetParentId = null
+	}
+
+	function handleMoveConflictCancel() {
+		showMoveConflictModal = false
+		resetMoveConflictState()
+		pendingMergeConflicts = []
+	}
+
+	async function handleMoveConflictOverwrite() {
+		showMoveConflictModal = false
+
+		if (moveConflictMovingItem && moveConflictTargetParentId !== undefined) {
+			const result = await playlistsStore.moveWithResolution(
+				moveConflictMovingItem.id,
+				moveConflictTargetParentId,
+				'overwrite'
+			)
+			if (result) {
+				toastStore.success('Replaced existing item')
+			}
+		}
+
+		resetMoveConflictState()
+		pendingMergeConflicts = []
+	}
+
+	async function handleMoveConflictMerge() {
+		showMoveConflictModal = false
+
+		if (moveConflictMovingItem && moveConflictTargetParentId !== undefined) {
+			const result = await playlistsStore.moveWithResolution(
+				moveConflictMovingItem.id,
+				moveConflictTargetParentId,
+				'merge'
+			)
+
+			if (result) {
+				// Check for nested conflicts from merge
+				if (result.nestedConflicts.length > 0) {
+					// Queue them for sequential resolution
+					pendingMergeConflicts = result.nestedConflicts
+					processNextMergeConflict()
+					// Don't reset state - processNextMergeConflict set it up for the next conflict
+					return
+				} else {
+					toastStore.success('Merged successfully')
+				}
+			}
+		}
+
+		resetMoveConflictState()
+	}
+
+	function processNextMergeConflict() {
+		if (pendingMergeConflicts.length === 0) {
+			toastStore.success('Merge completed')
+			return
+		}
+
+		const next = pendingMergeConflicts[0]
+		pendingMergeConflicts = pendingMergeConflicts.slice(1)
+
+		moveConflictMovingItem = next.movingItem
+		moveConflictExistingItem = next.existingItem
+		// The target is the existing item's parent (which is the folder we're merging into)
+		moveConflictTargetParentId = next.existingItem.parent_id
+		showMoveConflictModal = true
 	}
 
 	// Helper to get folders for move menu
@@ -994,6 +1202,7 @@
 		onToggleTagFilterMode={handleToggleTagFilterMode}
 		onImport={handleImport}
 		onSettings={() => (showSettings = true)}
+		onDevTools={openDevTools}
 	/>
 
 	<div class="flex flex-1 overflow-hidden">
@@ -1003,6 +1212,10 @@
 				{tagCategories}
 				{devices}
 				{selectedPlaylistId}
+				{selectedFolderId}
+				contextMenuPlaylistId={playlistContextMenuOpen && playlistContextMenuSource === 'tree'
+					? (playlistContextMenuPlaylist?.id ?? null)
+					: null}
 				{selectedTagIds}
 				selectedTrackIds={$selectedTrackIds}
 				{tagStates}
@@ -1011,6 +1224,7 @@
 				onLibraryClick={handleLibraryClick}
 				onPlaylistSelect={handlePlaylistSelect}
 				onPlaylistContextMenu={handlePlaylistContextMenu}
+				onPlaylistTreeContextMenu={handlePlaylistTreeContextMenu}
 				onDeviceContextMenu={handleDeviceContextMenu}
 				onTagSelect={handleTagSelect}
 				onTagToggle={handleTagToggle}
@@ -1037,7 +1251,7 @@
 					onBreadcrumbNavigate={handleBreadcrumbNavigate}
 					onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 					onEmptySpaceContextMenu={handleFolderViewContextMenu}
-					onCardContextMenu={handlePlaylistContextMenu}
+					onCardContextMenu={handleFolderViewCardContextMenu}
 				/>
 			{:else if selectedPlaylistId}
 				{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
@@ -1154,6 +1368,18 @@
 	onMove={handlePlaylistMove}
 />
 
+<!-- Playlist Tree Context Menu (whitespace right-click) -->
+<ContextMenu
+	open={playlistTreeContextMenuOpen}
+	x={playlistTreeContextMenuPosition.x}
+	y={playlistTreeContextMenuPosition.y}
+	items={[
+		{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handlePlaylistTreeCreateFolder },
+		{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handlePlaylistTreeCreatePlaylist },
+	]}
+	onClose={() => (playlistTreeContextMenuOpen = false)}
+/>
+
 <!-- Folder View Context Menu (empty space right-click) -->
 <ContextMenu
 	open={folderViewContextMenuOpen}
@@ -1252,6 +1478,17 @@
 		showRemoveFromLibraryConfirm = false
 		removeTrackIds = []
 	}}
+/>
+
+<!-- Move Conflict Modal -->
+<MoveConflictModal
+	open={showMoveConflictModal}
+	movingItem={moveConflictMovingItem}
+	conflictingItem={moveConflictExistingItem}
+	pendingCount={pendingMergeConflicts.length}
+	onCancel={handleMoveConflictCancel}
+	onOverwrite={handleMoveConflictOverwrite}
+	onMerge={handleMoveConflictMerge}
 />
 
 <!-- Tag Context Menu -->

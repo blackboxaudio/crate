@@ -1,7 +1,7 @@
 use tauri::State;
 
 use crate::error::CrateError;
-use crate::models::{Playlist, Track};
+use crate::models::{MovePlaylistResult, Playlist, Track};
 use crate::services::PlaylistService;
 
 #[tauri::command]
@@ -50,9 +50,10 @@ pub async fn delete_playlist(
 pub async fn move_playlist(
     id: String,
     parent_id: Option<String>,
+    resolution: Option<String>,
     playlists: State<'_, PlaylistService>,
-) -> Result<Playlist, CrateError> {
-    playlists.move_playlist(&id, parent_id)
+) -> Result<MovePlaylistResult, CrateError> {
+    playlists.move_playlist(&id, parent_id, resolution.as_deref())
 }
 
 #[tauri::command]

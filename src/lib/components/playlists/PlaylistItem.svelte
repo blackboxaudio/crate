@@ -7,6 +7,7 @@
 		playlist: Playlist
 		playlists?: Playlist[]
 		selected?: boolean
+		isContextMenuActive?: boolean
 		depth?: number
 		expanded?: boolean
 		hasChildren?: boolean
@@ -21,6 +22,7 @@
 		playlist,
 		playlists = [],
 		selected = false,
+		isContextMenuActive = false,
 		depth = 0,
 		expanded = false,
 		hasChildren = false,
@@ -191,7 +193,7 @@
 	draggable="true"
 	aria-selected={selected}
 	aria-expanded={playlist.is_folder ? expanded : undefined}
-	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-2 transition-colors {selected
+	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-2 transition-colors {selected || isContextMenuActive
 		? 'bg-brand-muted text-text-primary'
 		: isDragOver || isPlaylistDragOver
 			? 'bg-brand-muted text-text-primary ring-1 ring-brand-primary'

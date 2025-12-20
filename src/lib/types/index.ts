@@ -155,6 +155,18 @@ export interface Playlist {
 	track_count: number
 }
 
+export type MoveConflictResolution = 'overwrite' | 'merge'
+
+export interface MoveConflict {
+	movingItem: Playlist
+	existingItem: Playlist
+}
+
+export interface MovePlaylistResult {
+	playlist: Playlist
+	nestedConflicts: MoveConflict[]
+}
+
 // =============================================================================
 // Playback Types
 // =============================================================================

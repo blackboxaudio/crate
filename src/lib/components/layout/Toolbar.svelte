@@ -14,6 +14,7 @@
 		onToggleTagFilterMode?: () => void
 		onImport?: () => void
 		onSettings?: () => void
+		onDevTools?: () => void
 	}
 
 	let {
@@ -25,6 +26,7 @@
 		onToggleTagFilterMode,
 		onImport,
 		onSettings,
+		onDevTools,
 	}: Props = $props()
 </script>
 
@@ -55,12 +57,17 @@
 
 	<!-- Actions -->
 	<div class="flex items-center gap-2">
+		<Button variant="primary" size="sm" onclick={onImport}>
+			<Icon name="upload" class="mr-1.5 h-4 w-4" />
+			Import
+		</Button>
+		{#if $isDev}
+			<IconButton title="Developer Tools" onclick={onDevTools}>
+				<Icon name="terminal" class="h-5 w-5" />
+			</IconButton>
+		{/if}
 		<IconButton title="Settings" onclick={onSettings}>
 			<Icon name="settings" class="h-5 w-5" />
 		</IconButton>
-		<Button variant="primary" size="sm" onclick={onImport}>
-			<Icon name="plus" class="mr-1.5 h-4 w-4" />
-			Import
-		</Button>
 	</div>
 </div>

@@ -10,13 +10,41 @@
 	type Props = {
 		playlists: Playlist[]
 		selectedId?: string | null
+		contextMenuItemId?: string | null
 		onSelect?: (playlist: Playlist) => void
 		onContextMenu?: (e: MouseEvent, playlist: Playlist) => void
+		onWhitespaceContextMenu?: (e: MouseEvent) => void
+		onWhitespaceClick?: () => void
 		onTracksDrop?: (playlistId: string, trackIds: string[]) => void
 		onPlaylistMove?: (playlistId: string, targetFolderId: string | null) => void
 	}
 
-	let { playlists, selectedId = null, onSelect, onContextMenu, onTracksDrop, onPlaylistMove }: Props = $props()
+	let {
+		playlists,
+		selectedId = null,
+		contextMenuItemId = null,
+		onSelect,
+		onContextMenu,
+		onWhitespaceContextMenu,
+		onWhitespaceClick,
+		onTracksDrop,
+		onPlaylistMove,
+	}: Props = $props()
+
+	function handleContainerContextMenu(e: MouseEvent) {
+		const target = e.target as HTMLElement
+		if (target.closest('[role="treeitem"]')) return
+		if (onWhitespaceContextMenu) {
+			e.preventDefault()
+			onWhitespaceContextMenu(e)
+		}
+	}
+
+	function handleContainerClick(e: MouseEvent) {
+		const target = e.target as HTMLElement
+		if (target.closest('[role="treeitem"]')) return
+		onWhitespaceClick?.()
+	}
 
 	let expandedIds = $state<Set<string>>(getStoredSet(EXPANDED_STORAGE_KEY))
 
@@ -50,6 +78,7 @@
 		playlist={node.playlist}
 		{playlists}
 		selected={selectedId === node.playlist.id}
+		isContextMenuActive={contextMenuItemId === node.playlist.id}
 		{depth}
 		expanded={expandedIds.has(node.playlist.id)}
 		hasChildren={node.children.length > 0}
@@ -70,7 +99,7 @@
 	{/if}
 {/snippet}
 
-<div role="tree" class="space-y-0.5">
+<div role="tree" class="h-full space-y-0.5" onclick={handleContainerClick} oncontextmenu={handleContainerContextMenu}>
 	{#each tree as node, index (index)}
 		{@render renderNode(node, 0)}
 	{/each}

@@ -12,7 +12,7 @@
 </script>
 
 <div
-	class="flex cursor-pointer items-center gap-2 rounded px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary"
+	class="flex items-center gap-2 rounded px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary"
 	oncontextmenu={(e) => {
 		e.preventDefault()
 		onContextMenu?.(e, device)

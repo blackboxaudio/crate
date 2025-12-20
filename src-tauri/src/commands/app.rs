@@ -31,3 +31,10 @@ pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
         data_dir,
     })
 }
+
+#[tauri::command]
+pub fn open_dev_tools(app: tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        window.open_devtools();
+    }
+}

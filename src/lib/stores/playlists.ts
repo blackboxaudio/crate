@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store'
-import type { Playlist, Track, BreadcrumbItem } from '$lib/types'
+import type { Playlist, Track, BreadcrumbItem, MoveConflictResolution, MovePlaylistResult } from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
 
 // =============================================================================
@@ -129,16 +129,40 @@ function createPlaylistsStore() {
 		},
 
 		/**
-		 * Move a playlist to a different folder
+		 * Move a playlist to a different folder (simple move, will error on conflict)
 		 */
-		async move(id: string, parentId: string | null) {
+		async move(id: string, parentId: string | null): Promise<MovePlaylistResult | null> {
 			try {
-				const updated = await playlistsApi.movePlaylist(id, parentId)
+				const result = await playlistsApi.movePlaylist(id, parentId)
 				update((state) => ({
 					...state,
-					playlists: state.playlists.map((p) => (p.id === id ? updated : p)),
+					playlists: state.playlists.map((p) => (p.id === id ? result.playlist : p)),
 				}))
-				return updated
+				return result
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to move playlist',
+				}))
+				return null
+			}
+		},
+
+		/**
+		 * Move a playlist with conflict resolution (overwrite or merge)
+		 */
+		async moveWithResolution(
+			id: string,
+			parentId: string | null,
+			resolution: MoveConflictResolution
+		): Promise<MovePlaylistResult | null> {
+			try {
+				const result = await playlistsApi.movePlaylist(id, parentId, resolution)
+
+				// Reload playlists to get accurate state after complex operations
+				await this.load()
+
+				return result
 			} catch (error) {
 				update((state) => ({
 					...state,

@@ -21,6 +21,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
+            commands::app::open_dev_tools,
             // Library commands
             commands::library::import_tracks,
             commands::library::get_tracks,

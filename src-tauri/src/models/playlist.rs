@@ -49,3 +49,17 @@ pub struct PlaylistTrack {
     pub position: i32,
     pub date_added: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MoveConflict {
+    pub moving_item: Playlist,
+    pub existing_item: Playlist,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct MovePlaylistResult {
+    pub playlist: Playlist,
+    pub nested_conflicts: Vec<MoveConflict>,
+}

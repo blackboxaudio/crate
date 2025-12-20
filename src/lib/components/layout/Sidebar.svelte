@@ -11,6 +11,8 @@
 		tagCategories: TagCategory[]
 		devices: UsbDevice[]
 		selectedPlaylistId?: string | null
+		selectedFolderId?: string | null
+		contextMenuPlaylistId?: string | null
 		selectedTagIds?: string[]
 		selectedTrackIds?: Set<string>
 		tagStates?: Map<string, TagSelectionState>
@@ -19,6 +21,7 @@
 		onLibraryClick?: () => void
 		onPlaylistSelect?: (playlist: Playlist) => void
 		onPlaylistContextMenu?: (e: MouseEvent, playlist: Playlist) => void
+		onPlaylistTreeContextMenu?: (e: MouseEvent) => void
 		onDeviceContextMenu?: (e: MouseEvent, device: UsbDevice) => void
 		onTagSelect?: (tagId: string) => void
 		onTagToggle?: (tagId: string, state: TagSelectionState) => void
@@ -37,6 +40,8 @@
 		tagCategories,
 		devices,
 		selectedPlaylistId = null,
+		selectedFolderId = null,
+		contextMenuPlaylistId = null,
 		selectedTagIds = [],
 		selectedTrackIds,
 		tagStates,
@@ -45,6 +50,7 @@
 		onLibraryClick,
 		onPlaylistSelect,
 		onPlaylistContextMenu,
+		onPlaylistTreeContextMenu,
 		onDeviceContextMenu,
 		onTagSelect,
 		onTagToggle,
@@ -121,9 +127,12 @@
 		{#if activeSection === 'playlists'}
 			<PlaylistTree
 				{playlists}
-				selectedId={selectedPlaylistId}
+				selectedId={selectedPlaylistId ?? selectedFolderId}
+				contextMenuItemId={contextMenuPlaylistId}
 				onSelect={onPlaylistSelect}
 				onContextMenu={onPlaylistContextMenu}
+				onWhitespaceContextMenu={onPlaylistTreeContextMenu}
+				onWhitespaceClick={onLibraryClick}
 				{onTracksDrop}
 				{onPlaylistMove}
 			/>

@@ -38,7 +38,7 @@
 		{/if}
 	</IconButton>
 
-	<div class="w-24">
-		<Slider value={volume} min={0} max={1} step={0.01} onchange={handleVolumeChange} />
+	<div class="flex h-6 w-24 items-center">
+		<Slider value={volume} min={0} max={1} step={0.01} oninput={handleVolumeChange} />
 	</div>
 </div>

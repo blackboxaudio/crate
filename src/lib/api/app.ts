@@ -13,3 +13,10 @@ export interface AppInfo {
 export async function getAppInfo(): Promise<AppInfo> {
 	return invoke<AppInfo>('get_app_info')
 }
+
+/**
+ * Open browser developer tools (only available in dev mode)
+ */
+export async function openDevTools(): Promise<void> {
+	return invoke('open_dev_tools')
+}

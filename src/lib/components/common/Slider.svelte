@@ -43,6 +43,7 @@
 		appearance: none;
 		width: 12px;
 		height: 12px;
+		border: 1px solid var(--stroke);
 		border-radius: 50%;
 		background: #ffffff;
 		cursor: pointer;
