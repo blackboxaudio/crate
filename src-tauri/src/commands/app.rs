@@ -11,7 +11,10 @@ pub struct AppInfo {
 
 #[tauri::command]
 pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
-    let is_dev = cfg!(debug_assertions);
+    let environment = option_env!("CRATE_ENV")
+        .unwrap_or("development")
+        .to_string();
+    let is_dev = environment == "development";
 
     let data_dir = app
         .path()
@@ -22,11 +25,7 @@ pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
 
     Ok(AppInfo {
         version: env!("CARGO_PKG_VERSION").to_string(),
-        environment: if is_dev {
-            "development".to_string()
-        } else {
-            "production".to_string()
-        },
+        environment,
         is_dev,
         data_dir,
     })
@@ -34,7 +33,14 @@ pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
 
 #[tauri::command]
 pub fn open_dev_tools(app: tauri::AppHandle) {
+    #[cfg(feature = "devtools")]
     if let Some(window) = app.get_webview_window("main") {
         window.open_devtools();
+    }
+
+    #[cfg(not(feature = "devtools"))]
+    {
+        log::warn!("DevTools requested but not available in this build");
+        let _ = app;
     }
 }

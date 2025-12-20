@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.bbx-audio.crate",
   "build": {
-    "beforeDevCommand": "yarn dev",
+    "beforeDevCommand": "yarn dev:vite",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "yarn build",
+    "beforeBuildCommand": "yarn build:vite",
     "frontendDist": "../build"
   },
   "app": {
