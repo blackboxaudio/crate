@@ -38,6 +38,7 @@
 		isDragging,
 		dragData,
 		dragPosition,
+		needsDropTargetRefresh,
 	} from '$lib/stores'
 	import { findDropTargets, findDropTargetAtPoint, type DropTarget } from '$lib/utils/drag'
 	import { toastStore } from '$lib/stores/toast'
@@ -86,6 +87,12 @@
 		rafId = requestAnimationFrame(() => {
 			rafId = null
 			dragStore.updatePosition(e.clientX, e.clientY)
+
+			// Refresh drop targets if requested (e.g., after folder expand)
+			if ($needsDropTargetRefresh) {
+				dropTargets = findDropTargets()
+				dragStore.clearDropTargetRefresh()
+			}
 
 			// Hit-test to find drop target under pointer
 			const target = findDropTargetAtPoint(e.clientX, e.clientY, dropTargets)

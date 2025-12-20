@@ -12,6 +12,7 @@ interface DragState {
 	data: DragData | null
 	position: { x: number; y: number } | null
 	hoveredDropTarget: string | null
+	needsDropTargetRefresh: boolean
 }
 
 // =============================================================================
@@ -22,6 +23,7 @@ const initialState: DragState = {
 	data: null,
 	position: null,
 	hoveredDropTarget: null,
+	needsDropTargetRefresh: false,
 }
 
 function createDragStore() {
@@ -38,6 +40,7 @@ function createDragStore() {
 				data: { type: 'tracks', trackIds },
 				position: { x, y },
 				hoveredDropTarget: null,
+				needsDropTargetRefresh: false,
 			})
 		},
 
@@ -49,6 +52,7 @@ function createDragStore() {
 				data: { type: 'playlist', playlistId, isFolder },
 				position: { x, y },
 				hoveredDropTarget: null,
+				needsDropTargetRefresh: false,
 			})
 		},
 
@@ -77,6 +81,26 @@ function createDragStore() {
 		 */
 		endDrag() {
 			set(initialState)
+		},
+
+		/**
+		 * Request a refresh of drop targets (e.g., after folder expand)
+		 */
+		requestDropTargetRefresh() {
+			update((state) => ({
+				...state,
+				needsDropTargetRefresh: true,
+			}))
+		},
+
+		/**
+		 * Clear the refresh request flag
+		 */
+		clearDropTargetRefresh() {
+			update((state) => ({
+				...state,
+				needsDropTargetRefresh: false,
+			}))
 		},
 
 		/**
@@ -109,3 +133,5 @@ export const hoveredDropTarget = derived(dragStore, ($drag) => $drag.hoveredDrop
 export const isDraggingTracks = derived(dragStore, ($drag) => $drag.data?.type === 'tracks')
 
 export const isDraggingPlaylist = derived(dragStore, ($drag) => $drag.data?.type === 'playlist')
+
+export const needsDropTargetRefresh = derived(dragStore, ($drag) => $drag.needsDropTargetRefresh)

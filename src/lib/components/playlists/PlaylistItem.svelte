@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
-	import { dragStore, hoveredDropTarget, isDraggingTracks, isDraggingPlaylist } from '$lib/stores'
+	import { dragStore, hoveredDropTarget, isDragging, isDraggingTracks, isDraggingPlaylist } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import Icon from '$lib/components/common/Icon.svelte'
 
@@ -51,6 +51,31 @@
 
 	// Check if this item is currently being hovered during a valid drag
 	const isHovered = $derived($hoveredDropTarget === dropTargetId && isValidDropTarget)
+
+	// Check if this folder is being hovered during ANY drag (for auto-expand)
+	const isHoveredDuringDrag = $derived($isDragging && $hoveredDropTarget === dropTargetId)
+
+	// Auto-expand collapsed folders after hovering for 300ms during drag
+	const AUTO_EXPAND_DELAY = 300
+	let autoExpandTimer: ReturnType<typeof setTimeout> | null = null
+
+	$effect(() => {
+		if (playlist.is_folder && !expanded && isHoveredDuringDrag) {
+			autoExpandTimer = setTimeout(() => {
+				onToggle?.()
+				// Request refresh so newly visible children become valid drop targets
+				dragStore.requestDropTargetRefresh()
+				autoExpandTimer = null
+			}, AUTO_EXPAND_DELAY)
+		}
+
+		return () => {
+			if (autoExpandTimer) {
+				clearTimeout(autoExpandTimer)
+				autoExpandTimer = null
+			}
+		}
+	})
 
 	// Track pointer state for drag detection (for dragging playlists/folders)
 	let pointerStartPos: { x: number; y: number } | null = null

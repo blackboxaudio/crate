@@ -39,5 +39,6 @@ export {
 	hoveredDropTarget,
 	isDraggingTracks,
 	isDraggingPlaylist,
+	needsDropTargetRefresh,
 } from './drag'
 export type { DragData } from './drag'
