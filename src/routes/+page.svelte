@@ -470,23 +470,32 @@
 	}
 
 	function handleCreatePlaylist() {
+		playlistModalParentId = selectedFolderId
 		showPlaylistModal = true
 	}
 
 	async function handlePlaylistModalSubmit(name: string) {
 		showPlaylistModal = false
-		await playlistsStore.createPlaylist(name, playlistModalParentId ?? undefined)
+		const playlist = await playlistsStore.createPlaylist(name, playlistModalParentId ?? undefined)
 		playlistModalParentId = null
+		if (playlist) {
+			uiStore.selectPlaylist(playlist.id)
+			await libraryStore.loadPlaylistTracks(playlist.id)
+		}
 	}
 
 	function handleCreateFolder() {
+		folderModalParentId = selectedFolderId
 		showFolderModal = true
 	}
 
 	async function handleFolderModalSubmit(name: string) {
 		showFolderModal = false
-		await playlistsStore.createFolder(name, folderModalParentId ?? undefined)
+		const folder = await playlistsStore.createFolder(name, folderModalParentId ?? undefined)
 		folderModalParentId = null
+		if (folder) {
+			uiStore.selectFolder(folder.id)
+		}
 	}
 
 	function handleCreateCategory() {

@@ -70,6 +70,7 @@
 			id: 'delete',
 			label: playlist.is_folder ? 'Delete Folder' : 'Delete Playlist',
 			icon: 'trash',
+			variant: 'danger',
 			action: () => onDelete(playlist),
 		})
 

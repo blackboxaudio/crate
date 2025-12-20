@@ -133,15 +133,25 @@
 				<button
 					type="button"
 					class="flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors
-						{item.disabled ? 'cursor-not-allowed text-text-tertiary' : 'text-text-primary hover:cursor-pointer hover:bg-surface-2'}"
+						{item.disabled
+						? 'cursor-not-allowed text-text-tertiary'
+						: item.variant === 'danger'
+							? `text-red-500 hover:cursor-pointer hover:bg-red-500/10 ${item.submenu && isSubmenuActive(item.id, depth) ? 'bg-red-500/10' : ''}`
+							: `text-text-primary hover:cursor-pointer hover:bg-surface-2 ${item.submenu && isSubmenuActive(item.id, depth) ? 'bg-surface-2' : ''}`}"
 					onclick={() => handleItemClick(item)}
 					disabled={item.disabled}
 					role="menuitem"
 				>
+					{#if item.colorDot}
+						<span class="h-3 w-3 rounded-full border border-black/10" style="background-color: {item.colorDot};"></span>
+					{/if}
 					{#if item.icon}
 						<Icon name={item.icon} />
 					{/if}
 					<span class="flex-1 whitespace-nowrap">{item.label}</span>
+					{#if item.selected}
+						<Icon name="check" class="h-4 w-4 text-text-primary" />
+					{/if}
 					{#if item.shortcut}
 						<span class="text-xs text-text-tertiary">{item.shortcut}</span>
 					{/if}

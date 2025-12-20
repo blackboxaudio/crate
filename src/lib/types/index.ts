@@ -224,6 +224,9 @@ export interface ContextMenuItem {
 	divider?: boolean
 	action?: () => void
 	submenu?: ContextMenuItem[]
+	colorDot?: string
+	selected?: boolean
+	variant?: 'default' | 'danger'
 }
 
 // =============================================================================

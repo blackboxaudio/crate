@@ -49,6 +49,14 @@
 		return selectedTracks.length === 1 && $missingTrackIds.has(selectedTracks[0].id)
 	})
 
+	// Get current color (for single track or common color across multi-selection)
+	const currentColor = $derived(() => {
+		if (selectedTracks.length === 0) return null
+		const firstColor = selectedTracks[0].color
+		// Only show as selected if all tracks have the same color
+		return selectedTracks.every((t) => t.color === firstColor) ? firstColor : null
+	})
+
 	// Build menu items
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
@@ -110,6 +118,8 @@
 			const colorItems: ContextMenuItem[] = TRACK_COLORS.map((color) => ({
 				id: `color-${color.id}`,
 				label: color.label,
+				colorDot: color.hex,
+				selected: currentColor() === color.id,
 				action: () => onSetColor(color.id),
 			}))
 			colorItems.push({
@@ -120,6 +130,7 @@
 			colorItems.push({
 				id: 'remove-color',
 				label: 'Remove Color',
+				icon: 'trash',
 				action: () => onSetColor(null),
 			})
 			items.push({
@@ -139,6 +150,7 @@
 				id: 'remove-from-playlist',
 				label: 'Remove from Playlist',
 				icon: 'list-minus',
+				variant: 'danger',
 				action: onRemoveFromPlaylist,
 			})
 		}
@@ -148,6 +160,7 @@
 			id: 'remove-from-library',
 			label: 'Remove from Library',
 			icon: 'trash',
+			variant: 'danger',
 			action: onRemoveFromLibrary,
 		})
 
@@ -156,6 +169,7 @@
 			id: 'remove',
 			label: 'Remove',
 			icon: 'minus-circle',
+			variant: 'danger',
 			submenu: removeItems,
 		})
 

@@ -50,6 +50,7 @@
 				id: 'delete-tag',
 				label: 'Delete Tag',
 				icon: 'trash',
+				variant: 'danger',
 				action: () => onDeleteTag(target.tag),
 			})
 		} else if (target.type === 'category') {
@@ -72,6 +73,7 @@
 				id: 'delete-category',
 				label: 'Delete Category',
 				icon: 'trash',
+				variant: 'danger',
 				action: () => onDeleteCategory(target.category),
 			})
 		}
