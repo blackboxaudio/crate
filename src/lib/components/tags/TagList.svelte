@@ -92,6 +92,6 @@
 	{/each}
 
 	{#if categories.length === 0}
-		<p class="py-4 text-center text-sm text-text-tertiary">No tag categories yet</p>
+		<p class="py-4 text-center text-xs text-text-tertiary">No tag categories yet</p>
 	{/if}
 </div>
