@@ -667,7 +667,7 @@
 		/>
 	</div>
 
-	<div class="flex flex-1 overflow-hidden">
+	<div class="relative flex flex-1 overflow-hidden">
 		<!-- Left: Sidebar (without header) -->
 		<div class="flex-shrink-0 rounded-tr-md" style="width: {sidebarWidth}px">
 			<Sidebar
@@ -705,7 +705,7 @@
 		<ResizeHandle onResize={handleSidebarResize} />
 
 		<!-- Right: Main Content + Optional TrackEditor -->
-		<div class="flex flex-1 overflow-hidden rounded-tl-md border-t border-stroke">
+		<div class="flex flex-1 overflow-hidden rounded-tl-md border-t border-l border-stroke">
 			<!-- Main Content -->
 			<div class="flex-1 overflow-hidden">
 				{#if selectedFolderId}
