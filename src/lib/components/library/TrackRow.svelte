@@ -94,10 +94,10 @@
 			<span class="mr-1.5 flex-shrink-0" title="File not found">
 				<Icon name="warning" class="h-3.5 w-3.5 text-red-500" />
 			</span>
-		{:else if playing}
-			<span class="mr-1 inline-block w-4 flex-shrink-0">
-				<Icon name="play" class="h-3 w-3 animate-pulse" fill />
-			</span>
+			<!--{:else if playing}-->
+			<!--	<span class="mr-1 inline-block w-4 flex-shrink-0">-->
+			<!--		<Icon name="play" class="h-3 w-3 animate-pulse" fill />-->
+			<!--	</span>-->
 		{/if}
 		<span class="truncate">{getTrackDisplayName(track)}</span>
 	</div>

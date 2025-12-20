@@ -172,9 +172,6 @@ function createLibraryStore() {
 					tracks: state.tracks.map((t) => (trackIds.includes(t.id) ? { ...t, color } : t)),
 					playlistTracks: state.playlistTracks.map((t) => (trackIds.includes(t.id) ? { ...t, color } : t)),
 				}))
-
-				const label = color ? `Color set to ${color}` : 'Color removed'
-				toastStore.success(trackIds.length === 1 ? label : `${label} for ${trackIds.length} tracks`)
 			} catch (error) {
 				toastStore.error('Failed to set track color')
 			}
