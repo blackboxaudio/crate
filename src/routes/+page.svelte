@@ -15,7 +15,6 @@
 		TagSelectionState,
 		UsbDevice,
 		BreadcrumbItem,
-		MoveConflict,
 	} from '$lib/types'
 	import {
 		appStore,
@@ -41,19 +40,10 @@
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
-	import { LibraryView, RelocateTrackModal } from '$lib/components/library'
+	import { LibraryView } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
-	import {
-		InputModal,
-		ConfirmModal,
-		MoveConflictModal,
-		ResizeHandle,
-		ContextMenuOrchestrator,
-	} from '$lib/components/common'
+	import { ResizeHandle, ContextMenuOrchestrator, ModalOrchestrator } from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
-	import { TagInputModal } from '$lib/components/tags'
-	import { DeviceInfoModal } from '$lib/components/devices'
-	import { SettingsModal } from '$lib/components/settings'
 	import * as devicesApi from '$lib/api/devices'
 	import * as libraryApi from '$lib/api/library'
 	import { onMenuAction, type MenuAction } from '$lib/api/menu'
@@ -73,67 +63,12 @@
 	let tagStates = $state<Map<string, TagSelectionState>>(new Map())
 	let tagCounts = $state<Map<string, number>>(new Map())
 
-	// Modal state
-	let showPlaylistModal = $state(false)
-	let playlistModalParentId = $state<string | null>(null)
-	let showFolderModal = $state(false)
-	let folderModalParentId = $state<string | null>(null)
-	let showCategoryModal = $state(false)
-	let showTagModal = $state(false)
-	let tagModalCategoryId = $state<string | null>(null)
-	let showSettings = $state(false)
-
 	// Drag and drop state
 	let isDragOver = $state(false)
 
-	// Context menu orchestrator binding
+	// Orchestrator bindings
 	let contextMenuOrchestrator: ReturnType<typeof ContextMenuOrchestrator>
-
-	// Playlist modal states
-	let showRenamePlaylistModal = $state(false)
-	let renamePlaylistId = $state<string | null>(null)
-	let renamePlaylistValue = $state('')
-	let showDeletePlaylistConfirm = $state(false)
-	let deletePlaylistId = $state<string | null>(null)
-	let deletePlaylistIsFolder = $state(false)
-	let deletePlaylistHasChildren = $state(false)
-	let deleteTracksFromCollection = $state(false)
-
-	// Track removal confirmation state
-	let showRemoveFromPlaylistConfirm = $state(false)
-	let showRemoveFromLibraryConfirm = $state(false)
-	let removeTrackIds = $state<string[]>([])
-	let removePlaylistId = $state<string | null>(null)
-
-	// Tag input modal state (for adding tag from context menu)
-	let showTagInputModal = $state(false)
-
-	// Device info modal state
-	let showDeviceInfoModal = $state(false)
-	let deviceInfoDevice = $state<UsbDevice | null>(null)
-
-	// Relocate track modal state
-	let showRelocateModal = $state(false)
-	let relocateTrack = $state<Track | null>(null)
-
-	// Move conflict modal state
-	let showMoveConflictModal = $state(false)
-	let moveConflictMovingItem = $state<Playlist | null>(null)
-	let moveConflictExistingItem = $state<Playlist | null>(null)
-	let moveConflictTargetParentId = $state<string | null>(null)
-	let pendingMergeConflicts = $state<MoveConflict[]>([])
-
-	// Tag modal states
-	let showRenameTagModal = $state(false)
-	let renameTagId = $state<string | null>(null)
-	let renameTagValue = $state('')
-	let showRenameCategoryModal = $state(false)
-	let renameCategoryId = $state<string | null>(null)
-	let renameCategoryValue = $state('')
-	let showDeleteTagConfirm = $state(false)
-	let deleteTagId = $state<string | null>(null)
-	let showDeleteCategoryConfirm = $state(false)
-	let deleteCategoryId = $state<string | null>(null)
+	let modalOrchestrator: ReturnType<typeof ModalOrchestrator>
 
 	// Subscribe to stores
 	$effect(() => {
@@ -305,10 +240,10 @@
 			uiStore.setSelectedTracks(allIds)
 		}
 
-		// Cmd/Ctrl+,: toggle settings
+		// Cmd/Ctrl+,: open settings
 		if ((e.metaKey || e.ctrlKey) && e.key === ',') {
 			e.preventDefault()
-			showSettings = !showSettings
+			modalOrchestrator.openSettingsModal()
 		}
 	}
 
@@ -350,7 +285,7 @@
 				// TODO: Implement sidebar toggle
 				break
 			case 'settings':
-				showSettings = true
+				modalOrchestrator.openSettingsModal()
 				break
 			case 'documentation':
 				// TODO: Open documentation
@@ -583,54 +518,19 @@
 	}
 
 	function handleCreatePlaylist() {
-		playlistModalParentId = selectedFolderId
-		showPlaylistModal = true
-	}
-
-	async function handlePlaylistModalSubmit(name: string) {
-		showPlaylistModal = false
-		const playlist = await playlistsStore.createPlaylist(name, playlistModalParentId ?? undefined)
-		playlistModalParentId = null
-		if (playlist) {
-			uiStore.selectPlaylist(playlist.id)
-			await libraryStore.loadPlaylistTracks(playlist.id)
-		}
+		modalOrchestrator.openCreatePlaylistModal(selectedFolderId)
 	}
 
 	function handleCreateFolder() {
-		folderModalParentId = selectedFolderId
-		showFolderModal = true
-	}
-
-	async function handleFolderModalSubmit(name: string) {
-		showFolderModal = false
-		const folder = await playlistsStore.createFolder(name, folderModalParentId ?? undefined)
-		folderModalParentId = null
-		if (folder) {
-			uiStore.selectFolder(folder.id)
-		}
+		modalOrchestrator.openCreateFolderModal(selectedFolderId)
 	}
 
 	function handleCreateCategory() {
-		showCategoryModal = true
-	}
-
-	async function handleCategoryModalSubmit(name: string) {
-		showCategoryModal = false
-		await tagsStore.createCategory(name)
+		modalOrchestrator.openCreateCategoryModal()
 	}
 
 	function handleCreateTag(categoryId: string) {
-		tagModalCategoryId = categoryId
-		showTagModal = true
-	}
-
-	async function handleTagModalSubmit(name: string) {
-		showTagModal = false
-		if (tagModalCategoryId) {
-			await tagsStore.createTag(tagModalCategoryId, name)
-			tagModalCategoryId = null
-		}
+		modalOrchestrator.openCreateTagModal(categoryId)
 	}
 
 	// Context menu handlers
@@ -658,42 +558,15 @@
 
 	// Track removal handlers
 	function handleRemoveFromPlaylistClick(tracks: Track[]) {
-		removeTrackIds = tracks.map((t) => t.id)
-		removePlaylistId = selectedPlaylistId
-		showRemoveFromPlaylistConfirm = true
-	}
-
-	async function handleRemoveFromPlaylistConfirm() {
-		showRemoveFromPlaylistConfirm = false
-		if (removePlaylistId && removeTrackIds.length > 0) {
-			await playlistsStore.removeTracks(removePlaylistId, removeTrackIds)
-			await libraryStore.loadPlaylistTracks(removePlaylistId)
-			uiStore.clearSelection()
-			const count = removeTrackIds.length
-			toastStore.success(count === 1 ? '1 track removed from playlist' : `${count} tracks removed from playlist`)
+		if (selectedPlaylistId) {
+			const trackIds = tracks.map((t) => t.id)
+			modalOrchestrator.openRemoveFromPlaylistModal(trackIds, selectedPlaylistId)
 		}
-		removeTrackIds = []
-		removePlaylistId = null
 	}
 
 	function handleRemoveFromLibraryClick(tracks: Track[]) {
-		removeTrackIds = tracks.map((t) => t.id)
-		showRemoveFromLibraryConfirm = true
-	}
-
-	async function handleRemoveFromLibraryConfirm() {
-		showRemoveFromLibraryConfirm = false
-		if (removeTrackIds.length > 0) {
-			await libraryStore.deleteTracks(removeTrackIds)
-			uiStore.clearSelection()
-			if (selectedPlaylistId) {
-				await libraryStore.loadPlaylistTracks(selectedPlaylistId)
-				await playlistsStore.load()
-			}
-			const count = removeTrackIds.length
-			toastStore.success(count === 1 ? '1 track removed from library' : `${count} tracks removed from library`)
-		}
-		removeTrackIds = []
+		const trackIds = tracks.map((t) => t.id)
+		modalOrchestrator.openRemoveFromLibraryModal(trackIds)
 	}
 
 	// Drag and drop handlers
@@ -725,13 +598,11 @@
 	}
 
 	function handlePlaylistTreeCreatePlaylist() {
-		playlistModalParentId = null
-		showPlaylistModal = true
+		modalOrchestrator.openCreatePlaylistModal(null)
 	}
 
 	function handlePlaylistTreeCreateFolder() {
-		folderModalParentId = null
-		showFolderModal = true
+		modalOrchestrator.openCreateFolderModal(null)
 	}
 
 	// Tags sidebar context menu handlers (right-click on whitespace)
@@ -740,16 +611,11 @@
 	}
 
 	function handleTagsSidebarAddCategory() {
-		showCategoryModal = true
+		modalOrchestrator.openCreateCategoryModal()
 	}
 
 	function handleTagsSidebarAddTag() {
-		showTagInputModal = true
-	}
-
-	async function handleTagInputModalSubmit(categoryId: string, tagName: string) {
-		showTagInputModal = false
-		await tagsStore.createTag(categoryId, tagName)
+		modalOrchestrator.openTagInputModal()
 	}
 
 	// Folder view context menu handlers (right-click on empty space)
@@ -758,13 +624,11 @@
 	}
 
 	function handleFolderViewCreatePlaylist(folderId: string | null) {
-		playlistModalParentId = folderId
-		showPlaylistModal = true
+		modalOrchestrator.openCreatePlaylistModal(folderId)
 	}
 
 	function handleFolderViewCreateFolder(folderId: string | null) {
-		folderModalParentId = folderId
-		showFolderModal = true
+		modalOrchestrator.openCreateFolderModal(folderId)
 	}
 
 	// Library view context menu handlers (right-click on empty space)
@@ -815,38 +679,12 @@
 	}
 
 	function handlePlaylistRename(playlist: Playlist) {
-		renamePlaylistId = playlist.id
-		renamePlaylistValue = playlist.name
-		showRenamePlaylistModal = true
-	}
-
-	async function handleRenamePlaylistSubmit(name: string) {
-		showRenamePlaylistModal = false
-		if (renamePlaylistId) {
-			await playlistsStore.rename(renamePlaylistId, name)
-			renamePlaylistId = null
-			renamePlaylistValue = ''
-		}
+		modalOrchestrator.openRenamePlaylistModal(playlist)
 	}
 
 	function handlePlaylistDelete(playlist: Playlist) {
-		deletePlaylistId = playlist.id
-		deletePlaylistIsFolder = playlist.is_folder
-		// Check if folder has children
-		deletePlaylistHasChildren = playlists.some((p) => p.parent_id === playlist.id)
-		deleteTracksFromCollection = false
-		showDeletePlaylistConfirm = true
-	}
-
-	async function handleDeletePlaylistConfirm(deleteTracksToo: boolean) {
-		showDeletePlaylistConfirm = false
-		if (deletePlaylistId) {
-			// TODO: If deleteTracksToo is true, delete tracks from collection first
-			await playlistsStore.delete(deletePlaylistId)
-			deletePlaylistId = null
-			deletePlaylistIsFolder = false
-			deletePlaylistHasChildren = false
-		}
+		const hasChildren = playlists.some((p) => p.parent_id === playlist.id)
+		modalOrchestrator.openDeletePlaylistModal(playlist, hasChildren)
 	}
 
 	// Helper to find a conflicting item in the target folder
@@ -867,11 +705,7 @@
 		const conflict = findConflictingItem(playlist, folderId)
 
 		if (conflict) {
-			// Store context and show modal
-			moveConflictMovingItem = playlist
-			moveConflictExistingItem = conflict
-			moveConflictTargetParentId = folderId
-			showMoveConflictModal = true
+			modalOrchestrator.openMoveConflictModal(playlist, conflict, folderId)
 			return
 		}
 
@@ -888,11 +722,7 @@
 		const conflict = findConflictingItem(playlist, targetFolderId)
 
 		if (conflict) {
-			// Store context and show modal
-			moveConflictMovingItem = playlist
-			moveConflictExistingItem = conflict
-			moveConflictTargetParentId = targetFolderId
-			showMoveConflictModal = true
+			modalOrchestrator.openMoveConflictModal(playlist, conflict, targetFolderId)
 			return
 		}
 
@@ -901,80 +731,6 @@
 		if (result) {
 			toastStore.success('Moved successfully')
 		}
-	}
-
-	// Move conflict resolution handlers
-	function resetMoveConflictState() {
-		moveConflictMovingItem = null
-		moveConflictExistingItem = null
-		moveConflictTargetParentId = null
-	}
-
-	function handleMoveConflictCancel() {
-		showMoveConflictModal = false
-		resetMoveConflictState()
-		pendingMergeConflicts = []
-	}
-
-	async function handleMoveConflictOverwrite() {
-		showMoveConflictModal = false
-
-		if (moveConflictMovingItem && moveConflictTargetParentId !== undefined) {
-			const result = await playlistsStore.moveWithResolution(
-				moveConflictMovingItem.id,
-				moveConflictTargetParentId,
-				'overwrite'
-			)
-			if (result) {
-				toastStore.success('Replaced existing item')
-			}
-		}
-
-		resetMoveConflictState()
-		pendingMergeConflicts = []
-	}
-
-	async function handleMoveConflictMerge() {
-		showMoveConflictModal = false
-
-		if (moveConflictMovingItem && moveConflictTargetParentId !== undefined) {
-			const result = await playlistsStore.moveWithResolution(
-				moveConflictMovingItem.id,
-				moveConflictTargetParentId,
-				'merge'
-			)
-
-			if (result) {
-				// Check for nested conflicts from merge
-				if (result.nestedConflicts.length > 0) {
-					// Queue them for sequential resolution
-					pendingMergeConflicts = result.nestedConflicts
-					processNextMergeConflict()
-					// Don't reset state - processNextMergeConflict set it up for the next conflict
-					return
-				} else {
-					toastStore.success('Merged successfully')
-				}
-			}
-		}
-
-		resetMoveConflictState()
-	}
-
-	function processNextMergeConflict() {
-		if (pendingMergeConflicts.length === 0) {
-			toastStore.success('Merge completed')
-			return
-		}
-
-		const next = pendingMergeConflicts[0]
-		pendingMergeConflicts = pendingMergeConflicts.slice(1)
-
-		moveConflictMovingItem = next.movingItem
-		moveConflictExistingItem = next.existingItem
-		// The target is the existing item's parent (which is the folder we're merging into)
-		moveConflictTargetParentId = next.existingItem.parent_id
-		showMoveConflictModal = true
 	}
 
 	// Helper to get folders for move menu
@@ -1039,15 +795,6 @@
 		}
 	}
 
-	// Helper to generate delete warnings
-	function getDeleteWarnings(): string[] {
-		const warnings: string[] = []
-		if (deletePlaylistIsFolder && deletePlaylistHasChildren) {
-			warnings.push('This folder contains playlists that will also be deleted.')
-		}
-		return warnings
-	}
-
 	// Tag context menu handlers
 	function handleTagContextMenu(e: MouseEvent, tag: Tag, category: TagCategory) {
 		contextMenuOrchestrator.openTagMenu(e, { type: 'tag', tag, category })
@@ -1058,67 +805,23 @@
 	}
 
 	function handleRenameTag(tag: Tag) {
-		renameTagId = tag.id
-		renameTagValue = tag.name
-		showRenameTagModal = true
-	}
-
-	async function handleRenameTagSubmit(name: string) {
-		showRenameTagModal = false
-		if (renameTagId) {
-			await tagsStore.updateTag(renameTagId, name)
-			renameTagId = null
-			renameTagValue = ''
-		}
+		modalOrchestrator.openRenameTagModal(tag)
 	}
 
 	function handleDeleteTag(tag: Tag) {
-		deleteTagId = tag.id
-		showDeleteTagConfirm = true
-	}
-
-	async function handleDeleteTagConfirm() {
-		showDeleteTagConfirm = false
-		if (deleteTagId) {
-			await tagsStore.deleteTag(deleteTagId)
-			deleteTagId = null
-			// Reload tracks to reflect tag changes
-			await libraryStore.loadTracks()
-		}
+		modalOrchestrator.openDeleteTagModal(tag)
 	}
 
 	function handleRenameCategory(category: TagCategory) {
-		renameCategoryId = category.id
-		renameCategoryValue = category.name
-		showRenameCategoryModal = true
-	}
-
-	async function handleRenameCategorySubmit(name: string) {
-		showRenameCategoryModal = false
-		if (renameCategoryId) {
-			await tagsStore.updateCategory(renameCategoryId, name)
-			renameCategoryId = null
-			renameCategoryValue = ''
-		}
+		modalOrchestrator.openRenameCategoryModal(category)
 	}
 
 	function handleDeleteCategory(category: TagCategory) {
-		deleteCategoryId = category.id
-		showDeleteCategoryConfirm = true
+		modalOrchestrator.openDeleteCategoryModal(category)
 	}
 
 	async function handleChangeCategoryColor(category: TagCategory, color: string | null) {
 		await tagsStore.updateCategory(category.id, undefined, color ?? undefined)
-	}
-
-	async function handleDeleteCategoryConfirm() {
-		showDeleteCategoryConfirm = false
-		if (deleteCategoryId) {
-			await tagsStore.deleteCategory(deleteCategoryId)
-			deleteCategoryId = null
-			// Reload tracks to reflect tag changes
-			await libraryStore.loadTracks()
-		}
 	}
 
 	// Device context menu handlers
@@ -1137,25 +840,18 @@
 	}
 
 	function handleViewDeviceInfo(device: UsbDevice) {
-		deviceInfoDevice = device
-		showDeviceInfoModal = true
+		modalOrchestrator.openDeviceInfoModal(device)
 	}
 
 	// Relocate track handlers
 	function handleOpenRelocateModal(track: Track) {
-		relocateTrack = track
-		showRelocateModal = true
+		modalOrchestrator.openRelocateModal(track)
 	}
 
 	function handleRelocateComplete(updatedTrack: Track) {
 		// Update the track in the library store
 		libraryStore.loadTracks()
 		toastStore.success(`Relocated "${updatedTrack.title || 'track'}"`)
-	}
-
-	function handleCloseRelocateModal() {
-		showRelocateModal = false
-		relocateTrack = null
 	}
 
 	// Track color change handler
@@ -1179,7 +875,7 @@
 		onClearAllTagFilters={handleClearTagFilter}
 		onToggleTagFilterMode={handleToggleTagFilterMode}
 		onImport={handleImport}
-		onSettings={() => (showSettings = true)}
+		onSettings={() => modalOrchestrator.openSettingsModal()}
 		onDevTools={openDevTools}
 	/>
 
@@ -1275,46 +971,6 @@
 	<Player />
 </div>
 
-<!-- Modals -->
-<InputModal
-	open={showPlaylistModal}
-	title="New Playlist"
-	placeholder="Playlist name"
-	submitLabel="Create"
-	onSubmit={handlePlaylistModalSubmit}
-	onCancel={() => (showPlaylistModal = false)}
-/>
-
-<InputModal
-	open={showFolderModal}
-	title="New Folder"
-	placeholder="Folder name"
-	submitLabel="Create"
-	onSubmit={handleFolderModalSubmit}
-	onCancel={() => (showFolderModal = false)}
-/>
-
-<InputModal
-	open={showCategoryModal}
-	title="New Tag Category"
-	placeholder="Category name"
-	submitLabel="Create"
-	onSubmit={handleCategoryModalSubmit}
-	onCancel={() => (showCategoryModal = false)}
-/>
-
-<InputModal
-	open={showTagModal}
-	title="New Tag"
-	placeholder="Tag name"
-	submitLabel="Create"
-	onSubmit={handleTagModalSubmit}
-	onCancel={() => {
-		showTagModal = false
-		tagModalCategoryId = null
-	}}
-/>
-
 <!-- Context Menu Orchestrator -->
 <ContextMenuOrchestrator
 	bind:this={contextMenuOrchestrator}
@@ -1348,170 +1004,82 @@
 	onDeviceEject={handleEjectDevice}
 />
 
-<!-- Rename Playlist Modal -->
-<InputModal
-	open={showRenamePlaylistModal}
-	title="Rename"
-	placeholder="Name"
-	submitLabel="Save"
-	initialValue={renamePlaylistValue}
-	onSubmit={handleRenamePlaylistSubmit}
-	onCancel={() => {
-		showRenamePlaylistModal = false
-		renamePlaylistId = null
-		renamePlaylistValue = ''
+<!-- Modal Orchestrator -->
+<ModalOrchestrator
+	bind:this={modalOrchestrator}
+	{playlists}
+	{tagCategories}
+	onCreatePlaylist={async (name, parentId) => {
+		const playlist = await playlistsStore.createPlaylist(name, parentId ?? undefined)
+		if (playlist) {
+			uiStore.selectPlaylist(playlist.id)
+			await libraryStore.loadPlaylistTracks(playlist.id)
+		}
+		return playlist
 	}}
-/>
-
-<!-- Delete Playlist Confirmation -->
-<ConfirmModal
-	open={showDeletePlaylistConfirm}
-	title={deletePlaylistIsFolder ? 'Delete Folder' : 'Delete Playlist'}
-	message={deletePlaylistIsFolder
-		? 'Are you sure you want to delete this folder?'
-		: 'Are you sure you want to delete this playlist?'}
-	warnings={getDeleteWarnings()}
-	checkboxLabel="Also delete tracks from my collection"
-	bind:checkboxChecked={deleteTracksFromCollection}
-	confirmLabel="Delete"
-	destructive={true}
-	onConfirm={handleDeletePlaylistConfirm}
-	onCancel={() => {
-		showDeletePlaylistConfirm = false
-		deletePlaylistId = null
-		deletePlaylistIsFolder = false
-		deletePlaylistHasChildren = false
+	onCreateFolder={async (name, parentId) => {
+		const folder = await playlistsStore.createFolder(name, parentId ?? undefined)
+		if (folder) {
+			uiStore.selectFolder(folder.id)
+		}
+		return folder
 	}}
-/>
-
-<!-- Remove from Playlist Confirmation -->
-<ConfirmModal
-	open={showRemoveFromPlaylistConfirm}
-	title="Remove from Playlist"
-	message={removeTrackIds.length === 1
-		? 'Are you sure you want to remove this track from the playlist?'
-		: `Are you sure you want to remove ${removeTrackIds.length} tracks from the playlist?`}
-	confirmLabel="Remove"
-	destructive={true}
-	onConfirm={handleRemoveFromPlaylistConfirm}
-	onCancel={() => {
-		showRemoveFromPlaylistConfirm = false
-		removeTrackIds = []
-		removePlaylistId = null
+	onCreateCategory={async (name) => {
+		await tagsStore.createCategory(name)
 	}}
-/>
-
-<!-- Remove from Library Confirmation -->
-<ConfirmModal
-	open={showRemoveFromLibraryConfirm}
-	title="Remove from Library"
-	message={removeTrackIds.length === 1
-		? 'Are you sure you want to remove this track from your library?'
-		: `Are you sure you want to remove ${removeTrackIds.length} tracks from your library?`}
-	warnings={['This action cannot be undone. Tracks will be removed from all playlists.']}
-	confirmLabel="Remove"
-	destructive={true}
-	onConfirm={handleRemoveFromLibraryConfirm}
-	onCancel={() => {
-		showRemoveFromLibraryConfirm = false
-		removeTrackIds = []
+	onCreateTag={async (categoryId, name) => {
+		await tagsStore.createTag(categoryId, name)
 	}}
-/>
-
-<!-- Move Conflict Modal -->
-<MoveConflictModal
-	open={showMoveConflictModal}
-	movingItem={moveConflictMovingItem}
-	conflictingItem={moveConflictExistingItem}
-	pendingCount={pendingMergeConflicts.length}
-	onCancel={handleMoveConflictCancel}
-	onOverwrite={handleMoveConflictOverwrite}
-	onMerge={handleMoveConflictMerge}
-/>
-
-<!-- Device Info Modal -->
-<DeviceInfoModal
-	open={showDeviceInfoModal}
-	device={deviceInfoDevice}
-	onClose={() => {
-		showDeviceInfoModal = false
-		deviceInfoDevice = null
+	onRenamePlaylist={async (id, name) => {
+		await playlistsStore.rename(id, name)
 	}}
-/>
-
-<!-- Tag Input Modal (for adding tag from context menu) -->
-<TagInputModal
-	open={showTagInputModal}
-	categories={tagCategories}
-	onSubmit={handleTagInputModalSubmit}
-	onCancel={() => (showTagInputModal = false)}
-/>
-
-<!-- Rename Tag Modal -->
-<InputModal
-	open={showRenameTagModal}
-	title="Rename Tag"
-	placeholder="Tag name"
-	submitLabel="Save"
-	initialValue={renameTagValue}
-	onSubmit={handleRenameTagSubmit}
-	onCancel={() => {
-		showRenameTagModal = false
-		renameTagId = null
-		renameTagValue = ''
+	onRenameTag={async (id, name) => {
+		await tagsStore.updateTag(id, name)
 	}}
-/>
-
-<!-- Delete Tag Confirmation -->
-<ConfirmModal
-	open={showDeleteTagConfirm}
-	title="Delete Tag"
-	message="Are you sure you want to delete this tag? It will be removed from all tracks."
-	confirmLabel="Delete"
-	destructive={true}
-	onConfirm={handleDeleteTagConfirm}
-	onCancel={() => {
-		showDeleteTagConfirm = false
-		deleteTagId = null
+	onRenameCategory={async (id, name) => {
+		await tagsStore.updateCategory(id, name)
 	}}
-/>
-
-<!-- Rename Category Modal -->
-<InputModal
-	open={showRenameCategoryModal}
-	title="Rename Category"
-	placeholder="Category name"
-	submitLabel="Save"
-	initialValue={renameCategoryValue}
-	onSubmit={handleRenameCategorySubmit}
-	onCancel={() => {
-		showRenameCategoryModal = false
-		renameCategoryId = null
-		renameCategoryValue = ''
+	onDeletePlaylist={async (id, _deleteTracksToo) => {
+		await playlistsStore.delete(id)
 	}}
-/>
-
-<!-- Delete Category Confirmation -->
-<ConfirmModal
-	open={showDeleteCategoryConfirm}
-	title="Delete Category"
-	message="Are you sure you want to delete this category? All tags in this category will be removed from all tracks."
-	confirmLabel="Delete"
-	destructive={true}
-	onConfirm={handleDeleteCategoryConfirm}
-	onCancel={() => {
-		showDeleteCategoryConfirm = false
-		deleteCategoryId = null
+	onDeleteTag={async (id) => {
+		await tagsStore.deleteTag(id)
+		await libraryStore.loadTracks()
 	}}
-/>
-
-<!-- Settings Modal -->
-<SettingsModal open={showSettings} onClose={() => (showSettings = false)} />
-
-<!-- Relocate Track Modal -->
-<RelocateTrackModal
-	open={showRelocateModal}
-	track={relocateTrack}
-	onClose={handleCloseRelocateModal}
-	onRelocate={handleRelocateComplete}
+	onDeleteCategory={async (id) => {
+		await tagsStore.deleteCategory(id)
+		await libraryStore.loadTracks()
+	}}
+	onRemoveFromPlaylist={async (trackIds, playlistId) => {
+		await playlistsStore.removeTracks(playlistId, trackIds)
+		await libraryStore.loadPlaylistTracks(playlistId)
+		uiStore.clearSelection()
+		const count = trackIds.length
+		toastStore.success(count === 1 ? '1 track removed from playlist' : `${count} tracks removed from playlist`)
+	}}
+	onRemoveFromLibrary={async (trackIds) => {
+		await libraryStore.deleteTracks(trackIds)
+		uiStore.clearSelection()
+		if (selectedPlaylistId) {
+			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+			await playlistsStore.load()
+		}
+		const count = trackIds.length
+		toastStore.success(count === 1 ? '1 track removed from library' : `${count} tracks removed from library`)
+	}}
+	onMoveConflictOverwrite={async (movingItemId, targetParentId) => {
+		const result = await playlistsStore.moveWithResolution(movingItemId, targetParentId, 'overwrite')
+		return !!result
+	}}
+	onMoveConflictMerge={async (movingItemId, targetParentId) => {
+		const result = await playlistsStore.moveWithResolution(movingItemId, targetParentId, 'merge')
+		return {
+			success: !!result,
+			nestedConflicts: result?.nestedConflicts ?? [],
+		}
+	}}
+	onTagInputSubmit={async (categoryId, tagName) => {
+		await tagsStore.createTag(categoryId, tagName)
+	}}
+	onRelocateComplete={handleRelocateComplete}
 />
