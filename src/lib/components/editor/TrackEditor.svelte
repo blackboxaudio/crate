@@ -124,7 +124,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col bg-surface-1">
+<div class="flex h-full flex-col border-l border-stroke bg-surface-1">
 	<!-- Header -->
 	<div class="flex items-center justify-between border-b border-stroke px-4 py-3">
 		<h2 class="text-sm font-semibold text-text-primary">
@@ -224,7 +224,7 @@
 	</div>
 
 	<!-- Footer with save button -->
-	<div class="border-t border-stroke p-4">
+	<div class="p-4">
 		<Button variant="primary" class="w-full" onclick={handleSave} disabled={!hasChanges || saving}>
 			{saving ? 'Saving...' : 'Save Changes'}
 		</Button>
