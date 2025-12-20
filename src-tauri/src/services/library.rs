@@ -12,7 +12,10 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
 
 use crate::error::{CrateError, Result};
-use crate::models::{FileMatchResult, ImportResult, Tag, Track, TrackFilter, TrackUpdate};
+use crate::models::{
+    DuplicateResolution, DuplicateTrack, FileMatchResult, ImportResult, ImportResultWithDuplicates,
+    Tag, Track, TrackFilter, TrackUpdate,
+};
 use crate::services::hash::compute_audio_hash;
 use crate::services::ArtworkService;
 
@@ -141,6 +144,200 @@ impl LibraryService {
     fn extract_key(&self, _tag: &dyn Accessor) -> Option<String> {
         // Key is often stored in a custom tag
         None // Will be populated by Rekordbox import or analysis
+    }
+
+    /// Find an existing track by its file hash
+    pub fn find_track_by_hash(&self, file_hash: &str) -> Result<Option<Track>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let result = conn.query_row(
+            r#"
+            SELECT
+                id, file_path, file_hash,
+                title, artist, album, year, genre, label, catalog_number,
+                duration_ms, bpm, key, bitrate, sample_rate, format,
+                analysis_source, waveform_data,
+                rating, play_count,
+                date_added, date_modified, last_played,
+                rekordbox_id, artwork_path, artwork_source, color
+            FROM tracks WHERE file_hash = ?1
+            "#,
+            [file_hash],
+            |row| {
+                Ok(Track {
+                    id: row.get(0)?,
+                    file_path: row.get(1)?,
+                    file_hash: row.get(2)?,
+                    title: row.get(3)?,
+                    artist: row.get(4)?,
+                    album: row.get(5)?,
+                    year: row.get(6)?,
+                    genre: row.get(7)?,
+                    label: row.get(8)?,
+                    catalog_number: row.get(9)?,
+                    duration_ms: row.get(10)?,
+                    bpm: row.get(11)?,
+                    key: row.get(12)?,
+                    bitrate: row.get(13)?,
+                    sample_rate: row.get(14)?,
+                    format: row.get(15)?,
+                    analysis_source: row.get(16)?,
+                    waveform_data: row.get(17)?,
+                    rating: row.get(18)?,
+                    play_count: row.get(19)?,
+                    date_added: row.get(20)?,
+                    date_modified: row.get(21)?,
+                    last_played: row.get(22)?,
+                    rekordbox_id: row.get(23)?,
+                    artwork_path: row.get(24)?,
+                    artwork_source: row.get(25)?,
+                    color: row.get(26)?,
+                    tags: Vec::new(),
+                })
+            },
+        );
+
+        match result {
+            Ok(track) => {
+                // Fetch tags for the track
+                let tracks_with_tags = self.fetch_tags_for_tracks(&conn, vec![track])?;
+                Ok(tracks_with_tags.into_iter().next())
+            }
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(CrateError::Database(e)),
+        }
+    }
+
+    /// Import tracks with duplicate detection based on content hash
+    pub fn import_tracks_with_duplicate_detection(
+        &self,
+        paths: Vec<PathBuf>,
+    ) -> Result<ImportResultWithDuplicates> {
+        let mut tracks = Vec::new();
+        let mut errors = Vec::new();
+        let mut duplicates = Vec::new();
+
+        for path in paths {
+            match self.process_import_path(&path) {
+                Ok(ImportPathResult::NewTrack(track)) => tracks.push(track),
+                Ok(ImportPathResult::Duplicate(dup)) => duplicates.push(dup),
+                Err(e) => {
+                    let error_msg = format!("{}: {}", path.display(), e);
+                    log::warn!("Failed to import {error_msg}");
+                    errors.push(error_msg);
+                }
+            }
+        }
+
+        Ok(ImportResultWithDuplicates {
+            tracks,
+            failed_count: errors.len(),
+            errors,
+            duplicates,
+        })
+    }
+
+    /// Process a single import path, checking for duplicates first
+    fn process_import_path(&self, path: &PathBuf) -> Result<ImportPathResult> {
+        if !path.exists() {
+            return Err(CrateError::FileNotFound(path.clone()));
+        }
+
+        // Check format
+        let format = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            .unwrap_or_default();
+
+        let supported_formats = ["mp3", "wav", "aiff", "aif", "flac", "m4a", "aac"];
+        if !supported_formats.contains(&format.as_str()) {
+            return Err(CrateError::Import(format!("Unsupported format: {format}")));
+        }
+
+        // Compute hash first to check for duplicates
+        let file_hash = compute_audio_hash(path)?;
+
+        // Check if a track with this hash already exists
+        if let Some(existing_track) = self.find_track_by_hash(&file_hash)? {
+            return Ok(ImportPathResult::Duplicate(DuplicateTrack {
+                new_file_path: path.to_string_lossy().to_string(),
+                new_file_hash: file_hash,
+                existing_track,
+            }));
+        }
+
+        // No duplicate - proceed with normal import
+        let track = self.import_single_track_with_hash(path, file_hash)?;
+        Ok(ImportPathResult::NewTrack(track))
+    }
+
+    /// Import a single track with a pre-computed hash
+    fn import_single_track_with_hash(&self, path: &PathBuf, file_hash: String) -> Result<Track> {
+        // Determine format from extension
+        let format = path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            .unwrap_or_default();
+
+        // Create track with pre-computed hash
+        let mut track = Track::new(
+            path.to_string_lossy().to_string(),
+            format.clone(),
+            0, // Duration will be set below
+        );
+        track.file_hash = Some(file_hash);
+
+        if let Some(tagged_file) = self.read_metadata_lenient(path) {
+            // Successfully read with lofty
+            let properties = tagged_file.properties();
+            track.duration_ms = properties.duration().as_millis() as i64;
+            track.bitrate = properties.audio_bitrate().map(|b| b as i32);
+            track.sample_rate = properties.sample_rate().map(|s| s as i32);
+
+            // Extract tags if available
+            if let Some(tag) = tagged_file
+                .primary_tag()
+                .or_else(|| tagged_file.first_tag())
+            {
+                track.title = tag.title().map(|s| s.to_string());
+                track.artist = tag.artist().map(|s| s.to_string());
+                track.album = tag.album().map(|s| s.to_string());
+                track.year = tag.year().map(|y| y as i32);
+                track.genre = tag.genre().map(|s| s.to_string());
+                track.bpm = self.extract_bpm(tag);
+                track.key = self.extract_key(tag);
+            }
+
+            // Extract album artwork
+            if let Some(artwork_path) = self
+                .artwork_service
+                .extract_and_save(&tagged_file, &track.id)
+            {
+                track.artwork_path = Some(artwork_path);
+                track.artwork_source = Some("extracted".to_string());
+            }
+        } else {
+            // Lofty failed completely, use symphonia fallback
+            log::warn!(
+                "Metadata extraction failed for {}, falling back to symphonia",
+                path.display()
+            );
+
+            let (dur, sr, br) = self.read_audio_properties_symphonia(path)?;
+            track.duration_ms = dur;
+            track.sample_rate = sr;
+            track.bitrate = br;
+        }
+
+        // Insert into database
+        self.insert_track(&track)?;
+
+        Ok(track)
     }
 
     /// Attempts to read audio file metadata with lenient parsing options.
@@ -1029,10 +1226,133 @@ impl LibraryService {
 
         Ok(updated_tracks)
     }
+
+    /// Resolve a duplicate by applying the user's chosen action
+    pub fn resolve_duplicate(&self, resolution: DuplicateResolution) -> Result<Option<Track>> {
+        match resolution {
+            DuplicateResolution::Skip => Ok(None),
+            DuplicateResolution::UpdatePath { new_path } => {
+                // Find the track by the new path's hash
+                let path = PathBuf::from(&new_path);
+                let file_hash = compute_audio_hash(&path)?;
+
+                if let Some(existing_track) = self.find_track_by_hash(&file_hash)? {
+                    let track =
+                        self.resolve_duplicate_update_path(&existing_track.id, &new_path)?;
+                    Ok(Some(track))
+                } else {
+                    Err(CrateError::TrackNotFound(
+                        "No existing track found with matching hash".to_string(),
+                    ))
+                }
+            }
+            DuplicateResolution::Replace { new_path, new_hash } => {
+                if let Some(existing_track) = self.find_track_by_hash(&new_hash)? {
+                    let path = PathBuf::from(&new_path);
+                    let track =
+                        self.resolve_duplicate_replace(&existing_track.id, &path, &new_hash)?;
+                    Ok(Some(track))
+                } else {
+                    Err(CrateError::TrackNotFound(
+                        "No existing track found with matching hash".to_string(),
+                    ))
+                }
+            }
+        }
+    }
+
+    /// Resolve a duplicate by updating the existing track's file path only
+    fn resolve_duplicate_update_path(&self, existing_track_id: &str, new_path: &str) -> Result<Track> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Update file_path and date_modified only
+        conn.execute(
+            "UPDATE tracks SET file_path = ?1, date_modified = ?2 WHERE id = ?3",
+            rusqlite::params![new_path, now, existing_track_id],
+        )?;
+
+        drop(conn);
+        self.get_track(existing_track_id)
+    }
+
+    /// Resolve a duplicate by replacing: fresh import keeping only playlist memberships
+    fn resolve_duplicate_replace(
+        &self,
+        existing_track_id: &str,
+        new_path: &PathBuf,
+        new_file_hash: &str,
+    ) -> Result<Track> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        // 1. Get existing playlist memberships
+        let playlist_memberships: Vec<(String, i32, String)> = {
+            let mut stmt = conn.prepare(
+                "SELECT playlist_id, position, date_added FROM playlist_tracks WHERE track_id = ?1",
+            )?;
+            let rows = stmt.query_map([existing_track_id], |row| {
+                Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+            })?;
+            rows.collect::<std::result::Result<Vec<_>, _>>()?
+        };
+
+        // 2. Delete related data (cues, tags)
+        conn.execute("DELETE FROM cues WHERE track_id = ?1", [existing_track_id])?;
+        conn.execute(
+            "DELETE FROM track_tags WHERE track_id = ?1",
+            [existing_track_id],
+        )?;
+
+        // 3. Delete playlist_tracks entries (we'll restore them after)
+        conn.execute(
+            "DELETE FROM playlist_tracks WHERE track_id = ?1",
+            [existing_track_id],
+        )?;
+
+        // 4. Delete the old track
+        conn.execute("DELETE FROM tracks WHERE id = ?1", [existing_track_id])?;
+
+        // Delete old artwork
+        self.artwork_service.delete(existing_track_id);
+
+        drop(conn);
+
+        // 5. Import fresh track
+        let track = self.import_single_track_with_hash(new_path, new_file_hash.to_string())?;
+
+        // 6. Restore playlist memberships with the new track ID
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        for (playlist_id, position, date_added) in playlist_memberships {
+            conn.execute(
+                "INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position, date_added) VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params![playlist_id, track.id, position, date_added],
+            )?;
+        }
+
+        drop(conn);
+        self.get_track(&track.id)
+    }
 }
 
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RescanResult {
     pub updated_count: usize,
     pub failed_count: usize,
+}
+
+/// Result of processing a single import path
+enum ImportPathResult {
+    NewTrack(Track),
+    Duplicate(DuplicateTrack),
 }

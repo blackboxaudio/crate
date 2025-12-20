@@ -1,6 +1,6 @@
 import { open } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
-import type { Track, TrackColor, Playlist } from '$lib/types'
+import type { Track, TrackColor, Playlist, DuplicateTrack } from '$lib/types'
 import type { playerStore as PlayerStoreType } from '$lib/stores/player'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
 import type { playlistsStore as PlaylistsStoreType } from '$lib/stores/playlists'
@@ -30,6 +30,7 @@ export interface TrackControllerModalActions {
 	openRelocateModal: (track: Track) => void
 	openRemoveFromPlaylistModal: (trackIds: string[], playlistId: string) => void
 	openRemoveFromLibraryModal: (trackIds: string[]) => void
+	openDuplicateTrackModal: (duplicates: DuplicateTrack[], onComplete: (tracks: Track[]) => void) => void
 }
 
 export interface TrackController {
@@ -156,7 +157,36 @@ export function createTrackController(
 		})
 
 		if (selected && Array.isArray(selected)) {
-			await libraryStore.importTracks(selected)
+			const result = await libraryStore.importTracks(selected)
+
+			// Handle duplicates if any were detected
+			if (result.duplicates.length > 0 && modalActions) {
+				modalActions.openDuplicateTrackModal(result.duplicates, (resolvedTracks) => {
+					// Add resolved tracks to state and update any that were modified (update_path case)
+					const newTracks = resolvedTracks.filter((t) => !result.tracks.some((rt) => rt.id === t.id))
+					const updatedTracks = resolvedTracks.filter((t) => result.tracks.some((rt) => rt.id === t.id))
+
+					if (newTracks.length > 0) {
+						libraryStore.addTracksToState(newTracks)
+					}
+					if (updatedTracks.length > 0) {
+						libraryStore.updateTracksInState(updatedTracks)
+					}
+
+					// Show final toast after duplicate resolution
+					const totalImported = result.tracks.length + resolvedTracks.length
+					const skippedCount = result.duplicates.length - resolvedTracks.length
+					if (totalImported > 0) {
+						if (skippedCount > 0) {
+							toastStore.success(
+								`${totalImported} track${totalImported !== 1 ? 's' : ''} imported, ${skippedCount} skipped`
+							)
+						} else {
+							toastStore.success(`${totalImported} track${totalImported !== 1 ? 's' : ''} imported`)
+						}
+					}
+				})
+			}
 		}
 	}
 
@@ -167,38 +197,102 @@ export function createTrackController(
 		const selectedPlaylistId = getSelectedPlaylistId()
 		const playlists = getPlaylists()
 
-		if (selectedPlaylistId) {
-			// Import and add to playlist with combined toast
-			const result = await libraryApi.importTracks(audioPaths)
+		// Use the standard import flow which handles duplicates
+		const result = await libraryStore.importTracks(audioPaths)
 
-			// Update library store state
-			libraryStore.addTracksToState(result.tracks)
+		if (selectedPlaylistId) {
+			// Add successfully imported tracks to playlist
+			const playlist = playlists.find((p) => p.id === selectedPlaylistId)
+			const playlistName = playlist?.name || 'playlist'
 
 			if (result.tracks.length > 0) {
 				const trackIds = result.tracks.map((t) => t.id)
-				const playlist = playlists.find((p) => p.id === selectedPlaylistId)
-				const playlistName = playlist?.name || 'playlist'
-
 				try {
 					await playlistsStore.addTracks(selectedPlaylistId, trackIds)
-					const count = result.tracks.length
-					const trackWord = count === 1 ? 'track' : 'tracks'
-					if (result.failed_count > 0) {
-						toastStore.warning(
-							`${count} ${trackWord} imported and added to ${playlistName}, ${result.failed_count} failed`
-						)
-					} else {
-						toastStore.success(`${count} ${trackWord} imported and added to ${playlistName}`)
-					}
 				} catch {
 					toastStore.warning(`Tracks imported but failed to add to ${playlistName}`)
 				}
-			} else if (result.failed_count > 0) {
-				toastStore.error(`Failed to import tracks: ${result.errors[0] || 'Unknown error'}`)
+			}
+
+			// Handle duplicates - resolved tracks should also be added to playlist
+			if (result.duplicates.length > 0 && modalActions) {
+				modalActions.openDuplicateTrackModal(result.duplicates, async (resolvedTracks) => {
+					// Add resolved tracks to state
+					const newTracks = resolvedTracks.filter((t) => !result.tracks.some((rt) => rt.id === t.id))
+					const updatedTracks = resolvedTracks.filter((t) => result.tracks.some((rt) => rt.id === t.id))
+
+					if (newTracks.length > 0) {
+						libraryStore.addTracksToState(newTracks)
+					}
+					if (updatedTracks.length > 0) {
+						libraryStore.updateTracksInState(updatedTracks)
+					}
+
+					// Add resolved tracks to the playlist too
+					if (resolvedTracks.length > 0) {
+						const resolvedTrackIds = resolvedTracks.map((t) => t.id)
+						try {
+							await playlistsStore.addTracks(selectedPlaylistId, resolvedTrackIds)
+						} catch {
+							// Silently fail - track is still in library
+						}
+					}
+
+					// Show final toast
+					const totalImported = result.tracks.length + resolvedTracks.length
+					const skippedCount = result.duplicates.length - resolvedTracks.length
+					if (totalImported > 0) {
+						const trackWord = totalImported === 1 ? 'track' : 'tracks'
+						if (skippedCount > 0) {
+							toastStore.success(`${totalImported} ${trackWord} added to ${playlistName}, ${skippedCount} skipped`)
+						} else {
+							toastStore.success(`${totalImported} ${trackWord} added to ${playlistName}`)
+						}
+					}
+				})
+			} else if (result.duplicates.length === 0) {
+				// No duplicates - show toast now
+				const count = result.tracks.length
+				if (count > 0) {
+					const trackWord = count === 1 ? 'track' : 'tracks'
+					if (result.failed_count > 0) {
+						toastStore.warning(`${count} ${trackWord} added to ${playlistName}, ${result.failed_count} failed`)
+					} else {
+						toastStore.success(`${count} ${trackWord} added to ${playlistName}`)
+					}
+				} else if (result.failed_count > 0) {
+					toastStore.error(`Failed to import tracks: ${result.errors[0] || 'Unknown error'}`)
+				}
 			}
 		} else {
-			// Library/folder view - use standard import with its own toast
-			await libraryStore.importTracks(audioPaths)
+			// Library/folder view - handle duplicates
+			if (result.duplicates.length > 0 && modalActions) {
+				modalActions.openDuplicateTrackModal(result.duplicates, (resolvedTracks) => {
+					// Add resolved tracks to state
+					const newTracks = resolvedTracks.filter((t) => !result.tracks.some((rt) => rt.id === t.id))
+					const updatedTracks = resolvedTracks.filter((t) => result.tracks.some((rt) => rt.id === t.id))
+
+					if (newTracks.length > 0) {
+						libraryStore.addTracksToState(newTracks)
+					}
+					if (updatedTracks.length > 0) {
+						libraryStore.updateTracksInState(updatedTracks)
+					}
+
+					// Show final toast
+					const totalImported = result.tracks.length + resolvedTracks.length
+					const skippedCount = result.duplicates.length - resolvedTracks.length
+					if (totalImported > 0) {
+						if (skippedCount > 0) {
+							toastStore.success(
+								`${totalImported} track${totalImported !== 1 ? 's' : ''} imported, ${skippedCount} skipped`
+							)
+						} else {
+							toastStore.success(`${totalImported} track${totalImported !== 1 ? 's' : ''} imported`)
+						}
+					}
+				})
+			}
 		}
 	}
 

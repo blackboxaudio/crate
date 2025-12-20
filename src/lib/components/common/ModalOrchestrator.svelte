@@ -1,5 +1,14 @@
 <script lang="ts" module>
-	import type { Track, Playlist, Tag, TagCategory, UsbDevice, MoveConflict } from '$lib/types'
+	import type {
+		Track,
+		Playlist,
+		Tag,
+		TagCategory,
+		UsbDevice,
+		MoveConflict,
+		DuplicateTrack,
+		DuplicateResolutionAction,
+	} from '$lib/types'
 
 	// Discriminated union for all modal states
 	export type ActiveModal =
@@ -30,6 +39,14 @@
 				targetParentId: string | null
 		  }
 		| { type: 'settings' }
+		| {
+				type: 'duplicateTrack'
+				duplicates: DuplicateTrack[]
+				currentIndex: number
+				applyToAllAction: DuplicateResolutionAction | null
+				resolvedTracks: Track[]
+				onComplete: (tracks: Track[]) => void
+		  }
 
 	// Move resolution result type
 	export type MoveResult = {
@@ -42,11 +59,13 @@
 	import InputModal from './InputModal.svelte'
 	import ConfirmModal from './ConfirmModal.svelte'
 	import MoveConflictModal from './MoveConflictModal.svelte'
+	import DuplicateTrackModal from './DuplicateTrackModal.svelte'
 	import { TagInputModal } from '$lib/components/tags'
 	import { DeviceInfoModal } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
 	import { RelocateTrackModal } from '$lib/components/library'
 	import { toastStore } from '$lib/stores/toast'
+	import { resolveDuplicate } from '$lib/api/library'
 
 	// =========================================================================
 	// Props - Callback handlers passed from parent
@@ -193,6 +212,22 @@
 
 	export function openSettingsModal() {
 		activeModal = { type: 'settings' }
+	}
+
+	export function openDuplicateTrackModal(duplicates: DuplicateTrack[], onComplete: (tracks: Track[]) => void) {
+		if (duplicates.length === 0) {
+			onComplete([])
+			return
+		}
+
+		activeModal = {
+			type: 'duplicateTrack',
+			duplicates,
+			currentIndex: 0,
+			applyToAllAction: null,
+			resolvedTracks: [],
+			onComplete,
+		}
 	}
 
 	// =========================================================================
@@ -361,6 +396,91 @@
 			movingItem: next.movingItem,
 			existingItem: next.existingItem,
 			targetParentId: next.existingItem.parent_id,
+		}
+	}
+
+	// Duplicate track handlers
+	async function handleDuplicateResolve(action: DuplicateResolutionAction, applyToAll: boolean) {
+		if (activeModal.type !== 'duplicateTrack') return
+
+		const { duplicates, currentIndex, resolvedTracks, onComplete } = activeModal
+		const currentDuplicate = duplicates[currentIndex]
+
+		// Process the current duplicate
+		const track = await processDuplicateAction(action, currentDuplicate)
+		const newResolvedTracks = track ? [...resolvedTracks, track] : resolvedTracks
+
+		// If apply to all, process remaining duplicates with the same action
+		if (applyToAll && currentIndex < duplicates.length - 1) {
+			const remainingTracks = await processRemainingDuplicates(action, duplicates.slice(currentIndex + 1))
+			const allResolved = [...newResolvedTracks, ...remainingTracks]
+			closeAll()
+			onComplete(allResolved)
+			return
+		}
+
+		// Check if there are more duplicates to process
+		if (currentIndex < duplicates.length - 1) {
+			activeModal = {
+				type: 'duplicateTrack',
+				duplicates,
+				currentIndex: currentIndex + 1,
+				applyToAllAction: null,
+				resolvedTracks: newResolvedTracks,
+				onComplete,
+			}
+		} else {
+			// All done
+			closeAll()
+			onComplete(newResolvedTracks)
+		}
+	}
+
+	async function processDuplicateAction(
+		action: DuplicateResolutionAction,
+		duplicate: DuplicateTrack
+	): Promise<Track | null> {
+		try {
+			if (action === 'skip') {
+				return await resolveDuplicate({ action: 'skip' })
+			} else if (action === 'update_path') {
+				return await resolveDuplicate({
+					action: 'update_path',
+					new_path: duplicate.new_file_path,
+				})
+			} else {
+				return await resolveDuplicate({
+					action: 'replace',
+					new_path: duplicate.new_file_path,
+					new_hash: duplicate.new_file_hash,
+				})
+			}
+		} catch (error) {
+			toastStore.error(`Failed to resolve duplicate: ${error}`)
+			return null
+		}
+	}
+
+	async function processRemainingDuplicates(
+		action: DuplicateResolutionAction,
+		duplicates: DuplicateTrack[]
+	): Promise<Track[]> {
+		const tracks: Track[] = []
+		for (const dup of duplicates) {
+			const track = await processDuplicateAction(action, dup)
+			if (track) {
+				tracks.push(track)
+			}
+		}
+		return tracks
+	}
+
+	function handleDuplicateCancel() {
+		if (activeModal.type === 'duplicateTrack') {
+			const { resolvedTracks, onComplete } = activeModal
+			closeAll()
+			// Return any tracks that were already resolved
+			onComplete(resolvedTracks)
 		}
 	}
 
@@ -576,4 +696,16 @@
 <!-- Settings Modal -->
 {#if activeModal.type === 'settings'}
 	<SettingsModal open={true} onClose={closeAll} />
+{/if}
+
+<!-- Duplicate Track Modal -->
+{#if activeModal.type === 'duplicateTrack'}
+	<DuplicateTrackModal
+		open={true}
+		duplicate={activeModal.duplicates[activeModal.currentIndex]}
+		currentIndex={activeModal.currentIndex}
+		totalCount={activeModal.duplicates.length}
+		onResolve={handleDuplicateResolve}
+		onCancel={handleDuplicateCancel}
+	/>
 {/if}

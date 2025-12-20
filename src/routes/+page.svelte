@@ -50,7 +50,7 @@
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
-	import { ResizeHandle, ContextMenuOrchestrator, ModalOrchestrator } from '$lib/components/common'
+	import { ResizeHandle, ContextMenuOrchestrator, ModalOrchestrator, DragPreview } from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TrackEditor } from '$lib/components/editor'
 	import * as devicesApi from '$lib/api/devices'
@@ -211,6 +211,8 @@
 			openRemoveFromPlaylistModal: (trackIds, playlistId) =>
 				modalOrchestrator.openRemoveFromPlaylistModal(trackIds, playlistId),
 			openRemoveFromLibraryModal: (trackIds) => modalOrchestrator.openRemoveFromLibraryModal(trackIds),
+			openDuplicateTrackModal: (duplicates, onComplete) =>
+				modalOrchestrator.openDuplicateTrackModal(duplicates, onComplete),
 		}
 	)
 
@@ -849,15 +851,5 @@
 
 <!-- Drag Preview -->
 {#if $isDragging && $dragPosition}
-	{@const data = $dragData}
-	<div
-		class="pointer-events-none fixed z-50 rounded bg-surface-2 px-3 py-2 text-sm text-text-primary shadow-lg ring-1 ring-stroke-subtle"
-		style="left: {$dragPosition.x + 12}px; top: {$dragPosition.y + 12}px; transform: translate(0, 0);"
-	>
-		{#if data?.type === 'tracks'}
-			{data.trackIds.length === 1 ? '1 track' : `${data.trackIds.length} tracks`}
-		{:else if data?.type === 'playlist'}
-			{data.isFolder ? 'Moving folder' : 'Moving playlist'}
-		{/if}
-	</div>
+	<DragPreview data={$dragData} tracks={$libraryStore.tracks} {playlists} x={$dragPosition.x} y={$dragPosition.y} />
 {/if}

@@ -86,7 +86,7 @@
 				</button>
 			</div>
 			<div class="flex flex-wrap gap-1.5 px-3">
-				{#each category.tags as tag (tag.id)}
+				{#each category.tags.toSorted((a, b) => a.name.localeCompare(b.name)) as tag (tag.id)}
 					<TagChip
 						{tag}
 						color={category.color}

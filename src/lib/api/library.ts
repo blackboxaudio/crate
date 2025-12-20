@@ -1,5 +1,14 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { FileMatchResult, ImportResult, Track, TrackColor, TrackFilter, TrackUpdate } from '$lib/types'
+import type {
+	DuplicateResolution,
+	FileMatchResult,
+	ImportResult,
+	ImportResultWithDuplicates,
+	Track,
+	TrackColor,
+	TrackFilter,
+	TrackUpdate,
+} from '$lib/types'
 
 /**
  * Import tracks from file paths into the library
@@ -121,4 +130,18 @@ export async function deleteTrackArtwork(trackId: string): Promise<Track> {
  */
 export async function reextractTrackArtwork(trackId: string): Promise<Track> {
 	return invoke<Track>('reextract_track_artwork', { trackId })
+}
+
+/**
+ * Import tracks with duplicate detection based on content hash
+ */
+export async function importTracksWithDuplicates(paths: string[]): Promise<ImportResultWithDuplicates> {
+	return invoke<ImportResultWithDuplicates>('import_tracks_with_duplicates', { paths })
+}
+
+/**
+ * Resolve a duplicate track with the user's chosen action
+ */
+export async function resolveDuplicate(resolution: DuplicateResolution): Promise<Track | null> {
+	return invoke<Track | null>('resolve_duplicate', { resolution })
 }

@@ -40,6 +40,8 @@ pub fn run() {
             commands::library::set_track_artwork,
             commands::library::delete_track_artwork,
             commands::library::reextract_track_artwork,
+            commands::library::import_tracks_with_duplicates,
+            commands::library::resolve_duplicate,
             // Playback commands
             commands::playback::play_track,
             commands::playback::pause,

@@ -33,6 +33,9 @@ pub enum CrateError {
 
     #[error("Artwork error: {0}")]
     Artwork(String),
+
+    #[error("Track not found: {0}")]
+    TrackNotFound(String),
 }
 
 impl serde::Serialize for CrateError {

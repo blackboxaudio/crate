@@ -143,6 +143,30 @@ export interface ImportResult {
 	errors: string[]
 }
 
+// =============================================================================
+// Duplicate Track Detection Types
+// =============================================================================
+
+export interface DuplicateTrack {
+	new_file_path: string
+	new_file_hash: string
+	existing_track: Track
+}
+
+export interface ImportResultWithDuplicates {
+	tracks: Track[]
+	failed_count: number
+	errors: string[]
+	duplicates: DuplicateTrack[]
+}
+
+export type DuplicateResolutionAction = 'skip' | 'update_path' | 'replace'
+
+export type DuplicateResolution =
+	| { action: 'skip' }
+	| { action: 'update_path'; new_path: string }
+	| { action: 'replace'; new_path: string; new_hash: string }
+
 export interface FileMatchResult {
 	matches: boolean
 	original_hash: string | null

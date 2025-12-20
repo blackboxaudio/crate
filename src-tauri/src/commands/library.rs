@@ -3,7 +3,10 @@ use std::path::PathBuf;
 use tauri::State;
 
 use crate::error::CrateError;
-use crate::models::{FileMatchResult, ImportResult, Track, TrackFilter, TrackUpdate};
+use crate::models::{
+    DuplicateResolution, FileMatchResult, ImportResult, ImportResultWithDuplicates, Track,
+    TrackFilter, TrackUpdate,
+};
 use crate::services::library::RescanResult;
 use crate::services::LibraryService;
 
@@ -144,4 +147,21 @@ pub async fn reextract_track_artwork(
     library: State<'_, LibraryService>,
 ) -> Result<Track, CrateError> {
     library.reextract_track_artwork(&track_id)
+}
+
+#[tauri::command]
+pub async fn import_tracks_with_duplicates(
+    paths: Vec<String>,
+    library: State<'_, LibraryService>,
+) -> Result<ImportResultWithDuplicates, CrateError> {
+    let pathbufs: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
+    library.import_tracks_with_duplicate_detection(pathbufs)
+}
+
+#[tauri::command]
+pub async fn resolve_duplicate(
+    resolution: DuplicateResolution,
+    library: State<'_, LibraryService>,
+) -> Result<Option<Track>, CrateError> {
+    library.resolve_duplicate(resolution)
 }

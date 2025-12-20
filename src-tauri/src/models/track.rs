@@ -132,3 +132,39 @@ pub struct FileMatchResult {
     /// Whether the file format is valid/supported
     pub format_valid: bool,
 }
+
+/// A duplicate track detected during import
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DuplicateTrack {
+    /// The path of the new file being imported
+    pub new_file_path: String,
+    /// The computed hash of the new file
+    pub new_file_hash: String,
+    /// The existing track that has the same hash
+    pub existing_track: Track,
+}
+
+/// Extended import result with duplicate detection
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ImportResultWithDuplicates {
+    /// Successfully imported tracks (non-duplicates)
+    pub tracks: Vec<Track>,
+    /// Files that failed to import
+    pub failed_count: usize,
+    /// Error messages for each failure
+    pub errors: Vec<String>,
+    /// Duplicates detected that need user resolution
+    pub duplicates: Vec<DuplicateTrack>,
+}
+
+/// Resolution action for a duplicate track
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "action", rename_all = "snake_case")]
+pub enum DuplicateResolution {
+    /// Skip this file, don't import
+    Skip,
+    /// Update the existing track's file_path to the new location
+    UpdatePath { new_path: String },
+    /// Replace: fresh import keeping only playlist memberships
+    Replace { new_path: String, new_hash: String },
+}

@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store'
-import type { Track, TrackColor, TrackFilter, SortConfig, ImportResult } from '$lib/types'
+import type { Track, TrackColor, TrackFilter, SortConfig, ImportResultWithDuplicates } from '$lib/types'
 import { sortTracks } from '$lib/utils/sorting'
 import * as libraryApi from '$lib/api/library'
 import * as playlistsApi from '$lib/api/playlists'
@@ -66,34 +66,39 @@ function createLibraryStore() {
 		},
 
 		/**
-		 * Import tracks from file paths
+		 * Import tracks from file paths with duplicate detection
+		 * Returns duplicates for the caller to handle via modal
 		 */
-		async importTracks(paths: string[]): Promise<ImportResult> {
+		async importTracks(paths: string[]): Promise<ImportResultWithDuplicates> {
 			update((state) => ({ ...state, loading: true, error: null }))
 
 			try {
-				const result = await libraryApi.importTracks(paths)
+				const result = await libraryApi.importTracksWithDuplicates(paths)
 
-				update((state) => ({
-					...state,
-					tracks: [...result.tracks, ...state.tracks],
-					loading: false,
-				}))
+				// Add successfully imported tracks to state immediately
+				if (result.tracks.length > 0) {
+					update((state) => ({
+						...state,
+						tracks: [...result.tracks, ...state.tracks],
+					}))
+				}
 
-				// Show appropriate toast based on result
-				const successCount = result.tracks.length
-				const failedCount = result.failed_count
+				update((state) => ({ ...state, loading: false }))
 
-				if (successCount > 0 && failedCount === 0) {
-					// All succeeded
-					toastStore.success(successCount === 1 ? '1 track imported' : `${successCount} tracks imported`)
-				} else if (successCount > 0 && failedCount > 0) {
-					// Partial success
-					toastStore.warning(`${successCount} track${successCount !== 1 ? 's' : ''} imported, ${failedCount} failed`)
-				} else if (successCount === 0 && failedCount > 0) {
-					// All failed
-					const firstError = result.errors[0] || 'Unknown error'
-					toastStore.error(`Failed to import tracks: ${firstError}`)
+				// Show toast for non-duplicate results only if no duplicates
+				// (duplicates will be handled by the modal, toast shown after resolution)
+				if (result.duplicates.length === 0) {
+					const successCount = result.tracks.length
+					const failedCount = result.failed_count
+
+					if (successCount > 0 && failedCount === 0) {
+						toastStore.success(successCount === 1 ? '1 track imported' : `${successCount} tracks imported`)
+					} else if (successCount > 0 && failedCount > 0) {
+						toastStore.warning(`${successCount} track${successCount !== 1 ? 's' : ''} imported, ${failedCount} failed`)
+					} else if (successCount === 0 && failedCount > 0) {
+						const firstError = result.errors[0] || 'Unknown error'
+						toastStore.error(`Failed to import tracks: ${firstError}`)
+					}
 				}
 
 				return result
@@ -105,7 +110,7 @@ function createLibraryStore() {
 					error: errorMessage,
 				}))
 				toastStore.error(errorMessage)
-				return { tracks: [], failed_count: paths.length, errors: [errorMessage] }
+				return { tracks: [], failed_count: paths.length, errors: [errorMessage], duplicates: [] }
 			}
 		},
 
@@ -230,6 +235,18 @@ function createLibraryStore() {
 				...state,
 				tracks: state.tracks.map((t) => updateMap.get(t.id) ?? t),
 				playlistTracks: state.playlistTracks.map((t) => updateMap.get(t.id) ?? t),
+			}))
+		},
+
+		/**
+		 * Remove tracks from state by ID
+		 */
+		removeTracksFromState(ids: string[]) {
+			const idSet = new Set(ids)
+			update((state) => ({
+				...state,
+				tracks: state.tracks.filter((t) => !idSet.has(t.id)),
+				playlistTracks: state.playlistTracks.filter((t) => !idSet.has(t.id)),
 			}))
 		},
 
