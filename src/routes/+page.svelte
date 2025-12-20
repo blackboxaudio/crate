@@ -41,12 +41,18 @@
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
-	import { LibraryView, TrackContextMenu, RelocateTrackModal } from '$lib/components/library'
+	import { LibraryView, RelocateTrackModal } from '$lib/components/library'
 	import { Player } from '$lib/components/player'
-	import { InputModal, ConfirmModal, MoveConflictModal, ResizeHandle, ContextMenu } from '$lib/components/common'
-	import { PlaylistContextMenu, PlaylistView, FolderView } from '$lib/components/playlists'
-	import { TagContextMenu, TagsSidebarContextMenu, TagInputModal } from '$lib/components/tags'
-	import { DeviceContextMenu, DeviceInfoModal } from '$lib/components/devices'
+	import {
+		InputModal,
+		ConfirmModal,
+		MoveConflictModal,
+		ResizeHandle,
+		ContextMenuOrchestrator,
+	} from '$lib/components/common'
+	import { PlaylistView, FolderView } from '$lib/components/playlists'
+	import { TagInputModal } from '$lib/components/tags'
+	import { DeviceInfoModal } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
 	import * as devicesApi from '$lib/api/devices'
 	import * as libraryApi from '$lib/api/library'
@@ -80,34 +86,8 @@
 	// Drag and drop state
 	let isDragOver = $state(false)
 
-	// Track context menu state
-	let contextMenuOpen = $state(false)
-	let contextMenuPosition = $state({ x: 0, y: 0 })
-	let contextMenuTracks = $state<Track[]>([])
-
-	// Playlist context menu state
-	let playlistContextMenuOpen = $state(false)
-	let playlistContextMenuPosition = $state({ x: 0, y: 0 })
-	let playlistContextMenuPlaylist = $state<Playlist | null>(null)
-	let playlistContextMenuSource = $state<'tree' | 'folder' | null>(null)
-
-	// Folder view context menu state (for empty space right-click)
-	let folderViewContextMenuOpen = $state(false)
-	let folderViewContextMenuPosition = $state({ x: 0, y: 0 })
-	let folderViewContextMenuFolderId = $state<string | null>(null)
-
-	// Playlist tree context menu state (for whitespace right-click)
-	let playlistTreeContextMenuOpen = $state(false)
-	let playlistTreeContextMenuPosition = $state({ x: 0, y: 0 })
-
-	// Library view context menu state (for empty space right-click)
-	let libraryViewContextMenuOpen = $state(false)
-	let libraryViewContextMenuPosition = $state({ x: 0, y: 0 })
-
-	// Playlist view context menu state (for empty space right-click)
-	let playlistViewContextMenuOpen = $state(false)
-	let playlistViewContextMenuPosition = $state({ x: 0, y: 0 })
-	let playlistViewContextMenuPlaylist = $state<Playlist | null>(null)
+	// Context menu orchestrator binding
+	let contextMenuOrchestrator: ReturnType<typeof ContextMenuOrchestrator>
 
 	// Playlist modal states
 	let showRenamePlaylistModal = $state(false)
@@ -125,24 +105,8 @@
 	let removeTrackIds = $state<string[]>([])
 	let removePlaylistId = $state<string | null>(null)
 
-	// Tag context menu state
-	let tagContextMenuOpen = $state(false)
-	let tagContextMenuPosition = $state({ x: 0, y: 0 })
-	let tagContextMenuTarget = $state<
-		{ type: 'tag'; tag: Tag; category: TagCategory } | { type: 'category'; category: TagCategory } | null
-	>(null)
-
-	// Tags sidebar context menu state (whitespace right-click)
-	let tagsSidebarContextMenuOpen = $state(false)
-	let tagsSidebarContextMenuPosition = $state({ x: 0, y: 0 })
-
 	// Tag input modal state (for adding tag from context menu)
 	let showTagInputModal = $state(false)
-
-	// Device context menu state
-	let deviceContextMenuOpen = $state(false)
-	let deviceContextMenuPosition = $state({ x: 0, y: 0 })
-	let deviceContextMenuDevice = $state<UsbDevice | null>(null)
 
 	// Device info modal state
 	let showDeviceInfoModal = $state(false)
@@ -670,53 +634,31 @@
 	}
 
 	// Context menu handlers
-	function closeAllContextMenus() {
-		contextMenuOpen = false
-		playlistContextMenuOpen = false
-		playlistContextMenuSource = null
-		playlistTreeContextMenuOpen = false
-		folderViewContextMenuOpen = false
-		libraryViewContextMenuOpen = false
-		playlistViewContextMenuOpen = false
-		tagContextMenuOpen = false
-		tagsSidebarContextMenuOpen = false
-		deviceContextMenuOpen = false
-	}
-
 	function handleTrackContextMenu(e: MouseEvent, track: Track) {
-		closeAllContextMenus()
-		e.preventDefault()
-		contextMenuPosition = { x: e.clientX, y: e.clientY }
-
 		// If the clicked track is in the selection, use the selection
 		// Otherwise, use just the clicked track
 		const currentSelection = $selectedTrackIds
+		let tracks: Track[]
 		if (currentSelection.has(track.id)) {
-			contextMenuTracks = $sortedTracks.filter((t) => currentSelection.has(t.id))
+			tracks = $sortedTracks.filter((t) => currentSelection.has(t.id))
 		} else {
-			contextMenuTracks = [track]
+			tracks = [track]
 		}
-
-		contextMenuOpen = true
+		contextMenuOrchestrator.openTrackMenu(e, tracks)
 	}
 
-	async function handleAddToPlaylist(playlistId: string) {
-		contextMenuOpen = false
-		const trackIds = contextMenuTracks.map((t) => t.id)
+	async function handleAddToPlaylist(playlistId: string, tracks: Track[]) {
+		const trackIds = tracks.map((t) => t.id)
 		await playlistsStore.addTracks(playlistId, trackIds)
 	}
 
-	async function handleRevealInExplorer() {
-		contextMenuOpen = false
-		if (contextMenuTracks.length === 1) {
-			await revealItemInDir(contextMenuTracks[0].file_path)
-		}
+	async function handleRevealInExplorer(track: Track) {
+		await revealItemInDir(track.file_path)
 	}
 
 	// Track removal handlers
-	function handleRemoveFromPlaylistClick() {
-		contextMenuOpen = false
-		removeTrackIds = contextMenuTracks.map((t) => t.id)
+	function handleRemoveFromPlaylistClick(tracks: Track[]) {
+		removeTrackIds = tracks.map((t) => t.id)
 		removePlaylistId = selectedPlaylistId
 		showRemoveFromPlaylistConfirm = true
 	}
@@ -734,9 +676,8 @@
 		removePlaylistId = null
 	}
 
-	function handleRemoveFromLibraryClick() {
-		contextMenuOpen = false
-		removeTrackIds = contextMenuTracks.map((t) => t.id)
+	function handleRemoveFromLibraryClick(tracks: Track[]) {
+		removeTrackIds = tracks.map((t) => t.id)
 		showRemoveFromLibraryConfirm = true
 	}
 
@@ -771,58 +712,38 @@
 
 	// Playlist context menu handlers
 	function handlePlaylistContextMenu(e: MouseEvent, playlist: Playlist) {
-		closeAllContextMenus()
-		e.preventDefault()
-		playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
-		playlistContextMenuPlaylist = playlist
-		playlistContextMenuSource = 'tree'
-		playlistContextMenuOpen = true
+		contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'tree')
 	}
 
 	function handleFolderViewCardContextMenu(e: MouseEvent, playlist: Playlist) {
-		closeAllContextMenus()
-		e.preventDefault()
-		playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
-		playlistContextMenuPlaylist = playlist
-		playlistContextMenuSource = 'folder'
-		playlistContextMenuOpen = true
+		contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'folder')
 	}
 
 	// Playlist tree context menu handlers (right-click on whitespace)
 	function handlePlaylistTreeContextMenu(e: MouseEvent) {
-		closeAllContextMenus()
-		e.preventDefault()
-		playlistTreeContextMenuPosition = { x: e.clientX, y: e.clientY }
-		playlistTreeContextMenuOpen = true
+		contextMenuOrchestrator.openPlaylistTreeMenu(e)
 	}
 
 	function handlePlaylistTreeCreatePlaylist() {
-		playlistTreeContextMenuOpen = false
 		playlistModalParentId = null
 		showPlaylistModal = true
 	}
 
 	function handlePlaylistTreeCreateFolder() {
-		playlistTreeContextMenuOpen = false
 		folderModalParentId = null
 		showFolderModal = true
 	}
 
 	// Tags sidebar context menu handlers (right-click on whitespace)
 	function handleTagsWhitespaceContextMenu(e: MouseEvent) {
-		closeAllContextMenus()
-		e.preventDefault()
-		tagsSidebarContextMenuPosition = { x: e.clientX, y: e.clientY }
-		tagsSidebarContextMenuOpen = true
+		contextMenuOrchestrator.openTagsSidebarMenu(e)
 	}
 
 	function handleTagsSidebarAddCategory() {
-		tagsSidebarContextMenuOpen = false
 		showCategoryModal = true
 	}
 
 	function handleTagsSidebarAddTag() {
-		tagsSidebarContextMenuOpen = false
 		showTagInputModal = true
 	}
 
@@ -833,51 +754,34 @@
 
 	// Folder view context menu handlers (right-click on empty space)
 	function handleFolderViewContextMenu(e: MouseEvent, folderId: string) {
-		closeAllContextMenus()
-		folderViewContextMenuPosition = { x: e.clientX, y: e.clientY }
-		folderViewContextMenuFolderId = folderId
-		folderViewContextMenuOpen = true
+		contextMenuOrchestrator.openFolderViewMenu(e, folderId)
 	}
 
-	function handleFolderViewCreatePlaylist() {
-		folderViewContextMenuOpen = false
-		playlistModalParentId = folderViewContextMenuFolderId
+	function handleFolderViewCreatePlaylist(folderId: string | null) {
+		playlistModalParentId = folderId
 		showPlaylistModal = true
 	}
 
-	function handleFolderViewCreateFolder() {
-		folderViewContextMenuOpen = false
-		folderModalParentId = folderViewContextMenuFolderId
+	function handleFolderViewCreateFolder(folderId: string | null) {
+		folderModalParentId = folderId
 		showFolderModal = true
 	}
 
 	// Library view context menu handlers (right-click on empty space)
 	function handleLibraryViewContextMenu(e: MouseEvent) {
-		closeAllContextMenus()
-		e.preventDefault()
-		libraryViewContextMenuPosition = { x: e.clientX, y: e.clientY }
-		libraryViewContextMenuOpen = true
+		contextMenuOrchestrator.openLibraryViewMenu(e)
 	}
 
 	async function handleLibraryViewImport() {
-		libraryViewContextMenuOpen = false
 		await handleImport()
 	}
 
 	// Playlist view context menu handlers (right-click on empty space)
 	function handlePlaylistViewContextMenu(e: MouseEvent, playlist: Playlist) {
-		closeAllContextMenus()
-		e.preventDefault()
-		playlistViewContextMenuPosition = { x: e.clientX, y: e.clientY }
-		playlistViewContextMenuPlaylist = playlist
-		playlistViewContextMenuOpen = true
+		contextMenuOrchestrator.openPlaylistViewMenu(e, playlist)
 	}
 
-	async function handlePlaylistViewImport() {
-		playlistViewContextMenuOpen = false
-		const playlist = playlistViewContextMenuPlaylist
-		if (!playlist) return
-
+	async function handlePlaylistViewImport(playlist: Playlist) {
 		// Open file dialog
 		const selected = await open({
 			multiple: true,
@@ -911,7 +815,6 @@
 	}
 
 	function handlePlaylistRename(playlist: Playlist) {
-		playlistContextMenuOpen = false
 		renamePlaylistId = playlist.id
 		renamePlaylistValue = playlist.name
 		showRenamePlaylistModal = true
@@ -927,7 +830,6 @@
 	}
 
 	function handlePlaylistDelete(playlist: Playlist) {
-		playlistContextMenuOpen = false
 		deletePlaylistId = playlist.id
 		deletePlaylistIsFolder = playlist.is_folder
 		// Check if folder has children
@@ -961,8 +863,6 @@
 	}
 
 	async function handlePlaylistMove(playlist: Playlist, folderId: string | null) {
-		playlistContextMenuOpen = false
-
 		// Check for conflict
 		const conflict = findConflictingItem(playlist, folderId)
 
@@ -1127,9 +1027,6 @@
 
 	// Breadcrumb context menu handler
 	function handleBreadcrumbContextMenu(e: MouseEvent, item: BreadcrumbItem) {
-		closeAllContextMenus()
-		e.preventDefault()
-
 		if (item.type === 'library') {
 			// Library context menu - placeholder for now
 			// TODO: Could show "New Playlist", "New Folder", "Import Tracks"
@@ -1138,9 +1035,7 @@
 
 		// Reuse playlist context menu for folders/playlists
 		if (item.playlist) {
-			playlistContextMenuPosition = { x: e.clientX, y: e.clientY }
-			playlistContextMenuPlaylist = item.playlist
-			playlistContextMenuOpen = true
+			contextMenuOrchestrator.openPlaylistMenu(e, item.playlist, 'tree')
 		}
 	}
 
@@ -1155,23 +1050,14 @@
 
 	// Tag context menu handlers
 	function handleTagContextMenu(e: MouseEvent, tag: Tag, category: TagCategory) {
-		closeAllContextMenus()
-		e.preventDefault()
-		tagContextMenuPosition = { x: e.clientX, y: e.clientY }
-		tagContextMenuTarget = { type: 'tag', tag, category }
-		tagContextMenuOpen = true
+		contextMenuOrchestrator.openTagMenu(e, { type: 'tag', tag, category })
 	}
 
 	function handleCategoryContextMenu(e: MouseEvent, category: TagCategory) {
-		closeAllContextMenus()
-		e.preventDefault()
-		tagContextMenuPosition = { x: e.clientX, y: e.clientY }
-		tagContextMenuTarget = { type: 'category', category }
-		tagContextMenuOpen = true
+		contextMenuOrchestrator.openTagMenu(e, { type: 'category', category })
 	}
 
 	function handleRenameTag(tag: Tag) {
-		tagContextMenuOpen = false
 		renameTagId = tag.id
 		renameTagValue = tag.name
 		showRenameTagModal = true
@@ -1187,7 +1073,6 @@
 	}
 
 	function handleDeleteTag(tag: Tag) {
-		tagContextMenuOpen = false
 		deleteTagId = tag.id
 		showDeleteTagConfirm = true
 	}
@@ -1203,7 +1088,6 @@
 	}
 
 	function handleRenameCategory(category: TagCategory) {
-		tagContextMenuOpen = false
 		renameCategoryId = category.id
 		renameCategoryValue = category.name
 		showRenameCategoryModal = true
@@ -1219,13 +1103,11 @@
 	}
 
 	function handleDeleteCategory(category: TagCategory) {
-		tagContextMenuOpen = false
 		deleteCategoryId = category.id
 		showDeleteCategoryConfirm = true
 	}
 
 	async function handleChangeCategoryColor(category: TagCategory, color: string | null) {
-		tagContextMenuOpen = false
 		await tagsStore.updateCategory(category.id, undefined, color ?? undefined)
 	}
 
@@ -1241,15 +1123,10 @@
 
 	// Device context menu handlers
 	function handleDeviceContextMenu(e: MouseEvent, device: UsbDevice) {
-		closeAllContextMenus()
-		e.preventDefault()
-		deviceContextMenuPosition = { x: e.clientX, y: e.clientY }
-		deviceContextMenuDevice = device
-		deviceContextMenuOpen = true
+		contextMenuOrchestrator.openDeviceMenu(e, device)
 	}
 
 	async function handleEjectDevice(device: UsbDevice) {
-		deviceContextMenuOpen = false
 		try {
 			await devicesApi.ejectDevice(device.mount_point)
 			toastStore.success(`${device.name} ejected`)
@@ -1260,7 +1137,6 @@
 	}
 
 	function handleViewDeviceInfo(device: UsbDevice) {
-		deviceContextMenuOpen = false
 		deviceInfoDevice = device
 		showDeviceInfoModal = true
 	}
@@ -1288,9 +1164,8 @@
 	}
 
 	// Context menu color handler
-	async function handleContextMenuSetColor(color: TrackColor | null) {
-		contextMenuOpen = false
-		const trackIds = contextMenuTracks.map((t) => t.id)
+	async function handleContextMenuSetColor(color: TrackColor | null, tracks: Track[]) {
+		const trackIds = tracks.map((t) => t.id)
 		await libraryStore.setTrackColors(trackIds, color)
 	}
 </script>
@@ -1316,9 +1191,7 @@
 				{devices}
 				{selectedPlaylistId}
 				{selectedFolderId}
-				contextMenuPlaylistId={playlistContextMenuOpen && playlistContextMenuSource === 'tree'
-					? (playlistContextMenuPlaylist?.id ?? null)
-					: null}
+				contextMenuPlaylistId={null}
 				{selectedTagIds}
 				selectedTrackIds={$selectedTrackIds}
 				{tagStates}
@@ -1442,76 +1315,37 @@
 	}}
 />
 
-<!-- Track Context Menu -->
-<TrackContextMenu
-	open={contextMenuOpen}
-	x={contextMenuPosition.x}
-	y={contextMenuPosition.y}
-	selectedTracks={contextMenuTracks}
+<!-- Context Menu Orchestrator -->
+<ContextMenuOrchestrator
+	bind:this={contextMenuOrchestrator}
 	{playlists}
 	currentPlaylistId={selectedPlaylistId}
-	onClose={() => (contextMenuOpen = false)}
-	onRevealInExplorer={handleRevealInExplorer}
-	onAddToPlaylist={handleAddToPlaylist}
-	onRemoveFromPlaylist={handleRemoveFromPlaylistClick}
-	onRemoveFromLibrary={handleRemoveFromLibraryClick}
-	onRelocate={handleOpenRelocateModal}
-	onSetColor={handleContextMenuSetColor}
-/>
-
-<!-- Playlist Context Menu -->
-<PlaylistContextMenu
-	open={playlistContextMenuOpen}
-	x={playlistContextMenuPosition.x}
-	y={playlistContextMenuPosition.y}
-	playlist={playlistContextMenuPlaylist}
-	folders={playlistFolders}
-	onClose={() => (playlistContextMenuOpen = false)}
-	onRename={handlePlaylistRename}
-	onDelete={handlePlaylistDelete}
-	onMove={handlePlaylistMove}
-/>
-
-<!-- Playlist Tree Context Menu (whitespace right-click) -->
-<ContextMenu
-	open={playlistTreeContextMenuOpen}
-	x={playlistTreeContextMenuPosition.x}
-	y={playlistTreeContextMenuPosition.y}
-	items={[
-		{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handlePlaylistTreeCreateFolder },
-		{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handlePlaylistTreeCreatePlaylist },
-	]}
-	onClose={() => (playlistTreeContextMenuOpen = false)}
-/>
-
-<!-- Folder View Context Menu (empty space right-click) -->
-<ContextMenu
-	open={folderViewContextMenuOpen}
-	x={folderViewContextMenuPosition.x}
-	y={folderViewContextMenuPosition.y}
-	items={[
-		{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handleFolderViewCreateFolder },
-		{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handleFolderViewCreatePlaylist },
-	]}
-	onClose={() => (folderViewContextMenuOpen = false)}
-/>
-
-<!-- Library View Context Menu (empty space right-click) -->
-<ContextMenu
-	open={libraryViewContextMenuOpen}
-	x={libraryViewContextMenuPosition.x}
-	y={libraryViewContextMenuPosition.y}
-	items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handleLibraryViewImport }]}
-	onClose={() => (libraryViewContextMenuOpen = false)}
-/>
-
-<!-- Playlist View Context Menu (empty space right-click) -->
-<ContextMenu
-	open={playlistViewContextMenuOpen}
-	x={playlistViewContextMenuPosition.x}
-	y={playlistViewContextMenuPosition.y}
-	items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handlePlaylistViewImport }]}
-	onClose={() => (playlistViewContextMenuOpen = false)}
+	{playlistFolders}
+	categoryCount={tagCategories.length}
+	onTrackAddToPlaylist={handleAddToPlaylist}
+	onTrackRevealInExplorer={handleRevealInExplorer}
+	onTrackRemoveFromPlaylist={handleRemoveFromPlaylistClick}
+	onTrackRemoveFromLibrary={handleRemoveFromLibraryClick}
+	onTrackRelocate={handleOpenRelocateModal}
+	onTrackSetColor={handleContextMenuSetColor}
+	onPlaylistRename={handlePlaylistRename}
+	onPlaylistDelete={handlePlaylistDelete}
+	onPlaylistMove={handlePlaylistMove}
+	onFolderViewCreatePlaylist={handleFolderViewCreatePlaylist}
+	onFolderViewCreateFolder={handleFolderViewCreateFolder}
+	onPlaylistTreeCreatePlaylist={handlePlaylistTreeCreatePlaylist}
+	onPlaylistTreeCreateFolder={handlePlaylistTreeCreateFolder}
+	onLibraryViewImport={handleLibraryViewImport}
+	onPlaylistViewImport={handlePlaylistViewImport}
+	onTagRename={handleRenameTag}
+	onTagDelete={handleDeleteTag}
+	onCategoryRename={handleRenameCategory}
+	onCategoryDelete={handleDeleteCategory}
+	onCategoryChangeColor={handleChangeCategoryColor}
+	onTagsSidebarAddCategory={handleTagsSidebarAddCategory}
+	onTagsSidebarAddTag={handleTagsSidebarAddTag}
+	onDeviceViewInfo={handleViewDeviceInfo}
+	onDeviceEject={handleEjectDevice}
 />
 
 <!-- Rename Playlist Modal -->
@@ -1593,42 +1427,6 @@
 	onCancel={handleMoveConflictCancel}
 	onOverwrite={handleMoveConflictOverwrite}
 	onMerge={handleMoveConflictMerge}
-/>
-
-<!-- Tag Context Menu -->
-<TagContextMenu
-	open={tagContextMenuOpen}
-	x={tagContextMenuPosition.x}
-	y={tagContextMenuPosition.y}
-	target={tagContextMenuTarget}
-	onClose={() => (tagContextMenuOpen = false)}
-	onRenameTag={handleRenameTag}
-	onDeleteTag={handleDeleteTag}
-	onRenameCategory={handleRenameCategory}
-	onDeleteCategory={handleDeleteCategory}
-	onChangeColor={handleChangeCategoryColor}
-/>
-
-<!-- Tags Sidebar Context Menu (whitespace right-click) -->
-<TagsSidebarContextMenu
-	open={tagsSidebarContextMenuOpen}
-	x={tagsSidebarContextMenuPosition.x}
-	y={tagsSidebarContextMenuPosition.y}
-	categoryCount={tagCategories.length}
-	onClose={() => (tagsSidebarContextMenuOpen = false)}
-	onAddCategory={handleTagsSidebarAddCategory}
-	onAddTag={handleTagsSidebarAddTag}
-/>
-
-<!-- Device Context Menu -->
-<DeviceContextMenu
-	open={deviceContextMenuOpen}
-	x={deviceContextMenuPosition.x}
-	y={deviceContextMenuPosition.y}
-	device={deviceContextMenuDevice}
-	onClose={() => (deviceContextMenuOpen = false)}
-	onViewInfo={handleViewDeviceInfo}
-	onEject={handleEjectDevice}
 />
 
 <!-- Device Info Modal -->
