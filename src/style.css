@@ -226,3 +226,12 @@ textarea,
 *:focus {
 	outline: none;
 }
+
+/* =============================================================================
+   Drag and Drop Cursor
+   ============================================================================= */
+
+html.is-dragging,
+html.is-dragging * {
+	cursor: grabbing !important;
+}

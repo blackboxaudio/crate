@@ -34,7 +34,12 @@
 		missingTrackIds,
 		rightSidebarVisible,
 		rightSidebarWidth,
+		dragStore,
+		isDragging,
+		dragData,
+		dragPosition,
 	} from '$lib/stores'
+	import { findDropTargets, findDropTargetAtPoint, type DropTarget } from '$lib/utils/drag'
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 	import { findConflictingItem, getPlaylistById, hasChildren } from '$lib/utils'
@@ -64,8 +69,106 @@
 	let tagStates = $state<Map<string, TagSelectionState>>(new Map())
 	let tagCounts = $state<Map<string, number>>(new Map())
 
-	// Drag and drop state
+	// Drag and drop state (for external file drops)
 	let isDragOver = $state(false)
+
+	// Internal drag state
+	let dropTargets = $state<DropTarget[]>([])
+	let rafId: number | null = null
+
+	// Handle global pointer events when dragging
+	function handleGlobalPointerMove(e: PointerEvent) {
+		if (!$isDragging) return
+
+		// Use requestAnimationFrame to throttle updates
+		if (rafId !== null) return
+
+		rafId = requestAnimationFrame(() => {
+			rafId = null
+			dragStore.updatePosition(e.clientX, e.clientY)
+
+			// Hit-test to find drop target under pointer
+			const target = findDropTargetAtPoint(e.clientX, e.clientY, dropTargets)
+			const targetId = target ? `${target.type}-${target.id}` : null
+			dragStore.setHoveredDropTarget(targetId)
+		})
+	}
+
+	// Check if targetId is a descendant of potentialAncestorId (prevents circular drops)
+	function isDescendantOf(potentialAncestorId: string, targetId: string): boolean {
+		let currentId: string | null = targetId
+		while (currentId) {
+			if (currentId === potentialAncestorId) return true
+			const current = playlists.find((p) => p.id === currentId)
+			currentId = current?.parent_id ?? null
+		}
+		return false
+	}
+
+	function handleGlobalPointerUp(e: PointerEvent) {
+		if (!$isDragging) return
+
+		const data = $dragData
+		if (!data) {
+			dragStore.endDrag()
+			return
+		}
+
+		// Find drop target under pointer
+		const target = findDropTargetAtPoint(e.clientX, e.clientY, dropTargets)
+
+		if (target) {
+			// Handle the drop based on what we're dragging and where
+			if (data.type === 'tracks' && target.type === 'playlist') {
+				// Dropping tracks on a playlist
+				trackController.handleTracksDropOnPlaylist(target.id, data.trackIds)
+			} else if (data.type === 'playlist' && target.type === 'folder') {
+				// Validate: prevent dropping on self
+				if (data.playlistId === target.id) {
+					toastStore.error('Cannot drop a folder into itself')
+					dragStore.endDrag()
+					return
+				}
+
+				// Validate: prevent dropping folder into its own descendants
+				if (data.isFolder && isDescendantOf(data.playlistId, target.id)) {
+					toastStore.error('Cannot drop a folder into its own subfolder')
+					dragStore.endDrag()
+					return
+				}
+
+				// Dropping a playlist/folder on a folder
+				handlePlaylistDragMove(data.playlistId, target.id)
+			}
+		}
+
+		dragStore.endDrag()
+	}
+
+	// Set up and tear down global drag listeners
+	$effect(() => {
+		if ($isDragging) {
+			// Cache drop targets when drag starts
+			dropTargets = findDropTargets()
+
+			// Set grabbing cursor globally by adding class to html element
+			document.documentElement.classList.add('is-dragging')
+
+			// Add global listeners
+			document.addEventListener('pointermove', handleGlobalPointerMove)
+			document.addEventListener('pointerup', handleGlobalPointerUp)
+
+			return () => {
+				document.documentElement.classList.remove('is-dragging')
+				document.removeEventListener('pointermove', handleGlobalPointerMove)
+				document.removeEventListener('pointerup', handleGlobalPointerUp)
+				if (rafId !== null) {
+					cancelAnimationFrame(rafId)
+					rafId = null
+				}
+			}
+		}
+	})
 
 	// Orchestrator bindings
 	let contextMenuOrchestrator: ReturnType<typeof ContextMenuOrchestrator>
@@ -511,11 +614,7 @@
 	}
 </script>
 
-<div
-	class="flex h-full flex-col"
-	ondragenter={(e) => console.log('[Page] dragenter', e.target)}
-	ondragover={(e) => console.log('[Page] dragover', e.target)}
->
+<div class="flex h-full flex-col">
 	<Toolbar
 		{activeFilterTags}
 		{tagColors}
@@ -740,3 +839,18 @@
 	}}
 	onRelocateComplete={handleRelocateComplete}
 />
+
+<!-- Drag Preview -->
+{#if $isDragging && $dragPosition}
+	{@const data = $dragData}
+	<div
+		class="pointer-events-none fixed z-50 rounded bg-surface-2 px-3 py-2 text-sm text-text-primary shadow-lg ring-1 ring-stroke-subtle"
+		style="left: {$dragPosition.x + 12}px; top: {$dragPosition.y + 12}px; transform: translate(0, 0);"
+	>
+		{#if data?.type === 'tracks'}
+			{data.trackIds.length === 1 ? '1 track' : `${data.trackIds.length} tracks`}
+		{:else if data?.type === 'playlist'}
+			{data.isFolder ? 'Moving folder' : 'Moving playlist'}
+		{/if}
+	</div>
+{/if}

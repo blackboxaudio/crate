@@ -31,3 +31,13 @@ export type { Toast, ToastType } from './toast'
 export { settingsStore, theme, accentColor, resolvedTheme, settingsLoading } from './settings'
 export { devicesStore, devices, deviceCount, hasDevices, devicesLoading } from './devices'
 export { missingTracksStore, missingTrackIds, checkingTrackIds } from './missingTracks'
+export {
+	dragStore,
+	isDragging,
+	dragData,
+	dragPosition,
+	hoveredDropTarget,
+	isDraggingTracks,
+	isDraggingPlaylist,
+} from './drag'
+export type { DragData } from './drag'

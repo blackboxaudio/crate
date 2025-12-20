@@ -4,7 +4,8 @@
 	import { TagChip } from '$lib/components/tags'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { AlbumArt, AlbumArtModal } from '$lib/components/common'
-	import { missingTrackIds } from '$lib/stores'
+	import { missingTrackIds, dragStore } from '$lib/stores'
+	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import TrackColorCell from './TrackColorCell.svelte'
 
 	type Props = {
@@ -33,17 +34,42 @@
 
 	let showArtworkModal = $state(false)
 
-	function handleDragStart(e: DragEvent) {
-		console.log('[DragStart]', track.title, { dataTransfer: !!e.dataTransfer })
-		if (!e.dataTransfer) return
+	// Track pointer state for drag detection
+	let pointerStartPos: { x: number; y: number } | null = null
+	let isDragStarted = false
 
-		// If this track is selected, drag all selected tracks; otherwise just this track
-		const trackIds = selected && dragTrackIds.length > 0 ? dragTrackIds : [track.id]
+	function handlePointerDown(e: PointerEvent) {
+		// Only handle primary button (left click)
+		if (e.button !== 0) return
 
-		e.dataTransfer.effectAllowed = 'copy'
-		e.dataTransfer.setData('application/x-crate-tracks', JSON.stringify(trackIds))
-		e.dataTransfer.setData('text/plain', getTrackDisplayName(track))
-		console.log('[DragStart] Set data:', { trackIds, types: Array.from(e.dataTransfer.types) })
+		// Don't start drag on interactive elements
+		const target = e.target as HTMLElement
+		if (target.closest('button, [role="button"]')) return
+
+		pointerStartPos = { x: e.clientX, y: e.clientY }
+		isDragStarted = false
+	}
+
+	function handlePointerMove(e: PointerEvent) {
+		if (!pointerStartPos) return
+
+		const distance = getDistance(pointerStartPos.x, pointerStartPos.y, e.clientX, e.clientY)
+
+		// Start drag if threshold exceeded
+		if (!isDragStarted && distance >= DRAG_THRESHOLD) {
+			isDragStarted = true
+
+			// Determine which tracks to drag
+			const trackIds = selected && dragTrackIds.length > 0 ? dragTrackIds : [track.id]
+
+			// Start the drag via the store
+			dragStore.startTrackDrag(trackIds, e.clientX, e.clientY)
+		}
+	}
+
+	function handlePointerUp() {
+		pointerStartPos = null
+		isDragStarted = false
 	}
 
 	function handleArtworkClick() {
@@ -58,9 +84,8 @@
 <div
 	role="row"
 	tabindex="0"
-	draggable="true"
 	data-track-row
-	class="relative grid cursor-pointer grid-cols-[24px_40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors {selected
+	class="relative grid cursor-pointer grid-cols-[24px_40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'} {isMissing
 		? 'bg-red-500/5'
@@ -68,7 +93,10 @@
 	{onclick}
 	{ondblclick}
 	{oncontextmenu}
-	ondragstart={handleDragStart}
+	onpointerdown={handlePointerDown}
+	onpointermove={handlePointerMove}
+	onpointerup={handlePointerUp}
+	onpointercancel={handlePointerUp}
 	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
 	<!-- Missing file indicator -->

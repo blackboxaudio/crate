@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
-	import { toastStore } from '$lib/stores'
+	import { dragStore, hoveredDropTarget, isDraggingTracks, isDraggingPlaylist } from '$lib/stores'
+	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
@@ -35,199 +36,78 @@
 
 	let paddingLeft = $derived(`${depth * 12 + 8}px`)
 
-	// State for track drags (onto playlists)
-	let isDragOver = $state(false)
-	let dragEnterCounter = $state(0)
+	// Determine the drop target type for this item
+	const dropTargetType = $derived(playlist.is_folder ? 'folder' : 'playlist')
+	const dropTargetId = $derived(`${dropTargetType}-${playlist.id}`)
 
-	// State for playlist drags (onto folders)
-	let isPlaylistDragOver = $state(false)
-	let playlistDragEnterCounter = $state(0)
-
-	// Check if dataTransfer contains our custom track mime type
-	function hasTrackData(dataTransfer: DataTransfer | null): boolean {
-		if (!dataTransfer?.types) return false
-		return Array.from(dataTransfer.types).includes('application/x-crate-tracks')
-	}
-
-	// Check if dataTransfer contains our custom playlist mime type
-	function hasPlaylistData(dataTransfer: DataTransfer | null): boolean {
-		if (!dataTransfer?.types) return false
-		return Array.from(dataTransfer.types).includes('application/x-crate-playlist')
-	}
-
-	// Check if targetId is a descendant of potentialAncestorId (prevents circular drops)
-	function isDescendantOf(potentialAncestorId: string, targetId: string): boolean {
-		let currentId: string | null = targetId
-		while (currentId) {
-			if (currentId === potentialAncestorId) return true
-			const current = playlists.find((p) => p.id === currentId)
-			currentId = current?.parent_id ?? null
-		}
+	// Determine if this item is a valid drop target based on what's being dragged
+	const isValidDropTarget = $derived.by(() => {
+		// Playlists accept track drops
+		if ($isDraggingTracks && !playlist.is_folder) return true
+		// Folders accept playlist drops
+		if ($isDraggingPlaylist && playlist.is_folder) return true
 		return false
+	})
+
+	// Check if this item is currently being hovered during a valid drag
+	const isHovered = $derived($hoveredDropTarget === dropTargetId && isValidDropTarget)
+
+	// Track pointer state for drag detection (for dragging playlists/folders)
+	let pointerStartPos: { x: number; y: number } | null = null
+	let isDragStarted = false
+
+	function handlePointerDown(e: PointerEvent) {
+		// Only handle primary button (left click)
+		if (e.button !== 0) return
+
+		// Don't start drag on interactive elements
+		const target = e.target as HTMLElement
+		if (target.closest('button, [role="button"]')) return
+
+		pointerStartPos = { x: e.clientX, y: e.clientY }
+		isDragStarted = false
 	}
 
-	// Handle drag start - make this playlist/folder draggable
-	function handleDragStart(e: DragEvent) {
-		console.log('[PlaylistItem] dragstart', playlist.name, { dataTransfer: !!e.dataTransfer })
-		if (!e.dataTransfer) return
-		e.dataTransfer.effectAllowed = 'move'
-		e.dataTransfer.setData(
-			'application/x-crate-playlist',
-			JSON.stringify({
-				id: playlist.id,
-				is_folder: playlist.is_folder,
-			})
-		)
-		e.dataTransfer.setData('text/plain', playlist.name)
-		console.log('[PlaylistItem] dragstart set data:', { types: Array.from(e.dataTransfer.types) })
-	}
+	function handlePointerMove(e: PointerEvent) {
+		if (!pointerStartPos) return
 
-	function handleDragOver(e: DragEvent) {
-		console.log('[PlaylistItem] dragover', playlist.name)
+		const distance = getDistance(pointerStartPos.x, pointerStartPos.y, e.clientX, e.clientY)
 
-		// Accept track drops on playlists (not folders)
-		if (!playlist.is_folder && hasTrackData(e.dataTransfer)) {
-			e.preventDefault()
-			e.stopPropagation()
-			e.dataTransfer!.dropEffect = 'copy'
-			return
-		}
+		// Start drag if threshold exceeded
+		if (!isDragStarted && distance >= DRAG_THRESHOLD) {
+			isDragStarted = true
 
-		// Accept playlist/folder drops on folders only
-		if (playlist.is_folder && hasPlaylistData(e.dataTransfer)) {
-			e.preventDefault()
-			e.stopPropagation()
-			e.dataTransfer!.dropEffect = 'move'
-		}
-	}
-
-	function handleDragEnter(e: DragEvent) {
-		console.log('[PlaylistItem] dragenter', {
-			playlist: playlist.name,
-			is_folder: playlist.is_folder,
-			types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : [],
-			hasTrackData: hasTrackData(e.dataTransfer),
-			hasPlaylistData: hasPlaylistData(e.dataTransfer),
-		})
-
-		// Track drops on playlists
-		if (!playlist.is_folder && hasTrackData(e.dataTransfer)) {
-			e.preventDefault()
-			e.stopPropagation()
-			dragEnterCounter++
-			isDragOver = true
-			console.log('[PlaylistItem] set isDragOver = true for', playlist.name)
-			return
-		}
-
-		// Playlist drops on folders
-		if (playlist.is_folder && hasPlaylistData(e.dataTransfer)) {
-			e.preventDefault()
-			e.stopPropagation()
-			playlistDragEnterCounter++
-			isPlaylistDragOver = true
-			console.log('[PlaylistItem] set isPlaylistDragOver = true for', playlist.name)
+			// Start the drag via the store
+			dragStore.startPlaylistDrag(playlist.id, playlist.is_folder, e.clientX, e.clientY)
 		}
 	}
 
-	function handleDragLeave(e: DragEvent) {
-		// Track drops on playlists
-		if (!playlist.is_folder && hasTrackData(e.dataTransfer)) {
-			dragEnterCounter--
-			if (dragEnterCounter <= 0) {
-				dragEnterCounter = 0
-				isDragOver = false
-			}
-			return
-		}
-
-		// Playlist drops on folders
-		if (playlist.is_folder && hasPlaylistData(e.dataTransfer)) {
-			playlistDragEnterCounter--
-			if (playlistDragEnterCounter <= 0) {
-				playlistDragEnterCounter = 0
-				isPlaylistDragOver = false
-			}
-		}
-	}
-
-	function handleDrop(e: DragEvent) {
-		e.preventDefault()
-		e.stopPropagation()
-
-		console.log('[PlaylistItem] drop on', playlist.name, {
-			is_folder: playlist.is_folder,
-			types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : [],
-		})
-
-		// Reset all drag state
-		dragEnterCounter = 0
-		isDragOver = false
-		playlistDragEnterCounter = 0
-		isPlaylistDragOver = false
-
-		// Handle track drops on playlists
-		if (!playlist.is_folder) {
-			const trackData = e.dataTransfer?.getData('application/x-crate-tracks')
-			console.log('[PlaylistItem] trackData:', trackData)
-			if (trackData) {
-				try {
-					const trackIds = JSON.parse(trackData) as string[]
-					console.log('[PlaylistItem] calling onTracksDrop with', trackIds)
-					onTracksDrop?.(trackIds)
-				} catch {
-					// Invalid data
-				}
-			}
-			return
-		}
-
-		// Handle playlist/folder drops on folders
-		const playlistData = e.dataTransfer?.getData('application/x-crate-playlist')
-		if (playlistData) {
-			try {
-				const { id, is_folder } = JSON.parse(playlistData) as { id: string; is_folder: boolean }
-
-				// Prevent dropping on self
-				if (id === playlist.id) {
-					toastStore.error('Cannot drop a folder into itself')
-					return
-				}
-
-				// Prevent dropping folder into its own descendants
-				if (is_folder && isDescendantOf(id, playlist.id)) {
-					toastStore.error('Cannot drop a folder into its own subfolder')
-					return
-				}
-
-				onPlaylistDrop?.(id)
-			} catch {
-				// Invalid data
-			}
-		}
+	function handlePointerUp() {
+		pointerStartPos = null
+		isDragStarted = false
 	}
 </script>
 
 <div
 	role="treeitem"
 	tabindex="0"
-	draggable="true"
+	data-drop-target={dropTargetId}
 	aria-selected={selected}
 	aria-expanded={playlist.is_folder ? expanded : undefined}
-	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-colors {selected || isContextMenuActive
+	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-all select-none {selected ||
+	isContextMenuActive
 		? 'bg-brand-muted text-text-primary'
-		: isDragOver || isPlaylistDragOver
+		: isHovered
 			? 'bg-brand-muted text-text-primary ring-1 ring-brand-primary'
 			: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 	style="padding-left: {paddingLeft}"
 	{onclick}
 	ondblclick={() => playlist.is_folder && onToggle?.()}
 	{oncontextmenu}
-	ondragstart={handleDragStart}
-	ondragover={handleDragOver}
-	ondragenter={handleDragEnter}
-	ondragleave={handleDragLeave}
-	ondrop={handleDrop}
+	onpointerdown={handlePointerDown}
+	onpointermove={handlePointerMove}
+	onpointerup={handlePointerUp}
+	onpointercancel={handlePointerUp}
 	onkeydown={(e) => e.key === 'Enter' && onclick?.()}
 >
 	<!-- Expand/Collapse toggle for folders -->
