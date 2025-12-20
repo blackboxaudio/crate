@@ -222,6 +222,18 @@ function createLibraryStore() {
 		},
 
 		/**
+		 * Update tracks in state (for bulk edits, artwork changes, etc.)
+		 */
+		updateTracksInState(updatedTracks: Track[]) {
+			const updateMap = new Map(updatedTracks.map((t) => [t.id, t]))
+			update((state) => ({
+				...state,
+				tracks: state.tracks.map((t) => updateMap.get(t.id) ?? t),
+				playlistTracks: state.playlistTracks.map((t) => updateMap.get(t.id) ?? t),
+			}))
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {

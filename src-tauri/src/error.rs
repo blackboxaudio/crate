@@ -30,6 +30,9 @@ pub enum CrateError {
 
     #[error("Metadata error: {0}")]
     Metadata(String),
+
+    #[error("Artwork error: {0}")]
+    Artwork(String),
 }
 
 impl serde::Serialize for CrateError {

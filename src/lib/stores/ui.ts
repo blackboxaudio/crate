@@ -1,6 +1,6 @@
 import { writable, derived } from 'svelte/store'
 import type { SidebarView, TagFilterMode } from '$lib/types'
-import { getStoredNumber, setStoredNumber } from '$lib/utils/storage'
+import { getStoredBoolean, getStoredNumber, setStoredBoolean, setStoredNumber } from '$lib/utils/storage'
 
 // =============================================================================
 // State
@@ -18,6 +18,10 @@ interface UIState {
 	selectedTagIds: string[]
 	tagFilterMode: TagFilterMode
 	sidebarWidth: number
+
+	// Right Sidebar (Track Editor)
+	rightSidebarVisible: boolean
+	rightSidebarWidth: number
 
 	// Search
 	searchQuery: string
@@ -43,6 +47,8 @@ const initialState: UIState = {
 	selectedTagIds: [],
 	tagFilterMode: 'or',
 	sidebarWidth: getStoredNumber('sidebarWidth', 240),
+	rightSidebarVisible: getStoredBoolean('rightSidebarVisible', false),
+	rightSidebarWidth: getStoredNumber('rightSidebarWidth', 320),
 	searchQuery: '',
 	searchFocused: false,
 	activeModal: null,
@@ -248,6 +254,38 @@ function createUIStore() {
 		},
 
 		// =========================================================================
+		// Right Sidebar (Track Editor)
+		// =========================================================================
+
+		/**
+		 * Toggle right sidebar visibility
+		 */
+		toggleRightSidebar() {
+			update((state) => {
+				const newVisible = !state.rightSidebarVisible
+				setStoredBoolean('rightSidebarVisible', newVisible)
+				return { ...state, rightSidebarVisible: newVisible }
+			})
+		},
+
+		/**
+		 * Set right sidebar visibility
+		 */
+		setRightSidebarVisible(visible: boolean) {
+			setStoredBoolean('rightSidebarVisible', visible)
+			update((state) => ({ ...state, rightSidebarVisible: visible }))
+		},
+
+		/**
+		 * Set right sidebar width
+		 */
+		setRightSidebarWidth(width: number) {
+			const clampedWidth = Math.max(280, Math.min(500, width))
+			setStoredNumber('rightSidebarWidth', clampedWidth)
+			update((state) => ({ ...state, rightSidebarWidth: clampedWidth }))
+		},
+
+		// =========================================================================
 		// Search
 		// =========================================================================
 
@@ -384,3 +422,7 @@ export const recentlyToggledMixedTags = derived(uiStore, ($ui) => $ui.recentlyTo
 export const selectedTagIds = derived(uiStore, ($ui) => $ui.selectedTagIds)
 
 export const tagFilterMode = derived(uiStore, ($ui) => $ui.tagFilterMode)
+
+export const rightSidebarVisible = derived(uiStore, ($ui) => $ui.rightSidebarVisible)
+
+export const rightSidebarWidth = derived(uiStore, ($ui) => $ui.rightSidebarWidth)

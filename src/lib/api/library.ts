@@ -94,3 +94,31 @@ export async function relocateTrack(trackId: string, newPath: string, force: boo
 export async function setTrackColors(trackIds: string[], color: TrackColor | null): Promise<void> {
 	return invoke<void>('set_track_colors', { trackIds, color })
 }
+
+/**
+ * Update multiple tracks with the same update data (bulk operation)
+ */
+export async function updateTracks(ids: string[], update: TrackUpdate): Promise<Track[]> {
+	return invoke<Track[]>('update_tracks', { ids, update })
+}
+
+/**
+ * Set artwork for a track from a user-provided file
+ */
+export async function setTrackArtwork(trackId: string, filePath: string): Promise<Track> {
+	return invoke<Track>('set_track_artwork', { trackId, filePath })
+}
+
+/**
+ * Delete artwork for a track
+ */
+export async function deleteTrackArtwork(trackId: string): Promise<Track> {
+	return invoke<Track>('delete_track_artwork', { trackId })
+}
+
+/**
+ * Re-extract artwork from the audio file
+ */
+export async function reextractTrackArtwork(trackId: string): Promise<Track> {
+	return invoke<Track>('reextract_track_artwork', { trackId })
+}

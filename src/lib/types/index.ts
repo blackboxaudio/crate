@@ -57,6 +57,12 @@ export const TAG_CATEGORY_COLORS: { id: TagCategoryColor; label: string; hex: st
 ]
 
 // =============================================================================
+// Artwork Types
+// =============================================================================
+
+export type ArtworkSource = 'extracted' | 'user_provided'
+
+// =============================================================================
 // Track Types
 // =============================================================================
 
@@ -100,6 +106,7 @@ export interface Track {
 
 	// Album artwork
 	artwork_path: string | null
+	artwork_source: ArtworkSource | null
 
 	// Track color (Rekordbox-compatible)
 	color: TrackColor | null
@@ -141,6 +148,30 @@ export interface FileMatchResult {
 	original_hash: string | null
 	new_hash: string
 	format_valid: boolean
+}
+
+// =============================================================================
+// Bulk Edit Types
+// =============================================================================
+
+export interface BulkEditValue<T> {
+	value: T | null // The value if all tracks have the same value
+	mixed: boolean // True if tracks have different values
+	count: number // Number of tracks with non-null values
+}
+
+export interface BulkTrackInfo {
+	title: BulkEditValue<string>
+	artist: BulkEditValue<string>
+	album: BulkEditValue<string>
+	year: BulkEditValue<number>
+	genre: BulkEditValue<string>
+	label: BulkEditValue<string>
+	bpm: BulkEditValue<number>
+	key: BulkEditValue<string>
+	rating: BulkEditValue<number>
+	artworkPath: BulkEditValue<string>
+	artworkSource: BulkEditValue<ArtworkSource>
 }
 
 // =============================================================================

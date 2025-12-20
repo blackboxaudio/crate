@@ -123,6 +123,8 @@
 				onLibraryClick?.()
 			}
 		}}
+		ondragenter={(e) =>
+			console.log('[Sidebar] dragenter', { types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : [] })}
 		role="region"
 		tabindex="-1"
 	>

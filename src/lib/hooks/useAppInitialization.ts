@@ -1,5 +1,4 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import { getCurrentWindow } from '@tauri-apps/api/window'
 import type { UsbDevice } from '$lib/types'
 import type { appStore as AppStoreType } from '$lib/stores/app'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
@@ -47,8 +46,13 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore } = stores
 
 	// Store unlisten functions
-	let unlistenDrop: UnlistenFn | undefined
 	let unlistenDevices: UnlistenFn | undefined
+
+	// Store drag-drop event handlers for cleanup
+	let dragEnterHandler: ((e: DragEvent) => void) | undefined
+	let dragOverHandler: ((e: DragEvent) => void) | undefined
+	let dragLeaveHandler: ((e: DragEvent) => void) | undefined
+	let dropHandler: ((e: DragEvent) => void) | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -60,37 +64,99 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		devicesStore.loadDevices(),
 	])
 
-	// Set up Tauri drag and drop events
-	async function setupDragDrop(): Promise<void> {
-		const appWindow = getCurrentWindow()
+	// Set up browser-native drag and drop events for external file drops
+	// This approach allows both external OS file drops AND internal HTML5 drag-and-drop
+	function setupDragDrop(): void {
+		// Track drag enter/leave depth to handle nested elements
+		let dragDepth = 0
 
-		// Listen for file drop from OS file explorer
-		// Note: Tauri's onDragDropEvent only fires for external OS file drags,
-		// not for internal HTML5 drags (like dragging tracks to playlists)
-		unlistenDrop = await appWindow.onDragDropEvent(async (event) => {
-			if (event.payload.type === 'drop') {
-				onDragStateChange(false)
-				const paths = event.payload.paths
-				if (paths && paths.length > 0) {
-					// Filter for audio files
-					const audioPaths = paths.filter((p) => {
-						const ext = p.split('.').pop()?.toLowerCase()
-						return ext && AUDIO_EXTENSIONS.includes(ext)
-					})
-					if (audioPaths.length > 0) {
-						await onExternalFileDrop(audioPaths)
-					}
-				}
-			} else if (event.payload.type === 'enter') {
-				// 'enter' event fires when external files are dragged into the window
-				// and includes the file paths. 'over' events don't include paths.
-				if (event.payload.paths && event.payload.paths.length > 0) {
-					onDragStateChange(true)
-				}
-			} else if (event.payload.type === 'leave' || event.payload.type === 'cancel') {
+		// Check if the drag contains files from the OS
+		function hasExternalFiles(e: DragEvent): boolean {
+			if (!e.dataTransfer?.types) return false
+			// 'Files' type indicates files from the OS file system
+			return e.dataTransfer.types.includes('Files')
+		}
+
+		dragEnterHandler = (e: DragEvent) => {
+			// Debug: log ALL dragenter events to see if they're firing at all
+			console.log('[Document] dragenter', {
+				target: e.target,
+				types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : [],
+				hasFiles: hasExternalFiles(e),
+			})
+
+			// Only handle external file drags, not internal app drags
+			if (!hasExternalFiles(e)) return
+
+			e.preventDefault()
+			dragDepth++
+			if (dragDepth === 1) {
+				onDragStateChange(true)
+			}
+		}
+
+		dragOverHandler = (e: DragEvent) => {
+			// Only handle external file drags
+			if (!hasExternalFiles(e)) return
+
+			e.preventDefault()
+			if (e.dataTransfer) {
+				e.dataTransfer.dropEffect = 'copy'
+			}
+		}
+
+		dragLeaveHandler = (e: DragEvent) => {
+			// Only handle external file drags
+			if (!hasExternalFiles(e)) return
+
+			dragDepth--
+			if (dragDepth === 0) {
 				onDragStateChange(false)
 			}
-		})
+		}
+
+		dropHandler = async (e: DragEvent) => {
+			// Only handle external file drags
+			if (!hasExternalFiles(e)) return
+
+			e.preventDefault()
+			dragDepth = 0
+			onDragStateChange(false)
+
+			const files = e.dataTransfer?.files
+			if (!files || files.length === 0) return
+
+			// Convert FileList to array of paths
+			// Note: In Tauri, we can access the file path via the 'path' property
+			const paths: string[] = []
+			for (let i = 0; i < files.length; i++) {
+				const file = files[i]
+				// In Tauri webview, File objects have a 'path' property with the full file path
+				const filePath = (file as File & { path?: string }).path
+				if (filePath) {
+					paths.push(filePath)
+				}
+			}
+
+			if (paths.length > 0) {
+				// Filter for audio files
+				const audioPaths = paths.filter((p) => {
+					const ext = p.split('.').pop()?.toLowerCase()
+					return ext && AUDIO_EXTENSIONS.includes(ext)
+				})
+				if (audioPaths.length > 0) {
+					await onExternalFileDrop(audioPaths)
+				}
+			}
+		}
+
+		// Add event listeners to document (use capture phase to catch events early)
+		document.addEventListener('dragenter', dragEnterHandler, true)
+		document.addEventListener('dragover', dragOverHandler, true)
+		document.addEventListener('dragleave', dragLeaveHandler, true)
+		document.addEventListener('drop', dropHandler, true)
+
+		console.log('[useAppInitialization] Drag-drop event listeners registered on document (capture phase)')
 	}
 
 	// Set up device change listener
@@ -120,12 +186,17 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	}
 
 	// Initialize listeners
-	await setupDragDrop()
+	setupDragDrop()
 	await setupDeviceListener()
 
 	// Return cleanup function
 	return () => {
-		unlistenDrop?.()
+		// Clean up drag-drop event listeners (must match capture phase)
+		if (dragEnterHandler) document.removeEventListener('dragenter', dragEnterHandler, true)
+		if (dragOverHandler) document.removeEventListener('dragover', dragOverHandler, true)
+		if (dragLeaveHandler) document.removeEventListener('dragleave', dragLeaveHandler, true)
+		if (dropHandler) document.removeEventListener('drop', dropHandler, true)
+		// Clean up device listener
 		unlistenDevices?.()
 	}
 }

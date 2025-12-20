@@ -45,3 +45,23 @@ export function setStoredNumber(key: string, value: number): void {
 		// Ignore storage errors (e.g., quota exceeded)
 	}
 }
+
+export function getStoredBoolean(key: string, defaultValue: boolean): boolean {
+	try {
+		const stored = localStorage.getItem(STORAGE_PREFIX + key)
+		if (stored !== null) {
+			return stored === 'true'
+		}
+	} catch {
+		// Ignore parse errors
+	}
+	return defaultValue
+}
+
+export function setStoredBoolean(key: string, value: boolean): void {
+	try {
+		localStorage.setItem(STORAGE_PREFIX + key, String(value))
+	} catch {
+		// Ignore storage errors (e.g., quota exceeded)
+	}
+}

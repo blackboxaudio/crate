@@ -68,6 +68,7 @@
 
 	// Handle drag start - make this playlist/folder draggable
 	function handleDragStart(e: DragEvent) {
+		console.log('[PlaylistItem] dragstart', playlist.name, { dataTransfer: !!e.dataTransfer })
 		if (!e.dataTransfer) return
 		e.dataTransfer.effectAllowed = 'move'
 		e.dataTransfer.setData(
@@ -78,9 +79,12 @@
 			})
 		)
 		e.dataTransfer.setData('text/plain', playlist.name)
+		console.log('[PlaylistItem] dragstart set data:', { types: Array.from(e.dataTransfer.types) })
 	}
 
 	function handleDragOver(e: DragEvent) {
+		console.log('[PlaylistItem] dragover', playlist.name)
+
 		// Accept track drops on playlists (not folders)
 		if (!playlist.is_folder && hasTrackData(e.dataTransfer)) {
 			e.preventDefault()
@@ -98,12 +102,21 @@
 	}
 
 	function handleDragEnter(e: DragEvent) {
+		console.log('[PlaylistItem] dragenter', {
+			playlist: playlist.name,
+			is_folder: playlist.is_folder,
+			types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : [],
+			hasTrackData: hasTrackData(e.dataTransfer),
+			hasPlaylistData: hasPlaylistData(e.dataTransfer),
+		})
+
 		// Track drops on playlists
 		if (!playlist.is_folder && hasTrackData(e.dataTransfer)) {
 			e.preventDefault()
 			e.stopPropagation()
 			dragEnterCounter++
 			isDragOver = true
+			console.log('[PlaylistItem] set isDragOver = true for', playlist.name)
 			return
 		}
 
@@ -113,6 +126,7 @@
 			e.stopPropagation()
 			playlistDragEnterCounter++
 			isPlaylistDragOver = true
+			console.log('[PlaylistItem] set isPlaylistDragOver = true for', playlist.name)
 		}
 	}
 
@@ -141,6 +155,11 @@
 		e.preventDefault()
 		e.stopPropagation()
 
+		console.log('[PlaylistItem] drop on', playlist.name, {
+			is_folder: playlist.is_folder,
+			types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : [],
+		})
+
 		// Reset all drag state
 		dragEnterCounter = 0
 		isDragOver = false
@@ -150,9 +169,11 @@
 		// Handle track drops on playlists
 		if (!playlist.is_folder) {
 			const trackData = e.dataTransfer?.getData('application/x-crate-tracks')
+			console.log('[PlaylistItem] trackData:', trackData)
 			if (trackData) {
 				try {
 					const trackIds = JSON.parse(trackData) as string[]
+					console.log('[PlaylistItem] calling onTracksDrop with', trackIds)
 					onTracksDrop?.(trackIds)
 				} catch {
 					// Invalid data

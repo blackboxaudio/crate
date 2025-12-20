@@ -127,5 +127,10 @@ ALTER TABLE tracks ADD COLUMN artwork_path TEXT;
 ALTER TABLE tracks ADD COLUMN color TEXT;
 CREATE INDEX idx_tracks_color ON tracks(color);
 "#,
+        // Migration 5: Add artwork_source to tracks (for tracking extracted vs user-provided artwork)
+        r#"
+ALTER TABLE tracks ADD COLUMN artwork_source TEXT;
+-- Values: 'extracted', 'user_provided', or NULL
+"#,
     ]
 }

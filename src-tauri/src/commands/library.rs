@@ -111,3 +111,37 @@ pub async fn set_track_colors(
 ) -> Result<(), CrateError> {
     library.set_track_colors(track_ids, color)
 }
+
+#[tauri::command]
+pub async fn update_tracks(
+    ids: Vec<String>,
+    update: TrackUpdate,
+    library: State<'_, LibraryService>,
+) -> Result<Vec<Track>, CrateError> {
+    library.update_tracks(ids, update)
+}
+
+#[tauri::command]
+pub async fn set_track_artwork(
+    track_id: String,
+    file_path: String,
+    library: State<'_, LibraryService>,
+) -> Result<Track, CrateError> {
+    library.set_track_artwork(&track_id, &PathBuf::from(file_path))
+}
+
+#[tauri::command]
+pub async fn delete_track_artwork(
+    track_id: String,
+    library: State<'_, LibraryService>,
+) -> Result<Track, CrateError> {
+    library.delete_track_artwork(&track_id)
+}
+
+#[tauri::command]
+pub async fn reextract_track_artwork(
+    track_id: String,
+    library: State<'_, LibraryService>,
+) -> Result<Track, CrateError> {
+    library.reextract_track_artwork(&track_id)
+}

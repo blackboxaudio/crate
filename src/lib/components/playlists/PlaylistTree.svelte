@@ -114,6 +114,9 @@
 	onclick={handleContainerClick}
 	onkeydown={handleContainerKeyDown}
 	oncontextmenu={handleContainerContextMenu}
+	ondragenter={(e) =>
+		console.log('[PlaylistTree] dragenter', { types: e.dataTransfer?.types ? Array.from(e.dataTransfer.types) : [] })}
+	ondragover={(e) => console.log('[PlaylistTree] dragover')}
 >
 	{#each tree as node, index (index)}
 		{@render renderNode(node, 0)}

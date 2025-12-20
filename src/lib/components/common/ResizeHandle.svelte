@@ -40,7 +40,7 @@
 	role="separator"
 	aria-orientation="vertical"
 	tabindex="0"
-	class="group relative h-full w-1 cursor-col-resize"
+	class="group relative h-full w-[1px] cursor-col-resize"
 	onmousedown={handleMouseDown}
 >
 	<div

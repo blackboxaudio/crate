@@ -32,6 +32,8 @@
 		computeTagStates,
 		missingTracksStore,
 		missingTrackIds,
+		rightSidebarVisible,
+		rightSidebarWidth,
 	} from '$lib/stores'
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
@@ -44,6 +46,7 @@
 	import { Player } from '$lib/components/player'
 	import { ResizeHandle, ContextMenuOrchestrator, ModalOrchestrator } from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
+	import { TrackEditor } from '$lib/components/editor'
 	import * as devicesApi from '$lib/api/devices'
 	import { openDevTools } from '$lib/api/app'
 
@@ -170,6 +173,7 @@
 				uiStore.setSelectedTracks(allIds)
 			},
 			onOpenSettings: () => modalOrchestrator.openSettingsModal(),
+			onToggleInspector: () => uiStore.toggleRightSidebar(),
 		})
 
 		// Set up menu action listener
@@ -217,6 +221,13 @@
 	function handleSidebarResize(delta: number) {
 		uiStore.setSidebarWidth(sidebarWidth + delta)
 	}
+
+	function handleRightSidebarResize(delta: number) {
+		uiStore.setRightSidebarWidth($rightSidebarWidth - delta)
+	}
+
+	// Selected tracks for the editor
+	let selectedTracksArray = $derived($displayedTracks.filter((t) => $selectedTrackIds.has(t.id)))
 
 	async function handlePlaylistSelect(playlist: Playlist) {
 		// Clear track selection when selecting a folder or playlist
@@ -500,7 +511,11 @@
 	}
 </script>
 
-<div class="flex h-full flex-col">
+<div
+	class="flex h-full flex-col"
+	ondragenter={(e) => console.log('[Page] dragenter', e.target)}
+	ondragover={(e) => console.log('[Page] dragover', e.target)}
+>
 	<Toolbar
 		{activeFilterTags}
 		{tagColors}
@@ -600,6 +615,14 @@
 				/>
 			{/if}
 		</div>
+
+		<!-- Right Sidebar (Track Editor) -->
+		{#if $rightSidebarVisible && selectedTracksArray.length > 0}
+			<ResizeHandle onResize={handleRightSidebarResize} />
+			<div class="flex-shrink-0" style="width: {$rightSidebarWidth}px">
+				<TrackEditor selectedTracks={selectedTracksArray} />
+			</div>
+		{/if}
 	</div>
 
 	<Player />

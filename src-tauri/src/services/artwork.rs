@@ -117,6 +117,33 @@ impl ArtworkService {
         }
     }
 
+    /// Saves artwork from a user-provided image file.
+    /// Returns the relative path (e.g., "artwork/{track_id}.webp") if successful.
+    pub fn save_from_file(&self, source_path: &std::path::Path, track_id: &str) -> Option<String> {
+        // Load the image from the source file
+        let img = image::open(source_path).ok()?;
+
+        // Resize if larger than 500x500, maintaining aspect ratio
+        let img = if img.width() > 500 || img.height() > 500 {
+            img.resize(500, 500, FilterType::Lanczos3)
+        } else {
+            img
+        };
+
+        // Build the output path
+        let filename = format!("{track_id}.webp");
+        let path = self.artwork_dir.join(&filename);
+
+        // Save as WEBP
+        if let Err(e) = img.save_with_format(&path, ImageFormat::WebP) {
+            log::warn!("Failed to save user-provided artwork for track {track_id}: {e}");
+            return None;
+        }
+
+        // Return the relative path for database storage
+        Some(format!("artwork/{filename}"))
+    }
+
     #[allow(dead_code)]
     /// Returns the full filesystem path for an artwork file.
     pub fn get_full_path(&self, relative_path: &str) -> PathBuf {

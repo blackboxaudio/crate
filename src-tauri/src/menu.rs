@@ -2,7 +2,7 @@ use tauri::{
     menu::{
         AboutMetadata, Menu, MenuBuilder, MenuItem, PredefinedMenuItem, Submenu, SubmenuBuilder,
     },
-    AppHandle, Emitter, Wry,
+    AppHandle, Emitter, Manager, Wry,
 };
 
 /// Menu item identifiers for event handling

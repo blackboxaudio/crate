@@ -36,6 +36,10 @@ pub fn run() {
             commands::library::validate_replacement_file,
             commands::library::relocate_track,
             commands::library::set_track_colors,
+            commands::library::update_tracks,
+            commands::library::set_track_artwork,
+            commands::library::delete_track_artwork,
+            commands::library::reextract_track_artwork,
             // Playback commands
             commands::playback::play_track,
             commands::playback::pause,

@@ -107,6 +107,7 @@ impl LibraryService {
                 .extract_and_save(&tagged_file, &track.id)
             {
                 track.artwork_path = Some(artwork_path);
+                track.artwork_source = Some("extracted".to_string());
             }
         } else {
             // Lofty failed completely, use symphonia fallback
@@ -215,7 +216,7 @@ impl LibraryService {
                 analysis_source, waveform_data,
                 rating, play_count,
                 date_added, date_modified, last_played,
-                rekordbox_id, artwork_path, color
+                rekordbox_id, artwork_path, artwork_source, color
             ) VALUES (
                 ?1, ?2, ?3,
                 ?4, ?5, ?6, ?7, ?8, ?9, ?10,
@@ -223,7 +224,7 @@ impl LibraryService {
                 ?17, ?18,
                 ?19, ?20,
                 ?21, ?22, ?23,
-                ?24, ?25, ?26
+                ?24, ?25, ?26, ?27
             )
             ON CONFLICT(file_path) DO UPDATE SET
                 title = excluded.title,
@@ -232,6 +233,7 @@ impl LibraryService {
                 year = excluded.year,
                 genre = excluded.genre,
                 artwork_path = excluded.artwork_path,
+                artwork_source = excluded.artwork_source,
                 date_modified = excluded.date_modified
             "#,
             rusqlite::params![
@@ -260,6 +262,7 @@ impl LibraryService {
                 track.last_played,
                 track.rekordbox_id,
                 track.artwork_path,
+                track.artwork_source,
                 track.color,
             ],
         )?;
@@ -282,7 +285,7 @@ impl LibraryService {
                 t.analysis_source, t.waveform_data,
                 t.rating, t.play_count,
                 t.date_added, t.date_modified, t.last_played,
-                t.rekordbox_id, t.artwork_path, t.color
+                t.rekordbox_id, t.artwork_path, t.artwork_source, t.color
             FROM tracks t
             "#,
         );
@@ -396,7 +399,8 @@ impl LibraryService {
                     last_played: row.get(22)?,
                     rekordbox_id: row.get(23)?,
                     artwork_path: row.get(24)?,
-                    color: row.get(25)?,
+                    artwork_source: row.get(25)?,
+                    color: row.get(26)?,
                     tags: Vec::new(),
                 })
             })?
@@ -487,7 +491,7 @@ impl LibraryService {
                 analysis_source, waveform_data,
                 rating, play_count,
                 date_added, date_modified, last_played,
-                rekordbox_id, artwork_path, color
+                rekordbox_id, artwork_path, artwork_source, color
             FROM tracks WHERE id = ?1
             "#,
             [id],
@@ -518,7 +522,8 @@ impl LibraryService {
                     last_played: row.get(22)?,
                     rekordbox_id: row.get(23)?,
                     artwork_path: row.get(24)?,
-                    color: row.get(25)?,
+                    artwork_source: row.get(25)?,
+                    color: row.get(26)?,
                     tags: Vec::new(),
                 })
             },
@@ -645,14 +650,14 @@ impl LibraryService {
                 .artwork_service
                 .extract_and_save(&tagged_file, track_id)
             {
-                // Update database with new artwork path
+                // Update database with new artwork path and source
                 let conn = self
                     .conn
                     .lock()
                     .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
                 conn.execute(
-                    "UPDATE tracks SET artwork_path = ?1 WHERE id = ?2",
+                    "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted' WHERE id = ?2",
                     rusqlite::params![artwork_path, track_id],
                 )?;
 
@@ -692,11 +697,11 @@ impl LibraryService {
                     .artwork_service
                     .extract_and_save(&tagged_file, &track_id)
                 {
-                    // Update database
+                    // Update database with artwork path and source
                     if let Ok(conn) = self.conn.lock() {
                         if conn
                             .execute(
-                                "UPDATE tracks SET artwork_path = ?1 WHERE id = ?2",
+                                "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted' WHERE id = ?2",
                                 rusqlite::params![artwork_path, track_id],
                             )
                             .is_ok()
@@ -838,6 +843,191 @@ impl LibraryService {
         conn.execute(&sql, params_refs.as_slice())?;
 
         Ok(())
+    }
+
+    /// Set artwork for a track from a user-provided file
+    pub fn set_track_artwork(&self, id: &str, file_path: &std::path::Path) -> Result<Track> {
+        // Validate file exists
+        if !file_path.exists() {
+            return Err(CrateError::FileNotFound(file_path.to_path_buf()));
+        }
+
+        // Save the artwork using ArtworkService
+        let artwork_path = self
+            .artwork_service
+            .save_from_file(file_path, id)
+            .ok_or_else(|| CrateError::Artwork("Failed to save artwork".to_string()))?;
+
+        // Update database with new artwork path and source
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        conn.execute(
+            "UPDATE tracks SET artwork_path = ?1, artwork_source = 'user_provided', date_modified = ?2 WHERE id = ?3",
+            rusqlite::params![artwork_path, now, id],
+        )?;
+
+        drop(conn);
+        self.get_track(id)
+    }
+
+    /// Delete artwork for a track
+    pub fn delete_track_artwork(&self, id: &str) -> Result<Track> {
+        // Delete the artwork file
+        self.artwork_service.delete(id);
+
+        // Update database to clear artwork columns
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        conn.execute(
+            "UPDATE tracks SET artwork_path = NULL, artwork_source = NULL, date_modified = ?1 WHERE id = ?2",
+            rusqlite::params![now, id],
+        )?;
+
+        drop(conn);
+        self.get_track(id)
+    }
+
+    /// Re-extract artwork from the audio file (replaces user-provided artwork)
+    pub fn reextract_track_artwork(&self, id: &str) -> Result<Track> {
+        let track = self.get_track(id)?;
+        let path = std::path::PathBuf::from(&track.file_path);
+
+        // Check if file exists
+        if !path.exists() {
+            return Err(CrateError::FileNotFound(path));
+        }
+
+        // Try to read metadata and extract artwork
+        if let Some(tagged_file) = self.read_metadata_lenient(&path) {
+            if let Some(artwork_path) = self.artwork_service.extract_and_save(&tagged_file, id) {
+                // Update database with new artwork path and source
+                let conn = self
+                    .conn
+                    .lock()
+                    .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+                let now = chrono::Utc::now().to_rfc3339();
+
+                conn.execute(
+                    "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted', date_modified = ?2 WHERE id = ?3",
+                    rusqlite::params![artwork_path, now, id],
+                )?;
+
+                drop(conn);
+                return self.get_track(id);
+            }
+        }
+
+        Err(CrateError::Artwork(
+            "No artwork found in audio file".to_string(),
+        ))
+    }
+
+    /// Update multiple tracks with the same update data (bulk operation)
+    pub fn update_tracks(&self, ids: Vec<String>, update: TrackUpdate) -> Result<Vec<Track>> {
+        if ids.is_empty() {
+            return Ok(Vec::new());
+        }
+
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        // Build update query dynamically based on provided fields
+        let mut updates: Vec<String> = vec!["date_modified = ?1".to_string()];
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(now)];
+        let mut param_idx = 2;
+
+        if let Some(ref title) = update.title {
+            updates.push(format!("title = ?{param_idx}"));
+            params.push(Box::new(title.clone()));
+            param_idx += 1;
+        }
+        if let Some(ref artist) = update.artist {
+            updates.push(format!("artist = ?{param_idx}"));
+            params.push(Box::new(artist.clone()));
+            param_idx += 1;
+        }
+        if let Some(ref album) = update.album {
+            updates.push(format!("album = ?{param_idx}"));
+            params.push(Box::new(album.clone()));
+            param_idx += 1;
+        }
+        if let Some(year) = update.year {
+            updates.push(format!("year = ?{param_idx}"));
+            params.push(Box::new(year));
+            param_idx += 1;
+        }
+        if let Some(ref genre) = update.genre {
+            updates.push(format!("genre = ?{param_idx}"));
+            params.push(Box::new(genre.clone()));
+            param_idx += 1;
+        }
+        if let Some(ref label) = update.label {
+            updates.push(format!("label = ?{param_idx}"));
+            params.push(Box::new(label.clone()));
+            param_idx += 1;
+        }
+        if let Some(bpm) = update.bpm {
+            updates.push(format!("bpm = ?{param_idx}"));
+            params.push(Box::new(bpm));
+            param_idx += 1;
+        }
+        if let Some(ref key) = update.key {
+            updates.push(format!("key = ?{param_idx}"));
+            params.push(Box::new(key.clone()));
+            param_idx += 1;
+        }
+        if let Some(rating) = update.rating {
+            updates.push(format!("rating = ?{param_idx}"));
+            params.push(Box::new(rating));
+            param_idx += 1;
+        }
+
+        // Build placeholders for track IDs
+        let placeholders: Vec<String> = ids
+            .iter()
+            .enumerate()
+            .map(|(i, _)| format!("?{}", param_idx + i))
+            .collect();
+
+        for id in &ids {
+            params.push(Box::new(id.clone()));
+        }
+
+        let sql = format!(
+            "UPDATE tracks SET {} WHERE id IN ({})",
+            updates.join(", "),
+            placeholders.join(", ")
+        );
+
+        let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+        conn.execute(&sql, params_refs.as_slice())?;
+
+        drop(conn);
+
+        // Return all updated tracks
+        let mut updated_tracks = Vec::new();
+        for id in ids {
+            if let Ok(track) = self.get_track(&id) {
+                updated_tracks.push(track);
+            }
+        }
+
+        Ok(updated_tracks)
     }
 }
 

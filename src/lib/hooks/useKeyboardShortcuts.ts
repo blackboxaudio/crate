@@ -10,6 +10,7 @@ export interface KeyboardShortcutHandlers {
 	onClearSelection: () => void
 	onSelectAll: () => void
 	onOpenSettings: () => void
+	onToggleInspector: () => void
 }
 
 // =============================================================================
@@ -25,11 +26,12 @@ export interface KeyboardShortcutHandlers {
  * - Escape: clear selection
  * - Cmd/Ctrl+A: select all tracks (when not typing)
  * - Cmd/Ctrl+,: open settings
+ * - Cmd/Ctrl+I: toggle track inspector
  *
  * @returns Cleanup function to remove the event listener
  */
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => void {
-	const { onPlayPause, onFocusSearch, onClearSelection, onSelectAll, onOpenSettings } = handlers
+	const { onPlayPause, onFocusSearch, onClearSelection, onSelectAll, onOpenSettings, onToggleInspector } = handlers
 
 	function handleKeydown(e: KeyboardEvent): void {
 		// Space: toggle play/pause
@@ -59,6 +61,12 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		if ((e.metaKey || e.ctrlKey) && e.key === ',') {
 			e.preventDefault()
 			onOpenSettings()
+		}
+
+		// Cmd/Ctrl+I: toggle track inspector
+		if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
+			e.preventDefault()
+			onToggleInspector()
 		}
 	}
 

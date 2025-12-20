@@ -23,6 +23,8 @@ export {
 	recentlyToggledMixedTags,
 	selectedTagIds,
 	tagFilterMode,
+	rightSidebarVisible,
+	rightSidebarWidth,
 } from './ui'
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'

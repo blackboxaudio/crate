@@ -42,6 +42,8 @@ pub struct Track {
 
     // Album artwork
     pub artwork_path: Option<String>,
+    /// Source of artwork: "extracted" (from audio file) or "user_provided"
+    pub artwork_source: Option<String>,
 
     // Track color (Rekordbox-compatible)
     pub color: Option<String>,
@@ -80,6 +82,7 @@ impl Track {
             last_played: None,
             rekordbox_id: None,
             artwork_path: None,
+            artwork_source: None,
             color: None,
             tags: Vec::new(),
         }
