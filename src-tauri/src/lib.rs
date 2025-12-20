@@ -23,6 +23,7 @@ pub fn run() {
             // App commands
             commands::app::get_app_info,
             commands::app::open_dev_tools,
+            commands::app::close_dev_tools,
             // Library commands
             commands::library::import_tracks,
             commands::library::get_tracks,

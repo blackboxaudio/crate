@@ -44,8 +44,10 @@
 				duplicates: DuplicateTrack[]
 				currentIndex: number
 				applyToAllAction: DuplicateResolutionAction | null
-				resolvedTracks: Track[]
-				onComplete: (tracks: Track[]) => void
+				updatedTracks: Track[]
+				newTracks: Track[]
+				replacedTrackIds: string[]
+				onComplete: (updatedTracks: Track[], newTracks: Track[], replacedTrackIds: string[]) => void
 		  }
 
 	// Move resolution result type
@@ -214,9 +216,12 @@
 		activeModal = { type: 'settings' }
 	}
 
-	export function openDuplicateTrackModal(duplicates: DuplicateTrack[], onComplete: (tracks: Track[]) => void) {
+	export function openDuplicateTrackModal(
+		duplicates: DuplicateTrack[],
+		onComplete: (updatedTracks: Track[], newTracks: Track[], replacedTrackIds: string[]) => void
+	) {
 		if (duplicates.length === 0) {
-			onComplete([])
+			onComplete([], [], [])
 			return
 		}
 
@@ -225,7 +230,9 @@
 			duplicates,
 			currentIndex: 0,
 			applyToAllAction: null,
-			resolvedTracks: [],
+			updatedTracks: [],
+			newTracks: [],
+			replacedTrackIds: [],
 			onComplete,
 		}
 	}
@@ -403,19 +410,35 @@
 	async function handleDuplicateResolve(action: DuplicateResolutionAction, applyToAll: boolean) {
 		if (activeModal.type !== 'duplicateTrack') return
 
-		const { duplicates, currentIndex, resolvedTracks, onComplete } = activeModal
+		const { duplicates, currentIndex, updatedTracks, newTracks, replacedTrackIds, onComplete } = activeModal
 		const currentDuplicate = duplicates[currentIndex]
 
-		// Process the current duplicate
+		// Process the current duplicate and categorize the result
 		const track = await processDuplicateAction(action, currentDuplicate)
-		const newResolvedTracks = track ? [...resolvedTracks, track] : resolvedTracks
+
+		let newUpdatedTracks = updatedTracks
+		let newNewTracks = newTracks
+		let newReplacedTrackIds = replacedTrackIds
+
+		if (track) {
+			if (action === 'update_path') {
+				newUpdatedTracks = [...updatedTracks, track]
+			} else if (action === 'replace') {
+				newNewTracks = [...newTracks, track]
+				newReplacedTrackIds = [...replacedTrackIds, currentDuplicate.existing_track.id]
+			}
+			// 'skip' action: no state changes needed
+		}
 
 		// If apply to all, process remaining duplicates with the same action
 		if (applyToAll && currentIndex < duplicates.length - 1) {
-			const remainingTracks = await processRemainingDuplicates(action, duplicates.slice(currentIndex + 1))
-			const allResolved = [...newResolvedTracks, ...remainingTracks]
+			const remaining = await processRemainingDuplicates(action, duplicates.slice(currentIndex + 1))
 			closeAll()
-			onComplete(allResolved)
+			onComplete(
+				[...newUpdatedTracks, ...remaining.updatedTracks],
+				[...newNewTracks, ...remaining.newTracks],
+				[...newReplacedTrackIds, ...remaining.replacedTrackIds]
+			)
 			return
 		}
 
@@ -426,13 +449,15 @@
 				duplicates,
 				currentIndex: currentIndex + 1,
 				applyToAllAction: null,
-				resolvedTracks: newResolvedTracks,
+				updatedTracks: newUpdatedTracks,
+				newTracks: newNewTracks,
+				replacedTrackIds: newReplacedTrackIds,
 				onComplete,
 			}
 		} else {
 			// All done
 			closeAll()
-			onComplete(newResolvedTracks)
+			onComplete(newUpdatedTracks, newNewTracks, newReplacedTrackIds)
 		}
 	}
 
@@ -464,23 +489,32 @@
 	async function processRemainingDuplicates(
 		action: DuplicateResolutionAction,
 		duplicates: DuplicateTrack[]
-	): Promise<Track[]> {
-		const tracks: Track[] = []
+	): Promise<{ updatedTracks: Track[]; newTracks: Track[]; replacedTrackIds: string[] }> {
+		const updatedTracks: Track[] = []
+		const newTracks: Track[] = []
+		const replacedTrackIds: string[] = []
+
 		for (const dup of duplicates) {
 			const track = await processDuplicateAction(action, dup)
 			if (track) {
-				tracks.push(track)
+				if (action === 'update_path') {
+					updatedTracks.push(track)
+				} else if (action === 'replace') {
+					newTracks.push(track)
+					replacedTrackIds.push(dup.existing_track.id)
+				}
 			}
 		}
-		return tracks
+
+		return { updatedTracks, newTracks, replacedTrackIds }
 	}
 
 	function handleDuplicateCancel() {
 		if (activeModal.type === 'duplicateTrack') {
-			const { resolvedTracks, onComplete } = activeModal
+			const { updatedTracks, newTracks, replacedTrackIds, onComplete } = activeModal
 			closeAll()
 			// Return any tracks that were already resolved
-			onComplete(resolvedTracks)
+			onComplete(updatedTracks, newTracks, replacedTrackIds)
 		}
 	}
 

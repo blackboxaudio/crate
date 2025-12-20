@@ -1,5 +1,5 @@
 // Re-export all stores
-export { appStore, appInfo, isDev, appVersion, appEnvironment, appDataDir, appLoading } from './app'
+export { appStore, appInfo, isDev, appVersion, appEnvironment, appDataDir, appLoading, devToolsOpen } from './app'
 export { libraryStore, sortedTracks, displayedTracks, trackCount, isLoading } from './library'
 export {
 	playerStore,

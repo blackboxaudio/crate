@@ -10,12 +10,14 @@ interface AppState {
 	info: AppInfo | null
 	loading: boolean
 	error: string | null
+	devToolsOpen: boolean
 }
 
 const initialState: AppState = {
 	info: null,
 	loading: false,
 	error: null,
+	devToolsOpen: false,
 }
 
 // =============================================================================
@@ -52,6 +54,13 @@ function createAppStore() {
 		reset() {
 			set(initialState)
 		},
+
+		/**
+		 * Toggle dev tools open/closed state
+		 */
+		toggleDevTools() {
+			update((s) => ({ ...s, devToolsOpen: !s.devToolsOpen }))
+		},
 	}
 }
 
@@ -72,3 +81,5 @@ export const appEnvironment = derived(appStore, ($s) => $s.info?.environment ?? 
 export const appDataDir = derived(appStore, ($s) => $s.info?.dataDir ?? '')
 
 export const appLoading = derived(appStore, ($s) => $s.loading)
+
+export const devToolsOpen = derived(appStore, ($s) => $s.devToolsOpen)

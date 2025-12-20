@@ -39,6 +39,7 @@
 		dragData,
 		dragPosition,
 		needsDropTargetRefresh,
+		devToolsOpen,
 	} from '$lib/stores'
 	import { findDropTargets, findDropTargetAtPoint, type DropTarget } from '$lib/utils/drag'
 	import { toastStore } from '$lib/stores/toast'
@@ -54,7 +55,7 @@
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TrackEditor } from '$lib/components/editor'
 	import * as devicesApi from '$lib/api/devices'
-	import { openDevTools } from '$lib/api/app'
+	import { openDevTools, closeDevTools } from '$lib/api/app'
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
@@ -621,6 +622,16 @@
 		libraryStore.loadTracks()
 		toastStore.success(`Relocated "${updatedTrack.title || 'track'}"`)
 	}
+
+	// Toggle dev tools open/closed
+	async function handleToggleDevTools() {
+		if ($devToolsOpen) {
+			await closeDevTools()
+		} else {
+			await openDevTools()
+		}
+		appStore.toggleDevTools()
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -633,7 +644,7 @@
 		onToggleTagFilterMode={tagController.toggleTagFilterMode}
 		onImport={trackController.handleImport}
 		onSettings={() => modalOrchestrator.openSettingsModal()}
-		onDevTools={openDevTools}
+		onDevTools={handleToggleDevTools}
 	/>
 
 	<div class="flex flex-1 overflow-hidden">

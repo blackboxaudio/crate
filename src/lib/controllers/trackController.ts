@@ -30,7 +30,10 @@ export interface TrackControllerModalActions {
 	openRelocateModal: (track: Track) => void
 	openRemoveFromPlaylistModal: (trackIds: string[], playlistId: string) => void
 	openRemoveFromLibraryModal: (trackIds: string[]) => void
-	openDuplicateTrackModal: (duplicates: DuplicateTrack[], onComplete: (tracks: Track[]) => void) => void
+	openDuplicateTrackModal: (
+		duplicates: DuplicateTrack[],
+		onComplete: (updatedTracks: Track[], newTracks: Track[], replacedTrackIds: string[]) => void
+	) => void
 }
 
 export interface TrackController {
@@ -161,21 +164,24 @@ export function createTrackController(
 
 			// Handle duplicates if any were detected
 			if (result.duplicates.length > 0 && modalActions) {
-				modalActions.openDuplicateTrackModal(result.duplicates, (resolvedTracks) => {
-					// Add resolved tracks to state and update any that were modified (update_path case)
-					const newTracks = resolvedTracks.filter((t) => !result.tracks.some((rt) => rt.id === t.id))
-					const updatedTracks = resolvedTracks.filter((t) => result.tracks.some((rt) => rt.id === t.id))
-
-					if (newTracks.length > 0) {
-						libraryStore.addTracksToState(newTracks)
+				modalActions.openDuplicateTrackModal(result.duplicates, (updatedTracks, newTracks, replacedTrackIds) => {
+					// Remove old tracks that were replaced
+					if (replacedTrackIds.length > 0) {
+						libraryStore.removeTracksFromState(replacedTrackIds)
 					}
+					// Update existing tracks (from update_path action)
 					if (updatedTracks.length > 0) {
 						libraryStore.updateTracksInState(updatedTracks)
 					}
+					// Add new tracks (from replace action)
+					if (newTracks.length > 0) {
+						libraryStore.addTracksToState(newTracks)
+					}
 
 					// Show final toast after duplicate resolution
-					const totalImported = result.tracks.length + resolvedTracks.length
-					const skippedCount = result.duplicates.length - resolvedTracks.length
+					const resolvedCount = updatedTracks.length + newTracks.length
+					const totalImported = result.tracks.length + resolvedCount
+					const skippedCount = result.duplicates.length - resolvedCount
 					if (totalImported > 0) {
 						if (skippedCount > 0) {
 							toastStore.success(
@@ -216,21 +222,24 @@ export function createTrackController(
 
 			// Handle duplicates - resolved tracks should also be added to playlist
 			if (result.duplicates.length > 0 && modalActions) {
-				modalActions.openDuplicateTrackModal(result.duplicates, async (resolvedTracks) => {
-					// Add resolved tracks to state
-					const newTracks = resolvedTracks.filter((t) => !result.tracks.some((rt) => rt.id === t.id))
-					const updatedTracks = resolvedTracks.filter((t) => result.tracks.some((rt) => rt.id === t.id))
-
-					if (newTracks.length > 0) {
-						libraryStore.addTracksToState(newTracks)
+				modalActions.openDuplicateTrackModal(result.duplicates, async (updatedTracks, newTracks, replacedTrackIds) => {
+					// Remove old tracks that were replaced
+					if (replacedTrackIds.length > 0) {
+						libraryStore.removeTracksFromState(replacedTrackIds)
 					}
+					// Update existing tracks (from update_path action)
 					if (updatedTracks.length > 0) {
 						libraryStore.updateTracksInState(updatedTracks)
 					}
+					// Add new tracks (from replace action)
+					if (newTracks.length > 0) {
+						libraryStore.addTracksToState(newTracks)
+					}
 
 					// Add resolved tracks to the playlist too
-					if (resolvedTracks.length > 0) {
-						const resolvedTrackIds = resolvedTracks.map((t) => t.id)
+					const allResolvedTracks = [...updatedTracks, ...newTracks]
+					if (allResolvedTracks.length > 0) {
+						const resolvedTrackIds = allResolvedTracks.map((t) => t.id)
 						try {
 							await playlistsStore.addTracks(selectedPlaylistId, resolvedTrackIds)
 						} catch {
@@ -239,8 +248,9 @@ export function createTrackController(
 					}
 
 					// Show final toast
-					const totalImported = result.tracks.length + resolvedTracks.length
-					const skippedCount = result.duplicates.length - resolvedTracks.length
+					const resolvedCount = updatedTracks.length + newTracks.length
+					const totalImported = result.tracks.length + resolvedCount
+					const skippedCount = result.duplicates.length - resolvedCount
 					if (totalImported > 0) {
 						const trackWord = totalImported === 1 ? 'track' : 'tracks'
 						if (skippedCount > 0) {
@@ -267,21 +277,24 @@ export function createTrackController(
 		} else {
 			// Library/folder view - handle duplicates
 			if (result.duplicates.length > 0 && modalActions) {
-				modalActions.openDuplicateTrackModal(result.duplicates, (resolvedTracks) => {
-					// Add resolved tracks to state
-					const newTracks = resolvedTracks.filter((t) => !result.tracks.some((rt) => rt.id === t.id))
-					const updatedTracks = resolvedTracks.filter((t) => result.tracks.some((rt) => rt.id === t.id))
-
-					if (newTracks.length > 0) {
-						libraryStore.addTracksToState(newTracks)
+				modalActions.openDuplicateTrackModal(result.duplicates, (updatedTracks, newTracks, replacedTrackIds) => {
+					// Remove old tracks that were replaced
+					if (replacedTrackIds.length > 0) {
+						libraryStore.removeTracksFromState(replacedTrackIds)
 					}
+					// Update existing tracks (from update_path action)
 					if (updatedTracks.length > 0) {
 						libraryStore.updateTracksInState(updatedTracks)
 					}
+					// Add new tracks (from replace action)
+					if (newTracks.length > 0) {
+						libraryStore.addTracksToState(newTracks)
+					}
 
 					// Show final toast
-					const totalImported = result.tracks.length + resolvedTracks.length
-					const skippedCount = result.duplicates.length - resolvedTracks.length
+					const resolvedCount = updatedTracks.length + newTracks.length
+					const totalImported = result.tracks.length + resolvedCount
+					const skippedCount = result.duplicates.length - resolvedCount
 					if (totalImported > 0) {
 						if (skippedCount > 0) {
 							toastStore.success(

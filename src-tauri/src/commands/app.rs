@@ -44,3 +44,17 @@ pub fn open_dev_tools(app: tauri::AppHandle) {
         let _ = app;
     }
 }
+
+#[tauri::command]
+pub fn close_dev_tools(app: tauri::AppHandle) {
+    #[cfg(feature = "devtools")]
+    if let Some(window) = app.get_webview_window("main") {
+        window.close_devtools();
+    }
+
+    #[cfg(not(feature = "devtools"))]
+    {
+        log::warn!("DevTools requested but not available in this build");
+        let _ = app;
+    }
+}
