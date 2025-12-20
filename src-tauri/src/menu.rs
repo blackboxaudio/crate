@@ -1,6 +1,8 @@
 use tauri::{
-    menu::{AboutMetadata, Menu, MenuBuilder, MenuItem, PredefinedMenuItem, Submenu, SubmenuBuilder},
-    AppHandle, Emitter, Manager, Wry,
+    menu::{
+        AboutMetadata, Menu, MenuBuilder, MenuItem, PredefinedMenuItem, Submenu, SubmenuBuilder,
+    },
+    AppHandle, Emitter, Wry,
 };
 
 /// Menu item identifiers for event handling
@@ -194,6 +196,7 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
         let id = event.id().0.as_str();
 
         // Handle backend-only actions
+        #[cfg(feature = "devtools")]
         if id == ids::SHOW_DEVTOOLS {
             if let Some(window) = app.get_webview_window("main") {
                 window.open_devtools();
@@ -203,7 +206,7 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
 
         // Emit event to frontend for all other actions
         if let Err(e) = app.emit("menu-action", id) {
-            log::error!("Failed to emit menu event: {}", e);
+            log::error!("Failed to emit menu event: {e}");
         }
     });
 }

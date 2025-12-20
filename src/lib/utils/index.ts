@@ -1,4 +1,5 @@
 export * from './artwork'
+export * from './dom'
 export * from './format'
 export * from './playlist'
 export * from './sorting'

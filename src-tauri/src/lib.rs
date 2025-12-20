@@ -120,9 +120,9 @@ pub fn run() {
             device_service.start_monitoring(app.handle().clone());
 
             // Build and set the application menu
-            let menu = menu::build_menu(&app.handle())?;
+            let menu = menu::build_menu(app.handle())?;
             app.set_menu(menu)?;
-            menu::setup_menu_handlers(&app.handle());
+            menu::setup_menu_handlers(app.handle());
 
             Ok(())
         })

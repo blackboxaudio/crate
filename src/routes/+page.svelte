@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { open } from '@tauri-apps/plugin-dialog'
-	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-	import { getCurrentWindow } from '@tauri-apps/api/window'
 
 	import type {
 		Track,
@@ -39,6 +37,7 @@
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 	import { findConflictingItem, getPlaylistById, hasChildren } from '$lib/utils'
 	import { createTagController, createTrackController } from '$lib/controllers'
+	import { useAppInitialization, useKeyboardShortcuts, useMenuActions } from '$lib/hooks'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
@@ -46,7 +45,6 @@
 	import { ResizeHandle, ContextMenuOrchestrator, ModalOrchestrator } from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import * as devicesApi from '$lib/api/devices'
-	import { onMenuAction, type MenuAction } from '$lib/api/menu'
 	import { openDevTools } from '$lib/api/app'
 
 	// Local state
@@ -149,185 +147,52 @@
 
 	// Initialize on mount
 	onMount(async () => {
-		await Promise.all([
-			appStore.load(),
-			libraryStore.loadTracks(),
-			tagsStore.load(),
-			playlistsStore.load(),
-			settingsStore.load(),
-			devicesStore.loadDevices(),
-		])
+		// Initialize app (stores, drag-drop, device listener)
+		const cleanupApp = await useAppInitialization({
+			stores: { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore },
+			toastStore,
+			onExternalFileDrop: trackController.handleExternalFileDrop,
+			onDragStateChange: (dragOver) => {
+				isDragOver = dragOver
+			},
+		})
 
 		// Set up keyboard shortcuts
-		window.addEventListener('keydown', handleKeydown)
-
-		// Set up Tauri drag and drop events
-		let unlistenDrop: UnlistenFn | undefined
-		let unlistenDragOver: UnlistenFn | undefined
-		let unlistenDragLeave: UnlistenFn | undefined
-		let unlistenDevices: UnlistenFn | undefined
-		let unlistenMenu: UnlistenFn | undefined
-
-		const setupDragDrop = async () => {
-			const appWindow = getCurrentWindow()
-
-			// Listen for file drop from OS file explorer
-			// Note: Tauri's onDragDropEvent only fires for external OS file drags,
-			// not for internal HTML5 drags (like dragging tracks to playlists)
-			unlistenDrop = await appWindow.onDragDropEvent(async (event) => {
-				if (event.payload.type === 'drop') {
-					isDragOver = false
-					const paths = event.payload.paths
-					if (paths && paths.length > 0) {
-						// Filter for audio files
-						const audioExtensions = ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac']
-						const audioPaths = paths.filter((p) => {
-							const ext = p.split('.').pop()?.toLowerCase()
-							return ext && audioExtensions.includes(ext)
-						})
-						if (audioPaths.length > 0) {
-							await trackController.handleExternalFileDrop(audioPaths)
-						}
-					}
-				} else if (event.payload.type === 'enter') {
-					// 'enter' event fires when external files are dragged into the window
-					// and includes the file paths. 'over' events don't include paths.
-					if (event.payload.paths && event.payload.paths.length > 0) {
-						isDragOver = true
-					}
-				} else if (event.payload.type === 'leave' || event.payload.type === 'cancel') {
-					isDragOver = false
-				}
-			})
-		}
-
-		// Set up device change listener
-		const setupDeviceListener = async () => {
-			unlistenDevices = await listen<UsbDevice[]>('devices-changed', (event) => {
-				const previousDevices = devicesStore.getDevices()
-				const newDevices = event.payload
-
-				// Detect new devices (connected)
-				const prevIds = new Set(previousDevices.map((d) => d.id))
-				for (const device of newDevices) {
-					if (!prevIds.has(device.id)) {
-						toastStore.info(`${device.name} connected`)
-					}
-				}
-
-				// Detect removed devices (disconnected)
-				const newIds = new Set(newDevices.map((d) => d.id))
-				for (const device of previousDevices) {
-					if (!newIds.has(device.id)) {
-						toastStore.info(`${device.name} disconnected`)
-					}
-				}
-
-				devicesStore.setDevices(newDevices)
-			})
-		}
+		const cleanupKeyboard = useKeyboardShortcuts({
+			onPlayPause: () => playerStore.togglePlayPause(),
+			onFocusSearch: () => {
+				const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement
+				searchInput?.focus()
+			},
+			onClearSelection: () => uiStore.clearSelection(),
+			onSelectAll: () => {
+				const allIds = new Set($sortedTracks.map((t) => t.id))
+				uiStore.setSelectedTracks(allIds)
+			},
+			onOpenSettings: () => modalOrchestrator.openSettingsModal(),
+		})
 
 		// Set up menu action listener
-		const setupMenuListener = async () => {
-			unlistenMenu = await onMenuAction(handleMenuAction)
-		}
-
-		setupDragDrop()
-		setupDeviceListener()
-		setupMenuListener()
+		const cleanupMenu = await useMenuActions({
+			onImport: trackController.handleImport,
+			onCreatePlaylist: handleCreatePlaylist,
+			onCreateFolder: handleCreateFolder,
+			onSelectAll: () => {
+				const allIds = new Set($sortedTracks.map((t) => t.id))
+				uiStore.setSelectedTracks(allIds)
+			},
+			onDeselectAll: () => uiStore.clearSelection(),
+			onPlayPause: () => playerStore.togglePlayPause(),
+			onStop: () => playerStore.stop(),
+			onOpenSettings: () => modalOrchestrator.openSettingsModal(),
+		})
 
 		return () => {
-			window.removeEventListener('keydown', handleKeydown)
-			unlistenDrop?.()
-			unlistenDragOver?.()
-			unlistenDragLeave?.()
-			unlistenDevices?.()
-			unlistenMenu?.()
+			cleanupApp()
+			cleanupKeyboard()
+			cleanupMenu()
 		}
 	})
-
-	// Keyboard shortcuts
-	function handleKeydown(e: KeyboardEvent) {
-		// Space: toggle play/pause
-		if (e.code === 'Space' && !isInputFocused()) {
-			e.preventDefault()
-			playerStore.togglePlayPause()
-		}
-
-		// Cmd/Ctrl+F: focus search
-		if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
-			e.preventDefault()
-			const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement
-			searchInput?.focus()
-		}
-
-		// Escape: clear selection
-		if (e.key === 'Escape') {
-			uiStore.clearSelection()
-		}
-
-		// Cmd/Ctrl+A: select all
-		if ((e.metaKey || e.ctrlKey) && e.key === 'a' && !isInputFocused()) {
-			e.preventDefault()
-			const allIds = new Set($sortedTracks.map((t) => t.id))
-			uiStore.setSelectedTracks(allIds)
-		}
-
-		// Cmd/Ctrl+,: open settings
-		if ((e.metaKey || e.ctrlKey) && e.key === ',') {
-			e.preventDefault()
-			modalOrchestrator.openSettingsModal()
-		}
-	}
-
-	function isInputFocused() {
-		const active = document.activeElement
-		return active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement
-	}
-
-	// Menu action handler
-	function handleMenuAction(action: MenuAction) {
-		switch (action) {
-			case 'import_tracks':
-				trackController.handleImport()
-				break
-			case 'new_playlist':
-				handleCreatePlaylist()
-				break
-			case 'new_folder':
-				handleCreateFolder()
-				break
-			case 'select_all':
-				if (!isInputFocused()) {
-					const allIds = new Set($sortedTracks.map((t) => t.id))
-					uiStore.setSelectedTracks(allIds)
-				}
-				break
-			case 'deselect_all':
-				uiStore.clearSelection()
-				break
-			case 'play_pause':
-				if (!isInputFocused()) {
-					playerStore.togglePlayPause()
-				}
-				break
-			case 'stop':
-				playerStore.stop()
-				break
-			case 'toggle_sidebar':
-				// TODO: Implement sidebar toggle
-				break
-			case 'settings':
-				modalOrchestrator.openSettingsModal()
-				break
-			case 'documentation':
-				// TODO: Open documentation
-				break
-			case 'report_issue':
-				// TODO: Open issue reporting
-				break
-		}
-	}
 
 	// Sort change
 	function handleSortChange(config: SortConfig) {
