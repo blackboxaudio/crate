@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
+	import { onMount, onDestroy } from 'svelte'
 	import { open } from '@tauri-apps/plugin-dialog'
 
 	import type {
@@ -88,6 +88,7 @@
 	// Internal drag state
 	let dropTargets = $state<DropTarget[]>([])
 	let rafId: number | null = null
+	let cleanupOnMount: (() => void) | undefined
 
 	// Handle global pointer events when dragging
 	function handleGlobalPointerMove(e: PointerEvent) {
@@ -405,7 +406,15 @@
 	}
 
 	// Initialize on mount
-	onMount(() => void onMountHelper())
+	onMount(() => {
+		onMountHelper().then((cleanupFn) => {
+			cleanupOnMount = cleanupFn
+		})
+	})
+
+	onDestroy(() => {
+		cleanupOnMount?.()
+	})
 
 	// Sort change
 	function handleSortChange(config: SortConfig) {
