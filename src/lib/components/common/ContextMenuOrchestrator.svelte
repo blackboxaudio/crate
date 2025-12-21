@@ -27,6 +27,7 @@
 	import TagsSidebarContextMenu from '$lib/components/tags/TagsSidebarContextMenu.svelte'
 	import DeviceContextMenu from '$lib/components/devices/DeviceContextMenu.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import { devices } from '$lib/stores/devices'
 
 	// =========================================================================
 	// Props - Callback handlers passed from parent
@@ -133,6 +134,16 @@
 	// visibleMenu: What's currently rendered (stays during out-transition)
 	let activeMenu = $state<ActiveContextMenu>({ type: 'none' })
 	let visibleMenu = $state<ActiveContextMenu | null>(null)
+
+	// Close device context menu if the device is disconnected
+	$effect(() => {
+		if (activeMenu.type === 'device') {
+			const deviceStillExists = $devices.some((d) => d.id === activeMenu.device.id)
+			if (!deviceStillExists) {
+				closeAll()
+			}
+		}
+	})
 
 	// =========================================================================
 	// Exported Functions - API for parent component
