@@ -126,7 +126,7 @@
 
 <div class="flex h-full flex-col border-l border-stroke bg-surface-1">
 	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-stroke px-4 py-3">
+	<div class="flex items-center justify-between px-4 py-4.5">
 		<h2 class="text-sm font-semibold text-text-primary">
 			{selectedTracks.length === 1 ? 'Track Info' : `${selectedTracks.length} Tracks`}
 		</h2>

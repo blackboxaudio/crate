@@ -856,22 +856,19 @@
 			<!-- Right Sidebar (Track Editor) -->
 			<div
 				class="flex h-full flex-shrink-0 overflow-hidden ease-out"
-				class:transition-all={!isResizingRightSidebar}
+				class:transition-[width]={!isResizingRightSidebar}
 				class:duration-250={!isResizingRightSidebar}
-				class:opacity-0={!sidebarOpen}
-				class:blur-sm={!sidebarOpen}
+				class:animate-[fade-in_250ms_ease-out]={sidebarOpen}
 				style="width: {sidebarOpen ? $rightSidebarWidth : 0}px"
 			>
-				{#if sidebarOpen}
-					<ResizeHandle
-						onResize={handleRightSidebarResize}
-						onResizeStart={() => (isResizingRightSidebar = true)}
-						onResizeEnd={() => (isResizingRightSidebar = false)}
-					/>
-					<div style="width: {$rightSidebarWidth}px">
-						<TrackEditor selectedTracks={selectedTracksArray} />
-					</div>
-				{/if}
+				<ResizeHandle
+					onResize={handleRightSidebarResize}
+					onResizeStart={() => (isResizingRightSidebar = true)}
+					onResizeEnd={() => (isResizingRightSidebar = false)}
+				/>
+				<div style="width: {$rightSidebarWidth}px">
+					<TrackEditor selectedTracks={selectedTracksArray} />
+				</div>
 			</div>
 		</div>
 	</div>
