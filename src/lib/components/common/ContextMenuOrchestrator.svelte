@@ -80,6 +80,9 @@
 		onDeviceViewInfo: (device: UsbDevice) => void
 		onDeviceRevealInFinder: (device: UsbDevice) => void
 		onDeviceEject: (device: UsbDevice) => void
+
+		// Close callback
+		onClose?: () => void
 	}
 
 	let {
@@ -112,12 +115,16 @@
 		onDeviceViewInfo,
 		onDeviceRevealInFinder,
 		onDeviceEject,
+		onClose,
 	}: Props = $props()
 
 	// =========================================================================
 	// Internal State
 	// =========================================================================
+	// activeMenu: The desired state (what should be shown/hidden)
+	// visibleMenu: What's currently rendered (stays during out-transition)
 	let activeMenu = $state<ActiveContextMenu>({ type: 'none' })
+	let visibleMenu = $state<ActiveContextMenu | null>(null)
 
 	// =========================================================================
 	// Exported Functions - API for parent component
@@ -125,94 +132,118 @@
 
 	export function closeAll() {
 		activeMenu = { type: 'none' }
+		onClose?.()
+	}
+
+	// Called after out-transition completes
+	function handleMenuClosed() {
+		visibleMenu = null
 	}
 
 	export function openTrackMenu(e: MouseEvent, tracks: Track[]) {
 		e.preventDefault()
-		activeMenu = {
-			type: 'track',
+		const menu = {
+			type: 'track' as const,
 			x: e.clientX,
 			y: e.clientY,
 			tracks,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	export function openPlaylistMenu(e: MouseEvent, playlist: Playlist, source: 'tree' | 'folder') {
 		e.preventDefault()
-		activeMenu = {
-			type: 'playlist',
+		const menu = {
+			type: 'playlist' as const,
 			x: e.clientX,
 			y: e.clientY,
 			playlist,
 			source,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	export function openFolderViewMenu(e: MouseEvent, folderId: string) {
 		e.preventDefault()
-		activeMenu = {
-			type: 'folderView',
+		const menu = {
+			type: 'folderView' as const,
 			x: e.clientX,
 			y: e.clientY,
 			folderId,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	export function openPlaylistTreeMenu(e: MouseEvent) {
 		e.preventDefault()
-		activeMenu = {
-			type: 'playlistTree',
+		const menu = {
+			type: 'playlistTree' as const,
 			x: e.clientX,
 			y: e.clientY,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	export function openLibraryViewMenu(e: MouseEvent) {
 		e.preventDefault()
-		activeMenu = {
-			type: 'libraryView',
+		const menu = {
+			type: 'libraryView' as const,
 			x: e.clientX,
 			y: e.clientY,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	export function openPlaylistViewMenu(e: MouseEvent, playlist: Playlist) {
 		e.preventDefault()
-		activeMenu = {
-			type: 'playlistView',
+		const menu = {
+			type: 'playlistView' as const,
 			x: e.clientX,
 			y: e.clientY,
 			playlist,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	export function openTagMenu(e: MouseEvent, target: TagContextTarget) {
 		e.preventDefault()
-		activeMenu = {
-			type: 'tag',
+		const menu = {
+			type: 'tag' as const,
 			x: e.clientX,
 			y: e.clientY,
 			target,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	export function openTagsSidebarMenu(e: MouseEvent) {
 		e.preventDefault()
-		activeMenu = {
-			type: 'tagsSidebar',
+		const menu = {
+			type: 'tagsSidebar' as const,
 			x: e.clientX,
 			y: e.clientY,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	export function openDeviceMenu(e: MouseEvent, device: UsbDevice) {
 		e.preventDefault()
-		activeMenu = {
-			type: 'device',
+		const menu = {
+			type: 'device' as const,
 			x: e.clientX,
 			y: e.clientY,
 			device,
 		}
+		activeMenu = menu
+		visibleMenu = menu
 	}
 
 	// =========================================================================
@@ -375,15 +406,16 @@
 </script>
 
 <!-- Track Context Menu -->
-{#if activeMenu.type === 'track'}
+{#if visibleMenu?.type === 'track'}
 	<TrackContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
-		selectedTracks={activeMenu.tracks}
+		open={activeMenu.type === 'track'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		selectedTracks={visibleMenu.tracks}
 		{playlists}
 		{currentPlaylistId}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 		onRevealInExplorer={handleTrackRevealInExplorer}
 		onAddToPlaylist={handleTrackAddToPlaylist}
 		onRemoveFromPlaylist={handleTrackRemoveFromPlaylist}
@@ -394,14 +426,15 @@
 {/if}
 
 <!-- Playlist Context Menu -->
-{#if activeMenu.type === 'playlist'}
+{#if visibleMenu?.type === 'playlist'}
 	<PlaylistContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
-		playlist={activeMenu.playlist}
+		open={activeMenu.type === 'playlist'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		playlist={visibleMenu.playlist}
 		folders={playlistFolders}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 		onRename={handlePlaylistRename}
 		onDelete={handlePlaylistDelete}
 		onMove={handlePlaylistMove}
@@ -409,63 +442,68 @@
 {/if}
 
 <!-- Playlist Tree Context Menu (whitespace right-click) -->
-{#if activeMenu.type === 'playlistTree'}
+{#if visibleMenu?.type === 'playlistTree'}
 	<ContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
+		open={activeMenu.type === 'playlistTree'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
 		items={[
 			{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handlePlaylistTreeCreateFolder },
 			{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handlePlaylistTreeCreatePlaylist },
 		]}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 	/>
 {/if}
 
 <!-- Folder View Context Menu (empty space right-click) -->
-{#if activeMenu.type === 'folderView'}
+{#if visibleMenu?.type === 'folderView'}
 	<ContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
+		open={activeMenu.type === 'folderView'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
 		items={[
 			{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handleFolderViewCreateFolder },
 			{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handleFolderViewCreatePlaylist },
 		]}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 	/>
 {/if}
 
 <!-- Library View Context Menu (empty space right-click) -->
-{#if activeMenu.type === 'libraryView'}
+{#if visibleMenu?.type === 'libraryView'}
 	<ContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
+		open={activeMenu.type === 'libraryView'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
 		items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handleLibraryViewImport }]}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 	/>
 {/if}
 
 <!-- Playlist View Context Menu (empty space right-click) -->
-{#if activeMenu.type === 'playlistView'}
+{#if visibleMenu?.type === 'playlistView'}
 	<ContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
+		open={activeMenu.type === 'playlistView'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
 		items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handlePlaylistViewImport }]}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 	/>
 {/if}
 
 <!-- Tag Context Menu -->
-{#if activeMenu.type === 'tag'}
+{#if visibleMenu?.type === 'tag'}
 	<TagContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
-		target={activeMenu.target}
+		open={activeMenu.type === 'tag'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		target={visibleMenu.target}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 		onRenameTag={handleTagRename}
 		onDeleteTag={handleTagDelete}
 		onRenameCategory={handleCategoryRename}
@@ -475,26 +513,28 @@
 {/if}
 
 <!-- Tags Sidebar Context Menu (whitespace right-click) -->
-{#if activeMenu.type === 'tagsSidebar'}
+{#if visibleMenu?.type === 'tagsSidebar'}
 	<TagsSidebarContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
+		open={activeMenu.type === 'tagsSidebar'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
 		{categoryCount}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 		onAddCategory={handleTagsSidebarAddCategory}
 		onAddTag={handleTagsSidebarAddTag}
 	/>
 {/if}
 
 <!-- Device Context Menu -->
-{#if activeMenu.type === 'device'}
+{#if visibleMenu?.type === 'device'}
 	<DeviceContextMenu
-		open={true}
-		x={activeMenu.x}
-		y={activeMenu.y}
-		device={activeMenu.device}
+		open={activeMenu.type === 'device'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		device={visibleMenu.device}
 		onClose={closeAll}
+		onClosed={handleMenuClosed}
 		onViewInfo={handleDeviceViewInfo}
 		onRevealInFinder={handleDeviceRevealInFinder}
 		onEject={handleDeviceEject}

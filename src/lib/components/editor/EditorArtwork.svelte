@@ -37,8 +37,8 @@
 	}
 </script>
 
-<div class="flex flex-col items-center gap-3">
-	<div class="relative">
+<div class="flex w-full flex-col items-center gap-3">
+	<div class="relative w-full">
 		<AlbumArt artworkPath={displayPath} size="lg" class="rounded-lg" />
 		{#if artworkPath.mixed}
 			<div

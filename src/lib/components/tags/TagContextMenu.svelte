@@ -16,6 +16,7 @@
 		y: number
 		target: ContextTarget
 		onClose: () => void
+		onClosed?: () => void
 		onRenameTag: (tag: Tag) => void
 		onDeleteTag: (tag: Tag) => void
 		onRenameCategory: (category: TagCategory) => void
@@ -29,6 +30,7 @@
 		y,
 		target,
 		onClose,
+		onClosed,
 		onRenameTag,
 		onDeleteTag,
 		onRenameCategory,
@@ -103,4 +105,4 @@
 	})
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems()} {onClose} />
+<ContextMenu {open} {x} {y} items={menuItems()} {onClose} {onClosed} />

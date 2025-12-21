@@ -10,12 +10,13 @@
 		y: number
 		device: UsbDevice | null
 		onClose: () => void
+		onClosed?: () => void
 		onViewInfo: (device: UsbDevice) => void
 		onRevealInFinder: (device: UsbDevice) => void
 		onEject: (device: UsbDevice) => void
 	}
 
-	let { open, x, y, device, onClose, onViewInfo, onRevealInFinder, onEject }: Props = $props()
+	let { open, x, y, device, onClose, onClosed, onViewInfo, onRevealInFinder, onEject }: Props = $props()
 
 	const revealLabel = $derived(() => {
 		const ua = navigator.userAgent
@@ -51,4 +52,4 @@
 	)
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems} {onClose} />
+<ContextMenu {open} {x} {y} items={menuItems} {onClose} {onClosed} />

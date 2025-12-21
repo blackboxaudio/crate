@@ -10,11 +10,12 @@
 		y: number
 		categoryCount: number
 		onClose: () => void
+		onClosed?: () => void
 		onAddCategory: () => void
 		onAddTag: () => void
 	}
 
-	let { open, x, y, categoryCount, onClose, onAddCategory, onAddTag }: Props = $props()
+	let { open, x, y, categoryCount, onClose, onClosed, onAddCategory, onAddTag }: Props = $props()
 
 	const menuItems = $derived<ContextMenuItem[]>([
 		{
@@ -34,4 +35,4 @@
 	])
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems} {onClose} />
+<ContextMenu {open} {x} {y} items={menuItems} {onClose} {onClosed} />

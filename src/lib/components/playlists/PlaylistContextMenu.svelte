@@ -11,12 +11,13 @@
 		playlist: Playlist | null
 		folders: Playlist[]
 		onClose: () => void
+		onClosed?: () => void
 		onRename: (playlist: Playlist) => void
 		onDelete: (playlist: Playlist) => void
 		onMove: (playlist: Playlist, folderId: string | null) => void
 	}
 
-	let { open, x, y, playlist, folders, onClose, onRename, onDelete, onMove }: Props = $props()
+	let { open, x, y, playlist, folders, onClose, onClosed, onRename, onDelete, onMove }: Props = $props()
 
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		if (!playlist) return []
@@ -80,4 +81,4 @@
 	})
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems()} {onClose} />
+<ContextMenu {open} {x} {y} items={menuItems()} {onClose} {onClosed} />

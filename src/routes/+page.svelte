@@ -195,6 +195,9 @@
 	let contextMenuOrchestrator: ReturnType<typeof ContextMenuOrchestrator>
 	let modalOrchestrator: ReturnType<typeof ModalOrchestrator>
 
+	// Context menu state for playlist tree hover styling
+	let contextMenuPlaylistId = $state<string | null>(null)
+
 	// Tag controller
 	const tagController = createTagController({
 		tagsStore,
@@ -502,6 +505,7 @@
 
 	// Playlist context menu handlers
 	function handlePlaylistContextMenu(e: MouseEvent, playlist: Playlist) {
+		contextMenuPlaylistId = playlist.id
 		contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'tree')
 	}
 
@@ -783,7 +787,7 @@
 				{devices}
 				{selectedPlaylistId}
 				{selectedFolderId}
-				contextMenuPlaylistId={null}
+				{contextMenuPlaylistId}
 				{selectedTagIds}
 				selectedTrackIds={$selectedTrackIds}
 				{tagStates}
@@ -924,6 +928,7 @@
 	onDeviceViewInfo={handleViewDeviceInfo}
 	onDeviceRevealInFinder={handleDeviceRevealInFinder}
 	onDeviceEject={handleEjectDevice}
+	onClose={() => (contextMenuPlaylistId = null)}
 />
 
 <!-- Modal Orchestrator -->

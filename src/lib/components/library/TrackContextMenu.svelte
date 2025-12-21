@@ -14,6 +14,7 @@
 		playlists: Playlist[]
 		currentPlaylistId: string | null
 		onClose: () => void
+		onClosed?: () => void
 		onRevealInExplorer: () => void
 		onAddToPlaylist: (playlistId: string) => void
 		onRemoveFromPlaylist: () => void
@@ -30,6 +31,7 @@
 		playlists,
 		currentPlaylistId,
 		onClose,
+		onClosed,
 		onRevealInExplorer,
 		onAddToPlaylist,
 		onRemoveFromPlaylist,
@@ -179,4 +181,4 @@
 	})
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems()} {onClose} />
+<ContextMenu {open} {x} {y} items={menuItems()} {onClose} {onClosed} />

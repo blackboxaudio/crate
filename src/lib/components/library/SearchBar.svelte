@@ -5,6 +5,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import TagChip from '$lib/components/tags/TagChip.svelte'
 	import { translate } from '$lib/i18n'
+	import { scale } from 'svelte/transition'
 
 	type Props = {
 		activeFilterTags?: Tag[]
@@ -106,7 +107,7 @@
 
 					<!-- Hover popup with padding-top to create hoverable bridge -->
 					{#if showTagPopup}
-						<div class="absolute top-full right-0 z-[200] pt-1">
+						<div class="absolute top-full right-0 z-[200] pt-1" transition:scale={{ start: 0.95, duration: 200 }}>
 							<div class="min-w-[180px] rounded-md border border-stroke bg-surface-1 p-2 shadow-lg">
 								<!-- Filter mode toggle -->
 								<div class="mb-2 flex items-center justify-between border-b border-stroke pb-2 pl-1">
