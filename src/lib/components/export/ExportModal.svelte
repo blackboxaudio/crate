@@ -2,6 +2,7 @@
 	import Modal from '$lib/components/common/Modal.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import Checkbox from '$lib/components/common/Checkbox.svelte'
+	import { SelectablePlaylistTree } from '$lib/components/playlists'
 	import { translate } from '$lib/i18n'
 	import { formatBytes } from '$lib/utils'
 	import type { Playlist, UsbDevice, ExportRequest } from '$lib/types'
@@ -41,19 +42,9 @@
 		}
 	})
 
-	// Get root playlists (those without parent)
-	const rootPlaylists = $derived(
-		playlists.filter((p) => p.parent_id === null).sort((a, b) => a.sort_order - b.sort_order)
-	)
-
 	// Get children of a folder
 	function getChildren(parentId: string): Playlist[] {
 		return playlists.filter((p) => p.parent_id === parentId).sort((a, b) => a.sort_order - b.sort_order)
-	}
-
-	// Check if a playlist or any of its descendants is selected
-	function isSelected(playlistId: string): boolean {
-		return selectedPlaylistIds.has(playlistId)
 	}
 
 	// Toggle playlist selection
@@ -106,6 +97,16 @@
 	// Get selected device
 	const selectedDevice = $derived(mode === 'selectPlaylists' ? device : devices.find((d) => d.id === selectedDeviceId))
 
+	// Calculate selected playlist count (excluding folders)
+	const selectedPlaylistCount = $derived(() => {
+		let count = 0
+		for (const id of selectedPlaylistIds) {
+			const p = playlists.find((pl) => pl.id === id)
+			if (p && !p.is_folder) count++
+		}
+		return count
+	})
+
 	// Calculate total track count for selected playlists
 	const totalTrackCount = $derived(() => {
 		let count = 0
@@ -155,10 +156,8 @@
 			<!-- Playlist selection mode -->
 			<p class="description">{$translate('export.selectPlaylists')}</p>
 
-			<div class="playlist-tree">
-				{#each rootPlaylists as p (p.id)}
-					{@render playlistItem(p, 0)}
-				{/each}
+			<div class="playlist-tree-container">
+				<SelectablePlaylistTree {playlists} selectedIds={selectedPlaylistIds} onToggle={togglePlaylist} />
 			</div>
 		{:else}
 			<!-- Device selection mode -->
@@ -196,6 +195,10 @@
 					<span class="summary-value">{selectedDevice.name}</span>
 				</div>
 				<div class="summary-row">
+					<span>{$translate('export.playlistsToExport')}:</span>
+					<span class="summary-value">{selectedPlaylistCount()}</span>
+				</div>
+				<div class="summary-row">
 					<span>{$translate('export.tracksToExport')}:</span>
 					<span class="summary-value">{totalTrackCount()}</span>
 				</div>
@@ -219,23 +222,6 @@
 	{/snippet}
 </Modal>
 
-{#snippet playlistItem(p: Playlist, depth: number)}
-	<div class="playlist-item" style="padding-left: {depth * 16 + 8}px">
-		<Checkbox checked={isSelected(p.id)} onchange={() => togglePlaylist(p.id, p.is_folder)} />
-		<span class="playlist-icon">{p.is_folder ? '📁' : '🎵'}</span>
-		<span class="playlist-name">{p.name}</span>
-		{#if !p.is_folder}
-			<span class="playlist-count">({p.track_count})</span>
-		{/if}
-	</div>
-
-	{#if p.is_folder}
-		{#each getChildren(p.id) as child (child.id)}
-			{@render playlistItem(child, depth + 1)}
-		{/each}
-	{/if}
-{/snippet}
-
 <style>
 	.export-content {
 		display: flex;
@@ -249,38 +235,12 @@
 		margin: 0;
 	}
 
-	.playlist-tree {
+	.playlist-tree-container {
 		max-height: 300px;
 		overflow-y: auto;
-		border: 1px solid var(--border-color);
+		border: 1px solid var(--stroke);
 		border-radius: 6px;
 		padding: 8px 0;
-	}
-
-	.playlist-item {
-		display: flex;
-		align-items: center;
-		gap: 8px;
-		padding: 6px 8px;
-		cursor: pointer;
-	}
-
-	.playlist-item:hover {
-		background: var(--bg-hover);
-	}
-
-	.playlist-icon {
-		font-size: 14px;
-	}
-
-	.playlist-name {
-		flex: 1;
-		font-size: 14px;
-	}
-
-	.playlist-count {
-		color: var(--text-tertiary);
-		font-size: 12px;
 	}
 
 	.device-list {

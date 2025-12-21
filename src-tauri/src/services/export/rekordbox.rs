@@ -389,19 +389,18 @@ impl RekordboxPdbWriter {
         page[20..24].copy_from_slice(&1u32.to_le_bytes());
 
         // Table descriptors start at offset 0x20 (32)
+        // Each descriptor is 16 bytes: type(4) + empty_candidate(4) + first_page(4) + last_page(4)
         let mut offset = 32usize;
         for i in 0..first_pages.len() {
             // Table type
             page[offset..offset + 4].copy_from_slice(&(i as u32).to_le_bytes());
-            // Empty page flags
+            // Empty candidate (0 = no empty pages)
             page[offset + 4..offset + 8].copy_from_slice(&0u32.to_le_bytes());
             // First page
             page[offset + 8..offset + 12].copy_from_slice(&first_pages[i].to_le_bytes());
             // Last page
             page[offset + 12..offset + 16].copy_from_slice(&last_pages[i].to_le_bytes());
-            // Padding
-            page[offset + 16..offset + 24].copy_from_slice(&[0u8; 8]);
-            offset += 24;
+            offset += 16; // 16 bytes per descriptor, no padding
         }
 
         writer
@@ -411,7 +410,7 @@ impl RekordboxPdbWriter {
         Ok(())
     }
 
-    /// Write pages for a table
+    /// Write pages for a table with proper heap-based row format
     fn write_table_pages<W: Write + Seek>(
         &self,
         writer: &mut W,
@@ -420,41 +419,95 @@ impl RekordboxPdbWriter {
         first_page: u32,
         last_page: u32,
     ) -> Result<()> {
-        let data_per_page = (PAGE_SIZE - 40) as usize; // 40 bytes for page header
+        // Header is 40 bytes (0x00-0x27)
+        // Row data starts at offset 0x28 (40)
+        // Row index grows backward from page end
+        const HEADER_SIZE: usize = 40;
+        const ROW_INDEX_ENTRY_SIZE: usize = 2; // 2 bytes per row offset
+
         let num_pages = (last_page - first_page + 1) as usize;
+
+        // For simplicity, we'll write all data to a single page if it fits
+        // Otherwise, we split across pages
+        let max_data_per_page = PAGE_SIZE as usize - HEADER_SIZE - 8; // Reserve 8 bytes for minimal row index
 
         for page_idx in 0..num_pages {
             let mut page = vec![0u8; PAGE_SIZE as usize];
             let page_num = first_page + page_idx as u32;
 
-            // Page header (40 bytes):
-            // 0x00: 4 bytes - padding
-            // 0x04: 4 bytes - page index
-            // 0x08: 4 bytes - page type (table type)
-            // 0x0C: 4 bytes - next page (0 if last)
-            // 0x10: 4 bytes - unknown
-            // 0x14-0x27: remaining header
+            // Calculate what data goes on this page
+            let data_start = page_idx * max_data_per_page;
+            let data_end = std::cmp::min(data_start + max_data_per_page, data.len());
+            let chunk = if data_start < data.len() {
+                &data[data_start..data_end]
+            } else {
+                &[]
+            };
+            let used_size = chunk.len() as u16;
 
-            // Padding
+            // Page header (40 bytes):
+            // 0x00: 4 bytes - padding (zeros)
             page[0..4].copy_from_slice(&0u32.to_le_bytes());
-            // Page index
+            // 0x04: 4 bytes - page index
             page[4..8].copy_from_slice(&page_num.to_le_bytes());
-            // Page type
+            // 0x08: 4 bytes - page type (table type)
             page[8..12].copy_from_slice(&(table_type as u32).to_le_bytes());
-            // Next page (0 if last)
+            // 0x0C: 4 bytes - next page (0 if last)
             let next = if page_num < last_page {
                 page_num + 1
             } else {
                 0
             };
             page[12..16].copy_from_slice(&next.to_le_bytes());
+            // 0x10: 4 bytes - version/sequence number
+            page[16..20].copy_from_slice(&1u32.to_le_bytes());
+            // 0x14: 4 bytes - unknown (zeros) - already zero
 
-            // Copy data for this page
-            let data_start = page_idx * data_per_page;
-            let data_end = std::cmp::min(data_start + data_per_page, data.len());
-            if data_start < data.len() {
-                let chunk = &data[data_start..data_end];
-                page[40..40 + chunk.len()].copy_from_slice(chunk);
+            // 0x18-0x1B: num_rows packed (13 bits num_row_offsets + 11 bits num_rows) + page_flags
+            // For now, set num_rows = 1 if we have data, 0 otherwise
+            let num_rows: u32 = if !chunk.is_empty() { 1 } else { 0 };
+            // Pack: num_row_offsets (13 bits) << 11 | num_rows (11 bits)
+            // Simplified: just set num_rows in the lower bits
+            let row_counts = (num_rows << 11) | num_rows;
+            page[24..27].copy_from_slice(&row_counts.to_le_bytes()[0..3]);
+            // 0x1B: page_flags (0x64 for data pages)
+            page[27] = 0x64;
+
+            // 0x1C-0x1D: free_size
+            let free_size = (PAGE_SIZE as u16) - (HEADER_SIZE as u16) - used_size - 4; // 4 for row index
+            page[28..30].copy_from_slice(&free_size.to_le_bytes());
+            // 0x1E-0x1F: used_size
+            page[30..32].copy_from_slice(&used_size.to_le_bytes());
+
+            // 0x20-0x27: Additional header bytes
+            // These seem to be row-related offsets. Set to 0x1fff (empty marker) for now
+            page[32..34].copy_from_slice(&0x1fffu16.to_le_bytes()); // _u5_
+            page[34..36].copy_from_slice(&0x1fffu16.to_le_bytes()); // _unkrows_
+            page[36..38].copy_from_slice(&0x0000u16.to_le_bytes()); // _u6_ (0 for data pages)
+            page[38..40].copy_from_slice(&0x0000u16.to_le_bytes()); // _u7_
+
+            // Copy row data starting at offset 0x28 (40)
+            if !chunk.is_empty() {
+                page[HEADER_SIZE..HEADER_SIZE + chunk.len()].copy_from_slice(chunk);
+            }
+
+            // Write row index at end of page (growing backward)
+            // For each row, we need a 2-byte offset pointing to row start
+            // Plus row presence bitmask (2 bytes) + 2 bytes padding per 16 rows
+            if !chunk.is_empty() {
+                // Row offset: points to offset 0x28 (40) where data starts
+                let row_offset: u16 = HEADER_SIZE as u16;
+                // Row presence bitmask: bit 0 set = row 0 present
+                let row_presence: u16 = 0x0001;
+                // Unknown bytes after bitmask
+                let row_unknown: u16 = 0x0000;
+
+                // Write at end of page (last 6 bytes before end for 1 row):
+                // [row_presence: 2][unknown: 2][row_offset: 2]
+                let index_start = PAGE_SIZE as usize - 6;
+                page[index_start..index_start + 2].copy_from_slice(&row_presence.to_le_bytes());
+                page[index_start + 2..index_start + 4].copy_from_slice(&row_unknown.to_le_bytes());
+                page[index_start + 4..index_start + 6].copy_from_slice(&row_offset.to_le_bytes());
             }
 
             writer

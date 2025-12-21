@@ -9,8 +9,13 @@
 	let { checked = $bindable(false), onchange, label, disabled = false }: Props = $props()
 
 	function handleChange() {
-		checked = !checked
-		onchange?.()
+		if (onchange) {
+			// Let parent control state via callback
+			onchange()
+		} else {
+			// Only toggle internally when using bind:checked
+			checked = !checked
+		}
 	}
 </script>
 

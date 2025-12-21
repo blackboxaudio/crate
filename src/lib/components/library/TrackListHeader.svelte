@@ -10,18 +10,22 @@
 
 	let { sortConfig, onSort }: Props = $props()
 
-	function handleSort(field: TrackSortField) {
-		const newConfig = getNextSortConfig(sortConfig, field)
-		onSort?.(newConfig)
+	function handleSort(field: ExtendedTrackSortField) {
+		if (field !== 'tags') {
+			const newConfig = getNextSortConfig(sortConfig, field)
+			onSort?.(newConfig)
+		}
 	}
 
-	function getSortIndicator(field: TrackSortField): string {
-		if (sortConfig.field !== field) return ''
+	function getSortIndicator(field: ExtendedTrackSortField): string {
+		if (field === 'tags' || sortConfig.field !== field) return ''
 		return sortConfig.direction === 'asc' ? ' ↑' : ' ↓'
 	}
 
+	type ExtendedTrackSortField = TrackSortField | 'tags'
+
 	type Column = {
-		field: TrackSortField | null
+		field: ExtendedTrackSortField | null
 		labelKey: string
 		align: 'left' | 'center' | 'right'
 	}
@@ -34,7 +38,7 @@
 		{ field: 'bpm', labelKey: 'library.columns.bpm', align: 'right' },
 		{ field: 'key', labelKey: 'library.columns.key', align: 'center' },
 		{ field: 'duration_ms', labelKey: 'library.columns.time', align: 'right' },
-		{ field: null, labelKey: 'library.columns.tags', align: 'left' },
+		{ field: 'tags', labelKey: 'library.columns.tags', align: 'left' },
 	]
 </script>
 

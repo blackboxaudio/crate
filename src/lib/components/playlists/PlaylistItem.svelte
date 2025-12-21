@@ -3,7 +3,7 @@
 	import { dragStore, hoveredDropTarget, isDragging, isDraggingTracks, isDraggingPlaylist } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { Text } from '$lib/components/common'
+	import { Text, Checkbox } from '$lib/components/common'
 
 	type Props = {
 		playlist: Playlist
@@ -18,6 +18,12 @@
 		oncontextmenu?: (e: MouseEvent) => void
 		onTracksDrop?: (trackIds: string[]) => void
 		onPlaylistDrop?: (playlistId: string) => void
+		// Checkbox mode props
+		showCheckbox?: boolean
+		checkboxChecked?: boolean
+		onCheckboxChange?: () => void
+		disableDrag?: boolean
+		disableContextMenu?: boolean
 	}
 
 	let {
@@ -33,6 +39,12 @@
 		oncontextmenu,
 		onTracksDrop,
 		onPlaylistDrop,
+		// Checkbox mode props
+		showCheckbox = false,
+		checkboxChecked = false,
+		onCheckboxChange,
+		disableDrag = false,
+		disableContextMenu = false,
 	}: Props = $props()
 
 	let paddingLeft = $derived(`${depth * 12 + 8}px`)
@@ -83,6 +95,9 @@
 	let isDragStarted = false
 
 	function handlePointerDown(e: PointerEvent) {
+		// Skip drag handling if disabled
+		if (disableDrag) return
+
 		// Only handle primary button (left click)
 		if (e.button !== 0) return
 
@@ -117,27 +132,45 @@
 <div
 	role="treeitem"
 	tabindex="0"
-	data-drop-target={dropTargetId}
+	data-drop-target={disableDrag ? undefined : dropTargetId}
 	aria-selected={selected}
 	aria-expanded={playlist.is_folder ? expanded : undefined}
-	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-all select-none {selected ||
-	isContextMenuActive
+	class="flex items-center gap-2 rounded py-1.5 pr-3 transition-all select-none
+		{showCheckbox ? '' : 'cursor-pointer'}
+		{selected || isContextMenuActive
 		? 'bg-brand-muted text-text-primary'
 		: isHovered
 			? 'bg-brand-muted text-text-primary ring-1 ring-brand-primary'
-			: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+			: showCheckbox
+				? 'text-text-secondary'
+				: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 	style="padding-left: {paddingLeft}"
-	{onclick}
+	onclick={showCheckbox ? onCheckboxChange : onclick}
 	ondblclick={() => playlist.is_folder && onToggle?.()}
-	{oncontextmenu}
+	oncontextmenu={disableContextMenu ? undefined : oncontextmenu}
 	onpointerdown={handlePointerDown}
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}
 	onpointercancel={handlePointerUp}
 	onkeydown={(e) => e.key === 'Enter' && onclick?.()}
 >
-	<!-- Expand/Collapse toggle for folders -->
-	{#if playlist.is_folder && hasChildren}
+	<!-- Checkbox for selection mode, or expand/collapse toggle for folders -->
+	{#if showCheckbox}
+		<Checkbox checked={checkboxChecked} onchange={onCheckboxChange} />
+		{#if playlist.is_folder && hasChildren}
+			<button
+				type="button"
+				aria-label={expanded ? 'Collapse' : 'Expand'}
+				class="flex h-4 w-4 items-center justify-center text-text-tertiary hover:text-text-secondary"
+				onclick={(e) => {
+					e.stopPropagation()
+					onToggle?.()
+				}}
+			>
+				<Icon name="play" class="h-3 w-3 transition-transform {expanded ? 'rotate-90' : ''}" fill />
+			</button>
+		{/if}
+	{:else if playlist.is_folder && hasChildren}
 		<button
 			type="button"
 			aria-label={expanded ? 'Collapse' : 'Expand'}

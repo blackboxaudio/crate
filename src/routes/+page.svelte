@@ -767,11 +767,11 @@
 
 	// Export handlers
 	function handleDeviceExport(device: UsbDevice) {
-		modalOrchestrator.openExportModal('selectPlaylists', device)
+		modalOrchestrator.openExportToDeviceModal(device)
 	}
 
 	function handlePlaylistExport(playlist: Playlist) {
-		modalOrchestrator.openExportModal('selectDevice', playlist)
+		modalOrchestrator.openExportPlaylistModal(playlist)
 	}
 
 	async function handleExportSubmit(request: ExportRequest, deviceName: string) {
