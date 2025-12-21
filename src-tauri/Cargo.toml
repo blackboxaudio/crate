@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "DJ audio library management application"
 authors = ["you"]
 edition = "2021"
+license-file = "../LICENSE"
 
 [lib]
 name = "crate_lib"
