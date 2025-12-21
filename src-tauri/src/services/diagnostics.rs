@@ -50,6 +50,7 @@ impl DiagnosticsService {
     }
 
     /// Log an error
+    #[allow(dead_code)]
     pub fn log_error(&self, category: &str, message: &str, details: Option<&str>) {
         self.log(DiagnosticLevel::Error, category, message, details);
     }
