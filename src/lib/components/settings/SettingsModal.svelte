@@ -10,7 +10,8 @@
 	import { writeTextFile } from '@tauri-apps/plugin-fs'
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { scale } from 'svelte/transition'
-	import { SUPPORTED_LANGUAGES } from '$lib/i18n'
+	import { SUPPORTED_LANGUAGES, translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	type Props = {
 		open: boolean
@@ -71,24 +72,24 @@
 	}
 
 	// Theme options
-	const themeOptions: { value: Theme; label: string }[] = [
-		{ value: 'light', label: 'Light' },
-		{ value: 'dark', label: 'Dark' },
-		{ value: 'system', label: 'System' },
+	const themeOptions: { value: Theme; labelKey: string }[] = [
+		{ value: 'light', labelKey: 'settings.appearance.themeLight' },
+		{ value: 'dark', labelKey: 'settings.appearance.themeDark' },
+		{ value: 'system', labelKey: 'settings.appearance.themeSystem' },
 	]
 
 	// Accent color options
-	const accentColors: { value: AccentColor; hex: string; label: string }[] = [
-		{ value: 'blue', hex: '#3b82f6', label: 'Blue' },
-		{ value: 'indigo', hex: '#6366f1', label: 'Indigo' },
-		{ value: 'violet', hex: '#8b5cf6', label: 'Violet' },
-		{ value: 'purple', hex: '#a855f7', label: 'Purple' },
-		{ value: 'pink', hex: '#ec4899', label: 'Pink' },
-		{ value: 'rose', hex: '#f43f5e', label: 'Rose' },
-		{ value: 'orange', hex: '#f97316', label: 'Orange' },
-		{ value: 'amber', hex: '#f59e0b', label: 'Amber' },
-		{ value: 'emerald', hex: '#10b981', label: 'Emerald' },
-		{ value: 'teal', hex: '#14b8a6', label: 'Teal' },
+	const accentColors: { value: AccentColor; hex: string; labelKey: string }[] = [
+		{ value: 'blue', hex: '#3b82f6', labelKey: 'colors.blue' },
+		{ value: 'indigo', hex: '#6366f1', labelKey: 'colors.indigo' },
+		{ value: 'violet', hex: '#8b5cf6', labelKey: 'colors.violet' },
+		{ value: 'purple', hex: '#a855f7', labelKey: 'colors.purple' },
+		{ value: 'pink', hex: '#ec4899', labelKey: 'colors.pink' },
+		{ value: 'rose', hex: '#f43f5e', labelKey: 'colors.rose' },
+		{ value: 'orange', hex: '#f97316', labelKey: 'colors.orange' },
+		{ value: 'amber', hex: '#f59e0b', labelKey: 'colors.amber' },
+		{ value: 'emerald', hex: '#10b981', labelKey: 'colors.emerald' },
+		{ value: 'teal', hex: '#14b8a6', labelKey: 'colors.teal' },
 	]
 
 	// Font options
@@ -131,13 +132,14 @@
 		type SelectOption = { value: string; label: string }
 		type SelectOptionGroup = { label: string; options: SelectOption[] }
 
-		const systemDevices: SelectOption[] = [{ value: '', label: 'Default' }]
+		const defaultLabel = $translate('common.default')
+		const systemDevices: SelectOption[] = [{ value: '', label: defaultLabel }]
 		const externalDevices: SelectOption[] = []
 
 		for (const device of $audioDevices) {
 			const option: SelectOption = {
 				value: device.name,
-				label: device.isDefault ? `${device.name} (Default)` : device.name,
+				label: device.isDefault ? `${device.name} (${defaultLabel})` : device.name,
 			}
 
 			if (device.isBuiltIn) {
@@ -147,11 +149,11 @@
 			}
 		}
 
-		const groups: SelectOptionGroup[] = [{ label: 'System', options: systemDevices }]
+		const groups: SelectOptionGroup[] = [{ label: $translate('settings.sound.system'), options: systemDevices }]
 
 		// Only add External section if there are external devices
 		if (externalDevices.length > 0) {
-			groups.push({ label: 'External', options: externalDevices })
+			groups.push({ label: $translate('settings.sound.external'), options: externalDevices })
 		}
 
 		return groups
@@ -220,7 +222,7 @@
 			const text = formatReportAsText(report)
 			await writeText(text)
 			copySuccess = true
-			copyTooltip?.show('Copied!')
+			copyTooltip?.show(get(translate)('settings.diagnostics.copied'))
 			setTimeout(() => {
 				copySuccess = false
 			}, 2000)
@@ -280,7 +282,7 @@
 		<div class="flex h-[500px]" transition:scale={{ start: 0.95, duration: 200 }}>
 			<!-- Sidebar -->
 			<div class="flex w-48 flex-col border-r border-stroke bg-surface-0 p-4">
-				<Text variant="header-1" class="mb-4">Settings</Text>
+				<Text variant="header-1" class="mb-4">{$translate('settings.title')}</Text>
 				<nav class="space-y-1">
 					<button
 						type="button"
@@ -291,7 +293,7 @@
 						onclick={() => (activePage = 'general')}
 					>
 						<Icon name="globe" class="h-4 w-4" />
-						General
+						{$translate('settings.tabs.general')}
 					</button>
 					<button
 						type="button"
@@ -302,7 +304,7 @@
 						onclick={() => (activePage = 'appearance')}
 					>
 						<Icon name="palette" class="h-4 w-4" />
-						Appearance
+						{$translate('settings.tabs.appearance')}
 					</button>
 					<button
 						type="button"
@@ -313,7 +315,7 @@
 						onclick={() => (activePage = 'sound')}
 					>
 						<Icon name="volume-full" class="h-4 w-4" fill />
-						Sound
+						{$translate('settings.tabs.sound')}
 					</button>
 					<button
 						type="button"
@@ -324,7 +326,7 @@
 						onclick={() => (activePage = 'diagnostics')}
 					>
 						<Icon name="terminal" class="h-4 w-4" />
-						Diagnostics
+						{$translate('settings.tabs.diagnostics')}
 					</button>
 					<button
 						type="button"
@@ -335,7 +337,7 @@
 						onclick={() => (activePage = 'about')}
 					>
 						<Icon name="info" class="h-4 w-4" />
-						About
+						{$translate('settings.tabs.about')}
 					</button>
 				</nav>
 			</div>
@@ -346,15 +348,15 @@
 					<div class="space-y-8">
 						<!-- Language Section -->
 						<section>
-							<Text variant="header-3" class="mb-4">Language</Text>
+							<Text variant="header-3" class="mb-4">{$translate('settings.general.language')}</Text>
 							<div class="max-w-md">
 								<Select
 									value={$language}
 									options={languageOptions}
-									placeholder="Select a language"
+									placeholder={$translate('settings.general.language')}
 									onchange={handleLanguageChange}
 								/>
-								<Text variant="caption" as="p" class="mt-2">Choose the display language for the application.</Text>
+								<Text variant="caption" as="p" class="mt-2">{$translate('settings.general.languageDescription')}</Text>
 							</div>
 						</section>
 					</div>
@@ -362,16 +364,21 @@
 					<div class="space-y-8">
 						<!-- Font Section -->
 						<section>
-							<Text variant="header-3" class="mb-4">Font</Text>
+							<Text variant="header-3" class="mb-4">{$translate('settings.appearance.font')}</Text>
 							<div class="max-w-md">
-								<Select value={$font} options={fontOptions} placeholder="Select a font" onchange={handleFontChange} />
-								<Text variant="caption" as="p" class="mt-2">Choose the font used throughout the application.</Text>
+								<Select
+									value={$font}
+									options={fontOptions}
+									placeholder={$translate('settings.appearance.font')}
+									onchange={handleFontChange}
+								/>
+								<Text variant="caption" as="p" class="mt-2">{$translate('settings.appearance.fontDescription')}</Text>
 							</div>
 						</section>
 
 						<!-- Theme Section -->
 						<section>
-							<Text variant="header-3" class="mb-4">Theme</Text>
+							<Text variant="header-3" class="mb-4">{$translate('settings.appearance.theme')}</Text>
 							<div class="flex gap-3">
 								{#each themeOptions as option (option.value)}
 									<button
@@ -389,7 +396,7 @@
 										{:else}
 											<Icon name="monitor" class="h-6 w-6" />
 										{/if}
-										<Text variant="body-2" as="span">{option.label}</Text>
+										<Text variant="body-2" as="span">{$translate(option.labelKey)}</Text>
 									</button>
 								{/each}
 							</div>
@@ -397,7 +404,7 @@
 
 						<!-- Accent Color Section -->
 						<section>
-							<Text variant="header-3" class="mb-4">Accent Color</Text>
+							<Text variant="header-3" class="mb-4">{$translate('settings.appearance.accentColor')}</Text>
 							<div class="grid grid-cols-5 gap-3">
 								{#each accentColors as color (color.value)}
 									<button
@@ -405,7 +412,7 @@
 										class="group flex flex-col items-center gap-2 rounded-lg p-3
 											transition-colors hover:cursor-pointer hover:bg-surface-2"
 										onclick={() => handleAccentChange(color.value)}
-										title={color.label}
+										title={$translate(color.labelKey)}
 									>
 										<div
 											class="h-8 w-8 rounded-full transition-transform
@@ -414,7 +421,7 @@
 												: ''}"
 											style="background-color: {color.hex};"
 										></div>
-										<Text variant="caption" color="secondary">{color.label}</Text>
+										<Text variant="caption" color="secondary">{$translate(color.labelKey)}</Text>
 									</button>
 								{/each}
 							</div>
@@ -424,15 +431,16 @@
 					<div class="space-y-8">
 						<!-- Output Device Section -->
 						<section>
-							<Text variant="header-3" class="mb-4">Output Device</Text>
+							<Text variant="header-3" class="mb-4">{$translate('settings.sound.outputDevice')}</Text>
 							<div class="max-w-md">
 								<Select
 									value={$audioDevice ?? ''}
 									options={audioDeviceOptions}
-									placeholder="System Default"
+									placeholder={$translate('settings.sound.systemDefault')}
 									onchange={handleAudioDeviceChange}
 								/>
-								<Text variant="caption" as="p" class="mt-2">Select the audio output device for playback.</Text>
+								<Text variant="caption" as="p" class="mt-2">{$translate('settings.sound.outputDeviceDescription')}</Text
+								>
 							</div>
 						</section>
 					</div>
@@ -440,48 +448,48 @@
 					<div class="space-y-6">
 						<!-- System Info Section -->
 						<section>
-							<Text variant="header-3" class="mb-4">System Information</Text>
+							<Text variant="header-3" class="mb-4">{$translate('settings.diagnostics.systemInfo')}</Text>
 							{#if $systemInfo}
 								<div class="space-y-2 rounded-md bg-surface-0 p-4">
 									<div class="grid grid-cols-2 gap-x-4 gap-y-2">
 										<div>
-											<Text size="xs" color="secondary">Operating System</Text>
+											<Text size="xs" color="secondary">{$translate('settings.diagnostics.operatingSystem')}</Text>
 											<Text size="sm">{$systemInfo.osName} {$systemInfo.osVersion}</Text>
 										</div>
 										<div>
-											<Text size="xs" color="secondary">CPU</Text>
+											<Text size="xs" color="secondary">{$translate('settings.diagnostics.cpu')}</Text>
 											<Text size="sm">{$systemInfo.cpuBrand}</Text>
 										</div>
 										<div>
-											<Text size="xs" color="secondary">Memory</Text>
+											<Text size="xs" color="secondary">{$translate('settings.diagnostics.memory')}</Text>
 											<Text size="sm">
 												{formatBytes($systemInfo.usedMemoryBytes)} / {formatBytes($systemInfo.totalMemoryBytes)}
 											</Text>
 										</div>
 										<div>
-											<Text size="xs" color="secondary">Data Directory</Text>
+											<Text size="xs" color="secondary">{$translate('settings.diagnostics.dataDirectory')}</Text>
 											<Text size="sm">{formatBytes($systemInfo.dataDirSizeBytes)}</Text>
 										</div>
 									</div>
 								</div>
 							{:else}
-								<Text size="sm" color="secondary">Loading system info...</Text>
+								<Text size="sm" color="secondary">{$translate('settings.diagnostics.loadingSystemInfo')}</Text>
 							{/if}
 						</section>
 
 						<!-- Error Log Section -->
 						<section>
 							<div class="mb-4 flex items-center justify-between">
-								<Text variant="header-3">Error Log</Text>
+								<Text variant="header-3">{$translate('settings.diagnostics.errorLog')}</Text>
 								<Text size="xs" color="secondary">
-									{$diagnosticEntries.length} of 100 entries
+									{$translate('settings.diagnostics.entriesCount', { values: { count: $diagnosticEntries.length } })}
 								</Text>
 							</div>
 
 							{#if $diagnosticEntries.length === 0}
 								<div class="rounded-md bg-surface-0 p-6 text-center">
 									<Icon name="check" class="mx-auto h-8 w-8 text-success" />
-									<Text size="sm" color="secondary" class="mt-2">No errors recorded</Text>
+									<Text size="sm" color="secondary" class="mt-2">{$translate('settings.diagnostics.noErrors')}</Text>
 								</div>
 							{:else}
 								<div class="max-h-48 space-y-2 overflow-y-auto">
@@ -514,18 +522,25 @@
 
 						<!-- Export Section -->
 						<section>
-							<Text variant="header-3" class="mb-4">Export</Text>
+							<Text variant="header-3" class="mb-4">{$translate('settings.diagnostics.export')}</Text>
 							<div class="flex items-center gap-3">
-								<Button variant="secondary" onclick={handleExportJson}>Save as JSON</Button>
-								<Button variant="secondary" onclick={handleExportText}>Save as Text</Button>
+								<Button variant="secondary" onclick={handleExportJson}
+									>{$translate('settings.diagnostics.saveAsJson')}</Button
+								>
+								<Button variant="secondary" onclick={handleExportText}
+									>{$translate('settings.diagnostics.saveAsText')}</Button
+								>
 								<Tooltip bind:this={copyTooltip}>
-									<IconButton title="Copy to Clipboard" onclick={handleCopyToClipboard}>
-										<Icon name={copySuccess ? 'check' : 'copy'} class="h-5 w-5 {copySuccess ? 'text-success' : ''}" />
-									</IconButton>
+									<IconButton
+										title={$translate('settings.diagnostics.copyToClipboard')}
+										icon={copySuccess ? 'check' : 'copy'}
+										iconClass="h-5 w-5 {copySuccess ? 'text-success' : ''}"
+										onclick={handleCopyToClipboard}
+									/>
 								</Tooltip>
 							</div>
 							<Text variant="caption" as="p" class="mt-2">
-								Export diagnostics report for bug reports or troubleshooting.
+								{$translate('settings.diagnostics.exportDescription')}
 							</Text>
 						</section>
 					</div>
@@ -533,20 +548,22 @@
 					<div class="space-y-8">
 						<!-- Application Section -->
 						<section>
-							<Text variant="header-3" class="mb-4">Application</Text>
+							<Text variant="header-3" class="mb-4">{$translate('settings.about.application')}</Text>
 							<div class="space-y-3">
 								<div class="flex justify-between">
-									<Text size="sm" color="secondary" as="span">Version</Text>
-									<Text size="sm" as="span">{$appInfo?.version ?? 'Unknown'}</Text>
+									<Text size="sm" color="secondary" as="span">{$translate('settings.about.version')}</Text>
+									<Text size="sm" as="span">{$appInfo?.version ?? $translate('common.unknown')}</Text>
 								</div>
 								<div class="flex justify-between">
-									<Text size="sm" color="secondary" as="span">Environment</Text>
-									<Text size="sm" as="span" class="capitalize">{$appInfo?.environment ?? 'Unknown'}</Text>
+									<Text size="sm" color="secondary" as="span">{$translate('settings.about.environment')}</Text>
+									<Text size="sm" as="span" class="capitalize"
+										>{$appInfo?.environment ?? $translate('common.unknown')}</Text
+									>
 								</div>
 								<div class="flex justify-between">
-									<Text size="sm" color="secondary" as="span">Data Directory</Text>
+									<Text size="sm" color="secondary" as="span">{$translate('settings.diagnostics.dataDirectory')}</Text>
 									<Text variant="code" truncate class="max-w-xs" title={$appInfo?.dataDir}>
-										{$appInfo?.dataDir ?? 'Unknown'}
+										{$appInfo?.dataDir ?? $translate('common.unknown')}
 									</Text>
 								</div>
 							</div>
@@ -558,7 +575,7 @@
 
 		<!-- Footer -->
 		<div class="flex justify-end border-t border-stroke px-6 py-4">
-			<Button variant="secondary" onclick={onClose}>Close</Button>
+			<Button variant="secondary" onclick={onClose}>{$translate('common.close')}</Button>
 		</div>
 	{/if}
 </dialog>

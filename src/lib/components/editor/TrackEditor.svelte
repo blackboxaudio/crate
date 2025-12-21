@@ -9,6 +9,8 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import EditorField from './EditorField.svelte'
 	import EditorArtwork from './EditorArtwork.svelte'
+	import { translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	type Props = {
 		selectedTracks: Track[]
@@ -68,7 +70,7 @@
 			formData = {}
 		} catch (error) {
 			console.error('Failed to update tracks:', error)
-			toastStore.error('Failed to update tracks')
+			toastStore.error(get(translate)('toast.failedToUpdateTracks'))
 		} finally {
 			saving = false
 		}
@@ -87,7 +89,7 @@
 			libraryStore.updateTracksInState(updatedTracks)
 		} catch (error) {
 			console.error('Failed to set artwork:', error)
-			toastStore.error('Failed to set artwork')
+			toastStore.error(get(translate)('toast.failedToSetArtwork'))
 		}
 	}
 
@@ -103,7 +105,7 @@
 			libraryStore.updateTracksInState(updatedTracks)
 		} catch (error) {
 			console.error('Failed to remove artwork:', error)
-			toastStore.error('Failed to remove artwork')
+			toastStore.error(get(translate)('toast.failedToRemoveArtwork'))
 		}
 	}
 
@@ -115,7 +117,7 @@
 			libraryStore.updateTracksInState([updatedTrack])
 		} catch (error) {
 			console.error('Failed to re-extract artwork:', error)
-			toastStore.error('No artwork found in audio file')
+			toastStore.error(get(translate)('toast.noArtworkInFile'))
 		}
 	}
 
@@ -128,7 +130,9 @@
 	<!-- Header -->
 	<div class="flex items-center justify-between px-4 py-4.5">
 		<h2 class="text-sm font-semibold text-text-primary">
-			{selectedTracks.length === 1 ? 'Track Info' : `${selectedTracks.length} Tracks`}
+			{selectedTracks.length === 1
+				? $translate('editor.trackInfo')
+				: $translate('editor.tracksCount', { values: { count: selectedTracks.length } })}
 		</h2>
 		<button
 			class="rounded p-1 text-text-secondary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-primary"
@@ -156,21 +160,21 @@
 		<!-- Fields section -->
 		<div class="space-y-4">
 			<EditorField
-				label="Title"
+				label={$translate('editor.title')}
 				value={formData.title ?? bulkInfo.title.value}
 				mixed={bulkInfo.title.mixed && formData.title === undefined}
 				onchange={handleFieldChange('title')}
 				onsubmit={handleSave}
 			/>
 			<EditorField
-				label="Artist"
+				label={$translate('editor.artist')}
 				value={formData.artist ?? bulkInfo.artist.value}
 				mixed={bulkInfo.artist.mixed && formData.artist === undefined}
 				onchange={handleFieldChange('artist')}
 				onsubmit={handleSave}
 			/>
 			<EditorField
-				label="Album"
+				label={$translate('editor.album')}
 				value={formData.album ?? bulkInfo.album.value}
 				mixed={bulkInfo.album.mixed && formData.album === undefined}
 				onchange={handleFieldChange('album')}
@@ -179,7 +183,7 @@
 
 			<div class="grid grid-cols-2 gap-3">
 				<EditorField
-					label="Year"
+					label={$translate('editor.year')}
 					type="number"
 					value={formData.year ?? bulkInfo.year.value}
 					mixed={bulkInfo.year.mixed && formData.year === undefined}
@@ -187,7 +191,7 @@
 					onsubmit={handleSave}
 				/>
 				<EditorField
-					label="Genre"
+					label={$translate('editor.genre')}
 					value={formData.genre ?? bulkInfo.genre.value}
 					mixed={bulkInfo.genre.mixed && formData.genre === undefined}
 					onchange={handleFieldChange('genre')}
@@ -196,7 +200,7 @@
 			</div>
 
 			<EditorField
-				label="Label"
+				label={$translate('editor.label')}
 				value={formData.label ?? bulkInfo.label.value}
 				mixed={bulkInfo.label.mixed && formData.label === undefined}
 				onchange={handleFieldChange('label')}
@@ -205,7 +209,7 @@
 
 			<div class="grid grid-cols-2 gap-3">
 				<EditorField
-					label="BPM"
+					label={$translate('editor.bpm')}
 					type="number"
 					value={formData.bpm ?? bulkInfo.bpm.value}
 					mixed={bulkInfo.bpm.mixed && formData.bpm === undefined}
@@ -213,7 +217,7 @@
 					onsubmit={handleSave}
 				/>
 				<EditorField
-					label="Key"
+					label={$translate('editor.key')}
 					value={formData.key ?? bulkInfo.key.value}
 					mixed={bulkInfo.key.mixed && formData.key === undefined}
 					onchange={handleFieldChange('key')}
@@ -226,7 +230,7 @@
 	<!-- Footer with save button -->
 	<div class="p-4">
 		<Button variant="primary" class="w-full" onclick={handleSave} disabled={!hasChanges || saving}>
-			{saving ? 'Saving...' : 'Save Changes'}
+			{saving ? $translate('editor.saving') : $translate('editor.saveChanges')}
 		</Button>
 	</div>
 </div>

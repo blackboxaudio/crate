@@ -2,6 +2,8 @@
 	import type { Tag, TagCategory, ContextMenuItem } from '$lib/types'
 	import { TAG_CATEGORY_COLORS } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import { translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	type ContextTarget =
 		| { type: 'tag'; tag: Tag; category: TagCategory }
@@ -42,14 +44,14 @@
 		if (target.type === 'tag') {
 			items.push({
 				id: 'rename-tag',
-				label: 'Rename Tag',
+				label: get(translate)('tags.renameTag'),
 				icon: 'pencil',
 				action: () => onRenameTag(target.tag),
 			})
 			items.push({ id: 'divider-1', label: '', divider: true })
 			items.push({
 				id: 'delete-tag',
-				label: 'Delete Tag',
+				label: get(translate)('tags.deleteTag'),
 				icon: 'trash',
 				variant: 'danger',
 				action: () => onDeleteTag(target.tag),
@@ -57,14 +59,14 @@
 		} else if (target.type === 'category') {
 			items.push({
 				id: 'rename-category',
-				label: 'Rename Category',
+				label: get(translate)('tags.renameCategory'),
 				icon: 'pencil',
 				action: () => onRenameCategory(target.category),
 			})
 			if (onChangeColor) {
 				const colorItems: ContextMenuItem[] = TAG_CATEGORY_COLORS.map((color) => ({
 					id: `color-${color.id}`,
-					label: color.label,
+					label: get(translate)(`colors.${color.id}`),
 					colorDot: color.hex,
 					selected: target.category.color === color.hex,
 					action: () => onChangeColor(target.category, color.hex),
@@ -76,13 +78,13 @@
 				})
 				colorItems.push({
 					id: 'remove-color',
-					label: 'Remove Color',
+					label: get(translate)('contextMenu.removeColor'),
 					icon: 'trash',
 					action: () => onChangeColor(target.category, null),
 				})
 				items.push({
 					id: 'set-color',
-					label: 'Set Color',
+					label: get(translate)('contextMenu.setColor'),
 					icon: 'palette',
 					submenu: colorItems,
 				})
@@ -90,7 +92,7 @@
 			items.push({ id: 'divider-1', label: '', divider: true })
 			items.push({
 				id: 'delete-category',
-				label: 'Delete Category',
+				label: get(translate)('tags.deleteCategory'),
 				icon: 'trash',
 				variant: 'danger',
 				action: () => onDeleteCategory(target.category),

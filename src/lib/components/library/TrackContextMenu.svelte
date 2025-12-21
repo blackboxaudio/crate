@@ -3,6 +3,8 @@
 	import { TRACK_COLORS } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { missingTrackIds } from '$lib/stores'
+	import { translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	type Props = {
 		open: boolean
@@ -39,9 +41,9 @@
 	// Platform-specific label for "View in Finder/Explorer"
 	const revealLabel = $derived(() => {
 		const ua = navigator.userAgent
-		if (ua.includes('Mac')) return 'View in Finder'
-		if (ua.includes('Windows')) return 'View in Explorer'
-		return 'View in File Manager'
+		if (ua.includes('Mac')) return get(translate)('contextMenu.viewInFinder')
+		if (ua.includes('Windows')) return get(translate)('contextMenu.viewInExplorer')
+		return get(translate)('contextMenu.viewInFileManager')
 	})
 
 	// Check if any selected track is missing
@@ -65,7 +67,7 @@
 		if (hasMissingTrack() && onRelocate) {
 			items.push({
 				id: 'relocate',
-				label: 'Relocate...',
+				label: get(translate)('contextMenu.relocate'),
 				icon: 'folder',
 				action: () => onRelocate(selectedTracks[0]),
 			})
@@ -96,7 +98,7 @@
 		if (playlistItems.length > 0) {
 			items.push({
 				id: 'add-to-playlist',
-				label: 'Add to Playlist',
+				label: get(translate)('contextMenu.addToPlaylist'),
 				icon: 'list-plus',
 				submenu: playlistItems.map((playlist) => ({
 					id: `playlist-${playlist.id}`,
@@ -107,7 +109,7 @@
 		} else {
 			items.push({
 				id: 'add-to-playlist',
-				label: 'Add to Playlist',
+				label: get(translate)('contextMenu.addToPlaylist'),
 				icon: 'list-plus',
 				disabled: true,
 			})
@@ -117,7 +119,7 @@
 		if (onSetColor) {
 			const colorItems: ContextMenuItem[] = TRACK_COLORS.map((color) => ({
 				id: `color-${color.id}`,
-				label: color.label,
+				label: get(translate)(`colors.${color.id}`),
 				colorDot: color.hex,
 				selected: currentColor() === color.id,
 				action: () => onSetColor(color.id),
@@ -129,13 +131,13 @@
 			})
 			colorItems.push({
 				id: 'remove-color',
-				label: 'Remove Color',
+				label: get(translate)('contextMenu.removeColor'),
 				icon: 'trash',
 				action: () => onSetColor(null),
 			})
 			items.push({
 				id: 'set-color',
-				label: 'Set Color',
+				label: get(translate)('contextMenu.setColor'),
 				icon: 'palette',
 				submenu: colorItems,
 			})
@@ -148,7 +150,7 @@
 		if (currentPlaylistId) {
 			removeItems.push({
 				id: 'remove-from-playlist',
-				label: 'Remove from Playlist',
+				label: get(translate)('contextMenu.removeFromPlaylist'),
 				icon: 'list-minus',
 				variant: 'danger',
 				action: onRemoveFromPlaylist,
@@ -158,7 +160,7 @@
 		// "Remove from Library" - always visible
 		removeItems.push({
 			id: 'remove-from-library',
-			label: 'Remove from Library',
+			label: get(translate)('contextMenu.removeFromLibrary'),
 			icon: 'trash',
 			variant: 'danger',
 			action: onRemoveFromLibrary,
@@ -167,7 +169,7 @@
 		// Add Remove submenu
 		items.push({
 			id: 'remove',
-			label: 'Remove',
+			label: get(translate)('contextMenu.remove'),
 			icon: 'minus-circle',
 			variant: 'danger',
 			submenu: removeItems,

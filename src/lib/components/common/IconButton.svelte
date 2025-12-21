@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte'
+	import Icon from './Icon.svelte'
 
 	type Props = {
 		title?: string
@@ -7,8 +7,10 @@
 		active?: boolean
 		size?: 'sm' | 'md' | 'lg'
 		class?: string
+		icon: string
+		iconClass?: string
+		fill?: boolean
 		onclick?: (e: MouseEvent) => void
-		children: Snippet
 	}
 
 	let {
@@ -17,8 +19,10 @@
 		active = false,
 		size = 'md',
 		class: className = '',
+		icon,
+		iconClass = '',
+		fill = false,
 		onclick,
-		children,
 	}: Props = $props()
 
 	const sizeStyles = {
@@ -39,5 +43,5 @@
 	]} {className}"
 	{onclick}
 >
-	{@render children()}
+	<Icon name={icon} class={iconClass} {fill} />
 </button>

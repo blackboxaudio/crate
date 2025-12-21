@@ -3,6 +3,7 @@
 	import TagChip from './TagChip.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { Text } from '$lib/components/common'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		categories: TagCategory[]
@@ -80,7 +81,7 @@
 					type="button"
 					class="rounded p-0.5 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-secondary"
 					onclick={() => onCreateTag?.(category.id)}
-					title="Add tag to {category.name}"
+					title={$translate('tags.addTag')}
 				>
 					<Icon name="plus" class="h-3.5 w-3.5" />
 				</button>

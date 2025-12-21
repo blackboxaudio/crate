@@ -11,6 +11,14 @@ export const SUPPORTED_LANGUAGES: { value: Language; label: string; nativeLabel:
 register('en', () => import('./locales/en.json'))
 register('ja', () => import('./locales/ja.json'))
 
+// Initialize with default locale synchronously at module load
+// This prevents "Cannot format a message without first setting the initial locale" errors
+// The actual user preference is loaded later in +layout.svelte onMount
+init({
+	fallbackLocale: 'en',
+	initialLocale: 'en',
+})
+
 /**
  * Get system language, fallback to English if not supported
  */
@@ -22,15 +30,11 @@ function getSystemLanguage(): Language {
 
 /**
  * Initialize i18n with a specific language or detect from system
+ * Note: init() is called at module load with 'en' default, this updates to the user's preference
  */
 export async function initializeI18n(savedLanguage?: Language | null): Promise<void> {
 	const language = savedLanguage || getSystemLanguage()
-
-	init({
-		fallbackLocale: 'en',
-		initialLocale: language,
-	})
-
+	locale.set(language)
 	await waitLocale()
 }
 
@@ -56,4 +60,7 @@ export function getCurrentLanguage(): Language {
 }
 
 // Re-export commonly used items from svelte-i18n
-export { locale, _, waitLocale }
+export { locale, waitLocale }
+
+// Re-export _ as 'translate' for cleaner usage: {$translate('key')}
+export { _ as translate }

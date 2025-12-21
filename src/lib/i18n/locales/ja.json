@@ -9,7 +9,14 @@
 		"rename": "名前を変更",
 		"default": "デフォルト",
 		"loading": "読み込み中...",
-		"unknown": "不明"
+		"unknown": "不明",
+		"developerTools": "開発者ツール",
+		"submit": "送信",
+		"confirm": "確認",
+		"untitled": "無題",
+		"unknownArtist": "不明なアーティスト",
+		"folder": "フォルダ",
+		"playlist": "プレイリスト"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -75,7 +82,8 @@
 		"previous": "前へ",
 		"next": "次へ",
 		"mute": "ミュート",
-		"unmute": "ミュート解除"
+		"unmute": "ミュート解除",
+		"noTrackSelected": "トラックが選択されていません"
 	},
 	"library": {
 		"searchPlaceholder": "トラックを検索...",
@@ -83,7 +91,19 @@
 		"matching": "一致",
 		"matchOr": "または",
 		"matchAnd": "かつ",
-		"clearAll": "すべてクリア"
+		"clearAll": "すべてクリア",
+		"columns": {
+			"title": "タイトル",
+			"artist": "アーティスト",
+			"bpm": "BPM",
+			"key": "キー",
+			"time": "時間",
+			"tags": "タグ"
+		},
+		"track": "曲",
+		"tracks": "曲",
+		"item": "項目",
+		"items": "項目"
 	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",
@@ -91,13 +111,18 @@
 		"deletePlaylist": "プレイリストを削除",
 		"deleteFolder": "フォルダを削除",
 		"moveToFolder": "フォルダに移動",
-		"rootNoFolder": "ルート（フォルダなし）"
+		"rootNoFolder": "ルート（フォルダなし）",
+		"folderEmpty": "このフォルダは空です"
 	},
 	"tags": {
 		"newCategory": "新しいカテゴリ",
 		"newTag": "新しいタグ",
+		"renameTag": "タグ名を変更",
+		"renameCategory": "カテゴリ名を変更",
 		"deleteTag": "タグを削除",
-		"deleteCategory": "カテゴリを削除"
+		"deleteCategory": "カテゴリを削除",
+		"addCategory": "カテゴリを追加",
+		"addTag": "タグを追加"
 	},
 	"contextMenu": {
 		"viewInFinder": "Finderで表示",
@@ -106,6 +131,7 @@
 		"addToPlaylist": "プレイリストに追加",
 		"setColor": "色を設定",
 		"removeColor": "色を削除",
+		"remove": "削除",
 		"removeFromPlaylist": "プレイリストから削除",
 		"removeFromLibrary": "ライブラリから削除",
 		"relocate": "再配置..."
@@ -134,6 +160,14 @@
 			"title": "名前を変更",
 			"placeholder": "名前"
 		},
+		"renameTag": {
+			"title": "タグ名を変更",
+			"placeholder": "タグ名"
+		},
+		"renameCategory": {
+			"title": "カテゴリ名を変更",
+			"placeholder": "カテゴリ名"
+		},
 		"confirm": {
 			"deletePlaylistTitle": "プレイリストを削除",
 			"deletePlaylistMessage": "このプレイリストを削除してもよろしいですか？",
@@ -148,15 +182,57 @@
 			"removeFromPlaylistMessage": "{count, plural, =1 {このトラックをプレイリストから削除しますか？} other {{count}曲のトラックをプレイリストから削除しますか？}}",
 			"removeFromLibraryTitle": "ライブラリから削除",
 			"removeFromLibraryMessage": "{count, plural, =1 {このトラックをライブラリから削除しますか？} other {{count}曲のトラックをライブラリから削除しますか？}}",
+			"removeFromLibraryWarning": "この操作は取り消せません。トラックはすべてのプレイリストから削除されます。",
 			"deleteTracksFromCollection": "コレクションからもトラックを削除"
 		},
 		"relocate": {
 			"title": "トラックを再配置",
 			"message": "このトラックの新しい場所を選択してください。"
+		},
+		"albumArt": "アルバムアート",
+		"deviceInfo": {
+			"title": "デバイス情報",
+			"diskType": "ディスクタイプ",
+			"fileSystem": "ファイルシステム",
+			"storage": "ストレージ",
+			"used": "使用済み:",
+			"available": "空き容量:",
+			"total": "合計:",
+			"percentUsed": "% 使用中"
+		},
+		"duplicate": {
+			"title": "重複トラックを検出",
+			"progress": "重複 {current} / {total}",
+			"message": "このファイルはライブラリ内の既存のトラックと一致します：",
+			"current": "現在:",
+			"new": "新規:",
+			"skip": "スキップ",
+			"skipDescription": "このファイルをインポートせず、既存のトラックを変更しません。",
+			"updatePath": "パスを更新",
+			"updatePathDescription": "すべての既存データ（キューポイント、タグ、プレイリスト、再生履歴）を保持し、ファイルの場所のみ更新します。",
+			"replace": "置き換え",
+			"replaceDescription": "新しいファイルから新規インポート。プレイリストのメンバーシップのみ保持。キューポイント、タグ、再生履歴はリセットされます。",
+			"applyToAll": "残りすべての重複に適用 ({count})"
+		},
+		"conflict": {
+			"title": "名前の競合",
+			"resolving": "競合を解決中",
+			"remaining": "(残り{count}件)",
+			"message": "「{name}」という名前の{type}がこの場所に既に存在します。",
+			"merge": "マージ",
+			"replace": "置き換え",
+			"mergeFolder": "このフォルダの内容を既存のフォルダに移動します。ネストされた競合がある場合は確認されます。",
+			"mergePlaylist": "両方のプレイリストのトラックを1つに結合します。",
+			"mergeNotAvailable": "利用不可：マージするには両方のアイテムが同じタイプである必要があります。",
+			"replaceDescription": "既存の{type}を削除し、この{item}をその場所に移動します。",
+			"replaceNotAvailable": "利用不可：同じタイプのアイテムのみ置き換えできます。",
+			"replaceFolderWarning": "置き換えると、既存のフォルダとそのすべてのコンテンツが完全に削除されます。",
+			"replacePlaylistWarning": "置き換えると、既存のプレイリストとそのトラック関連付けが完全に削除されます。"
 		}
 	},
 	"toast": {
 		"trackAdded": "{count, plural, =1 {1曲} other {{count}曲}}を{playlistName}に追加しました",
+		"trackAddedWithFailed": "{count, plural, =1 {1曲} other {{count}曲}}を{playlistName}に追加、{failed}曲が失敗しました",
 		"tracksImported": "{count, plural, =1 {1曲} other {{count}曲}}をインポートしました",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1曲} other {{imported}曲}}をインポート、{skipped}曲をスキップしました",
 		"trackRemoved": "{count, plural, =1 {1曲} other {{count}曲}}をプレイリストから削除しました",
@@ -173,7 +249,11 @@
 		"failedToResolve": "重複の解決に失敗しました: {error}",
 		"failedToAddPlaylist": "プレイリストへのトラックの追加に失敗しました",
 		"warningTracksImportedFailed": "トラックはインポートされましたが、{playlistName}への追加に失敗しました",
-		"failedToImport": "トラックのインポートに失敗しました: {error}"
+		"failedToImport": "トラックのインポートに失敗しました: {error}",
+		"failedToUpdateTracks": "トラックの更新に失敗しました",
+		"failedToSetArtwork": "アートワークの設定に失敗しました",
+		"failedToRemoveArtwork": "アートワークの削除に失敗しました",
+		"noArtworkInFile": "オーディオファイルにアートワークが見つかりません"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "フォルダを自分自身にドロップすることはできません",
@@ -185,6 +265,78 @@
 		"deviceInfo": "デバイス情報",
 		"capacity": "容量",
 		"available": "空き容量",
-		"used": "使用済み"
+		"used": "使用済み",
+		"noDevices": "デバイスが接続されていません",
+		"free": "空き",
+		"connected": "接続済み",
+		"viewInfo": "情報を表示"
+	},
+	"editor": {
+		"trackInfo": "トラック情報",
+		"tracksCount": "{count}曲のトラック",
+		"title": "タイトル",
+		"artist": "アーティスト",
+		"album": "アルバム",
+		"year": "年",
+		"genre": "ジャンル",
+		"label": "レーベル",
+		"bpm": "BPM",
+		"key": "キー",
+		"saving": "保存中...",
+		"saveChanges": "変更を保存",
+		"multipleArtworks": "複数のアートワーク",
+		"addArtwork": "アートワークを追加",
+		"replaceArtwork": "アートワークを置き換え",
+		"reextractFromFile": "ファイルから再抽出"
+	},
+	"colors": {
+		"pink": "ピンク",
+		"red": "赤",
+		"orange": "オレンジ",
+		"yellow": "黄色",
+		"green": "緑",
+		"aqua": "アクア",
+		"blue": "青",
+		"purple": "紫",
+		"amber": "琥珀色",
+		"teal": "ティール",
+		"indigo": "インディゴ",
+		"violet": "バイオレット",
+		"rose": "ローズ",
+		"emerald": "エメラルド"
+	},
+	"crash": {
+		"title": "問題が発生しました",
+		"description": "アプリケーションで予期しないエラーが発生しました。",
+		"errorDetails": "エラーの詳細",
+		"resetApp": "アプリケーションをリセット"
+	},
+	"menu": {
+		"file": "ファイル",
+		"edit": "編集",
+		"playback": "再生",
+		"view": "表示",
+		"window": "ウィンドウ",
+		"help": "ヘルプ",
+		"about": "{appName}について",
+		"settings": "設定...",
+		"quit": "{appName}を終了",
+		"importTracks": "トラックをインポート...",
+		"newPlaylist": "新しいプレイリスト",
+		"newFolder": "新しいフォルダ",
+		"undo": "取り消す",
+		"redo": "やり直す",
+		"cut": "カット",
+		"copy": "コピー",
+		"paste": "ペースト",
+		"selectAllTracks": "すべてのトラックを選択",
+		"playPause": "再生/一時停止",
+		"stop": "停止",
+		"toggleSidebar": "サイドバーを切り替え",
+		"showDevTools": "開発者ツールを表示",
+		"minimize": "しまう",
+		"zoom": "拡大/縮小",
+		"documentation": "{appName}ドキュメント",
+		"reportIssue": "問題を報告..."
 	}
 }

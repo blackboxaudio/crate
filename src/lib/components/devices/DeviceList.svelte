@@ -2,6 +2,7 @@
 	import type { UsbDevice } from '$lib/types'
 	import DeviceItem from './DeviceItem.svelte'
 	import { Text } from '$lib/components/common'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		devices: UsbDevice[]
@@ -13,7 +14,7 @@
 
 <div class="p-2 pt-0">
 	<div class="flex items-center px-3 pb-1.5">
-		<Text variant="header-4">Devices</Text>
+		<Text variant="header-4">{$translate('devices.title')}</Text>
 		<Text variant="caption" class="ml-auto">{devices.length}</Text>
 	</div>
 	{#if devices.length > 0}
@@ -23,6 +24,6 @@
 			{/each}
 		</div>
 	{:else}
-		<Text variant="caption" as="div" italic class="px-3 py-2">No devices connected</Text>
+		<Text variant="caption" as="div" italic class="px-3 py-2">{$translate('devices.noDevices')}</Text>
 	{/if}
 </div>

@@ -6,6 +6,10 @@
   "permissions": [
     "core:default",
     "opener:default",
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [{ "path": "/Volumes/**" }]
+    },
     "dialog:default",
     "fs:default",
     "fs:allow-read-file",

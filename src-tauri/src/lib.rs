@@ -26,6 +26,7 @@ pub fn run() {
             commands::app::get_app_info,
             commands::app::open_dev_tools,
             commands::app::close_dev_tools,
+            commands::app::rebuild_menu,
             // Library commands
             commands::library::import_tracks,
             commands::library::get_tracks,

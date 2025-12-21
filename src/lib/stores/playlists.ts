@@ -1,6 +1,7 @@
-import { writable, derived } from 'svelte/store'
+import { writable, derived, get } from 'svelte/store'
 import type { Playlist, Track, BreadcrumbItem, MoveConflictResolution, MovePlaylistResult } from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
+import { translate } from '$lib/i18n'
 
 // =============================================================================
 // State
@@ -351,7 +352,7 @@ export function buildBreadcrumbItems(
 	// Add Library as root
 	items.push({
 		id: null,
-		name: 'Library',
+		name: get(translate)('nav.library'),
 		type: 'library',
 	})
 
@@ -372,10 +373,13 @@ export function buildBreadcrumbItems(
 		if (isLast) {
 			if (playlist.is_folder) {
 				item.count = childCount
-				item.countLabel = childCount === 1 ? 'item' : 'items'
+				item.countLabel = childCount === 1 ? get(translate)('library.item') : get(translate)('library.items')
 			} else {
 				item.count = trackCount ?? playlist.track_count
-				item.countLabel = (trackCount ?? playlist.track_count) === 1 ? 'track' : 'tracks'
+				item.countLabel =
+					(trackCount ?? playlist.track_count) === 1
+						? get(translate)('library.track')
+						: get(translate)('library.tracks')
 			}
 		}
 

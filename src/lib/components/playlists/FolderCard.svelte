@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		playlist: Playlist
@@ -37,9 +38,9 @@
 	<!-- Count -->
 	<span class="text-xs text-text-tertiary">
 		{#if playlist.is_folder}
-			{childCount} {childCount === 1 ? 'item' : 'items'}
+			{childCount} {childCount === 1 ? $translate('library.item') : $translate('library.items')}
 		{:else}
-			{playlist.track_count} {playlist.track_count === 1 ? 'track' : 'tracks'}
+			{playlist.track_count} {playlist.track_count === 1 ? $translate('library.track') : $translate('library.tracks')}
 		{/if}
 	</span>
 </button>

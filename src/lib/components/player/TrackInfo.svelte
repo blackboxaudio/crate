@@ -2,6 +2,7 @@
 	import type { Track } from '$lib/types'
 	import { getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
 	import { AlbumArt, AlbumArtModal } from '$lib/components/common'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		track: Track | null
@@ -37,7 +38,7 @@
 				{getTrackDisplayArtist(track)}
 			</p>
 		{:else}
-			<p class="text-sm text-text-tertiary">No track selected</p>
+			<p class="text-sm text-text-tertiary">{$translate('player.noTrackSelected')}</p>
 		{/if}
 	</div>
 </div>

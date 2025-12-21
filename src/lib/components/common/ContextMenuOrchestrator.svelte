@@ -78,6 +78,7 @@
 
 		// Device callbacks
 		onDeviceViewInfo: (device: UsbDevice) => void
+		onDeviceRevealInFinder: (device: UsbDevice) => void
 		onDeviceEject: (device: UsbDevice) => void
 	}
 
@@ -109,6 +110,7 @@
 		onTagsSidebarAddCategory,
 		onTagsSidebarAddTag,
 		onDeviceViewInfo,
+		onDeviceRevealInFinder,
 		onDeviceEject,
 	}: Props = $props()
 
@@ -361,6 +363,11 @@
 		onDeviceViewInfo(device)
 	}
 
+	function handleDeviceRevealInFinder(device: UsbDevice) {
+		closeAll()
+		onDeviceRevealInFinder(device)
+	}
+
 	function handleDeviceEject(device: UsbDevice) {
 		closeAll()
 		onDeviceEject(device)
@@ -489,6 +496,7 @@
 		device={activeMenu.device}
 		onClose={closeAll}
 		onViewInfo={handleDeviceViewInfo}
+		onRevealInFinder={handleDeviceRevealInFinder}
 		onEject={handleDeviceEject}
 	/>
 {/if}

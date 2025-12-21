@@ -1,8 +1,10 @@
 <script lang="ts">
 	import type { Tag, TagFilterMode } from '$lib/types'
 	import { libraryStore, uiStore } from '$lib/stores'
+	import Button from '$lib/components/common/Button.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import TagChip from '$lib/components/tags/TagChip.svelte'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		activeFilterTags?: Tag[]
@@ -67,7 +69,7 @@
 
 	<input
 		type="search"
-		placeholder="Search tracks..."
+		placeholder={$translate('library.searchPlaceholder')}
 		value={inputValue}
 		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pl-10 text-sm text-text-primary placeholder-text-tertiary focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none {activeFilterTags &&
 		activeFilterTags.length > 0
@@ -104,11 +106,11 @@
 
 					<!-- Hover popup with padding-top to create hoverable bridge -->
 					{#if showTagPopup}
-						<div class="absolute top-full right-0 pt-1">
+						<div class="absolute top-full right-0 z-[200] pt-1">
 							<div class="min-w-[180px] rounded-md border border-stroke bg-surface-1 p-2 shadow-lg">
 								<!-- Filter mode toggle -->
 								<div class="mb-2 flex items-center justify-between border-b border-stroke pb-2 pl-1">
-									<span class="text-xs text-text-tertiary">Matching</span>
+									<span class="text-xs text-text-tertiary">{$translate('library.matching')}</span>
 									<button
 										type="button"
 										class="flex items-center gap-0.5 rounded-full border border-stroke bg-surface-2 p-0.5 text-xs font-medium hover:cursor-pointer"
@@ -119,14 +121,14 @@
 												? 'bg-brand-primary text-white'
 												: 'text-text-tertiary hover:text-text-secondary'}"
 										>
-											OR
+											{$translate('library.matchOr')}
 										</span>
 										<span
 											class="rounded-full px-2 py-0.5 transition-colors {tagFilterMode === 'and'
 												? 'bg-brand-primary text-white'
 												: 'text-text-tertiary hover:text-text-secondary'}"
 										>
-											AND
+											{$translate('library.matchAnd')}
 										</span>
 									</button>
 								</div>
@@ -153,16 +155,17 @@
 									{/each}
 								</div>
 								<div class="mt-2 border-t border-stroke pt-2">
-									<button
-										type="button"
-										class="w-full rounded px-2 py-1 text-left text-xs text-text-secondary hover:cursor-pointer hover:bg-surface-2 hover:text-text-primary"
+									<Button
+										variant="ghost-danger"
+										size="sm"
+										class="w-full justify-start"
 										onclick={() => {
 											onClearAllTagFilters?.()
 											showTagPopup = false
 										}}
 									>
-										Clear all
-									</button>
+										{$translate('library.clearAll')}
+									</Button>
 								</div>
 							</div>
 						</div>

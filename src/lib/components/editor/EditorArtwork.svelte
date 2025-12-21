@@ -3,6 +3,7 @@
 	import AlbumArt from '$lib/components/common/AlbumArt.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import type { ArtworkSource, BulkEditValue } from '$lib/types'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		artworkPath: BulkEditValue<string>
@@ -43,26 +44,23 @@
 			<div
 				class="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-0/80 text-sm text-text-secondary"
 			>
-				Multiple artworks
+				{$translate('editor.multipleArtworks')}
 			</div>
 		{/if}
 	</div>
 
 	<div class="flex gap-2">
 		<Button variant="secondary" size="sm" onclick={handleAdd}>
-			{hasArtwork ? 'Replace' : 'Add'} Artwork
+			{hasArtwork ? $translate('editor.replaceArtwork') : $translate('editor.addArtwork')}
 		</Button>
 		{#if hasArtwork}
-			<Button variant="ghost" size="sm" onclick={onRemove}>Remove</Button>
+			<Button variant="ghost-danger" size="sm" onclick={onRemove}>{$translate('common.remove')}</Button>
 		{/if}
 	</div>
 
 	{#if canReextract}
-		<button
-			class="text-xs text-text-tertiary transition-colors hover:cursor-pointer hover:text-text-secondary"
-			onclick={onReextract}
-		>
-			Re-extract from file
-		</button>
+		<Button variant="outline" size="sm" onclick={onReextract}>
+			{$translate('editor.reextractFromFile')}
+		</Button>
 	{/if}
 </div>

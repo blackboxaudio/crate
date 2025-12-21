@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { IconButton } from '$lib/components/common'
-	import Icon from '$lib/components/common/Icon.svelte'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		isPlaying: boolean
@@ -16,26 +16,22 @@
 
 <div class="flex items-center gap-1">
 	<!-- Previous -->
-	<IconButton title="Previous" disabled={!hasTrack} onclick={onPrevious}>
-		<Icon name="skip-back" fill />
-	</IconButton>
+	<IconButton title={$translate('player.previous')} disabled={!hasTrack} icon="skip-back" fill onclick={onPrevious} />
 
 	<!-- Play/Pause -->
-	<IconButton title={isPlaying ? 'Pause' : 'Play'} disabled={!hasTrack} size="lg" onclick={onPlayPause}>
-		{#if isPlaying}
-			<Icon name="pause" class="h-6 w-6" fill />
-		{:else}
-			<Icon name="play" class="h-6 w-6" fill />
-		{/if}
-	</IconButton>
+	<IconButton
+		title={isPlaying ? $translate('player.pause') : $translate('player.play')}
+		disabled={!hasTrack}
+		size="lg"
+		icon={isPlaying ? 'pause' : 'play'}
+		iconClass="h-6 w-6"
+		fill
+		onclick={onPlayPause}
+	/>
 
 	<!-- Stop -->
-	<IconButton title="Stop" disabled={!hasTrack} onclick={onStop}>
-		<Icon name="stop" fill />
-	</IconButton>
+	<IconButton title={$translate('player.stop')} disabled={!hasTrack} icon="stop" fill onclick={onStop} />
 
 	<!-- Next -->
-	<IconButton title="Next" disabled={!hasTrack} onclick={onNext}>
-		<Icon name="skip-forward" fill />
-	</IconButton>
+	<IconButton title={$translate('player.next')} disabled={!hasTrack} icon="skip-forward" fill onclick={onNext} />
 </div>

@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte'
 
 	type Props = {
-		variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+		variant?: 'primary' | 'secondary' | 'ghost' | 'danger' | 'ghost-danger' | 'outline'
 		size?: 'sm' | 'md' | 'lg'
 		disabled?: boolean
 		type?: 'button' | 'submit' | 'reset'
@@ -22,13 +22,15 @@
 	}: Props = $props()
 
 	const baseStyles =
-		'inline-flex items-center justify-center font-medium rounded-md transition-colors hover:cursor-pointer focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 disabled:opacity-50 disabled:cursor-not-allowed'
+		'inline-flex items-center justify-center font-medium rounded-md transition-[colors,filter] hover:cursor-pointer focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 disabled:opacity-50 disabled:cursor-not-allowed'
 
 	const variantStyles = {
 		primary: 'bg-brand-primary text-white hover:bg-brand-hover',
-		secondary: 'bg-surface-2 text-text-primary hover:bg-surface-2/80',
+		secondary: 'bg-surface-2 text-text-primary hover:brightness-95',
 		ghost: 'bg-transparent text-text-secondary hover:bg-surface-2 hover:text-text-primary',
 		danger: 'bg-danger text-white hover:bg-danger/90',
+		'ghost-danger': 'bg-transparent text-red-500 hover:bg-red-500/10',
+		outline: 'bg-surface-2 border border-stroke text-text-primary hover:brightness-95',
 	}
 
 	const sizeStyles = {

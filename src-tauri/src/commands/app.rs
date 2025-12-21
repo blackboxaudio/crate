@@ -1,3 +1,4 @@
+use crate::menu::{rebuild_menu_with_translations, MenuTranslations};
 use tauri::Manager;
 
 #[derive(Debug, serde::Serialize)]
@@ -57,4 +58,11 @@ pub fn close_dev_tools(app: tauri::AppHandle) {
         log::warn!("DevTools requested but not available in this build");
         let _ = app;
     }
+}
+
+#[tauri::command]
+pub fn rebuild_menu(app: tauri::AppHandle, translations: MenuTranslations) -> Result<(), String> {
+    let menu = rebuild_menu_with_translations(&app, &translations).map_err(|e| e.to_string())?;
+    app.set_menu(menu).map_err(|e| e.to_string())?;
+    Ok(())
 }

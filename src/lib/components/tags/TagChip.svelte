@@ -52,7 +52,7 @@
 	let showMixedBadge = $derived(state === 'mixed' && selectionCount !== undefined && selectionTotal !== undefined)
 </script>
 
-<span class="rounded bg-surface-0">
+<span class="inline-flex rounded bg-surface-0">
 	<span
 		role={onclick ? 'button' : 'presentation'}
 		tabindex="-1"

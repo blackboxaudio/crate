@@ -2,6 +2,8 @@
 	import Modal from './Modal.svelte'
 	import Input from './Input.svelte'
 	import Button from './Button.svelte'
+	import { translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	type Props = {
 		open: boolean
@@ -13,7 +15,7 @@
 		onCancel: () => void
 	}
 
-	let { open, title, placeholder = '', initialValue = '', submitLabel = 'Submit', onSubmit, onCancel }: Props = $props()
+	let { open, title, placeholder = '', initialValue = '', submitLabel, onSubmit, onCancel }: Props = $props()
 
 	let inputValue = $state('')
 	let inputEl: HTMLInputElement | undefined = $state()
@@ -51,9 +53,9 @@
 	<Input bind:value={inputValue} {placeholder} onkeydown={handleKeydown} />
 
 	{#snippet footer()}
-		<Button variant="ghost" onclick={handleCancel}>Cancel</Button>
+		<Button variant="ghost" onclick={handleCancel}>{$translate('common.cancel')}</Button>
 		<Button variant="primary" onclick={handleSubmit} disabled={!inputValue.trim()}>
-			{submitLabel}
+			{submitLabel || $translate('common.submit')}
 		</Button>
 	{/snippet}
 </Modal>

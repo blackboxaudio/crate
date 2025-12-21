@@ -2,6 +2,7 @@
 	import type { UsbDevice } from '$lib/types'
 	import { formatFileSize } from '$lib/utils'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		device: UsbDevice
@@ -26,12 +27,13 @@
 	<div class="min-w-0 flex-1">
 		<div class="truncate text-sm font-medium">{device.name}</div>
 		<div class="text-xs text-text-tertiary">
-			{formatFileSize(device.available_space_bytes)} free
+			{formatFileSize(device.available_space_bytes)}
+			{$translate('devices.free')}
 		</div>
 	</div>
 
 	<!-- Connected indicator -->
-	<span class="relative flex size-2" title="Connected">
+	<span class="relative flex size-2" title={$translate('devices.connected')}>
 		<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
 		<span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
 	</span>

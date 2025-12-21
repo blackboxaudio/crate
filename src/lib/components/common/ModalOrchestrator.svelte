@@ -68,6 +68,8 @@
 	import { RelocateTrackModal } from '$lib/components/library'
 	import { toastStore } from '$lib/stores/toast'
 	import { resolveDuplicate } from '$lib/api/library'
+	import { translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	// =========================================================================
 	// Props - Callback handlers passed from parent
@@ -361,7 +363,7 @@
 			closeAll()
 			const result = await onMoveConflictOverwrite(movingItem.id, targetParentId)
 			if (result) {
-				toastStore.success('Replaced existing item')
+				toastStore.success(get(translate)('toast.replacedExisting'))
 			}
 			pendingMergeConflicts = []
 		}
@@ -381,7 +383,7 @@
 					processNextMergeConflict()
 					return
 				} else {
-					toastStore.success('Merged successfully')
+					toastStore.success(get(translate)('toast.mergedSuccessfully'))
 				}
 			}
 			pendingMergeConflicts = []
@@ -390,7 +392,7 @@
 
 	function processNextMergeConflict() {
 		if (pendingMergeConflicts.length === 0) {
-			toastStore.success('Merge completed')
+			toastStore.success(get(translate)('toast.mergeCompleted'))
 			return
 		}
 
@@ -481,7 +483,7 @@
 				})
 			}
 		} catch (error) {
-			toastStore.error(`Failed to resolve duplicate: ${error}`)
+			toastStore.error(get(translate)('toast.failedToResolve', { values: { error: String(error) } }))
 			return null
 		}
 	}
@@ -523,19 +525,21 @@
 		if (activeModal.type !== 'deletePlaylist') return []
 		const warnings: string[] = []
 		if (activeModal.playlist.is_folder && activeModal.hasChildren) {
-			warnings.push('This folder contains playlists that will also be deleted.')
+			warnings.push(get(translate)('modals.confirm.deleteFolderWarning'))
 		}
 		return warnings
 	})
 
 	const deletePlaylistTitle = $derived(
-		activeModal.type === 'deletePlaylist' && activeModal.playlist.is_folder ? 'Delete Folder' : 'Delete Playlist'
+		activeModal.type === 'deletePlaylist' && activeModal.playlist.is_folder
+			? get(translate)('modals.confirm.deleteFolderTitle')
+			: get(translate)('modals.confirm.deletePlaylistTitle')
 	)
 
 	const deletePlaylistMessage = $derived(
 		activeModal.type === 'deletePlaylist' && activeModal.playlist.is_folder
-			? 'Are you sure you want to delete this folder?'
-			: 'Are you sure you want to delete this playlist?'
+			? get(translate)('modals.confirm.deleteFolderMessage')
+			: get(translate)('modals.confirm.deletePlaylistMessage')
 	)
 </script>
 
@@ -543,9 +547,9 @@
 {#if activeModal.type === 'createPlaylist'}
 	<InputModal
 		open={true}
-		title="New Playlist"
-		placeholder="Playlist name"
-		submitLabel="Create"
+		title={$translate('modals.createPlaylist.title')}
+		placeholder={$translate('modals.createPlaylist.placeholder')}
+		submitLabel={$translate('common.create')}
 		onSubmit={handleCreatePlaylistSubmit}
 		onCancel={closeAll}
 	/>
@@ -555,9 +559,9 @@
 {#if activeModal.type === 'createFolder'}
 	<InputModal
 		open={true}
-		title="New Folder"
-		placeholder="Folder name"
-		submitLabel="Create"
+		title={$translate('modals.createFolder.title')}
+		placeholder={$translate('modals.createFolder.placeholder')}
+		submitLabel={$translate('common.create')}
 		onSubmit={handleCreateFolderSubmit}
 		onCancel={closeAll}
 	/>
@@ -567,9 +571,9 @@
 {#if activeModal.type === 'createCategory'}
 	<InputModal
 		open={true}
-		title="New Tag Category"
-		placeholder="Category name"
-		submitLabel="Create"
+		title={$translate('modals.createCategory.title')}
+		placeholder={$translate('modals.createCategory.placeholder')}
+		submitLabel={$translate('common.create')}
 		onSubmit={handleCreateCategorySubmit}
 		onCancel={closeAll}
 	/>
@@ -579,9 +583,9 @@
 {#if activeModal.type === 'createTag'}
 	<InputModal
 		open={true}
-		title="New Tag"
-		placeholder="Tag name"
-		submitLabel="Create"
+		title={$translate('modals.createTag.title')}
+		placeholder={$translate('modals.createTag.tagPlaceholder')}
+		submitLabel={$translate('common.create')}
 		onSubmit={handleCreateTagSubmit}
 		onCancel={closeAll}
 	/>
@@ -591,9 +595,9 @@
 {#if activeModal.type === 'renamePlaylist'}
 	<InputModal
 		open={true}
-		title="Rename"
-		placeholder="Name"
-		submitLabel="Save"
+		title={$translate('modals.rename.title')}
+		placeholder={$translate('modals.rename.placeholder')}
+		submitLabel={$translate('common.save')}
 		initialValue={activeModal.playlist.name}
 		onSubmit={handleRenamePlaylistSubmit}
 		onCancel={closeAll}
@@ -604,9 +608,9 @@
 {#if activeModal.type === 'renameTag'}
 	<InputModal
 		open={true}
-		title="Rename Tag"
-		placeholder="Tag name"
-		submitLabel="Save"
+		title={$translate('modals.renameTag.title')}
+		placeholder={$translate('modals.renameTag.placeholder')}
+		submitLabel={$translate('common.save')}
 		initialValue={activeModal.tag.name}
 		onSubmit={handleRenameTagSubmit}
 		onCancel={closeAll}
@@ -617,9 +621,9 @@
 {#if activeModal.type === 'renameCategory'}
 	<InputModal
 		open={true}
-		title="Rename Category"
-		placeholder="Category name"
-		submitLabel="Save"
+		title={$translate('modals.renameCategory.title')}
+		placeholder={$translate('modals.renameCategory.placeholder')}
+		submitLabel={$translate('common.save')}
 		initialValue={activeModal.category.name}
 		onSubmit={handleRenameCategorySubmit}
 		onCancel={closeAll}
@@ -633,9 +637,9 @@
 		title={deletePlaylistTitle}
 		message={deletePlaylistMessage}
 		warnings={deleteWarnings}
-		checkboxLabel="Also delete tracks from my collection"
+		checkboxLabel={$translate('modals.confirm.deleteTracksFromCollection')}
 		bind:checkboxChecked={deleteTracksFromCollection}
-		confirmLabel="Delete"
+		confirmLabel={$translate('common.delete')}
 		destructive={true}
 		onConfirm={handleDeletePlaylistConfirm}
 		onCancel={closeAll}
@@ -646,9 +650,9 @@
 {#if activeModal.type === 'deleteTag'}
 	<ConfirmModal
 		open={true}
-		title="Delete Tag"
-		message="Are you sure you want to delete this tag? It will be removed from all tracks."
-		confirmLabel="Delete"
+		title={$translate('modals.confirm.deleteTagTitle')}
+		message={$translate('modals.confirm.deleteTagMessage')}
+		confirmLabel={$translate('common.delete')}
 		destructive={true}
 		onConfirm={handleDeleteTagConfirm}
 		onCancel={closeAll}
@@ -659,9 +663,9 @@
 {#if activeModal.type === 'deleteCategory'}
 	<ConfirmModal
 		open={true}
-		title="Delete Category"
-		message="Are you sure you want to delete this category? All tags in this category will be removed from all tracks."
-		confirmLabel="Delete"
+		title={$translate('modals.confirm.deleteCategoryTitle')}
+		message={$translate('modals.confirm.deleteCategoryMessage')}
+		confirmLabel={$translate('common.delete')}
 		destructive={true}
 		onConfirm={handleDeleteCategoryConfirm}
 		onCancel={closeAll}
@@ -672,11 +676,9 @@
 {#if activeModal.type === 'removeFromPlaylist'}
 	<ConfirmModal
 		open={true}
-		title="Remove from Playlist"
-		message={activeModal.trackIds.length === 1
-			? 'Are you sure you want to remove this track from the playlist?'
-			: `Are you sure you want to remove ${activeModal.trackIds.length} tracks from the playlist?`}
-		confirmLabel="Remove"
+		title={$translate('modals.confirm.removeFromPlaylistTitle')}
+		message={$translate('modals.confirm.removeFromPlaylistMessage', { values: { count: activeModal.trackIds.length } })}
+		confirmLabel={$translate('common.remove')}
 		destructive={true}
 		onConfirm={handleRemoveFromPlaylistConfirm}
 		onCancel={closeAll}
@@ -687,12 +689,10 @@
 {#if activeModal.type === 'removeFromLibrary'}
 	<ConfirmModal
 		open={true}
-		title="Remove from Library"
-		message={activeModal.trackIds.length === 1
-			? 'Are you sure you want to remove this track from your library?'
-			: `Are you sure you want to remove ${activeModal.trackIds.length} tracks from your library?`}
-		warnings={['This action cannot be undone. Tracks will be removed from all playlists.']}
-		confirmLabel="Remove"
+		title={$translate('modals.confirm.removeFromLibraryTitle')}
+		message={$translate('modals.confirm.removeFromLibraryMessage', { values: { count: activeModal.trackIds.length } })}
+		warnings={[$translate('modals.confirm.removeFromLibraryWarning')]}
+		confirmLabel={$translate('common.remove')}
 		destructive={true}
 		onConfirm={handleRemoveFromLibraryConfirm}
 		onCancel={closeAll}

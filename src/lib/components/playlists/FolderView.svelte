@@ -4,6 +4,7 @@
 	import FolderCard from './FolderCard.svelte'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		folderId: string
@@ -67,7 +68,7 @@
 		{#if sortedChildren.length === 0}
 			<div class="flex h-full flex-col items-center justify-center text-text-tertiary" role="region">
 				<Icon name="folder" class="mb-3 h-12 w-12" />
-				<p class="text-sm">This folder is empty</p>
+				<p class="text-sm">{$translate('playlists.folderEmpty')}</p>
 			</div>
 		{:else}
 			<div class="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4">

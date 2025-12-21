@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte'
 	import { open } from '@tauri-apps/plugin-dialog'
+	import { openPath } from '@tauri-apps/plugin-opener'
 
 	import type {
 		Track,
@@ -726,6 +727,10 @@
 		modalOrchestrator.openDeviceInfoModal(device)
 	}
 
+	async function handleDeviceRevealInFinder(device: UsbDevice) {
+		await openPath(device.mount_point)
+	}
+
 	// Relocate track complete handler
 	function handleRelocateComplete(updatedTrack: Track) {
 		// Update the track in the library store
@@ -917,6 +922,7 @@
 	onTagsSidebarAddCategory={handleTagsSidebarAddCategory}
 	onTagsSidebarAddTag={handleTagsSidebarAddTag}
 	onDeviceViewInfo={handleViewDeviceInfo}
+	onDeviceRevealInFinder={handleDeviceRevealInFinder}
 	onDeviceEject={handleEjectDevice}
 />
 

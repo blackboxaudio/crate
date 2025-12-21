@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { ContextMenuItem } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import { translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	type Props = {
 		open: boolean
@@ -17,14 +19,14 @@
 	const menuItems = $derived<ContextMenuItem[]>([
 		{
 			id: 'add-category',
-			label: 'Add Category',
+			label: get(translate)('tags.addCategory'),
 			icon: 'plus',
 			disabled: categoryCount >= 4,
 			action: onAddCategory,
 		},
 		{
 			id: 'add-tag',
-			label: 'Add Tag',
+			label: get(translate)('tags.addTag'),
 			icon: 'tag',
 			disabled: categoryCount === 0,
 			action: onAddTag,
