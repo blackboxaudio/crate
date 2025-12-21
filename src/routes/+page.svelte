@@ -82,6 +82,9 @@
 	// Drag and drop state (for external file drops)
 	let isDragOver = $state(false)
 
+	// Right sidebar resize state
+	let isResizingRightSidebar = $state(false)
+
 	// Internal drag state
 	let dropTargets = $state<DropTarget[]>([])
 	let rafId: number | null = null
@@ -852,13 +855,19 @@
 
 			<!-- Right Sidebar (Track Editor) -->
 			<div
-				class="flex h-full flex-shrink-0 overflow-hidden transition-all duration-250 ease-out"
+				class="flex h-full flex-shrink-0 overflow-hidden ease-out"
+				class:transition-all={!isResizingRightSidebar}
+				class:duration-250={!isResizingRightSidebar}
 				class:opacity-0={!sidebarOpen}
 				class:blur-sm={!sidebarOpen}
 				style="width: {sidebarOpen ? $rightSidebarWidth : 0}px"
 			>
 				{#if sidebarOpen}
-					<ResizeHandle onResize={handleRightSidebarResize} />
+					<ResizeHandle
+						onResize={handleRightSidebarResize}
+						onResizeStart={() => (isResizingRightSidebar = true)}
+						onResizeEnd={() => (isResizingRightSidebar = false)}
+					/>
 					<div style="width: {$rightSidebarWidth}px">
 						<TrackEditor selectedTracks={selectedTracksArray} />
 					</div>

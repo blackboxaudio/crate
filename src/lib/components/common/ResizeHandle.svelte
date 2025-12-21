@@ -1,9 +1,11 @@
 <script lang="ts">
 	type Props = {
 		onResize?: (delta: number) => void
+		onResizeStart?: () => void
+		onResizeEnd?: () => void
 	}
 
-	let { onResize }: Props = $props()
+	let { onResize, onResizeStart, onResizeEnd }: Props = $props()
 
 	let isDragging = $state(false)
 	let startX = $state(0)
@@ -16,6 +18,7 @@
 		document.body.style.userSelect = 'none'
 		window.addEventListener('mousemove', handleMouseMove)
 		window.addEventListener('mouseup', handleMouseUp)
+		onResizeStart?.()
 	}
 
 	function handleMouseMove(e: MouseEvent) {
@@ -31,6 +34,7 @@
 		document.body.style.userSelect = ''
 		window.removeEventListener('mousemove', handleMouseMove)
 		window.removeEventListener('mouseup', handleMouseUp)
+		onResizeEnd?.()
 	}
 </script>
 
