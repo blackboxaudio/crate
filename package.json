@@ -26,7 +26,8 @@
 		"prepare": "yarn prepare:husky",
 		"prepare:husky": "husky install",
 		"preview": "vite preview",
-		"tauri": "tauri"
+		"tauri": "tauri",
+		"bump": "node scripts/version.js"
 	},
 	"license": "MIT",
 	"dependencies": {

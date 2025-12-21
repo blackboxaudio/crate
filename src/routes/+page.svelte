@@ -623,6 +623,9 @@
 	// Category colors map for track list
 	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 
+	// Category sort orders map for tag sorting in track rows
+	const categorySortOrders = $derived(new Map(tagCategories.map((c) => [c.id, c.sort_order])))
+
 	// Active filter tags for toolbar display
 	const activeFilterTags = $derived.by(() => {
 		if (selectedTagIds.length === 0) return []
@@ -654,6 +657,8 @@
 			currentFolderChildCount
 		)
 	)
+
+	const sidebarOpen = $derived($rightSidebarVisible && selectedTracksArray.length > 0)
 
 	// Breadcrumb navigation handler
 	function handleBreadcrumbNavigate(item: BreadcrumbItem) {
@@ -813,6 +818,7 @@
 							{sortConfig}
 							{isDragOver}
 							{categoryColors}
+							{categorySortOrders}
 							{breadcrumbItems}
 							onSelectionChange={trackController.handleSelectionChange}
 							onTrackPlay={trackController.play}
@@ -833,6 +839,7 @@
 						{sortConfig}
 						{isDragOver}
 						{categoryColors}
+						{categorySortOrders}
 						onSelectionChange={trackController.handleSelectionChange}
 						onTrackPlay={trackController.play}
 						onSortChange={handleSortChange}
@@ -844,12 +851,19 @@
 			</div>
 
 			<!-- Right Sidebar (Track Editor) -->
-			{#if $rightSidebarVisible && selectedTracksArray.length > 0}
-				<ResizeHandle onResize={handleRightSidebarResize} />
-				<div class="flex-shrink-0" style="width: {$rightSidebarWidth}px">
-					<TrackEditor selectedTracks={selectedTracksArray} />
-				</div>
-			{/if}
+			<div
+				class="flex h-full flex-shrink-0 overflow-hidden transition-all duration-250 ease-out"
+				class:opacity-0={!sidebarOpen}
+				class:blur-sm={!sidebarOpen}
+				style="width: {sidebarOpen ? $rightSidebarWidth : 0}px"
+			>
+				{#if sidebarOpen}
+					<ResizeHandle onResize={handleRightSidebarResize} />
+					<div style="width: {$rightSidebarWidth}px">
+						<TrackEditor selectedTracks={selectedTracksArray} />
+					</div>
+				{/if}
+			</div>
 		</div>
 	</div>
 

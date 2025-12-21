@@ -183,6 +183,12 @@
 	background: var(--text-tertiary);
 }
 
+/* Hide native search input clear button (we use a custom one) */
+input[type='search']::-webkit-search-cancel-button {
+	-webkit-appearance: none;
+	appearance: none;
+}
+
 /* =============================================================================
    Focus Styles (uses brand color)
    ============================================================================= */

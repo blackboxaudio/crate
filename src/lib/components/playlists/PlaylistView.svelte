@@ -11,6 +11,7 @@
 		sortConfig: SortConfig
 		isDragOver?: boolean
 		categoryColors?: Map<string, string | null>
+		categorySortOrders?: Map<string, number>
 		breadcrumbItems: BreadcrumbItem[]
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
@@ -30,6 +31,7 @@
 		sortConfig,
 		isDragOver = false,
 		categoryColors,
+		categorySortOrders,
 		breadcrumbItems,
 		onSelectionChange,
 		onTrackPlay,
@@ -59,6 +61,7 @@
 			{sortConfig}
 			{isDragOver}
 			{categoryColors}
+			{categorySortOrders}
 			{onSelectionChange}
 			{onTrackPlay}
 			{onSortChange}

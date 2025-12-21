@@ -12,6 +12,7 @@
 		sortConfig: SortConfig
 		isDragOver?: boolean
 		categoryColors?: Map<string, string | null>
+		categorySortOrders?: Map<string, number>
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onSortChange?: (config: SortConfig) => void
@@ -27,6 +28,7 @@
 		sortConfig,
 		isDragOver = false,
 		categoryColors,
+		categorySortOrders,
 		onSelectionChange,
 		onTrackPlay,
 		onSortChange,
@@ -115,6 +117,7 @@
 					playing={playingTrackId === track.id}
 					dragTrackIds={Array.from(selectedIds)}
 					{categoryColors}
+					{categorySortOrders}
 					onclick={(e) => handleTrackClick(track, e)}
 					ondblclick={() => handleTrackDoubleClick(track)}
 					oncontextmenu={(e) => handleTrackContextMenu(track, e)}

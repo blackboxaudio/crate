@@ -14,6 +14,7 @@
 		playing?: boolean
 		dragTrackIds?: string[]
 		categoryColors?: Map<string, string | null>
+		categorySortOrders?: Map<string, number>
 		onclick?: (e: MouseEvent) => void
 		ondblclick?: (e: MouseEvent) => void
 		oncontextmenu?: (e: MouseEvent) => void
@@ -26,6 +27,7 @@
 		playing = false,
 		dragTrackIds = [],
 		categoryColors,
+		categorySortOrders,
 		onclick,
 		ondblclick,
 		oncontextmenu,
@@ -152,7 +154,14 @@
 
 	<!-- Tags -->
 	<div class="flex h-6 items-center gap-1 overflow-hidden">
-		{#each track.tags.slice(0, 3) as tag (tag.id)}
+		{#each track.tags
+			.toSorted((a, b) => {
+				const orderA = categorySortOrders?.get(a.category_id) ?? 0
+				const orderB = categorySortOrders?.get(b.category_id) ?? 0
+				if (orderA !== orderB) return orderA - orderB
+				return a.name.localeCompare(b.name)
+			})
+			.slice(0, 3) as tag (tag.id)}
 			<TagChip {tag} size="sm" color={categoryColors?.get(tag.category_id)} />
 		{/each}
 		{#if track.tags.length > 3}

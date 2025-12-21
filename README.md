@@ -2,6 +2,7 @@
 
 [![Build](https://github.com/blackboxaudio/crate/actions/workflows/ci.build.yml/badge.svg)](https://github.com/blackboxaudio/crate/actions/workflows/ci.build.yml)
 [![Lint](https://github.com/blackboxaudio/crate/actions/workflows/ci.lint.yml/badge.svg)](https://github.com/blackboxaudio/crate/actions/workflows/ci.lint.yml)
+[![Version](https://img.shields.io/github/v/release/blackboxaudio/crate?label=version)](https://github.com/blackboxaudio/crate/releases)
 
 > Convenient library management for DJs, sound designers, and collectors. Fast, precise, no bloat.
 
@@ -97,8 +98,6 @@ Platform targets:
 
 ## 🔊 Roadmap
 
-This project is under active development. Current version: **0.1.0**
-
-Planned features and improvements are tracked in the repository issues.
+This project is under active development. Planned features and improvements are tracked in the repository issues.
 
 ---

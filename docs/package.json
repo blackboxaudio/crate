@@ -4,8 +4,9 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"dev": "astro dev",
-		"build": "astro build",
+		"sync-changelog": "node scripts/sync-changelog.js",
+		"dev": "npm run sync-changelog && astro dev",
+		"build": "npm run sync-changelog && astro build",
 		"preview": "astro preview",
 		"astro": "astro"
 	},
