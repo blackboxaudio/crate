@@ -240,7 +240,7 @@
 		overflow-y: auto;
 		border: 1px solid var(--stroke);
 		border-radius: 6px;
-		padding: 8px 0;
+		padding: 6px 6px;
 	}
 
 	.device-list {

@@ -142,7 +142,7 @@
 		: isHovered
 			? 'bg-brand-muted text-text-primary ring-1 ring-brand-primary'
 			: showCheckbox
-				? 'text-text-secondary'
+				? 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
 				: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 	style="padding-left: {paddingLeft}"
 	onclick={showCheckbox ? onCheckboxChange : onclick}
