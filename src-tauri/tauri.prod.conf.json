@@ -1,0 +1,7 @@
+{
+	"productName": "Crate",
+	"identifier": "com.bbx-audio.crate",
+	"app": {
+		"windows": [{ "title": "Crate" }]
+	}
+}

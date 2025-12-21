@@ -1,0 +1,5 @@
+export { default as PlaybackControls } from './PlaybackControls.svelte'
+export { default as SeekBar } from './SeekBar.svelte'
+export { default as VolumeControl } from './VolumeControl.svelte'
+export { default as TrackInfo } from './TrackInfo.svelte'
+export { default as Player } from './Player.svelte'

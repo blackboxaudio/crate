@@ -1,1 +1,256 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300..700&family=JetBrains+Mono:wght@300..700&family=Open+Sans:wght@300..700&display=swap');
 @import 'tailwindcss';
+
+/* =============================================================================
+   Theme Definition with Tailwind CSS 4 @theme
+   ============================================================================= */
+
+@theme {
+	/* Surface colors - semantic naming for backgrounds */
+	--color-surface-0: var(--surface-0);
+	--color-surface-1: var(--surface-1);
+	--color-surface-2: var(--surface-2);
+
+	/* Text colors */
+	--color-text-primary: var(--text-primary);
+	--color-text-secondary: var(--text-secondary);
+	--color-text-tertiary: var(--text-tertiary);
+
+	/* Brand/accent color */
+	--color-brand-primary: var(--brand-primary);
+	--color-brand-hover: var(--brand-hover);
+	--color-brand-muted: var(--brand-muted);
+
+	/* Stroke/border colors */
+	--color-stroke: var(--stroke);
+	--color-stroke-subtle: var(--stroke-subtle);
+
+	/* State colors */
+	--color-danger: #ef4444;
+	--color-warning: #f59e0b;
+	--color-success: #22c55e;
+	--color-info: #3b82f6;
+}
+
+/* =============================================================================
+   Dark Theme (Default)
+   ============================================================================= */
+
+:root,
+[data-theme='dark'] {
+	--surface-0: #09090b; /* zinc-950 - deepest background */
+	--surface-1: #18181b; /* zinc-900 - main background */
+	--surface-2: #27272a; /* zinc-800 - elevated surfaces */
+
+	--text-primary: #fafafa; /* zinc-50 */
+	--text-secondary: #a1a1aa; /* zinc-400 */
+	--text-tertiary: #71717a; /* zinc-500 */
+
+	--stroke: #3f3f46; /* zinc-700 */
+	--stroke-subtle: #27272a; /* zinc-800 */
+
+	color-scheme: dark;
+}
+
+/* =============================================================================
+   Light Theme
+   ============================================================================= */
+
+[data-theme='light'] {
+	--surface-0: #ffffff; /* white - deepest background */
+	--surface-1: #fafafa; /* zinc-50 - main background */
+	--surface-2: #f4f4f5; /* zinc-100 - elevated surfaces */
+
+	--text-primary: #18181b; /* zinc-900 */
+	--text-secondary: #52525b; /* zinc-600 */
+	--text-tertiary: #71717a; /* zinc-500 */
+
+	--stroke: #d4d4d8; /* zinc-300 */
+	--stroke-subtle: #e4e4e7; /* zinc-200 */
+
+	color-scheme: light;
+}
+
+/* =============================================================================
+   Accent Color Variants
+   ============================================================================= */
+
+:root,
+[data-accent='blue'] {
+	--brand-primary: #3b82f6;
+	--brand-hover: #2563eb;
+	--brand-muted: rgba(59, 130, 246, 0.2);
+}
+
+[data-accent='indigo'] {
+	--brand-primary: #6366f1;
+	--brand-hover: #4f46e5;
+	--brand-muted: rgba(99, 102, 241, 0.2);
+}
+
+[data-accent='violet'] {
+	--brand-primary: #8b5cf6;
+	--brand-hover: #7c3aed;
+	--brand-muted: rgba(139, 92, 246, 0.2);
+}
+
+[data-accent='purple'] {
+	--brand-primary: #a855f7;
+	--brand-hover: #9333ea;
+	--brand-muted: rgba(168, 85, 247, 0.2);
+}
+
+[data-accent='pink'] {
+	--brand-primary: #ec4899;
+	--brand-hover: #db2777;
+	--brand-muted: rgba(236, 72, 153, 0.2);
+}
+
+[data-accent='rose'] {
+	--brand-primary: #f43f5e;
+	--brand-hover: #e11d48;
+	--brand-muted: rgba(244, 63, 94, 0.2);
+}
+
+[data-accent='orange'] {
+	--brand-primary: #f97316;
+	--brand-hover: #ea580c;
+	--brand-muted: rgba(249, 115, 22, 0.2);
+}
+
+[data-accent='amber'] {
+	--brand-primary: #f59e0b;
+	--brand-hover: #d97706;
+	--brand-muted: rgba(245, 158, 11, 0.2);
+}
+
+[data-accent='emerald'] {
+	--brand-primary: #10b981;
+	--brand-hover: #059669;
+	--brand-muted: rgba(16, 185, 129, 0.2);
+}
+
+[data-accent='teal'] {
+	--brand-primary: #14b8a6;
+	--brand-hover: #0d9488;
+	--brand-muted: rgba(20, 184, 166, 0.2);
+}
+
+/* =============================================================================
+   Font Family Variants
+   ============================================================================= */
+
+:root,
+[data-font='ibm-plex-mono'] {
+	--font-family: 'IBM Plex Mono', monospace;
+}
+
+[data-font='jetbrains-mono'] {
+	--font-family: 'JetBrains Mono', monospace;
+}
+
+[data-font='fira-code'] {
+	--font-family: 'Fira Code', monospace;
+}
+
+[data-font='inter'] {
+	--font-family: 'Inter', sans-serif;
+}
+
+[data-font='open-sans'] {
+	--font-family: 'Open Sans', sans-serif;
+}
+
+/* =============================================================================
+   Scrollbar Styles (theme-aware)
+   ============================================================================= */
+
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	background: var(--stroke);
+	border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background: var(--text-tertiary);
+}
+
+/* Hide native search input clear button (we use a custom one) */
+input[type='search']::-webkit-search-cancel-button {
+	-webkit-appearance: none;
+	appearance: none;
+}
+
+/* =============================================================================
+   Focus Styles (uses brand color)
+   ============================================================================= */
+
+*:focus-visible {
+	outline: 2px solid var(--brand-primary);
+	outline-offset: 2px;
+}
+
+/* =============================================================================
+   Base Styles
+   ============================================================================= */
+
+html {
+	overflow: hidden;
+}
+
+body {
+	overflow: hidden;
+	background-color: var(--surface-0);
+	color: var(--text-primary);
+	font-family: var(--font-family);
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+/* Re-enable text selection for inputs and editable content */
+input,
+textarea,
+[contenteditable='true'] {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+/* Prevent text selection in UI elements */
+.select-none {
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+*:focus {
+	outline: none;
+}
+
+/* =============================================================================
+   Drag and Drop Cursor
+   ============================================================================= */
+
+html.is-dragging,
+html.is-dragging * {
+	cursor: grabbing !important;
+}
+
+/* =============================================================================
+   Animations
+   ============================================================================= */
+
+@keyframes fade-in {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}

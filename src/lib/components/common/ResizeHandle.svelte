@@ -1,0 +1,56 @@
+<script lang="ts">
+	type Props = {
+		onResize?: (delta: number) => void
+		onResizeStart?: () => void
+		onResizeEnd?: () => void
+	}
+
+	let { onResize, onResizeStart, onResizeEnd }: Props = $props()
+
+	let isDragging = $state(false)
+	let startX = $state(0)
+
+	function handleMouseDown(e: MouseEvent) {
+		e.preventDefault()
+		isDragging = true
+		startX = e.clientX
+		document.body.style.cursor = 'col-resize'
+		document.body.style.userSelect = 'none'
+		window.addEventListener('mousemove', handleMouseMove)
+		window.addEventListener('mouseup', handleMouseUp)
+		onResizeStart?.()
+	}
+
+	function handleMouseMove(e: MouseEvent) {
+		if (!isDragging) return
+		const delta = e.clientX - startX
+		startX = e.clientX
+		onResize?.(delta)
+	}
+
+	function handleMouseUp() {
+		isDragging = false
+		document.body.style.cursor = ''
+		document.body.style.userSelect = ''
+		window.removeEventListener('mousemove', handleMouseMove)
+		window.removeEventListener('mouseup', handleMouseUp)
+		onResizeEnd?.()
+	}
+</script>
+
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+<div
+	role="separator"
+	aria-orientation="vertical"
+	tabindex="0"
+	class="group relative h-full w-[0px] cursor-col-resize"
+	onmousedown={handleMouseDown}
+>
+	<div
+		class="absolute top-1.5 bottom-0 left-0 w-px bg-transparent transition-colors {isDragging
+			? 'bg-accent'
+			: 'group-hover:bg-accent'}"
+	></div>
+	<div class="absolute inset-y-0 -left-1 w-3"></div>
+</div>

@@ -1,0 +1,197 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., 0.2.0) - for manual builds'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  validate:
+    name: Validate Release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      tag: ${{ steps.validate.outputs.tag }}
+      prerelease: ${{ steps.validate.outputs.prerelease }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: validate
+        run: |
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            # Triggered by tag push
+            TAG="${{ github.ref_name }}"
+            VERSION="${TAG#v}"
+          else
+            # Triggered by workflow_dispatch
+            VERSION="${{ github.event.inputs.version }}"
+            TAG="v$VERSION"
+          fi
+
+          # Validate semver format (with optional prerelease suffix)
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$ ]]; then
+            echo "Error: Invalid version format. Use MAJOR.MINOR.PATCH (e.g., 0.2.0)"
+            exit 1
+          fi
+
+          # Check if tag already exists (only for manual triggers)
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            if git rev-parse "v$VERSION" >/dev/null 2>&1; then
+              echo "Error: Tag v$VERSION already exists"
+              exit 1
+            fi
+          fi
+
+          # Verify version exists in CHANGELOG.md
+          if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
+            echo "Error: Version $VERSION not found in CHANGELOG.md"
+            echo "Please add a changelog entry before releasing."
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+
+          # Auto-detect prerelease (for tag triggers) or use input (for manual)
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            if [[ "$VERSION" =~ -(alpha|beta|rc) ]]; then
+              echo "prerelease=true" >> $GITHUB_OUTPUT
+            else
+              echo "prerelease=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "prerelease=${{ github.event.inputs.prerelease }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract release notes from CHANGELOG
+        run: |
+          VERSION="${{ steps.validate.outputs.version }}"
+
+          # Extract the section for this version from CHANGELOG.md
+          awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if ($0 ~ "\\[" ver "\\]") found=1
+              next
+            }
+            found { print }
+          ' CHANGELOG.md > release_notes.md
+
+          echo "Release notes extracted:"
+          cat release_notes.md
+
+      - name: Upload release notes
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: release_notes.md
+
+  build:
+    name: Build ${{ matrix.os }}
+    needs: validate
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            artifact_name: macos
+          - os: windows-latest
+            artifact_name: windows
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Build Tauri app (macOS Universal)
+        if: matrix.os == 'macos-latest'
+        run: yarn tauri build --target universal-apple-darwin
+        env:
+          CRATE_ENV: production
+
+      - name: Build Tauri app (Windows)
+        if: matrix.os == 'windows-latest'
+        run: yarn tauri build
+        env:
+          CRATE_ENV: production
+
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.artifact_name }}
+          path: |
+            src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.artifact_name }}
+          path: |
+            src-tauri/target/release/bundle/msi/*.msi
+            src-tauri/target/release/bundle/nsis/*.exe
+
+  release:
+    name: Create Release
+    needs: [validate, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Display artifacts
+        run: ls -R artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.validate.outputs.tag }}
+          name: Crate ${{ needs.validate.outputs.version }}
+          body_path: artifacts/release-notes/release_notes.md
+          prerelease: ${{ needs.validate.outputs.prerelease }}
+          draft: true
+          files: |
+            artifacts/release-macos/**/*.dmg
+            artifacts/release-windows/**/*.msi
+            artifacts/release-windows/**/*.exe
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

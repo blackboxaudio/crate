@@ -1,0 +1,249 @@
+import { writable, derived, get } from 'svelte/store'
+import type { Theme, AccentColor, Font, AudioDevice } from '$lib/types'
+import * as settingsApi from '$lib/api/settings'
+
+// =============================================================================
+// State
+// =============================================================================
+
+interface SettingsState {
+	theme: Theme
+	accentColor: AccentColor
+	font: Font
+	resolvedTheme: 'light' | 'dark' // Actual theme after resolving 'system'
+	audioDevice: string | null
+	audioDevices: AudioDevice[]
+	loading: boolean
+	error: string | null
+}
+
+const initialState: SettingsState = {
+	theme: 'system',
+	accentColor: 'blue',
+	font: 'ibm-plex-mono',
+	resolvedTheme: 'dark',
+	audioDevice: null,
+	audioDevices: [],
+	loading: false,
+	error: null,
+}
+
+// =============================================================================
+// System Theme Detection
+// =============================================================================
+
+function getSystemTheme(): 'light' | 'dark' {
+	if (typeof window === 'undefined') return 'dark'
+	return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+// =============================================================================
+// Store
+// =============================================================================
+
+function createSettingsStore() {
+	const { subscribe, set, update } = writable<SettingsState>(initialState)
+	let systemThemeMediaQuery: MediaQueryList | null = null
+	let mediaQueryHandler: ((e: MediaQueryListEvent) => void) | null = null
+
+	function resolveTheme(theme: Theme): 'light' | 'dark' {
+		if (theme === 'system') {
+			return getSystemTheme()
+		}
+		return theme
+	}
+
+	function applyTheme(resolvedTheme: 'light' | 'dark') {
+		if (typeof document === 'undefined') return
+		document.documentElement.setAttribute('data-theme', resolvedTheme)
+	}
+
+	function applyAccentColor(color: AccentColor) {
+		if (typeof document === 'undefined') return
+		document.documentElement.setAttribute('data-accent', color)
+	}
+
+	function applyFont(font: Font) {
+		if (typeof document === 'undefined') return
+		document.documentElement.setAttribute('data-font', font)
+	}
+
+	function persistToLocalStorage(theme: Theme, accentColor: AccentColor) {
+		if (typeof localStorage === 'undefined') return
+		try {
+			localStorage.setItem('crate-theme', theme)
+			localStorage.setItem('crate-accent', accentColor)
+		} catch {
+			// localStorage not available or quota exceeded, ignore
+		}
+	}
+
+	function setupSystemThemeListener() {
+		if (typeof window === 'undefined') return
+
+		// Clean up existing listener
+		if (systemThemeMediaQuery && mediaQueryHandler) {
+			systemThemeMediaQuery.removeEventListener('change', mediaQueryHandler)
+		}
+
+		systemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+		mediaQueryHandler = () => {
+			const state = get({ subscribe })
+			if (state.theme === 'system') {
+				const resolved = getSystemTheme()
+				update((s) => ({ ...s, resolvedTheme: resolved }))
+				applyTheme(resolved)
+			}
+		}
+
+		systemThemeMediaQuery.addEventListener('change', mediaQueryHandler)
+	}
+
+	return {
+		subscribe,
+
+		/**
+		 * Load settings from backend
+		 */
+		async load() {
+			update((s) => ({ ...s, loading: true, error: null }))
+
+			try {
+				const [settings, audioDevices] = await Promise.all([settingsApi.getSettings(), settingsApi.getAudioDevices()])
+				const resolvedTheme = resolveTheme(settings.theme)
+
+				update((s) => ({
+					...s,
+					theme: settings.theme,
+					accentColor: settings.accentColor,
+					font: settings.font,
+					audioDevice: settings.audioDevice,
+					audioDevices,
+					resolvedTheme,
+					loading: false,
+				}))
+
+				applyTheme(resolvedTheme)
+				applyAccentColor(settings.accentColor)
+				applyFont(settings.font)
+				persistToLocalStorage(settings.theme, settings.accentColor)
+				setupSystemThemeListener()
+			} catch (error) {
+				update((s) => ({
+					...s,
+					loading: false,
+					error: error instanceof Error ? error.message : 'Failed to load settings',
+				}))
+
+				// Apply defaults on error
+				const resolvedTheme = resolveTheme('system')
+				applyTheme(resolvedTheme)
+				applyAccentColor('blue')
+				applyFont('ibm-plex-mono')
+				setupSystemThemeListener()
+			}
+		},
+
+		/**
+		 * Set theme preference
+		 */
+		async setTheme(theme: Theme) {
+			const resolvedTheme = resolveTheme(theme)
+			const state = get({ subscribe })
+
+			update((s) => ({ ...s, theme, resolvedTheme }))
+			applyTheme(resolvedTheme)
+			persistToLocalStorage(theme, state.accentColor)
+
+			try {
+				await settingsApi.setSetting('theme', theme)
+			} catch (error) {
+				console.error('Failed to save theme setting:', error)
+			}
+		},
+
+		/**
+		 * Set accent color
+		 */
+		async setAccentColor(color: AccentColor) {
+			const state = get({ subscribe })
+
+			update((s) => ({ ...s, accentColor: color }))
+			applyAccentColor(color)
+			persistToLocalStorage(state.theme, color)
+
+			try {
+				await settingsApi.setSetting('accent_color', color)
+			} catch (error) {
+				console.error('Failed to save accent color setting:', error)
+			}
+		},
+
+		/**
+		 * Set font family
+		 */
+		async setFont(font: Font) {
+			update((s) => ({ ...s, font }))
+			applyFont(font)
+
+			try {
+				await settingsApi.setSetting('font', font)
+			} catch (error) {
+				console.error('Failed to save font setting:', error)
+			}
+		},
+
+		/**
+		 * Set audio output device
+		 */
+		async setAudioDevice(deviceName: string | null) {
+			update((s) => ({ ...s, audioDevice: deviceName }))
+
+			try {
+				await settingsApi.setAudioDevice(deviceName)
+			} catch (error) {
+				console.error('Failed to save audio device setting:', error)
+			}
+		},
+
+		/**
+		 * Refresh the list of available audio devices
+		 */
+		async refreshAudioDevices() {
+			try {
+				const audioDevices = await settingsApi.getAudioDevices()
+				update((s) => ({ ...s, audioDevices }))
+			} catch (error) {
+				console.error('Failed to refresh audio devices:', error)
+			}
+		},
+
+		/**
+		 * Reset store to initial state
+		 */
+		reset() {
+			set(initialState)
+		},
+	}
+}
+
+export const settingsStore = createSettingsStore()
+
+// =============================================================================
+// Derived Stores
+// =============================================================================
+
+export const theme = derived(settingsStore, ($s) => $s.theme)
+
+export const accentColor = derived(settingsStore, ($s) => $s.accentColor)
+
+export const font = derived(settingsStore, ($s) => $s.font)
+
+export const resolvedTheme = derived(settingsStore, ($s) => $s.resolvedTheme)
+
+export const audioDevice = derived(settingsStore, ($s) => $s.audioDevice)
+
+export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
+
+export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

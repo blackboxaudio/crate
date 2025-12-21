@@ -1,24 +1,32 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "crate",
+  "productName": "Crate",
   "version": "0.1.0",
-  "identifier": "com.mystictwin.crate",
+  "identifier": "com.bbx-audio.crate",
   "build": {
-    "beforeDevCommand": "yarn dev",
+    "beforeDevCommand": "yarn dev:vite",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "yarn build",
+    "beforeBuildCommand": "yarn build:vite",
     "frontendDist": "../build"
   },
   "app": {
     "windows": [
       {
-        "title": "crate",
-        "width": 800,
-        "height": 600
+        "title": "Crate",
+        "width": 1400,
+        "height": 900,
+        "minWidth": 1000,
+        "minHeight": 600,
+        "resizable": true,
+        "dragDropEnabled": true
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'",
+      "assetProtocol": {
+        "enable": true,
+        "scope": ["$APPDATA/**/*"]
+      }
     }
   },
   "bundle": {
