@@ -131,6 +131,7 @@
 	const languageOptions = SUPPORTED_LANGUAGES.map((lang) => ({
 		value: lang.value,
 		label: lang.nativeLabel,
+		sublabel: lang.label,
 	}))
 
 	// Build grouped audio device options for Select component

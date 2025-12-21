@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use tauri::{
-    menu::{Menu, MenuBuilder, MenuItem, Submenu, SubmenuBuilder},
+    menu::{Menu, MenuBuilder, MenuItem, MenuItemKind, Submenu, SubmenuBuilder},
     AppHandle, Emitter, Manager, Wry,
 };
 
@@ -66,17 +66,26 @@ pub struct MenuTranslations {
 
 /// Menu item identifiers for event handling
 pub mod ids {
-    // App menu
+    // Submenu IDs (for in-place translation updates)
+    pub const APP_MENU: &str = "app_menu";
+    pub const FILE_MENU: &str = "file_menu";
+    pub const EDIT_MENU: &str = "edit_menu";
+    pub const PLAYBACK_MENU: &str = "playback_menu";
+    pub const VIEW_MENU: &str = "view_menu";
+    pub const WINDOW_MENU: &str = "window_menu";
+    pub const HELP_MENU: &str = "help_menu";
+
+    // App menu items
     pub const ABOUT: &str = "about";
     pub const SETTINGS: &str = "settings";
     pub const QUIT: &str = "quit";
 
-    // File menu
+    // File menu items
     pub const IMPORT_TRACKS: &str = "import_tracks";
     pub const NEW_PLAYLIST: &str = "new_playlist";
     pub const NEW_FOLDER: &str = "new_folder";
 
-    // Edit menu
+    // Edit menu items
     pub const UNDO: &str = "undo";
     pub const REDO: &str = "redo";
     pub const CUT: &str = "cut";
@@ -84,19 +93,19 @@ pub mod ids {
     pub const PASTE: &str = "paste";
     pub const SELECT_ALL: &str = "select_all";
 
-    // Playback menu
+    // Playback menu items
     pub const PLAY_PAUSE: &str = "play_pause";
     pub const STOP: &str = "stop";
 
-    // View menu
+    // View menu items
     pub const TOGGLE_SIDEBAR: &str = "toggle_sidebar";
     pub const SHOW_DEVTOOLS: &str = "show_devtools";
 
-    // Window menu
+    // Window menu items
     pub const MINIMIZE: &str = "minimize";
     pub const ZOOM: &str = "zoom";
 
-    // Help menu
+    // Help menu items
     pub const DOCUMENTATION: &str = "documentation";
     pub const REPORT_ISSUE: &str = "report_issue";
 }
@@ -128,7 +137,7 @@ pub fn build_menu(app: &AppHandle<Wry>) -> Result<Menu<Wry>, tauri::Error> {
 
 fn build_app_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     let app_name = get_app_name();
-    SubmenuBuilder::new(app, &app_name)
+    SubmenuBuilder::with_id(app, ids::APP_MENU, &app_name)
         .item(&MenuItem::with_id(
             app,
             ids::ABOUT,
@@ -156,7 +165,7 @@ fn build_app_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
 }
 
 fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, "File")
+    SubmenuBuilder::with_id(app, ids::FILE_MENU, "File")
         .item(&MenuItem::with_id(
             app,
             ids::IMPORT_TRACKS,
@@ -183,7 +192,7 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
 }
 
 fn build_edit_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, "Edit")
+    SubmenuBuilder::with_id(app, ids::EDIT_MENU, "Edit")
         .item(&MenuItem::with_id(
             app,
             ids::UNDO,
@@ -232,7 +241,7 @@ fn build_edit_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
 }
 
 fn build_playback_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, "Playback")
+    SubmenuBuilder::with_id(app, ids::PLAYBACK_MENU, "Playback")
         .item(&MenuItem::with_id(
             app,
             ids::PLAY_PAUSE,
@@ -251,7 +260,7 @@ fn build_playback_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Erro
 }
 
 fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, tauri::Error> {
-    let mut builder = SubmenuBuilder::new(app, "View").item(&MenuItem::with_id(
+    let mut builder = SubmenuBuilder::with_id(app, ids::VIEW_MENU, "View").item(&MenuItem::with_id(
         app,
         ids::TOGGLE_SIDEBAR,
         "Toggle Sidebar",
@@ -273,7 +282,7 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
 }
 
 fn build_window_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, "Window")
+    SubmenuBuilder::with_id(app, ids::WINDOW_MENU, "Window")
         .item(&MenuItem::with_id(
             app,
             ids::MINIMIZE,
@@ -293,7 +302,7 @@ fn build_window_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error>
 
 fn build_help_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     let app_name = get_app_name();
-    SubmenuBuilder::new(app, "Help")
+    SubmenuBuilder::with_id(app, ids::HELP_MENU, "Help")
         .item(&MenuItem::with_id(
             app,
             ids::DOCUMENTATION,
@@ -356,236 +365,87 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
     });
 }
 
-/// Rebuild the menu with translated labels
-pub fn rebuild_menu_with_translations(
+/// Update existing menu items with translated text in-place
+/// This is preferred over rebuilding the entire menu as it works better on macOS
+pub fn update_menu_translations(
     app: &AppHandle<Wry>,
     translations: &MenuTranslations,
-) -> Result<Menu<Wry>, tauri::Error> {
+) -> Result<(), tauri::Error> {
+    let Some(menu) = app.menu() else {
+        return Ok(());
+    };
+
     let is_dev = option_env!("CRATE_ENV").map_or(true, |env| env != "production");
 
-    let app_menu = build_app_menu_translated(app, translations)?;
-    let file_menu = build_file_menu_translated(app, translations)?;
-    let edit_menu = build_edit_menu_translated(app, translations)?;
-    let playback_menu = build_playback_menu_translated(app, translations)?;
-    let view_menu = build_view_menu_translated(app, translations, is_dev)?;
-    let window_menu = build_window_menu_translated(app, translations)?;
-    let help_menu = build_help_menu_translated(app, translations)?;
+    // Update submenu titles (note: App menu title is not translatable - it's the app name)
+    update_submenu_text(&menu, ids::FILE_MENU, &translations.file)?;
+    update_submenu_text(&menu, ids::EDIT_MENU, &translations.edit)?;
+    update_submenu_text(&menu, ids::PLAYBACK_MENU, &translations.playback)?;
+    update_submenu_text(&menu, ids::VIEW_MENU, &translations.view)?;
+    update_submenu_text(&menu, ids::WINDOW_MENU, &translations.window)?;
+    update_submenu_text(&menu, ids::HELP_MENU, &translations.help)?;
 
-    MenuBuilder::new(app)
-        .items(&[
-            &app_menu,
-            &file_menu,
-            &edit_menu,
-            &playback_menu,
-            &view_menu,
-            &window_menu,
-            &help_menu,
-        ])
-        .build()
-}
+    // Update App menu items
+    update_item_text(&menu, ids::ABOUT, &translations.about)?;
+    update_item_text(&menu, ids::SETTINGS, &translations.settings)?;
+    update_item_text(&menu, ids::QUIT, &translations.quit)?;
 
-fn build_app_menu_translated(
-    app: &AppHandle<Wry>,
-    translations: &MenuTranslations,
-) -> Result<Submenu<Wry>, tauri::Error> {
-    let app_name = get_app_name();
-    SubmenuBuilder::new(app, &app_name)
-        .item(&MenuItem::with_id(
-            app,
-            ids::ABOUT,
-            &translations.about,
-            true,
-            None::<&str>,
-        )?)
-        .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::SETTINGS,
-            &translations.settings,
-            true,
-            Some("CmdOrCtrl+,"),
-        )?)
-        .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::QUIT,
-            &translations.quit,
-            true,
-            Some("CmdOrCtrl+Q"),
-        )?)
-        .build()
-}
+    // Update File menu items
+    update_item_text(&menu, ids::IMPORT_TRACKS, &translations.import_tracks)?;
+    update_item_text(&menu, ids::NEW_PLAYLIST, &translations.new_playlist)?;
+    update_item_text(&menu, ids::NEW_FOLDER, &translations.new_folder)?;
 
-fn build_file_menu_translated(
-    app: &AppHandle<Wry>,
-    translations: &MenuTranslations,
-) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, &translations.file)
-        .item(&MenuItem::with_id(
-            app,
-            ids::IMPORT_TRACKS,
-            &translations.import_tracks,
-            true,
-            Some("CmdOrCtrl+O"),
-        )?)
-        .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::NEW_PLAYLIST,
-            &translations.new_playlist,
-            true,
-            Some("CmdOrCtrl+N"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::NEW_FOLDER,
-            &translations.new_folder,
-            true,
-            Some("CmdOrCtrl+Shift+N"),
-        )?)
-        .build()
-}
+    // Update Edit menu items
+    update_item_text(&menu, ids::UNDO, &translations.undo)?;
+    update_item_text(&menu, ids::REDO, &translations.redo)?;
+    update_item_text(&menu, ids::CUT, &translations.cut)?;
+    update_item_text(&menu, ids::COPY, &translations.copy)?;
+    update_item_text(&menu, ids::PASTE, &translations.paste)?;
+    update_item_text(&menu, ids::SELECT_ALL, &translations.select_all_tracks)?;
 
-fn build_edit_menu_translated(
-    app: &AppHandle<Wry>,
-    translations: &MenuTranslations,
-) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, &translations.edit)
-        .item(&MenuItem::with_id(
-            app,
-            ids::UNDO,
-            &translations.undo,
-            true,
-            Some("CmdOrCtrl+Z"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::REDO,
-            &translations.redo,
-            true,
-            Some("CmdOrCtrl+Shift+Z"),
-        )?)
-        .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::CUT,
-            &translations.cut,
-            true,
-            Some("CmdOrCtrl+X"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::COPY,
-            &translations.copy,
-            true,
-            Some("CmdOrCtrl+C"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::PASTE,
-            &translations.paste,
-            true,
-            Some("CmdOrCtrl+V"),
-        )?)
-        .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::SELECT_ALL,
-            &translations.select_all_tracks,
-            true,
-            Some("CmdOrCtrl+A"),
-        )?)
-        .build()
-}
+    // Update Playback menu items
+    update_item_text(&menu, ids::PLAY_PAUSE, &translations.play_pause)?;
+    update_item_text(&menu, ids::STOP, &translations.stop)?;
 
-fn build_playback_menu_translated(
-    app: &AppHandle<Wry>,
-    translations: &MenuTranslations,
-) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, &translations.playback)
-        .item(&MenuItem::with_id(
-            app,
-            ids::PLAY_PAUSE,
-            &translations.play_pause,
-            true,
-            Some("Space"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::STOP,
-            &translations.stop,
-            true,
-            Some("CmdOrCtrl+."),
-        )?)
-        .build()
-}
-
-fn build_view_menu_translated(
-    app: &AppHandle<Wry>,
-    translations: &MenuTranslations,
-    is_dev: bool,
-) -> Result<Submenu<Wry>, tauri::Error> {
-    let mut builder = SubmenuBuilder::new(app, &translations.view).item(&MenuItem::with_id(
-        app,
-        ids::TOGGLE_SIDEBAR,
-        &translations.toggle_sidebar,
-        true,
-        Some("CmdOrCtrl+\\"),
-    )?);
-
+    // Update View menu items
+    update_item_text(&menu, ids::TOGGLE_SIDEBAR, &translations.toggle_sidebar)?;
     if is_dev {
-        builder = builder.separator().item(&MenuItem::with_id(
-            app,
-            ids::SHOW_DEVTOOLS,
-            &translations.show_dev_tools,
-            true,
-            Some("CmdOrCtrl+Alt+I"),
-        )?);
+        update_item_text(&menu, ids::SHOW_DEVTOOLS, &translations.show_dev_tools)?;
     }
 
-    builder.build()
+    // Update Window menu items
+    update_item_text(&menu, ids::MINIMIZE, &translations.minimize)?;
+    update_item_text(&menu, ids::ZOOM, &translations.zoom)?;
+
+    // Update Help menu items
+    update_item_text(&menu, ids::DOCUMENTATION, &translations.documentation)?;
+    update_item_text(&menu, ids::REPORT_ISSUE, &translations.report_issue)?;
+
+    Ok(())
 }
 
-fn build_window_menu_translated(
-    app: &AppHandle<Wry>,
-    translations: &MenuTranslations,
-) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, &translations.window)
-        .item(&MenuItem::with_id(
-            app,
-            ids::MINIMIZE,
-            &translations.minimize,
-            true,
-            Some("CmdOrCtrl+M"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::ZOOM,
-            &translations.zoom,
-            true,
-            None::<&str>,
-        )?)
-        .build()
+fn update_submenu_text(menu: &Menu<Wry>, id: &str, text: &str) -> Result<(), tauri::Error> {
+    if let Some(item) = menu.get(id) {
+        if let MenuItemKind::Submenu(submenu) = item {
+            submenu.set_text(text)?;
+        }
+    }
+    Ok(())
 }
 
-fn build_help_menu_translated(
-    app: &AppHandle<Wry>,
-    translations: &MenuTranslations,
-) -> Result<Submenu<Wry>, tauri::Error> {
-    SubmenuBuilder::new(app, &translations.help)
-        .item(&MenuItem::with_id(
-            app,
-            ids::DOCUMENTATION,
-            &translations.documentation,
-            true,
-            None::<&str>,
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::REPORT_ISSUE,
-            &translations.report_issue,
-            true,
-            None::<&str>,
-        )?)
-        .build()
+fn update_item_text(menu: &Menu<Wry>, id: &str, text: &str) -> Result<(), tauri::Error> {
+    // Menu items are nested inside submenus, so we need to search within each submenu
+    if let Ok(items) = menu.items() {
+        for item in items {
+            if let MenuItemKind::Submenu(submenu) = item {
+                if let Some(found) = submenu.get(id) {
+                    if let MenuItemKind::MenuItem(menu_item) = found {
+                        menu_item.set_text(text)?;
+                        return Ok(());
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
 }

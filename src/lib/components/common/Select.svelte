@@ -7,6 +7,7 @@
 	type SelectOption = {
 		value: string
 		label: string
+		sublabel?: string
 		style?: string
 	}
 
@@ -211,7 +212,12 @@
 							role="option"
 							aria-selected={option.value === value}
 						>
-							<span class="flex-1">{option.label}</span>
+							<span class="flex flex-1 flex-col">
+								<span>{option.label}</span>
+								{#if option.sublabel}
+									<Text variant="caption" as="span">{option.sublabel}</Text>
+								{/if}
+							</span>
 							{#if option.value === value}
 								<Icon name="check" class="h-4 w-4" />
 							{/if}
@@ -236,7 +242,12 @@
 						role="option"
 						aria-selected={optionData.value === value}
 					>
-						<span class="flex-1">{optionData.label}</span>
+						<span class="flex flex-1 flex-col">
+							<span>{optionData.label}</span>
+							{#if optionData.sublabel}
+								<Text variant="caption" as="span">{optionData.sublabel}</Text>
+							{/if}
+						</span>
 						{#if optionData.value === value}
 							<Icon name="check" class="h-4 w-4" />
 						{/if}

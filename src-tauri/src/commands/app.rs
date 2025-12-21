@@ -1,4 +1,4 @@
-use crate::menu::{rebuild_menu_with_translations, MenuTranslations};
+use crate::menu::{update_menu_translations, MenuTranslations};
 use tauri::Manager;
 
 #[derive(Debug, serde::Serialize)]
@@ -62,7 +62,7 @@ pub fn close_dev_tools(app: tauri::AppHandle) {
 
 #[tauri::command]
 pub fn rebuild_menu(app: tauri::AppHandle, translations: MenuTranslations) -> Result<(), String> {
-    let menu = rebuild_menu_with_translations(&app, &translations).map_err(|e| e.to_string())?;
-    app.set_menu(menu).map_err(|e| e.to_string())?;
-    Ok(())
+    // Use in-place text updates instead of rebuilding the entire menu
+    // This works better on macOS where set_menu() may not visually refresh in production builds
+    update_menu_translations(&app, &translations).map_err(|e| e.to_string())
 }

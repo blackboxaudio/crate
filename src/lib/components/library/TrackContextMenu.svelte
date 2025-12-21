@@ -134,7 +134,8 @@
 			colorItems.push({
 				id: 'remove-color',
 				label: get(translate)('contextMenu.removeColor'),
-				icon: 'trash',
+				icon: 'minus-circle',
+				variant: 'danger',
 				action: () => onSetColor(null),
 			})
 			items.push({
@@ -172,7 +173,7 @@
 		items.push({
 			id: 'remove',
 			label: get(translate)('contextMenu.remove'),
-			icon: 'minus-circle',
+			icon: 'trash',
 			variant: 'danger',
 			submenu: removeItems,
 		})
