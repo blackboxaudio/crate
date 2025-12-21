@@ -270,8 +270,8 @@
 		"noDevices": "无已连接设备",
 		"free": "可用",
 		"connected": "已连接",
-		"statusCompatible": "与 Pioneer 设备兼容",
-		"statusIncompatible": "不兼容的格式（{fileSystem}）。请格式化为 FAT32 以兼容 Pioneer 设备。",
+		"statusCompatible": "兼容USB导出",
+		"statusIncompatible": "不兼容的格式（{fileSystem}）",
 		"viewInfo": "查看信息",
 		"exportTo": "导出到...",
 		"reformat": {

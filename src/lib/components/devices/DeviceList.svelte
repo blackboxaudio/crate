@@ -4,13 +4,15 @@
 	import { Text } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
 	import { reformattingDeviceId } from '$lib/stores/devices'
+	import { activeDeviceId } from '$lib/stores/export'
 
 	type Props = {
 		devices: UsbDevice[]
 		onContextMenu?: (e: MouseEvent, device: UsbDevice) => void
+		onCancelExport?: () => void
 	}
 
-	let { devices, onContextMenu }: Props = $props()
+	let { devices, onContextMenu, onCancelExport }: Props = $props()
 </script>
 
 <div class="p-2 pt-0">
@@ -21,7 +23,13 @@
 	{#if devices.length > 0}
 		<div class="space-y-0.5">
 			{#each devices as device (device.id)}
-				<DeviceItem {device} isReformatting={device.id === $reformattingDeviceId} {onContextMenu} />
+				<DeviceItem
+					{device}
+					isReformatting={device.id === $reformattingDeviceId}
+					isExporting={device.id === $activeDeviceId}
+					{onContextMenu}
+					{onCancelExport}
+				/>
 			{/each}
 		</div>
 	{:else}

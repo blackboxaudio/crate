@@ -270,8 +270,8 @@
 		"noDevices": "연결된 장치 없음",
 		"free": "남음",
 		"connected": "연결됨",
-		"statusCompatible": "Pioneer 장비와 호환됨",
-		"statusIncompatible": "호환되지 않는 형식 ({fileSystem}). Pioneer 장비를 사용하려면 FAT32로 포맷하세요.",
+		"statusCompatible": "USB 내보내기 호환",
+		"statusIncompatible": "호환되지 않는 형식 ({fileSystem})",
 		"viewInfo": "정보 보기",
 		"exportTo": "내보내기...",
 		"reformat": {

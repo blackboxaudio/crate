@@ -270,8 +270,8 @@
 		"noDevices": "Nenhum dispositivo conectado",
 		"free": "livre",
 		"connected": "Conectado",
-		"statusCompatible": "Compatível com equipamentos Pioneer",
-		"statusIncompatible": "Formato incompatível ({fileSystem}). Reformatar para FAT32 para equipamentos Pioneer.",
+		"statusCompatible": "Compatível para exportação USB",
+		"statusIncompatible": "Formato incompatível ({fileSystem})",
 		"viewInfo": "Ver informações",
 		"exportTo": "Exportar para...",
 		"reformat": {

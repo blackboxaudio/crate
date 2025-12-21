@@ -90,6 +90,19 @@
 		}
 	})
 
+	// Track click timing to distinguish single clicks from double-clicks
+	let clickTimer: ReturnType<typeof setTimeout> | null = null
+	const DOUBLE_CLICK_DELAY = 150
+
+	// Clean up click timer on component destroy
+	$effect(() => {
+		return () => {
+			if (clickTimer) {
+				clearTimeout(clickTimer)
+			}
+		}
+	})
+
 	// Track pointer state for drag detection (for dragging playlists/folders)
 	let pointerStartPos: { x: number; y: number } | null = null
 	let isDragStarted = false
@@ -127,6 +140,36 @@
 		pointerStartPos = null
 		isDragStarted = false
 	}
+
+	function handleClick() {
+		if (showCheckbox && playlist.is_folder) {
+			// For folders in checkbox mode, delay the toggle to detect double-clicks
+			if (clickTimer) {
+				clearTimeout(clickTimer)
+				clickTimer = null
+			}
+			clickTimer = setTimeout(() => {
+				onCheckboxChange?.()
+				clickTimer = null
+			}, DOUBLE_CLICK_DELAY)
+		} else if (showCheckbox) {
+			// Non-folders: toggle immediately
+			onCheckboxChange?.()
+		} else {
+			onclick?.()
+		}
+	}
+
+	function handleDoubleClick() {
+		if (playlist.is_folder) {
+			// Cancel any pending checkbox toggle
+			if (clickTimer) {
+				clearTimeout(clickTimer)
+				clickTimer = null
+			}
+			onToggle?.()
+		}
+	}
 </script>
 
 <div
@@ -135,8 +178,7 @@
 	data-drop-target={disableDrag ? undefined : dropTargetId}
 	aria-selected={selected}
 	aria-expanded={playlist.is_folder ? expanded : undefined}
-	class="flex items-center gap-2 rounded py-1.5 pr-3 transition-all select-none
-		{showCheckbox ? '' : 'cursor-pointer'}
+	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-all select-none
 		{selected || isContextMenuActive
 		? 'bg-brand-muted text-text-primary'
 		: isHovered
@@ -145,8 +187,8 @@
 				? 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'
 				: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 	style="padding-left: {paddingLeft}"
-	onclick={showCheckbox ? onCheckboxChange : onclick}
-	ondblclick={() => playlist.is_folder && onToggle?.()}
+	onclick={handleClick}
+	ondblclick={handleDoubleClick}
 	oncontextmenu={disableContextMenu ? undefined : oncontextmenu}
 	onpointerdown={handlePointerDown}
 	onpointermove={handlePointerMove}

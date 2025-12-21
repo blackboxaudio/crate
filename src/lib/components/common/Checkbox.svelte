@@ -8,7 +8,8 @@
 
 	let { checked = $bindable(false), onchange, label, disabled = false }: Props = $props()
 
-	function handleChange() {
+	function handleChange(event: MouseEvent) {
+		event.stopPropagation()
 		if (onchange) {
 			// Let parent control state via callback
 			onchange()

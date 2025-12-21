@@ -236,6 +236,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1曲} other {{count}曲}}を{playlistName}に追加、{failed}曲が失敗しました",
 		"tracksImported": "{count, plural, =1 {1曲} other {{count}曲}}をインポートしました",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1曲} other {{imported}曲}}をインポート、{skipped}曲をスキップしました",
+		"tracksExported": "{exported, plural, =1 {1曲} other {{exported}曲}}を{deviceName}にエクスポート、{skipped, plural, =1 {1曲スキップ} other {{skipped}曲スキップ}}",
 		"trackRemoved": "{count, plural, =1 {1曲} other {{count}曲}}をプレイリストから削除しました",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1曲} other {{count}曲}}をライブラリから削除しました",
 		"movedSuccessfully": "移動しました",
@@ -270,8 +271,8 @@
 		"noDevices": "デバイスが接続されていません",
 		"free": "空き",
 		"connected": "接続済み",
-		"statusCompatible": "Pioneer機器と互換性あり",
-		"statusIncompatible": "非互換フォーマット（{fileSystem}）。Pioneer機器にはFAT32でフォーマットしてください。",
+		"statusCompatible": "USBエクスポートに対応",
+		"statusIncompatible": "非互換フォーマット（{fileSystem}）",
 		"viewInfo": "情報を表示",
 		"exportTo": "エクスポート...",
 		"reformat": {

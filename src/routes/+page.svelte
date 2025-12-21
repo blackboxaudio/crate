@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte'
+	import { get } from 'svelte/store'
 	import { open } from '@tauri-apps/plugin-dialog'
 	import { openPath } from '@tauri-apps/plugin-opener'
 
@@ -50,6 +51,7 @@
 	import { findConflictingItem, getPlaylistById, hasChildren } from '$lib/utils'
 	import { createTagController, createTrackController } from '$lib/controllers'
 	import { useAppInitialization, useKeyboardShortcuts, useMenuActions } from '$lib/hooks'
+	import { translate } from '$lib/i18n'
 
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
@@ -64,11 +66,10 @@
 	} from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TrackEditor } from '$lib/components/editor'
-	import { ExportProgress } from '$lib/components/export'
 	import * as devicesApi from '$lib/api/devices'
 	import * as exportApi from '$lib/api/export'
 	import { openDevTools, closeDevTools } from '$lib/api/app'
-	import { exportStore, isExporting, activeDeviceName } from '$lib/stores/export'
+	import { exportStore, isExporting } from '$lib/stores/export'
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
@@ -774,8 +775,8 @@
 		modalOrchestrator.openExportPlaylistModal(playlist)
 	}
 
-	async function handleExportSubmit(request: ExportRequest, deviceName: string) {
-		exportStore.startExport(request.device_id, deviceName)
+	async function handleExportSubmit(request: ExportRequest) {
+		exportStore.startExport(request.device_id, request.device_name)
 
 		try {
 			const result = await exportApi.exportToDevice(request)
@@ -783,9 +784,13 @@
 
 			if (result.success) {
 				toastStore.success(
-					result.tracks_copied === 1
-						? `1 track exported to ${deviceName}`
-						: `${result.tracks_copied} tracks exported to ${deviceName}`
+					get(translate)('toast.tracksExported', {
+						values: {
+							exported: result.tracks_copied,
+							skipped: result.tracks_skipped,
+							deviceName: request.device_name,
+						},
+					})
 				)
 			} else {
 				// Export completed but with errors
@@ -887,6 +892,7 @@
 				onPlaylistContextMenu={handlePlaylistContextMenu}
 				onPlaylistTreeContextMenu={handlePlaylistTreeContextMenu}
 				onDeviceContextMenu={handleDeviceContextMenu}
+				onCancelExport={handleExportCancel}
 				onTagSelect={tagController.selectTag}
 				onTagToggle={tagController.toggleTagOnTracks}
 				onTagContextMenu={handleTagContextMenu}
@@ -1111,6 +1117,3 @@
 {#if $isDragging && $dragPosition}
 	<DragPreview data={$dragData} tracks={$libraryStore.tracks} {playlists} x={$dragPosition.x} y={$dragPosition.y} />
 {/if}
-
-<!-- Export Progress -->
-<ExportProgress onCancel={handleExportCancel} />

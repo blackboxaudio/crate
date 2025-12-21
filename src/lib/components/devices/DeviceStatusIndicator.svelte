@@ -13,7 +13,9 @@
 	const isCompatible = $derived(fileSystem.toLowerCase() === 'fat32' || fileSystem.toLowerCase() === 'msdos')
 
 	const tooltipMessage = $derived(
-		isCompatible ? $translate('devices.statusCompatible') : $translate('devices.statusIncompatible', { fileSystem })
+		isCompatible
+			? $translate('devices.statusCompatible')
+			: $translate('devices.statusIncompatible', { values: { fileSystem } })
 	)
 </script>
 

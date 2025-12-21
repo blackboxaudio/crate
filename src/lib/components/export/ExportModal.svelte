@@ -47,6 +47,20 @@
 		return playlists.filter((p) => p.parent_id === parentId).sort((a, b) => a.sort_order - b.sort_order)
 	}
 
+	// Get parent of a playlist
+	function getParent(playlistId: string): Playlist | null {
+		const playlist = playlists.find((p) => p.id === playlistId)
+		if (!playlist?.parent_id) return null
+		return playlists.find((p) => p.id === playlist.parent_id) || null
+	}
+
+	// Check if all children of a folder are selected
+	function allChildrenSelected(folderId: string, selectedSet: Set<string>): boolean {
+		const children = getChildren(folderId)
+		if (children.length === 0) return false
+		return children.every((child) => selectedSet.has(child.id))
+	}
+
 	// Toggle playlist selection
 	function togglePlaylist(playlistId: string, isFolder: boolean) {
 		const newSet = new SvelteSet(selectedPlaylistIds)
@@ -69,6 +83,17 @@
 					newSet.add(id)
 				}
 			}
+		}
+
+		// Cascade up: auto-select/deselect parent folders based on children state
+		let parent = getParent(playlistId)
+		while (parent) {
+			if (allChildrenSelected(parent.id, newSet)) {
+				newSet.add(parent.id)
+			} else {
+				newSet.delete(parent.id)
+			}
+			parent = getParent(parent.id)
 		}
 
 		selectedPlaylistIds = newSet
@@ -150,7 +175,7 @@
 	)
 </script>
 
-<Modal {open} {title} onClose size="md">
+<Modal {open} {title} {onClose} size="md">
 	<div class="export-content">
 		{#if mode === 'selectPlaylists'}
 			<!-- Playlist selection mode -->

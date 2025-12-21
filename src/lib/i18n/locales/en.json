@@ -236,6 +236,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1 track} other {{count} tracks}} added to {playlistName}, {failed} failed",
 		"tracksImported": "{count, plural, =1 {1 track} other {{count} tracks}} imported",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 track} other {{imported} tracks}} imported, {skipped} skipped",
+		"tracksExported": "{exported, plural, =1 {1 track} other {{exported} tracks}} exported to {deviceName}, {skipped, plural, =1 {1 skipped} other {{skipped} skipped}}",
 		"trackRemoved": "{count, plural, =1 {1 track} other {{count} tracks}} removed from playlist",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1 track} other {{count} tracks}} removed from library",
 		"movedSuccessfully": "Moved successfully",
@@ -270,8 +271,8 @@
 		"noDevices": "No devices connected",
 		"free": "free",
 		"connected": "Connected",
-		"statusCompatible": "Compatible with Pioneer gear",
-		"statusIncompatible": "Incompatible format ({fileSystem}). Reformat to FAT32 for Pioneer gear.",
+		"statusCompatible": "Compatible for USB export",
+		"statusIncompatible": "Incompatible format ({fileSystem})",
 		"viewInfo": "View info",
 		"exportTo": "Export to...",
 		"reformat": {

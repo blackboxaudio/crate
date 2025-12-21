@@ -87,6 +87,8 @@ function createExportStore() {
 			update((state) => ({
 				...state,
 				isExporting: false,
+				activeDeviceId: null,
+				activeDeviceName: null,
 				lastResult: result,
 				progress: null,
 			}))
@@ -99,6 +101,8 @@ function createExportStore() {
 			update((state) => ({
 				...state,
 				isExporting: false,
+				activeDeviceId: null,
+				activeDeviceName: null,
 				error,
 			}))
 		},
@@ -132,6 +136,8 @@ export const exportStore = createExportStore()
 export const isExporting = derived(exportStore, ($store) => $store.isExporting)
 
 export const exportProgress = derived(exportStore, ($store) => $store.progress)
+
+export const activeDeviceId = derived(exportStore, ($store) => $store.activeDeviceId)
 
 export const activeDeviceName = derived(exportStore, ($store) => $store.activeDeviceName)
 
