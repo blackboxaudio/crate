@@ -23,15 +23,22 @@ export interface MenuActionHandlers {
 /**
  * Set up menu action listener for native menu bar actions.
  *
- * Menu actions:
+ * Menu actions handled by frontend:
+ * - about: Open settings modal (About tab)
+ * - settings: Open settings modal
  * - import_tracks: Import audio files
  * - new_playlist: Create new playlist
  * - new_folder: Create new folder
+ * - undo/redo/cut/copy/paste: Text editing commands
  * - select_all: Select all (text in input, or tracks)
  * - play_pause: Toggle playback (when not typing)
  * - stop: Stop playback
- * - settings: Open settings modal
  * - toggle_sidebar, documentation, report_issue: TODOs
+ *
+ * Menu actions handled by backend:
+ * - quit: Exit application
+ * - minimize: Minimize window
+ * - zoom: Toggle maximize window
  *
  * @returns Promise of cleanup function to remove the listener
  */
@@ -42,6 +49,15 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 
 	function handleMenuAction(action: MenuAction): void {
 		switch (action) {
+			// App menu
+			case 'about':
+				onOpenSettings()
+				break
+			case 'settings':
+				onOpenSettings()
+				break
+
+			// File menu
 			case 'import_tracks':
 				onImport()
 				break
@@ -51,6 +67,23 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 			case 'new_folder':
 				onCreateFolder()
 				break
+
+			// Edit menu - text editing commands
+			case 'undo':
+				document.execCommand('undo')
+				break
+			case 'redo':
+				document.execCommand('redo')
+				break
+			case 'cut':
+				document.execCommand('cut')
+				break
+			case 'copy':
+				document.execCommand('copy')
+				break
+			case 'paste':
+				document.execCommand('paste')
+				break
 			case 'select_all':
 				if (isInputFocused()) {
 					const input = document.activeElement as HTMLInputElement | HTMLTextAreaElement
@@ -59,6 +92,8 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 					onSelectAll()
 				}
 				break
+
+			// Playback menu
 			case 'play_pause':
 				if (!isInputFocused()) {
 					onPlayPause()
@@ -67,12 +102,13 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 			case 'stop':
 				onStop()
 				break
+
+			// View menu
 			case 'toggle_sidebar':
 				// TODO: Implement sidebar toggle
 				break
-			case 'settings':
-				onOpenSettings()
-				break
+
+			// Help menu
 			case 'documentation':
 				// TODO: Open documentation
 				break

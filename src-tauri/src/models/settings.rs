@@ -2,6 +2,62 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
+pub enum Language {
+    #[default]
+    En,
+    Ja,
+    De,
+    Es,
+    Fr,
+    It,
+    Ko,
+    Nl,
+    Pt,
+    Sv,
+    Zh,
+}
+
+impl std::fmt::Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Language::En => write!(f, "en"),
+            Language::Ja => write!(f, "ja"),
+            Language::De => write!(f, "de"),
+            Language::Es => write!(f, "es"),
+            Language::Fr => write!(f, "fr"),
+            Language::It => write!(f, "it"),
+            Language::Ko => write!(f, "ko"),
+            Language::Nl => write!(f, "nl"),
+            Language::Pt => write!(f, "pt"),
+            Language::Sv => write!(f, "sv"),
+            Language::Zh => write!(f, "zh"),
+        }
+    }
+}
+
+impl std::str::FromStr for Language {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "en" => Ok(Language::En),
+            "ja" => Ok(Language::Ja),
+            "de" => Ok(Language::De),
+            "es" => Ok(Language::Es),
+            "fr" => Ok(Language::Fr),
+            "it" => Ok(Language::It),
+            "ko" => Ok(Language::Ko),
+            "nl" => Ok(Language::Nl),
+            "pt" => Ok(Language::Pt),
+            "sv" => Ok(Language::Sv),
+            "zh" => Ok(Language::Zh),
+            _ => Err(format!("Unknown language: {s}")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
 pub enum Theme {
     Light,
     Dark,
@@ -130,6 +186,7 @@ pub struct AppSettings {
     pub accent_color: AccentColor,
     pub font: Font,
     pub audio_device: Option<String>,
+    pub language: Language,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -29,6 +29,8 @@ interface ThemeColors {
 	textSecondary: string
 	danger: string
 	dangerMuted: string
+	success: string
+	successMuted: string
 }
 
 const THEME_COLORS: Record<'dark' | 'light', ThemeColors> = {
@@ -41,6 +43,8 @@ const THEME_COLORS: Record<'dark' | 'light', ThemeColors> = {
 		textSecondary: '#a1a1aa',
 		danger: '#ef4444',
 		dangerMuted: 'rgba(239, 68, 68, 0.2)',
+		success: '#10b981',
+		successMuted: 'rgba(16, 185, 129, 0.2)',
 	},
 	light: {
 		background: '#ffffff',
@@ -51,6 +55,8 @@ const THEME_COLORS: Record<'dark' | 'light', ThemeColors> = {
 		textSecondary: '#52525b',
 		danger: '#ef4444',
 		dangerMuted: 'rgba(239, 68, 68, 0.2)',
+		success: '#10b981',
+		successMuted: 'rgba(16, 185, 129, 0.2)',
 	},
 }
 
@@ -292,7 +298,7 @@ function showFallbackCrashScreen(error: EarlyError): void {
 
 			// Change to checkmark icon
 			copyBtn.innerHTML = `
-				<svg style="width: 1rem; height: 1rem; color: ${accentColor};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+				<svg style="width: 1rem; height: 1rem; color: ${colors.success};" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
 					<polyline points="20 6 9 17 4 12"></polyline>
 				</svg>
 			`

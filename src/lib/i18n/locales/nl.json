@@ -1,0 +1,342 @@
+{
+	"common": {
+		"close": "Sluiten",
+		"save": "Opslaan",
+		"cancel": "Annuleren",
+		"create": "Maken",
+		"delete": "Verwijderen",
+		"remove": "Verwijderen",
+		"rename": "Hernoemen",
+		"default": "Standaard",
+		"loading": "Laden...",
+		"unknown": "Onbekend",
+		"developerTools": "Ontwikkelaarstools",
+		"submit": "Verzenden",
+		"confirm": "Bevestigen",
+		"untitled": "Naamloos",
+		"unknownArtist": "Onbekende Artiest",
+		"folder": "map",
+		"playlist": "afspeellijst"
+	},
+	"nav": {
+		"library": "Bibliotheek",
+		"playlists": "Afspeellijsten",
+		"tags": "Tags"
+	},
+	"settings": {
+		"title": "Instellingen",
+		"tabs": {
+			"general": "Algemeen",
+			"appearance": "Uiterlijk",
+			"sound": "Geluid",
+			"diagnostics": "Diagnostiek",
+			"about": "Over"
+		},
+		"general": {
+			"language": "Taal",
+			"languageDescription": "Kies de weergavetaal voor de applicatie."
+		},
+		"appearance": {
+			"font": "Lettertype",
+			"fontDescription": "Kies het lettertype dat in de applicatie wordt gebruikt.",
+			"theme": "Thema",
+			"themeLight": "Licht",
+			"themeDark": "Donker",
+			"themeSystem": "Systeem",
+			"accentColor": "Accentkleur"
+		},
+		"sound": {
+			"outputDevice": "Uitvoerapparaat",
+			"outputDeviceDescription": "Selecteer het audio-uitvoerapparaat voor afspelen.",
+			"systemDefault": "Systeemstandaard",
+			"system": "Systeem",
+			"external": "Extern"
+		},
+		"diagnostics": {
+			"systemInfo": "Systeeminformatie",
+			"errorLog": "Foutenlogboek",
+			"export": "Exporteren",
+			"exportDescription": "Exporteer diagnostisch rapport voor bugmeldingen of probleemoplossing.",
+			"noErrors": "Geen fouten geregistreerd",
+			"loadingSystemInfo": "Systeeminformatie laden...",
+			"operatingSystem": "Besturingssysteem",
+			"cpu": "CPU",
+			"memory": "Geheugen",
+			"dataDirectory": "Gegevensmap",
+			"entriesCount": "{count} van 100 vermeldingen",
+			"saveAsJson": "Opslaan als JSON",
+			"saveAsText": "Opslaan als tekst",
+			"copyToClipboard": "Kopiëren naar klembord",
+			"copied": "Gekopieerd!"
+		},
+		"about": {
+			"application": "Applicatie",
+			"version": "Versie",
+			"environment": "Omgeving"
+		}
+	},
+	"player": {
+		"play": "Afspelen",
+		"pause": "Pauzeren",
+		"stop": "Stoppen",
+		"previous": "Vorige",
+		"next": "Volgende",
+		"mute": "Dempen",
+		"unmute": "Dempen opheffen",
+		"noTrackSelected": "Geen track geselecteerd"
+	},
+	"library": {
+		"searchPlaceholder": "Tracks zoeken...",
+		"importTracks": "Tracks importeren",
+		"matching": "Overeenkomen",
+		"matchOr": "OF",
+		"matchAnd": "EN",
+		"clearAll": "Alles wissen",
+		"columns": {
+			"title": "Titel",
+			"artist": "Artiest",
+			"bpm": "BPM",
+			"key": "Toonsoort",
+			"time": "Tijd",
+			"tags": "Tags"
+		},
+		"track": "track",
+		"tracks": "tracks",
+		"item": "item",
+		"items": "items"
+	},
+	"playlists": {
+		"newPlaylist": "Nieuwe afspeellijst",
+		"newFolder": "Nieuwe map",
+		"deletePlaylist": "Afspeellijst verwijderen",
+		"deleteFolder": "Map verwijderen",
+		"moveToFolder": "Verplaatsen naar map",
+		"rootNoFolder": "Hoofdmap (geen map)",
+		"folderEmpty": "Deze map is leeg"
+	},
+	"tags": {
+		"newCategory": "Nieuwe categorie",
+		"newTag": "Nieuwe tag",
+		"renameTag": "Tag hernoemen",
+		"renameCategory": "Categorie hernoemen",
+		"deleteTag": "Tag verwijderen",
+		"deleteCategory": "Categorie verwijderen",
+		"addCategory": "Categorie toevoegen",
+		"addTag": "Tag toevoegen"
+	},
+	"contextMenu": {
+		"viewInFinder": "Bekijken in Finder",
+		"viewInExplorer": "Bekijken in Verkenner",
+		"viewInFileManager": "Bekijken in Bestandsbeheer",
+		"addToPlaylist": "Toevoegen aan afspeellijst",
+		"setColor": "Kleur instellen",
+		"removeColor": "Kleur verwijderen",
+		"remove": "Verwijderen",
+		"removeFromPlaylist": "Verwijderen uit afspeellijst",
+		"removeFromLibrary": "Verwijderen uit bibliotheek",
+		"relocate": "Verplaatsen..."
+	},
+	"modals": {
+		"createPlaylist": {
+			"title": "Nieuwe afspeellijst",
+			"placeholder": "Naam afspeellijst"
+		},
+		"createFolder": {
+			"title": "Nieuwe map",
+			"placeholder": "Mapnaam"
+		},
+		"createCategory": {
+			"title": "Nieuwe tagcategorie",
+			"placeholder": "Categorienaam"
+		},
+		"createTag": {
+			"title": "Nieuwe tag",
+			"categoryLabel": "Categorie",
+			"tagLabel": "Tagnaam",
+			"categoryPlaceholder": "Selecteer een categorie",
+			"tagPlaceholder": "Voer tagnaam in"
+		},
+		"rename": {
+			"title": "Hernoemen",
+			"placeholder": "Naam"
+		},
+		"renameTag": {
+			"title": "Tag hernoemen",
+			"placeholder": "Tagnaam"
+		},
+		"renameCategory": {
+			"title": "Categorie hernoemen",
+			"placeholder": "Categorienaam"
+		},
+		"confirm": {
+			"deletePlaylistTitle": "Afspeellijst verwijderen",
+			"deletePlaylistMessage": "Weet je zeker dat je deze afspeellijst wilt verwijderen?",
+			"deleteFolderTitle": "Map verwijderen",
+			"deleteFolderMessage": "Weet je zeker dat je deze map wilt verwijderen?",
+			"deleteFolderWarning": "Deze map bevat afspeellijsten die ook worden verwijderd.",
+			"deleteTagTitle": "Tag verwijderen",
+			"deleteTagMessage": "Weet je zeker dat je deze tag wilt verwijderen? Deze wordt van alle tracks verwijderd.",
+			"deleteCategoryTitle": "Categorie verwijderen",
+			"deleteCategoryMessage": "Weet je zeker dat je deze categorie wilt verwijderen? Alle tags in deze categorie worden van alle tracks verwijderd.",
+			"removeFromPlaylistTitle": "Verwijderen uit afspeellijst",
+			"removeFromPlaylistMessage": "{count, plural, =1 {Deze track verwijderen uit de afspeellijst?} other {{count} tracks verwijderen uit de afspeellijst?}}",
+			"removeFromLibraryTitle": "Verwijderen uit bibliotheek",
+			"removeFromLibraryMessage": "{count, plural, =1 {Deze track verwijderen uit je bibliotheek?} other {{count} tracks verwijderen uit je bibliotheek?}}",
+			"removeFromLibraryWarning": "Deze actie kan niet ongedaan worden gemaakt. Tracks worden uit alle afspeellijsten verwijderd.",
+			"deleteTracksFromCollection": "Tracks ook uit mijn collectie verwijderen"
+		},
+		"relocate": {
+			"title": "Track verplaatsen",
+			"message": "Selecteer de nieuwe locatie voor deze track."
+		},
+		"albumArt": "Albumhoes",
+		"deviceInfo": {
+			"title": "Apparaatinfo",
+			"diskType": "Schijftype",
+			"fileSystem": "Bestandssysteem",
+			"storage": "Opslag",
+			"used": "Gebruikt:",
+			"available": "Beschikbaar:",
+			"total": "Totaal:",
+			"percentUsed": "% gebruikt"
+		},
+		"duplicate": {
+			"title": "Dubbele track gedetecteerd",
+			"progress": "Dubbel {current} van {total}",
+			"message": "Dit bestand komt overeen met een bestaande track in je bibliotheek:",
+			"current": "Huidig:",
+			"new": "Nieuw:",
+			"skip": "Overslaan",
+			"skipDescription": "Dit bestand niet importeren. De bestaande track ongewijzigd laten.",
+			"updatePath": "Pad bijwerken",
+			"updatePathDescription": "Alle bestaande gegevens behouden (cue-punten, tags, afspeellijsten, afspeelgeschiedenis) maar de bestandslocatie bijwerken.",
+			"replace": "Vervangen",
+			"replaceDescription": "Nieuwe import van nieuw bestand. Behoudt alleen afspeellijstlidmaatschappen. Reset cue-punten, tags en afspeelgeschiedenis.",
+			"applyToAll": "Toepassen op alle overige duplicaten ({count})"
+		},
+		"conflict": {
+			"title": "Naamconflict",
+			"resolving": "Conflict oplossen",
+			"remaining": "({count} resterend)",
+			"message": "Een {type} met de naam \"{name}\" bestaat al op deze locatie.",
+			"merge": "Samenvoegen",
+			"replace": "Vervangen",
+			"mergeFolder": "Inhoud van deze map verplaatsen naar de bestaande map. Je wordt gevraagd bij geneste conflicten.",
+			"mergePlaylist": "Tracks van beide afspeellijsten samenvoegen tot één.",
+			"mergeNotAvailable": "Niet beschikbaar: beide items moeten van hetzelfde type zijn om samen te voegen.",
+			"replaceDescription": "De bestaande {type} verwijderen en dit {item} op zijn plaats zetten.",
+			"replaceNotAvailable": "Niet beschikbaar: kan alleen items van hetzelfde type vervangen.",
+			"replaceFolderWarning": "Vervangen zal de bestaande map en al zijn inhoud permanent verwijderen.",
+			"replacePlaylistWarning": "Vervangen zal de bestaande afspeellijst en zijn trackkoppelingen permanent verwijderen."
+		}
+	},
+	"toast": {
+		"trackAdded": "{count, plural, =1 {1 track} other {{count} tracks}} toegevoegd aan {playlistName}",
+		"trackAddedWithFailed": "{count, plural, =1 {1 track} other {{count} tracks}} toegevoegd aan {playlistName}, {failed} mislukt",
+		"tracksImported": "{count, plural, =1 {1 track} other {{count} tracks}} geïmporteerd",
+		"tracksImportedWithSkipped": "{imported, plural, =1 {1 track} other {{imported} tracks}} geïmporteerd, {skipped} overgeslagen",
+		"trackRemoved": "{count, plural, =1 {1 track} other {{count} tracks}} verwijderd uit afspeellijst",
+		"trackRemovedFromLibrary": "{count, plural, =1 {1 track} other {{count} tracks}} verwijderd uit bibliotheek",
+		"movedSuccessfully": "Succesvol verplaatst",
+		"mergedSuccessfully": "Succesvol samengevoegd",
+		"mergeCompleted": "Samenvoegen voltooid",
+		"replacedExisting": "Bestaand item vervangen",
+		"deviceConnected": "{name} verbonden",
+		"deviceDisconnected": "{name} losgekoppeld",
+		"deviceEjected": "{name} uitgeworpen",
+		"deviceEjectFailed": "Uitwerpen van {name} mislukt",
+		"relocated": "\"{title}\" verplaatst",
+		"failedToResolve": "Duplicaat oplossen mislukt: {error}",
+		"failedToAddPlaylist": "Tracks toevoegen aan afspeellijst mislukt",
+		"warningTracksImportedFailed": "Tracks geïmporteerd maar toevoegen aan {playlistName} mislukt",
+		"failedToImport": "Tracks importeren mislukt: {error}",
+		"failedToUpdateTracks": "Tracks bijwerken mislukt",
+		"failedToSetArtwork": "Artwork instellen mislukt",
+		"failedToRemoveArtwork": "Artwork verwijderen mislukt",
+		"noArtworkInFile": "Geen artwork gevonden in audiobestand"
+	},
+	"errors": {
+		"cannotDropIntoSelf": "Kan een map niet in zichzelf slepen",
+		"cannotDropIntoSubfolder": "Kan een map niet in zijn eigen submap slepen"
+	},
+	"devices": {
+		"title": "Apparaten",
+		"eject": "Uitwerpen",
+		"deviceInfo": "Apparaatinfo",
+		"capacity": "Capaciteit",
+		"available": "Beschikbaar",
+		"used": "Gebruikt",
+		"noDevices": "Geen apparaten verbonden",
+		"free": "vrij",
+		"connected": "Verbonden",
+		"viewInfo": "Info bekijken"
+	},
+	"editor": {
+		"trackInfo": "Trackinfo",
+		"tracksCount": "{count} tracks",
+		"title": "Titel",
+		"artist": "Artiest",
+		"album": "Album",
+		"year": "Jaar",
+		"genre": "Genre",
+		"label": "Label",
+		"bpm": "BPM",
+		"key": "Toonsoort",
+		"saving": "Opslaan...",
+		"saveChanges": "Wijzigingen opslaan",
+		"multipleArtworks": "Meerdere artworks",
+		"addArtwork": "Artwork toevoegen",
+		"replaceArtwork": "Artwork vervangen",
+		"reextractFromFile": "Opnieuw uit bestand halen"
+	},
+	"colors": {
+		"pink": "Roze",
+		"red": "Rood",
+		"orange": "Oranje",
+		"yellow": "Geel",
+		"green": "Groen",
+		"aqua": "Aqua",
+		"blue": "Blauw",
+		"purple": "Paars",
+		"amber": "Amber",
+		"teal": "Blauwgroen",
+		"indigo": "Indigo",
+		"violet": "Violet",
+		"rose": "Roze",
+		"emerald": "Smaragd"
+	},
+	"crash": {
+		"title": "Er is iets misgegaan",
+		"description": "De applicatie heeft een onverwachte fout ondervonden.",
+		"errorDetails": "Foutdetails",
+		"resetApp": "Applicatie resetten"
+	},
+	"menu": {
+		"file": "Bestand",
+		"edit": "Bewerken",
+		"playback": "Afspelen",
+		"view": "Weergave",
+		"window": "Venster",
+		"help": "Help",
+		"about": "Over {appName}",
+		"settings": "Instellingen...",
+		"quit": "{appName} afsluiten",
+		"importTracks": "Tracks importeren...",
+		"newPlaylist": "Nieuwe afspeellijst",
+		"newFolder": "Nieuwe map",
+		"undo": "Ongedaan maken",
+		"redo": "Opnieuw",
+		"cut": "Knippen",
+		"copy": "Kopiëren",
+		"paste": "Plakken",
+		"selectAllTracks": "Alle tracks selecteren",
+		"playPause": "Afspelen/Pauzeren",
+		"stop": "Stoppen",
+		"toggleSidebar": "Zijbalk wisselen",
+		"showDevTools": "DevTools tonen",
+		"minimize": "Minimaliseren",
+		"zoom": "Zoomen",
+		"documentation": "{appName} Documentatie",
+		"reportIssue": "Probleem melden..."
+	}
+}

@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Playlist, ContextMenuItem } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import { translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	type Props = {
 		open: boolean
@@ -9,12 +11,13 @@
 		playlist: Playlist | null
 		folders: Playlist[]
 		onClose: () => void
+		onClosed?: () => void
 		onRename: (playlist: Playlist) => void
 		onDelete: (playlist: Playlist) => void
 		onMove: (playlist: Playlist, folderId: string | null) => void
 	}
 
-	let { open, x, y, playlist, folders, onClose, onRename, onDelete, onMove }: Props = $props()
+	let { open, x, y, playlist, folders, onClose, onClosed, onRename, onDelete, onMove }: Props = $props()
 
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		if (!playlist) return []
@@ -24,7 +27,7 @@
 		// Rename
 		items.push({
 			id: 'rename',
-			label: 'Rename',
+			label: get(translate)('common.rename'),
 			icon: 'pencil',
 			action: () => onRename(playlist),
 		})
@@ -37,7 +40,7 @@
 			if (playlist.parent_id !== null) {
 				moveSubmenu.push({
 					id: 'move-root',
-					label: 'Root (No Folder)',
+					label: get(translate)('playlists.rootNoFolder'),
 					action: () => onMove(playlist, null),
 				})
 			}
@@ -56,7 +59,7 @@
 			if (moveSubmenu.length > 0) {
 				items.push({
 					id: 'move',
-					label: 'Move to Folder',
+					label: get(translate)('playlists.moveToFolder'),
 					icon: 'folder-arrow',
 					submenu: moveSubmenu,
 				})
@@ -68,7 +71,7 @@
 		// Delete
 		items.push({
 			id: 'delete',
-			label: playlist.is_folder ? 'Delete Folder' : 'Delete Playlist',
+			label: playlist.is_folder ? get(translate)('playlists.deleteFolder') : get(translate)('playlists.deletePlaylist'),
 			icon: 'trash',
 			variant: 'danger',
 			action: () => onDelete(playlist),
@@ -78,4 +81,4 @@
 	})
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems()} {onClose} />
+<ContextMenu {open} {x} {y} items={menuItems()} {onClose} {onClosed} />

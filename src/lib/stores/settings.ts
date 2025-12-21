@@ -1,6 +1,9 @@
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor, Font, AudioDevice } from '$lib/types'
+import type { Theme, AccentColor, Font, AudioDevice, Language } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
+import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
+import { setLanguage as setI18nLanguage, translate } from '$lib/i18n'
+import { appStore } from './app'
 
 // =============================================================================
 // State
@@ -13,6 +16,7 @@ interface SettingsState {
 	resolvedTheme: 'light' | 'dark' // Actual theme after resolving 'system'
 	audioDevice: string | null
 	audioDevices: AudioDevice[]
+	language: Language
 	loading: boolean
 	error: string | null
 }
@@ -24,6 +28,7 @@ const initialState: SettingsState = {
 	resolvedTheme: 'dark',
 	audioDevice: null,
 	audioDevices: [],
+	language: 'en',
 	loading: false,
 	error: null,
 }
@@ -68,11 +73,14 @@ function createSettingsStore() {
 		document.documentElement.setAttribute('data-font', font)
 	}
 
-	function persistToLocalStorage(theme: Theme, accentColor: AccentColor) {
+	function persistToLocalStorage(theme: Theme, accentColor: AccentColor, language?: Language) {
 		if (typeof localStorage === 'undefined') return
 		try {
 			localStorage.setItem('crate-theme', theme)
 			localStorage.setItem('crate-accent', accentColor)
+			if (language) {
+				localStorage.setItem('crate-language', language)
+			}
 		} catch {
 			// localStorage not available or quota exceeded, ignore
 		}
@@ -100,6 +108,69 @@ function createSettingsStore() {
 		systemThemeMediaQuery.addEventListener('change', mediaQueryHandler)
 	}
 
+	function getAppName(): string {
+		const appState = get(appStore)
+		const environment = appState.info?.environment ?? 'development'
+		if (environment === 'production') {
+			return 'Crate'
+		}
+		if (environment === 'development') {
+			return 'Crate Dev'
+		}
+		// Other environments (alpha, beta, staging, etc.) use capitalized name
+		const suffix = environment.charAt(0).toUpperCase() + environment.slice(1)
+		return `Crate ${suffix}`
+	}
+
+	function getMenuTranslations(): MenuTranslations {
+		const t = get(translate)
+		const appName = getAppName()
+		return {
+			// Menu titles
+			file: t('menu.file'),
+			edit: t('menu.edit'),
+			playback: t('menu.playback'),
+			view: t('menu.view'),
+			window: t('menu.window'),
+			help: t('menu.help'),
+			// App menu items (about and quit contain app name via template)
+			about: t('menu.about', { values: { appName } }),
+			settings: t('menu.settings'),
+			quit: t('menu.quit', { values: { appName } }),
+			// File menu items
+			importTracks: t('menu.importTracks'),
+			newPlaylist: t('menu.newPlaylist'),
+			newFolder: t('menu.newFolder'),
+			// Edit menu items
+			undo: t('menu.undo'),
+			redo: t('menu.redo'),
+			cut: t('menu.cut'),
+			copy: t('menu.copy'),
+			paste: t('menu.paste'),
+			selectAllTracks: t('menu.selectAllTracks'),
+			// Playback menu items
+			playPause: t('menu.playPause'),
+			stop: t('menu.stop'),
+			// View menu items
+			toggleSidebar: t('menu.toggleSidebar'),
+			showDevTools: t('menu.showDevTools'),
+			// Window menu items
+			minimize: t('menu.minimize'),
+			zoom: t('menu.zoom'),
+			// Help menu items
+			documentation: t('menu.documentation', { values: { appName } }),
+			reportIssue: t('menu.reportIssue'),
+		}
+	}
+
+	async function updateMenuTranslations() {
+		try {
+			await rebuildMenu(getMenuTranslations())
+		} catch (error) {
+			console.error('Failed to rebuild menu:', error)
+		}
+	}
+
 	return {
 		subscribe,
 
@@ -120,6 +191,7 @@ function createSettingsStore() {
 					font: settings.font,
 					audioDevice: settings.audioDevice,
 					audioDevices,
+					language: settings.language,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -127,8 +199,12 @@ function createSettingsStore() {
 				applyTheme(resolvedTheme)
 				applyAccentColor(settings.accentColor)
 				applyFont(settings.font)
-				persistToLocalStorage(settings.theme, settings.accentColor)
+				persistToLocalStorage(settings.theme, settings.accentColor, settings.language)
 				setupSystemThemeListener()
+
+				// Update i18n language and menu
+				await setI18nLanguage(settings.language)
+				await updateMenuTranslations()
 			} catch (error) {
 				update((s) => ({
 					...s,
@@ -208,6 +284,24 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set display language
+		 */
+		async setLanguage(language: Language) {
+			const state = get({ subscribe })
+
+			update((s) => ({ ...s, language }))
+			await setI18nLanguage(language)
+			await updateMenuTranslations()
+			persistToLocalStorage(state.theme, state.accentColor, language)
+
+			try {
+				await settingsApi.setSetting('language', language)
+			} catch (error) {
+				console.error('Failed to save language setting:', error)
+			}
+		},
+
+		/**
 		 * Refresh the list of available audio devices
 		 */
 		async refreshAudioDevices() {
@@ -245,5 +339,7 @@ export const resolvedTheme = derived(settingsStore, ($s) => $s.resolvedTheme)
 export const audioDevice = derived(settingsStore, ($s) => $s.audioDevice)
 
 export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
+
+export const language = derived(settingsStore, ($s) => $s.language)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

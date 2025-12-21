@@ -1,5 +1,7 @@
 import { open } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
+import { get } from 'svelte/store'
+import { translate } from '$lib/i18n'
 import type { Track, TrackColor, Playlist, DuplicateTrack } from '$lib/types'
 import type { playerStore as PlayerStoreType } from '$lib/stores/player'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
@@ -132,9 +134,9 @@ export function createTrackController(
 			const playlist = playlists.find((p) => p.id === playlistId)
 			const playlistName = playlist?.name || 'playlist'
 			const count = trackIds.length
-			toastStore.success(count === 1 ? `1 track added to ${playlistName}` : `${count} tracks added to ${playlistName}`)
+			toastStore.success(get(translate)('toast.trackAdded', { values: { count, playlistName } }))
 		} catch (error) {
-			toastStore.error('Failed to add tracks to playlist')
+			toastStore.error(get(translate)('toast.failedToAddPlaylist'))
 		}
 	}
 
@@ -185,10 +187,12 @@ export function createTrackController(
 					if (totalImported > 0) {
 						if (skippedCount > 0) {
 							toastStore.success(
-								`${totalImported} track${totalImported !== 1 ? 's' : ''} imported, ${skippedCount} skipped`
+								get(translate)('toast.tracksImportedWithSkipped', {
+									values: { imported: totalImported, skipped: skippedCount },
+								})
 							)
 						} else {
-							toastStore.success(`${totalImported} track${totalImported !== 1 ? 's' : ''} imported`)
+							toastStore.success(get(translate)('toast.tracksImported', { values: { count: totalImported } }))
 						}
 					}
 				})
@@ -216,7 +220,7 @@ export function createTrackController(
 				try {
 					await playlistsStore.addTracks(selectedPlaylistId, trackIds)
 				} catch {
-					toastStore.warning(`Tracks imported but failed to add to ${playlistName}`)
+					toastStore.warning(get(translate)('toast.warningTracksImportedFailed', { values: { playlistName } }))
 				}
 			}
 
@@ -252,11 +256,14 @@ export function createTrackController(
 					const totalImported = result.tracks.length + resolvedCount
 					const skippedCount = result.duplicates.length - resolvedCount
 					if (totalImported > 0) {
-						const trackWord = totalImported === 1 ? 'track' : 'tracks'
 						if (skippedCount > 0) {
-							toastStore.success(`${totalImported} ${trackWord} added to ${playlistName}, ${skippedCount} skipped`)
+							toastStore.success(
+								get(translate)('toast.tracksImportedWithSkipped', {
+									values: { imported: totalImported, skipped: skippedCount },
+								})
+							)
 						} else {
-							toastStore.success(`${totalImported} ${trackWord} added to ${playlistName}`)
+							toastStore.success(get(translate)('toast.trackAdded', { values: { count: totalImported, playlistName } }))
 						}
 					}
 				})
@@ -264,14 +271,19 @@ export function createTrackController(
 				// No duplicates - show toast now
 				const count = result.tracks.length
 				if (count > 0) {
-					const trackWord = count === 1 ? 'track' : 'tracks'
 					if (result.failed_count > 0) {
-						toastStore.warning(`${count} ${trackWord} added to ${playlistName}, ${result.failed_count} failed`)
+						toastStore.warning(
+							get(translate)('toast.trackAddedWithFailed', {
+								values: { count, playlistName, failed: result.failed_count },
+							})
+						)
 					} else {
-						toastStore.success(`${count} ${trackWord} added to ${playlistName}`)
+						toastStore.success(get(translate)('toast.trackAdded', { values: { count, playlistName } }))
 					}
 				} else if (result.failed_count > 0) {
-					toastStore.error(`Failed to import tracks: ${result.errors[0] || 'Unknown error'}`)
+					toastStore.error(
+						get(translate)('toast.failedToImport', { values: { error: result.errors[0] || 'Unknown error' } })
+					)
 				}
 			}
 		} else {
@@ -298,10 +310,12 @@ export function createTrackController(
 					if (totalImported > 0) {
 						if (skippedCount > 0) {
 							toastStore.success(
-								`${totalImported} track${totalImported !== 1 ? 's' : ''} imported, ${skippedCount} skipped`
+								get(translate)('toast.tracksImportedWithSkipped', {
+									values: { imported: totalImported, skipped: skippedCount },
+								})
 							)
 						} else {
-							toastStore.success(`${totalImported} track${totalImported !== 1 ? 's' : ''} imported`)
+							toastStore.success(get(translate)('toast.tracksImported', { values: { count: totalImported } }))
 						}
 					}
 				})

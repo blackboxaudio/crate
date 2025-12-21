@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte'
 	import { open } from '@tauri-apps/plugin-dialog'
+	import { openPath } from '@tauri-apps/plugin-opener'
 
 	import type {
 		Track,
@@ -193,6 +194,9 @@
 	// Orchestrator bindings
 	let contextMenuOrchestrator: ReturnType<typeof ContextMenuOrchestrator>
 	let modalOrchestrator: ReturnType<typeof ModalOrchestrator>
+
+	// Context menu state for playlist tree hover styling
+	let contextMenuPlaylistId = $state<string | null>(null)
 
 	// Tag controller
 	const tagController = createTagController({
@@ -501,6 +505,7 @@
 
 	// Playlist context menu handlers
 	function handlePlaylistContextMenu(e: MouseEvent, playlist: Playlist) {
+		contextMenuPlaylistId = playlist.id
 		contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'tree')
 	}
 
@@ -726,6 +731,10 @@
 		modalOrchestrator.openDeviceInfoModal(device)
 	}
 
+	async function handleDeviceRevealInFinder(device: UsbDevice) {
+		await openPath(device.mount_point)
+	}
+
 	// Relocate track complete handler
 	function handleRelocateComplete(updatedTrack: Track) {
 		// Update the track in the library store
@@ -778,7 +787,7 @@
 				{devices}
 				{selectedPlaylistId}
 				{selectedFolderId}
-				contextMenuPlaylistId={null}
+				{contextMenuPlaylistId}
 				{selectedTagIds}
 				selectedTrackIds={$selectedTrackIds}
 				{tagStates}
@@ -917,7 +926,9 @@
 	onTagsSidebarAddCategory={handleTagsSidebarAddCategory}
 	onTagsSidebarAddTag={handleTagsSidebarAddTag}
 	onDeviceViewInfo={handleViewDeviceInfo}
+	onDeviceRevealInFinder={handleDeviceRevealInFinder}
 	onDeviceEject={handleEjectDevice}
+	onClose={() => (contextMenuPlaylistId = null)}
 />
 
 <!-- Modal Orchestrator -->

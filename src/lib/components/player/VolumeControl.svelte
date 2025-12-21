@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { IconButton, Slider } from '$lib/components/common'
-	import Icon from '$lib/components/common/Icon.svelte'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		volume: number
@@ -28,15 +28,13 @@
 </script>
 
 <div class="flex items-center gap-2">
-	<IconButton title={isMuted ? 'Unmute' : 'Mute'} size="sm" onclick={toggleMute}>
-		{#if isMuted}
-			<Icon name="volume-muted" fill />
-		{:else if volume < 0.5}
-			<Icon name="volume-low" fill />
-		{:else}
-			<Icon name="volume-full" fill />
-		{/if}
-	</IconButton>
+	<IconButton
+		title={isMuted ? $translate('player.unmute') : $translate('player.mute')}
+		size="sm"
+		icon={isMuted ? 'volume-muted' : volume < 0.5 ? 'volume-low' : 'volume-full'}
+		fill
+		onclick={toggleMute}
+	/>
 
 	<div class="flex h-6 w-24 items-center">
 		<Slider value={volume} min={0} max={1} step={0.01} oninput={handleVolumeChange} />

@@ -6,6 +6,7 @@
 	import { DeviceList } from '$lib/components/devices'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { isDev } from '$lib/stores'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		playlists: Playlist[]
@@ -92,13 +93,13 @@
 	<!-- Library -->
 	<div class="mx-0 border-t border-stroke px-2 pt-6">
 		<div class="-mx-0 flex items-center px-3 py-1.5">
-			<Text variant="header-4">Library</Text>
+			<Text variant="header-4">{$translate('nav.library')}</Text>
 			<Text variant="caption" class="ml-auto">{trackCount}</Text>
 		</div>
 	</div>
 
 	<!-- Section tabs -->
-	<div class="mx-0 flex border-b border-stroke">
+	<div class="mx-0 mt-1 flex border-b border-stroke">
 		<button
 			type="button"
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
@@ -108,7 +109,7 @@
 			onclick={() => (activeSection = 'playlists')}
 		>
 			<Icon name="grid" class="h-3.5 w-3.5" />
-			Playlists
+			{$translate('nav.playlists')}
 		</button>
 		<button
 			type="button"
@@ -119,7 +120,7 @@
 			onclick={() => (activeSection = 'tags')}
 		>
 			<Icon name="tag" class="h-3.5 w-3.5" />
-			Tags
+			{$translate('nav.tags')}
 		</button>
 	</div>
 
@@ -177,16 +178,16 @@
 		{#if activeSection === 'playlists'}
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreatePlaylist}>
 				<Icon name="plus" class="mr-2 h-4 w-4" />
-				New Playlist
+				{$translate('playlists.newPlaylist')}
 			</Button>
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateFolder}>
 				<Icon name="folder" class="mr-2 h-4 w-4" />
-				New Folder
+				{$translate('playlists.newFolder')}
 			</Button>
 		{:else}
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateCategory}>
 				<Icon name="plus" class="mr-2 h-4 w-4" />
-				New Category
+				{$translate('tags.newCategory')}
 			</Button>
 		{/if}
 	</div>

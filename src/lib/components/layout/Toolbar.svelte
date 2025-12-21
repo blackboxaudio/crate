@@ -4,6 +4,7 @@
 	import { SearchBar } from '$lib/components/library'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { isDev } from '$lib/stores'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		activeFilterTags?: Tag[]
@@ -50,15 +51,16 @@
 	<div class="flex items-center gap-2">
 		<Button variant="primary" size="sm" onclick={onImport}>
 			<Icon name="upload" class="mr-1.5 h-4 w-4" />
-			Import
+			{$translate('library.importTracks')}
 		</Button>
 		{#if $isDev}
-			<IconButton title="Developer Tools" onclick={onDevTools}>
-				<Icon name="terminal" class="h-5 w-5" />
-			</IconButton>
+			<IconButton
+				title={$translate('common.developerTools')}
+				icon="terminal"
+				iconClass="h-5 w-5"
+				onclick={onDevTools}
+			/>
 		{/if}
-		<IconButton title="Settings" onclick={onSettings}>
-			<Icon name="settings" class="h-5 w-5" />
-		</IconButton>
+		<IconButton title={$translate('settings.title')} icon="settings" iconClass="h-5 w-5" onclick={onSettings} />
 	</div>
 </div>

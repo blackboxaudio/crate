@@ -5,6 +5,8 @@
 	import IconButton from './IconButton.svelte'
 	import Button from './Button.svelte'
 	import Tooltip from './Tooltip.svelte'
+	import { translate } from '$lib/i18n'
+	import { get } from 'svelte/store'
 
 	let copySuccess = $state(false)
 	let copyTooltip: ReturnType<typeof Tooltip> | undefined = $state()
@@ -34,7 +36,7 @@
 		try {
 			await navigator.clipboard.writeText(details)
 			copySuccess = true
-			copyTooltip?.show('Copied!')
+			copyTooltip?.show(get(translate)('settings.diagnostics.copied'))
 			setTimeout(() => {
 				copySuccess = false
 			}, 2000)
@@ -49,7 +51,7 @@
 			document.execCommand('copy')
 			document.body.removeChild(textarea)
 			copySuccess = true
-			copyTooltip?.show('Copied!')
+			copyTooltip?.show(get(translate)('settings.diagnostics.copied'))
 			setTimeout(() => {
 				copySuccess = false
 			}, 2000)
@@ -72,19 +74,22 @@
 					<Icon name="alert-circle" class="h-5 w-5 text-danger" />
 				</div>
 				<div>
-					<h2 class="text-lg font-semibold text-text-primary">Something went wrong</h2>
-					<p class="text-sm text-text-secondary">The application encountered an unexpected error.</p>
+					<h2 class="text-lg font-semibold text-text-primary">{$translate('crash.title')}</h2>
+					<p class="text-sm text-text-secondary">{$translate('crash.description')}</p>
 				</div>
 			</div>
 
 			<!-- Error details box -->
 			<div class="mb-4 rounded-md border border-stroke bg-surface-2 p-3">
 				<div class="mb-2 flex items-center justify-between">
-					<span class="text-xs font-medium text-text-secondary">Error Details</span>
+					<span class="text-xs font-medium text-text-secondary">{$translate('crash.errorDetails')}</span>
 					<Tooltip bind:this={copyTooltip} position="left">
-						<IconButton size="sm" onclick={handleCopyError}>
-							<Icon name={copySuccess ? 'check' : 'copy'} class="h-4 w-4 {copySuccess ? 'text-brand-primary' : ''}" />
-						</IconButton>
+						<IconButton
+							size="sm"
+							icon={copySuccess ? 'check' : 'copy'}
+							iconClass="h-4 w-4 {copySuccess ? 'text-success' : ''}"
+							onclick={handleCopyError}
+						/>
 					</Tooltip>
 				</div>
 				<div class="max-h-32 overflow-y-auto">
@@ -96,7 +101,7 @@
 
 			<!-- Action buttons -->
 			<div class="flex justify-end">
-				<Button variant="primary" onclick={handleReset}>Reset Application</Button>
+				<Button variant="primary" onclick={handleReset}>{$translate('crash.resetApp')}</Button>
 			</div>
 		</div>
 	</div>

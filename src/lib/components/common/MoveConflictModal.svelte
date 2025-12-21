@@ -2,6 +2,7 @@
 	import Modal from './Modal.svelte'
 	import Button from './Button.svelte'
 	import Icon from './Icon.svelte'
+	import { translate } from '$lib/i18n'
 	import type { Playlist } from '$lib/types'
 
 	type Props = {
@@ -21,22 +22,24 @@
 	const canOverwrite = $derived(sameType)
 	const canMerge = $derived(sameType)
 
-	const itemTypeName = $derived(movingItem?.is_folder ? 'folder' : 'playlist')
-	const conflictTypeName = $derived(conflictingItem?.is_folder ? 'folder' : 'playlist')
+	const itemTypeName = $derived(movingItem?.is_folder ? $translate('common.folder') : $translate('common.playlist'))
+	const conflictTypeName = $derived(
+		conflictingItem?.is_folder ? $translate('common.folder') : $translate('common.playlist')
+	)
 	const isFolder = $derived(movingItem?.is_folder && conflictingItem?.is_folder)
 </script>
 
-<Modal {open} title="Name Conflict" onClose={onCancel}>
+<Modal {open} title={$translate('modals.conflict.title')} onClose={onCancel}>
 	<div class="space-y-4">
 		{#if pendingCount > 0}
 			<div class="rounded-md bg-surface-2 px-3 py-2 text-xs text-text-secondary">
-				Resolving conflict {pendingCount > 1 ? `(${pendingCount} remaining)` : ''}
+				{$translate('modals.conflict.resolving')}
+				{pendingCount > 1 ? $translate('modals.conflict.remaining', { values: { count: pendingCount } }) : ''}
 			</div>
 		{/if}
 
 		<p class="text-sm text-text-secondary">
-			A {conflictTypeName} named "<span class="font-medium text-text-primary">{conflictingItem?.name}</span>" already
-			exists in this location.
+			{$translate('modals.conflict.message', { values: { type: conflictTypeName, name: conflictingItem?.name } })}
 		</p>
 
 		<div class="space-y-3">
@@ -54,16 +57,16 @@
 						<Icon name={isFolder ? 'folder' : 'music-note'} class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">Merge</p>
+						<p class="text-sm font-medium text-text-primary">{$translate('modals.conflict.merge')}</p>
 						<p class="mt-0.5 text-xs text-text-secondary">
 							{#if canMerge}
 								{#if isFolder}
-									Move contents of this folder into the existing folder. You'll be prompted for any nested conflicts.
+									{$translate('modals.conflict.mergeFolder')}
 								{:else}
-									Combine tracks from both playlists into one.
+									{$translate('modals.conflict.mergePlaylist')}
 								{/if}
 							{:else}
-								Not available: both items must be the same type to merge.
+								{$translate('modals.conflict.mergeNotAvailable')}
 							{/if}
 						</p>
 					</div>
@@ -84,12 +87,14 @@
 						<Icon name="refresh" class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">Replace</p>
+						<p class="text-sm font-medium text-text-primary">{$translate('modals.conflict.replace')}</p>
 						<p class="mt-0.5 text-xs text-text-secondary">
 							{#if canOverwrite}
-								Delete the existing {conflictTypeName} and move this {itemTypeName} in its place.
+								{$translate('modals.conflict.replaceDescription', {
+									values: { type: conflictTypeName, item: itemTypeName },
+								})}
 							{:else}
-								Not available: can only replace items of the same type.
+								{$translate('modals.conflict.replaceNotAvailable')}
 							{/if}
 						</p>
 					</div>
@@ -103,9 +108,9 @@
 					<Icon name="warning" class="h-5 w-5 flex-shrink-0 text-warning" />
 					<p class="text-sm text-warning">
 						{#if isFolder}
-							Replacing will permanently delete the existing folder and all its contents.
+							{$translate('modals.conflict.replaceFolderWarning')}
 						{:else}
-							Replacing will permanently delete the existing playlist and its track associations.
+							{$translate('modals.conflict.replacePlaylistWarning')}
 						{/if}
 					</p>
 				</div>
@@ -114,12 +119,12 @@
 	</div>
 
 	{#snippet footer()}
-		<Button variant="ghost" onclick={onCancel}>Cancel</Button>
+		<Button variant="ghost" onclick={onCancel}>{$translate('common.cancel')}</Button>
 		{#if canMerge}
-			<Button variant="primary" onclick={onMerge}>Merge</Button>
+			<Button variant="primary" onclick={onMerge}>{$translate('modals.conflict.merge')}</Button>
 		{/if}
 		{#if canOverwrite}
-			<Button variant="danger" onclick={onOverwrite}>Replace</Button>
+			<Button variant="danger" onclick={onOverwrite}>{$translate('modals.conflict.replace')}</Button>
 		{/if}
 	{/snippet}
 </Modal>

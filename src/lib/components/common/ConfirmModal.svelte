@@ -3,6 +3,7 @@
 	import Button from './Button.svelte'
 	import Text from './Text.svelte'
 	import Icon from './Icon.svelte'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		open: boolean
@@ -25,8 +26,8 @@
 		warnings = [],
 		checkboxLabel,
 		checkboxChecked = $bindable(false),
-		confirmLabel = 'Confirm',
-		cancelLabel = 'Cancel',
+		confirmLabel,
+		cancelLabel,
 		destructive = false,
 		onConfirm,
 		onCancel,
@@ -67,13 +68,13 @@
 	</div>
 
 	{#snippet footer()}
-		<Button variant="ghost" onclick={onCancel}>{cancelLabel}</Button>
+		<Button variant="ghost" onclick={onCancel}>{cancelLabel || $translate('common.cancel')}</Button>
 		<Button
 			variant={destructive ? 'primary' : 'primary'}
 			class={destructive ? 'bg-red-600 hover:bg-red-700' : ''}
 			onclick={handleConfirm}
 		>
-			{confirmLabel}
+			{confirmLabel || $translate('common.confirm')}
 		</Button>
 	{/snippet}
 </Modal>

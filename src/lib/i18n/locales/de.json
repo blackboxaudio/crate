@@ -1,0 +1,342 @@
+{
+	"common": {
+		"close": "Schließen",
+		"save": "Speichern",
+		"cancel": "Abbrechen",
+		"create": "Erstellen",
+		"delete": "Löschen",
+		"remove": "Entfernen",
+		"rename": "Umbenennen",
+		"default": "Standard",
+		"loading": "Laden...",
+		"unknown": "Unbekannt",
+		"developerTools": "Entwicklertools",
+		"submit": "Absenden",
+		"confirm": "Bestätigen",
+		"untitled": "Unbenannt",
+		"unknownArtist": "Unbekannter Künstler",
+		"folder": "Ordner",
+		"playlist": "Playlist"
+	},
+	"nav": {
+		"library": "Bibliothek",
+		"playlists": "Playlists",
+		"tags": "Tags"
+	},
+	"settings": {
+		"title": "Einstellungen",
+		"tabs": {
+			"general": "Allgemein",
+			"appearance": "Erscheinung",
+			"sound": "Ton",
+			"diagnostics": "Diagnose",
+			"about": "Über"
+		},
+		"general": {
+			"language": "Sprache",
+			"languageDescription": "Wählen Sie die Anzeigesprache für die Anwendung."
+		},
+		"appearance": {
+			"font": "Schriftart",
+			"fontDescription": "Wählen Sie die in der Anwendung verwendete Schriftart.",
+			"theme": "Thema",
+			"themeLight": "Hell",
+			"themeDark": "Dunkel",
+			"themeSystem": "System",
+			"accentColor": "Akzentfarbe"
+		},
+		"sound": {
+			"outputDevice": "Ausgabegerät",
+			"outputDeviceDescription": "Wählen Sie das Audio-Ausgabegerät für die Wiedergabe.",
+			"systemDefault": "Systemstandard",
+			"system": "System",
+			"external": "Extern"
+		},
+		"diagnostics": {
+			"systemInfo": "Systeminformationen",
+			"errorLog": "Fehlerprotokoll",
+			"export": "Exportieren",
+			"exportDescription": "Diagnosebericht für Fehlermeldungen oder Fehlerbehebung exportieren.",
+			"noErrors": "Keine Fehler aufgezeichnet",
+			"loadingSystemInfo": "Systeminformationen werden geladen...",
+			"operatingSystem": "Betriebssystem",
+			"cpu": "CPU",
+			"memory": "Arbeitsspeicher",
+			"dataDirectory": "Datenverzeichnis",
+			"entriesCount": "{count} von 100 Einträgen",
+			"saveAsJson": "Als JSON speichern",
+			"saveAsText": "Als Text speichern",
+			"copyToClipboard": "In Zwischenablage kopieren",
+			"copied": "Kopiert!"
+		},
+		"about": {
+			"application": "Anwendung",
+			"version": "Version",
+			"environment": "Umgebung"
+		}
+	},
+	"player": {
+		"play": "Wiedergabe",
+		"pause": "Pause",
+		"stop": "Stopp",
+		"previous": "Zurück",
+		"next": "Weiter",
+		"mute": "Stumm",
+		"unmute": "Ton an",
+		"noTrackSelected": "Kein Track ausgewählt"
+	},
+	"library": {
+		"searchPlaceholder": "Tracks suchen...",
+		"importTracks": "Tracks importieren",
+		"matching": "Übereinstimmung",
+		"matchOr": "ODER",
+		"matchAnd": "UND",
+		"clearAll": "Alles löschen",
+		"columns": {
+			"title": "Titel",
+			"artist": "Künstler",
+			"bpm": "BPM",
+			"key": "Tonart",
+			"time": "Zeit",
+			"tags": "Tags"
+		},
+		"track": "Track",
+		"tracks": "Tracks",
+		"item": "Element",
+		"items": "Elemente"
+	},
+	"playlists": {
+		"newPlaylist": "Neue Playlist",
+		"newFolder": "Neuer Ordner",
+		"deletePlaylist": "Playlist löschen",
+		"deleteFolder": "Ordner löschen",
+		"moveToFolder": "In Ordner verschieben",
+		"rootNoFolder": "Stammverzeichnis (kein Ordner)",
+		"folderEmpty": "Dieser Ordner ist leer"
+	},
+	"tags": {
+		"newCategory": "Neue Kategorie",
+		"newTag": "Neuer Tag",
+		"renameTag": "Tag umbenennen",
+		"renameCategory": "Kategorie umbenennen",
+		"deleteTag": "Tag löschen",
+		"deleteCategory": "Kategorie löschen",
+		"addCategory": "Kategorie hinzufügen",
+		"addTag": "Tag hinzufügen"
+	},
+	"contextMenu": {
+		"viewInFinder": "Im Finder anzeigen",
+		"viewInExplorer": "Im Explorer anzeigen",
+		"viewInFileManager": "Im Dateimanager anzeigen",
+		"addToPlaylist": "Zur Playlist hinzufügen",
+		"setColor": "Farbe festlegen",
+		"removeColor": "Farbe entfernen",
+		"remove": "Entfernen",
+		"removeFromPlaylist": "Aus Playlist entfernen",
+		"removeFromLibrary": "Aus Bibliothek entfernen",
+		"relocate": "Verschieben..."
+	},
+	"modals": {
+		"createPlaylist": {
+			"title": "Neue Playlist",
+			"placeholder": "Playlist-Name"
+		},
+		"createFolder": {
+			"title": "Neuer Ordner",
+			"placeholder": "Ordnername"
+		},
+		"createCategory": {
+			"title": "Neue Tag-Kategorie",
+			"placeholder": "Kategoriename"
+		},
+		"createTag": {
+			"title": "Neuer Tag",
+			"categoryLabel": "Kategorie",
+			"tagLabel": "Tag-Name",
+			"categoryPlaceholder": "Kategorie auswählen",
+			"tagPlaceholder": "Tag-Namen eingeben"
+		},
+		"rename": {
+			"title": "Umbenennen",
+			"placeholder": "Name"
+		},
+		"renameTag": {
+			"title": "Tag umbenennen",
+			"placeholder": "Tag-Name"
+		},
+		"renameCategory": {
+			"title": "Kategorie umbenennen",
+			"placeholder": "Kategoriename"
+		},
+		"confirm": {
+			"deletePlaylistTitle": "Playlist löschen",
+			"deletePlaylistMessage": "Möchten Sie diese Playlist wirklich löschen?",
+			"deleteFolderTitle": "Ordner löschen",
+			"deleteFolderMessage": "Möchten Sie diesen Ordner wirklich löschen?",
+			"deleteFolderWarning": "Dieser Ordner enthält Playlists, die ebenfalls gelöscht werden.",
+			"deleteTagTitle": "Tag löschen",
+			"deleteTagMessage": "Möchten Sie diesen Tag wirklich löschen? Er wird von allen Tracks entfernt.",
+			"deleteCategoryTitle": "Kategorie löschen",
+			"deleteCategoryMessage": "Möchten Sie diese Kategorie wirklich löschen? Alle Tags in dieser Kategorie werden von allen Tracks entfernt.",
+			"removeFromPlaylistTitle": "Aus Playlist entfernen",
+			"removeFromPlaylistMessage": "{count, plural, =1 {Diesen Track aus der Playlist entfernen?} other {{count} Tracks aus der Playlist entfernen?}}",
+			"removeFromLibraryTitle": "Aus Bibliothek entfernen",
+			"removeFromLibraryMessage": "{count, plural, =1 {Diesen Track aus Ihrer Bibliothek entfernen?} other {{count} Tracks aus Ihrer Bibliothek entfernen?}}",
+			"removeFromLibraryWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Tracks werden aus allen Playlists entfernt.",
+			"deleteTracksFromCollection": "Tracks auch aus meiner Sammlung löschen"
+		},
+		"relocate": {
+			"title": "Track verschieben",
+			"message": "Wählen Sie den neuen Speicherort für diesen Track."
+		},
+		"albumArt": "Albumcover",
+		"deviceInfo": {
+			"title": "Geräteinformationen",
+			"diskType": "Festplattentyp",
+			"fileSystem": "Dateisystem",
+			"storage": "Speicher",
+			"used": "Belegt:",
+			"available": "Verfügbar:",
+			"total": "Gesamt:",
+			"percentUsed": "% belegt"
+		},
+		"duplicate": {
+			"title": "Doppelter Track erkannt",
+			"progress": "Duplikat {current} von {total}",
+			"message": "Diese Datei entspricht einem vorhandenen Track in Ihrer Bibliothek:",
+			"current": "Aktuell:",
+			"new": "Neu:",
+			"skip": "Überspringen",
+			"skipDescription": "Diese Datei nicht importieren. Den vorhandenen Track unverändert lassen.",
+			"updatePath": "Pfad aktualisieren",
+			"updatePathDescription": "Alle vorhandenen Daten (Cue-Punkte, Tags, Playlists, Wiedergabeverlauf) behalten, aber den Dateispeicherort aktualisieren.",
+			"replace": "Ersetzen",
+			"replaceDescription": "Neuimport aus neuer Datei. Behält nur Playlist-Zugehörigkeiten. Setzt Cue-Punkte, Tags und Wiedergabeverlauf zurück.",
+			"applyToAll": "Auf alle verbleibenden Duplikate anwenden ({count})"
+		},
+		"conflict": {
+			"title": "Namenskonflikt",
+			"resolving": "Konflikt wird gelöst",
+			"remaining": "({count} verbleibend)",
+			"message": "Ein {type} mit dem Namen \"{name}\" existiert bereits an diesem Ort.",
+			"merge": "Zusammenführen",
+			"replace": "Ersetzen",
+			"mergeFolder": "Inhalt dieses Ordners in den vorhandenen Ordner verschieben. Sie werden bei verschachtelten Konflikten gefragt.",
+			"mergePlaylist": "Tracks aus beiden Playlists zu einer zusammenführen.",
+			"mergeNotAvailable": "Nicht verfügbar: Beide Elemente müssen vom gleichen Typ sein, um zusammengeführt zu werden.",
+			"replaceDescription": "Das vorhandene {type} löschen und dieses {item} an seine Stelle setzen.",
+			"replaceNotAvailable": "Nicht verfügbar: Es können nur Elemente desselben Typs ersetzt werden.",
+			"replaceFolderWarning": "Beim Ersetzen wird der vorhandene Ordner und sein gesamter Inhalt dauerhaft gelöscht.",
+			"replacePlaylistWarning": "Beim Ersetzen wird die vorhandene Playlist und ihre Track-Zuordnungen dauerhaft gelöscht."
+		}
+	},
+	"toast": {
+		"trackAdded": "{count, plural, =1 {1 Track} other {{count} Tracks}} zu {playlistName} hinzugefügt",
+		"trackAddedWithFailed": "{count, plural, =1 {1 Track} other {{count} Tracks}} zu {playlistName} hinzugefügt, {failed} fehlgeschlagen",
+		"tracksImported": "{count, plural, =1 {1 Track} other {{count} Tracks}} importiert",
+		"tracksImportedWithSkipped": "{imported, plural, =1 {1 Track} other {{imported} Tracks}} importiert, {skipped} übersprungen",
+		"trackRemoved": "{count, plural, =1 {1 Track} other {{count} Tracks}} aus Playlist entfernt",
+		"trackRemovedFromLibrary": "{count, plural, =1 {1 Track} other {{count} Tracks}} aus Bibliothek entfernt",
+		"movedSuccessfully": "Erfolgreich verschoben",
+		"mergedSuccessfully": "Erfolgreich zusammengeführt",
+		"mergeCompleted": "Zusammenführung abgeschlossen",
+		"replacedExisting": "Vorhandenes Element ersetzt",
+		"deviceConnected": "{name} verbunden",
+		"deviceDisconnected": "{name} getrennt",
+		"deviceEjected": "{name} ausgeworfen",
+		"deviceEjectFailed": "Auswerfen von {name} fehlgeschlagen",
+		"relocated": "\"{title}\" verschoben",
+		"failedToResolve": "Duplikat konnte nicht aufgelöst werden: {error}",
+		"failedToAddPlaylist": "Tracks konnten nicht zur Playlist hinzugefügt werden",
+		"warningTracksImportedFailed": "Tracks importiert, aber Hinzufügen zu {playlistName} fehlgeschlagen",
+		"failedToImport": "Tracks konnten nicht importiert werden: {error}",
+		"failedToUpdateTracks": "Tracks konnten nicht aktualisiert werden",
+		"failedToSetArtwork": "Artwork konnte nicht festgelegt werden",
+		"failedToRemoveArtwork": "Artwork konnte nicht entfernt werden",
+		"noArtworkInFile": "Kein Artwork in Audiodatei gefunden"
+	},
+	"errors": {
+		"cannotDropIntoSelf": "Ein Ordner kann nicht in sich selbst gezogen werden",
+		"cannotDropIntoSubfolder": "Ein Ordner kann nicht in seinen eigenen Unterordner gezogen werden"
+	},
+	"devices": {
+		"title": "Geräte",
+		"eject": "Auswerfen",
+		"deviceInfo": "Geräteinformationen",
+		"capacity": "Kapazität",
+		"available": "Verfügbar",
+		"used": "Belegt",
+		"noDevices": "Keine Geräte verbunden",
+		"free": "frei",
+		"connected": "Verbunden",
+		"viewInfo": "Info anzeigen"
+	},
+	"editor": {
+		"trackInfo": "Track-Info",
+		"tracksCount": "{count} Tracks",
+		"title": "Titel",
+		"artist": "Künstler",
+		"album": "Album",
+		"year": "Jahr",
+		"genre": "Genre",
+		"label": "Label",
+		"bpm": "BPM",
+		"key": "Tonart",
+		"saving": "Speichern...",
+		"saveChanges": "Änderungen speichern",
+		"multipleArtworks": "Mehrere Artworks",
+		"addArtwork": "Artwork hinzufügen",
+		"replaceArtwork": "Artwork ersetzen",
+		"reextractFromFile": "Aus Datei neu extrahieren"
+	},
+	"colors": {
+		"pink": "Pink",
+		"red": "Rot",
+		"orange": "Orange",
+		"yellow": "Gelb",
+		"green": "Grün",
+		"aqua": "Aqua",
+		"blue": "Blau",
+		"purple": "Lila",
+		"amber": "Bernstein",
+		"teal": "Petrol",
+		"indigo": "Indigo",
+		"violet": "Violett",
+		"rose": "Rosa",
+		"emerald": "Smaragd"
+	},
+	"crash": {
+		"title": "Etwas ist schiefgelaufen",
+		"description": "Die Anwendung hat einen unerwarteten Fehler festgestellt.",
+		"errorDetails": "Fehlerdetails",
+		"resetApp": "Anwendung zurücksetzen"
+	},
+	"menu": {
+		"file": "Datei",
+		"edit": "Bearbeiten",
+		"playback": "Wiedergabe",
+		"view": "Ansicht",
+		"window": "Fenster",
+		"help": "Hilfe",
+		"about": "Über {appName}",
+		"settings": "Einstellungen...",
+		"quit": "{appName} beenden",
+		"importTracks": "Tracks importieren...",
+		"newPlaylist": "Neue Playlist",
+		"newFolder": "Neuer Ordner",
+		"undo": "Rückgängig",
+		"redo": "Wiederholen",
+		"cut": "Ausschneiden",
+		"copy": "Kopieren",
+		"paste": "Einfügen",
+		"selectAllTracks": "Alle Tracks auswählen",
+		"playPause": "Wiedergabe/Pause",
+		"stop": "Stopp",
+		"toggleSidebar": "Seitenleiste ein-/ausblenden",
+		"showDevTools": "Entwicklertools anzeigen",
+		"minimize": "Minimieren",
+		"zoom": "Zoom",
+		"documentation": "{appName} Dokumentation",
+		"reportIssue": "Problem melden..."
+	}
+}

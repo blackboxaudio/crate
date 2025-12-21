@@ -1,0 +1,342 @@
+{
+	"common": {
+		"close": "关闭",
+		"save": "保存",
+		"cancel": "取消",
+		"create": "创建",
+		"delete": "删除",
+		"remove": "移除",
+		"rename": "重命名",
+		"default": "默认",
+		"loading": "加载中...",
+		"unknown": "未知",
+		"developerTools": "开发者工具",
+		"submit": "提交",
+		"confirm": "确认",
+		"untitled": "未命名",
+		"unknownArtist": "未知艺术家",
+		"folder": "文件夹",
+		"playlist": "播放列表"
+	},
+	"nav": {
+		"library": "曲库",
+		"playlists": "播放列表",
+		"tags": "标签"
+	},
+	"settings": {
+		"title": "设置",
+		"tabs": {
+			"general": "常规",
+			"appearance": "外观",
+			"sound": "声音",
+			"diagnostics": "诊断",
+			"about": "关于"
+		},
+		"general": {
+			"language": "语言",
+			"languageDescription": "选择应用程序的显示语言。"
+		},
+		"appearance": {
+			"font": "字体",
+			"fontDescription": "选择应用程序中使用的字体。",
+			"theme": "主题",
+			"themeLight": "浅色",
+			"themeDark": "深色",
+			"themeSystem": "系统",
+			"accentColor": "强调色"
+		},
+		"sound": {
+			"outputDevice": "输出设备",
+			"outputDeviceDescription": "选择用于播放的音频输出设备。",
+			"systemDefault": "系统默认",
+			"system": "系统",
+			"external": "外部"
+		},
+		"diagnostics": {
+			"systemInfo": "系统信息",
+			"errorLog": "错误日志",
+			"export": "导出",
+			"exportDescription": "导出诊断报告用于错误报告或故障排除。",
+			"noErrors": "无错误记录",
+			"loadingSystemInfo": "正在加载系统信息...",
+			"operatingSystem": "操作系统",
+			"cpu": "CPU",
+			"memory": "内存",
+			"dataDirectory": "数据目录",
+			"entriesCount": "{count}/100 条记录",
+			"saveAsJson": "保存为 JSON",
+			"saveAsText": "保存为文本",
+			"copyToClipboard": "复制到剪贴板",
+			"copied": "已复制！"
+		},
+		"about": {
+			"application": "应用程序",
+			"version": "版本",
+			"environment": "环境"
+		}
+	},
+	"player": {
+		"play": "播放",
+		"pause": "暂停",
+		"stop": "停止",
+		"previous": "上一首",
+		"next": "下一首",
+		"mute": "静音",
+		"unmute": "取消静音",
+		"noTrackSelected": "未选择曲目"
+	},
+	"library": {
+		"searchPlaceholder": "搜索曲目...",
+		"importTracks": "导入曲目",
+		"matching": "匹配",
+		"matchOr": "或",
+		"matchAnd": "且",
+		"clearAll": "全部清除",
+		"columns": {
+			"title": "标题",
+			"artist": "艺术家",
+			"bpm": "BPM",
+			"key": "调性",
+			"time": "时长",
+			"tags": "标签"
+		},
+		"track": "曲目",
+		"tracks": "曲目",
+		"item": "项目",
+		"items": "项目"
+	},
+	"playlists": {
+		"newPlaylist": "新建播放列表",
+		"newFolder": "新建文件夹",
+		"deletePlaylist": "删除播放列表",
+		"deleteFolder": "删除文件夹",
+		"moveToFolder": "移动到文件夹",
+		"rootNoFolder": "根目录（无文件夹）",
+		"folderEmpty": "此文件夹为空"
+	},
+	"tags": {
+		"newCategory": "新建分类",
+		"newTag": "新建标签",
+		"renameTag": "重命名标签",
+		"renameCategory": "重命名分类",
+		"deleteTag": "删除标签",
+		"deleteCategory": "删除分类",
+		"addCategory": "添加分类",
+		"addTag": "添加标签"
+	},
+	"contextMenu": {
+		"viewInFinder": "在访达中显示",
+		"viewInExplorer": "在资源管理器中显示",
+		"viewInFileManager": "在文件管理器中显示",
+		"addToPlaylist": "添加到播放列表",
+		"setColor": "设置颜色",
+		"removeColor": "移除颜色",
+		"remove": "移除",
+		"removeFromPlaylist": "从播放列表移除",
+		"removeFromLibrary": "从曲库移除",
+		"relocate": "重新定位..."
+	},
+	"modals": {
+		"createPlaylist": {
+			"title": "新建播放列表",
+			"placeholder": "播放列表名称"
+		},
+		"createFolder": {
+			"title": "新建文件夹",
+			"placeholder": "文件夹名称"
+		},
+		"createCategory": {
+			"title": "新建标签分类",
+			"placeholder": "分类名称"
+		},
+		"createTag": {
+			"title": "新建标签",
+			"categoryLabel": "分类",
+			"tagLabel": "标签名称",
+			"categoryPlaceholder": "选择分类",
+			"tagPlaceholder": "输入标签名称"
+		},
+		"rename": {
+			"title": "重命名",
+			"placeholder": "名称"
+		},
+		"renameTag": {
+			"title": "重命名标签",
+			"placeholder": "标签名称"
+		},
+		"renameCategory": {
+			"title": "重命名分类",
+			"placeholder": "分类名称"
+		},
+		"confirm": {
+			"deletePlaylistTitle": "删除播放列表",
+			"deletePlaylistMessage": "确定要删除此播放列表吗？",
+			"deleteFolderTitle": "删除文件夹",
+			"deleteFolderMessage": "确定要删除此文件夹吗？",
+			"deleteFolderWarning": "此文件夹包含的播放列表也将被删除。",
+			"deleteTagTitle": "删除标签",
+			"deleteTagMessage": "确定要删除此标签吗？它将从所有曲目中移除。",
+			"deleteCategoryTitle": "删除分类",
+			"deleteCategoryMessage": "确定要删除此分类吗？此分类中的所有标签都将从所有曲目中移除。",
+			"removeFromPlaylistTitle": "从播放列表移除",
+			"removeFromPlaylistMessage": "{count, plural, =1 {从播放列表移除此曲目？} other {从播放列表移除 {count} 首曲目？}}",
+			"removeFromLibraryTitle": "从曲库移除",
+			"removeFromLibraryMessage": "{count, plural, =1 {从曲库移除此曲目？} other {从曲库移除 {count} 首曲目？}}",
+			"removeFromLibraryWarning": "此操作无法撤销。曲目将从所有播放列表中移除。",
+			"deleteTracksFromCollection": "同时从我的收藏中删除曲目"
+		},
+		"relocate": {
+			"title": "重新定位曲目",
+			"message": "选择此曲目的新位置。"
+		},
+		"albumArt": "专辑封面",
+		"deviceInfo": {
+			"title": "设备信息",
+			"diskType": "磁盘类型",
+			"fileSystem": "文件系统",
+			"storage": "存储",
+			"used": "已用：",
+			"available": "可用：",
+			"total": "总计：",
+			"percentUsed": "% 已用"
+		},
+		"duplicate": {
+			"title": "检测到重复曲目",
+			"progress": "重复 {current}/{total}",
+			"message": "此文件与曲库中的现有曲目匹配：",
+			"current": "当前：",
+			"new": "新：",
+			"skip": "跳过",
+			"skipDescription": "不导入此文件。保持现有曲目不变。",
+			"updatePath": "更新路径",
+			"updatePathDescription": "保留所有现有数据（Cue 点、标签、播放列表、播放历史）但更新文件位置。",
+			"replace": "替换",
+			"replaceDescription": "从新文件重新导入。仅保留播放列表成员资格。重置 Cue 点、标签和播放历史。",
+			"applyToAll": "应用于所有剩余重复项（{count}）"
+		},
+		"conflict": {
+			"title": "名称冲突",
+			"resolving": "正在解决冲突",
+			"remaining": "（剩余 {count}）",
+			"message": "此位置已存在名为\"{name}\"的{type}。",
+			"merge": "合并",
+			"replace": "替换",
+			"mergeFolder": "将此文件夹的内容移动到现有文件夹。遇到嵌套冲突时会再次询问。",
+			"mergePlaylist": "将两个播放列表的曲目合并为一个。",
+			"mergeNotAvailable": "不可用：两个项目必须是相同类型才能合并。",
+			"replaceDescription": "删除现有的{type}并将此{item}放在其位置。",
+			"replaceNotAvailable": "不可用：只能替换相同类型的项目。",
+			"replaceFolderWarning": "替换将永久删除现有文件夹及其所有内容。",
+			"replacePlaylistWarning": "替换将永久删除现有播放列表及其曲目关联。"
+		}
+	},
+	"toast": {
+		"trackAdded": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}已添加到 {playlistName}",
+		"trackAddedWithFailed": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}已添加到 {playlistName}，{failed} 首失败",
+		"tracksImported": "{count, plural, =1 {已导入 1 首曲目} other {已导入 {count} 首曲目}}",
+		"tracksImportedWithSkipped": "{imported, plural, =1 {已导入 1 首曲目} other {已导入 {imported} 首曲目}}，跳过 {skipped} 首",
+		"trackRemoved": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}已从播放列表移除",
+		"trackRemovedFromLibrary": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}已从曲库移除",
+		"movedSuccessfully": "移动成功",
+		"mergedSuccessfully": "合并成功",
+		"mergeCompleted": "合并完成",
+		"replacedExisting": "已替换现有项目",
+		"deviceConnected": "{name} 已连接",
+		"deviceDisconnected": "{name} 已断开",
+		"deviceEjected": "{name} 已弹出",
+		"deviceEjectFailed": "弹出 {name} 失败",
+		"relocated": "\"{title}\"已重新定位",
+		"failedToResolve": "解决重复失败：{error}",
+		"failedToAddPlaylist": "添加曲目到播放列表失败",
+		"warningTracksImportedFailed": "曲目已导入，但添加到 {playlistName} 失败",
+		"failedToImport": "导入曲目失败：{error}",
+		"failedToUpdateTracks": "更新曲目失败",
+		"failedToSetArtwork": "设置封面失败",
+		"failedToRemoveArtwork": "移除封面失败",
+		"noArtworkInFile": "音频文件中未找到封面"
+	},
+	"errors": {
+		"cannotDropIntoSelf": "无法将文件夹拖放到自身内部",
+		"cannotDropIntoSubfolder": "无法将文件夹拖放到其子文件夹内"
+	},
+	"devices": {
+		"title": "设备",
+		"eject": "弹出",
+		"deviceInfo": "设备信息",
+		"capacity": "容量",
+		"available": "可用",
+		"used": "已用",
+		"noDevices": "无已连接设备",
+		"free": "可用",
+		"connected": "已连接",
+		"viewInfo": "查看信息"
+	},
+	"editor": {
+		"trackInfo": "曲目信息",
+		"tracksCount": "{count} 首曲目",
+		"title": "标题",
+		"artist": "艺术家",
+		"album": "专辑",
+		"year": "年份",
+		"genre": "流派",
+		"label": "厂牌",
+		"bpm": "BPM",
+		"key": "调性",
+		"saving": "保存中...",
+		"saveChanges": "保存更改",
+		"multipleArtworks": "多个封面",
+		"addArtwork": "添加封面",
+		"replaceArtwork": "替换封面",
+		"reextractFromFile": "从文件重新提取"
+	},
+	"colors": {
+		"pink": "粉色",
+		"red": "红色",
+		"orange": "橙色",
+		"yellow": "黄色",
+		"green": "绿色",
+		"aqua": "水绿色",
+		"blue": "蓝色",
+		"purple": "紫色",
+		"amber": "琥珀色",
+		"teal": "青色",
+		"indigo": "靛蓝色",
+		"violet": "紫罗兰色",
+		"rose": "玫瑰色",
+		"emerald": "翠绿色"
+	},
+	"crash": {
+		"title": "出现问题",
+		"description": "应用程序遇到意外错误。",
+		"errorDetails": "错误详情",
+		"resetApp": "重置应用程序"
+	},
+	"menu": {
+		"file": "文件",
+		"edit": "编辑",
+		"playback": "播放",
+		"view": "视图",
+		"window": "窗口",
+		"help": "帮助",
+		"about": "关于 {appName}",
+		"settings": "设置...",
+		"quit": "退出 {appName}",
+		"importTracks": "导入曲目...",
+		"newPlaylist": "新建播放列表",
+		"newFolder": "新建文件夹",
+		"undo": "撤销",
+		"redo": "重做",
+		"cut": "剪切",
+		"copy": "复制",
+		"paste": "粘贴",
+		"selectAllTracks": "全选曲目",
+		"playPause": "播放/暂停",
+		"stop": "停止",
+		"toggleSidebar": "切换侧边栏",
+		"showDevTools": "显示开发者工具",
+		"minimize": "最小化",
+		"zoom": "缩放",
+		"documentation": "{appName} 文档",
+		"reportIssue": "报告问题..."
+	}
+}

@@ -2,6 +2,7 @@
 	import type { Track, TrackColor, SortConfig } from '$lib/types'
 	import TrackList from './TrackList.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		tracks: Track[]
@@ -43,10 +44,10 @@
 	<div class="flex items-center gap-1 border-b border-stroke px-6 py-4">
 		<div class="flex items-center gap-2 rounded px-2 py-1 text-sm font-medium text-text-primary">
 			<Icon name="library" class="h-4 w-4 shrink-0" />
-			<span>Library</span>
+			<span>{$translate('nav.library')}</span>
 			<span class="ml-2 text-text-tertiary">
 				{trackCount}
-				{trackCount === 1 ? 'track' : 'tracks'}
+				{trackCount === 1 ? $translate('library.track') : $translate('library.tracks')}
 			</span>
 		</div>
 	</div>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { SortConfig, TrackSortField } from '$lib/types'
 	import { getNextSortConfig } from '$lib/utils'
+	import { translate } from '$lib/i18n'
 
 	type Props = {
 		sortConfig: SortConfig
@@ -21,19 +22,19 @@
 
 	type Column = {
 		field: TrackSortField | null
-		label: string
+		labelKey: string
 		align: 'left' | 'center' | 'right'
 	}
 
 	const columns: Column[] = [
-		{ field: 'color', label: '', align: 'center' }, // Color column (sortable)
-		{ field: null, label: '', align: 'center' }, // Artwork column (non-sortable)
-		{ field: 'title', label: 'Title', align: 'left' },
-		{ field: 'artist', label: 'Artist', align: 'left' },
-		{ field: 'bpm', label: 'BPM', align: 'right' },
-		{ field: 'key', label: 'Key', align: 'center' },
-		{ field: 'duration_ms', label: 'Time', align: 'right' },
-		{ field: null, label: 'Tags', align: 'left' },
+		{ field: 'color', labelKey: '', align: 'center' }, // Color column (sortable)
+		{ field: null, labelKey: '', align: 'center' }, // Artwork column (non-sortable)
+		{ field: 'title', labelKey: 'library.columns.title', align: 'left' },
+		{ field: 'artist', labelKey: 'library.columns.artist', align: 'left' },
+		{ field: 'bpm', labelKey: 'library.columns.bpm', align: 'right' },
+		{ field: 'key', labelKey: 'library.columns.key', align: 'center' },
+		{ field: 'duration_ms', labelKey: 'library.columns.time', align: 'right' },
+		{ field: null, labelKey: 'library.columns.tags', align: 'left' },
 	]
 </script>
 
@@ -47,11 +48,11 @@
 				class="text-{column.align} transition-colors hover:text-text-secondary"
 				onclick={() => column.field && handleSort(column.field)}
 			>
-				{column.label}{getSortIndicator(column.field)}
+				{column.labelKey ? $translate(column.labelKey) : ''}{getSortIndicator(column.field)}
 			</button>
 		{:else}
 			<div class="text-{column.align}">
-				{column.label}
+				{column.labelKey ? $translate(column.labelKey) : ''}
 			</div>
 		{/if}
 	{/each}

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
 	import { scale } from 'svelte/transition'
 	import type { ContextMenuItem } from '$lib/types'
 	import Icon from '$lib/components/common/Icon.svelte'
@@ -10,14 +9,28 @@
 		y: number
 		items: ContextMenuItem[]
 		onClose: () => void
+		onClosed?: () => void
 	}
 
-	let { open, x, y, items, onClose }: Props = $props()
+	let { open, x, y, items, onClose, onClosed }: Props = $props()
 
 	let menuEl: HTMLDivElement | undefined = $state()
+	/* eslint-disable svelte/prefer-writable-derived */
+	let visible = $state(false)
 	// Track active submenu path as array of item IDs (supports unlimited nesting)
 	let activeSubmenuPath = $state<string[]>([])
 	let adjustedPosition = $derived({ x, y })
+
+	// Track open state changes
+	$effect(() => {
+		visible = open
+	})
+
+	// Handle transition end
+	function handleOutroEnd() {
+		visible = false
+		onClosed?.()
+	}
 
 	// Adjust position when menu opens to prevent overflow
 	$effect(() => {
@@ -62,26 +75,16 @@
 		}
 	}
 
-	onMount(() => {
-		if (open) {
-			document.addEventListener('click', handleClickOutside)
-			document.addEventListener('keydown', handleKeydown)
-		}
-
-		return () => {
-			document.removeEventListener('click', handleClickOutside)
-			document.removeEventListener('keydown', handleKeydown)
-		}
-	})
-
 	$effect(() => {
 		if (open) {
 			document.addEventListener('click', handleClickOutside)
 			document.addEventListener('keydown', handleKeydown)
-		} else {
-			document.removeEventListener('click', handleClickOutside)
-			document.removeEventListener('keydown', handleKeydown)
-			activeSubmenuPath = []
+
+			return () => {
+				document.removeEventListener('click', handleClickOutside)
+				document.removeEventListener('keydown', handleKeydown)
+				activeSubmenuPath = []
+			}
 		}
 	})
 
@@ -176,13 +179,14 @@
 	{/each}
 {/snippet}
 
-{#if open}
+{#if visible}
 	<div
 		bind:this={menuEl}
 		class="fixed z-50 min-w-48 origin-top-left rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
 		style="left: {adjustedPosition.x}px; top: {adjustedPosition.y}px;"
 		role="menu"
 		transition:scale={{ start: 0.95, duration: 200 }}
+		onoutroend={handleOutroEnd}
 	>
 		{@render menuItems(items, 0)}
 	</div>

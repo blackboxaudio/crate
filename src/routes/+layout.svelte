@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../style.css'
 	import type { Snippet } from 'svelte'
+	import type { Language } from '$lib/types'
 	import ToastContainer from '$lib/components/common/ToastContainer.svelte'
 	import CrashScreen from '$lib/components/common/CrashScreen.svelte'
 	import { onMount } from 'svelte'
@@ -8,16 +9,24 @@
 	import { isDev } from '$lib/stores/app'
 	import { settingsStore } from '$lib/stores/settings'
 	import { useGlobalErrorHandler } from '$lib/hooks'
+	import { initializeI18n } from '$lib/i18n'
 
 	interface Props {
 		children: Snippet
 	}
 
 	let { children }: Props = $props()
+	let i18nReady = $state(false)
 
-	onMount(() => {
+	onMount(async () => {
+		// Initialize i18n with cached language from localStorage (or system language)
+		const cachedLanguage = localStorage.getItem('crate-language') as Language | null
+		await initializeI18n(cachedLanguage)
+		i18nReady = true
+
 		// Load settings early so theme is applied before most errors can occur
-		settingsStore.load()
+		// This will also update i18n to the correct language if different from cached
+		await settingsStore.load()
 
 		// Set up global error handlers
 		const cleanupErrorHandler = useGlobalErrorHandler()
@@ -54,7 +63,9 @@
 </script>
 
 <div class="flex h-screen w-screen flex-col overflow-hidden bg-surface-0 text-text-primary">
-	{@render children()}
+	{#if i18nReady}
+		{@render children()}
+	{/if}
 </div>
 
 <ToastContainer />

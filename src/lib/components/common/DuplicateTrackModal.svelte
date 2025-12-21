@@ -2,6 +2,7 @@
 	import Modal from './Modal.svelte'
 	import Button from './Button.svelte'
 	import Icon from './Icon.svelte'
+	import { translate } from '$lib/i18n'
 	import type { DuplicateTrack, DuplicateResolutionAction } from '$lib/types'
 
 	type Props = {
@@ -35,30 +36,32 @@
 	}
 </script>
 
-<Modal {open} title="Duplicate Track Detected" onClose={onCancel}>
+<Modal {open} title={$translate('modals.duplicate.title')} onClose={onCancel}>
 	<div class="space-y-4">
 		{#if totalCount > 1}
 			<div class="rounded-md bg-surface-2 px-3 py-2 text-xs text-text-secondary">
-				Duplicate {currentIndex + 1} of {totalCount}
+				{$translate('modals.duplicate.progress', { values: { current: currentIndex + 1, total: totalCount } })}
 			</div>
 		{/if}
 
 		<div class="space-y-2">
-			<p class="text-sm text-text-secondary">This file matches an existing track in your library:</p>
+			<p class="text-sm text-text-secondary">{$translate('modals.duplicate.message')}</p>
 
 			{#if duplicate}
 				<div class="space-y-1 rounded-md bg-surface-2 p-3">
 					<p class="text-sm font-medium text-text-primary">
-						{duplicate.existing_track.title || 'Untitled'}
+						{duplicate.existing_track.title || $translate('common.untitled')}
 					</p>
 					<p class="text-xs text-text-secondary">
-						{duplicate.existing_track.artist || 'Unknown Artist'}
+						{duplicate.existing_track.artist || $translate('common.unknownArtist')}
 					</p>
 					<p class="truncate font-mono text-xs text-text-tertiary">
-						Current: {formatPath(duplicate.existing_track.file_path)}
+						{$translate('modals.duplicate.current')}
+						{formatPath(duplicate.existing_track.file_path)}
 					</p>
 					<p class="truncate font-mono text-xs text-text-tertiary">
-						New: {formatPath(duplicate.new_file_path)}
+						{$translate('modals.duplicate.new')}
+						{formatPath(duplicate.new_file_path)}
 					</p>
 				</div>
 			{/if}
@@ -76,8 +79,8 @@
 						<Icon name="x" class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">Skip</p>
-						<p class="mt-0.5 text-xs text-text-secondary">Don't import this file. Keep the existing track unchanged.</p>
+						<p class="text-sm font-medium text-text-primary">{$translate('modals.duplicate.skip')}</p>
+						<p class="mt-0.5 text-xs text-text-secondary">{$translate('modals.duplicate.skipDescription')}</p>
 					</div>
 				</div>
 			</button>
@@ -93,9 +96,9 @@
 						<Icon name="folder-arrow" class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">Update path</p>
+						<p class="text-sm font-medium text-text-primary">{$translate('modals.duplicate.updatePath')}</p>
 						<p class="mt-0.5 text-xs text-text-secondary">
-							Keep all existing data (cue points, tags, playlists, play history) but update the file location.
+							{$translate('modals.duplicate.updatePathDescription')}
 						</p>
 					</div>
 				</div>
@@ -112,9 +115,9 @@
 						<Icon name="refresh" class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">Replace</p>
+						<p class="text-sm font-medium text-text-primary">{$translate('modals.duplicate.replace')}</p>
 						<p class="mt-0.5 text-xs text-text-secondary">
-							Fresh import from new file. Keeps playlist memberships only. Resets cue points, tags, and play history.
+							{$translate('modals.duplicate.replaceDescription')}
 						</p>
 					</div>
 				</div>
@@ -129,13 +132,13 @@
 					class="h-4 w-4 rounded border-stroke bg-surface-2 text-brand-primary focus:ring-0"
 				/>
 				<span class="text-sm text-text-secondary">
-					Apply to all remaining duplicates ({totalCount - currentIndex - 1})
+					{$translate('modals.duplicate.applyToAll', { values: { count: totalCount - currentIndex - 1 } })}
 				</span>
 			</label>
 		{/if}
 	</div>
 
 	{#snippet footer()}
-		<Button variant="ghost" onclick={onCancel}>Cancel</Button>
+		<Button variant="ghost" onclick={onCancel}>{$translate('common.cancel')}</Button>
 	{/snippet}
 </Modal>
