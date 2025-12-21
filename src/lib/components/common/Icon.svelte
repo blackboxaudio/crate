@@ -10,6 +10,9 @@
 	// Stroke-based icons (default)
 	const strokeIcons: Record<string, string> = {
 		// Context menu icons
+		'arrow-up-from-bracket':
+			'M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5',
+		'hard-drive': 'M5 3h14a2 2 0 012 2v14a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2zm3 0v5h8V3m-2 0v3M7 12h10v7H7v-7z',
 		'list-plus':
 			'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01',
 		'tag-plus':

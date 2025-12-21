@@ -112,7 +112,8 @@
 		"deleteFolder": "Elimina cartella",
 		"moveToFolder": "Sposta in cartella",
 		"rootNoFolder": "Radice (nessuna cartella)",
-		"folderEmpty": "Questa cartella è vuota"
+		"folderEmpty": "Questa cartella è vuota",
+		"exportToDevice": "Esporta su dispositivo"
 	},
 	"tags": {
 		"newCategory": "Nuova categoria",
@@ -269,7 +270,41 @@
 		"noDevices": "Nessun dispositivo connesso",
 		"free": "libero",
 		"connected": "Connesso",
-		"viewInfo": "Visualizza info"
+		"statusCompatible": "Compatibile con apparecchiature Pioneer",
+		"statusIncompatible": "Formato incompatibile ({fileSystem}). Riformattare in FAT32 per apparecchiature Pioneer.",
+		"viewInfo": "Visualizza info",
+		"exportTo": "Esporta su...",
+		"reformat": {
+			"menuItem": "Formatta",
+			"title": "Formatta dispositivo",
+			"warning": "Tutti i dati verranno eliminati definitivamente",
+			"warningDetails": "La formattazione di \"{deviceName}\" cancellerà tutti i file su questo dispositivo. Questa azione non può essere annullata.",
+			"volumeName": "Nome volume",
+			"volumeNamePlaceholder": "Inserisci nome volume",
+			"fat32Hint": "FAT32 supporta fino a 11 caratteri",
+			"confirm": "Formatta"
+		}
+	},
+	"export": {
+		"title": "Esporta su dispositivo",
+		"exportTo": "Esporta su {deviceName}",
+		"exportPlaylist": "Esporta {playlistName}",
+		"selectPlaylists": "Seleziona le playlist da esportare",
+		"selectDevice": "Seleziona un dispositivo",
+		"noDevicesConnected": "Nessun dispositivo USB connesso",
+		"noPlaylistsAvailable": "Nessuna playlist disponibile",
+		"export": "Esporta",
+		"preparing": "Preparazione...",
+		"copying": "Copia dei file...",
+		"generatingDatabase": "Generazione database...",
+		"complete": "Esportazione completata",
+		"failed": "Esportazione fallita",
+		"cancel": "Annulla",
+		"keepPartial": "Mantieni parziale",
+		"cleanUp": "Pulisci",
+		"whatToDo": "Cosa vuoi fare?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 file è stato copiato} other {{count} file sono stati copiati}} prima dell'errore.",
+		"exportingTo": "Esportazione su {deviceName}"
 	},
 	"editor": {
 		"trackInfo": "Info traccia",

@@ -177,8 +177,8 @@
 	{#if open}
 		<div
 			bind:this={menuEl}
-			class="absolute right-0 left-0 z-50 max-h-60 overflow-auto rounded-lg border border-stroke
-				bg-surface-1 py-1 shadow-lg"
+			class="absolute right-0 left-0 z-50 max-h-60 overflow-auto rounded-lg border border-stroke bg-surface-1
+				py-1 shadow-lg hover:cursor-pointer"
 			style={dropdownStyle}
 			role="listbox"
 			transition:scale={{ start: 0.95, duration: 200 }}
@@ -230,7 +230,7 @@
 					{@const optionData = option as SelectOption}
 					<button
 						type="button"
-						class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors
+						class="flex w-full items-center gap-3 px-4 py-2 text-left text-sm transition-colors hover:cursor-pointer
 							{optionData.value === value
 							? 'bg-brand-muted text-brand-primary'
 							: focusedIndex === index

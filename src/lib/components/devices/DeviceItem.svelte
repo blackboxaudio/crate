@@ -1,15 +1,17 @@
 <script lang="ts">
 	import type { UsbDevice } from '$lib/types'
+	import { translate } from '$lib/i18n'
 	import { formatFileSize } from '$lib/utils'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { translate } from '$lib/i18n'
+	import DeviceStatusIndicator from './DeviceStatusIndicator.svelte'
 
 	type Props = {
 		device: UsbDevice
+		isReformatting?: boolean
 		onContextMenu?: (e: MouseEvent, device: UsbDevice) => void
 	}
 
-	let { device, onContextMenu }: Props = $props()
+	let { device, isReformatting = false, onContextMenu }: Props = $props()
 </script>
 
 <div
@@ -32,9 +34,10 @@
 		</div>
 	</div>
 
-	<!-- Connected indicator -->
-	<span class="relative flex size-2" title={$translate('devices.connected')}>
-		<span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
-		<span class="relative inline-flex size-2 rounded-full bg-emerald-500"></span>
-	</span>
+	<!-- Status indicator or spinner during reformat -->
+	{#if isReformatting}
+		<Icon name="refresh" class="h-4 w-4 shrink-0 animate-spin text-text-tertiary" />
+	{:else}
+		<DeviceStatusIndicator fileSystem={device.file_system} />
+	{/if}
 </div>

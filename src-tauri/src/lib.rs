@@ -7,8 +7,8 @@ mod services;
 
 use db::Database;
 use services::{
-    AudioService, DeviceService, DiagnosticsService, LibraryService, PlaylistService,
-    SettingsService, TagService,
+    AudioService, DeviceService, DiagnosticsService, ExportService, LibraryService,
+    PlaylistService, SettingsService, TagService,
 };
 use tauri::Manager;
 
@@ -83,6 +83,12 @@ pub fn run() {
             // Device commands
             commands::device::get_devices,
             commands::device::eject_device,
+            commands::device::reformat_device,
+            // Export commands
+            commands::export::export_playlists,
+            commands::export::get_device_exports,
+            commands::export::cancel_export,
+            commands::export::cleanup_failed_export,
             // Diagnostics commands
             commands::diagnostics::get_diagnostic_entries,
             commands::diagnostics::get_system_info,
@@ -111,6 +117,7 @@ pub fn run() {
             let tag_service = TagService::new(conn.clone());
             let playlist_service = PlaylistService::new(conn.clone());
             let settings_service = SettingsService::new(conn.clone());
+            let export_service = ExportService::new(conn.clone());
             let audio_service = AudioService::new().expect("Failed to initialize audio service");
             let device_service = DeviceService::new();
             let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
@@ -129,6 +136,7 @@ pub fn run() {
             app.manage(tag_service);
             app.manage(playlist_service);
             app.manage(settings_service);
+            app.manage(export_service);
             app.manage(audio_service);
             app.manage(device_service);
             app.manage(diagnostics_service);

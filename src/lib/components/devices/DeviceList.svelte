@@ -3,6 +3,7 @@
 	import DeviceItem from './DeviceItem.svelte'
 	import { Text } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
+	import { reformattingDeviceId } from '$lib/stores/devices'
 
 	type Props = {
 		devices: UsbDevice[]
@@ -20,7 +21,7 @@
 	{#if devices.length > 0}
 		<div class="space-y-0.5">
 			{#each devices as device (device.id)}
-				<DeviceItem {device} {onContextMenu} />
+				<DeviceItem {device} isReformatting={device.id === $reformattingDeviceId} {onContextMenu} />
 			{/each}
 		</div>
 	{:else}

@@ -288,15 +288,22 @@ export interface PlaylistTreeNode {
 }
 
 export function buildPlaylistTree(playlists: Playlist[]): PlaylistTreeNode[] {
-	const rootItems = playlists.filter((p) => p.parent_id === null)
+	// Sort items: folders first, then alphabetically by name
+	const sortItems = (items: Playlist[]) =>
+		[...items].sort((a, b) => {
+			if (a.is_folder !== b.is_folder) {
+				return a.is_folder ? -1 : 1
+			}
+			return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+		})
+
+	const rootItems = sortItems(playlists.filter((p) => p.parent_id === null))
 
 	function buildChildren(parentId: string): PlaylistTreeNode[] {
-		return playlists
-			.filter((p) => p.parent_id === parentId)
-			.map((playlist) => ({
-				playlist,
-				children: buildChildren(playlist.id),
-			}))
+		return sortItems(playlists.filter((p) => p.parent_id === parentId)).map((playlist) => ({
+			playlist,
+			children: buildChildren(playlist.id),
+		}))
 	}
 
 	return rootItems.map((playlist) => ({

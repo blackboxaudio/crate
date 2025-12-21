@@ -112,7 +112,8 @@
 		"deleteFolder": "Supprimer le dossier",
 		"moveToFolder": "Déplacer vers le dossier",
 		"rootNoFolder": "Racine (aucun dossier)",
-		"folderEmpty": "Ce dossier est vide"
+		"folderEmpty": "Ce dossier est vide",
+		"exportToDevice": "Exporter vers l'appareil"
 	},
 	"tags": {
 		"newCategory": "Nouvelle catégorie",
@@ -269,7 +270,41 @@
 		"noDevices": "Aucun appareil connecté",
 		"free": "libre",
 		"connected": "Connecté",
-		"viewInfo": "Voir les infos"
+		"statusCompatible": "Compatible avec les équipements Pioneer",
+		"statusIncompatible": "Format incompatible ({fileSystem}). Reformater en FAT32 pour les équipements Pioneer.",
+		"viewInfo": "Voir les infos",
+		"exportTo": "Exporter vers...",
+		"reformat": {
+			"menuItem": "Formater",
+			"title": "Formater l'appareil",
+			"warning": "Toutes les données seront définitivement supprimées",
+			"warningDetails": "Le formatage de « {deviceName} » effacera tous les fichiers de cet appareil. Cette action est irréversible.",
+			"volumeName": "Nom du volume",
+			"volumeNamePlaceholder": "Entrer le nom du volume",
+			"fat32Hint": "FAT32 prend en charge jusqu'à 11 caractères",
+			"confirm": "Formater"
+		}
+	},
+	"export": {
+		"title": "Exporter vers l'appareil",
+		"exportTo": "Exporter vers {deviceName}",
+		"exportPlaylist": "Exporter {playlistName}",
+		"selectPlaylists": "Sélectionner les playlists à exporter",
+		"selectDevice": "Sélectionner un appareil",
+		"noDevicesConnected": "Aucun périphérique USB connecté",
+		"noPlaylistsAvailable": "Aucune playlist disponible",
+		"export": "Exporter",
+		"preparing": "Préparation...",
+		"copying": "Copie des fichiers...",
+		"generatingDatabase": "Génération de la base de données...",
+		"complete": "Exportation terminée",
+		"failed": "Échec de l'exportation",
+		"cancel": "Annuler",
+		"keepPartial": "Conserver le partiel",
+		"cleanUp": "Nettoyer",
+		"whatToDo": "Que souhaitez-vous faire ?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fichier a été copié} other {{count} fichiers ont été copiés}} avant l'échec.",
+		"exportingTo": "Exportation vers {deviceName}"
 	},
 	"editor": {
 		"trackInfo": "Infos piste",

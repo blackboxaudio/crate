@@ -16,3 +16,12 @@ pub async fn eject_device(
 ) -> Result<(), CrateError> {
     device_service.eject_device(&mount_point)
 }
+
+#[tauri::command]
+pub async fn reformat_device(
+    mount_point: String,
+    volume_name: String,
+    device_service: State<'_, DeviceService>,
+) -> Result<(), CrateError> {
+    device_service.reformat_device(&mount_point, &volume_name)
+}

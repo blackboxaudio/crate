@@ -112,7 +112,8 @@
 		"deleteFolder": "删除文件夹",
 		"moveToFolder": "移动到文件夹",
 		"rootNoFolder": "根目录（无文件夹）",
-		"folderEmpty": "此文件夹为空"
+		"folderEmpty": "此文件夹为空",
+		"exportToDevice": "导出到设备"
 	},
 	"tags": {
 		"newCategory": "新建分类",
@@ -269,7 +270,41 @@
 		"noDevices": "无已连接设备",
 		"free": "可用",
 		"connected": "已连接",
-		"viewInfo": "查看信息"
+		"statusCompatible": "与 Pioneer 设备兼容",
+		"statusIncompatible": "不兼容的格式（{fileSystem}）。请格式化为 FAT32 以兼容 Pioneer 设备。",
+		"viewInfo": "查看信息",
+		"exportTo": "导出到...",
+		"reformat": {
+			"menuItem": "格式化",
+			"title": "格式化设备",
+			"warning": "所有数据将被永久删除",
+			"warningDetails": "格式化"{deviceName}"将删除此设备上的所有文件。此操作无法撤销。",
+			"volumeName": "卷标名称",
+			"volumeNamePlaceholder": "输入卷标名称",
+			"fat32Hint": "FAT32 最多支持 11 个字符",
+			"confirm": "格式化"
+		}
+	},
+	"export": {
+		"title": "导出到设备",
+		"exportTo": "导出到 {deviceName}",
+		"exportPlaylist": "导出 {playlistName}",
+		"selectPlaylists": "选择要导出的播放列表",
+		"selectDevice": "选择设备",
+		"noDevicesConnected": "未连接 USB 设备",
+		"noPlaylistsAvailable": "没有可用的播放列表",
+		"export": "导出",
+		"preparing": "准备中...",
+		"copying": "正在复制文件...",
+		"generatingDatabase": "正在生成数据库...",
+		"complete": "导出完成",
+		"failed": "导出失败",
+		"cancel": "取消",
+		"keepPartial": "保留部分",
+		"cleanUp": "清理",
+		"whatToDo": "您想怎么做？",
+		"filesCopiedBeforeFailure": "失败前已复制 {count, plural, =1 {1 个文件} other {{count} 个文件}}。",
+		"exportingTo": "正在导出到 {deviceName}"
 	},
 	"editor": {
 		"trackInfo": "曲目信息",

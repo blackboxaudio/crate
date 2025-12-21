@@ -112,7 +112,8 @@
 		"deleteFolder": "Map verwijderen",
 		"moveToFolder": "Verplaatsen naar map",
 		"rootNoFolder": "Hoofdmap (geen map)",
-		"folderEmpty": "Deze map is leeg"
+		"folderEmpty": "Deze map is leeg",
+		"exportToDevice": "Exporteren naar apparaat"
 	},
 	"tags": {
 		"newCategory": "Nieuwe categorie",
@@ -269,7 +270,41 @@
 		"noDevices": "Geen apparaten verbonden",
 		"free": "vrij",
 		"connected": "Verbonden",
-		"viewInfo": "Info bekijken"
+		"statusCompatible": "Compatibel met Pioneer-apparatuur",
+		"statusIncompatible": "Incompatibel formaat ({fileSystem}). Formatteer naar FAT32 voor Pioneer-apparatuur.",
+		"viewInfo": "Info bekijken",
+		"exportTo": "Exporteren naar...",
+		"reformat": {
+			"menuItem": "Formatteren",
+			"title": "Apparaat formatteren",
+			"warning": "Alle gegevens worden permanent verwijderd",
+			"warningDetails": "Het formatteren van \"{deviceName}\" zal alle bestanden op dit apparaat wissen. Deze actie kan niet ongedaan worden gemaakt.",
+			"volumeName": "Volumenaam",
+			"volumeNamePlaceholder": "Voer volumenaam in",
+			"fat32Hint": "FAT32 ondersteunt maximaal 11 tekens",
+			"confirm": "Formatteren"
+		}
+	},
+	"export": {
+		"title": "Exporteren naar apparaat",
+		"exportTo": "Exporteren naar {deviceName}",
+		"exportPlaylist": "{playlistName} exporteren",
+		"selectPlaylists": "Selecteer afspeellijsten om te exporteren",
+		"selectDevice": "Selecteer een apparaat",
+		"noDevicesConnected": "Geen USB-apparaten verbonden",
+		"noPlaylistsAvailable": "Geen afspeellijsten beschikbaar",
+		"export": "Exporteren",
+		"preparing": "Voorbereiden...",
+		"copying": "Bestanden kopiëren...",
+		"generatingDatabase": "Database genereren...",
+		"complete": "Export voltooid",
+		"failed": "Export mislukt",
+		"cancel": "Annuleren",
+		"keepPartial": "Gedeeltelijk behouden",
+		"cleanUp": "Opruimen",
+		"whatToDo": "Wat wilt u doen?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 bestand is gekopieerd} other {{count} bestanden zijn gekopieerd}} voor de fout.",
+		"exportingTo": "Exporteren naar {deviceName}"
 	},
 	"editor": {
 		"trackInfo": "Trackinfo",

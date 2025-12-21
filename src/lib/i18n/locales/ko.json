@@ -112,7 +112,8 @@
 		"deleteFolder": "폴더 삭제",
 		"moveToFolder": "폴더로 이동",
 		"rootNoFolder": "루트 (폴더 없음)",
-		"folderEmpty": "이 폴더가 비어 있습니다"
+		"folderEmpty": "이 폴더가 비어 있습니다",
+		"exportToDevice": "장치로 내보내기"
 	},
 	"tags": {
 		"newCategory": "새 카테고리",
@@ -269,7 +270,41 @@
 		"noDevices": "연결된 장치 없음",
 		"free": "남음",
 		"connected": "연결됨",
-		"viewInfo": "정보 보기"
+		"statusCompatible": "Pioneer 장비와 호환됨",
+		"statusIncompatible": "호환되지 않는 형식 ({fileSystem}). Pioneer 장비를 사용하려면 FAT32로 포맷하세요.",
+		"viewInfo": "정보 보기",
+		"exportTo": "내보내기...",
+		"reformat": {
+			"menuItem": "포맷",
+			"title": "장치 포맷",
+			"warning": "모든 데이터가 영구적으로 삭제됩니다",
+			"warningDetails": "\"{deviceName}\"을(를) 포맷하면 이 장치의 모든 파일이 삭제됩니다. 이 작업은 취소할 수 없습니다.",
+			"volumeName": "볼륨 이름",
+			"volumeNamePlaceholder": "볼륨 이름 입력",
+			"fat32Hint": "FAT32는 최대 11자까지 지원",
+			"confirm": "포맷"
+		}
+	},
+	"export": {
+		"title": "장치로 내보내기",
+		"exportTo": "{deviceName}(으)로 내보내기",
+		"exportPlaylist": "{playlistName} 내보내기",
+		"selectPlaylists": "내보낼 재생목록 선택",
+		"selectDevice": "장치 선택",
+		"noDevicesConnected": "연결된 USB 장치 없음",
+		"noPlaylistsAvailable": "사용 가능한 재생목록 없음",
+		"export": "내보내기",
+		"preparing": "준비 중...",
+		"copying": "파일 복사 중...",
+		"generatingDatabase": "데이터베이스 생성 중...",
+		"complete": "내보내기 완료",
+		"failed": "내보내기 실패",
+		"cancel": "취소",
+		"keepPartial": "부분 유지",
+		"cleanUp": "정리",
+		"whatToDo": "어떻게 하시겠습니까?",
+		"filesCopiedBeforeFailure": "오류 발생 전 {count, plural, =1 {1개 파일이} other {{count}개 파일이}} 복사되었습니다.",
+		"exportingTo": "{deviceName}(으)로 내보내는 중"
 	},
 	"editor": {
 		"trackInfo": "트랙 정보",

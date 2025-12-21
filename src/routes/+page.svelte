@@ -13,6 +13,7 @@
 		TagSelectionState,
 		UsbDevice,
 		BreadcrumbItem,
+		ExportRequest,
 	} from '$lib/types'
 	import {
 		appStore,
@@ -63,8 +64,11 @@
 	} from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TrackEditor } from '$lib/components/editor'
+	import { ExportProgress } from '$lib/components/export'
 	import * as devicesApi from '$lib/api/devices'
+	import * as exportApi from '$lib/api/export'
 	import { openDevTools, closeDevTools } from '$lib/api/app'
+	import { exportStore, isExporting, activeDeviceName } from '$lib/stores/export'
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
@@ -278,6 +282,9 @@
 	})
 
 	async function onMountHelper(): Promise<() => void> {
+		// Initialize export store event listening
+		await exportStore.startListening()
+
 		// Initialize app (stores, drag-drop, device listener)
 		const cleanupApp = await useAppInitialization({
 			stores: { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore },
@@ -406,6 +413,7 @@
 			cleanupApp()
 			cleanupKeyboard()
 			cleanupMenu()
+			exportStore.stopListening()
 		}
 	}
 
@@ -735,6 +743,86 @@
 		await openPath(device.mount_point)
 	}
 
+	function handleDeviceReformat(device: UsbDevice) {
+		modalOrchestrator.openReformatDeviceModal(device)
+	}
+
+	async function handleReformatDevice(device: UsbDevice, volumeName: string) {
+		devicesStore.setReformattingDevice(device.id)
+		try {
+			await devicesApi.reformatDevice(device.mount_point, volumeName)
+			toastStore.success(`Device reformatted as "${volumeName}"`)
+		} catch (error) {
+			const message = error instanceof Error ? error.message : String(error)
+			// Handle user cancellation gracefully - don't show error toast or log
+			if (message.includes('cancelled') || message.includes('canceled')) {
+				return
+			}
+			toastStore.error(`Failed to reformat: ${message}`)
+			console.error('Reformat error:', error)
+		} finally {
+			devicesStore.clearReformattingDevice()
+		}
+	}
+
+	// Export handlers
+	function handleDeviceExport(device: UsbDevice) {
+		modalOrchestrator.openExportModal('selectPlaylists', device)
+	}
+
+	function handlePlaylistExport(playlist: Playlist) {
+		modalOrchestrator.openExportModal('selectDevice', playlist)
+	}
+
+	async function handleExportSubmit(request: ExportRequest, deviceName: string) {
+		exportStore.startExport(request.device_id, deviceName)
+
+		try {
+			const result = await exportApi.exportToDevice(request)
+			exportStore.completeExport(result)
+
+			if (result.success) {
+				toastStore.success(
+					result.tracks_copied === 1
+						? `1 track exported to ${deviceName}`
+						: `${result.tracks_copied} tracks exported to ${deviceName}`
+				)
+			} else {
+				// Export completed but with errors
+				const errorMsg = result.errors.length > 0 ? result.errors[0] : 'Unknown error'
+				modalOrchestrator.openExportFailureModal(errorMsg, request.device_id, request.mount_point, result.tracks_copied)
+			}
+		} catch (error) {
+			const errorMsg = error instanceof Error ? error.message : 'Export failed'
+			exportStore.failExport(errorMsg)
+			modalOrchestrator.openExportFailureModal(errorMsg, request.device_id, request.mount_point, 0)
+		}
+	}
+
+	async function handleExportCancel() {
+		try {
+			await exportApi.cancelExport()
+			exportStore.reset()
+		} catch (error) {
+			console.error('Failed to cancel export:', error)
+		}
+	}
+
+	function handleExportFailureKeep() {
+		exportStore.reset()
+	}
+
+	async function handleExportFailureCleanup(deviceId: string, mountPoint: string) {
+		try {
+			await exportApi.cleanupFailedExport(deviceId, mountPoint)
+			toastStore.success('Cleaned up partial export')
+		} catch (error) {
+			toastStore.error('Failed to clean up export')
+			console.error('Cleanup error:', error)
+		}
+		exportStore.reset()
+	}
+
 	// Relocate track complete handler
 	function handleRelocateComplete(updatedTrack: Track) {
 		// Update the track in the library store
@@ -927,7 +1015,10 @@
 	onTagsSidebarAddTag={handleTagsSidebarAddTag}
 	onDeviceViewInfo={handleViewDeviceInfo}
 	onDeviceRevealInFinder={handleDeviceRevealInFinder}
+	onDeviceReformat={handleDeviceReformat}
 	onDeviceEject={handleEjectDevice}
+	onDeviceExport={handleDeviceExport}
+	onPlaylistExport={handlePlaylistExport}
 	onClose={() => (contextMenuPlaylistId = null)}
 />
 
@@ -1009,9 +1100,17 @@
 		await tagsStore.createTag(categoryId, tagName)
 	}}
 	onRelocateComplete={handleRelocateComplete}
+	{devices}
+	onExport={handleExportSubmit}
+	onExportFailureKeep={handleExportFailureKeep}
+	onExportFailureCleanup={handleExportFailureCleanup}
+	onReformatDevice={handleReformatDevice}
 />
 
 <!-- Drag Preview -->
 {#if $isDragging && $dragPosition}
 	<DragPreview data={$dragData} tracks={$libraryStore.tracks} {playlists} x={$dragPosition.x} y={$dragPosition.y} />
 {/if}
+
+<!-- Export Progress -->
+<ExportProgress onCancel={handleExportCancel} />

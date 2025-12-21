@@ -1,6 +1,7 @@
 pub mod app;
 pub mod device;
 pub mod diagnostics;
+pub mod export;
 pub mod library;
 pub mod playback;
 pub mod playlist;

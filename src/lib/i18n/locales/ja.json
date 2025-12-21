@@ -112,7 +112,8 @@
 		"deleteFolder": "フォルダを削除",
 		"moveToFolder": "フォルダに移動",
 		"rootNoFolder": "ルート（フォルダなし）",
-		"folderEmpty": "このフォルダは空です"
+		"folderEmpty": "このフォルダは空です",
+		"exportToDevice": "デバイスにエクスポート"
 	},
 	"tags": {
 		"newCategory": "新しいカテゴリ",
@@ -269,7 +270,41 @@
 		"noDevices": "デバイスが接続されていません",
 		"free": "空き",
 		"connected": "接続済み",
-		"viewInfo": "情報を表示"
+		"statusCompatible": "Pioneer機器と互換性あり",
+		"statusIncompatible": "非互換フォーマット（{fileSystem}）。Pioneer機器にはFAT32でフォーマットしてください。",
+		"viewInfo": "情報を表示",
+		"exportTo": "エクスポート...",
+		"reformat": {
+			"menuItem": "フォーマット",
+			"title": "デバイスをフォーマット",
+			"warning": "すべてのデータが完全に削除されます",
+			"warningDetails": "「{deviceName}」をフォーマットすると、このデバイス上のすべてのファイルが消去されます。この操作は元に戻せません。",
+			"volumeName": "ボリューム名",
+			"volumeNamePlaceholder": "ボリューム名を入力",
+			"fat32Hint": "FAT32は最大11文字をサポート",
+			"confirm": "フォーマット"
+		}
+	},
+	"export": {
+		"title": "デバイスにエクスポート",
+		"exportTo": "{deviceName}にエクスポート",
+		"exportPlaylist": "{playlistName}をエクスポート",
+		"selectPlaylists": "エクスポートするプレイリストを選択",
+		"selectDevice": "デバイスを選択",
+		"noDevicesConnected": "USBデバイスが接続されていません",
+		"noPlaylistsAvailable": "プレイリストがありません",
+		"export": "エクスポート",
+		"preparing": "準備中...",
+		"copying": "ファイルをコピー中...",
+		"generatingDatabase": "データベースを生成中...",
+		"complete": "エクスポート完了",
+		"failed": "エクスポート失敗",
+		"cancel": "キャンセル",
+		"keepPartial": "部分的に保持",
+		"cleanUp": "クリーンアップ",
+		"whatToDo": "どうしますか？",
+		"filesCopiedBeforeFailure": "失敗前に{count, plural, =1 {1ファイル} other {{count}ファイル}}がコピーされました。",
+		"exportingTo": "{deviceName}にエクスポート中"
 	},
 	"editor": {
 		"trackInfo": "トラック情報",

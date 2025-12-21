@@ -11,12 +11,15 @@
 		device: UsbDevice | null
 		onClose: () => void
 		onClosed?: () => void
+		onExport: (device: UsbDevice) => void
 		onViewInfo: (device: UsbDevice) => void
 		onRevealInFinder: (device: UsbDevice) => void
+		onReformat: (device: UsbDevice) => void
 		onEject: (device: UsbDevice) => void
 	}
 
-	let { open, x, y, device, onClose, onClosed, onViewInfo, onRevealInFinder, onEject }: Props = $props()
+	let { open, x, y, device, onClose, onClosed, onExport, onViewInfo, onRevealInFinder, onReformat, onEject }: Props =
+		$props()
 
 	const revealLabel = $derived(() => {
 		const ua = navigator.userAgent
@@ -28,6 +31,12 @@
 	const menuItems = $derived<ContextMenuItem[]>(
 		device
 			? [
+					{
+						id: 'export',
+						label: get(translate)('devices.exportTo'),
+						icon: 'arrow-up-from-bracket',
+						action: () => onExport(device),
+					},
 					{
 						id: 'view-info',
 						label: get(translate)('devices.viewInfo'),
@@ -41,6 +50,12 @@
 						action: () => onRevealInFinder(device),
 					},
 					{ id: 'divider-1', label: '', divider: true },
+					{
+						id: 'reformat',
+						label: get(translate)('devices.reformat.menuItem'),
+						icon: 'hard-drive',
+						action: () => onReformat(device),
+					},
 					{
 						id: 'eject',
 						label: get(translate)('devices.eject'),

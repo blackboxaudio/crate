@@ -112,7 +112,8 @@
 		"deleteFolder": "Excluir pasta",
 		"moveToFolder": "Mover para pasta",
 		"rootNoFolder": "Raiz (sem pasta)",
-		"folderEmpty": "Esta pasta está vazia"
+		"folderEmpty": "Esta pasta está vazia",
+		"exportToDevice": "Exportar para dispositivo"
 	},
 	"tags": {
 		"newCategory": "Nova categoria",
@@ -269,7 +270,41 @@
 		"noDevices": "Nenhum dispositivo conectado",
 		"free": "livre",
 		"connected": "Conectado",
-		"viewInfo": "Ver informações"
+		"statusCompatible": "Compatível com equipamentos Pioneer",
+		"statusIncompatible": "Formato incompatível ({fileSystem}). Reformatar para FAT32 para equipamentos Pioneer.",
+		"viewInfo": "Ver informações",
+		"exportTo": "Exportar para...",
+		"reformat": {
+			"menuItem": "Formatar",
+			"title": "Formatar dispositivo",
+			"warning": "Todos os dados serão permanentemente excluídos",
+			"warningDetails": "A formatação de \"{deviceName}\" apagará todos os arquivos neste dispositivo. Esta ação não pode ser desfeita.",
+			"volumeName": "Nome do volume",
+			"volumeNamePlaceholder": "Digite o nome do volume",
+			"fat32Hint": "FAT32 suporta até 11 caracteres",
+			"confirm": "Formatar"
+		}
+	},
+	"export": {
+		"title": "Exportar para dispositivo",
+		"exportTo": "Exportar para {deviceName}",
+		"exportPlaylist": "Exportar {playlistName}",
+		"selectPlaylists": "Selecionar playlists para exportar",
+		"selectDevice": "Selecionar um dispositivo",
+		"noDevicesConnected": "Nenhum dispositivo USB conectado",
+		"noPlaylistsAvailable": "Nenhuma playlist disponível",
+		"export": "Exportar",
+		"preparing": "Preparando...",
+		"copying": "Copiando arquivos...",
+		"generatingDatabase": "Gerando banco de dados...",
+		"complete": "Exportação concluída",
+		"failed": "Exportação falhou",
+		"cancel": "Cancelar",
+		"keepPartial": "Manter parcial",
+		"cleanUp": "Limpar",
+		"whatToDo": "O que você gostaria de fazer?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 arquivo foi copiado} other {{count} arquivos foram copiados}} antes da falha.",
+		"exportingTo": "Exportando para {deviceName}"
 	},
 	"editor": {
 		"trackInfo": "Informações da faixa",

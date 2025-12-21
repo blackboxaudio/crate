@@ -361,6 +361,8 @@ export interface UsbDevice {
 	id: string
 	name: string
 	mount_point: string
+	/** Volume UUID for stable identification across reconnections (platform-specific) */
+	volume_uuid: string | null
 	total_space_bytes: number
 	available_space_bytes: number
 	is_removable: boolean
@@ -436,4 +438,43 @@ export interface DiagnosticsReport {
 	generatedAt: string
 	systemInfo: SystemInfo
 	entries: DiagnosticEntry[]
+}
+
+// =============================================================================
+// Export Types
+// =============================================================================
+
+export type ExportStatus = 'pending' | 'copying' | 'generating_database' | 'completed' | 'failed'
+
+export interface ExportProgress {
+	status: ExportStatus
+	current_file: string | null
+	files_copied: number
+	files_total: number
+	bytes_copied: number
+	bytes_total: number
+}
+
+export interface ExportRequest {
+	device_id: string
+	mount_point: string
+	device_name: string
+	playlist_ids: string[]
+	enable_sync: boolean
+}
+
+export interface ExportResult {
+	success: boolean
+	tracks_copied: number
+	tracks_skipped: number
+	errors: string[]
+}
+
+export interface DeviceExport {
+	id: string
+	device_id: string
+	device_name: string
+	playlist_id: string
+	last_export_at: string
+	sync_enabled: boolean
 }

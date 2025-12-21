@@ -98,12 +98,16 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenDevices = await listen<UsbDevice[]>('devices-changed', (event) => {
 			const previousDevices = devicesStore.getDevices()
 			const newDevices = event.payload
+			const reformattingId = devicesStore.getReformattingDeviceId()
 
 			// Detect new devices (connected)
 			const prevIds = new Set(previousDevices.map((d) => d.id))
 			for (const device of newDevices) {
 				if (!prevIds.has(device.id)) {
-					toastStore.info(`${device.name} connected`)
+					// Suppress toast if a reformat is in progress
+					if (!reformattingId) {
+						toastStore.info(`${device.name} connected`)
+					}
 				}
 			}
 
@@ -111,7 +115,10 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 			const newIds = new Set(newDevices.map((d) => d.id))
 			for (const device of previousDevices) {
 				if (!newIds.has(device.id)) {
-					toastStore.info(`${device.name} disconnected`)
+					// Suppress toast if this device is being reformatted
+					if (reformattingId !== device.id) {
+						toastStore.info(`${device.name} disconnected`)
+					}
 				}
 			}
 

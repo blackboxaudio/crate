@@ -12,6 +12,7 @@
 	import { scale } from 'svelte/transition'
 	import { SUPPORTED_LANGUAGES, translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
+	import { formatBytes } from '$lib/utils'
 
 	type Props = {
 		open: boolean
@@ -165,19 +166,6 @@
 
 		return groups
 	})
-
-	// Format bytes to human readable
-	function formatBytes(bytes: number | null | undefined): string {
-		if (bytes === null || bytes === undefined) return 'Unknown'
-		const units = ['B', 'KB', 'MB', 'GB']
-		let value = bytes
-		let unitIndex = 0
-		while (value >= 1024 && unitIndex < units.length - 1) {
-			value /= 1024
-			unitIndex++
-		}
-		return `${value.toFixed(1)} ${units[unitIndex]}`
-	}
 
 	// Format timestamp
 	function formatTimestamp(iso: string): string {

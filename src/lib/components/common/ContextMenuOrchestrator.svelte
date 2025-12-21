@@ -79,7 +79,12 @@
 		// Device callbacks
 		onDeviceViewInfo: (device: UsbDevice) => void
 		onDeviceRevealInFinder: (device: UsbDevice) => void
+		onDeviceReformat: (device: UsbDevice) => void
 		onDeviceEject: (device: UsbDevice) => void
+		onDeviceExport: (device: UsbDevice) => void
+
+		// Playlist export callback
+		onPlaylistExport: (playlist: Playlist) => void
 
 		// Close callback
 		onClose?: () => void
@@ -114,7 +119,10 @@
 		onTagsSidebarAddTag,
 		onDeviceViewInfo,
 		onDeviceRevealInFinder,
+		onDeviceReformat,
 		onDeviceEject,
+		onDeviceExport,
+		onPlaylistExport,
 		onClose,
 	}: Props = $props()
 
@@ -399,9 +407,25 @@
 		onDeviceRevealInFinder(device)
 	}
 
+	function handleDeviceReformat(device: UsbDevice) {
+		closeAll()
+		onDeviceReformat(device)
+	}
+
 	function handleDeviceEject(device: UsbDevice) {
 		closeAll()
 		onDeviceEject(device)
+	}
+
+	function handleDeviceExport(device: UsbDevice) {
+		closeAll()
+		onDeviceExport(device)
+	}
+
+	// Playlist export handler
+	function handlePlaylistExport(playlist: Playlist) {
+		closeAll()
+		onPlaylistExport(playlist)
 	}
 </script>
 
@@ -438,6 +462,7 @@
 		onRename={handlePlaylistRename}
 		onDelete={handlePlaylistDelete}
 		onMove={handlePlaylistMove}
+		onExport={handlePlaylistExport}
 	/>
 {/if}
 
@@ -535,8 +560,10 @@
 		device={visibleMenu.device}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
+		onExport={handleDeviceExport}
 		onViewInfo={handleDeviceViewInfo}
 		onRevealInFinder={handleDeviceRevealInFinder}
+		onReformat={handleDeviceReformat}
 		onEject={handleDeviceEject}
 	/>
 {/if}

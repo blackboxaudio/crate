@@ -112,7 +112,8 @@
 		"deleteFolder": "Ta bort mapp",
 		"moveToFolder": "Flytta till mapp",
 		"rootNoFolder": "Rot (ingen mapp)",
-		"folderEmpty": "Denna mapp är tom"
+		"folderEmpty": "Denna mapp är tom",
+		"exportToDevice": "Exportera till enhet"
 	},
 	"tags": {
 		"newCategory": "Ny kategori",
@@ -269,7 +270,41 @@
 		"noDevices": "Inga enheter anslutna",
 		"free": "ledigt",
 		"connected": "Ansluten",
-		"viewInfo": "Visa info"
+		"statusCompatible": "Kompatibel med Pioneer-utrustning",
+		"statusIncompatible": "Inkompatibelt format ({fileSystem}). Formatera till FAT32 för Pioneer-utrustning.",
+		"viewInfo": "Visa info",
+		"exportTo": "Exportera till...",
+		"reformat": {
+			"menuItem": "Formatera",
+			"title": "Formatera enhet",
+			"warning": "All data kommer att raderas permanent",
+			"warningDetails": "Formatering av \"{deviceName}\" kommer att radera alla filer på denna enhet. Denna åtgärd kan inte ångras.",
+			"volumeName": "Volymnamn",
+			"volumeNamePlaceholder": "Ange volymnamn",
+			"fat32Hint": "FAT32 stöder upp till 11 tecken",
+			"confirm": "Formatera"
+		}
+	},
+	"export": {
+		"title": "Exportera till enhet",
+		"exportTo": "Exportera till {deviceName}",
+		"exportPlaylist": "Exportera {playlistName}",
+		"selectPlaylists": "Välj spellistor att exportera",
+		"selectDevice": "Välj en enhet",
+		"noDevicesConnected": "Inga USB-enheter anslutna",
+		"noPlaylistsAvailable": "Inga spellistor tillgängliga",
+		"export": "Exportera",
+		"preparing": "Förbereder...",
+		"copying": "Kopierar filer...",
+		"generatingDatabase": "Genererar databas...",
+		"complete": "Export klar",
+		"failed": "Export misslyckades",
+		"cancel": "Avbryt",
+		"keepPartial": "Behåll delvis",
+		"cleanUp": "Städa upp",
+		"whatToDo": "Vad vill du göra?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fil kopierades} other {{count} filer kopierades}} före felet.",
+		"exportingTo": "Exporterar till {deviceName}"
 	},
 	"editor": {
 		"trackInfo": "Spårinfo",

@@ -112,7 +112,8 @@
 		"deleteFolder": "Delete Folder",
 		"moveToFolder": "Move to Folder",
 		"rootNoFolder": "Root (No Folder)",
-		"folderEmpty": "This folder is empty"
+		"folderEmpty": "This folder is empty",
+		"exportToDevice": "Export to Device"
 	},
 	"tags": {
 		"newCategory": "New Category",
@@ -269,7 +270,41 @@
 		"noDevices": "No devices connected",
 		"free": "free",
 		"connected": "Connected",
-		"viewInfo": "View info"
+		"statusCompatible": "Compatible with Pioneer gear",
+		"statusIncompatible": "Incompatible format ({fileSystem}). Reformat to FAT32 for Pioneer gear.",
+		"viewInfo": "View info",
+		"exportTo": "Export to...",
+		"reformat": {
+			"menuItem": "Reformat",
+			"title": "Reformat Device",
+			"warning": "All data will be permanently deleted",
+			"warningDetails": "Reformatting \"{deviceName}\" will erase all files on this device. This action cannot be undone.",
+			"volumeName": "Volume Name",
+			"volumeNamePlaceholder": "Enter volume name",
+			"fat32Hint": "FAT32 supports up to 11 characters",
+			"confirm": "Reformat"
+		}
+	},
+	"export": {
+		"title": "Export to Device",
+		"exportTo": "Export to {deviceName}",
+		"exportPlaylist": "Export {playlistName}",
+		"selectPlaylists": "Select playlists to export",
+		"selectDevice": "Select a device",
+		"noDevicesConnected": "No USB devices connected",
+		"noPlaylistsAvailable": "No playlists available",
+		"export": "Export",
+		"preparing": "Preparing...",
+		"copying": "Copying files...",
+		"generatingDatabase": "Generating database...",
+		"complete": "Export complete",
+		"failed": "Export Failed",
+		"cancel": "Cancel",
+		"keepPartial": "Keep Partial",
+		"cleanUp": "Clean Up",
+		"whatToDo": "What would you like to do?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 file was copied} other {{count} files were copied}} before the failure.",
+		"exportingTo": "Exporting to {deviceName}"
 	},
 	"editor": {
 		"trackInfo": "Track Info",

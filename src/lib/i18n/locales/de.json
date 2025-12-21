@@ -112,7 +112,8 @@
 		"deleteFolder": "Ordner löschen",
 		"moveToFolder": "In Ordner verschieben",
 		"rootNoFolder": "Stammverzeichnis (kein Ordner)",
-		"folderEmpty": "Dieser Ordner ist leer"
+		"folderEmpty": "Dieser Ordner ist leer",
+		"exportToDevice": "Auf Gerät exportieren"
 	},
 	"tags": {
 		"newCategory": "Neue Kategorie",
@@ -269,7 +270,41 @@
 		"noDevices": "Keine Geräte verbunden",
 		"free": "frei",
 		"connected": "Verbunden",
-		"viewInfo": "Info anzeigen"
+		"statusCompatible": "Kompatibel mit Pioneer-Geräten",
+		"statusIncompatible": "Inkompatibles Format ({fileSystem}). Für Pioneer-Geräte zu FAT32 formatieren.",
+		"viewInfo": "Info anzeigen",
+		"exportTo": "Exportieren...",
+		"reformat": {
+			"menuItem": "Formatieren",
+			"title": "Gerät formatieren",
+			"warning": "Alle Daten werden dauerhaft gelöscht",
+			"warningDetails": "Beim Formatieren von „{deviceName}" werden alle Dateien auf diesem Gerät gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+			"volumeName": "Datenträgername",
+			"volumeNamePlaceholder": "Datenträgername eingeben",
+			"fat32Hint": "FAT32 unterstützt bis zu 11 Zeichen",
+			"confirm": "Formatieren"
+		}
+	},
+	"export": {
+		"title": "Auf Gerät exportieren",
+		"exportTo": "Exportieren nach {deviceName}",
+		"exportPlaylist": "{playlistName} exportieren",
+		"selectPlaylists": "Zu exportierende Playlists auswählen",
+		"selectDevice": "Gerät auswählen",
+		"noDevicesConnected": "Keine USB-Geräte verbunden",
+		"noPlaylistsAvailable": "Keine Playlists verfügbar",
+		"export": "Exportieren",
+		"preparing": "Vorbereiten...",
+		"copying": "Dateien kopieren...",
+		"generatingDatabase": "Datenbank generieren...",
+		"complete": "Export abgeschlossen",
+		"failed": "Export fehlgeschlagen",
+		"cancel": "Abbrechen",
+		"keepPartial": "Teilexport behalten",
+		"cleanUp": "Aufräumen",
+		"whatToDo": "Was möchten Sie tun?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 Datei wurde} other {{count} Dateien wurden}} vor dem Fehler kopiert.",
+		"exportingTo": "Exportiere nach {deviceName}"
 	},
 	"editor": {
 		"trackInfo": "Track-Info",
