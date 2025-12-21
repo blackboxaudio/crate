@@ -260,13 +260,14 @@ fn build_playback_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Erro
 }
 
 fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, tauri::Error> {
-    let mut builder = SubmenuBuilder::with_id(app, ids::VIEW_MENU, "View").item(&MenuItem::with_id(
-        app,
-        ids::TOGGLE_SIDEBAR,
-        "Toggle Sidebar",
-        true,
-        Some("CmdOrCtrl+\\"),
-    )?);
+    let mut builder =
+        SubmenuBuilder::with_id(app, ids::VIEW_MENU, "View").item(&MenuItem::with_id(
+            app,
+            ids::TOGGLE_SIDEBAR,
+            "Toggle Sidebar",
+            true,
+            Some("CmdOrCtrl+\\"),
+        )?);
 
     if is_dev {
         builder = builder.separator().item(&MenuItem::with_id(
@@ -425,10 +426,8 @@ pub fn update_menu_translations(
 }
 
 fn update_submenu_text(menu: &Menu<Wry>, id: &str, text: &str) -> Result<(), tauri::Error> {
-    if let Some(item) = menu.get(id) {
-        if let MenuItemKind::Submenu(submenu) = item {
-            submenu.set_text(text)?;
-        }
+    if let Some(MenuItemKind::Submenu(submenu)) = menu.get(id) {
+        submenu.set_text(text)?;
     }
     Ok(())
 }
@@ -438,11 +437,9 @@ fn update_item_text(menu: &Menu<Wry>, id: &str, text: &str) -> Result<(), tauri:
     if let Ok(items) = menu.items() {
         for item in items {
             if let MenuItemKind::Submenu(submenu) = item {
-                if let Some(found) = submenu.get(id) {
-                    if let MenuItemKind::MenuItem(menu_item) = found {
-                        menu_item.set_text(text)?;
-                        return Ok(());
-                    }
+                if let Some(MenuItemKind::MenuItem(menu_item)) = submenu.get(id) {
+                    menu_item.set_text(text)?;
+                    return Ok(());
                 }
             }
         }

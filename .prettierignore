@@ -17,6 +17,7 @@ src-tauri/
 **/dist/
 **/output/
 **/node_modules/
+docs/.astro/
 
 # Svelte
 **/.svelte-kit/
