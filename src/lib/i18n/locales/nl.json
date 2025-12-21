@@ -308,7 +308,8 @@
 		"cleanUp": "Opruimen",
 		"whatToDo": "Wat wilt u doen?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 bestand is gekopieerd} other {{count} bestanden zijn gekopieerd}} voor de fout.",
-		"exportingTo": "Exporteren naar {deviceName}"
+		"exportingTo": "Exporteren naar {deviceName}",
+		"transferringProgress": "{trackCount} nummers uit {playlistCount} afspeellijsten"
 	},
 	"editor": {
 		"trackInfo": "Trackinfo",

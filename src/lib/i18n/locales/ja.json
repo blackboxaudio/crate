@@ -309,7 +309,8 @@
 		"cleanUp": "クリーンアップ",
 		"whatToDo": "どうしますか？",
 		"filesCopiedBeforeFailure": "失敗前に{count, plural, =1 {1ファイル} other {{count}ファイル}}がコピーされました。",
-		"exportingTo": "{deviceName}にエクスポート中"
+		"exportingTo": "{deviceName}にエクスポート中",
+		"transferringProgress": "{playlistCount}個のプレイリストから{trackCount}曲を転送中"
 	},
 	"editor": {
 		"trackInfo": "トラック情報",

@@ -776,7 +776,7 @@
 	}
 
 	async function handleExportSubmit(request: ExportRequest) {
-		exportStore.startExport(request.device_id, request.device_name)
+		exportStore.startExport(request.device_id, request.device_name, request.playlist_ids.length)
 
 		try {
 			const result = await exportApi.exportToDevice(request)

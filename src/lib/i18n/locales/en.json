@@ -309,7 +309,8 @@
 		"cleanUp": "Clean Up",
 		"whatToDo": "What would you like to do?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 file was copied} other {{count} files were copied}} before the failure.",
-		"exportingTo": "Exporting to {deviceName}"
+		"exportingTo": "Exporting to {deviceName}",
+		"transferringProgress": "Transferring {trackCount} tracks from {playlistCount} playlists"
 	},
 	"editor": {
 		"trackInfo": "Track Info",

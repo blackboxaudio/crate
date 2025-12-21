@@ -308,7 +308,8 @@
 		"cleanUp": "정리",
 		"whatToDo": "어떻게 하시겠습니까?",
 		"filesCopiedBeforeFailure": "오류 발생 전 {count, plural, =1 {1개 파일이} other {{count}개 파일이}} 복사되었습니다.",
-		"exportingTo": "{deviceName}(으)로 내보내는 중"
+		"exportingTo": "{deviceName}(으)로 내보내는 중",
+		"transferringProgress": "{playlistCount}개 플레이리스트에서 {trackCount}개 트랙 전송 중"
 	},
 	"editor": {
 		"trackInfo": "트랙 정보",

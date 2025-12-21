@@ -11,6 +11,7 @@ interface ExportState {
 	progress: ExportProgress | null
 	activeDeviceId: string | null
 	activeDeviceName: string | null
+	playlistCount: number | null
 	lastResult: ExportResult | null
 	error: string | null
 }
@@ -24,6 +25,7 @@ const initialState: ExportState = {
 	progress: null,
 	activeDeviceId: null,
 	activeDeviceName: null,
+	playlistCount: null,
 	lastResult: null,
 	error: null,
 }
@@ -69,12 +71,13 @@ function createExportStore() {
 		/**
 		 * Mark export as started
 		 */
-		startExport(deviceId: string, deviceName: string) {
+		startExport(deviceId: string, deviceName: string, playlistCount: number) {
 			update((state) => ({
 				...state,
 				isExporting: true,
 				activeDeviceId: deviceId,
 				activeDeviceName: deviceName,
+				playlistCount,
 				error: null,
 				lastResult: null,
 			}))
@@ -89,6 +92,7 @@ function createExportStore() {
 				isExporting: false,
 				activeDeviceId: null,
 				activeDeviceName: null,
+				playlistCount: null,
 				lastResult: result,
 				progress: null,
 			}))
@@ -103,6 +107,7 @@ function createExportStore() {
 				isExporting: false,
 				activeDeviceId: null,
 				activeDeviceName: null,
+				playlistCount: null,
 				error,
 			}))
 		},
@@ -140,6 +145,8 @@ export const exportProgress = derived(exportStore, ($store) => $store.progress)
 export const activeDeviceId = derived(exportStore, ($store) => $store.activeDeviceId)
 
 export const activeDeviceName = derived(exportStore, ($store) => $store.activeDeviceName)
+
+export const playlistCount = derived(exportStore, ($store) => $store.playlistCount)
 
 export const exportError = derived(exportStore, ($store) => $store.error)
 

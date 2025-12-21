@@ -308,7 +308,8 @@
 		"cleanUp": "Aufräumen",
 		"whatToDo": "Was möchten Sie tun?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 Datei wurde} other {{count} Dateien wurden}} vor dem Fehler kopiert.",
-		"exportingTo": "Exportiere nach {deviceName}"
+		"exportingTo": "Exportiere nach {deviceName}",
+		"transferringProgress": "{trackCount} Tracks aus {playlistCount} Playlists übertragen"
 	},
 	"editor": {
 		"trackInfo": "Track-Info",

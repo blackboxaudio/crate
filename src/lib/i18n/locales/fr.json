@@ -308,7 +308,8 @@
 		"cleanUp": "Nettoyer",
 		"whatToDo": "Que souhaitez-vous faire ?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fichier a été copié} other {{count} fichiers ont été copiés}} avant l'échec.",
-		"exportingTo": "Exportation vers {deviceName}"
+		"exportingTo": "Exportation vers {deviceName}",
+		"transferringProgress": "Transfert de {trackCount} pistes de {playlistCount} playlists"
 	},
 	"editor": {
 		"trackInfo": "Infos piste",

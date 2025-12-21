@@ -308,7 +308,8 @@
 		"cleanUp": "Städa upp",
 		"whatToDo": "Vad vill du göra?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fil kopierades} other {{count} filer kopierades}} före felet.",
-		"exportingTo": "Exporterar till {deviceName}"
+		"exportingTo": "Exporterar till {deviceName}",
+		"transferringProgress": "Överför {trackCount} spår från {playlistCount} spellistor"
 	},
 	"editor": {
 		"trackInfo": "Spårinfo",
