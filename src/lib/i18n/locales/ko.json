@@ -1,0 +1,342 @@
+{
+	"common": {
+		"close": "닫기",
+		"save": "저장",
+		"cancel": "취소",
+		"create": "만들기",
+		"delete": "삭제",
+		"remove": "제거",
+		"rename": "이름 변경",
+		"default": "기본값",
+		"loading": "로딩 중...",
+		"unknown": "알 수 없음",
+		"developerTools": "개발자 도구",
+		"submit": "제출",
+		"confirm": "확인",
+		"untitled": "제목 없음",
+		"unknownArtist": "알 수 없는 아티스트",
+		"folder": "폴더",
+		"playlist": "재생목록"
+	},
+	"nav": {
+		"library": "라이브러리",
+		"playlists": "재생목록",
+		"tags": "태그"
+	},
+	"settings": {
+		"title": "설정",
+		"tabs": {
+			"general": "일반",
+			"appearance": "모양",
+			"sound": "사운드",
+			"diagnostics": "진단",
+			"about": "정보"
+		},
+		"general": {
+			"language": "언어",
+			"languageDescription": "애플리케이션의 표시 언어를 선택하세요."
+		},
+		"appearance": {
+			"font": "글꼴",
+			"fontDescription": "애플리케이션에서 사용할 글꼴을 선택하세요.",
+			"theme": "테마",
+			"themeLight": "라이트",
+			"themeDark": "다크",
+			"themeSystem": "시스템",
+			"accentColor": "강조 색상"
+		},
+		"sound": {
+			"outputDevice": "출력 장치",
+			"outputDeviceDescription": "재생에 사용할 오디오 출력 장치를 선택하세요.",
+			"systemDefault": "시스템 기본값",
+			"system": "시스템",
+			"external": "외부"
+		},
+		"diagnostics": {
+			"systemInfo": "시스템 정보",
+			"errorLog": "오류 로그",
+			"export": "내보내기",
+			"exportDescription": "버그 신고 또는 문제 해결을 위한 진단 보고서를 내보냅니다.",
+			"noErrors": "기록된 오류 없음",
+			"loadingSystemInfo": "시스템 정보 로딩 중...",
+			"operatingSystem": "운영 체제",
+			"cpu": "CPU",
+			"memory": "메모리",
+			"dataDirectory": "데이터 디렉토리",
+			"entriesCount": "100개 중 {count}개 항목",
+			"saveAsJson": "JSON으로 저장",
+			"saveAsText": "텍스트로 저장",
+			"copyToClipboard": "클립보드에 복사",
+			"copied": "복사됨!"
+		},
+		"about": {
+			"application": "애플리케이션",
+			"version": "버전",
+			"environment": "환경"
+		}
+	},
+	"player": {
+		"play": "재생",
+		"pause": "일시정지",
+		"stop": "정지",
+		"previous": "이전",
+		"next": "다음",
+		"mute": "음소거",
+		"unmute": "음소거 해제",
+		"noTrackSelected": "선택된 트랙 없음"
+	},
+	"library": {
+		"searchPlaceholder": "트랙 검색...",
+		"importTracks": "트랙 가져오기",
+		"matching": "일치",
+		"matchOr": "또는",
+		"matchAnd": "그리고",
+		"clearAll": "모두 지우기",
+		"columns": {
+			"title": "제목",
+			"artist": "아티스트",
+			"bpm": "BPM",
+			"key": "키",
+			"time": "시간",
+			"tags": "태그"
+		},
+		"track": "트랙",
+		"tracks": "트랙",
+		"item": "항목",
+		"items": "항목"
+	},
+	"playlists": {
+		"newPlaylist": "새 재생목록",
+		"newFolder": "새 폴더",
+		"deletePlaylist": "재생목록 삭제",
+		"deleteFolder": "폴더 삭제",
+		"moveToFolder": "폴더로 이동",
+		"rootNoFolder": "루트 (폴더 없음)",
+		"folderEmpty": "이 폴더가 비어 있습니다"
+	},
+	"tags": {
+		"newCategory": "새 카테고리",
+		"newTag": "새 태그",
+		"renameTag": "태그 이름 변경",
+		"renameCategory": "카테고리 이름 변경",
+		"deleteTag": "태그 삭제",
+		"deleteCategory": "카테고리 삭제",
+		"addCategory": "카테고리 추가",
+		"addTag": "태그 추가"
+	},
+	"contextMenu": {
+		"viewInFinder": "Finder에서 보기",
+		"viewInExplorer": "탐색기에서 보기",
+		"viewInFileManager": "파일 관리자에서 보기",
+		"addToPlaylist": "재생목록에 추가",
+		"setColor": "색상 설정",
+		"removeColor": "색상 제거",
+		"remove": "제거",
+		"removeFromPlaylist": "재생목록에서 제거",
+		"removeFromLibrary": "라이브러리에서 제거",
+		"relocate": "재배치..."
+	},
+	"modals": {
+		"createPlaylist": {
+			"title": "새 재생목록",
+			"placeholder": "재생목록 이름"
+		},
+		"createFolder": {
+			"title": "새 폴더",
+			"placeholder": "폴더 이름"
+		},
+		"createCategory": {
+			"title": "새 태그 카테고리",
+			"placeholder": "카테고리 이름"
+		},
+		"createTag": {
+			"title": "새 태그",
+			"categoryLabel": "카테고리",
+			"tagLabel": "태그 이름",
+			"categoryPlaceholder": "카테고리 선택",
+			"tagPlaceholder": "태그 이름 입력"
+		},
+		"rename": {
+			"title": "이름 변경",
+			"placeholder": "이름"
+		},
+		"renameTag": {
+			"title": "태그 이름 변경",
+			"placeholder": "태그 이름"
+		},
+		"renameCategory": {
+			"title": "카테고리 이름 변경",
+			"placeholder": "카테고리 이름"
+		},
+		"confirm": {
+			"deletePlaylistTitle": "재생목록 삭제",
+			"deletePlaylistMessage": "이 재생목록을 삭제하시겠습니까?",
+			"deleteFolderTitle": "폴더 삭제",
+			"deleteFolderMessage": "이 폴더를 삭제하시겠습니까?",
+			"deleteFolderWarning": "이 폴더에는 함께 삭제될 재생목록이 포함되어 있습니다.",
+			"deleteTagTitle": "태그 삭제",
+			"deleteTagMessage": "이 태그를 삭제하시겠습니까? 모든 트랙에서 제거됩니다.",
+			"deleteCategoryTitle": "카테고리 삭제",
+			"deleteCategoryMessage": "이 카테고리를 삭제하시겠습니까? 이 카테고리의 모든 태그가 모든 트랙에서 제거됩니다.",
+			"removeFromPlaylistTitle": "재생목록에서 제거",
+			"removeFromPlaylistMessage": "{count, plural, =1 {이 트랙을 재생목록에서 제거하시겠습니까?} other {{count}개의 트랙을 재생목록에서 제거하시겠습니까?}}",
+			"removeFromLibraryTitle": "라이브러리에서 제거",
+			"removeFromLibraryMessage": "{count, plural, =1 {이 트랙을 라이브러리에서 제거하시겠습니까?} other {{count}개의 트랙을 라이브러리에서 제거하시겠습니까?}}",
+			"removeFromLibraryWarning": "이 작업은 취소할 수 없습니다. 트랙이 모든 재생목록에서 제거됩니다.",
+			"deleteTracksFromCollection": "내 컬렉션에서도 트랙 삭제"
+		},
+		"relocate": {
+			"title": "트랙 재배치",
+			"message": "이 트랙의 새 위치를 선택하세요."
+		},
+		"albumArt": "앨범 아트",
+		"deviceInfo": {
+			"title": "장치 정보",
+			"diskType": "디스크 유형",
+			"fileSystem": "파일 시스템",
+			"storage": "저장공간",
+			"used": "사용:",
+			"available": "사용 가능:",
+			"total": "전체:",
+			"percentUsed": "% 사용"
+		},
+		"duplicate": {
+			"title": "중복 트랙 감지됨",
+			"progress": "중복 {current}/{total}",
+			"message": "이 파일은 라이브러리의 기존 트랙과 일치합니다:",
+			"current": "현재:",
+			"new": "새로운:",
+			"skip": "건너뛰기",
+			"skipDescription": "이 파일을 가져오지 않습니다. 기존 트랙을 변경하지 않습니다.",
+			"updatePath": "경로 업데이트",
+			"updatePathDescription": "모든 기존 데이터(큐 포인트, 태그, 재생목록, 재생 기록)를 유지하되 파일 위치를 업데이트합니다.",
+			"replace": "교체",
+			"replaceDescription": "새 파일에서 새로 가져옵니다. 재생목록 멤버십만 유지합니다. 큐 포인트, 태그, 재생 기록을 재설정합니다.",
+			"applyToAll": "나머지 모든 중복 항목에 적용 ({count})"
+		},
+		"conflict": {
+			"title": "이름 충돌",
+			"resolving": "충돌 해결 중",
+			"remaining": "({count}개 남음)",
+			"message": "이 위치에 \"{name}\"이라는 {type}이(가) 이미 있습니다.",
+			"merge": "병합",
+			"replace": "교체",
+			"mergeFolder": "이 폴더의 내용을 기존 폴더로 이동합니다. 중첩된 충돌이 있으면 다시 묻습니다.",
+			"mergePlaylist": "두 재생목록의 트랙을 하나로 합칩니다.",
+			"mergeNotAvailable": "사용 불가: 병합하려면 두 항목이 같은 유형이어야 합니다.",
+			"replaceDescription": "기존 {type}을(를) 삭제하고 이 {item}을(를) 그 자리에 놓습니다.",
+			"replaceNotAvailable": "사용 불가: 같은 유형의 항목만 교체할 수 있습니다.",
+			"replaceFolderWarning": "교체하면 기존 폴더와 그 안의 모든 내용이 영구적으로 삭제됩니다.",
+			"replacePlaylistWarning": "교체하면 기존 재생목록과 트랙 연결이 영구적으로 삭제됩니다."
+		}
+	},
+	"toast": {
+		"trackAdded": "{count, plural, =1 {1개의 트랙이} other {{count}개의 트랙이}} {playlistName}에 추가됨",
+		"trackAddedWithFailed": "{count, plural, =1 {1개의 트랙이} other {{count}개의 트랙이}} {playlistName}에 추가됨, {failed}개 실패",
+		"tracksImported": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}} 가져옴",
+		"tracksImportedWithSkipped": "{imported, plural, =1 {1개의 트랙} other {{imported}개의 트랙}} 가져옴, {skipped}개 건너뜀",
+		"trackRemoved": "{count, plural, =1 {1개의 트랙이} other {{count}개의 트랙이}} 재생목록에서 제거됨",
+		"trackRemovedFromLibrary": "{count, plural, =1 {1개의 트랙이} other {{count}개의 트랙이}} 라이브러리에서 제거됨",
+		"movedSuccessfully": "성공적으로 이동됨",
+		"mergedSuccessfully": "성공적으로 병합됨",
+		"mergeCompleted": "병합 완료",
+		"replacedExisting": "기존 항목 교체됨",
+		"deviceConnected": "{name} 연결됨",
+		"deviceDisconnected": "{name} 연결 해제됨",
+		"deviceEjected": "{name} 꺼냄",
+		"deviceEjectFailed": "{name} 꺼내기 실패",
+		"relocated": "\"{title}\" 재배치됨",
+		"failedToResolve": "중복 해결 실패: {error}",
+		"failedToAddPlaylist": "재생목록에 트랙 추가 실패",
+		"warningTracksImportedFailed": "트랙을 가져왔지만 {playlistName}에 추가 실패",
+		"failedToImport": "트랙 가져오기 실패: {error}",
+		"failedToUpdateTracks": "트랙 업데이트 실패",
+		"failedToSetArtwork": "아트워크 설정 실패",
+		"failedToRemoveArtwork": "아트워크 제거 실패",
+		"noArtworkInFile": "오디오 파일에서 아트워크를 찾을 수 없음"
+	},
+	"errors": {
+		"cannotDropIntoSelf": "폴더를 자기 자신 안에 놓을 수 없습니다",
+		"cannotDropIntoSubfolder": "폴더를 자신의 하위 폴더 안에 놓을 수 없습니다"
+	},
+	"devices": {
+		"title": "장치",
+		"eject": "꺼내기",
+		"deviceInfo": "장치 정보",
+		"capacity": "용량",
+		"available": "사용 가능",
+		"used": "사용",
+		"noDevices": "연결된 장치 없음",
+		"free": "남음",
+		"connected": "연결됨",
+		"viewInfo": "정보 보기"
+	},
+	"editor": {
+		"trackInfo": "트랙 정보",
+		"tracksCount": "{count}개의 트랙",
+		"title": "제목",
+		"artist": "아티스트",
+		"album": "앨범",
+		"year": "연도",
+		"genre": "장르",
+		"label": "레이블",
+		"bpm": "BPM",
+		"key": "키",
+		"saving": "저장 중...",
+		"saveChanges": "변경사항 저장",
+		"multipleArtworks": "여러 아트워크",
+		"addArtwork": "아트워크 추가",
+		"replaceArtwork": "아트워크 교체",
+		"reextractFromFile": "파일에서 다시 추출"
+	},
+	"colors": {
+		"pink": "핑크",
+		"red": "빨강",
+		"orange": "주황",
+		"yellow": "노랑",
+		"green": "초록",
+		"aqua": "아쿠아",
+		"blue": "파랑",
+		"purple": "보라",
+		"amber": "호박색",
+		"teal": "청록",
+		"indigo": "남색",
+		"violet": "바이올렛",
+		"rose": "장미",
+		"emerald": "에메랄드"
+	},
+	"crash": {
+		"title": "문제가 발생했습니다",
+		"description": "애플리케이션에서 예기치 않은 오류가 발생했습니다.",
+		"errorDetails": "오류 세부정보",
+		"resetApp": "애플리케이션 재설정"
+	},
+	"menu": {
+		"file": "파일",
+		"edit": "편집",
+		"playback": "재생",
+		"view": "보기",
+		"window": "윈도우",
+		"help": "도움말",
+		"about": "{appName} 정보",
+		"settings": "설정...",
+		"quit": "{appName} 종료",
+		"importTracks": "트랙 가져오기...",
+		"newPlaylist": "새 재생목록",
+		"newFolder": "새 폴더",
+		"undo": "실행 취소",
+		"redo": "다시 실행",
+		"cut": "잘라내기",
+		"copy": "복사",
+		"paste": "붙여넣기",
+		"selectAllTracks": "모든 트랙 선택",
+		"playPause": "재생/일시정지",
+		"stop": "정지",
+		"toggleSidebar": "사이드바 전환",
+		"showDevTools": "개발자 도구 표시",
+		"minimize": "최소화",
+		"zoom": "확대/축소",
+		"documentation": "{appName} 문서",
+		"reportIssue": "문제 신고..."
+	}
+}

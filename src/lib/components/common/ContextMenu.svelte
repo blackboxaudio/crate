@@ -15,6 +15,7 @@
 	let { open, x, y, items, onClose, onClosed }: Props = $props()
 
 	let menuEl: HTMLDivElement | undefined = $state()
+	/* eslint-disable svelte/prefer-writable-derived */
 	let visible = $state(false)
 	// Track active submenu path as array of item IDs (supports unlimited nesting)
 	let activeSubmenuPath = $state<string[]>([])
@@ -22,9 +23,7 @@
 
 	// Track open state changes
 	$effect(() => {
-		if (open) {
-			visible = true
-		}
+		visible = open
 	})
 
 	// Handle transition end

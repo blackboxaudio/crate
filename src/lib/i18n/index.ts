@@ -1,15 +1,33 @@
 import { register, init, getLocaleFromNavigator, locale, waitLocale, _ } from 'svelte-i18n'
 
-export type Language = 'en' | 'ja'
+export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | 'ko' | 'pt' | 'zh'
 
 export const SUPPORTED_LANGUAGES: { value: Language; label: string; nativeLabel: string }[] = [
 	{ value: 'en', label: 'English', nativeLabel: 'English' },
 	{ value: 'ja', label: 'Japanese', nativeLabel: '日本語' },
+	{ value: 'nl', label: 'Dutch', nativeLabel: 'Nederlands' },
+	{ value: 'fr', label: 'French', nativeLabel: 'Français' },
+	{ value: 'de', label: 'German', nativeLabel: 'Deutsch' },
+	{ value: 'es', label: 'Spanish', nativeLabel: 'Español' },
+	{ value: 'it', label: 'Italian', nativeLabel: 'Italiano' },
+	{ value: 'sv', label: 'Swedish', nativeLabel: 'Svenska' },
+	{ value: 'ko', label: 'Korean', nativeLabel: '한국어' },
+	{ value: 'pt', label: 'Portuguese', nativeLabel: 'Português' },
+	{ value: 'zh', label: 'Chinese', nativeLabel: '中文' },
 ]
 
 // Register locale files - lazy loaded
 register('en', () => import('./locales/en.json'))
 register('ja', () => import('./locales/ja.json'))
+register('nl', () => import('./locales/nl.json'))
+register('fr', () => import('./locales/fr.json'))
+register('de', () => import('./locales/de.json'))
+register('es', () => import('./locales/es.json'))
+register('it', () => import('./locales/it.json'))
+register('sv', () => import('./locales/sv.json'))
+register('ko', () => import('./locales/ko.json'))
+register('pt', () => import('./locales/pt.json'))
+register('zh', () => import('./locales/zh.json'))
 
 // Initialize with default locale synchronously at module load
 // This prevents "Cannot format a message without first setting the initial locale" errors

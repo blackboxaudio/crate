@@ -1,0 +1,342 @@
+{
+	"common": {
+		"close": "Chiudi",
+		"save": "Salva",
+		"cancel": "Annulla",
+		"create": "Crea",
+		"delete": "Elimina",
+		"remove": "Rimuovi",
+		"rename": "Rinomina",
+		"default": "Predefinito",
+		"loading": "Caricamento...",
+		"unknown": "Sconosciuto",
+		"developerTools": "Strumenti sviluppatore",
+		"submit": "Invia",
+		"confirm": "Conferma",
+		"untitled": "Senza titolo",
+		"unknownArtist": "Artista sconosciuto",
+		"folder": "cartella",
+		"playlist": "playlist"
+	},
+	"nav": {
+		"library": "Libreria",
+		"playlists": "Playlist",
+		"tags": "Tag"
+	},
+	"settings": {
+		"title": "Impostazioni",
+		"tabs": {
+			"general": "Generale",
+			"appearance": "Aspetto",
+			"sound": "Suono",
+			"diagnostics": "Diagnostica",
+			"about": "Informazioni"
+		},
+		"general": {
+			"language": "Lingua",
+			"languageDescription": "Scegli la lingua di visualizzazione dell'applicazione."
+		},
+		"appearance": {
+			"font": "Carattere",
+			"fontDescription": "Scegli il carattere utilizzato nell'applicazione.",
+			"theme": "Tema",
+			"themeLight": "Chiaro",
+			"themeDark": "Scuro",
+			"themeSystem": "Sistema",
+			"accentColor": "Colore di accento"
+		},
+		"sound": {
+			"outputDevice": "Dispositivo di uscita",
+			"outputDeviceDescription": "Seleziona il dispositivo di uscita audio per la riproduzione.",
+			"systemDefault": "Predefinito di sistema",
+			"system": "Sistema",
+			"external": "Esterno"
+		},
+		"diagnostics": {
+			"systemInfo": "Informazioni di sistema",
+			"errorLog": "Registro errori",
+			"export": "Esporta",
+			"exportDescription": "Esporta il rapporto diagnostico per segnalazioni di bug o risoluzione problemi.",
+			"noErrors": "Nessun errore registrato",
+			"loadingSystemInfo": "Caricamento informazioni di sistema...",
+			"operatingSystem": "Sistema operativo",
+			"cpu": "CPU",
+			"memory": "Memoria",
+			"dataDirectory": "Directory dati",
+			"entriesCount": "{count} di 100 voci",
+			"saveAsJson": "Salva come JSON",
+			"saveAsText": "Salva come testo",
+			"copyToClipboard": "Copia negli appunti",
+			"copied": "Copiato!"
+		},
+		"about": {
+			"application": "Applicazione",
+			"version": "Versione",
+			"environment": "Ambiente"
+		}
+	},
+	"player": {
+		"play": "Riproduci",
+		"pause": "Pausa",
+		"stop": "Ferma",
+		"previous": "Precedente",
+		"next": "Successivo",
+		"mute": "Muto",
+		"unmute": "Riattiva audio",
+		"noTrackSelected": "Nessuna traccia selezionata"
+	},
+	"library": {
+		"searchPlaceholder": "Cerca tracce...",
+		"importTracks": "Importa tracce",
+		"matching": "Corrispondenza",
+		"matchOr": "O",
+		"matchAnd": "E",
+		"clearAll": "Cancella tutto",
+		"columns": {
+			"title": "Titolo",
+			"artist": "Artista",
+			"bpm": "BPM",
+			"key": "Tonalità",
+			"time": "Tempo",
+			"tags": "Tag"
+		},
+		"track": "traccia",
+		"tracks": "tracce",
+		"item": "elemento",
+		"items": "elementi"
+	},
+	"playlists": {
+		"newPlaylist": "Nuova playlist",
+		"newFolder": "Nuova cartella",
+		"deletePlaylist": "Elimina playlist",
+		"deleteFolder": "Elimina cartella",
+		"moveToFolder": "Sposta in cartella",
+		"rootNoFolder": "Radice (nessuna cartella)",
+		"folderEmpty": "Questa cartella è vuota"
+	},
+	"tags": {
+		"newCategory": "Nuova categoria",
+		"newTag": "Nuovo tag",
+		"renameTag": "Rinomina tag",
+		"renameCategory": "Rinomina categoria",
+		"deleteTag": "Elimina tag",
+		"deleteCategory": "Elimina categoria",
+		"addCategory": "Aggiungi categoria",
+		"addTag": "Aggiungi tag"
+	},
+	"contextMenu": {
+		"viewInFinder": "Visualizza nel Finder",
+		"viewInExplorer": "Visualizza in Esplora risorse",
+		"viewInFileManager": "Visualizza nel gestore file",
+		"addToPlaylist": "Aggiungi alla playlist",
+		"setColor": "Imposta colore",
+		"removeColor": "Rimuovi colore",
+		"remove": "Rimuovi",
+		"removeFromPlaylist": "Rimuovi dalla playlist",
+		"removeFromLibrary": "Rimuovi dalla libreria",
+		"relocate": "Sposta..."
+	},
+	"modals": {
+		"createPlaylist": {
+			"title": "Nuova playlist",
+			"placeholder": "Nome playlist"
+		},
+		"createFolder": {
+			"title": "Nuova cartella",
+			"placeholder": "Nome cartella"
+		},
+		"createCategory": {
+			"title": "Nuova categoria tag",
+			"placeholder": "Nome categoria"
+		},
+		"createTag": {
+			"title": "Nuovo tag",
+			"categoryLabel": "Categoria",
+			"tagLabel": "Nome tag",
+			"categoryPlaceholder": "Seleziona una categoria",
+			"tagPlaceholder": "Inserisci nome tag"
+		},
+		"rename": {
+			"title": "Rinomina",
+			"placeholder": "Nome"
+		},
+		"renameTag": {
+			"title": "Rinomina tag",
+			"placeholder": "Nome tag"
+		},
+		"renameCategory": {
+			"title": "Rinomina categoria",
+			"placeholder": "Nome categoria"
+		},
+		"confirm": {
+			"deletePlaylistTitle": "Elimina playlist",
+			"deletePlaylistMessage": "Sei sicuro di voler eliminare questa playlist?",
+			"deleteFolderTitle": "Elimina cartella",
+			"deleteFolderMessage": "Sei sicuro di voler eliminare questa cartella?",
+			"deleteFolderWarning": "Questa cartella contiene playlist che verranno eliminate.",
+			"deleteTagTitle": "Elimina tag",
+			"deleteTagMessage": "Sei sicuro di voler eliminare questo tag? Verrà rimosso da tutte le tracce.",
+			"deleteCategoryTitle": "Elimina categoria",
+			"deleteCategoryMessage": "Sei sicuro di voler eliminare questa categoria? Tutti i tag in questa categoria verranno rimossi da tutte le tracce.",
+			"removeFromPlaylistTitle": "Rimuovi dalla playlist",
+			"removeFromPlaylistMessage": "{count, plural, =1 {Rimuovere questa traccia dalla playlist?} other {Rimuovere {count} tracce dalla playlist?}}",
+			"removeFromLibraryTitle": "Rimuovi dalla libreria",
+			"removeFromLibraryMessage": "{count, plural, =1 {Rimuovere questa traccia dalla tua libreria?} other {Rimuovere {count} tracce dalla tua libreria?}}",
+			"removeFromLibraryWarning": "Questa azione non può essere annullata. Le tracce verranno rimosse da tutte le playlist.",
+			"deleteTracksFromCollection": "Elimina anche le tracce dalla mia collezione"
+		},
+		"relocate": {
+			"title": "Sposta traccia",
+			"message": "Seleziona la nuova posizione per questa traccia."
+		},
+		"albumArt": "Copertina album",
+		"deviceInfo": {
+			"title": "Info dispositivo",
+			"diskType": "Tipo disco",
+			"fileSystem": "File system",
+			"storage": "Archiviazione",
+			"used": "Usato:",
+			"available": "Disponibile:",
+			"total": "Totale:",
+			"percentUsed": "% usato"
+		},
+		"duplicate": {
+			"title": "Traccia duplicata rilevata",
+			"progress": "Duplicato {current} di {total}",
+			"message": "Questo file corrisponde a una traccia esistente nella tua libreria:",
+			"current": "Attuale:",
+			"new": "Nuovo:",
+			"skip": "Salta",
+			"skipDescription": "Non importare questo file. Lasciare la traccia esistente invariata.",
+			"updatePath": "Aggiorna percorso",
+			"updatePathDescription": "Mantieni tutti i dati esistenti (cue point, tag, playlist, cronologia riproduzioni) ma aggiorna la posizione del file.",
+			"replace": "Sostituisci",
+			"replaceDescription": "Nuova importazione dal nuovo file. Mantiene solo l'appartenenza alle playlist. Reimposta cue point, tag e cronologia riproduzioni.",
+			"applyToAll": "Applica a tutti i duplicati rimanenti ({count})"
+		},
+		"conflict": {
+			"title": "Conflitto di nome",
+			"resolving": "Risoluzione conflitto",
+			"remaining": "({count} rimanenti)",
+			"message": "Un {type} chiamato \"{name}\" esiste già in questa posizione.",
+			"merge": "Unisci",
+			"replace": "Sostituisci",
+			"mergeFolder": "Sposta il contenuto di questa cartella nella cartella esistente. Verrai avvisato per conflitti nidificati.",
+			"mergePlaylist": "Combina le tracce di entrambe le playlist in una.",
+			"mergeNotAvailable": "Non disponibile: entrambi gli elementi devono essere dello stesso tipo per unire.",
+			"replaceDescription": "Elimina il {type} esistente e metti questo {item} al suo posto.",
+			"replaceNotAvailable": "Non disponibile: puoi sostituire solo elementi dello stesso tipo.",
+			"replaceFolderWarning": "La sostituzione eliminerà permanentemente la cartella esistente e tutto il suo contenuto.",
+			"replacePlaylistWarning": "La sostituzione eliminerà permanentemente la playlist esistente e le sue associazioni tracce."
+		}
+	},
+	"toast": {
+		"trackAdded": "{count, plural, =1 {1 traccia} other {{count} tracce}} aggiunta/e a {playlistName}",
+		"trackAddedWithFailed": "{count, plural, =1 {1 traccia} other {{count} tracce}} aggiunta/e a {playlistName}, {failed} fallita/e",
+		"tracksImported": "{count, plural, =1 {1 traccia} other {{count} tracce}} importata/e",
+		"tracksImportedWithSkipped": "{imported, plural, =1 {1 traccia} other {{imported} tracce}} importata/e, {skipped} saltata/e",
+		"trackRemoved": "{count, plural, =1 {1 traccia} other {{count} tracce}} rimossa/e dalla playlist",
+		"trackRemovedFromLibrary": "{count, plural, =1 {1 traccia} other {{count} tracce}} rimossa/e dalla libreria",
+		"movedSuccessfully": "Spostato con successo",
+		"mergedSuccessfully": "Unito con successo",
+		"mergeCompleted": "Unione completata",
+		"replacedExisting": "Elemento esistente sostituito",
+		"deviceConnected": "{name} connesso",
+		"deviceDisconnected": "{name} disconnesso",
+		"deviceEjected": "{name} espulso",
+		"deviceEjectFailed": "Impossibile espellere {name}",
+		"relocated": "\"{title}\" spostato",
+		"failedToResolve": "Impossibile risolvere il duplicato: {error}",
+		"failedToAddPlaylist": "Impossibile aggiungere tracce alla playlist",
+		"warningTracksImportedFailed": "Tracce importate ma impossibile aggiungere a {playlistName}",
+		"failedToImport": "Impossibile importare tracce: {error}",
+		"failedToUpdateTracks": "Impossibile aggiornare le tracce",
+		"failedToSetArtwork": "Impossibile impostare la copertina",
+		"failedToRemoveArtwork": "Impossibile rimuovere la copertina",
+		"noArtworkInFile": "Nessuna copertina trovata nel file audio"
+	},
+	"errors": {
+		"cannotDropIntoSelf": "Impossibile trascinare una cartella dentro sé stessa",
+		"cannotDropIntoSubfolder": "Impossibile trascinare una cartella nella propria sottocartella"
+	},
+	"devices": {
+		"title": "Dispositivi",
+		"eject": "Espelli",
+		"deviceInfo": "Info dispositivo",
+		"capacity": "Capacità",
+		"available": "Disponibile",
+		"used": "Usato",
+		"noDevices": "Nessun dispositivo connesso",
+		"free": "libero",
+		"connected": "Connesso",
+		"viewInfo": "Visualizza info"
+	},
+	"editor": {
+		"trackInfo": "Info traccia",
+		"tracksCount": "{count} tracce",
+		"title": "Titolo",
+		"artist": "Artista",
+		"album": "Album",
+		"year": "Anno",
+		"genre": "Genere",
+		"label": "Etichetta",
+		"bpm": "BPM",
+		"key": "Tonalità",
+		"saving": "Salvataggio...",
+		"saveChanges": "Salva modifiche",
+		"multipleArtworks": "Copertine multiple",
+		"addArtwork": "Aggiungi copertina",
+		"replaceArtwork": "Sostituisci copertina",
+		"reextractFromFile": "Riesteri dal file"
+	},
+	"colors": {
+		"pink": "Rosa",
+		"red": "Rosso",
+		"orange": "Arancione",
+		"yellow": "Giallo",
+		"green": "Verde",
+		"aqua": "Acqua",
+		"blue": "Blu",
+		"purple": "Viola",
+		"amber": "Ambra",
+		"teal": "Foglia di tè",
+		"indigo": "Indaco",
+		"violet": "Violetto",
+		"rose": "Rosa",
+		"emerald": "Smeraldo"
+	},
+	"crash": {
+		"title": "Qualcosa è andato storto",
+		"description": "L'applicazione ha riscontrato un errore imprevisto.",
+		"errorDetails": "Dettagli errore",
+		"resetApp": "Reimposta applicazione"
+	},
+	"menu": {
+		"file": "File",
+		"edit": "Modifica",
+		"playback": "Riproduzione",
+		"view": "Vista",
+		"window": "Finestra",
+		"help": "Aiuto",
+		"about": "Informazioni su {appName}",
+		"settings": "Impostazioni...",
+		"quit": "Esci da {appName}",
+		"importTracks": "Importa tracce...",
+		"newPlaylist": "Nuova playlist",
+		"newFolder": "Nuova cartella",
+		"undo": "Annulla",
+		"redo": "Ripeti",
+		"cut": "Taglia",
+		"copy": "Copia",
+		"paste": "Incolla",
+		"selectAllTracks": "Seleziona tutte le tracce",
+		"playPause": "Riproduci/Pausa",
+		"stop": "Ferma",
+		"toggleSidebar": "Mostra/Nascondi barra laterale",
+		"showDevTools": "Mostra DevTools",
+		"minimize": "Riduci a icona",
+		"zoom": "Zoom",
+		"documentation": "Documentazione {appName}",
+		"reportIssue": "Segnala un problema..."
+	}
+}

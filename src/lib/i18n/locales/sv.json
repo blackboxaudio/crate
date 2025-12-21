@@ -1,0 +1,342 @@
+{
+	"common": {
+		"close": "Stäng",
+		"save": "Spara",
+		"cancel": "Avbryt",
+		"create": "Skapa",
+		"delete": "Ta bort",
+		"remove": "Ta bort",
+		"rename": "Byt namn",
+		"default": "Standard",
+		"loading": "Laddar...",
+		"unknown": "Okänd",
+		"developerTools": "Utvecklarverktyg",
+		"submit": "Skicka",
+		"confirm": "Bekräfta",
+		"untitled": "Namnlös",
+		"unknownArtist": "Okänd artist",
+		"folder": "mapp",
+		"playlist": "spellista"
+	},
+	"nav": {
+		"library": "Bibliotek",
+		"playlists": "Spellistor",
+		"tags": "Taggar"
+	},
+	"settings": {
+		"title": "Inställningar",
+		"tabs": {
+			"general": "Allmänt",
+			"appearance": "Utseende",
+			"sound": "Ljud",
+			"diagnostics": "Diagnostik",
+			"about": "Om"
+		},
+		"general": {
+			"language": "Språk",
+			"languageDescription": "Välj visningsspråk för programmet."
+		},
+		"appearance": {
+			"font": "Typsnitt",
+			"fontDescription": "Välj typsnitt som används i programmet.",
+			"theme": "Tema",
+			"themeLight": "Ljust",
+			"themeDark": "Mörkt",
+			"themeSystem": "System",
+			"accentColor": "Accentfärg"
+		},
+		"sound": {
+			"outputDevice": "Utgångsenhet",
+			"outputDeviceDescription": "Välj ljudutgångsenhet för uppspelning.",
+			"systemDefault": "Systemstandard",
+			"system": "System",
+			"external": "Extern"
+		},
+		"diagnostics": {
+			"systemInfo": "Systeminformation",
+			"errorLog": "Fellogg",
+			"export": "Exportera",
+			"exportDescription": "Exportera diagnostikrapport för felrapporter eller felsökning.",
+			"noErrors": "Inga fel registrerade",
+			"loadingSystemInfo": "Laddar systeminformation...",
+			"operatingSystem": "Operativsystem",
+			"cpu": "CPU",
+			"memory": "Minne",
+			"dataDirectory": "Datakatalog",
+			"entriesCount": "{count} av 100 poster",
+			"saveAsJson": "Spara som JSON",
+			"saveAsText": "Spara som text",
+			"copyToClipboard": "Kopiera till urklipp",
+			"copied": "Kopierat!"
+		},
+		"about": {
+			"application": "Program",
+			"version": "Version",
+			"environment": "Miljö"
+		}
+	},
+	"player": {
+		"play": "Spela",
+		"pause": "Paus",
+		"stop": "Stoppa",
+		"previous": "Föregående",
+		"next": "Nästa",
+		"mute": "Tyst",
+		"unmute": "Ljud på",
+		"noTrackSelected": "Inget spår valt"
+	},
+	"library": {
+		"searchPlaceholder": "Sök spår...",
+		"importTracks": "Importera spår",
+		"matching": "Matchning",
+		"matchOr": "ELLER",
+		"matchAnd": "OCH",
+		"clearAll": "Rensa alla",
+		"columns": {
+			"title": "Titel",
+			"artist": "Artist",
+			"bpm": "BPM",
+			"key": "Tonart",
+			"time": "Tid",
+			"tags": "Taggar"
+		},
+		"track": "spår",
+		"tracks": "spår",
+		"item": "objekt",
+		"items": "objekt"
+	},
+	"playlists": {
+		"newPlaylist": "Ny spellista",
+		"newFolder": "Ny mapp",
+		"deletePlaylist": "Ta bort spellista",
+		"deleteFolder": "Ta bort mapp",
+		"moveToFolder": "Flytta till mapp",
+		"rootNoFolder": "Rot (ingen mapp)",
+		"folderEmpty": "Denna mapp är tom"
+	},
+	"tags": {
+		"newCategory": "Ny kategori",
+		"newTag": "Ny tagg",
+		"renameTag": "Byt namn på tagg",
+		"renameCategory": "Byt namn på kategori",
+		"deleteTag": "Ta bort tagg",
+		"deleteCategory": "Ta bort kategori",
+		"addCategory": "Lägg till kategori",
+		"addTag": "Lägg till tagg"
+	},
+	"contextMenu": {
+		"viewInFinder": "Visa i Finder",
+		"viewInExplorer": "Visa i Utforskaren",
+		"viewInFileManager": "Visa i filhanteraren",
+		"addToPlaylist": "Lägg till i spellista",
+		"setColor": "Ange färg",
+		"removeColor": "Ta bort färg",
+		"remove": "Ta bort",
+		"removeFromPlaylist": "Ta bort från spellista",
+		"removeFromLibrary": "Ta bort från bibliotek",
+		"relocate": "Flytta..."
+	},
+	"modals": {
+		"createPlaylist": {
+			"title": "Ny spellista",
+			"placeholder": "Spellistenamn"
+		},
+		"createFolder": {
+			"title": "Ny mapp",
+			"placeholder": "Mappnamn"
+		},
+		"createCategory": {
+			"title": "Ny taggkategori",
+			"placeholder": "Kategorinamn"
+		},
+		"createTag": {
+			"title": "Ny tagg",
+			"categoryLabel": "Kategori",
+			"tagLabel": "Taggnamn",
+			"categoryPlaceholder": "Välj en kategori",
+			"tagPlaceholder": "Ange taggnamn"
+		},
+		"rename": {
+			"title": "Byt namn",
+			"placeholder": "Namn"
+		},
+		"renameTag": {
+			"title": "Byt namn på tagg",
+			"placeholder": "Taggnamn"
+		},
+		"renameCategory": {
+			"title": "Byt namn på kategori",
+			"placeholder": "Kategorinamn"
+		},
+		"confirm": {
+			"deletePlaylistTitle": "Ta bort spellista",
+			"deletePlaylistMessage": "Är du säker på att du vill ta bort denna spellista?",
+			"deleteFolderTitle": "Ta bort mapp",
+			"deleteFolderMessage": "Är du säker på att du vill ta bort denna mapp?",
+			"deleteFolderWarning": "Denna mapp innehåller spellistor som också kommer att tas bort.",
+			"deleteTagTitle": "Ta bort tagg",
+			"deleteTagMessage": "Är du säker på att du vill ta bort denna tagg? Den kommer att tas bort från alla spår.",
+			"deleteCategoryTitle": "Ta bort kategori",
+			"deleteCategoryMessage": "Är du säker på att du vill ta bort denna kategori? Alla taggar i denna kategori kommer att tas bort från alla spår.",
+			"removeFromPlaylistTitle": "Ta bort från spellista",
+			"removeFromPlaylistMessage": "{count, plural, =1 {Ta bort detta spår från spellistan?} other {Ta bort {count} spår från spellistan?}}",
+			"removeFromLibraryTitle": "Ta bort från bibliotek",
+			"removeFromLibraryMessage": "{count, plural, =1 {Ta bort detta spår från ditt bibliotek?} other {Ta bort {count} spår från ditt bibliotek?}}",
+			"removeFromLibraryWarning": "Denna åtgärd kan inte ångras. Spår kommer att tas bort från alla spellistor.",
+			"deleteTracksFromCollection": "Ta även bort spår från min samling"
+		},
+		"relocate": {
+			"title": "Flytta spår",
+			"message": "Välj den nya platsen för detta spår."
+		},
+		"albumArt": "Albumomslag",
+		"deviceInfo": {
+			"title": "Enhetsinformation",
+			"diskType": "Disktyp",
+			"fileSystem": "Filsystem",
+			"storage": "Lagring",
+			"used": "Använt:",
+			"available": "Tillgängligt:",
+			"total": "Totalt:",
+			"percentUsed": "% använt"
+		},
+		"duplicate": {
+			"title": "Dubblettspår upptäckt",
+			"progress": "Dubblett {current} av {total}",
+			"message": "Denna fil matchar ett befintligt spår i ditt bibliotek:",
+			"current": "Nuvarande:",
+			"new": "Ny:",
+			"skip": "Hoppa över",
+			"skipDescription": "Importera inte denna fil. Lämna det befintliga spåret oförändrat.",
+			"updatePath": "Uppdatera sökväg",
+			"updatePathDescription": "Behåll all befintlig data (cue-punkter, taggar, spellistor, spelhistorik) men uppdatera filplatsen.",
+			"replace": "Ersätt",
+			"replaceDescription": "Ny import från ny fil. Behåller endast spellistemedlemskap. Återställer cue-punkter, taggar och spelhistorik.",
+			"applyToAll": "Tillämpa på alla återstående dubbletter ({count})"
+		},
+		"conflict": {
+			"title": "Namnkonflikt",
+			"resolving": "Löser konflikt",
+			"remaining": "({count} återstående)",
+			"message": "En {type} med namnet \"{name}\" finns redan på denna plats.",
+			"merge": "Slå samman",
+			"replace": "Ersätt",
+			"mergeFolder": "Flytta innehållet i denna mapp till den befintliga mappen. Du kommer att tillfrågas om nästlade konflikter.",
+			"mergePlaylist": "Kombinera spår från båda spellistorna till en.",
+			"mergeNotAvailable": "Inte tillgängligt: båda objekten måste vara av samma typ för att slå samman.",
+			"replaceDescription": "Ta bort den befintliga {type} och placera detta {item} i dess ställe.",
+			"replaceNotAvailable": "Inte tillgängligt: kan endast ersätta objekt av samma typ.",
+			"replaceFolderWarning": "Ersättning kommer permanent att ta bort den befintliga mappen och allt dess innehåll.",
+			"replacePlaylistWarning": "Ersättning kommer permanent att ta bort den befintliga spellistan och dess spårassociationer."
+		}
+	},
+	"toast": {
+		"trackAdded": "{count, plural, =1 {1 spår} other {{count} spår}} tillagt i {playlistName}",
+		"trackAddedWithFailed": "{count, plural, =1 {1 spår} other {{count} spår}} tillagt i {playlistName}, {failed} misslyckades",
+		"tracksImported": "{count, plural, =1 {1 spår} other {{count} spår}} importerat",
+		"tracksImportedWithSkipped": "{imported, plural, =1 {1 spår} other {{imported} spår}} importerat, {skipped} hoppades över",
+		"trackRemoved": "{count, plural, =1 {1 spår} other {{count} spår}} borttaget från spellista",
+		"trackRemovedFromLibrary": "{count, plural, =1 {1 spår} other {{count} spår}} borttaget från bibliotek",
+		"movedSuccessfully": "Flyttades framgångsrikt",
+		"mergedSuccessfully": "Sammanslogs framgångsrikt",
+		"mergeCompleted": "Sammanslagning slutförd",
+		"replacedExisting": "Ersatte befintligt objekt",
+		"deviceConnected": "{name} ansluten",
+		"deviceDisconnected": "{name} frånkopplad",
+		"deviceEjected": "{name} matad ut",
+		"deviceEjectFailed": "Kunde inte mata ut {name}",
+		"relocated": "\"{title}\" flyttad",
+		"failedToResolve": "Kunde inte lösa dubblett: {error}",
+		"failedToAddPlaylist": "Kunde inte lägga till spår i spellista",
+		"warningTracksImportedFailed": "Spår importerades men kunde inte läggas till i {playlistName}",
+		"failedToImport": "Kunde inte importera spår: {error}",
+		"failedToUpdateTracks": "Kunde inte uppdatera spår",
+		"failedToSetArtwork": "Kunde inte ställa in omslag",
+		"failedToRemoveArtwork": "Kunde inte ta bort omslag",
+		"noArtworkInFile": "Inget omslag hittades i ljudfilen"
+	},
+	"errors": {
+		"cannotDropIntoSelf": "Kan inte släppa en mapp i sig själv",
+		"cannotDropIntoSubfolder": "Kan inte släppa en mapp i sin egen undermapp"
+	},
+	"devices": {
+		"title": "Enheter",
+		"eject": "Mata ut",
+		"deviceInfo": "Enhetsinformation",
+		"capacity": "Kapacitet",
+		"available": "Tillgängligt",
+		"used": "Använt",
+		"noDevices": "Inga enheter anslutna",
+		"free": "ledigt",
+		"connected": "Ansluten",
+		"viewInfo": "Visa info"
+	},
+	"editor": {
+		"trackInfo": "Spårinfo",
+		"tracksCount": "{count} spår",
+		"title": "Titel",
+		"artist": "Artist",
+		"album": "Album",
+		"year": "År",
+		"genre": "Genre",
+		"label": "Skivbolag",
+		"bpm": "BPM",
+		"key": "Tonart",
+		"saving": "Sparar...",
+		"saveChanges": "Spara ändringar",
+		"multipleArtworks": "Flera omslag",
+		"addArtwork": "Lägg till omslag",
+		"replaceArtwork": "Ersätt omslag",
+		"reextractFromFile": "Extrahera om från fil"
+	},
+	"colors": {
+		"pink": "Rosa",
+		"red": "Röd",
+		"orange": "Orange",
+		"yellow": "Gul",
+		"green": "Grön",
+		"aqua": "Aqua",
+		"blue": "Blå",
+		"purple": "Lila",
+		"amber": "Bärnsten",
+		"teal": "Blågrön",
+		"indigo": "Indigo",
+		"violet": "Violett",
+		"rose": "Ros",
+		"emerald": "Smaragd"
+	},
+	"crash": {
+		"title": "Något gick fel",
+		"description": "Programmet stötte på ett oväntat fel.",
+		"errorDetails": "Feldetaljer",
+		"resetApp": "Återställ program"
+	},
+	"menu": {
+		"file": "Arkiv",
+		"edit": "Redigera",
+		"playback": "Uppspelning",
+		"view": "Visa",
+		"window": "Fönster",
+		"help": "Hjälp",
+		"about": "Om {appName}",
+		"settings": "Inställningar...",
+		"quit": "Avsluta {appName}",
+		"importTracks": "Importera spår...",
+		"newPlaylist": "Ny spellista",
+		"newFolder": "Ny mapp",
+		"undo": "Ångra",
+		"redo": "Gör om",
+		"cut": "Klipp ut",
+		"copy": "Kopiera",
+		"paste": "Klistra in",
+		"selectAllTracks": "Markera alla spår",
+		"playPause": "Spela/Paus",
+		"stop": "Stoppa",
+		"toggleSidebar": "Visa/Dölj sidofält",
+		"showDevTools": "Visa DevTools",
+		"minimize": "Minimera",
+		"zoom": "Zooma",
+		"documentation": "{appName} Dokumentation",
+		"reportIssue": "Rapportera ett problem..."
+	}
+}

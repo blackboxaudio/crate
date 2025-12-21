@@ -388,7 +388,7 @@ export type AccentColor =
 
 export type Font = 'ibm-plex-mono' | 'jetbrains-mono' | 'fira-code' | 'inter' | 'open-sans'
 
-export type Language = 'en' | 'ja'
+export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | 'ko' | 'pt' | 'zh'
 
 export interface AppSettings {
 	theme: Theme
