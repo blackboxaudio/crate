@@ -1,0 +1,190 @@
+{
+	"common": {
+		"close": "Close",
+		"save": "Save",
+		"cancel": "Cancel",
+		"create": "Create",
+		"delete": "Delete",
+		"remove": "Remove",
+		"rename": "Rename",
+		"default": "Default",
+		"loading": "Loading...",
+		"unknown": "Unknown"
+	},
+	"nav": {
+		"library": "Library",
+		"playlists": "Playlists",
+		"tags": "Tags"
+	},
+	"settings": {
+		"title": "Settings",
+		"tabs": {
+			"general": "General",
+			"appearance": "Appearance",
+			"sound": "Sound",
+			"diagnostics": "Diagnostics",
+			"about": "About"
+		},
+		"general": {
+			"language": "Language",
+			"languageDescription": "Choose the display language for the application."
+		},
+		"appearance": {
+			"font": "Font",
+			"fontDescription": "Choose the font used throughout the application.",
+			"theme": "Theme",
+			"themeLight": "Light",
+			"themeDark": "Dark",
+			"themeSystem": "System",
+			"accentColor": "Accent Color"
+		},
+		"sound": {
+			"outputDevice": "Output Device",
+			"outputDeviceDescription": "Select the audio output device for playback.",
+			"systemDefault": "System Default",
+			"system": "System",
+			"external": "External"
+		},
+		"diagnostics": {
+			"systemInfo": "System Information",
+			"errorLog": "Error Log",
+			"export": "Export",
+			"exportDescription": "Export diagnostics report for bug reports or troubleshooting.",
+			"noErrors": "No errors recorded",
+			"loadingSystemInfo": "Loading system info...",
+			"operatingSystem": "Operating System",
+			"cpu": "CPU",
+			"memory": "Memory",
+			"dataDirectory": "Data Directory",
+			"entriesCount": "{count} of 100 entries",
+			"saveAsJson": "Save as JSON",
+			"saveAsText": "Save as Text",
+			"copyToClipboard": "Copy to Clipboard",
+			"copied": "Copied!"
+		},
+		"about": {
+			"application": "Application",
+			"version": "Version",
+			"environment": "Environment"
+		}
+	},
+	"player": {
+		"play": "Play",
+		"pause": "Pause",
+		"stop": "Stop",
+		"previous": "Previous",
+		"next": "Next",
+		"mute": "Mute",
+		"unmute": "Unmute"
+	},
+	"library": {
+		"searchPlaceholder": "Search tracks...",
+		"importTracks": "Import Tracks",
+		"matching": "Matching",
+		"matchOr": "OR",
+		"matchAnd": "AND",
+		"clearAll": "Clear all"
+	},
+	"playlists": {
+		"newPlaylist": "New Playlist",
+		"newFolder": "New Folder",
+		"deletePlaylist": "Delete Playlist",
+		"deleteFolder": "Delete Folder",
+		"moveToFolder": "Move to Folder",
+		"rootNoFolder": "Root (No Folder)"
+	},
+	"tags": {
+		"newCategory": "New Category",
+		"newTag": "New Tag",
+		"deleteTag": "Delete Tag",
+		"deleteCategory": "Delete Category"
+	},
+	"contextMenu": {
+		"viewInFinder": "View in Finder",
+		"viewInExplorer": "View in Explorer",
+		"viewInFileManager": "View in File Manager",
+		"addToPlaylist": "Add to Playlist",
+		"setColor": "Set Color",
+		"removeColor": "Remove Color",
+		"removeFromPlaylist": "Remove from Playlist",
+		"removeFromLibrary": "Remove from Library",
+		"relocate": "Relocate..."
+	},
+	"modals": {
+		"createPlaylist": {
+			"title": "New Playlist",
+			"placeholder": "Playlist name"
+		},
+		"createFolder": {
+			"title": "New Folder",
+			"placeholder": "Folder name"
+		},
+		"createCategory": {
+			"title": "New Tag Category",
+			"placeholder": "Category name"
+		},
+		"createTag": {
+			"title": "New Tag",
+			"categoryLabel": "Category",
+			"tagLabel": "Tag name",
+			"categoryPlaceholder": "Select a category",
+			"tagPlaceholder": "Enter tag name"
+		},
+		"rename": {
+			"title": "Rename",
+			"placeholder": "Name"
+		},
+		"confirm": {
+			"deletePlaylistTitle": "Delete Playlist",
+			"deletePlaylistMessage": "Are you sure you want to delete this playlist?",
+			"deleteFolderTitle": "Delete Folder",
+			"deleteFolderMessage": "Are you sure you want to delete this folder?",
+			"deleteFolderWarning": "This folder contains playlists that will also be deleted.",
+			"deleteTagTitle": "Delete Tag",
+			"deleteTagMessage": "Are you sure you want to delete this tag? It will be removed from all tracks.",
+			"deleteCategoryTitle": "Delete Category",
+			"deleteCategoryMessage": "Are you sure you want to delete this category? All tags in this category will be removed from all tracks.",
+			"removeFromPlaylistTitle": "Remove from Playlist",
+			"removeFromPlaylistMessage": "{count, plural, =1 {Remove this track from the playlist?} other {Remove {count} tracks from the playlist?}}",
+			"removeFromLibraryTitle": "Remove from Library",
+			"removeFromLibraryMessage": "{count, plural, =1 {Remove this track from your library?} other {Remove {count} tracks from your library?}}",
+			"deleteTracksFromCollection": "Also delete tracks from my collection"
+		},
+		"relocate": {
+			"title": "Relocate Track",
+			"message": "Select the new location for this track."
+		}
+	},
+	"toast": {
+		"trackAdded": "{count, plural, =1 {1 track} other {{count} tracks}} added to {playlistName}",
+		"tracksImported": "{count, plural, =1 {1 track} other {{count} tracks}} imported",
+		"tracksImportedWithSkipped": "{imported, plural, =1 {1 track} other {{imported} tracks}} imported, {skipped} skipped",
+		"trackRemoved": "{count, plural, =1 {1 track} other {{count} tracks}} removed from playlist",
+		"trackRemovedFromLibrary": "{count, plural, =1 {1 track} other {{count} tracks}} removed from library",
+		"movedSuccessfully": "Moved successfully",
+		"mergedSuccessfully": "Merged successfully",
+		"mergeCompleted": "Merge completed",
+		"replacedExisting": "Replaced existing item",
+		"deviceConnected": "{name} connected",
+		"deviceDisconnected": "{name} disconnected",
+		"deviceEjected": "{name} ejected",
+		"deviceEjectFailed": "Failed to eject {name}",
+		"relocated": "Relocated \"{title}\"",
+		"failedToResolve": "Failed to resolve duplicate: {error}",
+		"failedToAddPlaylist": "Failed to add tracks to playlist",
+		"warningTracksImportedFailed": "Tracks imported but failed to add to {playlistName}",
+		"failedToImport": "Failed to import tracks: {error}"
+	},
+	"errors": {
+		"cannotDropIntoSelf": "Cannot drop a folder into itself",
+		"cannotDropIntoSubfolder": "Cannot drop a folder into its own subfolder"
+	},
+	"devices": {
+		"title": "Devices",
+		"eject": "Eject",
+		"deviceInfo": "Device Info",
+		"capacity": "Capacity",
+		"available": "Available",
+		"used": "Used"
+	}
+}

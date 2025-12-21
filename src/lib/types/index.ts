@@ -388,11 +388,14 @@ export type AccentColor =
 
 export type Font = 'ibm-plex-mono' | 'jetbrains-mono' | 'fira-code' | 'inter' | 'open-sans'
 
+export type Language = 'en' | 'ja'
+
 export interface AppSettings {
 	theme: Theme
 	accentColor: AccentColor
 	font: Font
 	audioDevice: string | null
+	language: Language
 }
 
 export interface AudioDevice {

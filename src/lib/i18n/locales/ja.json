@@ -1,0 +1,190 @@
+{
+	"common": {
+		"close": "閉じる",
+		"save": "保存",
+		"cancel": "キャンセル",
+		"create": "作成",
+		"delete": "削除",
+		"remove": "削除",
+		"rename": "名前を変更",
+		"default": "デフォルト",
+		"loading": "読み込み中...",
+		"unknown": "不明"
+	},
+	"nav": {
+		"library": "ライブラリ",
+		"playlists": "プレイリスト",
+		"tags": "タグ"
+	},
+	"settings": {
+		"title": "設定",
+		"tabs": {
+			"general": "一般",
+			"appearance": "外観",
+			"sound": "サウンド",
+			"diagnostics": "診断",
+			"about": "情報"
+		},
+		"general": {
+			"language": "言語",
+			"languageDescription": "アプリケーションの表示言語を選択します。"
+		},
+		"appearance": {
+			"font": "フォント",
+			"fontDescription": "アプリケーション全体で使用するフォントを選択します。",
+			"theme": "テーマ",
+			"themeLight": "ライト",
+			"themeDark": "ダーク",
+			"themeSystem": "システム",
+			"accentColor": "アクセントカラー"
+		},
+		"sound": {
+			"outputDevice": "出力デバイス",
+			"outputDeviceDescription": "再生に使用するオーディオ出力デバイスを選択します。",
+			"systemDefault": "システムデフォルト",
+			"system": "システム",
+			"external": "外部"
+		},
+		"diagnostics": {
+			"systemInfo": "システム情報",
+			"errorLog": "エラーログ",
+			"export": "エクスポート",
+			"exportDescription": "バグ報告やトラブルシューティング用に診断レポートをエクスポートします。",
+			"noErrors": "エラーは記録されていません",
+			"loadingSystemInfo": "システム情報を読み込み中...",
+			"operatingSystem": "オペレーティングシステム",
+			"cpu": "CPU",
+			"memory": "メモリ",
+			"dataDirectory": "データディレクトリ",
+			"entriesCount": "100件中{count}件",
+			"saveAsJson": "JSONで保存",
+			"saveAsText": "テキストで保存",
+			"copyToClipboard": "クリップボードにコピー",
+			"copied": "コピーしました！"
+		},
+		"about": {
+			"application": "アプリケーション",
+			"version": "バージョン",
+			"environment": "環境"
+		}
+	},
+	"player": {
+		"play": "再生",
+		"pause": "一時停止",
+		"stop": "停止",
+		"previous": "前へ",
+		"next": "次へ",
+		"mute": "ミュート",
+		"unmute": "ミュート解除"
+	},
+	"library": {
+		"searchPlaceholder": "トラックを検索...",
+		"importTracks": "トラックをインポート",
+		"matching": "一致",
+		"matchOr": "または",
+		"matchAnd": "かつ",
+		"clearAll": "すべてクリア"
+	},
+	"playlists": {
+		"newPlaylist": "新しいプレイリスト",
+		"newFolder": "新しいフォルダ",
+		"deletePlaylist": "プレイリストを削除",
+		"deleteFolder": "フォルダを削除",
+		"moveToFolder": "フォルダに移動",
+		"rootNoFolder": "ルート（フォルダなし）"
+	},
+	"tags": {
+		"newCategory": "新しいカテゴリ",
+		"newTag": "新しいタグ",
+		"deleteTag": "タグを削除",
+		"deleteCategory": "カテゴリを削除"
+	},
+	"contextMenu": {
+		"viewInFinder": "Finderで表示",
+		"viewInExplorer": "エクスプローラーで表示",
+		"viewInFileManager": "ファイルマネージャーで表示",
+		"addToPlaylist": "プレイリストに追加",
+		"setColor": "色を設定",
+		"removeColor": "色を削除",
+		"removeFromPlaylist": "プレイリストから削除",
+		"removeFromLibrary": "ライブラリから削除",
+		"relocate": "再配置..."
+	},
+	"modals": {
+		"createPlaylist": {
+			"title": "新しいプレイリスト",
+			"placeholder": "プレイリスト名"
+		},
+		"createFolder": {
+			"title": "新しいフォルダ",
+			"placeholder": "フォルダ名"
+		},
+		"createCategory": {
+			"title": "新しいタグカテゴリ",
+			"placeholder": "カテゴリ名"
+		},
+		"createTag": {
+			"title": "新しいタグ",
+			"categoryLabel": "カテゴリ",
+			"tagLabel": "タグ名",
+			"categoryPlaceholder": "カテゴリを選択",
+			"tagPlaceholder": "タグ名を入力"
+		},
+		"rename": {
+			"title": "名前を変更",
+			"placeholder": "名前"
+		},
+		"confirm": {
+			"deletePlaylistTitle": "プレイリストを削除",
+			"deletePlaylistMessage": "このプレイリストを削除してもよろしいですか？",
+			"deleteFolderTitle": "フォルダを削除",
+			"deleteFolderMessage": "このフォルダを削除してもよろしいですか？",
+			"deleteFolderWarning": "このフォルダにはプレイリストが含まれており、一緒に削除されます。",
+			"deleteTagTitle": "タグを削除",
+			"deleteTagMessage": "このタグを削除してもよろしいですか？すべてのトラックから削除されます。",
+			"deleteCategoryTitle": "カテゴリを削除",
+			"deleteCategoryMessage": "このカテゴリを削除してもよろしいですか？このカテゴリのすべてのタグがすべてのトラックから削除されます。",
+			"removeFromPlaylistTitle": "プレイリストから削除",
+			"removeFromPlaylistMessage": "{count, plural, =1 {このトラックをプレイリストから削除しますか？} other {{count}曲のトラックをプレイリストから削除しますか？}}",
+			"removeFromLibraryTitle": "ライブラリから削除",
+			"removeFromLibraryMessage": "{count, plural, =1 {このトラックをライブラリから削除しますか？} other {{count}曲のトラックをライブラリから削除しますか？}}",
+			"deleteTracksFromCollection": "コレクションからもトラックを削除"
+		},
+		"relocate": {
+			"title": "トラックを再配置",
+			"message": "このトラックの新しい場所を選択してください。"
+		}
+	},
+	"toast": {
+		"trackAdded": "{count, plural, =1 {1曲} other {{count}曲}}を{playlistName}に追加しました",
+		"tracksImported": "{count, plural, =1 {1曲} other {{count}曲}}をインポートしました",
+		"tracksImportedWithSkipped": "{imported, plural, =1 {1曲} other {{imported}曲}}をインポート、{skipped}曲をスキップしました",
+		"trackRemoved": "{count, plural, =1 {1曲} other {{count}曲}}をプレイリストから削除しました",
+		"trackRemovedFromLibrary": "{count, plural, =1 {1曲} other {{count}曲}}をライブラリから削除しました",
+		"movedSuccessfully": "移動しました",
+		"mergedSuccessfully": "マージしました",
+		"mergeCompleted": "マージ完了",
+		"replacedExisting": "既存のアイテムを置き換えました",
+		"deviceConnected": "{name}が接続されました",
+		"deviceDisconnected": "{name}が切断されました",
+		"deviceEjected": "{name}を取り出しました",
+		"deviceEjectFailed": "{name}の取り出しに失敗しました",
+		"relocated": "「{title}」を再配置しました",
+		"failedToResolve": "重複の解決に失敗しました: {error}",
+		"failedToAddPlaylist": "プレイリストへのトラックの追加に失敗しました",
+		"warningTracksImportedFailed": "トラックはインポートされましたが、{playlistName}への追加に失敗しました",
+		"failedToImport": "トラックのインポートに失敗しました: {error}"
+	},
+	"errors": {
+		"cannotDropIntoSelf": "フォルダを自分自身にドロップすることはできません",
+		"cannotDropIntoSubfolder": "フォルダをそのサブフォルダにドロップすることはできません"
+	},
+	"devices": {
+		"title": "デバイス",
+		"eject": "取り出し",
+		"deviceInfo": "デバイス情報",
+		"capacity": "容量",
+		"available": "空き容量",
+		"used": "使用済み"
+	}
+}

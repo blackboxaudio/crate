@@ -1,6 +1,7 @@
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor, Font, AudioDevice } from '$lib/types'
+import type { Theme, AccentColor, Font, AudioDevice, Language } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
+import { setLanguage as setI18nLanguage } from '$lib/i18n'
 
 // =============================================================================
 // State
@@ -13,6 +14,7 @@ interface SettingsState {
 	resolvedTheme: 'light' | 'dark' // Actual theme after resolving 'system'
 	audioDevice: string | null
 	audioDevices: AudioDevice[]
+	language: Language
 	loading: boolean
 	error: string | null
 }
@@ -24,6 +26,7 @@ const initialState: SettingsState = {
 	resolvedTheme: 'dark',
 	audioDevice: null,
 	audioDevices: [],
+	language: 'en',
 	loading: false,
 	error: null,
 }
@@ -68,11 +71,14 @@ function createSettingsStore() {
 		document.documentElement.setAttribute('data-font', font)
 	}
 
-	function persistToLocalStorage(theme: Theme, accentColor: AccentColor) {
+	function persistToLocalStorage(theme: Theme, accentColor: AccentColor, language?: Language) {
 		if (typeof localStorage === 'undefined') return
 		try {
 			localStorage.setItem('crate-theme', theme)
 			localStorage.setItem('crate-accent', accentColor)
+			if (language) {
+				localStorage.setItem('crate-language', language)
+			}
 		} catch {
 			// localStorage not available or quota exceeded, ignore
 		}
@@ -120,6 +126,7 @@ function createSettingsStore() {
 					font: settings.font,
 					audioDevice: settings.audioDevice,
 					audioDevices,
+					language: settings.language,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -127,8 +134,11 @@ function createSettingsStore() {
 				applyTheme(resolvedTheme)
 				applyAccentColor(settings.accentColor)
 				applyFont(settings.font)
-				persistToLocalStorage(settings.theme, settings.accentColor)
+				persistToLocalStorage(settings.theme, settings.accentColor, settings.language)
 				setupSystemThemeListener()
+
+				// Update i18n language
+				await setI18nLanguage(settings.language)
 			} catch (error) {
 				update((s) => ({
 					...s,
@@ -208,6 +218,23 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set display language
+		 */
+		async setLanguage(language: Language) {
+			const state = get({ subscribe })
+
+			update((s) => ({ ...s, language }))
+			await setI18nLanguage(language)
+			persistToLocalStorage(state.theme, state.accentColor, language)
+
+			try {
+				await settingsApi.setSetting('language', language)
+			} catch (error) {
+				console.error('Failed to save language setting:', error)
+			}
+		},
+
+		/**
 		 * Refresh the list of available audio devices
 		 */
 		async refreshAudioDevices() {
@@ -245,5 +272,7 @@ export const resolvedTheme = derived(settingsStore, ($s) => $s.resolvedTheme)
 export const audioDevice = derived(settingsStore, ($s) => $s.audioDevice)
 
 export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
+
+export const language = derived(settingsStore, ($s) => $s.language)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

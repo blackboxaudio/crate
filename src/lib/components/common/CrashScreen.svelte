@@ -83,7 +83,7 @@
 					<span class="text-xs font-medium text-text-secondary">Error Details</span>
 					<Tooltip bind:this={copyTooltip} position="left">
 						<IconButton size="sm" onclick={handleCopyError}>
-							<Icon name={copySuccess ? 'check' : 'copy'} class="h-4 w-4 {copySuccess ? 'text-brand-primary' : ''}" />
+							<Icon name={copySuccess ? 'check' : 'copy'} class="h-4 w-4 {copySuccess ? 'text-success' : ''}" />
 						</IconButton>
 					</Tooltip>
 				</div>

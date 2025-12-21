@@ -2,6 +2,35 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
+pub enum Language {
+    #[default]
+    En,
+    Ja,
+}
+
+impl std::fmt::Display for Language {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Language::En => write!(f, "en"),
+            Language::Ja => write!(f, "ja"),
+        }
+    }
+}
+
+impl std::str::FromStr for Language {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "en" => Ok(Language::En),
+            "ja" => Ok(Language::Ja),
+            _ => Err(format!("Unknown language: {s}")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
 pub enum Theme {
     Light,
     Dark,
@@ -130,6 +159,7 @@ pub struct AppSettings {
     pub accent_color: AccentColor,
     pub font: Font,
     pub audio_device: Option<String>,
+    pub language: Language,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

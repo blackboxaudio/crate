@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { Theme, AccentColor, Font, DiagnosticsReport } from '$lib/types'
-	import { settingsStore, theme, accentColor, font, audioDevice, audioDevices } from '$lib/stores/settings'
+	import type { Theme, AccentColor, Font, DiagnosticsReport, Language } from '$lib/types'
+	import { settingsStore, theme, accentColor, font, audioDevice, audioDevices, language } from '$lib/stores/settings'
 	import { diagnosticsStore, diagnosticEntries, systemInfo } from '$lib/stores/diagnostics'
 	import { appInfo } from '$lib/stores/app'
 	import { Button, Select, Text, IconButton } from '$lib/components/common'
@@ -10,25 +10,26 @@
 	import { writeTextFile } from '@tauri-apps/plugin-fs'
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { scale } from 'svelte/transition'
+	import { SUPPORTED_LANGUAGES } from '$lib/i18n'
 
 	type Props = {
 		open: boolean
 		onClose: () => void
 	}
 
-	type SettingsPage = 'appearance' | 'sound' | 'diagnostics' | 'about'
+	type SettingsPage = 'general' | 'appearance' | 'sound' | 'diagnostics' | 'about'
 
 	let { open, onClose }: Props = $props()
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
-	let activePage: SettingsPage = $state('appearance')
+	let activePage: SettingsPage = $state('general')
 	let copyTooltip: ReturnType<typeof Tooltip> | undefined = $state()
 	let copySuccess = $state(false)
 
 	// Reset to first page when opening
 	$effect(() => {
 		if (open) {
-			activePage = 'appearance'
+			activePage = 'general'
 		}
 	})
 
@@ -114,6 +115,16 @@
 	function handleAudioDeviceChange(value: string) {
 		settingsStore.setAudioDevice(value === '' ? null : value)
 	}
+
+	function handleLanguageChange(value: string) {
+		settingsStore.setLanguage(value as Language)
+	}
+
+	// Language options for Select component
+	const languageOptions = SUPPORTED_LANGUAGES.map((lang) => ({
+		value: lang.value,
+		label: lang.nativeLabel,
+	}))
 
 	// Build grouped audio device options for Select component
 	const audioDeviceOptions = $derived.by(() => {
@@ -274,6 +285,17 @@
 					<button
 						type="button"
 						class="flex w-full items-center gap-2 rounded-md px-3 py-2
+							text-sm font-medium hover:cursor-pointer {activePage === 'general'
+							? 'bg-brand-muted text-brand-primary'
+							: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+						onclick={() => (activePage = 'general')}
+					>
+						<Icon name="globe" class="h-4 w-4" />
+						General
+					</button>
+					<button
+						type="button"
+						class="flex w-full items-center gap-2 rounded-md px-3 py-2
 							text-sm font-medium hover:cursor-pointer {activePage === 'appearance'
 							? 'bg-brand-muted text-brand-primary'
 							: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
@@ -320,7 +342,23 @@
 
 			<!-- Content -->
 			<div class="flex-1 overflow-auto p-6">
-				{#if activePage === 'appearance'}
+				{#if activePage === 'general'}
+					<div class="space-y-8">
+						<!-- Language Section -->
+						<section>
+							<Text variant="header-3" class="mb-4">Language</Text>
+							<div class="max-w-md">
+								<Select
+									value={$language}
+									options={languageOptions}
+									placeholder="Select a language"
+									onchange={handleLanguageChange}
+								/>
+								<Text variant="caption" as="p" class="mt-2">Choose the display language for the application.</Text>
+							</div>
+						</section>
+					</div>
+				{:else if activePage === 'appearance'}
 					<div class="space-y-8">
 						<!-- Font Section -->
 						<section>
@@ -482,10 +520,7 @@
 								<Button variant="secondary" onclick={handleExportText}>Save as Text</Button>
 								<Tooltip bind:this={copyTooltip}>
 									<IconButton title="Copy to Clipboard" onclick={handleCopyToClipboard}>
-										<Icon
-											name={copySuccess ? 'check' : 'copy'}
-											class="h-5 w-5 {copySuccess ? 'text-brand-primary' : ''}"
-										/>
+										<Icon name={copySuccess ? 'check' : 'copy'} class="h-5 w-5 {copySuccess ? 'text-success' : ''}" />
 									</IconButton>
 								</Tooltip>
 							</div>
