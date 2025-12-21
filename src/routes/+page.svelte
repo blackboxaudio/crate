@@ -272,8 +272,7 @@
 		}
 	})
 
-	// Initialize on mount
-	onMount(async () => {
+	async function onMountHelper(): Promise<() => void> {
 		// Initialize app (stores, drag-drop, device listener)
 		const cleanupApp = await useAppInitialization({
 			stores: { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore },
@@ -403,7 +402,10 @@
 			cleanupKeyboard()
 			cleanupMenu()
 		}
-	})
+	}
+
+	// Initialize on mount
+	onMount(() => void onMountHelper())
 
 	// Sort change
 	function handleSortChange(config: SortConfig) {

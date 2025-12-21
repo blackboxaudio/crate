@@ -10,7 +10,7 @@ use lofty::config::{ParseOptions, ParsingMode};
 use lofty::file::AudioFile;
 use lofty::probe::Probe;
 use rodio::cpal::traits::{DeviceTrait, HostTrait};
-use rodio::{Decoder, OutputStream, Sink};
+use rodio::{stream::OutputStreamBuilder, Decoder, OutputStream, Sink};
 use serde::{Deserialize, Serialize};
 use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
@@ -384,16 +384,16 @@ fn handle_command(
             *player = None;
 
             // Create audio output using selected device or default
-            let (stream, stream_handle) = if let Some(ref device_name) = selected_device {
+            let stream = if let Some(ref device_name) = selected_device {
                 if let Some(device) = find_device_by_name(device_name) {
-                    match OutputStream::try_from_device(&device) {
+                    match OutputStreamBuilder::from_device(device).and_then(|b| b.open_stream()) {
                         Ok(s) => s,
                         Err(e) => {
                             log::warn!(
                                 "Failed to use device '{device_name}': {e}, falling back to default"
                             );
                             // Fallback to default
-                            match OutputStream::try_default() {
+                            match OutputStreamBuilder::open_default_stream() {
                                 Ok(s) => s,
                                 Err(e) => {
                                     return AudioResponse::Error(format!(
@@ -406,7 +406,7 @@ fn handle_command(
                 } else {
                     log::warn!("Device '{device_name}' not found, falling back to default");
                     // Device not found, fallback to default
-                    match OutputStream::try_default() {
+                    match OutputStreamBuilder::open_default_stream() {
                         Ok(s) => s,
                         Err(e) => {
                             return AudioResponse::Error(format!(
@@ -417,7 +417,7 @@ fn handle_command(
                 }
             } else {
                 // Use default device
-                match OutputStream::try_default() {
+                match OutputStreamBuilder::open_default_stream() {
                     Ok(s) => s,
                     Err(e) => {
                         return AudioResponse::Error(format!("Failed to create audio output: {e}"))
@@ -425,10 +425,7 @@ fn handle_command(
                 }
             };
 
-            let sink = match Sink::try_new(&stream_handle) {
-                Ok(s) => s,
-                Err(e) => return AudioResponse::Error(format!("Failed to create sink: {e}")),
-            };
+            let sink = Sink::connect_new(stream.mixer());
 
             // Open and decode file
             let file = match File::open(&file_path) {
@@ -550,9 +547,11 @@ fn handle_command(
                     *player = None;
 
                     // Create new stream with the new device
-                    let (stream, stream_handle) = if let Some(ref dev_name) = device_name {
+                    let stream = if let Some(ref dev_name) = device_name {
                         if let Some(device) = find_device_by_name(dev_name) {
-                            match OutputStream::try_from_device(&device) {
+                            match OutputStreamBuilder::from_device(device)
+                                .and_then(|b| b.open_stream())
+                            {
                                 Ok(s) => s,
                                 Err(e) => {
                                     log::warn!(
@@ -566,7 +565,7 @@ fn handle_command(
                             return AudioResponse::Ok;
                         }
                     } else {
-                        match OutputStream::try_default() {
+                        match OutputStreamBuilder::open_default_stream() {
                             Ok(s) => s,
                             Err(e) => {
                                 log::warn!("Failed to switch to default device: {e}");
@@ -575,13 +574,7 @@ fn handle_command(
                         }
                     };
 
-                    let sink = match Sink::try_new(&stream_handle) {
-                        Ok(s) => s,
-                        Err(e) => {
-                            log::warn!("Failed to create sink on new device: {e}");
-                            return AudioResponse::Ok;
-                        }
-                    };
+                    let sink = Sink::connect_new(stream.mixer());
 
                     // Open and decode file
                     let file = match File::open(&path) {

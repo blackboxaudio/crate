@@ -7,7 +7,8 @@ mod services;
 
 use db::Database;
 use services::{
-    AudioService, DeviceService, LibraryService, PlaylistService, SettingsService, TagService,
+    AudioService, DeviceService, DiagnosticsService, LibraryService, PlaylistService,
+    SettingsService, TagService,
 };
 use tauri::Manager;
 
@@ -19,6 +20,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_clipboard_manager::init())
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
@@ -80,6 +82,12 @@ pub fn run() {
             // Device commands
             commands::device::get_devices,
             commands::device::eject_device,
+            // Diagnostics commands
+            commands::diagnostics::get_diagnostic_entries,
+            commands::diagnostics::get_system_info,
+            commands::diagnostics::get_diagnostics_report,
+            commands::diagnostics::clear_diagnostic_entries,
+            commands::diagnostics::log_error,
         ])
         .setup(|app| {
             // Get Tauri's app data directory
@@ -104,6 +112,7 @@ pub fn run() {
             let settings_service = SettingsService::new(conn.clone());
             let audio_service = AudioService::new().expect("Failed to initialize audio service");
             let device_service = DeviceService::new();
+            let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
 
             // Load saved audio device setting
             if let Ok(settings) = settings_service.get_settings() {
@@ -121,6 +130,7 @@ pub fn run() {
             app.manage(settings_service);
             app.manage(audio_service);
             app.manage(device_service);
+            app.manage(diagnostics_service);
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

@@ -400,3 +400,37 @@ export interface AudioDevice {
 	isDefault: boolean
 	isBuiltIn: boolean
 }
+
+// =============================================================================
+// Diagnostics Types
+// =============================================================================
+
+export type DiagnosticLevel = 'error' | 'warning'
+
+export interface DiagnosticEntry {
+	id: string
+	timestamp: string
+	level: DiagnosticLevel
+	category: string
+	message: string
+	details: string | null
+}
+
+export interface SystemInfo {
+	osName: string
+	osVersion: string
+	cpuBrand: string
+	cpuCores: number
+	totalMemoryBytes: number
+	usedMemoryBytes: number
+	dataDirSizeBytes: number | null
+	databaseSizeBytes: number | null
+}
+
+export interface DiagnosticsReport {
+	appVersion: string
+	environment: string
+	generatedAt: string
+	systemInfo: SystemInfo
+	entries: DiagnosticEntry[]
+}

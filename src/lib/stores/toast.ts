@@ -1,4 +1,5 @@
 import { writable, derived } from 'svelte/store'
+import * as diagnosticsApi from '$lib/api/diagnostics'
 
 // =============================================================================
 // Types
@@ -89,9 +90,13 @@ function createToastStore() {
 		},
 
 		/**
-		 * Show an error toast
+		 * Show an error toast and log to diagnostics
 		 */
 		error(message: string, duration?: number) {
+			// Log to diagnostics service
+			diagnosticsApi.logError('Frontend', message).catch(() => {
+				// Silently fail - we don't want logging failures to break the app
+			})
 			return this.show('error', message, duration)
 		},
 

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
+	import { scale } from 'svelte/transition'
 
 	type Props = {
 		open: boolean
@@ -45,7 +46,7 @@
 	onclick={handleBackdropClick}
 >
 	{#if open}
-		<div class="flex flex-col">
+		<div class="flex flex-col" transition:scale={{ start: 0.95, duration: 200 }}>
 			{#if title}
 				<div class="border-b border-stroke-subtle px-4 py-3">
 					<h2 class="text-lg font-medium">{title}</h2>

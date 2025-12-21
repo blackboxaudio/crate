@@ -68,6 +68,16 @@ function createSettingsStore() {
 		document.documentElement.setAttribute('data-font', font)
 	}
 
+	function persistToLocalStorage(theme: Theme, accentColor: AccentColor) {
+		if (typeof localStorage === 'undefined') return
+		try {
+			localStorage.setItem('crate-theme', theme)
+			localStorage.setItem('crate-accent', accentColor)
+		} catch {
+			// localStorage not available or quota exceeded, ignore
+		}
+	}
+
 	function setupSystemThemeListener() {
 		if (typeof window === 'undefined') return
 
@@ -117,6 +127,7 @@ function createSettingsStore() {
 				applyTheme(resolvedTheme)
 				applyAccentColor(settings.accentColor)
 				applyFont(settings.font)
+				persistToLocalStorage(settings.theme, settings.accentColor)
 				setupSystemThemeListener()
 			} catch (error) {
 				update((s) => ({
@@ -139,9 +150,11 @@ function createSettingsStore() {
 		 */
 		async setTheme(theme: Theme) {
 			const resolvedTheme = resolveTheme(theme)
+			const state = get({ subscribe })
 
 			update((s) => ({ ...s, theme, resolvedTheme }))
 			applyTheme(resolvedTheme)
+			persistToLocalStorage(theme, state.accentColor)
 
 			try {
 				await settingsApi.setSetting('theme', theme)
@@ -154,8 +167,11 @@ function createSettingsStore() {
 		 * Set accent color
 		 */
 		async setAccentColor(color: AccentColor) {
+			const state = get({ subscribe })
+
 			update((s) => ({ ...s, accentColor: color }))
 			applyAccentColor(color)
+			persistToLocalStorage(state.theme, color)
 
 			try {
 				await settingsApi.setSetting('accent_color', color)

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
+	import { scale } from 'svelte/transition'
 	import type { ContextMenuItem } from '$lib/types'
 	import Icon from '$lib/components/common/Icon.svelte'
 
@@ -162,9 +163,10 @@
 
 				{#if item.submenu && isSubmenuActive(item.id, depth)}
 					<div
-						class="absolute z-50 min-w-48 rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
+						class="absolute z-50 min-w-48 origin-top-left rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
 						style={getSubmenuStyle(null)}
 						role="menu"
+						transition:scale={{ start: 0.95, duration: 200 }}
 					>
 						{@render menuItems(item.submenu, depth + 1)}
 					</div>
@@ -177,9 +179,10 @@
 {#if open}
 	<div
 		bind:this={menuEl}
-		class="fixed z-50 min-w-48 rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
+		class="fixed z-50 min-w-48 origin-top-left rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
 		style="left: {adjustedPosition.x}px; top: {adjustedPosition.y}px;"
 		role="menu"
+		transition:scale={{ start: 0.95, duration: 200 }}
 	>
 		{@render menuItems(items, 0)}
 	</div>

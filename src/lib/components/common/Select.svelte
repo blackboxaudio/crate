@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
+	import { scale } from 'svelte/transition'
 	import Icon from './Icon.svelte'
 	import Text from './Text.svelte'
 
@@ -62,9 +63,9 @@
 			const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
 
 			if (openUpward) {
-				dropdownStyle = `bottom: 100%; margin-bottom: 4px;`
+				dropdownStyle = `bottom: 100%; margin-bottom: 4px; transform-origin: bottom;`
 			} else {
-				dropdownStyle = `top: 100%; margin-top: 4px;`
+				dropdownStyle = `top: 100%; margin-top: 4px; transform-origin: top;`
 			}
 		}
 	})
@@ -179,6 +180,7 @@
 				bg-surface-1 py-1 shadow-lg"
 			style={dropdownStyle}
 			role="listbox"
+			transition:scale={{ start: 0.95, duration: 200 }}
 		>
 			{#if isGrouped}
 				{#each options as group, groupIndex ((group as SelectOptionGroup).label)}
