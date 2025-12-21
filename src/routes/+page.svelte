@@ -460,6 +460,9 @@
 	// Selected tracks for the editor
 	let selectedTracksArray = $derived($displayedTracks.filter((t) => $selectedTrackIds.has(t.id)))
 
+	// Snapshot of selected tracks that persists during close transition
+	let editorTracks = $state<Track[]>([])
+
 	async function handlePlaylistSelect(playlist: Playlist) {
 		// Clear track selection when selecting a folder or playlist
 		uiStore.clearSelection()
@@ -687,6 +690,13 @@
 	)
 
 	const sidebarOpen = $derived($rightSidebarVisible && selectedTracksArray.length > 0)
+
+	// Sync editor tracks with selection when sidebar is open
+	$effect(() => {
+		if (sidebarOpen && selectedTracksArray.length > 0) {
+			editorTracks = selectedTracksArray
+		}
+	})
 
 	// Breadcrumb navigation handler
 	function handleBreadcrumbNavigate(item: BreadcrumbItem) {
@@ -974,6 +984,11 @@
 				class:duration-250={!isResizingRightSidebar}
 				class:animate-[fade-in_250ms_ease-out]={sidebarOpen}
 				style="width: {sidebarOpen ? $rightSidebarWidth : 0}px"
+				ontransitionend={(e) => {
+					if (e.propertyName === 'width' && !sidebarOpen) {
+						editorTracks = []
+					}
+				}}
 			>
 				<ResizeHandle
 					onResize={handleRightSidebarResize}
@@ -981,7 +996,7 @@
 					onResizeEnd={() => (isResizingRightSidebar = false)}
 				/>
 				<div style="width: {$rightSidebarWidth}px">
-					<TrackEditor selectedTracks={selectedTracksArray} />
+					<TrackEditor selectedTracks={editorTracks} />
 				</div>
 			</div>
 		</div>

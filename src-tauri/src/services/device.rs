@@ -453,30 +453,50 @@ impl DeviceService {
 
     #[cfg(target_os = "macos")]
     fn reformat_device_macos(&self, mount_point: &str, volume_name: &str) -> Result<()> {
+        use security_framework::authorization::{Authorization, Flags};
+        use std::path::Path;
+
         // Get disk identifier from mount point
         let disk_id = get_disk_identifier_macos(mount_point)?;
 
-        // Build the diskutil command with administrator privileges via osascript
+        log::info!("Requesting authorization to reformat {}", disk_id);
+
+        // Create authorization with interaction allowed - shows native auth dialog
+        let auth = Authorization::new(None, None, Flags::EXTEND_RIGHTS | Flags::INTERACTION_ALLOWED)
+            .map_err(|e| CrateError::Device(format!("Authorization failed: {e}")))?;
+
+        // Prepare arguments
         // MBR partition scheme is used for maximum compatibility with DJ equipment
-        let script = format!(
-            "do shell script \"diskutil eraseDisk FAT32 {} MBR {}\" with administrator privileges",
-            volume_name, disk_id
-        );
+        let args = ["eraseDisk", "FAT32", volume_name, "MBR", disk_id.as_str()];
 
-        let output = Command::new("osascript")
-            .args(["-e", &script])
-            .output()
-            .map_err(|e| CrateError::Device(format!("Failed to run osascript: {e}")))?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            // Check for user cancellation
-            if stderr.contains("User canceled") || stderr.contains("-128") {
-                return Err(CrateError::Device(
-                    "Operation cancelled by user".to_string(),
-                ));
+        // Execute diskutil with root privileges
+        auth.execute_with_privileges(
+            Path::new("/usr/sbin/diskutil"),
+            &args,
+            Flags::default(),
+        )
+        .map_err(|e| {
+            let error_msg = e.to_string();
+            if error_msg.contains("canceled") || error_msg.contains("cancelled") {
+                CrateError::Device("Operation cancelled by user".to_string())
+            } else {
+                CrateError::Device(format!("Authorization failed: {e}"))
             }
-            return Err(CrateError::Device(format!("Failed to reformat: {stderr}")));
+        })?;
+
+        // Wait for the privileged process to complete
+        unsafe {
+            let mut wait_status: i32 = 0;
+            libc::wait(&mut wait_status);
+
+            if libc::WIFEXITED(wait_status) {
+                let exit_code = libc::WEXITSTATUS(wait_status);
+                if exit_code != 0 {
+                    return Err(CrateError::Device(format!(
+                        "diskutil exited with code: {exit_code}"
+                    )));
+                }
+            }
         }
 
         log::info!("Successfully reformatted device at: {mount_point}");
