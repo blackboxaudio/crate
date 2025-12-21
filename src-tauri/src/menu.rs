@@ -20,7 +20,7 @@ fn get_app_name() -> String {
             .map(|c| c.to_uppercase().to_string())
             .unwrap_or_default()
             + &environment[1..];
-        format!("Crate {}", capitalized)
+        format!("Crate {capitalized}")
     }
 }
 
@@ -132,7 +132,7 @@ fn build_app_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
         .item(&MenuItem::with_id(
             app,
             ids::ABOUT,
-            format!("About {}", app_name),
+            format!("About {app_name}"),
             true,
             None::<&str>,
         )?)
@@ -148,7 +148,7 @@ fn build_app_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
         .item(&MenuItem::with_id(
             app,
             ids::QUIT,
-            format!("Quit {}", app_name),
+            format!("Quit {app_name}"),
             true,
             Some("CmdOrCtrl+Q"),
         )?)
@@ -297,7 +297,7 @@ fn build_help_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
         .item(&MenuItem::with_id(
             app,
             ids::DOCUMENTATION,
-            format!("{} Documentation", app_name),
+            format!("{app_name} Documentation"),
             true,
             None::<&str>,
         )?)
