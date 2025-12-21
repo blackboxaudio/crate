@@ -6,6 +6,15 @@ pub enum Language {
     #[default]
     En,
     Ja,
+    De,
+    Es,
+    Fr,
+    It,
+    Ko,
+    Nl,
+    Pt,
+    Sv,
+    Zh,
 }
 
 impl std::fmt::Display for Language {
@@ -13,6 +22,15 @@ impl std::fmt::Display for Language {
         match self {
             Language::En => write!(f, "en"),
             Language::Ja => write!(f, "ja"),
+            Language::De => write!(f, "de"),
+            Language::Es => write!(f, "es"),
+            Language::Fr => write!(f, "fr"),
+            Language::It => write!(f, "it"),
+            Language::Ko => write!(f, "ko"),
+            Language::Nl => write!(f, "nl"),
+            Language::Pt => write!(f, "pt"),
+            Language::Sv => write!(f, "sv"),
+            Language::Zh => write!(f, "zh"),
         }
     }
 }
@@ -24,6 +42,15 @@ impl std::str::FromStr for Language {
         match s.to_lowercase().as_str() {
             "en" => Ok(Language::En),
             "ja" => Ok(Language::Ja),
+            "de" => Ok(Language::De),
+            "es" => Ok(Language::Es),
+            "fr" => Ok(Language::Fr),
+            "it" => Ok(Language::It),
+            "ko" => Ok(Language::Ko),
+            "nl" => Ok(Language::Nl),
+            "pt" => Ok(Language::Pt),
+            "sv" => Ok(Language::Sv),
+            "zh" => Ok(Language::Zh),
             _ => Err(format!("Unknown language: {s}")),
         }
     }

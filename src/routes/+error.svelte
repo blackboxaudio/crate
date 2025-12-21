@@ -67,7 +67,7 @@
 					<IconButton
 						size="sm"
 						icon={copySuccess ? 'check' : 'copy'}
-						iconClass="h-4 w-4 {copySuccess ? 'text-brand-primary' : ''}"
+						iconClass="h-4 w-4 {copySuccess ? 'text-success' : ''}"
 						onclick={handleCopyError}
 					/>
 				</Tooltip>
