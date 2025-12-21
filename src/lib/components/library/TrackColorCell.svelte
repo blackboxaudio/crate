@@ -15,7 +15,7 @@
 <div class="relative flex justify-center">
 	<button
 		type="button"
-		class="h-4 w-4 cursor-pointer rounded-full border transition-all duration-100 {!color
+		class="h-2.5 w-2.5 cursor-pointer rounded-full border transition-all duration-100 {!color
 			? 'border-stroke-subtle bg-transparent'
 			: 'border-transparent'}"
 		style={currentColor ? `background-color: ${currentColor.hex};` : ''}

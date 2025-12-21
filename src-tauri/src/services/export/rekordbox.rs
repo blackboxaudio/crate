@@ -383,11 +383,12 @@ impl PageBuilder {
                 cursor.write_all(&offset.to_le_bytes()).unwrap();
             }
 
-            // Write presence flags and unknown
+            // Write presence flags and row count (rekordbox uses row count here, not 0)
             cursor
                 .write_all(&group.row_presence_flags.to_le_bytes())
                 .unwrap();
-            cursor.write_all(&0u16.to_le_bytes()).unwrap();
+            let row_count = group.row_presence_flags.count_ones() as u16;
+            cursor.write_all(&row_count.to_le_bytes()).unwrap();
         }
 
         page
@@ -531,6 +532,7 @@ struct PdbTrack {
     filename: String,
     rating: u8,
     year: u16,
+    file_type: u16, // File type code: MP3=1, M4A=4, FLAC=5, WAV=11, AIFF=12
 }
 
 /// A playlist tree entry
@@ -687,6 +689,20 @@ impl RekordboxPdbWriter {
             .unwrap_or("unknown")
             .to_string();
 
+        // Detect file type from extension
+        let file_type = std::path::Path::new(&track.file_path)
+            .extension()
+            .and_then(|ext| ext.to_str())
+            .map(|ext| match ext.to_lowercase().as_str() {
+                "mp3" => 0x01,
+                "m4a" | "aac" => 0x04,
+                "flac" => 0x05,
+                "wav" => 0x0B,
+                "aiff" | "aif" => 0x0C,
+                _ => 0x00,
+            })
+            .unwrap_or(0x00);
+
         let pdb_track = PdbTrack {
             id,
             title: track.title.clone().unwrap_or_else(|| "Untitled".to_string()),
@@ -704,6 +720,7 @@ impl RekordboxPdbWriter {
             filename,
             rating: track.rating as u8,
             year: 0, // Not currently tracked
+            file_type,
         };
 
         self.tracks.push(pdb_track);
@@ -1046,8 +1063,8 @@ impl RekordboxPdbWriter {
         row.push(track.color_id);
         // 0x59: Rating (0-5)
         row.push(track.rating);
-        // 0x5A-0x5B: File type (0 = MP3, 1 = M4A, 5 = FLAC, etc.)
-        row.extend_from_slice(&0u16.to_le_bytes()); // Assume MP3 for now
+        // 0x5A-0x5B: File type (1 = MP3, 4 = M4A, 5 = FLAC, 11 = WAV, 12 = AIFF)
+        row.extend_from_slice(&track.file_type.to_le_bytes());
 
         // Now we need to write 22 U16 string offsets followed by the strings
         // Since subtype is 0x24 (bit 0x04 IS set), we use U16 offsets
