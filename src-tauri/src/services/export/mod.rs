@@ -385,7 +385,7 @@ impl ExportService {
 
             // Update progress with track metadata (fall back to filename without extension if unavailable)
             let display_name = match (&track.artist, &track.title) {
-                (Some(artist), Some(title)) => format!("{} - {}", artist, title),
+                (Some(artist), Some(title)) => format!("{artist} - {title}"),
                 (None, Some(title)) => title.clone(),
                 _ => {
                     let path = Path::new(&track.file_path);

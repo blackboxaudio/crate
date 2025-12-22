@@ -13,6 +13,7 @@
 		selectedTracks: Track[]
 		playlists: Playlist[]
 		currentPlaylistId: string | null
+		isAnalyzing?: boolean
 		onClose: () => void
 		onClosed?: () => void
 		onRevealInExplorer: () => void
@@ -31,6 +32,7 @@
 		selectedTracks,
 		playlists,
 		currentPlaylistId,
+		isAnalyzing = false,
 		onClose,
 		onClosed,
 		onRevealInExplorer,
@@ -67,23 +69,25 @@
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
 
-		// "Analyze" - analyze tracks for BPM and key
+		// "Analyze" - analyze tracks for BPM and key (disabled during analysis)
 		if (onAnalyze) {
 			items.push({
 				id: 'analyze',
 				label: get(translate)('contextMenu.analyze'),
 				icon: 'activity',
 				action: onAnalyze,
+				disabled: isAnalyzing,
 			})
 		}
 
-		// "Relocate..." - only for single missing track
+		// "Relocate..." - only for single missing track (disabled during analysis)
 		if (hasMissingTrack() && onRelocate) {
 			items.push({
 				id: 'relocate',
 				label: get(translate)('contextMenu.relocate'),
 				icon: 'folder',
 				action: () => onRelocate(selectedTracks[0]),
+				disabled: isAnalyzing,
 			})
 			items.push({
 				id: 'relocate-divider',
@@ -181,13 +185,14 @@
 			action: onRemoveFromLibrary,
 		})
 
-		// Add Remove submenu
+		// Add Remove submenu (disabled during analysis)
 		items.push({
 			id: 'remove',
 			label: get(translate)('contextMenu.remove'),
 			icon: 'trash',
 			variant: 'danger',
 			submenu: removeItems,
+			disabled: isAnalyzing,
 		})
 
 		return items

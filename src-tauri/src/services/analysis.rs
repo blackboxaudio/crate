@@ -1,6 +1,9 @@
 use std::fs::File;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+
+use tauri::{AppHandle, Emitter};
 
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
@@ -25,13 +28,44 @@ pub struct AnalysisResult {
     pub error: Option<String>,
 }
 
+/// Status of an analysis operation
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "snake_case")]
+pub enum AnalysisStatus {
+    Pending,
+    Analyzing,
+    Completed,
+    Failed,
+    Cancelled,
+}
+
+/// Progress update during analysis operation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnalysisProgress {
+    pub status: AnalysisStatus,
+    pub current_track_id: Option<String>,
+    pub tracks_analyzed: u32,
+    pub tracks_total: u32,
+    pub result: Option<AnalysisResult>,
+    pub updated_track: Option<Track>,
+}
+
 pub struct AnalysisService {
     conn: Arc<Mutex<Connection>>,
+    cancel_flag: Arc<AtomicBool>,
 }
 
 impl AnalysisService {
     pub fn new(conn: Arc<Mutex<Connection>>) -> Self {
-        Self { conn }
+        Self {
+            conn,
+            cancel_flag: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    /// Cancel the current analysis operation
+    pub fn cancel_analysis(&self) {
+        self.cancel_flag.store(true, Ordering::SeqCst);
     }
 
     /// Analyze a single track and update the database
@@ -74,13 +108,100 @@ impl AnalysisService {
         }
     }
 
-    /// Analyze multiple tracks
-    pub fn analyze_tracks(&self, track_ids: Vec<String>) -> Result<Vec<AnalysisResult>> {
+    /// Analyze multiple tracks with progress events
+    pub fn analyze_tracks(
+        &self,
+        app_handle: &AppHandle,
+        track_ids: Vec<String>,
+    ) -> Result<Vec<AnalysisResult>> {
+        // Reset cancel flag
+        self.cancel_flag.store(false, Ordering::SeqCst);
+
+        let total = track_ids.len() as u32;
         let mut results = Vec::new();
 
-        for track_id in track_ids {
-            let result = self.analyze_track(&track_id)?;
+        // Emit initial pending status
+        let _ = app_handle.emit(
+            "analysis-progress",
+            AnalysisProgress {
+                status: AnalysisStatus::Pending,
+                current_track_id: None,
+                tracks_analyzed: 0,
+                tracks_total: total,
+                result: None,
+                updated_track: None,
+            },
+        );
+
+        for (index, track_id) in track_ids.iter().enumerate() {
+            // Check for cancellation
+            if self.cancel_flag.load(Ordering::SeqCst) {
+                let _ = app_handle.emit(
+                    "analysis-progress",
+                    AnalysisProgress {
+                        status: AnalysisStatus::Cancelled,
+                        current_track_id: None,
+                        tracks_analyzed: index as u32,
+                        tracks_total: total,
+                        result: None,
+                        updated_track: None,
+                    },
+                );
+                break;
+            }
+
+            // Emit "analyzing" status before starting this track
+            let _ = app_handle.emit(
+                "analysis-progress",
+                AnalysisProgress {
+                    status: AnalysisStatus::Analyzing,
+                    current_track_id: Some(track_id.clone()),
+                    tracks_analyzed: index as u32,
+                    tracks_total: total,
+                    result: None,
+                    updated_track: None,
+                },
+            );
+
+            // Analyze the track
+            let result = self.analyze_track(track_id)?;
+
+            // Get updated track if analysis succeeded
+            let updated_track = if result.success {
+                self.get_track(track_id).ok()
+            } else {
+                None
+            };
+
+            // Emit progress with result and updated track
+            let _ = app_handle.emit(
+                "analysis-progress",
+                AnalysisProgress {
+                    status: AnalysisStatus::Analyzing,
+                    current_track_id: Some(track_id.clone()),
+                    tracks_analyzed: (index + 1) as u32,
+                    tracks_total: total,
+                    result: Some(result.clone()),
+                    updated_track,
+                },
+            );
+
             results.push(result);
+        }
+
+        // Emit completion (only if not cancelled)
+        if !self.cancel_flag.load(Ordering::SeqCst) {
+            let _ = app_handle.emit(
+                "analysis-progress",
+                AnalysisProgress {
+                    status: AnalysisStatus::Completed,
+                    current_track_id: None,
+                    tracks_analyzed: results.len() as u32,
+                    tracks_total: total,
+                    result: None,
+                    updated_track: None,
+                },
+            );
         }
 
         Ok(results)
@@ -99,8 +220,8 @@ impl AnalysisService {
         let result = analyze_audio(&samples, sample_rate, AnalysisConfig::default())
             .map_err(|e| CrateError::Analysis(format!("Analysis failed: {e}")))?;
 
-        // Round BPM to 1 decimal place
-        let bpm = Some(((result.bpm as f64) * 10.0).round() / 10.0);
+        // Round BPM to nearest integer (most tracks are produced at whole BPMs)
+        let bpm = Some((result.bpm as f64).round());
         let key = Some(result.key.name().to_string());
 
         Ok((bpm, key))
@@ -281,6 +402,7 @@ impl Clone for AnalysisService {
     fn clone(&self) -> Self {
         Self {
             conn: self.conn.clone(),
+            cancel_flag: self.cancel_flag.clone(),
         }
     }
 }

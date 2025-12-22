@@ -20,9 +20,9 @@ const WAVEFORM_PREVIEW_WIDTH: usize = 400;
 /// - Pxxx: First 3 hex chars of ID
 /// - xxxxxxxx: Full 8-char hex ID
 pub fn generate_anlz_dir(track_id: u32) -> String {
-    let hex_id = format!("{:08X}", track_id);
+    let hex_id = format!("{track_id:08X}");
     let prefix = &hex_id[0..3];
-    format!("/PIONEER/USBANLZ/P{}/{}", prefix, hex_id)
+    format!("/PIONEER/USBANLZ/P{prefix}/{hex_id}")
 }
 
 /// Generate the full ANLZ file path
@@ -108,10 +108,7 @@ fn build_path_section(path: &str) -> Vec<u8> {
 
     // Convert path to UTF-16BE with null terminator
     let utf16_path: Vec<u16> = path.encode_utf16().chain(std::iter::once(0)).collect();
-    let path_bytes: Vec<u8> = utf16_path
-        .iter()
-        .flat_map(|&c| c.to_be_bytes())
-        .collect();
+    let path_bytes: Vec<u8> = utf16_path.iter().flat_map(|&c| c.to_be_bytes()).collect();
 
     let path_len = path_bytes.len() as u32;
     let header_size: u32 = 16; // 12 standard + 4 for path length
@@ -185,7 +182,7 @@ fn build_waveform_preview_section() -> Vec<u8> {
     section.extend_from_slice(&0x00100000u32.to_be_bytes());
     // Waveform data: 400 bytes, each byte encodes height (5 bits) + whiteness (3 bits)
     // Use a minimal flat waveform (height=8, whiteness=4 = 0x44)
-    section.extend(std::iter::repeat(0x44u8).take(WAVEFORM_PREVIEW_WIDTH));
+    section.extend(std::iter::repeat_n(0x44u8, WAVEFORM_PREVIEW_WIDTH));
 
     section
 }

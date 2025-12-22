@@ -162,7 +162,13 @@ impl SyncService {
         // Reset cancel flag
         self.cancel_flag.store(false, Ordering::SeqCst);
 
-        let result = self.do_sync(app_handle, device_id, device_name, mount_point, playlist_ids);
+        let result = self.do_sync(
+            app_handle,
+            device_id,
+            device_name,
+            mount_point,
+            playlist_ids,
+        );
 
         // Always clear the in-progress flag
         self.sync_in_progress.store(false, Ordering::SeqCst);
@@ -236,9 +242,8 @@ impl SyncService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
-        let mut stmt = conn.prepare(
-            "SELECT DISTINCT playlist_id FROM playlist_tracks WHERE track_id = ?1",
-        )?;
+        let mut stmt =
+            conn.prepare("SELECT DISTINCT playlist_id FROM playlist_tracks WHERE track_id = ?1")?;
 
         let playlist_ids = stmt
             .query_map([track_id], |row| row.get(0))?
@@ -316,9 +321,7 @@ impl SyncService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
-        let placeholders: Vec<String> = (1..=playlist_ids.len())
-            .map(|i| format!("?{i}"))
-            .collect();
+        let placeholders: Vec<String> = (1..=playlist_ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(
             r#"
             SELECT DISTINCT device_id, device_name

@@ -4,8 +4,9 @@
 	import { formatDurationCompact, formatBpm, formatKey, getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { AlbumArt, AlbumArtModal, Spinner, Text } from '$lib/components/common'
+	import { AlbumArt, AlbumArtModal, Spinner, Text, Tooltip } from '$lib/components/common'
 	import { missingTrackIds, dragStore, keyNotationFormat } from '$lib/stores'
+	import { translate } from '$lib/i18n'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import TrackColorCell from './TrackColorCell.svelte'
 
@@ -21,6 +22,7 @@
 		ondblclick?: (e: MouseEvent) => void
 		oncontextmenu?: (e: MouseEvent) => void
 		onColorChange?: (color: TrackColor | null) => void
+		onCancelAnalysis?: () => void
 	}
 
 	let {
@@ -35,9 +37,11 @@
 		ondblclick,
 		oncontextmenu,
 		onColorChange,
+		onCancelAnalysis,
 	}: Props = $props()
 
 	let showArtworkModal = $state(false)
+	let isHoveringColorCell = $state(false)
 
 	// Track pointer state for drag detection
 	let pointerStartPos: { x: number; y: number } | null = null
@@ -109,11 +113,33 @@
 		<div class="pointer-events-none absolute inset-0 border-l-2 border-red-500/50"></div>
 	{/if}
 	<!-- Color -->
-	<div class="relative flex h-full items-center justify-center">
+	<div
+		role="presentation"
+		class="relative flex h-full items-center justify-center"
+		onmouseenter={() => (isHoveringColorCell = true)}
+		onmouseleave={() => (isHoveringColorCell = false)}
+	>
 		{#if analyzing}
-			<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
-				<Spinner class="h-3 w-3" />
-			</div>
+			{#if isHoveringColorCell && onCancelAnalysis}
+				<Tooltip text={$translate('contextMenu.stopAnalysis')} position="right">
+					<div transition:fade={{ duration: 150 }}>
+						<button
+							type="button"
+							class="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors hover:bg-red-500/20"
+							onclick={(e) => {
+								e.stopPropagation()
+								onCancelAnalysis?.()
+							}}
+						>
+							<Icon name="x" class="h-3 w-3 text-red-500" />
+						</button>
+					</div>
+				</Tooltip>
+			{:else}
+				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
+					<Spinner class="h-3 w-3" />
+				</div>
+			{/if}
 		{:else}
 			<div transition:fade={{ duration: 150 }}>
 				<TrackColorCell color={track.color} onselect={onColorChange} />

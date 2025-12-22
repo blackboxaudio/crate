@@ -29,6 +29,7 @@
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { devices, reformattingDeviceId } from '$lib/stores/devices'
 	import { activeDeviceId } from '$lib/stores/export'
+	import { isAnalyzing } from '$lib/stores/analysis'
 
 	// =========================================================================
 	// Props - Callback handlers passed from parent
@@ -460,6 +461,7 @@
 		selectedTracks={visibleMenu.tracks}
 		{playlists}
 		{currentPlaylistId}
+		isAnalyzing={$isAnalyzing}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onRevealInExplorer={handleTrackRevealInExplorer}

@@ -526,3 +526,14 @@ export interface AnalysisResult {
 	success: boolean
 	error: string | null
 }
+
+export type AnalysisStatus = 'pending' | 'analyzing' | 'completed' | 'failed' | 'cancelled'
+
+export interface AnalysisProgress {
+	status: AnalysisStatus
+	current_track_id: string | null
+	tracks_analyzed: number
+	tracks_total: number
+	result: AnalysisResult | null
+	updated_track: Track | null
+}

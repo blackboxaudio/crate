@@ -159,7 +159,8 @@
 		"removeFromPlaylist": "Ta bort från spellista",
 		"removeFromLibrary": "Ta bort från bibliotek",
 		"relocate": "Flytta...",
-		"analyze": "Analysera"
+		"analyze": "Analysera",
+		"stopAnalysis": "Stoppa analys"
 	},
 	"modals": {
 		"createPlaylist": {

@@ -159,7 +159,8 @@
 		"removeFromPlaylist": "Retirer de la playlist",
 		"removeFromLibrary": "Retirer de la bibliothèque",
 		"relocate": "Relocaliser...",
-		"analyze": "Analyser"
+		"analyze": "Analyser",
+		"stopAnalysis": "Arrêter l'analyse"
 	},
 	"modals": {
 		"createPlaylist": {

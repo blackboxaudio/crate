@@ -645,28 +645,28 @@ fn build_track_row(track: &PdbTrack, row_index: u16) -> Vec<u8> {
 
     // Build the 22 strings
     let strings: [DeviceSQLString; 22] = [
-        DeviceSQLString::empty(),                   // 0: ISRC (placeholder)
-        DeviceSQLString::empty(),                   // 1: Lyricist
-        DeviceSQLString::empty(),                   // 2: Unknown
-        DeviceSQLString::empty(),                   // 3: Unknown
-        DeviceSQLString::empty(),                   // 4: Unknown
-        DeviceSQLString::empty(),                   // 5: Message
-        DeviceSQLString::empty(),                   // 6: Publish info
-        DeviceSQLString::empty(),                   // 7: Autoload hotcues
-        DeviceSQLString::empty(),                   // 8: Unknown
-        DeviceSQLString::empty(),                   // 9: Unknown
-        DeviceSQLString::new(&track.date_added),    // 10: Date added
-        DeviceSQLString::empty(),                   // 11: Release date
-        DeviceSQLString::empty(),                   // 12: Mix name
-        DeviceSQLString::empty(),                   // 13: Unknown
-        DeviceSQLString::new(&track.anlz_path),     // 14: Analyze path
-        DeviceSQLString::empty(),                   // 15: Analyze date
-        DeviceSQLString::new(&track.comment),       // 16: Comment
-        DeviceSQLString::new(&track.title),         // 17: Title
-        DeviceSQLString::empty(),                   // 18: Unknown
-        DeviceSQLString::new(&track.filename),      // 19: Filename
-        DeviceSQLString::new(&track.file_path),     // 20: File path
-        DeviceSQLString::empty(),                   // 21: Extra (padding)
+        DeviceSQLString::empty(),                // 0: ISRC (placeholder)
+        DeviceSQLString::empty(),                // 1: Lyricist
+        DeviceSQLString::empty(),                // 2: Unknown
+        DeviceSQLString::empty(),                // 3: Unknown
+        DeviceSQLString::empty(),                // 4: Unknown
+        DeviceSQLString::empty(),                // 5: Message
+        DeviceSQLString::empty(),                // 6: Publish info
+        DeviceSQLString::empty(),                // 7: Autoload hotcues
+        DeviceSQLString::empty(),                // 8: Unknown
+        DeviceSQLString::empty(),                // 9: Unknown
+        DeviceSQLString::new(&track.date_added), // 10: Date added
+        DeviceSQLString::empty(),                // 11: Release date
+        DeviceSQLString::empty(),                // 12: Mix name
+        DeviceSQLString::empty(),                // 13: Unknown
+        DeviceSQLString::new(&track.anlz_path),  // 14: Analyze path
+        DeviceSQLString::empty(),                // 15: Analyze date
+        DeviceSQLString::new(&track.comment),    // 16: Comment
+        DeviceSQLString::new(&track.title),      // 17: Title
+        DeviceSQLString::empty(),                // 18: Unknown
+        DeviceSQLString::new(&track.filename),   // 19: Filename
+        DeviceSQLString::new(&track.file_path),  // 20: File path
+        DeviceSQLString::empty(),                // 21: Extra (padding)
     ];
 
     // Calculate string offsets
@@ -1078,12 +1078,7 @@ impl RekordboxPdbWriter {
             .unwrap_or(0x00);
 
         // Get date added - extract just the date part (YYYY-MM-DD)
-        let date_added = track
-            .date_added
-            .split('T')
-            .next()
-            .unwrap_or("")
-            .to_string();
+        let date_added = track.date_added.split('T').next().unwrap_or("").to_string();
 
         let pdb_track = PdbTrack {
             id,
@@ -1212,16 +1207,14 @@ impl RekordboxPdbWriter {
 
             if data_pages.is_empty() {
                 // Empty table: just write empty index page
-                let index_page =
-                    build_empty_index_page(*table_type, layout.index_page, sequence);
+                let index_page = build_empty_index_page(*table_type, layout.index_page, sequence);
                 writer
                     .write_all(&index_page)
                     .map_err(|e| CrateError::Device(format!("Failed to write page: {e}")))?;
             } else {
                 // Table with data: write index page + data pages
-                let data_page_indices: Vec<u32> = (layout.first_data_page.unwrap()
-                    ..=layout.last_data_page.unwrap())
-                    .collect();
+                let data_page_indices: Vec<u32> =
+                    (layout.first_data_page.unwrap()..=layout.last_data_page.unwrap()).collect();
 
                 let index_page = build_index_page(
                     *table_type,
@@ -1248,9 +1241,9 @@ impl RekordboxPdbWriter {
                     page[0x04..0x08].copy_from_slice(&page_idx.to_le_bytes());
                     page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
 
-                    writer
-                        .write_all(&page)
-                        .map_err(|e| CrateError::Device(format!("Failed to write data page: {e}")))?;
+                    writer.write_all(&page).map_err(|e| {
+                        CrateError::Device(format!("Failed to write data page: {e}"))
+                    })?;
                 }
             }
         }
@@ -1572,8 +1565,8 @@ pub enum ExtTableType {
     Unknown0 = 0,
     Unknown1 = 1,
     Unknown2 = 2,
-    Tags = 3,        // Tag/Category definitions
-    TrackTags = 4,   // Track-to-tag associations
+    Tags = 3,      // Tag/Category definitions
+    TrackTags = 4, // Track-to-tag associations
 }
 
 #[allow(dead_code)]
@@ -1595,8 +1588,8 @@ impl ExtTableType {
 struct PdbTag {
     id: u32,
     name: String,
-    category_id: u32,      // 0 if this is a category
-    category_pos: u32,     // Position within category
+    category_id: u32,  // 0 if this is a category
+    category_pos: u32, // Position within category
     is_category: bool,
 }
 
@@ -1799,14 +1792,14 @@ impl RekordboxExtPdbWriter {
             let layout = &table_layouts[i];
 
             if data_pages.is_empty() {
-                let index_page = build_empty_ext_index_page(*table_type, layout.index_page, sequence);
+                let index_page =
+                    build_empty_ext_index_page(*table_type, layout.index_page, sequence);
                 writer
                     .write_all(&index_page)
                     .map_err(|e| CrateError::Device(format!("Failed to write page: {e}")))?;
             } else {
-                let data_page_indices: Vec<u32> = (layout.first_data_page.unwrap()
-                    ..=layout.last_data_page.unwrap())
-                    .collect();
+                let data_page_indices: Vec<u32> =
+                    (layout.first_data_page.unwrap()..=layout.last_data_page.unwrap()).collect();
 
                 let index_page = build_ext_index_page(
                     *table_type,
@@ -1831,9 +1824,9 @@ impl RekordboxExtPdbWriter {
                     page[0x04..0x08].copy_from_slice(&page_idx.to_le_bytes());
                     page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
 
-                    writer
-                        .write_all(&page)
-                        .map_err(|e| CrateError::Device(format!("Failed to write data page: {e}")))?;
+                    writer.write_all(&page).map_err(|e| {
+                        CrateError::Device(format!("Failed to write data page: {e}"))
+                    })?;
                 }
             }
         }

@@ -14,7 +14,13 @@ pub async fn sync_device(
     sync_service: State<'_, SyncService>,
     app_handle: AppHandle,
 ) -> Result<SyncResult, CrateError> {
-    sync_service.sync_device(&app_handle, &device_id, &device_name, &mount_point, &playlist_ids)
+    sync_service.sync_device(
+        &app_handle,
+        &device_id,
+        &device_name,
+        &mount_point,
+        &playlist_ids,
+    )
 }
 
 /// Get playlists with pending changes for a device

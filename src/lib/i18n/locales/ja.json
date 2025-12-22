@@ -159,7 +159,8 @@
 		"removeFromPlaylist": "プレイリストから削除",
 		"removeFromLibrary": "ライブラリから削除",
 		"relocate": "再配置...",
-		"analyze": "分析"
+		"analyze": "分析",
+		"stopAnalysis": "分析を停止"
 	},
 	"modals": {
 		"createPlaylist": {

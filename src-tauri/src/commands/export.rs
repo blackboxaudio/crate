@@ -27,7 +27,9 @@ pub async fn get_device_exports(
 
 /// Cancel the current export operation
 #[tauri::command]
-pub async fn cancel_export(export_service: State<'_, Arc<ExportService>>) -> Result<(), CrateError> {
+pub async fn cancel_export(
+    export_service: State<'_, Arc<ExportService>>,
+) -> Result<(), CrateError> {
     export_service.cancel_export();
     Ok(())
 }

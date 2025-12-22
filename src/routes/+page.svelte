@@ -735,6 +735,10 @@
 		}
 	}
 
+	async function handleCancelAnalysis() {
+		await analysisStore.cancelAnalysis()
+	}
+
 	function handlePlaylistRename(playlist: Playlist) {
 		modalOrchestrator.openRenamePlaylistModal(playlist)
 	}
@@ -1095,6 +1099,7 @@
 								onBreadcrumbNavigate={handleBreadcrumbNavigate}
 								onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 								onTrackColorChange={trackController.setColor}
+								onCancelAnalysis={handleCancelAnalysis}
 							/>
 						{/if}
 					{:else}
@@ -1113,6 +1118,7 @@
 							onContextMenu={handleTrackContextMenu}
 							onEmptySpaceContextMenu={handleLibraryViewContextMenu}
 							onTrackColorChange={trackController.setColor}
+							onCancelAnalysis={handleCancelAnalysis}
 						/>
 					{/if}
 				</div>

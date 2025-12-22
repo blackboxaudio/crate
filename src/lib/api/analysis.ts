@@ -3,9 +3,17 @@ import type { AnalysisResult, Track } from '$lib/types'
 
 /**
  * Analyze tracks for BPM and key detection
+ * Progress events are emitted via 'analysis-progress' Tauri event
  */
 export async function analyzeTracks(trackIds: string[]): Promise<AnalysisResult[]> {
 	return invoke<AnalysisResult[]>('analyze_tracks', { trackIds })
+}
+
+/**
+ * Cancel the current analysis operation
+ */
+export async function cancelAnalysis(): Promise<void> {
+	return invoke('cancel_analysis')
 }
 
 /**

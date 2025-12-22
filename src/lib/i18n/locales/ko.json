@@ -159,7 +159,8 @@
 		"removeFromPlaylist": "재생목록에서 제거",
 		"removeFromLibrary": "라이브러리에서 제거",
 		"relocate": "재배치...",
-		"analyze": "분석"
+		"analyze": "분석",
+		"stopAnalysis": "분석 중지"
 	},
 	"modals": {
 		"createPlaylist": {

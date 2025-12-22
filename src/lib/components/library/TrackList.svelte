@@ -21,6 +21,7 @@
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
+		onCancelAnalysis?: () => void
 	}
 
 	let {
@@ -37,6 +38,7 @@
 		onContextMenu,
 		onEmptySpaceContextMenu,
 		onTrackColorChange,
+		onCancelAnalysis,
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
@@ -125,6 +127,7 @@
 					ondblclick={() => handleTrackDoubleClick(track)}
 					oncontextmenu={(e) => handleTrackContextMenu(track, e)}
 					onColorChange={(color) => handleColorChange(track, color)}
+					{onCancelAnalysis}
 				/>
 			{/each}
 		{/if}
