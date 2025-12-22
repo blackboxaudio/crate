@@ -29,7 +29,16 @@ export {
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'
 export { settingsStore, theme, accentColor, resolvedTheme, settingsLoading, keyNotationFormat } from './settings'
-export { devicesStore, devices, deviceCount, hasDevices, devicesLoading } from './devices'
+export {
+	devicesStore,
+	devices,
+	deviceCount,
+	hasDevices,
+	devicesLoading,
+	visibleDevices,
+	visibleDeviceCount,
+	hasVisibleDevices,
+} from './devices'
 export { diagnosticsStore, diagnosticEntries, systemInfo, diagnosticsLoading, errorCount } from './diagnostics'
 export { missingTracksStore, missingTrackIds, checkingTrackIds } from './missingTracks'
 export {

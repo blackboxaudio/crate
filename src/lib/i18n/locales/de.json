@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "Automatische Synchronisierung beim Verbinden des Geräts",
 			"autoSyncOnConnectDescription": "Wenn ein USB-Gerät wieder verbunden wird, werden ausstehende Änderungen automatisch synchronisiert.",
 			"autoSyncOnChange": "Automatische Synchronisierung bei Bibliothekenänderungen",
-			"autoSyncOnChangeDescription": "Wenn Titel oder Playlists bearbeitet werden, werden diese automatisch mit verbundenen Geräten synchronisiert."
+			"autoSyncOnChangeDescription": "Wenn Titel oder Playlists bearbeitet werden, werden diese automatisch mit verbundenen Geräten synchronisiert.",
+			"ignoredDevices": "Ignorierte Geräte",
+			"ignoredDevicesDescription": "Geräte in dieser Liste werden aus der Seitenleiste ausgeblendet und lösen keine automatische Synchronisierung aus.",
+			"noIgnoredDevices": "Keine Geräte werden derzeit ignoriert",
+			"deviceNotConnected": "Nicht verbunden"
 		},
 		"appearance": {
 			"font": "Schriftart",
@@ -290,6 +294,7 @@
 	"devices": {
 		"title": "Geräte",
 		"eject": "Auswerfen",
+		"ignore": "Gerät ignorieren",
 		"selectDevice": "Gerät auswählen",
 		"deviceInfo": "Geräteinformationen",
 		"capacity": "Kapazität",

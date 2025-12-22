@@ -102,10 +102,21 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 			const newDevices = event.payload
 			const reformattingId = devicesStore.getReformattingDeviceId()
 
+			// Get ignored device IDs from settings
+			let ignoredIds: string[] = []
+			settingsStore.subscribe((state) => {
+				ignoredIds = state.ignoredDeviceIds
+			})()
+
 			// Detect new devices (connected)
 			const prevIds = new Set(previousDevices.map((d) => d.id))
 			for (const device of newDevices) {
 				if (!prevIds.has(device.id)) {
+					// Skip toast and auto-sync for ignored devices
+					if (ignoredIds.includes(device.id)) {
+						continue
+					}
+
 					// Suppress toast if a reformat is in progress
 					if (!reformattingId) {
 						toastStore.info(`${device.name} connected`)
@@ -120,6 +131,11 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 			const newIds = new Set(newDevices.map((d) => d.id))
 			for (const device of previousDevices) {
 				if (!newIds.has(device.id)) {
+					// Skip toast for ignored devices
+					if (ignoredIds.includes(device.id)) {
+						continue
+					}
+
 					// Suppress toast if this device is being reformatted
 					if (reformattingId !== device.id) {
 						toastStore.info(`${device.name} disconnected`)

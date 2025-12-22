@@ -34,6 +34,7 @@
 		tagFilterMode,
 		settingsStore,
 		devicesStore,
+		visibleDevices,
 		computeTagStates,
 		missingTracksStore,
 		missingTrackIds,
@@ -323,8 +324,8 @@
 			selectedTagIds = state.selectedTagIds
 			sidebarWidth = state.sidebarWidth
 		})
-		const unsubDevices = devicesStore.subscribe((state) => {
-			devices = state.devices
+		const unsubDevices = visibleDevices.subscribe((visibleDevicesList) => {
+			devices = visibleDevicesList
 		})
 
 		return () => {
@@ -903,6 +904,10 @@
 		modalOrchestrator.openReformatDeviceModal(device)
 	}
 
+	function handleDeviceIgnore(device: UsbDevice) {
+		settingsStore.ignoreDevice(device.id)
+	}
+
 	async function handleReformatDevice(device: UsbDevice, volumeName: string) {
 		devicesStore.setReformattingDevice(device.id)
 		try {
@@ -1200,6 +1205,7 @@
 	onDeviceReformat={handleDeviceReformat}
 	onDeviceEject={handleEjectDevice}
 	onDeviceExport={handleDeviceExport}
+	onDeviceIgnore={handleDeviceIgnore}
 	onPlaylistExport={handlePlaylistExport}
 	onClose={() => (contextMenuPlaylistId = null)}
 />

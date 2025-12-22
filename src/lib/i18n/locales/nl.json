@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "Automatisch synchroniseren bij apparaatverbinding",
 			"autoSyncOnConnectDescription": "Wanneer een USB-apparaat opnieuw wordt aangesloten, worden ausstehende wijzigingen automatisch gesynchroniseerd.",
 			"autoSyncOnChange": "Automatisch synchroniseren bij bibliotheekwijzigingen",
-			"autoSyncOnChangeDescription": "Wanneer nummers of afspeellijsten worden bewerkt, worden deze automatisch met aangesloten apparaten gesynchroniseerd."
+			"autoSyncOnChangeDescription": "Wanneer nummers of afspeellijsten worden bewerkt, worden deze automatisch met aangesloten apparaten gesynchroniseerd.",
+			"ignoredDevices": "Genegeerde apparaten",
+			"ignoredDevicesDescription": "Apparaten in deze lijst zijn verborgen in de zijbalk en activeren geen automatische synchronisatie.",
+			"noIgnoredDevices": "Er worden momenteel geen apparaten genegeerd",
+			"deviceNotConnected": "Niet verbonden"
 		},
 		"appearance": {
 			"font": "Lettertype",
@@ -290,6 +294,7 @@
 	"devices": {
 		"title": "Apparaten",
 		"eject": "Uitwerpen",
+		"ignore": "Apparaat negeren",
 		"selectDevice": "Selecteer apparaat",
 		"deviceInfo": "Apparaatinfo",
 		"capacity": "Capaciteit",

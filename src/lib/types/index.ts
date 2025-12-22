@@ -406,6 +406,7 @@ export interface AppSettings {
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
 	autoSyncOnChange: boolean
+	ignoredDeviceIds: string[]
 }
 
 export interface AudioDevice {

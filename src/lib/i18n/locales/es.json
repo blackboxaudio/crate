@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "Sincronizar automáticamente al conectar dispositivo",
 			"autoSyncOnConnectDescription": "Cuando un dispositivo USB se reconecta, sincroniza automáticamente los cambios pendientes.",
 			"autoSyncOnChange": "Sincronizar automáticamente al cambiar la biblioteca",
-			"autoSyncOnChangeDescription": "Cuando se editan pistas o listas de reproducción, sincroniza automáticamente con los dispositivos conectados."
+			"autoSyncOnChangeDescription": "Cuando se editan pistas o listas de reproducción, sincroniza automáticamente con los dispositivos conectados.",
+			"ignoredDevices": "Dispositivos ignorados",
+			"ignoredDevicesDescription": "Los dispositivos en esta lista están ocultos en la barra lateral y no activarán la sincronización automática.",
+			"noIgnoredDevices": "Actualmente no se ignora ningún dispositivo",
+			"deviceNotConnected": "No conectado"
 		},
 		"appearance": {
 			"font": "Fuente",
@@ -290,6 +294,7 @@
 	"devices": {
 		"title": "Dispositivos",
 		"eject": "Expulsar",
+		"ignore": "Ignorar dispositivo",
 		"selectDevice": "Seleccionar dispositivo",
 		"deviceInfo": "Información del dispositivo",
 		"capacity": "Capacidad",

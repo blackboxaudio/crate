@@ -18,6 +18,7 @@
 		onRevealInFinder: (device: UsbDevice) => void
 		onReformat: (device: UsbDevice) => void
 		onEject: (device: UsbDevice) => void
+		onIgnore: (device: UsbDevice) => void
 	}
 
 	let {
@@ -34,6 +35,7 @@
 		onRevealInFinder,
 		onReformat,
 		onEject,
+		onIgnore,
 	}: Props = $props()
 
 	const isDeviceBusy = $derived(isReformatting || isExporting)
@@ -74,6 +76,13 @@
 						icon: 'hard-drive',
 						disabled: isDeviceBusy,
 						action: () => onReformat(device),
+					},
+					{
+						id: 'ignore',
+						label: get(translate)('devices.ignore'),
+						icon: 'eye-slash',
+						disabled: isDeviceBusy,
+						action: () => onIgnore(device),
 					},
 					{
 						id: 'eject',

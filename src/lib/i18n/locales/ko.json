@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "장치 연결 시 자동 동기화",
 			"autoSyncOnConnectDescription": "USB 장치가 다시 연결될 때 보류 중인 변경사항을 자동으로 동기화합니다.",
 			"autoSyncOnChange": "라이브러리 변경 시 자동 동기화",
-			"autoSyncOnChangeDescription": "트랙 또는 재생목록을 편집할 때 연결된 장치에 자동으로 동기화합니다."
+			"autoSyncOnChangeDescription": "트랙 또는 재생목록을 편집할 때 연결된 장치에 자동으로 동기화합니다.",
+			"ignoredDevices": "무시된 장치",
+			"ignoredDevicesDescription": "이 목록의 장치는 사이드바에서 숨겨지며 자동 동기화를 트리거하지 않습니다.",
+			"noIgnoredDevices": "현재 무시되는 장치가 없습니다",
+			"deviceNotConnected": "연결되지 않음"
 		},
 		"appearance": {
 			"font": "글꼴",
@@ -290,6 +294,7 @@
 	"devices": {
 		"title": "장치",
 		"eject": "꺼내기",
+		"ignore": "장치 무시",
 		"selectDevice": "기기 선택",
 		"deviceInfo": "장치 정보",
 		"capacity": "용량",

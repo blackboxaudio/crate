@@ -784,6 +784,7 @@ dependencies = [
  "rodio",
  "rusqlite",
  "serde",
+ "serde_json",
  "stratum-dsp",
  "symphonia",
  "sysinfo",

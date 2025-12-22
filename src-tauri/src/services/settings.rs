@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
+use serde_json;
 
 use crate::error::{CrateError, Result};
 use crate::models::AppSettings;
@@ -64,6 +65,12 @@ impl SettingsService {
             .map(|v| v == "true")
             .unwrap_or(false);
 
+        // Parse ignored device IDs from JSON array, default to empty
+        let ignored_device_ids = self
+            .get_setting_value(&conn, "ignored_device_ids")?
+            .and_then(|v| serde_json::from_str(&v).ok())
+            .unwrap_or_default();
+
         Ok(AppSettings {
             theme,
             accent_color,
@@ -74,6 +81,7 @@ impl SettingsService {
             auto_analyze_on_import,
             auto_sync_on_connect,
             auto_sync_on_change,
+            ignored_device_ids,
         })
     }
 

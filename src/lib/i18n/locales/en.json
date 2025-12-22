@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "Auto-sync on device connected",
 			"autoSyncOnConnectDescription": "When a USB device reconnects, automatically sync any pending changes.",
 			"autoSyncOnChange": "Auto-sync on library changes",
-			"autoSyncOnChangeDescription": "When tracks or playlists are edited, automatically sync to connected devices."
+			"autoSyncOnChangeDescription": "When tracks or playlists are edited, automatically sync to connected devices.",
+			"ignoredDevices": "Ignored Devices",
+			"ignoredDevicesDescription": "Devices in this list are hidden from the sidebar and will not trigger auto-sync.",
+			"noIgnoredDevices": "No devices are currently ignored",
+			"deviceNotConnected": "Not connected"
 		},
 		"appearance": {
 			"font": "Font",
@@ -291,6 +295,7 @@
 	"devices": {
 		"title": "Devices",
 		"eject": "Eject",
+		"ignore": "Ignore Device",
 		"selectDevice": "Select device",
 		"deviceInfo": "Device Info",
 		"capacity": "Capacity",

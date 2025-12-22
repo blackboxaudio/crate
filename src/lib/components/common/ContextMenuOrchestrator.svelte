@@ -29,6 +29,7 @@
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { devices, reformattingDeviceId } from '$lib/stores/devices'
 	import { activeDeviceId } from '$lib/stores/export'
+	import { syncingDeviceIds } from '$lib/stores/sync'
 	import { isAnalyzing } from '$lib/stores/analysis'
 
 	// =========================================================================
@@ -86,6 +87,7 @@
 		onDeviceReformat: (device: UsbDevice) => void
 		onDeviceEject: (device: UsbDevice) => void
 		onDeviceExport: (device: UsbDevice) => void
+		onDeviceIgnore: (device: UsbDevice) => void
 
 		// Playlist export callback
 		onPlaylistExport: (playlist: Playlist) => void
@@ -127,6 +129,7 @@
 		onDeviceReformat,
 		onDeviceEject,
 		onDeviceExport,
+		onDeviceIgnore,
 		onPlaylistExport,
 		onClose,
 	}: Props = $props()
@@ -445,6 +448,11 @@
 		onDeviceExport(device)
 	}
 
+	function handleDeviceIgnore(device: UsbDevice) {
+		closeAll()
+		onDeviceIgnore(device)
+	}
+
 	// Playlist export handler
 	function handlePlaylistExport(playlist: Playlist) {
 		closeAll()
@@ -584,7 +592,7 @@
 		y={visibleMenu.y}
 		device={visibleMenu.device}
 		isReformatting={visibleMenu.device.id === $reformattingDeviceId}
-		isExporting={visibleMenu.device.id === $activeDeviceId}
+		isExporting={visibleMenu.device.id === $activeDeviceId || $syncingDeviceIds.includes(visibleMenu.device.id)}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onExport={handleDeviceExport}
@@ -592,5 +600,6 @@
 		onRevealInFinder={handleDeviceRevealInFinder}
 		onReformat={handleDeviceReformat}
 		onEject={handleDeviceEject}
+		onIgnore={handleDeviceIgnore}
 	/>
 {/if}

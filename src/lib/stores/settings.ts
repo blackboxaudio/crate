@@ -22,6 +22,7 @@ interface SettingsState {
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
 	autoSyncOnChange: boolean
+	ignoredDeviceIds: string[]
 	loading: boolean
 	error: string | null
 }
@@ -38,6 +39,7 @@ const initialState: SettingsState = {
 	autoAnalyzeOnImport: true,
 	autoSyncOnConnect: false,
 	autoSyncOnChange: false,
+	ignoredDeviceIds: [],
 	loading: false,
 	error: null,
 }
@@ -214,6 +216,7 @@ function createSettingsStore() {
 					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
 					autoSyncOnConnect: settings.autoSyncOnConnect,
 					autoSyncOnChange: settings.autoSyncOnChange,
+					ignoredDeviceIds: settings.ignoredDeviceIds,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -378,6 +381,38 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Add a device to the ignore list
+		 */
+		async ignoreDevice(deviceId: string) {
+			const state = get({ subscribe })
+			if (state.ignoredDeviceIds.includes(deviceId)) return
+
+			const newList = [...state.ignoredDeviceIds, deviceId]
+			update((s) => ({ ...s, ignoredDeviceIds: newList }))
+
+			try {
+				await settingsApi.setSetting('ignored_device_ids', JSON.stringify(newList))
+			} catch (error) {
+				console.error('Failed to save ignored devices setting:', error)
+			}
+		},
+
+		/**
+		 * Remove a device from the ignore list
+		 */
+		async unignoreDevice(deviceId: string) {
+			const state = get({ subscribe })
+			const newList = state.ignoredDeviceIds.filter((id) => id !== deviceId)
+			update((s) => ({ ...s, ignoredDeviceIds: newList }))
+
+			try {
+				await settingsApi.setSetting('ignored_device_ids', JSON.stringify(newList))
+			} catch (error) {
+				console.error('Failed to save ignored devices setting:', error)
+			}
+		},
+
+		/**
 		 * Refresh the list of available audio devices
 		 */
 		async refreshAudioDevices() {
@@ -425,5 +460,7 @@ export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyze
 export const autoSyncOnConnect = derived(settingsStore, ($s) => $s.autoSyncOnConnect)
 
 export const autoSyncOnChange = derived(settingsStore, ($s) => $s.autoSyncOnChange)
+
+export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceIds)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

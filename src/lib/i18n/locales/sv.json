@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "Synkronisera automatiskt vid anslutning av enhet",
 			"autoSyncOnConnectDescription": "När en USB-enhet återansluts synkroniseras väntande ändringar automatiskt.",
 			"autoSyncOnChange": "Synkronisera automatiskt vid biblioteksändringar",
-			"autoSyncOnChangeDescription": "När spår eller spellistor redigeras synkroniseras de automatiskt till anslutna enheter."
+			"autoSyncOnChangeDescription": "När spår eller spellistor redigeras synkroniseras de automatiskt till anslutna enheter.",
+			"ignoredDevices": "Ignorerade enheter",
+			"ignoredDevicesDescription": "Enheter i denna lista är dolda från sidofältet och utlöser inte automatisk synkronisering.",
+			"noIgnoredDevices": "Inga enheter ignoreras för närvarande",
+			"deviceNotConnected": "Inte ansluten"
 		},
 		"appearance": {
 			"font": "Typsnitt",
@@ -290,6 +294,7 @@
 	"devices": {
 		"title": "Enheter",
 		"eject": "Mata ut",
+		"ignore": "Ignorera enhet",
 		"selectDevice": "Välj enhet",
 		"deviceInfo": "Enhetsinformation",
 		"capacity": "Kapacitet",

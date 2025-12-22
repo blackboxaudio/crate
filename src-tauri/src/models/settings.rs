@@ -220,6 +220,7 @@ pub struct AppSettings {
     pub auto_analyze_on_import: bool,
     pub auto_sync_on_connect: bool,
     pub auto_sync_on_change: bool,
+    pub ignored_device_ids: Vec<String>,
 }
 
 impl Default for AppSettings {
@@ -234,6 +235,7 @@ impl Default for AppSettings {
             auto_analyze_on_import: true,
             auto_sync_on_connect: false,
             auto_sync_on_change: false,
+            ignored_device_ids: Vec::new(),
         }
     }
 }

@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "デバイス接続時に自動同期",
 			"autoSyncOnConnectDescription": "USBデバイスが再接続された場合、保留中の変更を自動的に同期します。",
 			"autoSyncOnChange": "ライブラリ変更時に自動同期",
-			"autoSyncOnChangeDescription": "トラックまたはプレイリストが編集された場合、接続されているデバイスに自動的に同期します。"
+			"autoSyncOnChangeDescription": "トラックまたはプレイリストが編集された場合、接続されているデバイスに自動的に同期します。",
+			"ignoredDevices": "無視されたデバイス",
+			"ignoredDevicesDescription": "このリストのデバイスはサイドバーに表示されず、自動同期をトリガーしません。",
+			"noIgnoredDevices": "現在無視されているデバイスはありません",
+			"deviceNotConnected": "接続されていません"
 		},
 		"appearance": {
 			"font": "フォント",
@@ -291,6 +295,7 @@
 	"devices": {
 		"title": "デバイス",
 		"eject": "取り出し",
+		"ignore": "デバイスを無視する",
 		"selectDevice": "デバイスを選択",
 		"deviceInfo": "デバイス情報",
 		"capacity": "容量",

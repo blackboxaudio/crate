@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "Sincronizzazione automatica alla connessione del dispositivo",
 			"autoSyncOnConnectDescription": "Quando un dispositivo USB si ricollega, sincronizza automaticamente eventuali modifiche in sospeso.",
 			"autoSyncOnChange": "Sincronizzazione automatica alle modifiche della libreria",
-			"autoSyncOnChangeDescription": "Quando vengono modificate tracce o playlist, sincronizza automaticamente con i dispositivi connessi."
+			"autoSyncOnChangeDescription": "Quando vengono modificate tracce o playlist, sincronizza automaticamente con i dispositivi connessi.",
+			"ignoredDevices": "Dispositivi ignorati",
+			"ignoredDevicesDescription": "I dispositivi in questo elenco sono nascosti dalla barra laterale e non attiveranno la sincronizzazione automatica.",
+			"noIgnoredDevices": "Nessun dispositivo è attualmente ignorato",
+			"deviceNotConnected": "Non connesso"
 		},
 		"appearance": {
 			"font": "Carattere",
@@ -290,6 +294,7 @@
 	"devices": {
 		"title": "Dispositivi",
 		"eject": "Espelli",
+		"ignore": "Ignora dispositivo",
 		"selectDevice": "Seleziona dispositivo",
 		"deviceInfo": "Info dispositivo",
 		"capacity": "Capacità",

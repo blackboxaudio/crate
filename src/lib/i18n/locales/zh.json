@@ -52,7 +52,11 @@
 			"autoSyncOnConnect": "设备连接时自动同步",
 			"autoSyncOnConnectDescription": "当USB设备重新连接时，自动同步任何待处理的更改。",
 			"autoSyncOnChange": "曲库变更时自动同步",
-			"autoSyncOnChangeDescription": "编辑曲目或播放列表时，自动同步到已连接的设备。"
+			"autoSyncOnChangeDescription": "编辑曲目或播放列表时，自动同步到已连接的设备。",
+			"ignoredDevices": "被忽略的设备",
+			"ignoredDevicesDescription": "此列表中的设备将从侧边栏隐藏，不会触发自动同步。",
+			"noIgnoredDevices": "当前没有被忽略的设备",
+			"deviceNotConnected": "未连接"
 		},
 		"appearance": {
 			"font": "字体",
@@ -290,6 +294,7 @@
 	"devices": {
 		"title": "设备",
 		"eject": "弹出",
+		"ignore": "忽略设备",
 		"selectDevice": "选择设备",
 		"deviceInfo": "设备信息",
 		"capacity": "容量",

@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store'
 import type { UsbDevice } from '$lib/types'
 import * as devicesApi from '$lib/api/devices'
+import { ignoredDeviceIds } from './settings'
 
 // =============================================================================
 // Types
@@ -113,3 +114,12 @@ export const hasDevices = derived(devicesStore, ($store) => $store.devices.lengt
 export const devicesLoading = derived(devicesStore, ($store) => $store.loading)
 
 export const reformattingDeviceId = derived(devicesStore, ($store) => $store.reformattingDeviceId)
+
+// Filter out ignored devices for display in the UI
+export const visibleDevices = derived([devices, ignoredDeviceIds], ([$devices, $ignoredDeviceIds]) =>
+	$devices.filter((device) => !$ignoredDeviceIds.includes(device.id))
+)
+
+export const visibleDeviceCount = derived(visibleDevices, ($devices) => $devices.length)
+
+export const hasVisibleDevices = derived(visibleDevices, ($devices) => $devices.length > 0)
