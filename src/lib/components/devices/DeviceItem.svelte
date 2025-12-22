@@ -168,13 +168,10 @@
 			: ''
 	)
 
-	// Extract filename without extension from current file path, with fallback to snapshot
+	// Display track name from progress (already formatted as "Artist - Title" by backend)
 	const currentTrackName = $derived(() => {
 		if ($exportProgress?.current_file) {
-			const path = $exportProgress.current_file
-			const filename = path.split('/').pop() || path.split('\\').pop() || path
-			const lastDot = filename.lastIndexOf('.')
-			return lastDot > 0 ? filename.slice(0, lastDot) : filename
+			return $exportProgress.current_file
 		}
 		// Use snapshot during linger period when store is cleared
 		return lastTrackName

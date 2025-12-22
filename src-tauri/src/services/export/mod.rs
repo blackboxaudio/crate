@@ -383,13 +383,19 @@ impl ExportService {
                 }
             }
 
-            // Update progress
-            let filename = Path::new(&track.file_path)
-                .file_name()
-                .unwrap_or_default()
-                .to_string_lossy()
-                .to_string();
-            *progress = progress.clone().copying(filename);
+            // Update progress with track metadata (fall back to filename without extension if unavailable)
+            let display_name = match (&track.artist, &track.title) {
+                (Some(artist), Some(title)) => format!("{} - {}", artist, title),
+                (None, Some(title)) => title.clone(),
+                _ => {
+                    let path = Path::new(&track.file_path);
+                    path.file_stem()
+                        .unwrap_or_else(|| path.file_name().unwrap_or_default())
+                        .to_string_lossy()
+                        .to_string()
+                }
+            };
+            *progress = progress.clone().copying(display_name);
             let _ = app_handle.emit("export-progress", &progress);
 
             // Create parent directories

@@ -25,7 +25,7 @@
 	let visible = $state(false)
 	// Track active submenu path as array of item IDs (supports unlimited nesting)
 	let activeSubmenuPath = $state<string[]>([])
-	let adjustedPosition = $state({ x, y })
+	let adjustedPosition = $state({ x: 0, y: 0 })
 	let menuOrigin = $state<AnchorOrigin>('top-left')
 	// Track submenu positions and origins
 	let submenuStyles = $state<Record<string, string>>({})
