@@ -9,6 +9,8 @@
 		x: number
 		y: number
 		device: UsbDevice | null
+		isReformatting?: boolean
+		isExporting?: boolean
 		onClose: () => void
 		onClosed?: () => void
 		onExport: (device: UsbDevice) => void
@@ -18,8 +20,23 @@
 		onEject: (device: UsbDevice) => void
 	}
 
-	let { open, x, y, device, onClose, onClosed, onExport, onViewInfo, onRevealInFinder, onReformat, onEject }: Props =
-		$props()
+	let {
+		open,
+		x,
+		y,
+		device,
+		isReformatting = false,
+		isExporting = false,
+		onClose,
+		onClosed,
+		onExport,
+		onViewInfo,
+		onRevealInFinder,
+		onReformat,
+		onEject,
+	}: Props = $props()
+
+	const isDeviceBusy = $derived(isReformatting || isExporting)
 
 	const revealLabel = $derived(() => {
 		const ua = navigator.userAgent
@@ -35,6 +52,7 @@
 						id: 'export',
 						label: get(translate)('devices.exportTo'),
 						icon: 'arrow-up-from-bracket',
+						disabled: isDeviceBusy,
 						action: () => onExport(device),
 					},
 					{
@@ -54,12 +72,14 @@
 						id: 'reformat',
 						label: get(translate)('devices.reformat.menuItem'),
 						icon: 'hard-drive',
+						disabled: isDeviceBusy,
 						action: () => onReformat(device),
 					},
 					{
 						id: 'eject',
 						label: get(translate)('devices.eject'),
 						icon: 'eject',
+						disabled: isDeviceBusy,
 						action: () => onEject(device),
 					},
 				]

@@ -27,7 +27,8 @@
 	import TagsSidebarContextMenu from '$lib/components/tags/TagsSidebarContextMenu.svelte'
 	import DeviceContextMenu from '$lib/components/devices/DeviceContextMenu.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
-	import { devices } from '$lib/stores/devices'
+	import { devices, reformattingDeviceId } from '$lib/stores/devices'
+	import { activeDeviceId } from '$lib/stores/export'
 
 	// =========================================================================
 	// Props - Callback handlers passed from parent
@@ -580,6 +581,8 @@
 		x={visibleMenu.x}
 		y={visibleMenu.y}
 		device={visibleMenu.device}
+		isReformatting={visibleMenu.device.id === $reformattingDeviceId}
+		isExporting={visibleMenu.device.id === $activeDeviceId}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onExport={handleDeviceExport}

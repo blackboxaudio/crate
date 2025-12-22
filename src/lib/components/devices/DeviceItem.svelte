@@ -17,6 +17,7 @@
 		isExporting?: boolean
 		selectable?: boolean
 		selected?: boolean
+		disabled?: boolean
 		isDragHovered?: boolean
 		onContextMenu?: (e: MouseEvent, device: UsbDevice) => void
 		onCancelExport?: () => void
@@ -29,6 +30,7 @@
 		isExporting = false,
 		selectable = false,
 		selected = false,
+		disabled = false,
 		isDragHovered = false,
 		onContextMenu,
 		onCancelExport,
@@ -154,17 +156,22 @@
 
 <div
 	data-drop-target="device-{device.id}"
-	class="rounded px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary {selectable
-		? 'cursor-pointer border ' + (selected ? 'border-brand-primary bg-brand-primary/10' : 'border-transparent')
-		: ''} {isDragHovered ? 'bg-brand-primary/5 ring-2 ring-brand-primary' : ''}"
+	class="rounded px-3 py-2 text-text-secondary transition-colors {selectable
+		? disabled
+			? 'cursor-not-allowed border border-transparent opacity-50'
+			: 'cursor-pointer border hover:bg-surface-2 hover:text-text-primary ' +
+				(selected ? 'border-brand-primary bg-brand-primary/10' : 'border-transparent')
+		: 'hover:bg-surface-2 hover:text-text-primary'} {isDragHovered
+		? 'bg-brand-primary/5 ring-2 ring-brand-primary'
+		: ''}"
 	transition:deviceItem={{ duration: 200 }}
 	onclick={() => {
-		if (selectable) {
+		if (selectable && !disabled) {
 			onSelect?.(device.id)
 		}
 	}}
 	onkeydown={(e) => {
-		if (selectable && (e.key === 'Enter' || e.key === ' ')) {
+		if (selectable && !disabled && (e.key === 'Enter' || e.key === ' ')) {
 			e.preventDefault()
 			onSelect?.(device.id)
 		}
@@ -181,6 +188,7 @@
 		{#if selectable}
 			<Checkbox
 				checked={selected}
+				{disabled}
 				onchange={() => onSelect?.(device.id)}
 				ariaLabel={$translate('devices.selectDevice')}
 			/>

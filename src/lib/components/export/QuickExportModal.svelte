@@ -6,6 +6,7 @@
 	import { SelectablePlaylistTree } from '$lib/components/playlists'
 	import { DeviceItem } from '$lib/components/devices'
 	import { translate } from '$lib/i18n'
+	import { activeDeviceId } from '$lib/stores/export'
 	import type { Playlist, UsbDevice, ExportRequest } from '$lib/types'
 	import { SvelteSet } from 'svelte/reactivity'
 
@@ -197,6 +198,7 @@
 					<DeviceItem
 						{device}
 						selectable
+						disabled={$activeDeviceId === device.id}
 						selected={selectedDeviceIds.has(device.id)}
 						onSelect={() => toggleDevice(device.id)}
 					/>
