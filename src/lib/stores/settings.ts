@@ -1,3 +1,4 @@
+import { tick } from 'svelte'
 import { writable, derived, get } from 'svelte/store'
 import type { Theme, AccentColor, Font, AudioDevice, Language, KeyNotationFormat } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
@@ -160,6 +161,13 @@ function createSettingsStore() {
 			// View menu items
 			toggleSidebar: t('menu.toggleSidebar'),
 			showDevTools: t('menu.showDevTools'),
+			// Settings submenu
+			settingsSubmenu: t('menu.settingsSubmenu'),
+			settingsGeneral: t('menu.settingsGeneral'),
+			settingsLibrary: t('menu.settingsLibrary'),
+			settingsAppearance: t('menu.settingsAppearance'),
+			settingsSound: t('menu.settingsSound'),
+			settingsDiagnostics: t('menu.settingsDiagnostics'),
 			// Window menu items
 			minimize: t('menu.minimize'),
 			zoom: t('menu.zoom'),
@@ -212,6 +220,7 @@ function createSettingsStore() {
 
 				// Update i18n language and menu
 				await setI18nLanguage(settings.language)
+				await tick()
 				await updateMenuTranslations()
 			} catch (error) {
 				update((s) => ({
@@ -299,6 +308,7 @@ function createSettingsStore() {
 
 			update((s) => ({ ...s, language }))
 			await setI18nLanguage(language)
+			await tick()
 			await updateMenuTranslations()
 			persistToLocalStorage(state.theme, state.accentColor, language)
 

@@ -59,6 +59,13 @@ export interface MenuTranslations {
 	// View menu items
 	toggleSidebar: string
 	showDevTools: string
+	// Settings submenu
+	settingsSubmenu: string
+	settingsGeneral: string
+	settingsLibrary: string
+	settingsAppearance: string
+	settingsSound: string
+	settingsDiagnostics: string
 	// Window menu items
 	minimize: string
 	zoom: string
