@@ -1573,6 +1573,7 @@ pub enum ExtTableType {
     TrackTags = 4,   // Track-to-tag associations
 }
 
+#[allow(dead_code)]
 impl ExtTableType {
     fn all_required() -> &'static [ExtTableType] {
         &[
@@ -1675,6 +1676,7 @@ pub struct RekordboxExtPdbWriter {
     tag_ids: HashMap<(String, String), u32>,
 }
 
+#[allow(dead_code)]
 impl RekordboxExtPdbWriter {
     /// Create a new extended PDB writer
     pub fn new() -> Self {
@@ -1954,6 +1956,7 @@ struct ExtPageBuilder {
     total_rows: u16,
 }
 
+#[allow(dead_code)]
 impl ExtPageBuilder {
     fn new(page_type: ExtTableType) -> Self {
         Self {
