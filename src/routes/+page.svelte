@@ -47,6 +47,7 @@
 		isDev,
 		analysisStore,
 	} from '$lib/stores'
+	import { syncStore } from '$lib/stores/sync'
 	import { findDropTargets, findDropTargetAtPoint, type DropTarget } from '$lib/utils/drag'
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
@@ -352,7 +353,7 @@
 
 		// Initialize app (stores, drag-drop, device listener)
 		const cleanupApp = await useAppInitialization({
-			stores: { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore },
+			stores: { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore, syncStore },
 			toastStore,
 			onExternalFileDrop: trackController.handleExternalFileDrop,
 			onDragStateChange: (dragOver) => {

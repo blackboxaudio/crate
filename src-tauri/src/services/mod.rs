@@ -8,6 +8,7 @@ pub mod hash;
 pub mod library;
 pub mod playlist;
 pub mod settings;
+pub mod sync;
 pub mod tag;
 
 pub use analysis::AnalysisService;
@@ -19,4 +20,5 @@ pub use export::ExportService;
 pub use library::LibraryService;
 pub use playlist::PlaylistService;
 pub use settings::SettingsService;
+pub use sync::SyncService;
 pub use tag::TagService;

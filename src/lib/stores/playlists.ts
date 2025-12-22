@@ -2,6 +2,7 @@ import { writable, derived, get } from 'svelte/store'
 import type { Playlist, Track, BreadcrumbItem, MoveConflictResolution, MovePlaylistResult } from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
 import { translate } from '$lib/i18n'
+import { syncStore } from './sync'
 
 // =============================================================================
 // State
@@ -101,6 +102,10 @@ function createPlaylistsStore() {
 					...state,
 					playlists: state.playlists.map((p) => (p.id === id ? updated : p)),
 				}))
+
+				// Notify sync store about playlist changes (for auto-sync)
+				syncStore.notifyPlaylistChanges([id])
+
 				return updated
 			} catch (error) {
 				update((state) => ({
@@ -204,6 +209,9 @@ function createPlaylistsStore() {
 						return p
 					}),
 				}))
+
+				// Notify sync store about playlist changes (for auto-sync)
+				syncStore.notifyPlaylistChanges([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,
@@ -228,6 +236,9 @@ function createPlaylistsStore() {
 						return p
 					}),
 				}))
+
+				// Notify sync store about playlist changes (for auto-sync)
+				syncStore.notifyPlaylistChanges([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,
@@ -242,6 +253,9 @@ function createPlaylistsStore() {
 		async reorderTracks(playlistId: string, trackIds: string[]) {
 			try {
 				await playlistsApi.reorderPlaylist(playlistId, trackIds)
+
+				// Notify sync store about playlist changes (for auto-sync)
+				syncStore.notifyPlaylistChanges([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,

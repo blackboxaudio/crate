@@ -404,6 +404,8 @@ export interface AppSettings {
 	language: Language
 	keyNotationFormat: KeyNotationFormat
 	autoAnalyzeOnImport: boolean
+	autoSyncOnConnect: boolean
+	autoSyncOnChange: boolean
 }
 
 export interface AudioDevice {
@@ -483,6 +485,34 @@ export interface DeviceExport {
 	playlist_id: string
 	last_export_at: string
 	sync_enabled: boolean
+}
+
+// =============================================================================
+// Sync Types
+// =============================================================================
+
+export type SyncStatus = 'pending' | 'syncing' | 'generating_database' | 'completed' | 'failed'
+
+export interface SyncProgress {
+	status: SyncStatus
+	deviceId: string
+	deviceName: string
+	currentFile: string | null
+	filesSynced: number
+	filesTotal: number
+}
+
+export interface SyncResult {
+	success: boolean
+	tracksSynced: number
+	tracksSkipped: number
+	playlistsSynced: string[]
+	errors: string[]
+}
+
+export interface DeviceInfo {
+	deviceId: string
+	deviceName: string
 }
 
 // =============================================================================

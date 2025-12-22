@@ -46,7 +46,13 @@
 			"keyNotationStandard": "スタンダード",
 			"keyNotationDescription": "音楽キーの表示方法を選択します。",
 			"autoAnalyzeOnImport": "インポート時に自動解析",
-			"autoAnalyzeOnImportDescription": "トラックのインポート時にBPMとキーを自動的に解析します。"
+			"autoAnalyzeOnImportDescription": "トラックのインポート時にBPMとキーを自動的に解析します。",
+			"sync": "同期",
+			"syncDescription": "USBデバイスとの自動同期を設定します。",
+			"autoSyncOnConnect": "デバイス接続時に自動同期",
+			"autoSyncOnConnectDescription": "USBデバイスが再接続された場合、保留中の変更を自動的に同期します。",
+			"autoSyncOnChange": "ライブラリ変更時に自動同期",
+			"autoSyncOnChangeDescription": "トラックまたはプレイリストが編集された場合、接続されているデバイスに自動的に同期します。"
 		},
 		"appearance": {
 			"font": "フォント",

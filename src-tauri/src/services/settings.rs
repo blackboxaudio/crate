@@ -53,6 +53,17 @@ impl SettingsService {
             .map(|v| v != "false")
             .unwrap_or(true);
 
+        // Default to false if not set (disabled by default)
+        let auto_sync_on_connect = self
+            .get_setting_value(&conn, "auto_sync_on_connect")?
+            .map(|v| v == "true")
+            .unwrap_or(false);
+
+        let auto_sync_on_change = self
+            .get_setting_value(&conn, "auto_sync_on_change")?
+            .map(|v| v == "true")
+            .unwrap_or(false);
+
         Ok(AppSettings {
             theme,
             accent_color,
@@ -61,6 +72,8 @@ impl SettingsService {
             language,
             key_notation_format,
             auto_analyze_on_import,
+            auto_sync_on_connect,
+            auto_sync_on_change,
         })
     }
 

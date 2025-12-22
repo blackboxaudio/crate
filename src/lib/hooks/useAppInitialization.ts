@@ -7,6 +7,7 @@ import type { tagsStore as TagsStoreType } from '$lib/stores/tags'
 import type { playlistsStore as PlaylistsStoreType } from '$lib/stores/playlists'
 import type { settingsStore as SettingsStoreType } from '$lib/stores/settings'
 import type { devicesStore as DevicesStoreType } from '$lib/stores/devices'
+import type { syncStore as SyncStoreType } from '$lib/stores/sync'
 import type { toastStore as ToastStoreType } from '$lib/stores/toast'
 
 // =============================================================================
@@ -21,6 +22,7 @@ export interface AppInitConfig {
 		playlistsStore: typeof PlaylistsStoreType
 		settingsStore: typeof SettingsStoreType
 		devicesStore: typeof DevicesStoreType
+		syncStore: typeof SyncStoreType
 	}
 	toastStore: typeof ToastStoreType
 	onExternalFileDrop: (audioPaths: string[]) => Promise<void>
@@ -44,7 +46,7 @@ const AUDIO_EXTENSIONS = ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac']
  */
 export async function useAppInitialization(config: AppInitConfig): Promise<() => void> {
 	const { stores, toastStore, onExternalFileDrop, onDragStateChange } = config
-	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore } = stores
+	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore, syncStore } = stores
 
 	// Store unlisten functions
 	let unlistenDevices: UnlistenFn | undefined
@@ -108,6 +110,9 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 					if (!reformattingId) {
 						toastStore.info(`${device.name} connected`)
 					}
+
+					// Trigger auto-sync on device connected (if enabled)
+					syncStore.onDeviceConnected(device)
 				}
 			}
 

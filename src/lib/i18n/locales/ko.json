@@ -46,7 +46,13 @@
 			"keyNotationStandard": "표준",
 			"keyNotationDescription": "음악 키 표시 방법을 선택하세요.",
 			"autoAnalyzeOnImport": "가져오기 시 자동 분석",
-			"autoAnalyzeOnImportDescription": "트랙 가져오기 시 BPM과 키를 자동으로 분석합니다."
+			"autoAnalyzeOnImportDescription": "트랙 가져오기 시 BPM과 키를 자동으로 분석합니다.",
+			"sync": "동기화",
+			"syncDescription": "USB 장치와의 자동 동기화를 설정합니다.",
+			"autoSyncOnConnect": "장치 연결 시 자동 동기화",
+			"autoSyncOnConnectDescription": "USB 장치가 다시 연결될 때 보류 중인 변경사항을 자동으로 동기화합니다.",
+			"autoSyncOnChange": "라이브러리 변경 시 자동 동기화",
+			"autoSyncOnChangeDescription": "트랙 또는 재생목록을 편집할 때 연결된 장치에 자동으로 동기화합니다."
 		},
 		"appearance": {
 			"font": "글꼴",

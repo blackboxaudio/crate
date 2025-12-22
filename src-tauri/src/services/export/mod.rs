@@ -1,3 +1,4 @@
+pub mod anlz;
 pub mod rekordbox;
 
 use std::collections::HashMap;
@@ -326,10 +327,14 @@ impl ExportService {
     /// Create the PIONEER folder structure on the USB device
     fn create_pioneer_folders(&self, mount_point: &str) -> Result<()> {
         let pioneer_path = Path::new(mount_point).join("PIONEER").join("rekordbox");
+        let usbanlz_path = Path::new(mount_point).join("PIONEER").join("USBANLZ");
         let contents_path = Path::new(mount_point).join("Contents");
 
         fs::create_dir_all(&pioneer_path)
             .map_err(|e| CrateError::Device(format!("Failed to create PIONEER folder: {e}")))?;
+
+        fs::create_dir_all(&usbanlz_path)
+            .map_err(|e| CrateError::Device(format!("Failed to create USBANLZ folder: {e}")))?;
 
         fs::create_dir_all(&contents_path)
             .map_err(|e| CrateError::Device(format!("Failed to create Contents folder: {e}")))?;
@@ -459,14 +464,27 @@ impl ExportService {
             .map(|dt| (dt.track_id.clone(), dt.usb_path.clone()))
             .collect();
 
+        // Track PDB ID counter for ANLZ path generation
+        let mut next_pdb_id: u32 = 1;
+
         // Add tracks to PDB
         let mut track_pdb_ids: HashMap<String, u32> = HashMap::new();
         for (_, tracks) in playlists_with_tracks {
             for track in tracks {
                 if let Some(usb_path) = track_paths.get(&track.id) {
                     if !track_pdb_ids.contains_key(&track.id) {
-                        let pdb_id = writer.add_track(track, usb_path);
+                        // Generate ANLZ file for this track
+                        let anlz_path = self.generate_anlz_file(
+                            mount_point,
+                            next_pdb_id,
+                            usb_path,
+                            track.duration_ms as u32,
+                            track.bpm.map(|b| b as f32),
+                        )?;
+
+                        let pdb_id = writer.add_track(track, usb_path, &anlz_path);
                         track_pdb_ids.insert(track.id.clone(), pdb_id);
+                        next_pdb_id += 1;
                     }
                 }
             }
@@ -488,6 +506,34 @@ impl ExportService {
         self.update_device_track_pdb_ids(&track_pdb_ids)?;
 
         Ok(())
+    }
+
+    /// Generate an ANLZ file for a track and return the device path
+    fn generate_anlz_file(
+        &self,
+        mount_point: &str,
+        pdb_track_id: u32,
+        usb_audio_path: &str,
+        duration_ms: u32,
+        bpm: Option<f32>,
+    ) -> Result<String> {
+        use crate::services::export::anlz;
+
+        // Generate the ANLZ directory and file paths
+        let anlz_dir = anlz::generate_anlz_dir(pdb_track_id);
+        let anlz_path = anlz::generate_anlz_path(pdb_track_id);
+
+        // Create the directory on the USB
+        let full_dir = Path::new(mount_point).join(&anlz_dir[1..]); // Remove leading /
+        fs::create_dir_all(&full_dir)
+            .map_err(|e| CrateError::Device(format!("Failed to create ANLZ directory: {e}")))?;
+
+        // Write the ANLZ file with beat grid based on BPM
+        let full_path = Path::new(mount_point).join(&anlz_path[1..]); // Remove leading /
+        let device_audio_path = format!("/Contents/{usb_audio_path}");
+        anlz::write_anlz_file(&full_path, &device_audio_path, duration_ms, bpm)?;
+
+        Ok(anlz_path)
     }
 
     /// Record export state in the database

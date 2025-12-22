@@ -46,7 +46,13 @@
 			"keyNotationStandard": "Standard",
 			"keyNotationDescription": "Välj hur tonarter visas.",
 			"autoAnalyzeOnImport": "Analysera automatiskt vid import",
-			"autoAnalyzeOnImportDescription": "Analysera automatiskt BPM och tonart vid import av spår."
+			"autoAnalyzeOnImportDescription": "Analysera automatiskt BPM och tonart vid import av spår.",
+			"sync": "Synkronisering",
+			"syncDescription": "Konfigurera automatisk synkronisering med USB-enheter.",
+			"autoSyncOnConnect": "Synkronisera automatiskt vid anslutning av enhet",
+			"autoSyncOnConnectDescription": "När en USB-enhet återansluts synkroniseras väntande ändringar automatiskt.",
+			"autoSyncOnChange": "Synkronisera automatiskt vid biblioteksändringar",
+			"autoSyncOnChangeDescription": "När spår eller spellistor redigeras synkroniseras de automatiskt till anslutna enheter."
 		},
 		"appearance": {
 			"font": "Typsnitt",

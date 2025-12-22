@@ -46,7 +46,13 @@
 			"keyNotationStandard": "Standard",
 			"keyNotationDescription": "Choisissez l'affichage des tonalités musicales.",
 			"autoAnalyzeOnImport": "Analyser automatiquement à l'import",
-			"autoAnalyzeOnImportDescription": "Analyser automatiquement le BPM et la tonalité lors de l'import."
+			"autoAnalyzeOnImportDescription": "Analyser automatiquement le BPM et la tonalité lors de l'import.",
+			"sync": "Synchronisation",
+			"syncDescription": "Configurez la synchronisation automatique avec les appareils USB.",
+			"autoSyncOnConnect": "Synchronisation automatique à la connexion",
+			"autoSyncOnConnectDescription": "Quand un appareil USB se reconnecte, synchronisez automatiquement les modifications en attente.",
+			"autoSyncOnChange": "Synchronisation automatique lors de modifications de bibliothèque",
+			"autoSyncOnChangeDescription": "Quand des pistes ou des playlists sont modifiées, synchronisez automatiquement vers les appareils connectés."
 		},
 		"appearance": {
 			"font": "Police",

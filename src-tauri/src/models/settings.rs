@@ -218,6 +218,8 @@ pub struct AppSettings {
     pub language: Language,
     pub key_notation_format: KeyNotationFormat,
     pub auto_analyze_on_import: bool,
+    pub auto_sync_on_connect: bool,
+    pub auto_sync_on_change: bool,
 }
 
 impl Default for AppSettings {
@@ -230,6 +232,8 @@ impl Default for AppSettings {
             language: Language::default(),
             key_notation_format: KeyNotationFormat::default(),
             auto_analyze_on_import: true,
+            auto_sync_on_connect: false,
+            auto_sync_on_change: false,
         }
     }
 }

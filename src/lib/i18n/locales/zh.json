@@ -46,7 +46,13 @@
 			"keyNotationStandard": "标准",
 			"keyNotationDescription": "选择音乐调式的显示方式。",
 			"autoAnalyzeOnImport": "导入时自动分析",
-			"autoAnalyzeOnImportDescription": "导入曲目时自动分析BPM和调式。"
+			"autoAnalyzeOnImportDescription": "导入曲目时自动分析BPM和调式。",
+			"sync": "同步",
+			"syncDescription": "配置与USB设备的自动同步。",
+			"autoSyncOnConnect": "设备连接时自动同步",
+			"autoSyncOnConnectDescription": "当USB设备重新连接时，自动同步任何待处理的更改。",
+			"autoSyncOnChange": "曲库变更时自动同步",
+			"autoSyncOnChangeDescription": "编辑曲目或播放列表时，自动同步到已连接的设备。"
 		},
 		"appearance": {
 			"font": "字体",

@@ -46,7 +46,13 @@
 			"keyNotationStandard": "Standard",
 			"keyNotationDescription": "Wählen Sie die Darstellung der Tonarten.",
 			"autoAnalyzeOnImport": "Automatische Analyse beim Import",
-			"autoAnalyzeOnImportDescription": "BPM und Tonart beim Importieren von Titeln automatisch analysieren."
+			"autoAnalyzeOnImportDescription": "BPM und Tonart beim Importieren von Titeln automatisch analysieren.",
+			"sync": "Synchronisierung",
+			"syncDescription": "Konfigurieren Sie die automatische Synchronisierung mit USB-Geräten.",
+			"autoSyncOnConnect": "Automatische Synchronisierung beim Verbinden des Geräts",
+			"autoSyncOnConnectDescription": "Wenn ein USB-Gerät wieder verbunden wird, werden ausstehende Änderungen automatisch synchronisiert.",
+			"autoSyncOnChange": "Automatische Synchronisierung bei Bibliothekenänderungen",
+			"autoSyncOnChangeDescription": "Wenn Titel oder Playlists bearbeitet werden, werden diese automatisch mit verbundenen Geräten synchronisiert."
 		},
 		"appearance": {
 			"font": "Schriftart",

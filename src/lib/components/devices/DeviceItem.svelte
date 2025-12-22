@@ -15,6 +15,7 @@
 		device: UsbDevice
 		isReformatting?: boolean
 		isExporting?: boolean
+		isSyncing?: boolean
 		selectable?: boolean
 		selected?: boolean
 		disabled?: boolean
@@ -28,6 +29,7 @@
 		device,
 		isReformatting = false,
 		isExporting = false,
+		isSyncing = false,
 		selectable = false,
 		selected = false,
 		disabled = false,
@@ -209,7 +211,7 @@
 				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
 					<Icon name="check" class="h-4 w-4 text-success" />
 				</div>
-			{:else if visuallyExporting || isReformatting}
+			{:else if visuallyExporting || isReformatting || isSyncing}
 				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
 					<Spinner />
 				</div>

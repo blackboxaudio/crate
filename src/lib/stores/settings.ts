@@ -20,6 +20,8 @@ interface SettingsState {
 	language: Language
 	keyNotationFormat: KeyNotationFormat
 	autoAnalyzeOnImport: boolean
+	autoSyncOnConnect: boolean
+	autoSyncOnChange: boolean
 	loading: boolean
 	error: string | null
 }
@@ -34,6 +36,8 @@ const initialState: SettingsState = {
 	language: 'en',
 	keyNotationFormat: 'camelot',
 	autoAnalyzeOnImport: true,
+	autoSyncOnConnect: false,
+	autoSyncOnChange: false,
 	loading: false,
 	error: null,
 }
@@ -208,6 +212,8 @@ function createSettingsStore() {
 					language: settings.language,
 					keyNotationFormat: settings.keyNotationFormat,
 					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
+					autoSyncOnConnect: settings.autoSyncOnConnect,
+					autoSyncOnChange: settings.autoSyncOnChange,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -346,6 +352,32 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set auto-sync on device connected
+		 */
+		async setAutoSyncOnConnect(enabled: boolean) {
+			update((s) => ({ ...s, autoSyncOnConnect: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_sync_on_connect', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto sync on connect setting:', error)
+			}
+		},
+
+		/**
+		 * Set auto-sync on library changes
+		 */
+		async setAutoSyncOnChange(enabled: boolean) {
+			update((s) => ({ ...s, autoSyncOnChange: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_sync_on_change', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto sync on change setting:', error)
+			}
+		},
+
+		/**
 		 * Refresh the list of available audio devices
 		 */
 		async refreshAudioDevices() {
@@ -389,5 +421,9 @@ export const language = derived(settingsStore, ($s) => $s.language)
 export const keyNotationFormat = derived(settingsStore, ($s) => $s.keyNotationFormat)
 
 export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyzeOnImport)
+
+export const autoSyncOnConnect = derived(settingsStore, ($s) => $s.autoSyncOnConnect)
+
+export const autoSyncOnChange = derived(settingsStore, ($s) => $s.autoSyncOnChange)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

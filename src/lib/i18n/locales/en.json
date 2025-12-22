@@ -46,7 +46,13 @@
 			"keyNotationStandard": "Standard",
 			"keyNotationDescription": "Choose how musical keys are displayed.",
 			"autoAnalyzeOnImport": "Auto-analyze on import",
-			"autoAnalyzeOnImportDescription": "Automatically analyze BPM and key when importing tracks."
+			"autoAnalyzeOnImportDescription": "Automatically analyze BPM and key when importing tracks.",
+			"sync": "Sync",
+			"syncDescription": "Configure automatic synchronization with USB devices.",
+			"autoSyncOnConnect": "Auto-sync on device connected",
+			"autoSyncOnConnectDescription": "When a USB device reconnects, automatically sync any pending changes.",
+			"autoSyncOnChange": "Auto-sync on library changes",
+			"autoSyncOnChangeDescription": "When tracks or playlists are edited, automatically sync to connected devices."
 		},
 		"appearance": {
 			"font": "Font",

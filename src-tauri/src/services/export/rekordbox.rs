@@ -553,6 +553,7 @@ struct PdbTrack {
     file_type: u16,
     date_added: String,
     comment: String,
+    anlz_path: String,
 }
 
 /// Internal playlist node for PDB generation
@@ -657,7 +658,7 @@ fn build_track_row(track: &PdbTrack, row_index: u16) -> Vec<u8> {
         DeviceSQLString::empty(),                   // 11: Release date
         DeviceSQLString::empty(),                   // 12: Mix name
         DeviceSQLString::empty(),                   // 13: Unknown
-        DeviceSQLString::empty(),                   // 14: Analyze path (no ANLZ files)
+        DeviceSQLString::new(&track.anlz_path),     // 14: Analyze path
         DeviceSQLString::empty(),                   // 15: Analyze date
         DeviceSQLString::new(&track.comment),       // 16: Comment
         DeviceSQLString::new(&track.title),         // 17: Title
@@ -983,7 +984,7 @@ impl RekordboxPdbWriter {
     }
 
     /// Add a track and return its PDB ID
-    pub fn add_track(&mut self, track: &Track, usb_path: &str) -> u32 {
+    pub fn add_track(&mut self, track: &Track, usb_path: &str, anlz_path: &str) -> u32 {
         let id = self.next_track_id;
         self.next_track_id += 1;
 
@@ -1106,6 +1107,7 @@ impl RekordboxPdbWriter {
             file_type,
             date_added,
             comment: String::new(),
+            anlz_path: anlz_path.to_string(),
         };
 
         self.tracks.push(pdb_track);

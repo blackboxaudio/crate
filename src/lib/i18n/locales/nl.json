@@ -46,7 +46,13 @@
 			"keyNotationStandard": "Standaard",
 			"keyNotationDescription": "Kies hoe toonsoorten worden weergegeven.",
 			"autoAnalyzeOnImport": "Automatisch analyseren bij import",
-			"autoAnalyzeOnImportDescription": "Analyseer automatisch BPM en toonsoort bij het importeren van nummers."
+			"autoAnalyzeOnImportDescription": "Analyseer automatisch BPM en toonsoort bij het importeren van nummers.",
+			"sync": "Synchronisatie",
+			"syncDescription": "Configureer automatische synchronisatie met USB-apparaten.",
+			"autoSyncOnConnect": "Automatisch synchroniseren bij apparaatverbinding",
+			"autoSyncOnConnectDescription": "Wanneer een USB-apparaat opnieuw wordt aangesloten, worden ausstehende wijzigingen automatisch gesynchroniseerd.",
+			"autoSyncOnChange": "Automatisch synchroniseren bij bibliotheekwijzigingen",
+			"autoSyncOnChangeDescription": "Wanneer nummers of afspeellijsten worden bewerkt, worden deze automatisch met aangesloten apparaten gesynchroniseerd."
 		},
 		"appearance": {
 			"font": "Lettertype",

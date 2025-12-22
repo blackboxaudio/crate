@@ -6,6 +6,7 @@ import * as playlistsApi from '$lib/api/playlists'
 import { toastStore } from './toast'
 import { autoAnalyzeOnImport } from './settings'
 import { analysisStore } from './analysis'
+import { syncStore } from './sync'
 
 // =============================================================================
 // State
@@ -188,6 +189,9 @@ function createLibraryStore() {
 					tracks: state.tracks.map((t) => (trackIds.includes(t.id) ? { ...t, color } : t)),
 					playlistTracks: state.playlistTracks.map((t) => (trackIds.includes(t.id) ? { ...t, color } : t)),
 				}))
+
+				// Notify sync store about track changes (for auto-sync)
+				syncStore.notifyTrackChanges(trackIds)
 			} catch (error) {
 				toastStore.error('Failed to set track color')
 			}

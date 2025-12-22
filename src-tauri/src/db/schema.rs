@@ -160,5 +160,9 @@ CREATE INDEX idx_device_exports_device ON device_exports(device_id);
 CREATE INDEX idx_device_exports_playlist ON device_exports(playlist_id);
 CREATE INDEX idx_device_tracks_device ON device_tracks(device_id);
 "#,
+        // Migration 7: Add last_sync_at for tracking sync timestamps
+        r#"
+ALTER TABLE device_exports ADD COLUMN last_sync_at TEXT;
+"#,
     ]
 }
