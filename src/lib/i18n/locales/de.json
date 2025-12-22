@@ -294,7 +294,8 @@
 	"devices": {
 		"title": "Geräte",
 		"eject": "Auswerfen",
-		"ignore": "Gerät ignorieren",
+		"ignore": "Ignorieren",
+		"unignore": "Nicht mehr ignorieren",
 		"selectDevice": "Gerät auswählen",
 		"deviceInfo": "Geräteinformationen",
 		"capacity": "Kapazität",

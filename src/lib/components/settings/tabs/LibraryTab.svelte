@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { KeyNotationFormat } from '$lib/types'
-	import { Text, Checkbox, Icon } from '$lib/components/common'
+	import type { KeyNotationFormat, UsbDevice } from '$lib/types'
+	import { Text, Checkbox } from '$lib/components/common'
+	import DeviceItem from '$lib/components/devices/DeviceItem.svelte'
 	import {
 		settingsStore,
 		keyNotationFormat,
@@ -32,13 +33,28 @@
 		settingsStore.unignoreDevice(deviceId)
 	}
 
-	// Map ignored device IDs to device info (name if connected, otherwise just ID)
+	// Create a minimal UsbDevice object for disconnected ignored devices
+	function createMinimalDevice(id: string): UsbDevice {
+		return {
+			id,
+			name: id,
+			mount_point: '',
+			volume_uuid: null,
+			total_space_bytes: 0,
+			available_space_bytes: 0,
+			is_removable: true,
+			file_system: '',
+			disk_kind: '',
+		}
+	}
+
+	// Map ignored device IDs to device info with full device data when connected
 	const ignoredDevicesWithInfo = $derived(
 		$ignoredDeviceIds.map((id) => {
 			const connectedDevice = $devices.find((d) => d.id === id)
 			return {
 				id,
-				name: connectedDevice?.name || null,
+				device: connectedDevice ?? createMinimalDevice(id),
 				isConnected: !!connectedDevice,
 			}
 		})
@@ -130,32 +146,13 @@
 			</Text>
 		{:else}
 			<div class="space-y-2">
-				{#each ignoredDevicesWithInfo as device (device.id)}
-					<div class="flex items-center justify-between rounded border border-stroke px-3 py-2">
-						<div class="flex items-center gap-2">
-							<Icon name="usb" class="h-4 w-4 text-text-tertiary" />
-							<div class="flex flex-col">
-								{#if device.name}
-									<Text variant="body-2">{device.name}</Text>
-								{:else}
-									<Text variant="body-2" class="font-mono text-sm">{device.id}</Text>
-								{/if}
-								{#if !device.isConnected}
-									<Text variant="caption" class="text-text-tertiary">
-										{$translate('settings.library.deviceNotConnected')}
-									</Text>
-								{/if}
-							</div>
-						</div>
-						<button
-							type="button"
-							class="rounded p-1 text-text-tertiary hover:bg-surface-2 hover:text-text-primary"
-							onclick={() => handleUnignoreDevice(device.id)}
-							aria-label={$translate('common.remove')}
-						>
-							<Icon name="close" class="h-4 w-4" />
-						</button>
-					</div>
+				{#each ignoredDevicesWithInfo as deviceInfo (deviceInfo.id)}
+					<DeviceItem
+						device={deviceInfo.device}
+						ignored={true}
+						isConnected={deviceInfo.isConnected}
+						onUnignore={() => handleUnignoreDevice(deviceInfo.id)}
+					/>
 				{/each}
 			</div>
 		{/if}

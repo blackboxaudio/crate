@@ -4,6 +4,7 @@
 	import { translate } from '$lib/i18n'
 	import { formatFileSize } from '$lib/utils'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import IconButton from '$lib/components/common/IconButton.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import Checkbox from '$lib/components/common/Checkbox.svelte'
@@ -20,9 +21,12 @@
 		selected?: boolean
 		disabled?: boolean
 		isDragHovered?: boolean
+		ignored?: boolean
+		isConnected?: boolean
 		onContextMenu?: (e: MouseEvent, device: UsbDevice) => void
 		onCancelExport?: () => void
 		onSelect?: (deviceId: string) => void
+		onUnignore?: () => void
 	}
 
 	let {
@@ -34,9 +38,12 @@
 		selected = false,
 		disabled = false,
 		isDragHovered = false,
+		ignored = false,
+		isConnected = true,
 		onContextMenu,
 		onCancelExport,
 		onSelect,
+		onUnignore,
 	}: Props = $props()
 
 	// Track success state for linger effect (export)
@@ -221,13 +228,19 @@
 
 		<div class="min-w-0 flex-1">
 			<div class="truncate text-sm font-medium">{device.name}</div>
-			<div class="text-xs text-text-tertiary">
-				{formatFileSize(device.available_space_bytes)}
-				{$translate('devices.free')}
-			</div>
+			{#if isConnected}
+				<div class="text-xs text-text-tertiary">
+					{formatFileSize(device.available_space_bytes)}
+					{$translate('devices.free')}
+				</div>
+			{:else}
+				<div class="text-xs text-text-tertiary">
+					{$translate('settings.library.deviceNotConnected')}
+				</div>
+			{/if}
 		</div>
 
-		<!-- Status indicator: checkmark (success), spinner (exporting/reformatting/syncing), or status dot -->
+		<!-- Status indicator (always shown) -->
 		<div class="relative h-4 w-4 shrink-0">
 			{#if showSuccess || showSyncSuccess}
 				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
@@ -243,6 +256,22 @@
 				</div>
 			{/if}
 		</div>
+
+		<!-- Unignore button (only for ignored devices) -->
+		{#if ignored}
+			<!--			<div class="z-10 shrink-0">-->
+			<Tooltip text={$translate('devices.unignore')} delay={250} position="left">
+				<IconButton
+					icon="x"
+					size="sm"
+					onclick={(e) => {
+						e.stopPropagation()
+						onUnignore?.()
+					}}
+				/>
+			</Tooltip>
+			<!--			</div>-->
+		{/if}
 	</div>
 
 	<!-- Inline export progress section (visible during export and success linger, hidden in selectable mode) -->

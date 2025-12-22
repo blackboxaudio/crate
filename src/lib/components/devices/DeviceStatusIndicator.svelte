@@ -12,14 +12,18 @@
 	// Note: FAT32 sometimes reports as "msdos" on some systems
 	const isCompatible = $derived(fileSystem.toLowerCase() === 'fat32' || fileSystem.toLowerCase() === 'msdos')
 
-	const tooltipMessage = $derived(
-		isCompatible
+	const tooltipMessage = $derived.by(() => {
+		let message = isCompatible
 			? $translate('devices.statusCompatible')
 			: $translate('devices.statusIncompatible', { values: { fileSystem } })
-	)
+		// UX-safeguard in case fileSystem is an empty string
+		message = message.replace(' ()', '')
+
+		return message
+	})
 </script>
 
-<Tooltip text={tooltipMessage} delay={250} class="right-0 left-auto translate-x-0">
+<Tooltip text={tooltipMessage} delay={250} position="left">
 	<span class="relative flex size-2" role="status" aria-label={tooltipMessage}>
 		<!-- Pulsing indicator -->
 		{#if isCompatible}

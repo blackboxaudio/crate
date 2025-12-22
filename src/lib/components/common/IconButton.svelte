@@ -43,5 +43,5 @@
 	]} {className}"
 	{onclick}
 >
-	<Icon name={icon} class={iconClass} {fill} />
+	<Icon name={icon} class={iconClass || undefined} {fill} />
 </button>

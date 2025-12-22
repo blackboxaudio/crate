@@ -294,7 +294,8 @@
 	"devices": {
 		"title": "Apparaten",
 		"eject": "Uitwerpen",
-		"ignore": "Apparaat negeren",
+		"ignore": "Negeren",
+		"unignore": "Niet meer negeren",
 		"selectDevice": "Selecteer apparaat",
 		"deviceInfo": "Apparaatinfo",
 		"capacity": "Capaciteit",

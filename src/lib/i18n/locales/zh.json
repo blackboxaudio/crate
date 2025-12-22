@@ -294,7 +294,8 @@
 	"devices": {
 		"title": "设备",
 		"eject": "弹出",
-		"ignore": "忽略设备",
+		"ignore": "忽略",
+		"unignore": "取消忽略",
 		"selectDevice": "选择设备",
 		"deviceInfo": "设备信息",
 		"capacity": "容量",

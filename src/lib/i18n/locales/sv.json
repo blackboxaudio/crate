@@ -294,7 +294,8 @@
 	"devices": {
 		"title": "Enheter",
 		"eject": "Mata ut",
-		"ignore": "Ignorera enhet",
+		"ignore": "Ignorera",
+		"unignore": "Sluta ignorera",
 		"selectDevice": "Välj enhet",
 		"deviceInfo": "Enhetsinformation",
 		"capacity": "Kapacitet",

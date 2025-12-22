@@ -295,7 +295,8 @@
 	"devices": {
 		"title": "デバイス",
 		"eject": "取り出し",
-		"ignore": "デバイスを無視する",
+		"ignore": "無視する",
+		"unignore": "無視を解除",
 		"selectDevice": "デバイスを選択",
 		"deviceInfo": "デバイス情報",
 		"capacity": "容量",

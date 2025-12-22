@@ -294,7 +294,8 @@
 	"devices": {
 		"title": "장치",
 		"eject": "꺼내기",
-		"ignore": "장치 무시",
+		"ignore": "무시",
+		"unignore": "무시 중지",
 		"selectDevice": "기기 선택",
 		"deviceInfo": "장치 정보",
 		"capacity": "용량",

@@ -218,9 +218,11 @@ impl RowGroup {
         if self.num_rows >= MAX_ROWS_PER_GROUP {
             return false;
         }
-        // Store offset at the position corresponding to this row
-        self.row_offsets[self.num_rows] = offset;
-        // Set presence bit
+        // Store offset at reverse index (rekordbox stores from end)
+        // Index 15 = bit 0, Index 14 = bit 1, etc.
+        let reverse_idx = MAX_ROWS_PER_GROUP - 1 - self.num_rows;
+        self.row_offsets[reverse_idx] = offset;
+        // Set presence bit (bit 0 = first row, bit 1 = second row, etc.)
         self.presence_flags |= 1 << self.num_rows;
         self.num_rows += 1;
         true
@@ -232,14 +234,16 @@ impl RowGroup {
 
     /// Calculate the size this row group will take at the end of the page
     fn binary_size(&self) -> usize {
-        // Row offsets are stored from the end, skipping leading zeros
-        // Format: [present offsets...] [presence_flags: u16] [row_count: u16]
+        // Row offsets are stored from the end, skipping leading zeros in presence_flags
+        // Format: [row_offsets...] [presence_flags: u16] [unknown: u16]
         let leading_zeros = self.presence_flags.leading_zeros() as usize;
         let num_offsets = 16 - leading_zeros;
-        num_offsets * 2 + 4 // offsets + presence_flags + row_count
+        num_offsets * 2 + 4 // offsets + presence_flags + unknown
     }
 
     /// Write the row group to a buffer (at the correct position)
+    /// Based on rekordcrate format:
+    /// [row_offsets from index leading_zeros..15] [presence_flags: u16] [unknown: u16]
     fn write_to(&self, buffer: &mut [u8], end_position: usize) {
         let leading_zeros = self.presence_flags.leading_zeros() as usize;
         let num_offsets = 16 - leading_zeros;
@@ -248,7 +252,7 @@ impl RowGroup {
 
         let mut pos = start_pos;
 
-        // Write the present offsets (from first present to last)
+        // Write offsets from index leading_zeros to 15
         for i in 0..num_offsets {
             let idx = leading_zeros + i;
             buffer[pos..pos + 2].copy_from_slice(&self.row_offsets[idx].to_le_bytes());
@@ -259,8 +263,9 @@ impl RowGroup {
         buffer[pos..pos + 2].copy_from_slice(&self.presence_flags.to_le_bytes());
         pos += 2;
 
-        // Write row count (this is what rekordbox expects)
-        buffer[pos..pos + 2].copy_from_slice(&(self.num_rows as u16).to_le_bytes());
+        // Write unknown field - based on rekordcrate test data, this often matches
+        // presence_flags or shows the highest set bit. Using presence_flags for safety.
+        buffer[pos..pos + 2].copy_from_slice(&self.presence_flags.to_le_bytes());
     }
 }
 
@@ -372,11 +377,10 @@ impl PageBuilder {
         let heap_capacity = (PAGE_SIZE as usize) - HEAP_START_OFFSET;
         let free_size = (heap_capacity - self.heap_data.len() - row_groups_total_size) as u16;
 
-        // Calculate packed row counts
-        // num_rows (lower 5 bits of byte at 0x1A) and num_row_groups (13 bits)
-        let num_row_groups = self.row_groups.len() as u32;
-        // Packed format: bits 0-12 = num_row_groups, bits 13-23 = num_rows
-        let packed = (num_row_groups & 0x1FFF) | (((self.total_rows as u32) & 0x7FF) << 13);
+        // PackedRowCounts format per rekordcrate bitfields.rs:
+        // bits 0-12 = num_rows (13 bits), bits 13-23 = num_rows_valid (11 bits)
+        let num_rows = self.total_rows as u32;
+        let packed = (num_rows & 0x1FFF) | ((num_rows & 0x7FF) << 13);
 
         // === Write Page Header (32 bytes at 0x00-0x1F) ===
         // 0x00-0x03: Magic (zeros)
@@ -399,15 +403,28 @@ impl PageBuilder {
         page[0x1E..0x20].copy_from_slice(&used_size.to_le_bytes());
 
         // === Write Data Page Header (8 bytes at 0x20-0x27) ===
-        // These values match what rekordbox produces
+        // Format: unknown5 (u16) + unknown_not_num_rows_large (u16) + unknown6 (u16) + unknown7 (u16)
+        // Based on rekordcrate test data analysis:
+        // - Menu/Columns: unknown5=num_rows, unknown_not_num_rows_large=0
+        // - Other tables: unknown5=num_rows, unknown_not_num_rows_large=num_rows-1
         if self.total_rows == 0 {
             page[0x20..0x22].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
             page[0x22..0x24].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
         } else {
-            page[0x20..0x22].copy_from_slice(&(self.total_rows.min(0x1FFF)).to_le_bytes());
-            page[0x22..0x24].copy_from_slice(&((self.total_rows - 1).min(0x1FFF)).to_le_bytes());
+            let (unknown5, unknown_not_num_rows_large) = match self.page_type {
+                TableType::Menu | TableType::Columns => {
+                    // Menu/Columns: unknown5=num_rows, unknown_not_num_rows_large=0
+                    (self.total_rows, 0u16)
+                }
+                _ => {
+                    // Other tables: unknown5=num_rows, unknown_not_num_rows_large=num_rows-1
+                    (self.total_rows, self.total_rows.saturating_sub(1))
+                }
+            };
+            page[0x20..0x22].copy_from_slice(&unknown5.to_le_bytes());
+            page[0x22..0x24].copy_from_slice(&unknown_not_num_rows_large.to_le_bytes());
         }
-        // 0x24-0x27: Other unknown fields (zeros)
+        // 0x24-0x27: Remain zeros (already initialized)
 
         // === Write Heap Data (starting at 0x28) ===
         page[HEAP_START_OFFSET..HEAP_START_OFFSET + self.heap_data.len()]
@@ -859,6 +876,30 @@ fn build_column_row(id: u16, unknown: u16, name: &str) -> Vec<u8> {
     row
 }
 
+/// Build a menu row (8 bytes fixed size)
+/// Menu rows define the root navigation items on CDJ/XDJ equipment.
+/// Format: category_id(u16) + content_pointer(u16) + unknown(u8) + visibility(u8) + sort_order(u16)
+fn build_menu_row(
+    category_id: u16,
+    content_ptr: u16,
+    unknown: u8,
+    visibility: u8,
+    sort_order: u16,
+) -> Vec<u8> {
+    let mut row = Vec::with_capacity(8);
+    // 0x00-0x01: Category ID (references Columns table)
+    row.extend_from_slice(&category_id.to_le_bytes());
+    // 0x02-0x03: Content pointer (data source, e.g., 2 = Artists)
+    row.extend_from_slice(&content_ptr.to_le_bytes());
+    // 0x04: Unknown type (0x01=Track, 0x02=Artist, 0x03=Album, 0x63=Generic)
+    row.push(unknown);
+    // 0x05: Visibility (0=Visible, 1=Hidden)
+    row.push(visibility);
+    // 0x06-0x07: Sort order (position in menu, lower = higher)
+    row.extend_from_slice(&sort_order.to_le_bytes());
+    row
+}
+
 // ============================================================================
 // Standard Color Definitions
 // ============================================================================
@@ -923,6 +964,42 @@ const COLUMN_DEFS: &[(u16, u16, &str)] = &[
     (25, 152, "TRACK FILTER"),
     (26, 153, "MASTER TEMPO"),
     (27, 154, "QUANTIZE"),
+];
+
+// ============================================================================
+// Menu Definitions
+// ============================================================================
+
+/// Standard menu definitions for CDJ/XDJ root navigation.
+/// Based on rekordcrate test data from actual rekordbox exports.
+/// Format: (category_id, content_pointer, unknown_type, visibility, sort_order)
+/// - category_id: References Columns table ID for display label
+/// - content_pointer: Points to data source (e.g., 2 = Artists table)
+/// - unknown_type: 0x01=Track, 0x02=Artist, 0x03=Album, 0x05=BPM, 0x63=Generic
+/// - visibility: 0=Visible, 1=Hidden
+/// - sort_order: Position in menu (lower = higher, 0 for hidden)
+const STANDARD_MENUS: &[(u16, u16, u8, u8, u16)] = &[
+    // Visible menus (in sort_order)
+    (2, 2, 0x02, 0, 1),   // ARTIST
+    (3, 3, 0x03, 0, 2),   // ALBUM
+    (4, 4, 0x01, 0, 3),   // TRACK
+    (11, 12, 0x63, 0, 4), // KEY
+    (17, 5, 0x63, 0, 5),  // PLAYLIST
+    (19, 22, 0x63, 0, 6), // HISTORY
+    (20, 18, 0x63, 0, 7), // SEARCH
+    // Hidden menus
+    (1, 1, 0x63, 1, 0),   // GENRE
+    (5, 6, 0x05, 1, 0),   // BPM
+    (6, 7, 0x63, 1, 0),   // RATING
+    (7, 8, 0x63, 1, 0),   // YEAR
+    (8, 9, 0x63, 1, 0),   // REMIXER
+    (9, 10, 0x63, 1, 0),  // LABEL
+    (10, 11, 0x63, 1, 0), // ORIGINAL ARTIST
+    (13, 15, 0x63, 1, 0), // COLOR
+    (14, 19, 0x04, 1, 0), // TIME
+    (15, 20, 0x06, 1, 0), // BITRATE
+    (16, 21, 0x63, 1, 0), // FILENAME
+    (18, 23, 0x63, 1, 0), // COMMENTS
 ];
 
 // ============================================================================
@@ -1316,7 +1393,10 @@ impl RekordboxPdbWriter {
                 TableType::PlaylistEntries => self.build_playlist_entries_pages()?,
                 TableType::Artwork => Vec::new(),
                 TableType::Columns => self.build_column_pages()?,
-                _ => Vec::new(), // Empty tables
+                TableType::Menu => self.build_menu_pages()?,
+                // Empty tables: Unknown9, Unknown10, HistoryPlaylists, HistoryEntries,
+                // Unknown14, Unknown15, Unknown18, History
+                _ => Vec::new(),
             };
             result.push((table_type, pages));
         }
@@ -1526,6 +1606,29 @@ impl RekordboxPdbWriter {
             if !builder.add_row(&row_data) {
                 pages.push(builder.build(0, 0, 1));
                 builder = PageBuilder::new(TableType::Columns);
+                builder.add_row(&row_data);
+            }
+        }
+
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
+        }
+
+        Ok(pages)
+    }
+
+    /// Build menu pages for CDJ/XDJ root navigation
+    /// This is CRITICAL - without menu entries, the device shows no navigation items!
+    fn build_menu_pages(&self) -> Result<Vec<Vec<u8>>> {
+        let mut pages = Vec::new();
+        let mut builder = PageBuilder::new(TableType::Menu);
+
+        for &(category_id, content_ptr, unknown, visibility, sort_order) in STANDARD_MENUS {
+            let row_data = build_menu_row(category_id, content_ptr, unknown, visibility, sort_order);
+
+            if !builder.add_row(&row_data) {
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::Menu);
                 builder.add_row(&row_data);
             }
         }

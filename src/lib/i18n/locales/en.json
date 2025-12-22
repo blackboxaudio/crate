@@ -295,7 +295,8 @@
 	"devices": {
 		"title": "Devices",
 		"eject": "Eject",
-		"ignore": "Ignore Device",
+		"ignore": "Ignore",
+		"unignore": "Stop ignoring",
 		"selectDevice": "Select device",
 		"deviceInfo": "Device Info",
 		"capacity": "Capacity",
