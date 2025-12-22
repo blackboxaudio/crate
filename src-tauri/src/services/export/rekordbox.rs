@@ -75,26 +75,26 @@ enum TableType {
 impl TableType {
     fn all_required() -> &'static [TableType] {
         &[
-            TableType::Tracks,          // 0
-            TableType::Genres,          // 1
-            TableType::Artists,         // 2
-            TableType::Albums,          // 3
-            TableType::Labels,          // 4
-            TableType::Keys,            // 5
-            TableType::Colors,          // 6
-            TableType::PlaylistTree,    // 7
-            TableType::PlaylistEntries, // 8
-            TableType::Unknown9,        // 9
-            TableType::Unknown10,       // 10
+            TableType::Tracks,           // 0
+            TableType::Genres,           // 1
+            TableType::Artists,          // 2
+            TableType::Albums,           // 3
+            TableType::Labels,           // 4
+            TableType::Keys,             // 5
+            TableType::Colors,           // 6
+            TableType::PlaylistTree,     // 7
+            TableType::PlaylistEntries,  // 8
+            TableType::Unknown9,         // 9
+            TableType::Unknown10,        // 10
             TableType::HistoryPlaylists, // 11
-            TableType::HistoryEntries,  // 12
-            TableType::Artwork,         // 13
-            TableType::Unknown14,       // 14
-            TableType::Unknown15,       // 15
-            TableType::Columns,         // 16
-            TableType::Menu,            // 17
-            TableType::Unknown18,       // 18
-            TableType::History,         // 19
+            TableType::HistoryEntries,   // 12
+            TableType::Artwork,          // 13
+            TableType::Unknown14,        // 14
+            TableType::Unknown15,        // 15
+            TableType::Columns,          // 16
+            TableType::Menu,             // 17
+            TableType::Unknown18,        // 18
+            TableType::History,          // 19
         ]
     }
 }
@@ -332,8 +332,8 @@ impl PageBuilder {
         // 0x18-0x1A: Packed row counts (3 bytes)
         //   Bits 0-12: num_row_offsets (13 bits)
         //   Bits 13-23: num_rows (11 bits)
-        let packed = ((self.total_offsets as u32) & 0x1FFF)
-            | (((self.total_rows as u32) & 0x7FF) << 13);
+        let packed =
+            ((self.total_offsets as u32) & 0x1FFF) | (((self.total_rows as u32) & 0x7FF) << 13);
         page[0x18..0x1B].copy_from_slice(&packed.to_le_bytes()[0..3]);
         // 0x1B: Page flags (0x34 for data pages)
         page[0x1B] = PAGE_FLAGS_DATA;
@@ -374,9 +374,7 @@ impl PageBuilder {
             let skip = group.row_presence_flags.leading_zeros() as usize;
             // First, skip the unused offset slots
             let skip_bytes = skip * 2;
-            cursor
-                .seek(SeekFrom::Current(skip_bytes as i64))
-                .unwrap();
+            cursor.seek(SeekFrom::Current(skip_bytes as i64)).unwrap();
 
             // Write present offsets
             for offset in group.row_offsets.iter().skip(skip) {
@@ -446,7 +444,7 @@ fn build_index_page(
     // Each entry is 4 bytes: (page_index << 3) | flags
     let mut offset = 0x3C;
     for &data_page_idx in data_page_indices {
-        let entry = (data_page_idx << 3) | 0; // flags = 0
+        let entry = data_page_idx << 3; // flags = 0
         page[offset..offset + 4].copy_from_slice(&entry.to_le_bytes());
         offset += 4;
     }
@@ -642,10 +640,7 @@ impl RekordboxPdbWriter {
         });
 
         // Get or create genre
-        let genre_name = track
-            .genre
-            .clone()
-            .unwrap_or_else(|| "Unknown".to_string());
+        let genre_name = track.genre.clone().unwrap_or_else(|| "Unknown".to_string());
         let genre_id = *self.genres.entry(genre_name).or_insert_with(|| {
             let id = self.next_genre_id;
             self.next_genre_id += 1;
@@ -680,7 +675,7 @@ impl RekordboxPdbWriter {
         let tempo = track.bpm.map(|b| (b * 100.0) as u32).unwrap_or(0);
 
         // Build the USB file path (with leading /)
-        let file_path = format!("/Contents/{}", usb_path);
+        let file_path = format!("/Contents/{usb_path}");
 
         // Extract filename from path
         let filename = std::path::Path::new(&track.file_path)
@@ -705,7 +700,10 @@ impl RekordboxPdbWriter {
 
         let pdb_track = PdbTrack {
             id,
-            title: track.title.clone().unwrap_or_else(|| "Untitled".to_string()),
+            title: track
+                .title
+                .clone()
+                .unwrap_or_else(|| "Untitled".to_string()),
             artist_id,
             album_id,
             genre_id,
@@ -772,7 +770,7 @@ impl RekordboxPdbWriter {
     /// Write the PDB file to disk
     pub fn write(&self, path: &Path) -> Result<()> {
         let file = File::create(path)
-            .map_err(|e| CrateError::Device(format!("Failed to create PDB file: {}", e)))?;
+            .map_err(|e| CrateError::Device(format!("Failed to create PDB file: {e}")))?;
         let mut writer = BufWriter::new(file);
 
         // Build all data pages for each table
@@ -796,11 +794,7 @@ impl RekordboxPdbWriter {
             if is_empty {
                 // Empty table: single page (first == last)
                 let single_page = current_page;
-                log::debug!(
-                    "Table {:?}: EMPTY, single_page={}",
-                    table_type,
-                    single_page
-                );
+                log::debug!("Table {table_type:?}: EMPTY, single_page={single_page}");
                 table_info.push((*table_type, single_page, single_page, true));
                 current_page += 1;
             } else {
@@ -826,7 +820,7 @@ impl RekordboxPdbWriter {
         }
 
         let total_pages = current_page;
-        log::debug!("Total pages: {}", total_pages);
+        log::debug!("Total pages: {total_pages}");
 
         // Write file header (page 0)
         self.write_file_header(&mut writer, total_pages, &table_info)?;
@@ -841,7 +835,7 @@ impl RekordboxPdbWriter {
                 let empty_page = build_empty_index_page(*table_type, first_page, 0x03ff_ffff);
                 writer
                     .write_all(&empty_page)
-                    .map_err(|e| CrateError::Device(format!("Failed to write empty page: {}", e)))?;
+                    .map_err(|e| CrateError::Device(format!("Failed to write empty page: {e}")))?;
             } else {
                 // Table with data: write index page + data pages
                 let index_page = first_page;
@@ -849,20 +843,15 @@ impl RekordboxPdbWriter {
                 let num_data_pages = data_pages.len() as u32;
 
                 // Collect data page indices for the index page
-                let data_page_indices: Vec<u32> = (0..num_data_pages)
-                    .map(|j| first_data_page + j)
-                    .collect();
+                let data_page_indices: Vec<u32> =
+                    (0..num_data_pages).map(|j| first_data_page + j).collect();
 
                 // Build and write the index page
-                let idx_page = build_index_page(
-                    *table_type,
-                    index_page,
-                    first_data_page,
-                    &data_page_indices,
-                );
+                let idx_page =
+                    build_index_page(*table_type, index_page, first_data_page, &data_page_indices);
                 writer
                     .write_all(&idx_page)
-                    .map_err(|e| CrateError::Device(format!("Failed to write index page: {}", e)))?;
+                    .map_err(|e| CrateError::Device(format!("Failed to write index page: {e}")))?;
 
                 // Write data pages
                 for (j, page_data) in data_pages.iter().enumerate() {
@@ -881,14 +870,14 @@ impl RekordboxPdbWriter {
 
                     writer
                         .write_all(&page)
-                        .map_err(|e| CrateError::Device(format!("Failed to write page: {}", e)))?;
+                        .map_err(|e| CrateError::Device(format!("Failed to write page: {e}")))?;
                 }
             }
         }
 
         writer
             .flush()
-            .map_err(|e| CrateError::Device(format!("Failed to flush PDB file: {}", e)))?;
+            .map_err(|e| CrateError::Device(format!("Failed to flush PDB file: {e}")))?;
 
         Ok(())
     }
@@ -925,11 +914,7 @@ impl RekordboxPdbWriter {
             let lp = *last_page;
 
             log::debug!(
-                "Writing table descriptor at offset 0x{:X}: type={}, empty=0, first={}, last={}",
-                offset,
-                tt,
-                fp,
-                lp
+                "Writing table descriptor at offset 0x{offset:X}: type={tt}, empty=0, first={fp}, last={lp}"
             );
 
             // Table type
@@ -945,7 +930,7 @@ impl RekordboxPdbWriter {
 
         writer
             .write_all(&page)
-            .map_err(|e| CrateError::Device(format!("Failed to write header: {}", e)))?;
+            .map_err(|e| CrateError::Device(format!("Failed to write header: {e}")))?;
 
         Ok(())
     }
@@ -1008,7 +993,7 @@ impl RekordboxPdbWriter {
         // 0x00-0x01: Subtype (0x24 = 36, with bit 0x04 set means U16 offsets)
         row.extend_from_slice(&0x0024u16.to_le_bytes());
         // 0x02-0x03: Index shift (0x20 * row_index)
-        row.extend_from_slice(&((row_index * 0x20) as u16).to_le_bytes());
+        row.extend_from_slice(&(row_index * 0x20).to_le_bytes());
         // 0x04-0x07: Bitmask (always 0x000c0700)
         row.extend_from_slice(&0x000c0700u32.to_le_bytes());
         // 0x08-0x0B: Sample rate
@@ -1071,28 +1056,28 @@ impl RekordboxPdbWriter {
 
         // Build the strings we need
         let strings = [
-            DeviceSQLString::empty(),                    // 0: unused/padding
-            DeviceSQLString::empty(),                    // 1: ISRC
-            DeviceSQLString::empty(),                    // 2: Lyricist
-            DeviceSQLString::empty(),                    // 3: Unknown
-            DeviceSQLString::empty(),                    // 4: Unknown
-            DeviceSQLString::empty(),                    // 5: Unknown
-            DeviceSQLString::empty(),                    // 6: Message
-            DeviceSQLString::empty(),                    // 7: Publish info
-            DeviceSQLString::empty(),                    // 8: Autoload hotcues
-            DeviceSQLString::empty(),                    // 9: Unknown
-            DeviceSQLString::empty(),                    // 10: Unknown
-            DeviceSQLString::empty(),                    // 11: Date added
-            DeviceSQLString::empty(),                    // 12: Release date
-            DeviceSQLString::empty(),                    // 13: Mix name
-            DeviceSQLString::empty(),                    // 14: Unknown
-            DeviceSQLString::empty(),                    // 15: Analyze path
-            DeviceSQLString::empty(),                    // 16: Analyze date
-            DeviceSQLString::empty(),                    // 17: Comment
-            DeviceSQLString::new(&track.title),          // 18: Title
-            DeviceSQLString::empty(),                    // 19: Unknown
-            DeviceSQLString::new(&track.filename),       // 20: Filename
-            DeviceSQLString::new(&track.file_path),      // 21: File path
+            DeviceSQLString::empty(),               // 0: unused/padding
+            DeviceSQLString::empty(),               // 1: ISRC
+            DeviceSQLString::empty(),               // 2: Lyricist
+            DeviceSQLString::empty(),               // 3: Unknown
+            DeviceSQLString::empty(),               // 4: Unknown
+            DeviceSQLString::empty(),               // 5: Unknown
+            DeviceSQLString::empty(),               // 6: Message
+            DeviceSQLString::empty(),               // 7: Publish info
+            DeviceSQLString::empty(),               // 8: Autoload hotcues
+            DeviceSQLString::empty(),               // 9: Unknown
+            DeviceSQLString::empty(),               // 10: Unknown
+            DeviceSQLString::empty(),               // 11: Date added
+            DeviceSQLString::empty(),               // 12: Release date
+            DeviceSQLString::empty(),               // 13: Mix name
+            DeviceSQLString::empty(),               // 14: Unknown
+            DeviceSQLString::empty(),               // 15: Analyze path
+            DeviceSQLString::empty(),               // 16: Analyze date
+            DeviceSQLString::empty(),               // 17: Comment
+            DeviceSQLString::new(&track.title),     // 18: Title
+            DeviceSQLString::empty(),               // 19: Unknown
+            DeviceSQLString::new(&track.filename),  // 20: Filename
+            DeviceSQLString::new(&track.file_path), // 21: File path
         ];
 
         // Calculate offsets - these are ABSOLUTE positions within the row
@@ -1208,7 +1193,7 @@ impl RekordboxPdbWriter {
         // Variable: Name string
 
         row.extend_from_slice(&0x0060u16.to_le_bytes());
-        row.extend_from_slice(&((row_index * 0x20) as u16).to_le_bytes());
+        row.extend_from_slice(&(row_index * 0x20).to_le_bytes());
         row.extend_from_slice(&id.to_le_bytes());
 
         // Offset array: 2 offsets (8 bytes base + 2 bytes for offsets = start at 10)
@@ -1263,7 +1248,7 @@ impl RekordboxPdbWriter {
         // Variable: Name string
 
         row.extend_from_slice(&0x0080u16.to_le_bytes());
-        row.extend_from_slice(&((row_index * 0x20) as u16).to_le_bytes());
+        row.extend_from_slice(&(row_index * 0x20).to_le_bytes());
         row.extend_from_slice(&0u32.to_le_bytes()); // Unknown
         row.extend_from_slice(&0u32.to_le_bytes()); // Artist ID
         row.extend_from_slice(&id.to_le_bytes());
@@ -1505,9 +1490,8 @@ impl RekordboxPdbWriter {
             }
         }
 
-        if !COLUMN_DEFS.is_empty() {
-            pages.push(builder.build());
-        }
+        // COLUMN_DEFS is a const array that is never empty
+        pages.push(builder.build());
 
         Ok(pages)
     }

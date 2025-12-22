@@ -493,7 +493,12 @@ pub fn update_menu_translations(
     }
 
     // Update Settings submenu (nested inside View menu)
-    update_nested_submenu_text(&menu, ids::VIEW_MENU, ids::SETTINGS_MENU, &translations.settings_submenu)?;
+    update_nested_submenu_text(
+        &menu,
+        ids::VIEW_MENU,
+        ids::SETTINGS_MENU,
+        &translations.settings_submenu,
+    )?;
     update_nested_submenu_items(
         &menu,
         ids::VIEW_MENU,
@@ -503,7 +508,10 @@ pub fn update_menu_translations(
             (ids::SETTINGS_LIBRARY, &translations.settings_library),
             (ids::SETTINGS_APPEARANCE, &translations.settings_appearance),
             (ids::SETTINGS_SOUND, &translations.settings_sound),
-            (ids::SETTINGS_DIAGNOSTICS, &translations.settings_diagnostics),
+            (
+                ids::SETTINGS_DIAGNOSTICS,
+                &translations.settings_diagnostics,
+            ),
         ],
     )?;
 

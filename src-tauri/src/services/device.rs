@@ -111,7 +111,9 @@ fn validate_fat32_volume_name(name: &str) -> Result<String> {
     let trimmed = name.trim();
 
     if trimmed.is_empty() {
-        return Err(CrateError::Device("Volume name cannot be empty".to_string()));
+        return Err(CrateError::Device(
+            "Volume name cannot be empty".to_string(),
+        ));
     }
 
     // Convert to uppercase and filter invalid characters
@@ -156,7 +158,7 @@ fn get_disk_identifier_macos(mount_point: &str) -> Result<String> {
             if let Some(end) = after_key[value_start..].find("</string>") {
                 let disk_name = after_key[value_start..value_start + end].trim();
                 if !disk_name.is_empty() {
-                    return Ok(format!("/dev/{}", disk_name));
+                    return Ok(format!("/dev/{disk_name}"));
                 }
             }
         }
@@ -458,14 +460,13 @@ impl DeviceService {
         // Get disk identifier from mount point
         let disk_id = get_disk_identifier_macos(mount_point)?;
 
-        log::info!("Requesting authorization to reformat {}", disk_id);
+        log::info!("Requesting authorization to reformat {disk_id}");
 
         // Use osascript with administrator privileges - this shows the modern Touch ID dialog
         // because AppleScript is Apple-signed. MBR partition scheme is used for maximum
         // compatibility with DJ equipment.
         let script = format!(
-            r#"do shell script "/usr/sbin/diskutil eraseDisk FAT32 '{}' MBR {}" with administrator privileges"#,
-            volume_name, disk_id
+            r#"do shell script "/usr/sbin/diskutil eraseDisk FAT32 '{volume_name}' MBR {disk_id}" with administrator privileges"#
         );
 
         let output = Command::new("osascript")

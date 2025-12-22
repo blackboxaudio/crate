@@ -11,8 +11,7 @@ use tauri::{AppHandle, Emitter};
 
 use crate::error::{CrateError, Result};
 use crate::models::{
-    DeviceExport, DeviceTrack, ExportProgress, ExportRequest, ExportResult, Playlist,
-    Track,
+    DeviceExport, DeviceTrack, ExportProgress, ExportRequest, ExportResult, Playlist, Track,
 };
 
 use self::rekordbox::RekordboxPdbWriter;
@@ -97,11 +96,7 @@ impl ExportService {
         let _ = app_handle.emit("export-progress", &progress);
 
         // Generate Rekordbox PDB
-        self.generate_rekordbox_pdb(
-            &request.mount_point,
-            &playlists_with_tracks,
-            &device_tracks,
-        )?;
+        self.generate_rekordbox_pdb(&request.mount_point, &playlists_with_tracks, &device_tracks)?;
 
         // Record export state in database
         self.record_export_state(&request)?;
@@ -129,15 +124,13 @@ impl ExportService {
 
         if !path.exists() {
             return Err(CrateError::Device(format!(
-                "Device not mounted: {}",
-                mount_point
+                "Device not mounted: {mount_point}"
             )));
         }
 
         if !path.is_dir() {
             return Err(CrateError::Device(format!(
-                "Mount point is not a directory: {}",
-                mount_point
+                "Mount point is not a directory: {mount_point}"
             )));
         }
 
@@ -148,10 +141,7 @@ impl ExportService {
                 let _ = fs::remove_file(&test_file);
                 Ok(())
             }
-            Err(e) => Err(CrateError::Device(format!(
-                "Device is not writable: {}",
-                e
-            ))),
+            Err(e) => Err(CrateError::Device(format!("Device is not writable: {e}"))),
         }
     }
 
@@ -275,24 +265,7 @@ impl ExportService {
         conn: &Connection,
         parent_id: &str,
     ) -> Result<Vec<String>> {
-        let mut result = Vec::new();
-
-        let mut stmt = conn.prepare(
-            "SELECT id, is_folder FROM playlists WHERE parent_id = ?1 ORDER BY sort_order",
-        )?;
-
-        let children: Vec<(String, bool)> = stmt
-            .query_map([parent_id], |row| Ok((row.get(0)?, row.get(1)?)))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-
-        for (child_id, is_folder) in children {
-            result.push(child_id.clone());
-            if is_folder {
-                result.extend(self.get_all_descendant_playlist_ids(conn, &child_id)?);
-            }
-        }
-
-        Ok(result)
+        get_all_descendant_playlist_ids_impl(conn, parent_id)
     }
 
     /// Get tracks for a playlist in order
@@ -355,13 +328,11 @@ impl ExportService {
         let pioneer_path = Path::new(mount_point).join("PIONEER").join("rekordbox");
         let contents_path = Path::new(mount_point).join("Contents");
 
-        fs::create_dir_all(&pioneer_path).map_err(|e| {
-            CrateError::Device(format!("Failed to create PIONEER folder: {}", e))
-        })?;
+        fs::create_dir_all(&pioneer_path)
+            .map_err(|e| CrateError::Device(format!("Failed to create PIONEER folder: {e}")))?;
 
-        fs::create_dir_all(&contents_path).map_err(|e| {
-            CrateError::Device(format!("Failed to create Contents folder: {}", e))
-        })?;
+        fs::create_dir_all(&contents_path)
+            .map_err(|e| CrateError::Device(format!("Failed to create Contents folder: {e}")))?;
 
         Ok(())
     }
@@ -418,9 +389,8 @@ impl ExportService {
 
             // Create parent directories
             if let Some(parent) = dest_path.parent() {
-                fs::create_dir_all(parent).map_err(|e| {
-                    CrateError::Device(format!("Failed to create directory: {}", e))
-                })?;
+                fs::create_dir_all(parent)
+                    .map_err(|e| CrateError::Device(format!("Failed to create directory: {e}")))?;
             }
 
             // Copy the file
@@ -468,9 +438,10 @@ impl ExportService {
 
         // Check if existing PDB exists for merging
         let existing_pdb = if pdb_path.exists() {
-            Some(fs::read(&pdb_path).map_err(|e| {
-                CrateError::Device(format!("Failed to read existing PDB: {}", e))
-            })?)
+            Some(
+                fs::read(&pdb_path)
+                    .map_err(|e| CrateError::Device(format!("Failed to read existing PDB: {e}")))?,
+            )
         } else {
             None
         };
@@ -700,6 +671,27 @@ impl ExportService {
     }
 }
 
+/// Get all descendant playlist IDs (recursive implementation)
+fn get_all_descendant_playlist_ids_impl(conn: &Connection, parent_id: &str) -> Result<Vec<String>> {
+    let mut result = Vec::new();
+
+    let mut stmt = conn
+        .prepare("SELECT id, is_folder FROM playlists WHERE parent_id = ?1 ORDER BY sort_order")?;
+
+    let children: Vec<(String, bool)> = stmt
+        .query_map([parent_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+        .collect::<std::result::Result<Vec<_>, _>>()?;
+
+    for (child_id, is_folder) in children {
+        result.push(child_id.clone());
+        if is_folder {
+            result.extend(get_all_descendant_playlist_ids_impl(conn, &child_id)?);
+        }
+    }
+
+    Ok(result)
+}
+
 /// Sanitize a path component by replacing invalid characters
 fn sanitize_path_component(name: &str) -> String {
     let sanitized: String = name
@@ -726,7 +718,7 @@ fn build_usb_path(track: &Track) -> String {
         .unwrap_or_default()
         .to_string_lossy();
 
-    format!("{}/{}/{}", artist, album, filename)
+    format!("{artist}/{album}/{filename}")
 }
 
 /// Recursively remove empty directories

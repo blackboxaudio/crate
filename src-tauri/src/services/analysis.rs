@@ -2,9 +2,9 @@ use std::fs::File;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
-use stratum_dsp::{analyze_audio, AnalysisConfig};
 use rusqlite::Connection;
 use serde::{Deserialize, Serialize};
+use stratum_dsp::{analyze_audio, AnalysisConfig};
 use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::DecoderOptions;
 use symphonia::core::formats::FormatOptions;
@@ -135,11 +135,7 @@ impl AnalysisService {
             .sample_rate
             .ok_or_else(|| CrateError::Analysis("Unknown sample rate".to_string()))?;
 
-        let channels = track
-            .codec_params
-            .channels
-            .map(|c| c.count())
-            .unwrap_or(2);
+        let channels = track.codec_params.channels.map(|c| c.count()).unwrap_or(2);
 
         let track_id = track.id;
 
