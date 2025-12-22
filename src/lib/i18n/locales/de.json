@@ -294,7 +294,7 @@
 			"menuItem": "Formatieren",
 			"title": "Gerät formatieren",
 			"warning": "Alle Daten werden dauerhaft gelöscht",
-			"warningDetails": "Beim Formatieren von „{deviceName}" werden alle Dateien auf diesem Gerät gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
+			"warningDetails": "Beim Formatieren von „{deviceName}\" werden alle Dateien auf diesem Gerät gelöscht. Diese Aktion kann nicht rückgängig gemacht werden.",
 			"volumeName": "Datenträgername",
 			"volumeNamePlaceholder": "Datenträgername eingeben",
 			"fat32Hint": "FAT32 unterstützt bis zu 11 Zeichen",

@@ -294,7 +294,7 @@
 			"menuItem": "格式化",
 			"title": "格式化设备",
 			"warning": "所有数据将被永久删除",
-			"warningDetails": "格式化"{deviceName}"将删除此设备上的所有文件。此操作无法撤销。",
+			"warningDetails": "格式化\"{deviceName}\"将删除此设备上的所有文件。此操作无法撤销。",
 			"volumeName": "卷标名称",
 			"volumeNamePlaceholder": "输入卷标名称",
 			"fat32Hint": "FAT32 最多支持 11 个字符",
