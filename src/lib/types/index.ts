@@ -537,3 +537,11 @@ export interface AnalysisProgress {
 	result: AnalysisResult | null
 	updated_track: Track | null
 }
+
+export interface TrackAnalysisEvent {
+	track_id: string
+	state: AnalysisStatus
+	result: AnalysisResult | null
+	updated_track: Track | null
+	error: string | null
+}

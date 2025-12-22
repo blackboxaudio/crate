@@ -1,16 +1,24 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { AnalysisResult, Track } from '$lib/types'
+import type { Track } from '$lib/types'
 
 /**
  * Analyze tracks for BPM and key detection
- * Progress events are emitted via 'analysis-progress' Tauri event
+ * Progress events are emitted via 'analysis-track-event' Tauri event for each track
  */
-export async function analyzeTracks(trackIds: string[]): Promise<AnalysisResult[]> {
-	return invoke<AnalysisResult[]>('analyze_tracks', { trackIds })
+export async function analyzeTracks(trackIds: string[]): Promise<void> {
+	return invoke('analyze_tracks', { trackIds })
 }
 
 /**
- * Cancel the current analysis operation
+ * Cancel analysis for a specific track
+ * Returns true if the track was found and cancelled, false otherwise
+ */
+export async function cancelTrackAnalysis(trackId: string): Promise<boolean> {
+	return invoke<boolean>('cancel_track_analysis', { trackId })
+}
+
+/**
+ * Cancel all running analysis operations (legacy)
  */
 export async function cancelAnalysis(): Promise<void> {
 	return invoke('cancel_analysis')

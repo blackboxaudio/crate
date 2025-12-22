@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use rusqlite::Connection;
 
 use crate::error::{CrateError, Result};
-use crate::models::{MoveConflict, MovePlaylistResult, Playlist, Track};
+use crate::models::{MoveConflict, MovePlaylistResult, Playlist, Tag, Track};
 
 pub struct PlaylistService {
     conn: Arc<Mutex<Connection>>,
@@ -520,6 +520,72 @@ impl PlaylistService {
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        // Fetch tags
+        let tracks_with_tags = self.fetch_tags_for_tracks(&conn, tracks)?;
+        Ok(tracks_with_tags)
+    }
+
+    fn fetch_tags_for_tracks(
+        &self,
+        conn: &Connection,
+        mut tracks: Vec<Track>,
+    ) -> Result<Vec<Track>> {
+        if tracks.is_empty() {
+            return Ok(tracks);
+        }
+
+        let track_ids: Vec<String> = tracks.iter().map(|t| t.id.clone()).collect();
+        let placeholders: Vec<String> = track_ids
+            .iter()
+            .enumerate()
+            .map(|(i, _)| format!("?{}", i + 1))
+            .collect();
+
+        let sql = format!(
+            r#"
+            SELECT tt.track_id, t.id, t.category_id, t.name, t.color, t.sort_order
+            FROM track_tags tt
+            JOIN tags t ON tt.tag_id = t.id
+            WHERE tt.track_id IN ({})
+            "#,
+            placeholders.join(", ")
+        );
+
+        let params_refs: Vec<&dyn rusqlite::ToSql> = track_ids
+            .iter()
+            .map(|s| s as &dyn rusqlite::ToSql)
+            .collect();
+
+        let mut stmt = conn.prepare(&sql)?;
+        let tag_rows = stmt
+            .query_map(params_refs.as_slice(), |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    Tag {
+                        id: row.get(1)?,
+                        category_id: row.get(2)?,
+                        name: row.get(3)?,
+                        color: row.get(4)?,
+                        sort_order: row.get(5)?,
+                    },
+                ))
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        // Group tags by track_id
+        let mut tags_by_track: std::collections::HashMap<String, Vec<Tag>> =
+            std::collections::HashMap::new();
+        for (track_id, tag) in tag_rows {
+            tags_by_track.entry(track_id).or_default().push(tag);
+        }
+
+        // Assign tags to tracks
+        for track in &mut tracks {
+            if let Some(tags) = tags_by_track.remove(&track.id) {
+                track.tags = tags;
+            }
+        }
 
         Ok(tracks)
     }

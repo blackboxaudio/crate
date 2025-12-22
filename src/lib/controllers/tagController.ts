@@ -115,7 +115,12 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 		}
 
 		// Reload tracks to reflect tag changes
-		await libraryStore.loadTracks()
+		const selectedPlaylistId = getSelectedPlaylistId()
+		if (selectedPlaylistId) {
+			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+		} else {
+			await libraryStore.loadTracks()
+		}
 	}
 
 	/**

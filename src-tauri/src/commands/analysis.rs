@@ -2,20 +2,28 @@ use tauri::{AppHandle, State};
 
 use crate::error::CrateError;
 use crate::models::Track;
-use crate::services::analysis::AnalysisResult;
 use crate::services::AnalysisService;
 
-/// Analyze tracks for BPM and key detection with streaming progress
+/// Analyze tracks for BPM and key detection with per-track events
 #[tauri::command]
 pub async fn analyze_tracks(
     track_ids: Vec<String>,
     analysis: State<'_, AnalysisService>,
     app_handle: AppHandle,
-) -> Result<Vec<AnalysisResult>, CrateError> {
-    analysis.analyze_tracks(&app_handle, track_ids)
+) -> Result<(), CrateError> {
+    analysis.analyze_tracks_async(app_handle, track_ids).await
 }
 
-/// Cancel the current analysis operation
+/// Cancel analysis for a specific track
+#[tauri::command]
+pub async fn cancel_track_analysis(
+    track_id: String,
+    analysis: State<'_, AnalysisService>,
+) -> Result<bool, CrateError> {
+    Ok(analysis.cancel_track_analysis(&track_id))
+}
+
+/// Cancel all running analysis operations (legacy)
 #[tauri::command]
 pub async fn cancel_analysis(analysis: State<'_, AnalysisService>) -> Result<(), CrateError> {
     analysis.cancel_analysis();

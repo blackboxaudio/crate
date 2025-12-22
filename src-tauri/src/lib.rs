@@ -110,6 +110,7 @@ pub fn run() {
             commands::diagnostics::log_error,
             // Analysis commands
             commands::analysis::analyze_tracks,
+            commands::analysis::cancel_track_analysis,
             commands::analysis::cancel_analysis,
             commands::analysis::get_analyzed_tracks,
         ])

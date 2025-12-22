@@ -21,7 +21,7 @@
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
-		onCancelAnalysis?: () => void
+		onCancelAnalysis?: (trackId: string) => void
 	}
 
 	let {
@@ -127,7 +127,7 @@
 					ondblclick={() => handleTrackDoubleClick(track)}
 					oncontextmenu={(e) => handleTrackContextMenu(track, e)}
 					onColorChange={(color) => handleColorChange(track, color)}
-					{onCancelAnalysis}
+					onCancelAnalysis={() => onCancelAnalysis?.(track.id)}
 				/>
 			{/each}
 		{/if}

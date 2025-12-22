@@ -19,7 +19,7 @@
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
-		onCancelAnalysis?: () => void
+		onCancelAnalysis?: (trackId: string) => void
 	}
 
 	let {

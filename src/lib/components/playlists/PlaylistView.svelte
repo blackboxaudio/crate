@@ -21,7 +21,7 @@
 		onBreadcrumbNavigate: (item: BreadcrumbItem) => void
 		onBreadcrumbContextMenu: (e: MouseEvent, item: BreadcrumbItem) => void
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
-		onCancelAnalysis?: () => void
+		onCancelAnalysis?: (trackId: string) => void
 	}
 
 	let {

@@ -796,6 +796,7 @@ dependencies = [
  "tauri-plugin-window-state",
  "thiserror 2.0.17",
  "tokio",
+ "tokio-util",
  "uuid",
  "walkdir",
 ]
@@ -5162,6 +5163,7 @@ dependencies = [
  "bytes",
  "futures-core",
  "futures-sink",
+ "futures-util",
  "pin-project-lite",
  "tokio",
 ]

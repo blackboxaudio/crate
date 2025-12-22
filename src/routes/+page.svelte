@@ -735,8 +735,8 @@
 		}
 	}
 
-	async function handleCancelAnalysis() {
-		await analysisStore.cancelAnalysis()
+	async function handleCancelAnalysis(trackId: string) {
+		await analysisStore.cancelTrackAnalysis(trackId)
 	}
 
 	function handlePlaylistRename(playlist: Playlist) {
