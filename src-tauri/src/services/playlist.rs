@@ -642,13 +642,15 @@ impl PlaylistService {
         }
 
         // Reorder remaining tracks
-        let mut stmt = conn.prepare(
-            "SELECT track_id FROM playlist_tracks WHERE playlist_id = ?1 ORDER BY position",
-        )?;
-
-        let remaining_tracks: Vec<String> = stmt
-            .query_map([playlist_id], |row| row.get(0))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
+        let remaining_tracks: Vec<String> = {
+            let mut stmt = conn.prepare(
+                "SELECT track_id FROM playlist_tracks WHERE playlist_id = ?1 ORDER BY position",
+            )?;
+            let tracks = stmt
+                .query_map([playlist_id], |row| row.get(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            tracks
+        };
 
         for (i, track_id) in remaining_tracks.iter().enumerate() {
             conn.execute(
