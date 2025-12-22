@@ -42,12 +42,25 @@ impl SettingsService {
             .and_then(|v| v.parse().ok())
             .unwrap_or_default();
 
+        let key_notation_format = self
+            .get_setting_value(&conn, "key_notation_format")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
+        // Default to true if not set (enabled by default)
+        let auto_analyze_on_import = self
+            .get_setting_value(&conn, "auto_analyze_on_import")?
+            .map(|v| v != "false")
+            .unwrap_or(true);
+
         Ok(AppSettings {
             theme,
             accent_color,
             font,
             audio_device,
             language,
+            key_notation_format,
+            auto_analyze_on_import,
         })
     }
 

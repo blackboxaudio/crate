@@ -15,6 +15,7 @@
 		UsbDevice,
 		BreadcrumbItem,
 		ExportRequest,
+		SettingsPage,
 	} from '$lib/types'
 	import {
 		appStore,
@@ -44,6 +45,7 @@
 		needsDropTargetRefresh,
 		devToolsOpen,
 		isDev,
+		analysisStore,
 	} from '$lib/stores'
 	import { findDropTargets, findDropTargetAtPoint, type DropTarget } from '$lib/utils/drag'
 	import { toastStore } from '$lib/stores/toast'
@@ -131,6 +133,65 @@
 		return false
 	}
 
+	// Get all playlist IDs to export from a playlist/folder (single or recursive)
+	function getExportPlaylistIds(playlistId: string, isFolder: boolean): string[] {
+		if (!isFolder) {
+			return [playlistId]
+		}
+
+		// For folders, recursively collect all non-folder playlist IDs
+		const playlistIds: string[] = []
+		function collectDescendants(parentId: string) {
+			const children = playlists.filter((p) => p.parent_id === parentId)
+			for (const child of children) {
+				if (!child.is_folder) {
+					playlistIds.push(child.id)
+				} else {
+					collectDescendants(child.id)
+				}
+			}
+		}
+		collectDescendants(playlistId)
+		return playlistIds
+	}
+
+	// Handle dropping a playlist/folder onto a device
+	async function handlePlaylistDropOnDevice(playlistId: string, isFolder: boolean, deviceId: string) {
+		// Check if already exporting
+		if ($isExporting) {
+			toastStore.error(get(translate)('errors.exportInProgress'))
+			return
+		}
+
+		// Find the device
+		const device = devices.find((d) => d.id === deviceId)
+		if (!device) {
+			toastStore.error('Device not found')
+			return
+		}
+
+		// Get playlist IDs to export
+		const playlistIds = getExportPlaylistIds(playlistId, isFolder)
+
+		// Check if folder has no playlists
+		if (playlistIds.length === 0) {
+			toastStore.error(get(translate)('export.noPlaylistsInFolder'))
+			return
+		}
+
+		// Build export request
+		const request: ExportRequest = {
+			device_id: device.id,
+			mount_point: device.mount_point,
+			device_name: device.name,
+			playlist_ids: playlistIds,
+			enable_sync: true,
+		}
+
+		// Start export immediately
+		await handleExportSubmit(request)
+	}
+
 	function handleGlobalPointerUp(e: PointerEvent) {
 		if (!$isDragging) return
 
@@ -165,6 +226,9 @@
 
 				// Dropping a playlist/folder on a folder
 				handlePlaylistDragMove(data.playlistId, target.id)
+			} else if (data.type === 'playlist' && target.type === 'device') {
+				// Dropping a playlist/folder on a device - export immediately
+				handlePlaylistDropOnDevice(data.playlistId, data.isFolder, target.id)
 			}
 		}
 
@@ -308,7 +372,7 @@
 				const allIds = new Set($sortedTracks.map((t) => t.id))
 				uiStore.setSelectedTracks(allIds)
 			},
-			onOpenSettings: () => modalOrchestrator.openSettingsModal(),
+			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator.openSettingsModal(tab),
 			onToggleInspector: () => uiStore.toggleRightSidebar(),
 			// New shortcuts
 			onNewPlaylist: () => modalOrchestrator.openCreatePlaylistModal(selectedFolderId),
@@ -394,6 +458,25 @@
 					}
 				}
 			},
+			onQuickExport: () => {
+				// Only open if there are devices available
+				if (devices.length > 0 && modalOrchestrator) {
+					modalOrchestrator.openQuickExportModal()
+				}
+			},
+			onJumpToPlayingTrack: () => {
+				const track = $currentTrack
+				if (!track) return
+
+				// If viewing a playlist, switch to library view
+				if (selectedPlaylistId) {
+					handleLibraryClick()
+				}
+
+				// Select and scroll to track
+				uiStore.selectTrack(track.id)
+				// TODO: Implement scrollToTrack in LibraryView
+			},
 		})
 
 		// Set up menu action listener
@@ -407,7 +490,20 @@
 			},
 			onPlayPause: () => playerStore.togglePlayPause(),
 			onStop: () => playerStore.stop(),
-			onOpenSettings: () => modalOrchestrator.openSettingsModal(),
+			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator.openSettingsModal(tab),
+			onQuickExport: () => {
+				if (devices.length > 0 && modalOrchestrator) {
+					modalOrchestrator.openQuickExportModal()
+				}
+			},
+			onJumpToPlayingTrack: () => {
+				const track = $currentTrack
+				if (!track) return
+				if (selectedPlaylistId) {
+					handleLibraryClick()
+				}
+				uiStore.selectTrack(track.id)
+			},
 		})
 
 		return () => {
@@ -604,6 +700,16 @@
 					count === 1 ? `1 track added to ${playlist.name}` : `${count} tracks added to ${playlist.name}`
 				)
 			}
+		}
+	}
+
+	async function handleTrackAnalyze(tracks: Track[]) {
+		const trackIds = tracks.map((t) => t.id)
+		try {
+			await analysisStore.analyzeTracks(trackIds)
+		} catch (error) {
+			console.error('Analysis failed:', error)
+			toastStore.error(get(translate)('errors.analysisFailed'))
 		}
 	}
 
@@ -814,6 +920,13 @@
 		}
 	}
 
+	async function handleQuickExportSubmit(requests: ExportRequest[]) {
+		// Export to each device sequentially
+		for (const request of requests) {
+			await handleExportSubmit(request)
+		}
+	}
+
 	async function handleExportCancel() {
 		try {
 			await exportApi.cancelExport()
@@ -1018,6 +1131,7 @@
 	onTrackRemoveFromLibrary={trackController.removeFromLibraryClick}
 	onTrackRelocate={(track) => modalOrchestrator.openRelocateModal(track)}
 	onTrackSetColor={trackController.setColorFromContextMenu}
+	onTrackAnalyze={handleTrackAnalyze}
 	onPlaylistRename={handlePlaylistRename}
 	onPlaylistDelete={handlePlaylistDelete}
 	onPlaylistMove={handlePlaylistMove}
@@ -1123,6 +1237,7 @@
 	onRelocateComplete={handleRelocateComplete}
 	{devices}
 	onExport={handleExportSubmit}
+	onQuickExport={handleQuickExportSubmit}
 	onExportFailureKeep={handleExportFailureKeep}
 	onExportFailureCleanup={handleExportFailureCleanup}
 	onReformatDevice={handleReformatDevice}

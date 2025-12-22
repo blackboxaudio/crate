@@ -28,7 +28,7 @@ export {
 } from './ui'
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'
-export { settingsStore, theme, accentColor, resolvedTheme, settingsLoading } from './settings'
+export { settingsStore, theme, accentColor, resolvedTheme, settingsLoading, keyNotationFormat } from './settings'
 export { devicesStore, devices, deviceCount, hasDevices, devicesLoading } from './devices'
 export { diagnosticsStore, diagnosticEntries, systemInfo, diagnosticsLoading, errorCount } from './diagnostics'
 export { missingTracksStore, missingTrackIds, checkingTrackIds } from './missingTracks'
@@ -45,3 +45,4 @@ export {
 export type { DragData } from './drag'
 export { crashStore, hasCrashed, crashError } from './crash'
 export type { CrashInfo } from './crash'
+export { analysisStore, analyzingTrackIds, isAnalyzing } from './analysis'

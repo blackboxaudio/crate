@@ -1,9 +1,11 @@
-import { writable, derived } from 'svelte/store'
+import { writable, derived, get } from 'svelte/store'
 import type { Track, TrackColor, TrackFilter, SortConfig, ImportResultWithDuplicates } from '$lib/types'
 import { sortTracks } from '$lib/utils/sorting'
 import * as libraryApi from '$lib/api/library'
 import * as playlistsApi from '$lib/api/playlists'
 import { toastStore } from './toast'
+import { autoAnalyzeOnImport } from './settings'
+import { analysisStore } from './analysis'
 
 // =============================================================================
 // State
@@ -81,6 +83,15 @@ function createLibraryStore() {
 						...state,
 						tracks: [...result.tracks, ...state.tracks],
 					}))
+
+					// Auto-analyze imported tracks if enabled
+					if (get(autoAnalyzeOnImport)) {
+						const trackIds = result.tracks.map((t) => t.id)
+						// Run analysis asynchronously, don't await to avoid blocking import UI
+						analysisStore.analyzeTracks(trackIds).catch((error) => {
+							console.error('Auto-analysis failed:', error)
+						})
+					}
 				}
 
 				update((state) => ({ ...state, loading: false }))

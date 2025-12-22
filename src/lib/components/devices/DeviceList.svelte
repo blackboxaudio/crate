@@ -6,6 +6,7 @@
 	import { translate } from '$lib/i18n'
 	import { reformattingDeviceId } from '$lib/stores/devices'
 	import { activeDeviceId } from '$lib/stores/export'
+	import { hoveredDropTarget, isDraggingPlaylist } from '$lib/stores'
 
 	type Props = {
 		devices: UsbDevice[]
@@ -27,6 +28,7 @@
 				{device}
 				isReformatting={device.id === $reformattingDeviceId}
 				isExporting={device.id === $activeDeviceId}
+				isDragHovered={$isDraggingPlaylist && $hoveredDropTarget === `device-${device.id}`}
 				{onContextMenu}
 				{onCancelExport}
 			/>

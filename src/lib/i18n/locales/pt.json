@@ -16,7 +16,9 @@
 		"untitled": "Sem título",
 		"unknownArtist": "Artista desconhecido",
 		"folder": "pasta",
-		"playlist": "playlist"
+		"playlist": "playlist",
+		"next": "Próximo",
+		"back": "Voltar"
 	},
 	"nav": {
 		"library": "Biblioteca",
@@ -27,6 +29,7 @@
 		"title": "Configurações",
 		"tabs": {
 			"general": "Geral",
+			"library": "Biblioteca",
 			"appearance": "Aparência",
 			"sound": "Som",
 			"diagnostics": "Diagnósticos",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "Idioma",
 			"languageDescription": "Escolha o idioma de exibição do aplicativo."
+		},
+		"library": {
+			"analysis": "Análise",
+			"keyNotation": "Notação de tom",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Padrão",
+			"keyNotationDescription": "Escolha como os tons musicais são exibidos.",
+			"autoAnalyzeOnImport": "Analisar automaticamente ao importar",
+			"autoAnalyzeOnImportDescription": "Analisar automaticamente BPM e tom ao importar faixas."
 		},
 		"appearance": {
 			"font": "Fonte",
@@ -135,7 +147,8 @@
 		"remove": "Remover",
 		"removeFromPlaylist": "Remover da playlist",
 		"removeFromLibrary": "Remover da biblioteca",
-		"relocate": "Realocar..."
+		"relocate": "Realocar...",
+		"analyze": "Analisar"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -258,11 +271,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Não é possível soltar uma pasta dentro de si mesma",
-		"cannotDropIntoSubfolder": "Não é possível soltar uma pasta em sua própria subpasta"
+		"cannotDropIntoSubfolder": "Não é possível soltar uma pasta em sua própria subpasta",
+		"analysisFailed": "Falha na análise",
+		"exportInProgress": "Exportação já em progresso"
 	},
 	"devices": {
 		"title": "Dispositivos",
 		"eject": "Ejetar",
+		"selectDevice": "Selecionar dispositivo",
 		"deviceInfo": "Informações do dispositivo",
 		"capacity": "Capacidade",
 		"available": "Disponível",
@@ -287,10 +303,15 @@
 	},
 	"export": {
 		"title": "Exportar para dispositivo",
+		"quickExport": "Exportação rápida",
 		"exportTo": "Exportar para {deviceName}",
 		"exportPlaylist": "Exportar {playlistName}",
 		"selectPlaylists": "Selecionar playlists para exportar",
+		"selectPlaylistsDescription": "Escolha quais playlists você deseja exportar para os dispositivos selecionados.",
 		"selectDevice": "Selecionar um dispositivo",
+		"selectDevicesDescription": "Selecione um ou mais dispositivos para exportar.",
+		"devicesSelected": "{count, plural, =1 {1 dispositivo selecionado} other {{count} dispositivos selecionados}}",
+		"devicesToExport": "Dispositivos",
 		"noDevicesConnected": "Nenhum dispositivo USB conectado",
 		"noPlaylistsAvailable": "Nenhuma playlist disponível",
 		"destination": "Destino",
@@ -309,7 +330,8 @@
 		"whatToDo": "O que você gostaria de fazer?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 arquivo foi copiado} other {{count} arquivos foram copiados}} antes da falha.",
 		"exportingTo": "Exportando para {deviceName}",
-		"transferringProgress": "Transferindo {trackCount} faixas de {playlistCount} playlists"
+		"transferringProgress": "Transferindo {trackCount} faixas de {playlistCount} playlists",
+		"noPlaylistsInFolder": "Nenhuma playlist para exportar nesta pasta"
 	},
 	"editor": {
 		"trackInfo": "Informações da faixa",
@@ -360,10 +382,17 @@
 		"help": "Ajuda",
 		"about": "Sobre {appName}",
 		"settings": "Configurações...",
+		"settingsSubmenu": "Configurações",
+		"settingsGeneral": "Geral",
+		"settingsLibrary": "Biblioteca",
+		"settingsAppearance": "Aparência",
+		"settingsSound": "Som",
+		"settingsDiagnostics": "Diagnósticos",
 		"quit": "Sair de {appName}",
 		"importTracks": "Importar faixas...",
 		"newPlaylist": "Nova playlist",
 		"newFolder": "Nova pasta",
+		"quickExport": "Exportação rápida...",
 		"undo": "Desfazer",
 		"redo": "Refazer",
 		"cut": "Recortar",
@@ -372,6 +401,7 @@
 		"selectAllTracks": "Selecionar todas as faixas",
 		"playPause": "Reproduzir/Pausar",
 		"stop": "Parar",
+		"jumpToPlaying": "Ir para a faixa em reprodução",
 		"toggleSidebar": "Alternar barra lateral",
 		"showDevTools": "Mostrar DevTools",
 		"minimize": "Minimizar",

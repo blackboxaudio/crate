@@ -16,7 +16,9 @@
 		"untitled": "Unbenannt",
 		"unknownArtist": "Unbekannter Künstler",
 		"folder": "Ordner",
-		"playlist": "Playlist"
+		"playlist": "Playlist",
+		"next": "Weiter",
+		"back": "Zurück"
 	},
 	"nav": {
 		"library": "Bibliothek",
@@ -27,6 +29,7 @@
 		"title": "Einstellungen",
 		"tabs": {
 			"general": "Allgemein",
+			"library": "Bibliothek",
 			"appearance": "Erscheinung",
 			"sound": "Ton",
 			"diagnostics": "Diagnose",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "Sprache",
 			"languageDescription": "Wählen Sie die Anzeigesprache für die Anwendung."
+		},
+		"library": {
+			"analysis": "Analyse",
+			"keyNotation": "Tonart-Notation",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standard",
+			"keyNotationDescription": "Wählen Sie die Darstellung der Tonarten.",
+			"autoAnalyzeOnImport": "Automatische Analyse beim Import",
+			"autoAnalyzeOnImportDescription": "BPM und Tonart beim Importieren von Titeln automatisch analysieren."
 		},
 		"appearance": {
 			"font": "Schriftart",
@@ -135,7 +147,8 @@
 		"remove": "Entfernen",
 		"removeFromPlaylist": "Aus Playlist entfernen",
 		"removeFromLibrary": "Aus Bibliothek entfernen",
-		"relocate": "Verschieben..."
+		"relocate": "Verschieben...",
+		"analyze": "Analysieren"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -258,11 +271,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Ein Ordner kann nicht in sich selbst gezogen werden",
-		"cannotDropIntoSubfolder": "Ein Ordner kann nicht in seinen eigenen Unterordner gezogen werden"
+		"cannotDropIntoSubfolder": "Ein Ordner kann nicht in seinen eigenen Unterordner gezogen werden",
+		"analysisFailed": "Analyse fehlgeschlagen",
+		"exportInProgress": "Export läuft bereits"
 	},
 	"devices": {
 		"title": "Geräte",
 		"eject": "Auswerfen",
+		"selectDevice": "Gerät auswählen",
 		"deviceInfo": "Geräteinformationen",
 		"capacity": "Kapazität",
 		"available": "Verfügbar",
@@ -287,10 +303,15 @@
 	},
 	"export": {
 		"title": "Auf Gerät exportieren",
+		"quickExport": "Schnellexport",
 		"exportTo": "Exportieren nach {deviceName}",
 		"exportPlaylist": "{playlistName} exportieren",
 		"selectPlaylists": "Zu exportierende Playlists auswählen",
+		"selectPlaylistsDescription": "Wählen Sie aus, welche Playlists auf die ausgewählten Geräte exportiert werden sollen.",
 		"selectDevice": "Gerät auswählen",
+		"selectDevicesDescription": "Wählen Sie ein oder mehrere Geräte zum Exportieren aus.",
+		"devicesSelected": "{count, plural, =1 {1 Gerät ausgewählt} other {{count} Geräte ausgewählt}}",
+		"devicesToExport": "Geräte",
 		"noDevicesConnected": "Keine USB-Geräte verbunden",
 		"noPlaylistsAvailable": "Keine Playlists verfügbar",
 		"destination": "Ziel",
@@ -309,7 +330,8 @@
 		"whatToDo": "Was möchten Sie tun?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 Datei wurde} other {{count} Dateien wurden}} vor dem Fehler kopiert.",
 		"exportingTo": "Exportiere nach {deviceName}",
-		"transferringProgress": "{trackCount} Tracks aus {playlistCount} Playlists übertragen"
+		"transferringProgress": "{trackCount} Tracks aus {playlistCount} Playlists übertragen",
+		"noPlaylistsInFolder": "Keine Playlists zum Exportieren in diesem Ordner"
 	},
 	"editor": {
 		"trackInfo": "Track-Info",
@@ -360,10 +382,17 @@
 		"help": "Hilfe",
 		"about": "Über {appName}",
 		"settings": "Einstellungen...",
+		"settingsSubmenu": "Einstellungen",
+		"settingsGeneral": "Allgemein",
+		"settingsLibrary": "Bibliothek",
+		"settingsAppearance": "Erscheinung",
+		"settingsSound": "Ton",
+		"settingsDiagnostics": "Diagnose",
 		"quit": "{appName} beenden",
 		"importTracks": "Tracks importieren...",
 		"newPlaylist": "Neue Playlist",
 		"newFolder": "Neuer Ordner",
+		"quickExport": "Schnellexport...",
 		"undo": "Rückgängig",
 		"redo": "Wiederholen",
 		"cut": "Ausschneiden",
@@ -372,6 +401,7 @@
 		"selectAllTracks": "Alle Tracks auswählen",
 		"playPause": "Wiedergabe/Pause",
 		"stop": "Stopp",
+		"jumpToPlaying": "Zum laufenden Track springen",
 		"toggleSidebar": "Seitenleiste ein-/ausblenden",
 		"showDevTools": "Entwicklertools anzeigen",
 		"minimize": "Minimieren",

@@ -16,7 +16,9 @@
 		"untitled": "Sans titre",
 		"unknownArtist": "Artiste inconnu",
 		"folder": "dossier",
-		"playlist": "playlist"
+		"playlist": "playlist",
+		"next": "Suivant",
+		"back": "Retour"
 	},
 	"nav": {
 		"library": "Bibliothèque",
@@ -27,6 +29,7 @@
 		"title": "Paramètres",
 		"tabs": {
 			"general": "Général",
+			"library": "Bibliothèque",
 			"appearance": "Apparence",
 			"sound": "Son",
 			"diagnostics": "Diagnostics",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "Langue",
 			"languageDescription": "Choisissez la langue d'affichage de l'application."
+		},
+		"library": {
+			"analysis": "Analyse",
+			"keyNotation": "Notation des tonalités",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standard",
+			"keyNotationDescription": "Choisissez l'affichage des tonalités musicales.",
+			"autoAnalyzeOnImport": "Analyser automatiquement à l'import",
+			"autoAnalyzeOnImportDescription": "Analyser automatiquement le BPM et la tonalité lors de l'import."
 		},
 		"appearance": {
 			"font": "Police",
@@ -135,7 +147,8 @@
 		"remove": "Supprimer",
 		"removeFromPlaylist": "Retirer de la playlist",
 		"removeFromLibrary": "Retirer de la bibliothèque",
-		"relocate": "Relocaliser..."
+		"relocate": "Relocaliser...",
+		"analyze": "Analyser"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -258,11 +271,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Impossible de déposer un dossier dans lui-même",
-		"cannotDropIntoSubfolder": "Impossible de déposer un dossier dans son propre sous-dossier"
+		"cannotDropIntoSubfolder": "Impossible de déposer un dossier dans son propre sous-dossier",
+		"analysisFailed": "Échec de l'analyse",
+		"exportInProgress": "Exportation déjà en cours"
 	},
 	"devices": {
 		"title": "Appareils",
 		"eject": "Éjecter",
+		"selectDevice": "Sélectionner l'appareil",
 		"deviceInfo": "Infos appareil",
 		"capacity": "Capacité",
 		"available": "Disponible",
@@ -287,10 +303,15 @@
 	},
 	"export": {
 		"title": "Exporter vers l'appareil",
+		"quickExport": "Export rapide",
 		"exportTo": "Exporter vers {deviceName}",
 		"exportPlaylist": "Exporter {playlistName}",
 		"selectPlaylists": "Sélectionner les playlists à exporter",
+		"selectPlaylistsDescription": "Choisissez les playlists à exporter vers les appareils sélectionnés.",
 		"selectDevice": "Sélectionner un appareil",
+		"selectDevicesDescription": "Sélectionnez un ou plusieurs appareils pour l'exportation.",
+		"devicesSelected": "{count, plural, =1 {1 appareil sélectionné} other {{count} appareils sélectionnés}}",
+		"devicesToExport": "Appareils",
 		"noDevicesConnected": "Aucun périphérique USB connecté",
 		"noPlaylistsAvailable": "Aucune playlist disponible",
 		"destination": "Destination",
@@ -309,7 +330,8 @@
 		"whatToDo": "Que souhaitez-vous faire ?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fichier a été copié} other {{count} fichiers ont été copiés}} avant l'échec.",
 		"exportingTo": "Exportation vers {deviceName}",
-		"transferringProgress": "Transfert de {trackCount} pistes de {playlistCount} playlists"
+		"transferringProgress": "Transfert de {trackCount} pistes de {playlistCount} playlists",
+		"noPlaylistsInFolder": "Aucune playlist à exporter dans ce dossier"
 	},
 	"editor": {
 		"trackInfo": "Infos piste",
@@ -360,10 +382,17 @@
 		"help": "Aide",
 		"about": "À propos de {appName}",
 		"settings": "Paramètres...",
+		"settingsSubmenu": "Paramètres",
+		"settingsGeneral": "Général",
+		"settingsLibrary": "Bibliothèque",
+		"settingsAppearance": "Apparence",
+		"settingsSound": "Son",
+		"settingsDiagnostics": "Diagnostics",
 		"quit": "Quitter {appName}",
 		"importTracks": "Importer des pistes...",
 		"newPlaylist": "Nouvelle playlist",
 		"newFolder": "Nouveau dossier",
+		"quickExport": "Export rapide...",
 		"undo": "Annuler",
 		"redo": "Rétablir",
 		"cut": "Couper",
@@ -372,6 +401,7 @@
 		"selectAllTracks": "Tout sélectionner",
 		"playPause": "Lecture/Pause",
 		"stop": "Arrêt",
+		"jumpToPlaying": "Aller à la piste en cours de lecture",
 		"toggleSidebar": "Afficher/Masquer la barre latérale",
 		"showDevTools": "Afficher les outils de développement",
 		"minimize": "Réduire",

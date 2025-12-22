@@ -4,7 +4,9 @@
 	import { translate } from '$lib/i18n'
 	import { formatFileSize } from '$lib/utils'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import Spinner from '$lib/components/common/Spinner.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
+	import Checkbox from '$lib/components/common/Checkbox.svelte'
 	import DeviceStatusIndicator from './DeviceStatusIndicator.svelte'
 	import { deviceItem } from '$lib/transitions'
 	import { exportProgress, exportProgressPercent, playlistCount } from '$lib/stores/export'
@@ -13,54 +15,107 @@
 		device: UsbDevice
 		isReformatting?: boolean
 		isExporting?: boolean
+		selectable?: boolean
+		selected?: boolean
+		isDragHovered?: boolean
 		onContextMenu?: (e: MouseEvent, device: UsbDevice) => void
 		onCancelExport?: () => void
+		onSelect?: (deviceId: string) => void
 	}
 
-	let { device, isReformatting = false, isExporting = false, onContextMenu, onCancelExport }: Props = $props()
+	let {
+		device,
+		isReformatting = false,
+		isExporting = false,
+		selectable = false,
+		selected = false,
+		isDragHovered = false,
+		onContextMenu,
+		onCancelExport,
+		onSelect,
+	}: Props = $props()
 
 	// Track success state for linger effect
 	let showSuccess = $state(false)
 	let showProgress = $state(false)
 	let wasExporting = $state(false)
+	let visuallyExporting = $state(false) // Stays true during linger period for fast exports
 	let exportStartTime = $state(0)
 	let displayPercent = $state(0)
 	let lastProgressSnapshot = $state<{ files_copied: number; files_total: number } | null>(null)
+	let lastTrackName = $state<string | null>(null)
 
 	const MIN_DISPLAY_DURATION = 500
+	const PROGRESS_ANIMATION_DURATION = 300 // Time for progress bar to animate to 100%
+
+	// Continuously track progress data while exporting so we have a valid snapshot when export completes
+	// This is necessary because the store clears progress immediately when export completes
+	// Also sync displayPercent to prevent stutter when switching from real progress to displayPercent
+	$effect(() => {
+		if ($exportProgress) {
+			lastProgressSnapshot = {
+				files_copied: $exportProgress.files_copied,
+				files_total: $exportProgress.files_total,
+			}
+			displayPercent = $exportProgressPercent
+
+			// Capture track name for linger period
+			if ($exportProgress.current_file) {
+				const path = $exportProgress.current_file
+				const filename = path.split('/').pop() || path.split('\\').pop() || path
+				const lastDot = filename.lastIndexOf('.')
+				lastTrackName = lastDot > 0 ? filename.slice(0, lastDot) : filename
+			}
+		}
+	})
 
 	// Detect when export starts/completes to manage UI timing
 	$effect(() => {
 		if (!wasExporting && isExporting) {
-			// Export just started - record start time and show progress
+			// Export just started - show progress immediately
 			exportStartTime = Date.now()
 			showProgress = true
+			visuallyExporting = true
 			displayPercent = 0
 			lastProgressSnapshot = null
+			lastTrackName = null
 		} else if (wasExporting && !isExporting) {
-			// Export just finished - snapshot the progress data before it clears
-			if ($exportProgress) {
-				lastProgressSnapshot = {
-					files_copied: $exportProgress.files_total,
-					files_total: $exportProgress.files_total,
-				}
-			}
-
-			// Ensure minimum display duration before showing success
+			// Export just finished - calculate if we need to linger
 			const elapsed = Date.now() - exportStartTime
 			const remainingTime = Math.max(0, MIN_DISPLAY_DURATION - elapsed)
 
-			// Animate progress to 100% over the remaining time
-			displayPercent = 100
+			const completeExport = () => {
+				// Update snapshot to show 100% completion
+				if (lastProgressSnapshot) {
+					lastProgressSnapshot = {
+						files_copied: lastProgressSnapshot.files_total,
+						files_total: lastProgressSnapshot.files_total,
+					}
+				}
 
-			setTimeout(() => {
-				showSuccess = true
+				// Animate progress to 100% and end visual exporting state
+				displayPercent = 100
+				visuallyExporting = false
+
+				// Wait for progress bar animation, then show success
 				setTimeout(() => {
-					showSuccess = false
-					showProgress = false
-					lastProgressSnapshot = null
-				}, 1000)
-			}, remainingTime)
+					showSuccess = true
+					setTimeout(() => {
+						showSuccess = false
+						showProgress = false
+						lastProgressSnapshot = null
+						lastTrackName = null
+					}, 1000)
+				}, PROGRESS_ANIMATION_DURATION)
+			}
+
+			if (remainingTime > 0) {
+				// Fast export: keep UI visible until minimum duration is met
+				setTimeout(completeExport, remainingTime)
+			} else {
+				// Normal export: complete immediately
+				completeExport()
+			}
 		}
 		wasExporting = isExporting
 	})
@@ -81,19 +136,36 @@
 			: ''
 	)
 
-	// Extract filename without extension from current file path
+	// Extract filename without extension from current file path, with fallback to snapshot
 	const currentTrackName = $derived(() => {
-		if (!$exportProgress?.current_file) return null
-		const path = $exportProgress.current_file
-		const filename = path.split('/').pop() || path.split('\\').pop() || path
-		const lastDot = filename.lastIndexOf('.')
-		return lastDot > 0 ? filename.slice(0, lastDot) : filename
+		if ($exportProgress?.current_file) {
+			const path = $exportProgress.current_file
+			const filename = path.split('/').pop() || path.split('\\').pop() || path
+			const lastDot = filename.lastIndexOf('.')
+			return lastDot > 0 ? filename.slice(0, lastDot) : filename
+		}
+		// Use snapshot during linger period when store is cleared
+		return lastTrackName
 	})
 </script>
 
 <div
-	class="rounded px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary"
+	data-drop-target="device-{device.id}"
+	class="rounded px-3 py-2 text-text-secondary transition-colors hover:bg-surface-2 hover:text-text-primary {selectable
+		? 'cursor-pointer border ' + (selected ? 'border-brand-primary bg-brand-primary/10' : 'border-transparent')
+		: ''} {isDragHovered ? 'bg-brand-primary/5 ring-2 ring-brand-primary' : ''}"
 	transition:deviceItem={{ duration: 200 }}
+	onclick={() => {
+		if (selectable) {
+			onSelect?.(device.id)
+		}
+	}}
+	onkeydown={(e) => {
+		if (selectable && (e.key === 'Enter' || e.key === ' ')) {
+			e.preventDefault()
+			onSelect?.(device.id)
+		}
+	}}
 	oncontextmenu={(e) => {
 		e.preventDefault()
 		onContextMenu?.(e, device)
@@ -101,8 +173,15 @@
 	role="button"
 	tabindex="0"
 >
-	<!-- Main row: USB Icon, device info, status indicator -->
+	<!-- Main row: Checkbox (if selectable), USB Icon, device info, status indicator -->
 	<div class="flex items-center gap-2">
+		{#if selectable}
+			<Checkbox
+				checked={selected}
+				onchange={() => onSelect?.(device.id)}
+				ariaLabel={$translate('devices.selectDevice')}
+			/>
+		{/if}
 		<Icon name="usb" class="h-4 w-4 shrink-0" />
 
 		<div class="min-w-0 flex-1">
@@ -119,9 +198,9 @@
 				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
 					<Icon name="check" class="h-4 w-4 text-success" />
 				</div>
-			{:else if isExporting || isReformatting}
+			{:else if visuallyExporting || isReformatting}
 				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
-					<Icon name="refresh" class="h-4 w-4 animate-spin text-text-tertiary" />
+					<Spinner />
 				</div>
 			{:else}
 				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
@@ -131,12 +210,12 @@
 		</div>
 	</div>
 
-	<!-- Inline export progress section (visible during export and success linger) -->
-	{#if showProgress && effectiveProgress}
+	<!-- Inline export progress section (visible during export and success linger, hidden in selectable mode) -->
+	{#if !selectable && showProgress && effectiveProgress}
 		<div class="mt-2 flex flex-col gap-1" transition:slide={{ duration: 200 }}>
 			<!-- Track name and progress counter row -->
 			<div class="flex items-center justify-between gap-2">
-				{#if isExporting && currentTrackName()}
+				{#if visuallyExporting && currentTrackName()}
 					<span class="min-w-0 flex-1 truncate text-xs text-text-tertiary">
 						{currentTrackName()}
 					</span>

@@ -16,7 +16,9 @@
 		"untitled": "제목 없음",
 		"unknownArtist": "알 수 없는 아티스트",
 		"folder": "폴더",
-		"playlist": "재생목록"
+		"playlist": "재생목록",
+		"next": "다음",
+		"back": "뒤로"
 	},
 	"nav": {
 		"library": "라이브러리",
@@ -27,6 +29,7 @@
 		"title": "설정",
 		"tabs": {
 			"general": "일반",
+			"library": "라이브러리",
 			"appearance": "모양",
 			"sound": "사운드",
 			"diagnostics": "진단",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "언어",
 			"languageDescription": "애플리케이션의 표시 언어를 선택하세요."
+		},
+		"library": {
+			"analysis": "분석",
+			"keyNotation": "키 표기",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "표준",
+			"keyNotationDescription": "음악 키 표시 방법을 선택하세요.",
+			"autoAnalyzeOnImport": "가져오기 시 자동 분석",
+			"autoAnalyzeOnImportDescription": "트랙 가져오기 시 BPM과 키를 자동으로 분석합니다."
 		},
 		"appearance": {
 			"font": "글꼴",
@@ -135,7 +147,8 @@
 		"remove": "제거",
 		"removeFromPlaylist": "재생목록에서 제거",
 		"removeFromLibrary": "라이브러리에서 제거",
-		"relocate": "재배치..."
+		"relocate": "재배치...",
+		"analyze": "분석"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -258,11 +271,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "폴더를 자기 자신 안에 놓을 수 없습니다",
-		"cannotDropIntoSubfolder": "폴더를 자신의 하위 폴더 안에 놓을 수 없습니다"
+		"cannotDropIntoSubfolder": "폴더를 자신의 하위 폴더 안에 놓을 수 없습니다",
+		"analysisFailed": "분석 실패",
+		"exportInProgress": "내보내기가 이미 진행 중입니다"
 	},
 	"devices": {
 		"title": "장치",
 		"eject": "꺼내기",
+		"selectDevice": "기기 선택",
 		"deviceInfo": "장치 정보",
 		"capacity": "용량",
 		"available": "사용 가능",
@@ -287,10 +303,15 @@
 	},
 	"export": {
 		"title": "장치로 내보내기",
+		"quickExport": "빠른 내보내기",
 		"exportTo": "{deviceName}(으)로 내보내기",
 		"exportPlaylist": "{playlistName} 내보내기",
 		"selectPlaylists": "내보낼 재생목록 선택",
+		"selectPlaylistsDescription": "선택한 장치에 내보낼 재생목록을 선택하세요.",
 		"selectDevice": "장치 선택",
+		"selectDevicesDescription": "내보낼 하나 이상의 장치를 선택하세요.",
+		"devicesSelected": "{count, plural, =1 {1개 장치 선택됨} other {{count}개 장치 선택됨}}",
+		"devicesToExport": "장치",
 		"noDevicesConnected": "연결된 USB 장치 없음",
 		"noPlaylistsAvailable": "사용 가능한 재생목록 없음",
 		"destination": "대상",
@@ -309,7 +330,8 @@
 		"whatToDo": "어떻게 하시겠습니까?",
 		"filesCopiedBeforeFailure": "오류 발생 전 {count, plural, =1 {1개 파일이} other {{count}개 파일이}} 복사되었습니다.",
 		"exportingTo": "{deviceName}(으)로 내보내는 중",
-		"transferringProgress": "{playlistCount}개 플레이리스트에서 {trackCount}개 트랙 전송 중"
+		"transferringProgress": "{playlistCount}개 플레이리스트에서 {trackCount}개 트랙 전송 중",
+		"noPlaylistsInFolder": "이 폴더에서 내보낼 재생목록이 없습니다"
 	},
 	"editor": {
 		"trackInfo": "트랙 정보",
@@ -360,10 +382,17 @@
 		"help": "도움말",
 		"about": "{appName} 정보",
 		"settings": "설정...",
+		"settingsSubmenu": "설정",
+		"settingsGeneral": "일반",
+		"settingsLibrary": "라이브러리",
+		"settingsAppearance": "모양",
+		"settingsSound": "사운드",
+		"settingsDiagnostics": "진단",
 		"quit": "{appName} 종료",
 		"importTracks": "트랙 가져오기...",
 		"newPlaylist": "새 재생목록",
 		"newFolder": "새 폴더",
+		"quickExport": "빠른 내보내기...",
 		"undo": "실행 취소",
 		"redo": "다시 실행",
 		"cut": "잘라내기",
@@ -372,6 +401,7 @@
 		"selectAllTracks": "모든 트랙 선택",
 		"playPause": "재생/일시정지",
 		"stop": "정지",
+		"jumpToPlaying": "재생 중인 트랙으로 이동",
 		"toggleSidebar": "사이드바 전환",
 		"showDevTools": "개발자 도구 표시",
 		"minimize": "최소화",

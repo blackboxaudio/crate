@@ -16,7 +16,9 @@
 		"untitled": "無題",
 		"unknownArtist": "不明なアーティスト",
 		"folder": "フォルダ",
-		"playlist": "プレイリスト"
+		"playlist": "プレイリスト",
+		"next": "次へ",
+		"back": "戻る"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -27,6 +29,7 @@
 		"title": "設定",
 		"tabs": {
 			"general": "一般",
+			"library": "ライブラリ",
 			"appearance": "外観",
 			"sound": "サウンド",
 			"diagnostics": "診断",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "言語",
 			"languageDescription": "アプリケーションの表示言語を選択します。"
+		},
+		"library": {
+			"analysis": "解析",
+			"keyNotation": "キー表記",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "スタンダード",
+			"keyNotationDescription": "音楽キーの表示方法を選択します。",
+			"autoAnalyzeOnImport": "インポート時に自動解析",
+			"autoAnalyzeOnImportDescription": "トラックのインポート時にBPMとキーを自動的に解析します。"
 		},
 		"appearance": {
 			"font": "フォント",
@@ -135,7 +147,8 @@
 		"remove": "削除",
 		"removeFromPlaylist": "プレイリストから削除",
 		"removeFromLibrary": "ライブラリから削除",
-		"relocate": "再配置..."
+		"relocate": "再配置...",
+		"analyze": "分析"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -259,11 +272,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "フォルダを自分自身にドロップすることはできません",
-		"cannotDropIntoSubfolder": "フォルダをそのサブフォルダにドロップすることはできません"
+		"cannotDropIntoSubfolder": "フォルダをそのサブフォルダにドロップすることはできません",
+		"analysisFailed": "分析が失敗しました",
+		"exportInProgress": "エクスポートが既に進行中です"
 	},
 	"devices": {
 		"title": "デバイス",
 		"eject": "取り出し",
+		"selectDevice": "デバイスを選択",
 		"deviceInfo": "デバイス情報",
 		"capacity": "容量",
 		"available": "空き容量",
@@ -288,10 +304,15 @@
 	},
 	"export": {
 		"title": "デバイスにエクスポート",
+		"quickExport": "クイックエクスポート",
 		"exportTo": "{deviceName}にエクスポート",
 		"exportPlaylist": "{playlistName}をエクスポート",
 		"selectPlaylists": "エクスポートするプレイリストを選択",
+		"selectPlaylistsDescription": "選択したデバイスにエクスポートするプレイリストを選択してください。",
 		"selectDevice": "デバイスを選択",
+		"selectDevicesDescription": "エクスポート先として1つ以上のデバイスを選択してください。",
+		"devicesSelected": "{count, plural, =1 {1個のデバイスを選択} other {{count}個のデバイスを選択}}",
+		"devicesToExport": "デバイス",
 		"noDevicesConnected": "USBデバイスが接続されていません",
 		"noPlaylistsAvailable": "プレイリストがありません",
 		"destination": "エクスポート先",
@@ -310,7 +331,8 @@
 		"whatToDo": "どうしますか？",
 		"filesCopiedBeforeFailure": "失敗前に{count, plural, =1 {1ファイル} other {{count}ファイル}}がコピーされました。",
 		"exportingTo": "{deviceName}にエクスポート中",
-		"transferringProgress": "{playlistCount}個のプレイリストから{trackCount}曲を転送中"
+		"transferringProgress": "{playlistCount}個のプレイリストから{trackCount}曲を転送中",
+		"noPlaylistsInFolder": "このフォルダにエクスポートするプレイリストがありません"
 	},
 	"editor": {
 		"trackInfo": "トラック情報",
@@ -361,10 +383,17 @@
 		"help": "ヘルプ",
 		"about": "{appName}について",
 		"settings": "設定...",
+		"settingsSubmenu": "設定",
+		"settingsGeneral": "一般",
+		"settingsLibrary": "ライブラリ",
+		"settingsAppearance": "外観",
+		"settingsSound": "サウンド",
+		"settingsDiagnostics": "診断",
 		"quit": "{appName}を終了",
 		"importTracks": "トラックをインポート...",
 		"newPlaylist": "新しいプレイリスト",
 		"newFolder": "新しいフォルダ",
+		"quickExport": "クイックエクスポート...",
 		"undo": "取り消す",
 		"redo": "やり直す",
 		"cut": "カット",
@@ -373,6 +402,7 @@
 		"selectAllTracks": "すべてのトラックを選択",
 		"playPause": "再生/一時停止",
 		"stop": "停止",
+		"jumpToPlaying": "再生中のトラックへジャンプ",
 		"toggleSidebar": "サイドバーを切り替え",
 		"showDevTools": "開発者ツールを表示",
 		"minimize": "しまう",

@@ -16,7 +16,9 @@
 		"untitled": "未命名",
 		"unknownArtist": "未知艺术家",
 		"folder": "文件夹",
-		"playlist": "播放列表"
+		"playlist": "播放列表",
+		"next": "下一个",
+		"back": "返回"
 	},
 	"nav": {
 		"library": "曲库",
@@ -27,6 +29,7 @@
 		"title": "设置",
 		"tabs": {
 			"general": "常规",
+			"library": "曲库",
 			"appearance": "外观",
 			"sound": "声音",
 			"diagnostics": "诊断",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "语言",
 			"languageDescription": "选择应用程序的显示语言。"
+		},
+		"library": {
+			"analysis": "分析",
+			"keyNotation": "调式标记",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "标准",
+			"keyNotationDescription": "选择音乐调式的显示方式。",
+			"autoAnalyzeOnImport": "导入时自动分析",
+			"autoAnalyzeOnImportDescription": "导入曲目时自动分析BPM和调式。"
 		},
 		"appearance": {
 			"font": "字体",
@@ -135,7 +147,8 @@
 		"remove": "移除",
 		"removeFromPlaylist": "从播放列表移除",
 		"removeFromLibrary": "从曲库移除",
-		"relocate": "重新定位..."
+		"relocate": "重新定位...",
+		"analyze": "分析"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -258,11 +271,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "无法将文件夹拖放到自身内部",
-		"cannotDropIntoSubfolder": "无法将文件夹拖放到其子文件夹内"
+		"cannotDropIntoSubfolder": "无法将文件夹拖放到其子文件夹内",
+		"analysisFailed": "分析失败",
+		"exportInProgress": "导出已在进行中"
 	},
 	"devices": {
 		"title": "设备",
 		"eject": "弹出",
+		"selectDevice": "选择设备",
 		"deviceInfo": "设备信息",
 		"capacity": "容量",
 		"available": "可用",
@@ -287,10 +303,15 @@
 	},
 	"export": {
 		"title": "导出到设备",
+		"quickExport": "快速导出",
 		"exportTo": "导出到 {deviceName}",
 		"exportPlaylist": "导出 {playlistName}",
 		"selectPlaylists": "选择要导出的播放列表",
+		"selectPlaylistsDescription": "选择要导出到所选设备的播放列表。",
 		"selectDevice": "选择设备",
+		"selectDevicesDescription": "选择一个或多个设备进行导出。",
+		"devicesSelected": "{count, plural, =1 {已选择 1 台设备} other {已选择 {count} 台设备}}",
+		"devicesToExport": "设备",
 		"noDevicesConnected": "未连接 USB 设备",
 		"noPlaylistsAvailable": "没有可用的播放列表",
 		"destination": "目标",
@@ -309,7 +330,8 @@
 		"whatToDo": "您想怎么做？",
 		"filesCopiedBeforeFailure": "失败前已复制 {count, plural, =1 {1 个文件} other {{count} 个文件}}。",
 		"exportingTo": "正在导出到 {deviceName}",
-		"transferringProgress": "正在从 {playlistCount} 个播放列表传输 {trackCount} 首曲目"
+		"transferringProgress": "正在从 {playlistCount} 个播放列表传输 {trackCount} 首曲目",
+		"noPlaylistsInFolder": "此文件夹中没有要导出的播放列表"
 	},
 	"editor": {
 		"trackInfo": "曲目信息",
@@ -360,10 +382,17 @@
 		"help": "帮助",
 		"about": "关于 {appName}",
 		"settings": "设置...",
+		"settingsSubmenu": "设置",
+		"settingsGeneral": "常规",
+		"settingsLibrary": "曲库",
+		"settingsAppearance": "外观",
+		"settingsSound": "声音",
+		"settingsDiagnostics": "诊断",
 		"quit": "退出 {appName}",
 		"importTracks": "导入曲目...",
 		"newPlaylist": "新建播放列表",
 		"newFolder": "新建文件夹",
+		"quickExport": "快速导出...",
 		"undo": "撤销",
 		"redo": "重做",
 		"cut": "剪切",
@@ -372,6 +401,7 @@
 		"selectAllTracks": "全选曲目",
 		"playPause": "播放/暂停",
 		"stop": "停止",
+		"jumpToPlaying": "跳转到正在播放的曲目",
 		"toggleSidebar": "切换侧边栏",
 		"showDevTools": "显示开发者工具",
 		"minimize": "最小化",

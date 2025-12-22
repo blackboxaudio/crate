@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Track, TrackColor, SortConfig } from '$lib/types'
 	import { handleSelection } from '$lib/utils'
+	import { analyzingTrackIds } from '$lib/stores'
 	import TrackListHeader from './TrackListHeader.svelte'
 	import TrackRow from './TrackRow.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
@@ -115,6 +116,7 @@
 					{track}
 					selected={selectedIds.has(track.id)}
 					playing={playingTrackId === track.id}
+					analyzing={$analyzingTrackIds.has(track.id)}
 					dragTrackIds={Array.from(selectedIds)}
 					{categoryColors}
 					{categorySortOrders}

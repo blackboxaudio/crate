@@ -16,7 +16,9 @@
 		"untitled": "Namnlös",
 		"unknownArtist": "Okänd artist",
 		"folder": "mapp",
-		"playlist": "spellista"
+		"playlist": "spellista",
+		"next": "Nästa",
+		"back": "Tillbaka"
 	},
 	"nav": {
 		"library": "Bibliotek",
@@ -27,6 +29,7 @@
 		"title": "Inställningar",
 		"tabs": {
 			"general": "Allmänt",
+			"library": "Bibliotek",
 			"appearance": "Utseende",
 			"sound": "Ljud",
 			"diagnostics": "Diagnostik",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "Språk",
 			"languageDescription": "Välj visningsspråk för programmet."
+		},
+		"library": {
+			"analysis": "Analys",
+			"keyNotation": "Tonartsbeteckning",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standard",
+			"keyNotationDescription": "Välj hur tonarter visas.",
+			"autoAnalyzeOnImport": "Analysera automatiskt vid import",
+			"autoAnalyzeOnImportDescription": "Analysera automatiskt BPM och tonart vid import av spår."
 		},
 		"appearance": {
 			"font": "Typsnitt",
@@ -135,7 +147,8 @@
 		"remove": "Ta bort",
 		"removeFromPlaylist": "Ta bort från spellista",
 		"removeFromLibrary": "Ta bort från bibliotek",
-		"relocate": "Flytta..."
+		"relocate": "Flytta...",
+		"analyze": "Analysera"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -258,11 +271,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Kan inte släppa en mapp i sig själv",
-		"cannotDropIntoSubfolder": "Kan inte släppa en mapp i sin egen undermapp"
+		"cannotDropIntoSubfolder": "Kan inte släppa en mapp i sin egen undermapp",
+		"analysisFailed": "Analysen misslyckades",
+		"exportInProgress": "Export är redan i gång"
 	},
 	"devices": {
 		"title": "Enheter",
 		"eject": "Mata ut",
+		"selectDevice": "Välj enhet",
 		"deviceInfo": "Enhetsinformation",
 		"capacity": "Kapacitet",
 		"available": "Tillgängligt",
@@ -287,10 +303,15 @@
 	},
 	"export": {
 		"title": "Exportera till enhet",
+		"quickExport": "Snabbexport",
 		"exportTo": "Exportera till {deviceName}",
 		"exportPlaylist": "Exportera {playlistName}",
 		"selectPlaylists": "Välj spellistor att exportera",
+		"selectPlaylistsDescription": "Välj vilka spellistor du vill exportera till de valda enheterna.",
 		"selectDevice": "Välj en enhet",
+		"selectDevicesDescription": "Välj en eller flera enheter att exportera till.",
+		"devicesSelected": "{count, plural, =1 {1 enhet vald} other {{count} enheter valda}}",
+		"devicesToExport": "Enheter",
 		"noDevicesConnected": "Inga USB-enheter anslutna",
 		"noPlaylistsAvailable": "Inga spellistor tillgängliga",
 		"destination": "Destination",
@@ -309,7 +330,8 @@
 		"whatToDo": "Vad vill du göra?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fil kopierades} other {{count} filer kopierades}} före felet.",
 		"exportingTo": "Exporterar till {deviceName}",
-		"transferringProgress": "Överför {trackCount} spår från {playlistCount} spellistor"
+		"transferringProgress": "Överför {trackCount} spår från {playlistCount} spellistor",
+		"noPlaylistsInFolder": "Inga spellistor att exportera i den här mappen"
 	},
 	"editor": {
 		"trackInfo": "Spårinfo",
@@ -360,10 +382,17 @@
 		"help": "Hjälp",
 		"about": "Om {appName}",
 		"settings": "Inställningar...",
+		"settingsSubmenu": "Inställningar",
+		"settingsGeneral": "Allmänt",
+		"settingsLibrary": "Bibliotek",
+		"settingsAppearance": "Utseende",
+		"settingsSound": "Ljud",
+		"settingsDiagnostics": "Diagnostik",
 		"quit": "Avsluta {appName}",
 		"importTracks": "Importera spår...",
 		"newPlaylist": "Ny spellista",
 		"newFolder": "Ny mapp",
+		"quickExport": "Snabbexport...",
 		"undo": "Ångra",
 		"redo": "Gör om",
 		"cut": "Klipp ut",
@@ -372,6 +401,7 @@
 		"selectAllTracks": "Markera alla spår",
 		"playPause": "Spela/Paus",
 		"stop": "Stoppa",
+		"jumpToPlaying": "Gå till spår som spelas upp",
 		"toggleSidebar": "Visa/Dölj sidofält",
 		"showDevTools": "Visa DevTools",
 		"minimize": "Minimera",

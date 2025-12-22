@@ -1,9 +1,27 @@
 <script lang="ts">
-	import type { Theme, AccentColor, Font, DiagnosticsReport, Language } from '$lib/types'
-	import { settingsStore, theme, accentColor, font, audioDevice, audioDevices, language } from '$lib/stores/settings'
+	import type {
+		Theme,
+		AccentColor,
+		Font,
+		DiagnosticsReport,
+		Language,
+		KeyNotationFormat,
+		SettingsPage,
+	} from '$lib/types'
+	import {
+		settingsStore,
+		theme,
+		accentColor,
+		font,
+		audioDevice,
+		audioDevices,
+		language,
+		keyNotationFormat,
+		autoAnalyzeOnImport,
+	} from '$lib/stores/settings'
 	import { diagnosticsStore, diagnosticEntries, systemInfo } from '$lib/stores/diagnostics'
 	import { appInfo } from '$lib/stores/app'
-	import { Button, Select, Text, IconButton } from '$lib/components/common'
+	import { Button, Select, Text, IconButton, Checkbox } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { save } from '@tauri-apps/plugin-dialog'
@@ -16,12 +34,11 @@
 
 	type Props = {
 		open: boolean
+		initialTab?: SettingsPage
 		onClose: () => void
 	}
 
-	type SettingsPage = 'general' | 'appearance' | 'sound' | 'diagnostics' | 'about'
-
-	let { open, onClose }: Props = $props()
+	let { open, initialTab, onClose }: Props = $props()
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
 	let activePage: SettingsPage = $state('general')
@@ -29,10 +46,10 @@
 	let copySuccess = $state(false)
 	let visible = $state(false)
 
-	// Reset to first page when opening
+	// Set active page when opening (use initialTab if provided, otherwise default to 'general')
 	$effect(() => {
 		if (open) {
-			activePage = 'general'
+			activePage = initialTab ?? 'general'
 		}
 	})
 
@@ -126,6 +143,14 @@
 
 	function handleLanguageChange(value: string) {
 		settingsStore.setLanguage(value as Language)
+	}
+
+	function handleKeyNotationFormatChange(format: KeyNotationFormat) {
+		settingsStore.setKeyNotationFormat(format)
+	}
+
+	function handleAutoAnalyzeOnImportChange(checked: boolean) {
+		settingsStore.setAutoAnalyzeOnImport(checked)
 	}
 
 	// Language options for Select component
@@ -297,6 +322,17 @@
 						<button
 							type="button"
 							class="flex w-full items-center gap-2 rounded-md px-3 py-2
+							text-sm font-medium hover:cursor-pointer {activePage === 'library'
+								? 'bg-brand-muted text-brand-primary'
+								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+							onclick={() => (activePage = 'library')}
+						>
+							<Icon name="music-note" class="h-4 w-4" />
+							{$translate('settings.tabs.library')}
+						</button>
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 rounded-md px-3 py-2
 							text-sm font-medium hover:cursor-pointer {activePage === 'appearance'
 								? 'bg-brand-muted text-brand-primary'
 								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
@@ -347,7 +383,8 @@
 						<div class="space-y-8">
 							<!-- Language Section -->
 							<section>
-								<Text variant="header-3" class="mb-4">{$translate('settings.general.language')}</Text>
+								<Text variant="header-3" class="mb-2">{$translate('settings.general.language')}</Text>
+								<Text variant="caption" as="p" class="mb-2">{$translate('settings.general.languageDescription')}</Text>
 								<div class="max-w-md">
 									<Select
 										value={$language}
@@ -355,8 +392,55 @@
 										placeholder={$translate('settings.general.language')}
 										onchange={handleLanguageChange}
 									/>
-									<Text variant="caption" as="p" class="mt-2">{$translate('settings.general.languageDescription')}</Text
+								</div>
+							</section>
+						</div>
+					{:else if activePage === 'library'}
+						<div class="space-y-8">
+							<!-- Analysis Section -->
+							<section>
+								<Text variant="header-3" class="mb-2">{$translate('settings.library.analysis')}</Text>
+								<Text variant="caption" as="p" class="mb-2"
+									>{$translate('settings.library.autoAnalyzeOnImportDescription')}</Text
+								>
+
+								<!-- Auto-analyze on Import -->
+								<Checkbox
+									checked={$autoAnalyzeOnImport}
+									onchange={handleAutoAnalyzeOnImportChange}
+									label={$translate('settings.library.autoAnalyzeOnImport')}
+								/>
+							</section>
+
+							<!-- Key Notation Section -->
+							<section>
+								<Text variant="header-3" class="mb-2">{$translate('settings.library.keyNotation')}</Text>
+								<Text variant="caption" as="p" class="mb-2"
+									>{$translate('settings.library.keyNotationDescription')}</Text
+								>
+								<div class="flex gap-3">
+									<button
+										type="button"
+										class="flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4
+										transition-colors {$keyNotationFormat === 'camelot'
+											? 'border-brand-primary bg-brand-muted'
+											: 'border-stroke hover:cursor-pointer hover:border-text-tertiary'}"
+										onclick={() => handleKeyNotationFormatChange('camelot')}
 									>
+										<Text variant="body-2" as="span">{$translate('settings.library.keyNotationCamelot')}</Text>
+										<Text variant="caption" color="secondary">8A, 8B, 11A</Text>
+									</button>
+									<button
+										type="button"
+										class="flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4
+										transition-colors {$keyNotationFormat === 'standard'
+											? 'border-brand-primary bg-brand-muted'
+											: 'border-stroke hover:cursor-pointer hover:border-text-tertiary'}"
+										onclick={() => handleKeyNotationFormatChange('standard')}
+									>
+										<Text variant="body-2" as="span">{$translate('settings.library.keyNotationStandard')}</Text>
+										<Text variant="caption" color="secondary">Am, C, F#m</Text>
+									</button>
 								</div>
 							</section>
 						</div>
@@ -364,7 +448,8 @@
 						<div class="space-y-8">
 							<!-- Font Section -->
 							<section>
-								<Text variant="header-3" class="mb-4">{$translate('settings.appearance.font')}</Text>
+								<Text variant="header-3" class="mb-2">{$translate('settings.appearance.font')}</Text>
+								<Text variant="caption" as="p" class="mb-2">{$translate('settings.appearance.fontDescription')}</Text>
 								<div class="max-w-md">
 									<Select
 										value={$font}
@@ -372,7 +457,6 @@
 										placeholder={$translate('settings.appearance.font')}
 										onchange={handleFontChange}
 									/>
-									<Text variant="caption" as="p" class="mt-2">{$translate('settings.appearance.fontDescription')}</Text>
 								</div>
 							</section>
 
@@ -431,7 +515,9 @@
 						<div class="space-y-8">
 							<!-- Output Device Section -->
 							<section>
-								<Text variant="header-3" class="mb-4">{$translate('settings.sound.outputDevice')}</Text>
+								<Text variant="header-3" class="mb-2">{$translate('settings.sound.outputDevice')}</Text>
+								<Text variant="caption" as="p" class="mb-2">{$translate('settings.sound.outputDeviceDescription')}</Text
+								>
 								<div class="max-w-md">
 									<Select
 										value={$audioDevice ?? ''}
@@ -439,9 +525,6 @@
 										placeholder={$translate('settings.sound.systemDefault')}
 										onchange={handleAudioDeviceChange}
 									/>
-									<Text variant="caption" as="p" class="mt-2"
-										>{$translate('settings.sound.outputDeviceDescription')}</Text
-									>
 								</div>
 							</section>
 						</div>
@@ -523,7 +606,10 @@
 
 							<!-- Export Section -->
 							<section>
-								<Text variant="header-3" class="mb-4">{$translate('settings.diagnostics.export')}</Text>
+								<Text variant="header-3" class="mb-2">{$translate('settings.diagnostics.export')}</Text>
+								<Text variant="caption" as="p" class="mb-2">
+									{$translate('settings.diagnostics.exportDescription')}
+								</Text>
 								<div class="flex items-center gap-3">
 									<Button variant="secondary" onclick={handleExportJson}
 										>{$translate('settings.diagnostics.saveAsJson')}</Button
@@ -540,9 +626,6 @@
 										/>
 									</Tooltip>
 								</div>
-								<Text variant="caption" as="p" class="mt-2">
-									{$translate('settings.diagnostics.exportDescription')}
-								</Text>
 							</section>
 						</div>
 					{:else if activePage === 'about'}

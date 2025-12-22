@@ -392,12 +392,18 @@ export type Font = 'ibm-plex-mono' | 'jetbrains-mono' | 'fira-code' | 'inter' | 
 
 export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | 'ko' | 'pt' | 'zh'
 
+export type KeyNotationFormat = 'standard' | 'camelot'
+
+export type SettingsPage = 'general' | 'library' | 'appearance' | 'sound' | 'diagnostics' | 'about'
+
 export interface AppSettings {
 	theme: Theme
 	accentColor: AccentColor
 	font: Font
 	audioDevice: string | null
 	language: Language
+	keyNotationFormat: KeyNotationFormat
+	autoAnalyzeOnImport: boolean
 }
 
 export interface AudioDevice {
@@ -477,4 +483,16 @@ export interface DeviceExport {
 	playlist_id: string
 	last_export_at: string
 	sync_enabled: boolean
+}
+
+// =============================================================================
+// Analysis Types
+// =============================================================================
+
+export interface AnalysisResult {
+	track_id: string
+	bpm: number | null
+	key: string | null
+	success: boolean
+	error: string | null
 }

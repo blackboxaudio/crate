@@ -21,6 +21,7 @@
 		onRemoveFromLibrary: () => void
 		onRelocate?: (track: Track) => void
 		onSetColor?: (color: TrackColor | null) => void
+		onAnalyze?: () => void
 	}
 
 	let {
@@ -38,6 +39,7 @@
 		onRemoveFromLibrary,
 		onRelocate,
 		onSetColor,
+		onAnalyze,
 	}: Props = $props()
 
 	// Platform-specific label for "View in Finder/Explorer"
@@ -64,6 +66,16 @@
 	// Build menu items
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
+
+		// "Analyze" - analyze tracks for BPM and key
+		if (onAnalyze) {
+			items.push({
+				id: 'analyze',
+				label: get(translate)('contextMenu.analyze'),
+				icon: 'activity',
+				action: onAnalyze,
+			})
+		}
 
 		// "Relocate..." - only for single missing track
 		if (hasMissingTrack() && onRelocate) {

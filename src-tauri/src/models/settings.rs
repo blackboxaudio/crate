@@ -179,7 +179,36 @@ impl std::str::FromStr for Font {
     }
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum KeyNotationFormat {
+    Standard,
+    #[default]
+    Camelot,
+}
+
+impl std::fmt::Display for KeyNotationFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            KeyNotationFormat::Standard => write!(f, "standard"),
+            KeyNotationFormat::Camelot => write!(f, "camelot"),
+        }
+    }
+}
+
+impl std::str::FromStr for KeyNotationFormat {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "standard" => Ok(KeyNotationFormat::Standard),
+            "camelot" => Ok(KeyNotationFormat::Camelot),
+            _ => Err(format!("Unknown key notation format: {s}")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
     pub theme: Theme,
@@ -187,6 +216,22 @@ pub struct AppSettings {
     pub font: Font,
     pub audio_device: Option<String>,
     pub language: Language,
+    pub key_notation_format: KeyNotationFormat,
+    pub auto_analyze_on_import: bool,
+}
+
+impl Default for AppSettings {
+    fn default() -> Self {
+        Self {
+            theme: Theme::default(),
+            accent_color: AccentColor::default(),
+            font: Font::default(),
+            audio_device: None,
+            language: Language::default(),
+            key_notation_format: KeyNotationFormat::default(),
+            auto_analyze_on_import: true,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

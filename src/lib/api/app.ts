@@ -44,6 +44,7 @@ export interface MenuTranslations {
 	importTracks: string
 	newPlaylist: string
 	newFolder: string
+	quickExport: string
 	// Edit menu items
 	undo: string
 	redo: string
@@ -54,6 +55,7 @@ export interface MenuTranslations {
 	// Playback menu items
 	playPause: string
 	stop: string
+	jumpToPlaying: string
 	// View menu items
 	toggleSidebar: string
 	showDevTools: string

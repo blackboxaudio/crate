@@ -1,5 +1,5 @@
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor, Font, AudioDevice, Language } from '$lib/types'
+import type { Theme, AccentColor, Font, AudioDevice, Language, KeyNotationFormat } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
 import { setLanguage as setI18nLanguage, translate } from '$lib/i18n'
@@ -17,6 +17,8 @@ interface SettingsState {
 	audioDevice: string | null
 	audioDevices: AudioDevice[]
 	language: Language
+	keyNotationFormat: KeyNotationFormat
+	autoAnalyzeOnImport: boolean
 	loading: boolean
 	error: string | null
 }
@@ -29,6 +31,8 @@ const initialState: SettingsState = {
 	audioDevice: null,
 	audioDevices: [],
 	language: 'en',
+	keyNotationFormat: 'camelot',
+	autoAnalyzeOnImport: true,
 	loading: false,
 	error: null,
 }
@@ -141,6 +145,7 @@ function createSettingsStore() {
 			importTracks: t('menu.importTracks'),
 			newPlaylist: t('menu.newPlaylist'),
 			newFolder: t('menu.newFolder'),
+			quickExport: t('menu.quickExport'),
 			// Edit menu items
 			undo: t('menu.undo'),
 			redo: t('menu.redo'),
@@ -151,6 +156,7 @@ function createSettingsStore() {
 			// Playback menu items
 			playPause: t('menu.playPause'),
 			stop: t('menu.stop'),
+			jumpToPlaying: t('menu.jumpToPlaying'),
 			// View menu items
 			toggleSidebar: t('menu.toggleSidebar'),
 			showDevTools: t('menu.showDevTools'),
@@ -192,6 +198,8 @@ function createSettingsStore() {
 					audioDevice: settings.audioDevice,
 					audioDevices,
 					language: settings.language,
+					keyNotationFormat: settings.keyNotationFormat,
+					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -302,6 +310,32 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set key notation format (standard or camelot)
+		 */
+		async setKeyNotationFormat(format: KeyNotationFormat) {
+			update((s) => ({ ...s, keyNotationFormat: format }))
+
+			try {
+				await settingsApi.setSetting('key_notation_format', format)
+			} catch (error) {
+				console.error('Failed to save key notation format setting:', error)
+			}
+		},
+
+		/**
+		 * Set auto-analyze on import
+		 */
+		async setAutoAnalyzeOnImport(enabled: boolean) {
+			update((s) => ({ ...s, autoAnalyzeOnImport: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_analyze_on_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto analyze on import setting:', error)
+			}
+		},
+
+		/**
 		 * Refresh the list of available audio devices
 		 */
 		async refreshAudioDevices() {
@@ -341,5 +375,9 @@ export const audioDevice = derived(settingsStore, ($s) => $s.audioDevice)
 export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
 
 export const language = derived(settingsStore, ($s) => $s.language)
+
+export const keyNotationFormat = derived(settingsStore, ($s) => $s.keyNotationFormat)
+
+export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyzeOnImport)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

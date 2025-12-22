@@ -7,8 +7,8 @@ mod services;
 
 use db::Database;
 use services::{
-    AudioService, DeviceService, DiagnosticsService, ExportService, LibraryService,
-    PlaylistService, SettingsService, TagService,
+    AnalysisService, AudioService, DeviceService, DiagnosticsService, ExportService,
+    LibraryService, PlaylistService, SettingsService, TagService,
 };
 use tauri::Manager;
 
@@ -96,6 +96,9 @@ pub fn run() {
             commands::diagnostics::get_diagnostics_report,
             commands::diagnostics::clear_diagnostic_entries,
             commands::diagnostics::log_error,
+            // Analysis commands
+            commands::analysis::analyze_tracks,
+            commands::analysis::get_analyzed_tracks,
         ])
         .setup(|app| {
             // Get Tauri's app data directory
@@ -122,6 +125,7 @@ pub fn run() {
             let audio_service = AudioService::new().expect("Failed to initialize audio service");
             let device_service = DeviceService::new();
             let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
+            let analysis_service = AnalysisService::new(conn.clone());
 
             // Load saved audio device setting
             if let Ok(settings) = settings_service.get_settings() {
@@ -141,6 +145,7 @@ pub fn run() {
             app.manage(audio_service);
             app.manage(device_service);
             app.manage(diagnostics_service);
+            app.manage(analysis_service);
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

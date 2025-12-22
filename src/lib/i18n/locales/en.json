@@ -16,7 +16,9 @@
 		"untitled": "Untitled",
 		"unknownArtist": "Unknown Artist",
 		"folder": "folder",
-		"playlist": "playlist"
+		"playlist": "playlist",
+		"next": "Next",
+		"back": "Back"
 	},
 	"nav": {
 		"library": "Library",
@@ -27,6 +29,7 @@
 		"title": "Settings",
 		"tabs": {
 			"general": "General",
+			"library": "Library",
 			"appearance": "Appearance",
 			"sound": "Sound",
 			"diagnostics": "Diagnostics",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "Language",
 			"languageDescription": "Choose the display language for the application."
+		},
+		"library": {
+			"analysis": "Analysis",
+			"keyNotation": "Key Notation",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standard",
+			"keyNotationDescription": "Choose how musical keys are displayed.",
+			"autoAnalyzeOnImport": "Auto-analyze on import",
+			"autoAnalyzeOnImportDescription": "Automatically analyze BPM and key when importing tracks."
 		},
 		"appearance": {
 			"font": "Font",
@@ -135,7 +147,8 @@
 		"remove": "Remove",
 		"removeFromPlaylist": "Remove from Playlist",
 		"removeFromLibrary": "Remove from Library",
-		"relocate": "Relocate..."
+		"relocate": "Relocate...",
+		"analyze": "Analyze"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -259,11 +272,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Cannot drop a folder into itself",
-		"cannotDropIntoSubfolder": "Cannot drop a folder into its own subfolder"
+		"cannotDropIntoSubfolder": "Cannot drop a folder into its own subfolder",
+		"analysisFailed": "Analysis failed",
+		"exportInProgress": "Export already in progress"
 	},
 	"devices": {
 		"title": "Devices",
 		"eject": "Eject",
+		"selectDevice": "Select device",
 		"deviceInfo": "Device Info",
 		"capacity": "Capacity",
 		"available": "Available",
@@ -288,10 +304,15 @@
 	},
 	"export": {
 		"title": "Export to Device",
+		"quickExport": "Quick Export",
 		"exportTo": "Export to {deviceName}",
 		"exportPlaylist": "Export {playlistName}",
 		"selectPlaylists": "Select playlists to export",
+		"selectPlaylistsDescription": "Choose which playlists to export to the selected devices.",
 		"selectDevice": "Select a device",
+		"selectDevicesDescription": "Select one or more devices to export to.",
+		"devicesSelected": "{count, plural, =1 {1 device selected} other {{count} devices selected}}",
+		"devicesToExport": "Devices",
 		"noDevicesConnected": "No USB devices connected",
 		"noPlaylistsAvailable": "No playlists available",
 		"destination": "Destination",
@@ -310,7 +331,8 @@
 		"whatToDo": "What would you like to do?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 file was copied} other {{count} files were copied}} before the failure.",
 		"exportingTo": "Exporting to {deviceName}",
-		"transferringProgress": "Transferring {trackCount} tracks from {playlistCount} playlists"
+		"transferringProgress": "Transferring {trackCount} tracks from {playlistCount} playlists",
+		"noPlaylistsInFolder": "No playlists to export in this folder"
 	},
 	"editor": {
 		"trackInfo": "Track Info",
@@ -361,10 +383,17 @@
 		"help": "Help",
 		"about": "About {appName}",
 		"settings": "Settings...",
+		"settingsSubmenu": "Settings",
+		"settingsGeneral": "General",
+		"settingsLibrary": "Library",
+		"settingsAppearance": "Appearance",
+		"settingsSound": "Sound",
+		"settingsDiagnostics": "Diagnostics",
 		"quit": "Quit {appName}",
 		"importTracks": "Import Tracks...",
 		"newPlaylist": "New Playlist",
 		"newFolder": "New Folder",
+		"quickExport": "Quick Export...",
 		"undo": "Undo",
 		"redo": "Redo",
 		"cut": "Cut",
@@ -373,6 +402,7 @@
 		"selectAllTracks": "Select All Tracks",
 		"playPause": "Play/Pause",
 		"stop": "Stop",
+		"jumpToPlaying": "Jump to Playing Track",
 		"toggleSidebar": "Toggle Sidebar",
 		"showDevTools": "Show DevTools",
 		"minimize": "Minimize",

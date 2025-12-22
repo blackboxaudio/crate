@@ -34,6 +34,9 @@ rodio = "0.21.1"
 symphonia = { version = "0.5.5", features = ["all"] }
 lofty = "0.22.4"
 
+# Audio analysis
+stratum-dsp = "1.0"
+
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] }
 binrw = "0.14.1"

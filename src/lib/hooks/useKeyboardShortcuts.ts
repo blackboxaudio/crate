@@ -26,6 +26,8 @@ export interface KeyboardShortcutHandlers {
 	onToggleMute: () => void
 	onSelectPreviousTrack: () => void
 	onSelectNextTrack: () => void
+	onQuickExport: () => void
+	onJumpToPlayingTrack: () => void
 }
 
 // =============================================================================
@@ -56,6 +58,8 @@ export interface KeyboardShortcutHandlers {
  * - M: toggle mute
  * - Cmd/Ctrl+Up Arrow: select previous track
  * - Cmd/Ctrl+Down Arrow: select next track
+ * - Cmd/Ctrl+E: quick export
+ * - Cmd/Ctrl+J: jump to playing track
  *
  * @returns Cleanup function to remove the event listener
  */
@@ -81,6 +85,8 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		onToggleMute,
 		onSelectPreviousTrack,
 		onSelectNextTrack,
+		onQuickExport,
+		onJumpToPlayingTrack,
 	} = handlers
 
 	function handleKeydown(e: KeyboardEvent): void {
@@ -142,6 +148,18 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
 			e.preventDefault()
 			onImport()
+		}
+
+		// Cmd/Ctrl+E: quick export
+		if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
+			e.preventDefault()
+			onQuickExport()
+		}
+
+		// Cmd/Ctrl+J: jump to playing track
+		if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
+			e.preventDefault()
+			onJumpToPlayingTrack()
 		}
 
 		// Delete/Backspace: remove selected tracks (when not typing)

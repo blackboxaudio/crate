@@ -16,7 +16,9 @@
 		"untitled": "Senza titolo",
 		"unknownArtist": "Artista sconosciuto",
 		"folder": "cartella",
-		"playlist": "playlist"
+		"playlist": "playlist",
+		"next": "Successivo",
+		"back": "Indietro"
 	},
 	"nav": {
 		"library": "Libreria",
@@ -27,6 +29,7 @@
 		"title": "Impostazioni",
 		"tabs": {
 			"general": "Generale",
+			"library": "Libreria",
 			"appearance": "Aspetto",
 			"sound": "Suono",
 			"diagnostics": "Diagnostica",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "Lingua",
 			"languageDescription": "Scegli la lingua di visualizzazione dell'applicazione."
+		},
+		"library": {
+			"analysis": "Analisi",
+			"keyNotation": "Notazione tonalità",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standard",
+			"keyNotationDescription": "Scegli come visualizzare le tonalità musicali.",
+			"autoAnalyzeOnImport": "Analisi automatica all'importazione",
+			"autoAnalyzeOnImportDescription": "Analizza automaticamente BPM e tonalità durante l'importazione delle tracce."
 		},
 		"appearance": {
 			"font": "Carattere",
@@ -135,7 +147,8 @@
 		"remove": "Rimuovi",
 		"removeFromPlaylist": "Rimuovi dalla playlist",
 		"removeFromLibrary": "Rimuovi dalla libreria",
-		"relocate": "Sposta..."
+		"relocate": "Sposta...",
+		"analyze": "Analizza"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -258,11 +271,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Impossibile trascinare una cartella dentro sé stessa",
-		"cannotDropIntoSubfolder": "Impossibile trascinare una cartella nella propria sottocartella"
+		"cannotDropIntoSubfolder": "Impossibile trascinare una cartella nella propria sottocartella",
+		"analysisFailed": "Analisi non riuscita",
+		"exportInProgress": "Esportazione già in corso"
 	},
 	"devices": {
 		"title": "Dispositivi",
 		"eject": "Espelli",
+		"selectDevice": "Seleziona dispositivo",
 		"deviceInfo": "Info dispositivo",
 		"capacity": "Capacità",
 		"available": "Disponibile",
@@ -287,10 +303,15 @@
 	},
 	"export": {
 		"title": "Esporta su dispositivo",
+		"quickExport": "Esportazione rapida",
 		"exportTo": "Esporta su {deviceName}",
 		"exportPlaylist": "Esporta {playlistName}",
 		"selectPlaylists": "Seleziona le playlist da esportare",
+		"selectPlaylistsDescription": "Scegli quali playlist esportare sui dispositivi selezionati.",
 		"selectDevice": "Seleziona un dispositivo",
+		"selectDevicesDescription": "Seleziona uno o più dispositivi da esportare.",
+		"devicesSelected": "{count, plural, =1 {1 dispositivo selezionato} other {{count} dispositivi selezionati}}",
+		"devicesToExport": "Dispositivi",
 		"noDevicesConnected": "Nessun dispositivo USB connesso",
 		"noPlaylistsAvailable": "Nessuna playlist disponibile",
 		"destination": "Destinazione",
@@ -309,7 +330,8 @@
 		"whatToDo": "Cosa vuoi fare?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 file è stato copiato} other {{count} file sono stati copiati}} prima dell'errore.",
 		"exportingTo": "Esportazione su {deviceName}",
-		"transferringProgress": "Trasferimento di {trackCount} brani da {playlistCount} playlist"
+		"transferringProgress": "Trasferimento di {trackCount} brani da {playlistCount} playlist",
+		"noPlaylistsInFolder": "Nessuna playlist da esportare in questa cartella"
 	},
 	"editor": {
 		"trackInfo": "Info traccia",
@@ -360,10 +382,17 @@
 		"help": "Aiuto",
 		"about": "Informazioni su {appName}",
 		"settings": "Impostazioni...",
+		"settingsSubmenu": "Impostazioni",
+		"settingsGeneral": "Generale",
+		"settingsLibrary": "Libreria",
+		"settingsAppearance": "Aspetto",
+		"settingsSound": "Suono",
+		"settingsDiagnostics": "Diagnostica",
 		"quit": "Esci da {appName}",
 		"importTracks": "Importa tracce...",
 		"newPlaylist": "Nuova playlist",
 		"newFolder": "Nuova cartella",
+		"quickExport": "Esportazione rapida...",
 		"undo": "Annulla",
 		"redo": "Ripeti",
 		"cut": "Taglia",
@@ -372,6 +401,7 @@
 		"selectAllTracks": "Seleziona tutte le tracce",
 		"playPause": "Riproduci/Pausa",
 		"stop": "Ferma",
+		"jumpToPlaying": "Vai alla traccia in riproduzione",
 		"toggleSidebar": "Mostra/Nascondi barra laterale",
 		"showDevTools": "Mostra DevTools",
 		"minimize": "Riduci a icona",

@@ -9,6 +9,7 @@
 		DuplicateTrack,
 		DuplicateResolutionAction,
 		ExportRequest,
+		SettingsPage,
 	} from '$lib/types'
 
 	// Discriminated union for all modal states
@@ -39,7 +40,7 @@
 				existingItem: Playlist
 				targetParentId: string | null
 		  }
-		| { type: 'settings' }
+		| { type: 'settings'; initialTab?: SettingsPage }
 		| {
 				type: 'duplicateTrack'
 				duplicates: DuplicateTrack[]
@@ -53,6 +54,7 @@
 		// Export modals
 		| { type: 'exportToDevice'; mode: 'selectPlaylists'; device: UsbDevice }
 		| { type: 'exportToDevice'; mode: 'selectDevice'; playlist: Playlist }
+		| { type: 'quickExport' }
 		| {
 				type: 'exportFailure'
 				error: string
@@ -79,7 +81,7 @@
 	import { DeviceInfoModal, ReformatDeviceModal } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
 	import { RelocateTrackModal } from '$lib/components/library'
-	import { ExportModal, ExportFailureModal } from '$lib/components/export'
+	import { ExportModal, ExportFailureModal, QuickExportModal } from '$lib/components/export'
 	import { toastStore } from '$lib/stores/toast'
 	import { resolveDuplicate } from '$lib/api/library'
 	import { translate } from '$lib/i18n'
@@ -124,6 +126,7 @@
 
 		// Export callbacks
 		onExport: (request: ExportRequest) => Promise<void>
+		onQuickExport: (requests: ExportRequest[]) => Promise<void>
 		onExportFailureKeep: () => void
 		onExportFailureCleanup: (deviceId: string, mountPoint: string) => Promise<void>
 
@@ -152,6 +155,7 @@
 		onTagInputSubmit,
 		onRelocateComplete,
 		onExport,
+		onQuickExport,
 		onExportFailureKeep,
 		onExportFailureCleanup,
 		onReformatDevice,
@@ -242,8 +246,8 @@
 		activeModal = { type: 'moveConflict', movingItem, existingItem, targetParentId }
 	}
 
-	export function openSettingsModal() {
-		activeModal = { type: 'settings' }
+	export function openSettingsModal(initialTab?: SettingsPage) {
+		activeModal = { type: 'settings', initialTab }
 	}
 
 	export function openDuplicateTrackModal(
@@ -274,6 +278,10 @@
 
 	export function openExportPlaylistModal(playlist: Playlist) {
 		activeModal = { type: 'exportToDevice', mode: 'selectDevice', playlist }
+	}
+
+	export function openQuickExportModal() {
+		activeModal = { type: 'quickExport' }
 	}
 
 	export function openExportFailureModal(error: string, deviceId: string, mountPoint: string, filesCopied: number) {
@@ -572,6 +580,11 @@
 		await onExport(request)
 	}
 
+	async function handleQuickExportSubmit(requests: ExportRequest[]) {
+		closeAll()
+		await onQuickExport(requests)
+	}
+
 	function handleExportFailureKeep() {
 		closeAll()
 		onExportFailureKeep()
@@ -803,7 +816,7 @@
 
 <!-- Settings Modal -->
 {#if activeModal.type === 'settings'}
-	<SettingsModal open={true} onClose={closeAll} />
+	<SettingsModal open={true} initialTab={activeModal.initialTab} onClose={closeAll} />
 {/if}
 
 <!-- Duplicate Track Modal -->
@@ -830,6 +843,11 @@
 		onExport={handleExportSubmit}
 		onClose={closeAll}
 	/>
+{/if}
+
+<!-- Quick Export Modal -->
+{#if activeModal.type === 'quickExport'}
+	<QuickExportModal open={true} {playlists} {devices} onExport={handleQuickExportSubmit} onClose={closeAll} />
 {/if}
 
 <!-- Export Failure Modal -->

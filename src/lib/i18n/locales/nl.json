@@ -16,7 +16,9 @@
 		"untitled": "Naamloos",
 		"unknownArtist": "Onbekende Artiest",
 		"folder": "map",
-		"playlist": "afspeellijst"
+		"playlist": "afspeellijst",
+		"next": "Volgende",
+		"back": "Terug"
 	},
 	"nav": {
 		"library": "Bibliotheek",
@@ -27,6 +29,7 @@
 		"title": "Instellingen",
 		"tabs": {
 			"general": "Algemeen",
+			"library": "Bibliotheek",
 			"appearance": "Uiterlijk",
 			"sound": "Geluid",
 			"diagnostics": "Diagnostiek",
@@ -35,6 +38,15 @@
 		"general": {
 			"language": "Taal",
 			"languageDescription": "Kies de weergavetaal voor de applicatie."
+		},
+		"library": {
+			"analysis": "Analyse",
+			"keyNotation": "Toonsoortnotatie",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standaard",
+			"keyNotationDescription": "Kies hoe toonsoorten worden weergegeven.",
+			"autoAnalyzeOnImport": "Automatisch analyseren bij import",
+			"autoAnalyzeOnImportDescription": "Analyseer automatisch BPM en toonsoort bij het importeren van nummers."
 		},
 		"appearance": {
 			"font": "Lettertype",
@@ -135,7 +147,8 @@
 		"remove": "Verwijderen",
 		"removeFromPlaylist": "Verwijderen uit afspeellijst",
 		"removeFromLibrary": "Verwijderen uit bibliotheek",
-		"relocate": "Verplaatsen..."
+		"relocate": "Verplaatsen...",
+		"analyze": "Analyseren"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -258,11 +271,14 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Kan een map niet in zichzelf slepen",
-		"cannotDropIntoSubfolder": "Kan een map niet in zijn eigen submap slepen"
+		"cannotDropIntoSubfolder": "Kan een map niet in zijn eigen submap slepen",
+		"analysisFailed": "Analyse mislukt",
+		"exportInProgress": "Exporteren is al bezig"
 	},
 	"devices": {
 		"title": "Apparaten",
 		"eject": "Uitwerpen",
+		"selectDevice": "Selecteer apparaat",
 		"deviceInfo": "Apparaatinfo",
 		"capacity": "Capaciteit",
 		"available": "Beschikbaar",
@@ -287,10 +303,15 @@
 	},
 	"export": {
 		"title": "Exporteren naar apparaat",
+		"quickExport": "Snelle export",
 		"exportTo": "Exporteren naar {deviceName}",
 		"exportPlaylist": "{playlistName} exporteren",
 		"selectPlaylists": "Selecteer afspeellijsten om te exporteren",
+		"selectPlaylistsDescription": "Kies welke afspeellijsten u naar de geselecteerde apparaten wilt exporteren.",
 		"selectDevice": "Selecteer een apparaat",
+		"selectDevicesDescription": "Selecteer een of meer apparaten om naar te exporteren.",
+		"devicesSelected": "{count, plural, =1 {1 apparaat geselecteerd} other {{count} apparaten geselecteerd}}",
+		"devicesToExport": "Apparaten",
 		"noDevicesConnected": "Geen USB-apparaten verbonden",
 		"noPlaylistsAvailable": "Geen afspeellijsten beschikbaar",
 		"destination": "Bestemming",
@@ -309,7 +330,8 @@
 		"whatToDo": "Wat wilt u doen?",
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 bestand is gekopieerd} other {{count} bestanden zijn gekopieerd}} voor de fout.",
 		"exportingTo": "Exporteren naar {deviceName}",
-		"transferringProgress": "{trackCount} nummers uit {playlistCount} afspeellijsten"
+		"transferringProgress": "{trackCount} nummers uit {playlistCount} afspeellijsten",
+		"noPlaylistsInFolder": "Geen afspeellijsten om te exporteren in deze map"
 	},
 	"editor": {
 		"trackInfo": "Trackinfo",
@@ -360,10 +382,17 @@
 		"help": "Help",
 		"about": "Over {appName}",
 		"settings": "Instellingen...",
+		"settingsSubmenu": "Instellingen",
+		"settingsGeneral": "Algemeen",
+		"settingsLibrary": "Bibliotheek",
+		"settingsAppearance": "Uiterlijk",
+		"settingsSound": "Geluid",
+		"settingsDiagnostics": "Diagnostiek",
 		"quit": "{appName} afsluiten",
 		"importTracks": "Tracks importeren...",
 		"newPlaylist": "Nieuwe afspeellijst",
 		"newFolder": "Nieuwe map",
+		"quickExport": "Snelle export...",
 		"undo": "Ongedaan maken",
 		"redo": "Opnieuw",
 		"cut": "Knippen",
@@ -372,6 +401,7 @@
 		"selectAllTracks": "Alle tracks selecteren",
 		"playPause": "Afspelen/Pauzeren",
 		"stop": "Stoppen",
+		"jumpToPlaying": "Naar huidig afgespeelde track",
 		"toggleSidebar": "Zijbalk wisselen",
 		"showDevTools": "DevTools tonen",
 		"minimize": "Minimaliseren",

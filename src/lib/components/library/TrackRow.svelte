@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { fade } from 'svelte/transition'
 	import type { Track, TrackColor } from '$lib/types'
 	import { formatDurationCompact, formatBpm, formatKey, getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { AlbumArt, AlbumArtModal, Text } from '$lib/components/common'
-	import { missingTrackIds, dragStore } from '$lib/stores'
+	import { AlbumArt, AlbumArtModal, Spinner, Text } from '$lib/components/common'
+	import { missingTrackIds, dragStore, keyNotationFormat } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import TrackColorCell from './TrackColorCell.svelte'
 
@@ -12,6 +13,7 @@
 		track: Track
 		selected?: boolean
 		playing?: boolean
+		analyzing?: boolean
 		dragTrackIds?: string[]
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -25,6 +27,7 @@
 		track,
 		selected = false,
 		playing = false,
+		analyzing = false,
 		dragTrackIds = [],
 		categoryColors,
 		categorySortOrders,
@@ -106,7 +109,17 @@
 		<div class="pointer-events-none absolute inset-0 border-l-2 border-red-500/50"></div>
 	{/if}
 	<!-- Color -->
-	<TrackColorCell color={track.color} onselect={onColorChange} />
+	<div class="relative flex h-full items-center justify-center">
+		{#if analyzing}
+			<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
+				<Spinner class="h-3 w-3" />
+			</div>
+		{:else}
+			<div transition:fade={{ duration: 150 }}>
+				<TrackColorCell color={track.color} onselect={onColorChange} />
+			</div>
+		{/if}
+	</div>
 
 	<!-- Artwork -->
 	<div class="flex justify-center">
@@ -143,8 +156,8 @@
 	</div>
 
 	<!-- Key -->
-	<div class="text-center text-text-secondary">
-		{formatKey(track.key)}
+	<div class="flex items-center justify-center text-text-secondary">
+		{formatKey(track.key, $keyNotationFormat)}
 	</div>
 
 	<!-- Duration -->

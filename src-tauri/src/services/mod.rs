@@ -1,3 +1,4 @@
+pub mod analysis;
 pub mod artwork;
 pub mod audio;
 pub mod device;
@@ -9,6 +10,7 @@ pub mod playlist;
 pub mod settings;
 pub mod tag;
 
+pub use analysis::AnalysisService;
 pub use artwork::ArtworkService;
 pub use audio::AudioService;
 pub use device::DeviceService;

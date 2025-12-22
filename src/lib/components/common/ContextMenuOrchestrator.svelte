@@ -46,6 +46,7 @@
 		onTrackRemoveFromLibrary: (tracks: Track[]) => void
 		onTrackRelocate: (track: Track) => void
 		onTrackSetColor: (color: TrackColor | null, tracks: Track[]) => void
+		onTrackAnalyze: (tracks: Track[]) => void
 
 		// Playlist callbacks
 		onPlaylistRename: (playlist: Playlist) => void
@@ -102,6 +103,7 @@
 		onTrackRemoveFromLibrary,
 		onTrackRelocate,
 		onTrackSetColor,
+		onTrackAnalyze,
 		onPlaylistRename,
 		onPlaylistDelete,
 		onPlaylistMove,
@@ -315,6 +317,14 @@
 		}
 	}
 
+	function handleTrackAnalyze() {
+		if (activeMenu.type === 'track') {
+			const tracks = activeMenu.tracks
+			closeAll()
+			onTrackAnalyze(tracks)
+		}
+	}
+
 	// Playlist handlers
 	function handlePlaylistRename(playlist: Playlist) {
 		closeAll()
@@ -457,6 +467,7 @@
 		onRemoveFromLibrary={handleTrackRemoveFromLibrary}
 		onRelocate={handleTrackRelocate}
 		onSetColor={handleTrackSetColor}
+		onAnalyze={handleTrackAnalyze}
 	/>
 {/if}
 
