@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte'
+	import { fade } from 'svelte/transition'
 	import { get } from 'svelte/store'
 	import { open } from '@tauri-apps/plugin-dialog'
 	import { openPath } from '@tauri-apps/plugin-opener'
@@ -66,6 +67,7 @@
 		DragPreview,
 		Icon,
 		Text,
+		SplashScreen,
 	} from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { TrackEditor } from '$lib/components/editor'
@@ -73,6 +75,10 @@
 	import * as exportApi from '$lib/api/export'
 	import { openDevTools, closeDevTools } from '$lib/api/app'
 	import { exportStore, isExporting } from '$lib/stores/export'
+
+	// Splash screen state
+	let showSplash = $state(true)
+	let splashVersion = $state('0.0.0')
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
@@ -348,6 +354,9 @@
 	})
 
 	async function onMountHelper(): Promise<() => void> {
+		const splashStartTime = Date.now()
+		const minDisplayTime = 700
+
 		// Initialize export store event listening
 		await exportStore.startListening()
 
@@ -360,6 +369,9 @@
 				isDragOver = dragOver
 			},
 		})
+
+		// Get version after stores load
+		splashVersion = get(appStore).info?.version ?? '0.0.0'
 
 		// Set up keyboard shortcuts
 		const cleanupKeyboard = useKeyboardShortcuts({
@@ -506,6 +518,15 @@
 				uiStore.selectTrack(track.id)
 			},
 		})
+
+		// Ensure minimum display time for splash screen
+		const elapsed = Date.now() - splashStartTime
+		if (elapsed < minDisplayTime) {
+			await new Promise((r) => setTimeout(r, minDisplayTime - elapsed))
+		}
+
+		// Dismiss splash screen
+		showSplash = false
 
 		return () => {
 			cleanupApp()
@@ -970,154 +991,160 @@
 	}
 </script>
 
-<div class="flex h-full flex-col">
-	<!-- Unified Header: Logo + Toolbar -->
-	<div class="flex rounded-br bg-surface-1">
-		<!-- Logo section (matches sidebar width) -->
-		<div class="flex flex-shrink-0 items-center justify-center gap-2" style="width: {sidebarWidth}px">
-			<Icon name="logo" class="h-6 w-6 text-brand-primary" fill />
-			<Text variant="header-1" as="span" weight="bold">Crate</Text>
-			{#if $isDev}
-				<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-500">DEV</span>
-			{/if}
-		</div>
-		<!-- Toolbar content -->
-		<Toolbar
-			{activeFilterTags}
-			{tagColors}
-			tagFilterMode={$tagFilterMode}
-			onRemoveTagFilter={tagController.removeTagFilter}
-			onClearAllTagFilters={tagController.clearTagFilters}
-			onToggleTagFilterMode={tagController.toggleTagFilterMode}
-			onImport={trackController.handleImport}
-			onSettings={() => modalOrchestrator.openSettingsModal()}
-			onDevTools={handleToggleDevTools}
-		/>
-	</div>
+<!-- Splash Screen -->
+<SplashScreen show={showSplash} version={splashVersion} />
 
-	<div class="relative flex flex-1 overflow-hidden">
-		<!-- Left: Sidebar (without header) -->
-		<div class="flex-shrink-0 rounded-tr-md" style="width: {sidebarWidth}px">
-			<Sidebar
-				{playlists}
-				{tagCategories}
-				{devices}
-				{selectedPlaylistId}
-				{selectedFolderId}
-				{contextMenuPlaylistId}
-				{selectedTagIds}
-				selectedTrackIds={$selectedTrackIds}
-				{tagStates}
-				{tagCounts}
-				trackCount={$trackCount}
-				showHeader={false}
-				onLibraryClick={handleLibraryClick}
-				onPlaylistSelect={handlePlaylistSelect}
-				onPlaylistContextMenu={handlePlaylistContextMenu}
-				onPlaylistTreeContextMenu={handlePlaylistTreeContextMenu}
-				onDeviceContextMenu={handleDeviceContextMenu}
-				onCancelExport={handleExportCancel}
-				onTagSelect={tagController.selectTag}
-				onTagToggle={tagController.toggleTagOnTracks}
-				onTagContextMenu={handleTagContextMenu}
-				onCategoryContextMenu={handleCategoryContextMenu}
-				onCreatePlaylist={handleCreatePlaylist}
-				onCreateFolder={handleCreateFolder}
-				onCreateCategory={handleCreateCategory}
-				onCreateTag={handleCreateTag}
-				onTagsWhitespaceContextMenu={handleTagsWhitespaceContextMenu}
-				onTracksDrop={trackController.handleTracksDropOnPlaylist}
-				onPlaylistMove={handlePlaylistDragMove}
+<!-- Main App Content -->
+{#if !showSplash}
+	<div class="flex h-full flex-col" in:fade={{ duration: 300, delay: 100 }}>
+		<!-- Unified Header: Logo + Toolbar -->
+		<div class="flex rounded-br bg-surface-1">
+			<!-- Logo section (matches sidebar width) -->
+			<div class="flex flex-shrink-0 items-center justify-center gap-2" style="width: {sidebarWidth}px">
+				<Icon name="logo" class="h-6 w-6 text-brand-primary" fill />
+				<Text variant="header-1" as="span" weight="bold">Crate</Text>
+				{#if $isDev}
+					<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-500">DEV</span>
+				{/if}
+			</div>
+			<!-- Toolbar content -->
+			<Toolbar
+				{activeFilterTags}
+				{tagColors}
+				tagFilterMode={$tagFilterMode}
+				onRemoveTagFilter={tagController.removeTagFilter}
+				onClearAllTagFilters={tagController.clearTagFilters}
+				onToggleTagFilterMode={tagController.toggleTagFilterMode}
+				onImport={trackController.handleImport}
+				onSettings={() => modalOrchestrator.openSettingsModal()}
+				onDevTools={handleToggleDevTools}
 			/>
 		</div>
 
-		<ResizeHandle onResize={handleSidebarResize} />
+		<div class="relative flex flex-1 overflow-hidden">
+			<!-- Left: Sidebar (without header) -->
+			<div class="flex-shrink-0 rounded-tr-md" style="width: {sidebarWidth}px">
+				<Sidebar
+					{playlists}
+					{tagCategories}
+					{devices}
+					{selectedPlaylistId}
+					{selectedFolderId}
+					{contextMenuPlaylistId}
+					{selectedTagIds}
+					selectedTrackIds={$selectedTrackIds}
+					{tagStates}
+					{tagCounts}
+					trackCount={$trackCount}
+					showHeader={false}
+					onLibraryClick={handleLibraryClick}
+					onPlaylistSelect={handlePlaylistSelect}
+					onPlaylistContextMenu={handlePlaylistContextMenu}
+					onPlaylistTreeContextMenu={handlePlaylistTreeContextMenu}
+					onDeviceContextMenu={handleDeviceContextMenu}
+					onCancelExport={handleExportCancel}
+					onTagSelect={tagController.selectTag}
+					onTagToggle={tagController.toggleTagOnTracks}
+					onTagContextMenu={handleTagContextMenu}
+					onCategoryContextMenu={handleCategoryContextMenu}
+					onCreatePlaylist={handleCreatePlaylist}
+					onCreateFolder={handleCreateFolder}
+					onCreateCategory={handleCreateCategory}
+					onCreateTag={handleCreateTag}
+					onTagsWhitespaceContextMenu={handleTagsWhitespaceContextMenu}
+					onTracksDrop={trackController.handleTracksDropOnPlaylist}
+					onPlaylistMove={handlePlaylistDragMove}
+				/>
+			</div>
 
-		<!-- Right: Main Content + Optional TrackEditor -->
-		<div class="flex flex-1 overflow-hidden rounded-tl-md border-t border-l border-stroke">
-			<!-- Main Content -->
-			<div class="flex-1 overflow-hidden">
-				{#if selectedFolderId}
-					<FolderView
-						folderId={selectedFolderId}
-						{playlists}
-						onSelect={handlePlaylistSelect}
-						{breadcrumbItems}
-						onBreadcrumbNavigate={handleBreadcrumbNavigate}
-						onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-						onEmptySpaceContextMenu={handleFolderViewContextMenu}
-						onCardContextMenu={handleFolderViewCardContextMenu}
-					/>
-				{:else if selectedPlaylistId}
-					{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
-					{#if playlist}
-						<PlaylistView
-							{playlist}
+			<ResizeHandle onResize={handleSidebarResize} />
+
+			<!-- Right: Main Content + Optional TrackEditor -->
+			<div class="flex flex-1 overflow-hidden rounded-tl-md border-t border-l border-stroke">
+				<!-- Main Content -->
+				<div class="flex-1 overflow-hidden">
+					{#if selectedFolderId}
+						<FolderView
+							folderId={selectedFolderId}
+							{playlists}
+							onSelect={handlePlaylistSelect}
+							{breadcrumbItems}
+							onBreadcrumbNavigate={handleBreadcrumbNavigate}
+							onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+							onEmptySpaceContextMenu={handleFolderViewContextMenu}
+							onCardContextMenu={handleFolderViewCardContextMenu}
+						/>
+					{:else if selectedPlaylistId}
+						{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
+						{#if playlist}
+							<PlaylistView
+								{playlist}
+								tracks={$displayedTracks}
+								selectedIds={$selectedTrackIds}
+								playingTrackId={$currentTrack?.id ?? null}
+								{sortConfig}
+								{isDragOver}
+								{categoryColors}
+								{categorySortOrders}
+								{breadcrumbItems}
+								onSelectionChange={trackController.handleSelectionChange}
+								onTrackPlay={trackController.play}
+								onSortChange={handleSortChange}
+								onContextMenu={handleTrackContextMenu}
+								onEmptySpaceContextMenu={handlePlaylistViewContextMenu}
+								onBreadcrumbNavigate={handleBreadcrumbNavigate}
+								onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+								onTrackColorChange={trackController.setColor}
+							/>
+						{/if}
+					{:else}
+						<LibraryView
 							tracks={$displayedTracks}
+							trackCount={$trackCount}
 							selectedIds={$selectedTrackIds}
 							playingTrackId={$currentTrack?.id ?? null}
 							{sortConfig}
 							{isDragOver}
 							{categoryColors}
 							{categorySortOrders}
-							{breadcrumbItems}
 							onSelectionChange={trackController.handleSelectionChange}
 							onTrackPlay={trackController.play}
 							onSortChange={handleSortChange}
 							onContextMenu={handleTrackContextMenu}
-							onEmptySpaceContextMenu={handlePlaylistViewContextMenu}
-							onBreadcrumbNavigate={handleBreadcrumbNavigate}
-							onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+							onEmptySpaceContextMenu={handleLibraryViewContextMenu}
 							onTrackColorChange={trackController.setColor}
 						/>
 					{/if}
-				{:else}
-					<LibraryView
-						tracks={$displayedTracks}
-						trackCount={$trackCount}
-						selectedIds={$selectedTrackIds}
-						playingTrackId={$currentTrack?.id ?? null}
-						{sortConfig}
-						{isDragOver}
-						{categoryColors}
-						{categorySortOrders}
-						onSelectionChange={trackController.handleSelectionChange}
-						onTrackPlay={trackController.play}
-						onSortChange={handleSortChange}
-						onContextMenu={handleTrackContextMenu}
-						onEmptySpaceContextMenu={handleLibraryViewContextMenu}
-						onTrackColorChange={trackController.setColor}
-					/>
-				{/if}
-			</div>
+				</div>
 
-			<!-- Right Sidebar (Track Editor) -->
-			<div
-				class="flex h-full flex-shrink-0 overflow-hidden ease-out"
-				class:transition-[width]={!isResizingRightSidebar}
-				class:duration-250={!isResizingRightSidebar}
-				class:animate-[fade-in_250ms_ease-out]={sidebarOpen}
-				style="width: {sidebarOpen ? $rightSidebarWidth : 0}px"
-				ontransitionend={(e) => {
-					if (e.propertyName === 'width' && !sidebarOpen) {
-						editorTracks = []
-					}
-				}}
-			>
-				<ResizeHandle
-					onResize={handleRightSidebarResize}
-					onResizeStart={() => (isResizingRightSidebar = true)}
-					onResizeEnd={() => (isResizingRightSidebar = false)}
-				/>
-				<div style="width: {$rightSidebarWidth}px">
-					<TrackEditor selectedTracks={editorTracks} />
+				<!-- Right Sidebar (Track Editor) -->
+				<div
+					class="flex h-full flex-shrink-0 overflow-hidden ease-out"
+					class:transition-[width]={!isResizingRightSidebar}
+					class:duration-250={!isResizingRightSidebar}
+					class:animate-[fade-in_250ms_ease-out]={sidebarOpen}
+					style="width: {sidebarOpen ? $rightSidebarWidth : 0}px"
+					ontransitionend={(e) => {
+						if (e.propertyName === 'width' && !sidebarOpen) {
+							editorTracks = []
+						}
+					}}
+				>
+					<ResizeHandle
+						onResize={handleRightSidebarResize}
+						onResizeStart={() => (isResizingRightSidebar = true)}
+						onResizeEnd={() => (isResizingRightSidebar = false)}
+					/>
+					<div style="width: {$rightSidebarWidth}px">
+						<TrackEditor selectedTracks={editorTracks} />
+					</div>
 				</div>
 			</div>
 		</div>
-	</div>
 
-	<Player />
-</div>
+		<Player />
+	</div>
+{/if}
 
 <!-- Context Menu Orchestrator -->
 <ContextMenuOrchestrator

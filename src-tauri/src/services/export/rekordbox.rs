@@ -550,6 +550,7 @@ struct PdbTrack {
     filename: String,
     rating: u8,
     year: u16,
+    #[allow(dead_code)]
     file_type: u16,
     date_added: String,
     comment: String,

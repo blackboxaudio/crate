@@ -4,9 +4,39 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <!-- Apply theme immediately to prevent flash -->
+    <script>
+      (function() {
+        // Theme preference
+        var theme = 'dark';
+        try {
+          var stored = localStorage.getItem('crate-theme');
+          if (stored === 'light' || stored === 'dark') {
+            theme = stored;
+          } else if (stored === 'system' || !stored) {
+            theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+          }
+        } catch (e) {}
+        document.documentElement.setAttribute('data-theme', theme);
 
-    <title>Tauri + SvelteKit + Typescript App</title>
+        // Accent color
+        var accentColors = {
+          blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', purple: '#a855f7',
+          pink: '#ec4899', rose: '#f43f5e', orange: '#f97316', amber: '#f59e0b',
+          emerald: '#10b981', teal: '#14b8a6'
+        };
+        var accent = 'blue';
+        try {
+          var storedAccent = localStorage.getItem('crate-accent');
+          if (storedAccent && accentColors[storedAccent]) accent = storedAccent;
+        } catch (e) {}
+        document.documentElement.setAttribute('data-accent', accent);
+        document.documentElement.style.setProperty('--color-brand-primary', accentColors[accent]);
+      })();
+    </script>
+
+    <link rel="icon" href="%sveltekit.assets%/favicon.png" />
+    <title>Crate</title>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">

@@ -192,8 +192,9 @@ fn build_waveform_preview_section() -> Vec<u8> {
 
 /// Build the PQTZ (beat grid) section
 ///
-/// Per Kaitai Struct spec: Contains beat entries with time position,
-/// beat number (1-4), and tempo (BPM × 100).
+/// Per Kaitai Struct spec (rekordbox_anlz.ksy):
+/// - Header: unknown1 (u4), unknown2 (u4, always 0x80000), num_beats (u4)
+/// - Beat entries: beat_number (u2), tempo (u2), time (u4)
 fn build_beat_grid_section(bpm: f32, duration_ms: u32) -> Vec<u8> {
     let mut section = Vec::new();
 
@@ -205,8 +206,8 @@ fn build_beat_grid_section(bpm: f32, duration_ms: u32) -> Vec<u8> {
     // Limit to reasonable number of beats (max ~10000 for very long tracks)
     let num_beats = num_beats.min(10000);
 
-    let header_size: u32 = 24; // PQTZ has 24-byte header
-    let beat_entry_size: u32 = 8; // Each beat entry is 8 bytes
+    let header_size: u32 = 24; // 12 standard header + 12 content header (u4 + u4 + u4)
+    let beat_entry_size: u32 = 8; // Each beat entry is 8 bytes (u2 + u2 + u4)
     let data_size: u32 = num_beats * beat_entry_size;
     let total_size: u32 = header_size + data_size;
 
@@ -216,25 +217,24 @@ fn build_beat_grid_section(bpm: f32, duration_ms: u32) -> Vec<u8> {
     section.extend_from_slice(&header_size.to_be_bytes());
     // Total size
     section.extend_from_slice(&total_size.to_be_bytes());
-    // Unknown1 (always 0)
+    // Unknown1 (always 0) - u4
     section.extend_from_slice(&0u32.to_be_bytes());
-    // Unknown2 (seems to be 0 or small number)
-    section.extend_from_slice(&0u16.to_be_bytes());
-    // Number of beats
-    section.extend_from_slice(&(num_beats as u16).to_be_bytes());
+    // Unknown2 (always 0x80000 per spec) - u4
+    section.extend_from_slice(&0x00080000u32.to_be_bytes());
+    // Number of beats - u4
+    section.extend_from_slice(&num_beats.to_be_bytes());
 
-    // Write beat entries
+    // Write beat entries per Kaitai spec:
+    // beat_grid_beat: beat_number (u2), tempo (u2), time (u4) = 8 bytes
     let mut time_ms: f32 = 0.0;
     for i in 0..num_beats {
-        // Time in milliseconds (u16)
-        section.extend_from_slice(&(time_ms as u16).to_be_bytes());
-        // Beat number (1-4 cycling)
+        // Beat number (1-4 cycling) - u2
         let beat_num = ((i % 4) + 1) as u16;
         section.extend_from_slice(&beat_num.to_be_bytes());
-        // Tempo (BPM × 100)
+        // Tempo (BPM × 100) - u2
         section.extend_from_slice(&tempo.to_be_bytes());
-        // Padding (always 0)
-        section.extend_from_slice(&0u16.to_be_bytes());
+        // Time in milliseconds - u4
+        section.extend_from_slice(&(time_ms as u32).to_be_bytes());
 
         time_ms += beat_duration_ms;
     }
