@@ -1,6 +1,6 @@
 use tauri::{AppHandle, State};
 
-use crate::error::CrateError;
+use crate::error::Result;
 use crate::models::Track;
 use crate::services::AnalysisService;
 
@@ -10,7 +10,7 @@ pub async fn analyze_tracks(
     track_ids: Vec<String>,
     analysis: State<'_, AnalysisService>,
     app_handle: AppHandle,
-) -> Result<(), CrateError> {
+) -> Result<()> {
     analysis.analyze_tracks_async(app_handle, track_ids).await
 }
 
@@ -19,13 +19,13 @@ pub async fn analyze_tracks(
 pub async fn cancel_track_analysis(
     track_id: String,
     analysis: State<'_, AnalysisService>,
-) -> Result<bool, CrateError> {
+) -> Result<bool> {
     Ok(analysis.cancel_track_analysis(&track_id))
 }
 
 /// Cancel all running analysis operations (legacy)
 #[tauri::command]
-pub async fn cancel_analysis(analysis: State<'_, AnalysisService>) -> Result<(), CrateError> {
+pub async fn cancel_analysis(analysis: State<'_, AnalysisService>) -> Result<()> {
     analysis.cancel_analysis();
     Ok(())
 }
@@ -35,7 +35,7 @@ pub async fn cancel_analysis(analysis: State<'_, AnalysisService>) -> Result<(),
 pub async fn get_analyzed_tracks(
     track_ids: Vec<String>,
     analysis: State<'_, AnalysisService>,
-) -> Result<Vec<Track>, CrateError> {
+) -> Result<Vec<Track>> {
     let mut tracks = Vec::new();
     for id in track_ids {
         let track = analysis.get_updated_track(&id)?;

@@ -394,10 +394,23 @@
 			onDeleteSelected: () => {
 				const ids = [...$selectedTrackIds]
 				if (ids.length > 0) {
+					// Track deletion takes precedence
 					if (selectedPlaylistId) {
 						modalOrchestrator.openRemoveFromPlaylistModal(ids, selectedPlaylistId)
 					} else {
 						modalOrchestrator.openRemoveFromLibraryModal(ids)
+					}
+				} else if (selectedPlaylistId) {
+					// Delete the selected playlist (no tracks selected)
+					const playlist = playlists.find((p) => p.id === selectedPlaylistId)
+					if (playlist) {
+						handlePlaylistDelete(playlist)
+					}
+				} else if (selectedFolderId) {
+					// Delete the selected folder (no tracks selected)
+					const folder = playlists.find((p) => p.id === selectedFolderId)
+					if (folder) {
+						handlePlaylistDelete(folder)
 					}
 				}
 			},
@@ -1227,7 +1240,23 @@
 		await tagsStore.updateCategory(id, name)
 	}}
 	onDeletePlaylist={async (id, _deleteTracksToo) => {
+		// Find playlist to get parent_id before deletion
+		const playlist = playlists.find((p) => p.id === id)
+		const parentId = playlist?.parent_id ?? null
+
 		await playlistsStore.delete(id)
+
+		// Navigate to parent folder or library
+		if (parentId) {
+			const parentFolder = playlists.find((p) => p.id === parentId)
+			if (parentFolder) {
+				uiStore.selectFolder(parentId)
+			} else {
+				handleLibraryClick()
+			}
+		} else {
+			handleLibraryClick()
+		}
 	}}
 	onDeleteTag={async (id) => {
 		await tagsStore.deleteTag(id)

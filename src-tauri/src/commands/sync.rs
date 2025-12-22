@@ -1,6 +1,6 @@
 use tauri::{AppHandle, State};
 
-use crate::error::CrateError;
+use crate::error::Result;
 use crate::services::sync::{DeviceInfo, SyncResult};
 use crate::services::SyncService;
 
@@ -13,7 +13,7 @@ pub async fn sync_device(
     playlist_ids: Vec<String>,
     sync_service: State<'_, SyncService>,
     app_handle: AppHandle,
-) -> Result<SyncResult, CrateError> {
+) -> Result<SyncResult> {
     sync_service.sync_device(
         &app_handle,
         &device_id,
@@ -28,7 +28,7 @@ pub async fn sync_device(
 pub async fn get_pending_sync_playlists(
     device_id: String,
     sync_service: State<'_, SyncService>,
-) -> Result<Vec<String>, CrateError> {
+) -> Result<Vec<String>> {
     sync_service.get_pending_playlists_for_device(&device_id)
 }
 
@@ -37,19 +37,19 @@ pub async fn get_pending_sync_playlists(
 pub async fn has_pending_sync_changes(
     device_id: String,
     sync_service: State<'_, SyncService>,
-) -> Result<bool, CrateError> {
+) -> Result<bool> {
     sync_service.has_pending_changes(&device_id)
 }
 
 /// Check if a sync is currently in progress
 #[tauri::command]
-pub async fn is_syncing(sync_service: State<'_, SyncService>) -> Result<bool, CrateError> {
+pub async fn is_syncing(sync_service: State<'_, SyncService>) -> Result<bool> {
     Ok(sync_service.is_syncing())
 }
 
 /// Cancel the current sync operation
 #[tauri::command]
-pub async fn cancel_sync(sync_service: State<'_, SyncService>) -> Result<(), CrateError> {
+pub async fn cancel_sync(sync_service: State<'_, SyncService>) -> Result<()> {
     sync_service.cancel_sync();
     Ok(())
 }
@@ -59,7 +59,7 @@ pub async fn cancel_sync(sync_service: State<'_, SyncService>) -> Result<(), Cra
 pub async fn get_playlists_containing_track(
     track_id: String,
     sync_service: State<'_, SyncService>,
-) -> Result<Vec<String>, CrateError> {
+) -> Result<Vec<String>> {
     sync_service.get_playlists_containing_track(&track_id)
 }
 
@@ -68,7 +68,7 @@ pub async fn get_playlists_containing_track(
 pub async fn get_playlists_containing_tracks(
     track_ids: Vec<String>,
     sync_service: State<'_, SyncService>,
-) -> Result<Vec<String>, CrateError> {
+) -> Result<Vec<String>> {
     sync_service.get_playlists_containing_tracks(&track_ids)
 }
 
@@ -77,7 +77,7 @@ pub async fn get_playlists_containing_tracks(
 pub async fn get_devices_for_playlist(
     playlist_id: String,
     sync_service: State<'_, SyncService>,
-) -> Result<Vec<DeviceInfo>, CrateError> {
+) -> Result<Vec<DeviceInfo>> {
     sync_service.get_devices_for_playlist(&playlist_id)
 }
 
@@ -86,6 +86,6 @@ pub async fn get_devices_for_playlist(
 pub async fn get_devices_for_playlists(
     playlist_ids: Vec<String>,
     sync_service: State<'_, SyncService>,
-) -> Result<Vec<DeviceInfo>, CrateError> {
+) -> Result<Vec<DeviceInfo>> {
     sync_service.get_devices_for_playlists(&playlist_ids)
 }

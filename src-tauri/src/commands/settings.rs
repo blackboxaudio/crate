@@ -1,11 +1,11 @@
 use tauri::State;
 
-use crate::error::CrateError;
+use crate::error::Result;
 use crate::models::AppSettings;
 use crate::services::SettingsService;
 
 #[tauri::command]
-pub async fn get_settings(settings: State<'_, SettingsService>) -> Result<AppSettings, CrateError> {
+pub async fn get_settings(settings: State<'_, SettingsService>) -> Result<AppSettings> {
     settings.get_settings()
 }
 
@@ -14,6 +14,6 @@ pub async fn set_setting(
     key: String,
     value: String,
     settings: State<'_, SettingsService>,
-) -> Result<(), CrateError> {
+) -> Result<()> {
     settings.set_setting(&key, &value)
 }

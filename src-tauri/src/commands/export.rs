@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use tauri::{AppHandle, State};
 
-use crate::error::CrateError;
+use crate::error::Result;
 use crate::models::{DeviceExport, ExportRequest, ExportResult};
 use crate::services::ExportService;
 
@@ -12,7 +12,7 @@ pub async fn export_playlists(
     request: ExportRequest,
     export_service: State<'_, Arc<ExportService>>,
     app_handle: AppHandle,
-) -> Result<ExportResult, CrateError> {
+) -> Result<ExportResult> {
     export_service.export_playlists(&app_handle, request)
 }
 
@@ -21,15 +21,13 @@ pub async fn export_playlists(
 pub async fn get_device_exports(
     device_id: String,
     export_service: State<'_, Arc<ExportService>>,
-) -> Result<Vec<DeviceExport>, CrateError> {
+) -> Result<Vec<DeviceExport>> {
     export_service.get_device_exports(&device_id)
 }
 
 /// Cancel the current export operation
 #[tauri::command]
-pub async fn cancel_export(
-    export_service: State<'_, Arc<ExportService>>,
-) -> Result<(), CrateError> {
+pub async fn cancel_export(export_service: State<'_, Arc<ExportService>>) -> Result<()> {
     export_service.cancel_export();
     Ok(())
 }
@@ -40,6 +38,6 @@ pub async fn cleanup_failed_export(
     device_id: String,
     mount_point: String,
     export_service: State<'_, Arc<ExportService>>,
-) -> Result<(), CrateError> {
+) -> Result<()> {
     export_service.cleanup_failed_export(&device_id, &mount_point)
 }
