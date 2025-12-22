@@ -110,6 +110,8 @@
 		"matchOr": "OF",
 		"matchAnd": "EN",
 		"clearAll": "Alles wissen",
+		"noTracksYet": "Nog geen tracks",
+		"dragDropHint": "Sleep audiobestanden hiernaartoe om deze te importeren",
 		"columns": {
 			"title": "Titel",
 			"artist": "Artiest",
@@ -131,6 +133,7 @@
 		"moveToFolder": "Verplaatsen naar map",
 		"rootNoFolder": "Hoofdmap (geen map)",
 		"folderEmpty": "Deze map is leeg",
+		"noPlaylistsYet": "Nog geen afspeellijsten",
 		"exportToDevice": "Exporteren naar apparaat"
 	},
 	"tags": {
@@ -141,7 +144,9 @@
 		"deleteTag": "Tag verwijderen",
 		"deleteCategory": "Categorie verwijderen",
 		"addCategory": "Categorie toevoegen",
-		"addTag": "Tag toevoegen"
+		"addTag": "Tag toevoegen",
+		"noTags": "Geen tags",
+		"noTagCategoriesYet": "Nog geen tagcategorieën"
 	},
 	"contextMenu": {
 		"viewInFinder": "Bekijken in Finder",

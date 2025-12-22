@@ -2,6 +2,7 @@
 	import type { Track, TrackColor, SortConfig } from '$lib/types'
 	import { handleSelection } from '$lib/utils'
 	import { analyzingTrackIds } from '$lib/stores'
+	import { translate } from '$lib/i18n'
 	import TrackListHeader from './TrackListHeader.svelte'
 	import TrackRow from './TrackRow.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
@@ -107,8 +108,8 @@
 		{#if tracks.length === 0}
 			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
 				<Icon name="music-note" class="mb-4 h-16 w-16" />
-				<p class="mb-2 text-lg font-medium">No tracks yet</p>
-				<p class="text-sm">Drag and drop audio files here to import them</p>
+				<p class="mb-2 text-lg font-medium">{$translate('library.noTracksYet')}</p>
+				<p class="text-sm">{$translate('library.dragDropHint')}</p>
 			</div>
 		{:else}
 			{#each tracks as track (track.id)}

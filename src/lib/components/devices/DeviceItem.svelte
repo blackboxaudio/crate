@@ -39,7 +39,7 @@
 		onSelect,
 	}: Props = $props()
 
-	// Track success state for linger effect
+	// Track success state for linger effect (export)
 	let showSuccess = $state(false)
 	let showProgress = $state(false)
 	let wasExporting = $state(false)
@@ -48,6 +48,11 @@
 	let displayPercent = $state(0)
 	let lastProgressSnapshot = $state<{ files_copied: number; files_total: number } | null>(null)
 	let lastTrackName = $state<string | null>(null)
+
+	// Track success state for sync (no progress bar, just spinner → checkmark)
+	let showSyncSuccess = $state(false)
+	let wasSyncing = $state(false)
+	let syncStartTime = $state(0)
 
 	const MIN_ANIMATION_DURATION = 800 // Minimum time for progress bar to animate 0%→100%
 	const PROGRESS_ANIMATION_DURATION = 300 // CSS transition duration for progress bar
@@ -125,6 +130,26 @@
 			}
 		}
 		wasExporting = isExporting
+	})
+
+	// Detect when sync starts/completes to manage UI timing (simpler than export - no progress bar)
+	$effect(() => {
+		if (!wasSyncing && isSyncing) {
+			// Sync just started
+			syncStartTime = Date.now()
+		} else if (wasSyncing && !isSyncing) {
+			// Sync just finished - show success with minimum duration
+			const elapsed = Date.now() - syncStartTime
+			const remainingTime = Math.max(0, MIN_ANIMATION_DURATION - elapsed)
+
+			setTimeout(() => {
+				showSyncSuccess = true
+				setTimeout(() => {
+					showSyncSuccess = false
+				}, SUCCESS_DISPLAY_DURATION)
+			}, remainingTime)
+		}
+		wasSyncing = isSyncing
 	})
 
 	// Use real progress when exporting, animated progress otherwise
@@ -205,9 +230,9 @@
 			</div>
 		</div>
 
-		<!-- Status indicator: checkmark (success), spinner (exporting/reformatting), or status dot -->
+		<!-- Status indicator: checkmark (success), spinner (exporting/reformatting/syncing), or status dot -->
 		<div class="relative h-4 w-4 shrink-0">
-			{#if showSuccess}
+			{#if showSuccess || showSyncSuccess}
 				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
 					<Icon name="check" class="h-4 w-4 text-success" />
 				</div>

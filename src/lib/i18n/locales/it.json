@@ -110,6 +110,8 @@
 		"matchOr": "O",
 		"matchAnd": "E",
 		"clearAll": "Cancella tutto",
+		"noTracksYet": "Nessuna traccia per ora",
+		"dragDropHint": "Trascina e rilascia i file audio qui per importarli",
 		"columns": {
 			"title": "Titolo",
 			"artist": "Artista",
@@ -131,6 +133,7 @@
 		"moveToFolder": "Sposta in cartella",
 		"rootNoFolder": "Radice (nessuna cartella)",
 		"folderEmpty": "Questa cartella è vuota",
+		"noPlaylistsYet": "Nessuna playlist per ora",
 		"exportToDevice": "Esporta su dispositivo"
 	},
 	"tags": {
@@ -141,7 +144,9 @@
 		"deleteTag": "Elimina tag",
 		"deleteCategory": "Elimina categoria",
 		"addCategory": "Aggiungi categoria",
-		"addTag": "Aggiungi tag"
+		"addTag": "Aggiungi tag",
+		"noTags": "Nessun tag",
+		"noTagCategoriesYet": "Nessuna categoria di tag per ora"
 	},
 	"contextMenu": {
 		"viewInFinder": "Visualizza nel Finder",

@@ -110,6 +110,8 @@
 		"matchOr": "或",
 		"matchAnd": "且",
 		"clearAll": "全部清除",
+		"noTracksYet": "暂无曲目",
+		"dragDropHint": "将音频文件拖放至此处以导入",
 		"columns": {
 			"title": "标题",
 			"artist": "艺术家",
@@ -131,6 +133,7 @@
 		"moveToFolder": "移动到文件夹",
 		"rootNoFolder": "根目录（无文件夹）",
 		"folderEmpty": "此文件夹为空",
+		"noPlaylistsYet": "暂无播放列表",
 		"exportToDevice": "导出到设备"
 	},
 	"tags": {
@@ -141,7 +144,9 @@
 		"deleteTag": "删除标签",
 		"deleteCategory": "删除分类",
 		"addCategory": "添加分类",
-		"addTag": "添加标签"
+		"addTag": "添加标签",
+		"noTags": "暂无标签",
+		"noTagCategoriesYet": "暂无标签分类"
 	},
 	"contextMenu": {
 		"viewInFinder": "在访达中显示",

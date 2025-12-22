@@ -110,6 +110,8 @@
 		"matchOr": "ELLER",
 		"matchAnd": "OCH",
 		"clearAll": "Rensa alla",
+		"noTracksYet": "Inga spår än",
+		"dragDropHint": "Dra och släpp ljudfiler här för att importera dem",
 		"columns": {
 			"title": "Titel",
 			"artist": "Artist",
@@ -131,6 +133,7 @@
 		"moveToFolder": "Flytta till mapp",
 		"rootNoFolder": "Rot (ingen mapp)",
 		"folderEmpty": "Denna mapp är tom",
+		"noPlaylistsYet": "Inga spellistor än",
 		"exportToDevice": "Exportera till enhet"
 	},
 	"tags": {
@@ -141,7 +144,9 @@
 		"deleteTag": "Ta bort tagg",
 		"deleteCategory": "Ta bort kategori",
 		"addCategory": "Lägg till kategori",
-		"addTag": "Lägg till tagg"
+		"addTag": "Lägg till tagg",
+		"noTags": "Inga taggar",
+		"noTagCategoriesYet": "Inga taggkategorier än"
 	},
 	"contextMenu": {
 		"viewInFinder": "Visa i Finder",

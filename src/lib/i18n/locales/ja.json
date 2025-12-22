@@ -110,6 +110,8 @@
 		"matchOr": "または",
 		"matchAnd": "かつ",
 		"clearAll": "すべてクリア",
+		"noTracksYet": "まだトラックがありません",
+		"dragDropHint": "ここにオーディオファイルをドラッグアンドドロップしてインポートしてください",
 		"columns": {
 			"title": "タイトル",
 			"artist": "アーティスト",
@@ -131,6 +133,7 @@
 		"moveToFolder": "フォルダに移動",
 		"rootNoFolder": "ルート（フォルダなし）",
 		"folderEmpty": "このフォルダは空です",
+		"noPlaylistsYet": "まだプレイリストがありません",
 		"exportToDevice": "デバイスにエクスポート"
 	},
 	"tags": {
@@ -141,7 +144,9 @@
 		"deleteTag": "タグを削除",
 		"deleteCategory": "カテゴリを削除",
 		"addCategory": "カテゴリを追加",
-		"addTag": "タグを追加"
+		"addTag": "タグを追加",
+		"noTags": "タグなし",
+		"noTagCategoriesYet": "まだタグカテゴリがありません"
 	},
 	"contextMenu": {
 		"viewInFinder": "Finderで表示",

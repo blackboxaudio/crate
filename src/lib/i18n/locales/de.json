@@ -110,6 +110,8 @@
 		"matchOr": "ODER",
 		"matchAnd": "UND",
 		"clearAll": "Alles löschen",
+		"noTracksYet": "Noch keine Tracks",
+		"dragDropHint": "Ziehen Sie Audiodateien hierher, um sie zu importieren",
 		"columns": {
 			"title": "Titel",
 			"artist": "Künstler",
@@ -131,6 +133,7 @@
 		"moveToFolder": "In Ordner verschieben",
 		"rootNoFolder": "Stammverzeichnis (kein Ordner)",
 		"folderEmpty": "Dieser Ordner ist leer",
+		"noPlaylistsYet": "Noch keine Playlists",
 		"exportToDevice": "Auf Gerät exportieren"
 	},
 	"tags": {
@@ -141,7 +144,9 @@
 		"deleteTag": "Tag löschen",
 		"deleteCategory": "Kategorie löschen",
 		"addCategory": "Kategorie hinzufügen",
-		"addTag": "Tag hinzufügen"
+		"addTag": "Tag hinzufügen",
+		"noTags": "Keine Tags",
+		"noTagCategoriesYet": "Noch keine Tag-Kategorien"
 	},
 	"contextMenu": {
 		"viewInFinder": "Im Finder anzeigen",
