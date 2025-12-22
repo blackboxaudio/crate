@@ -45,8 +45,9 @@
 	let lastProgressSnapshot = $state<{ files_copied: number; files_total: number } | null>(null)
 	let lastTrackName = $state<string | null>(null)
 
-	const MIN_DISPLAY_DURATION = 500
-	const PROGRESS_ANIMATION_DURATION = 300 // Time for progress bar to animate to 100%
+	const MIN_ANIMATION_DURATION = 800 // Minimum time for progress bar to animate 0%→100%
+	const PROGRESS_ANIMATION_DURATION = 300 // CSS transition duration for progress bar
+	const SUCCESS_DISPLAY_DURATION = 1200 // How long checkmark stays visible
 
 	// Continuously track progress data while exporting so we have a valid snapshot when export completes
 	// This is necessary because the store clears progress immediately when export completes
@@ -82,7 +83,8 @@
 		} else if (wasExporting && !isExporting) {
 			// Export just finished - calculate if we need to linger
 			const elapsed = Date.now() - exportStartTime
-			const remainingTime = Math.max(0, MIN_DISPLAY_DURATION - elapsed)
+			// Ensure minimum animation time (subtract animation duration since it's handled in completeExport)
+			const remainingTime = Math.max(0, MIN_ANIMATION_DURATION - elapsed - PROGRESS_ANIMATION_DURATION)
 
 			const completeExport = () => {
 				// Update snapshot to show 100% completion
@@ -93,19 +95,20 @@
 					}
 				}
 
-				// Animate progress to 100% and end visual exporting state
+				// Animate progress to 100%
 				displayPercent = 100
-				visuallyExporting = false
 
-				// Wait for progress bar animation, then show success
+				// Wait for progress bar animation to complete, THEN swap spinner → checkmark
 				setTimeout(() => {
+					visuallyExporting = false
 					showSuccess = true
+
 					setTimeout(() => {
 						showSuccess = false
 						showProgress = false
 						lastProgressSnapshot = null
 						lastTrackName = null
-					}, 1000)
+					}, SUCCESS_DISPLAY_DURATION)
 				}, PROGRESS_ANIMATION_DURATION)
 			}
 
@@ -215,13 +218,9 @@
 		<div class="mt-2 flex flex-col gap-1" transition:slide={{ duration: 200 }}>
 			<!-- Track name and progress counter row -->
 			<div class="flex items-center justify-between gap-2">
-				{#if visuallyExporting && currentTrackName()}
-					<span class="min-w-0 flex-1 truncate text-xs text-text-tertiary">
-						{currentTrackName()}
-					</span>
-				{:else}
-					<span></span>
-				{/if}
+				<span class="min-w-0 flex-1 truncate text-xs text-text-tertiary" transition:fade={{ duration: 150 }}>
+					{currentTrackName() || $translate('export.exporting')}
+				</span>
 				<Tooltip text={tooltipText} position="bottom">
 					<span class="text-xs whitespace-nowrap text-text-secondary">
 						{effectiveProgress.files_copied} / {effectiveProgress.files_total}
@@ -233,8 +232,8 @@
 			<div class="flex items-center gap-2">
 				<div class="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-2">
 					<div
-						class="h-full rounded-full bg-brand-primary transition-[width] duration-300 ease-out"
-						style="width: {effectivePercent}%"
+						class="h-full rounded-full bg-brand-primary transition-[width] ease-out"
+						style="width: {effectivePercent}%; transition-duration: {PROGRESS_ANIMATION_DURATION}ms"
 					></div>
 				</div>
 
