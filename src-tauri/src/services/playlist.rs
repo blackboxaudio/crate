@@ -590,7 +590,7 @@ impl PlaylistService {
         Ok(tracks)
     }
 
-    pub fn add_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<()> {
+    pub fn add_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<Playlist> {
         let conn = self
             .conn
             .lock()
@@ -621,10 +621,14 @@ impl PlaylistService {
             rusqlite::params![now, playlist_id],
         )?;
 
-        Ok(())
+        // Drop the lock before calling get_playlist which acquires its own lock
+        drop(conn);
+
+        // Return the updated playlist with accurate track count
+        self.get_playlist(playlist_id)
     }
 
-    pub fn remove_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<()> {
+    pub fn remove_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<Playlist> {
         let conn = self
             .conn
             .lock()
@@ -660,7 +664,11 @@ impl PlaylistService {
             rusqlite::params![now, playlist_id],
         )?;
 
-        Ok(())
+        // Drop the lock before calling get_playlist which acquires its own lock
+        drop(conn);
+
+        // Return the updated playlist with accurate track count
+        self.get_playlist(playlist_id)
     }
 
     pub fn reorder_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<()> {

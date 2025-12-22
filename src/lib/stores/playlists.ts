@@ -198,16 +198,11 @@ function createPlaylistsStore() {
 		 */
 		async addTracks(playlistId: string, trackIds: string[]) {
 			try {
-				await playlistsApi.addToPlaylist(playlistId, trackIds)
-				// Update track count
+				const updatedPlaylist = await playlistsApi.addToPlaylist(playlistId, trackIds)
+				// Update playlist with accurate data from backend
 				update((state) => ({
 					...state,
-					playlists: state.playlists.map((p) => {
-						if (p.id === playlistId) {
-							return { ...p, track_count: p.track_count + trackIds.length }
-						}
-						return p
-					}),
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
 				}))
 
 				// Notify sync store about playlist changes (for auto-sync)
@@ -225,16 +220,11 @@ function createPlaylistsStore() {
 		 */
 		async removeTracks(playlistId: string, trackIds: string[]) {
 			try {
-				await playlistsApi.removeFromPlaylist(playlistId, trackIds)
-				// Update track count
+				const updatedPlaylist = await playlistsApi.removeFromPlaylist(playlistId, trackIds)
+				// Update playlist with accurate data from backend
 				update((state) => ({
 					...state,
-					playlists: state.playlists.map((p) => {
-						if (p.id === playlistId) {
-							return { ...p, track_count: Math.max(0, p.track_count - trackIds.length) }
-						}
-						return p
-					}),
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
 				}))
 
 				// Notify sync store about playlist changes (for auto-sync)

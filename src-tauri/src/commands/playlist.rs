@@ -64,7 +64,7 @@ pub async fn add_to_playlist(
     playlist_id: String,
     track_ids: Vec<String>,
     playlists: State<'_, PlaylistService>,
-) -> Result<()> {
+) -> Result<Playlist> {
     playlists.add_tracks(&playlist_id, track_ids)
 }
 
@@ -73,7 +73,7 @@ pub async fn remove_from_playlist(
     playlist_id: String,
     track_ids: Vec<String>,
     playlists: State<'_, PlaylistService>,
-) -> Result<()> {
+) -> Result<Playlist> {
     playlists.remove_tracks(&playlist_id, track_ids)
 }
 

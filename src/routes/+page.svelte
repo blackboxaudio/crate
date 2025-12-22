@@ -1284,8 +1284,9 @@
 		uiStore.clearSelection()
 		if (selectedPlaylistId) {
 			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
-			await playlistsStore.load()
 		}
+		// Always refresh playlists to update track counts (tracks may have been in playlists)
+		await playlistsStore.load()
 		const count = trackIds.length
 		toastStore.success(count === 1 ? '1 track removed from library' : `${count} tracks removed from library`)
 	}}
