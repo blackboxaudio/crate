@@ -302,6 +302,7 @@
 		}
 	},
 	"export": {
+		"exporting": "Exporterar...",
 		"title": "Exportera till enhet",
 		"quickExport": "Snabbexport",
 		"exportTo": "Exportera till {deviceName}",

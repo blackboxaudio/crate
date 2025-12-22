@@ -303,6 +303,7 @@
 		}
 	},
 	"export": {
+		"exporting": "Exporting...",
 		"title": "Export to Device",
 		"quickExport": "Quick Export",
 		"exportTo": "Export to {deviceName}",

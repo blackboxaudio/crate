@@ -1,16 +1,20 @@
 //! Rekordbox PDB file writer
 //!
-//! Generates export.pdb files compatible with Pioneer CDJ/XDJ equipment.
+//! Generates export.pdb and exportExt.pdb files compatible with Pioneer CDJ/XDJ equipment.
 //! Based on the Deep Symmetry analysis: https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html
 //! and the rekordcrate library: https://github.com/Holzhaus/rekordcrate
 
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{BufWriter, Cursor, Seek, SeekFrom, Write};
+use std::io::{BufWriter, Write};
 use std::path::Path;
 
 use crate::error::{CrateError, Result};
 use crate::models::{Playlist, Track};
+
+// ============================================================================
+// Constants
+// ============================================================================
 
 /// Page size for PDB files (standard is 4096 bytes)
 const PAGE_SIZE: u32 = 4096;
@@ -21,35 +25,38 @@ const FILE_HEADER_SIZE: usize = 0x1C; // 28 bytes
 /// Size of a table descriptor
 const TABLE_DESCRIPTOR_SIZE: usize = 16;
 
-/// Size of a page header
-const PAGE_HEADER_SIZE: usize = 0x20; // 32 bytes
-
-/// Size of a data page header (additional bytes after page header)
-const DATA_PAGE_HEADER_SIZE: usize = 0x08; // 8 bytes
-
-/// Offset where row data begins in a data page
-const ROW_DATA_OFFSET: usize = PAGE_HEADER_SIZE + DATA_PAGE_HEADER_SIZE; // 0x28 = 40
-
-/// Size of a row group (16 offsets + presence flags + unknown)
-const ROW_GROUP_SIZE: usize = 36;
-
-/// Maximum rows per row group
-const MAX_ROWS_PER_GROUP: usize = 16;
+/// Offset where heap data begins in a data page
+const HEAP_START_OFFSET: usize = 0x28; // 40 bytes
 
 /// Page flags for index pages
 const PAGE_FLAGS_INDEX: u8 = 0x64;
 
 /// Page flags for data pages
-const PAGE_FLAGS_DATA: u8 = 0x34;
+const PAGE_FLAGS_DATA: u8 = 0x24;
+
+/// Null page marker (indicates no next page)
+const NULL_PAGE_MARKER: u32 = 0x03FF_FFFF;
 
 /// Empty index entry marker
 const EMPTY_INDEX_ENTRY: u32 = 0x1FFF_FFF8;
+
+/// Maximum rows per row group
+const MAX_ROWS_PER_GROUP: usize = 16;
+
+/// Index page magic values
+const INDEX_MAGIC: u16 = 0x03EC;
+const INDEX_EMPTY_MARKER: u16 = 0x1FFF;
+const INDEX_MAGIC2: u64 = 0x0000_0000_03FF_FFFF;
+
+// ============================================================================
+// Table Types
+// ============================================================================
 
 /// Table types in the PDB format
 /// All 20 types (0-19) must be present in numeric order
 #[repr(u32)]
 #[derive(Clone, Copy, Debug, PartialEq)]
-enum TableType {
+pub enum TableType {
     Tracks = 0,
     Genres = 1,
     Artists = 2,
@@ -75,29 +82,33 @@ enum TableType {
 impl TableType {
     fn all_required() -> &'static [TableType] {
         &[
-            TableType::Tracks,           // 0
-            TableType::Genres,           // 1
-            TableType::Artists,          // 2
-            TableType::Albums,           // 3
-            TableType::Labels,           // 4
-            TableType::Keys,             // 5
-            TableType::Colors,           // 6
-            TableType::PlaylistTree,     // 7
-            TableType::PlaylistEntries,  // 8
-            TableType::Unknown9,         // 9
-            TableType::Unknown10,        // 10
-            TableType::HistoryPlaylists, // 11
-            TableType::HistoryEntries,   // 12
-            TableType::Artwork,          // 13
-            TableType::Unknown14,        // 14
-            TableType::Unknown15,        // 15
-            TableType::Columns,          // 16
-            TableType::Menu,             // 17
-            TableType::Unknown18,        // 18
-            TableType::History,          // 19
+            TableType::Tracks,
+            TableType::Genres,
+            TableType::Artists,
+            TableType::Albums,
+            TableType::Labels,
+            TableType::Keys,
+            TableType::Colors,
+            TableType::PlaylistTree,
+            TableType::PlaylistEntries,
+            TableType::Unknown9,
+            TableType::Unknown10,
+            TableType::HistoryPlaylists,
+            TableType::HistoryEntries,
+            TableType::Artwork,
+            TableType::Unknown14,
+            TableType::Unknown15,
+            TableType::Columns,
+            TableType::Menu,
+            TableType::Unknown18,
+            TableType::History,
         ]
     }
 }
+
+// ============================================================================
+// DeviceSQL String Encoding
+// ============================================================================
 
 /// DeviceSQL string encoding
 /// Supports short ASCII, long ASCII, and long UTF-16LE
@@ -142,7 +153,7 @@ impl DeviceSQLString {
     }
 
     /// Write the string to a writer
-    fn write<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+    fn write_to<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
         match self {
             Self::ShortAscii(bytes) => {
                 // Header byte: ((len + 1) << 1) | 1
@@ -153,7 +164,7 @@ impl DeviceSQLString {
             Self::LongAscii(bytes) => {
                 // Flags: 0x40 for ASCII
                 writer.write_all(&[0x40])?;
-                // Length: content length + 4
+                // Length: content length + 4 (includes header)
                 let len = (bytes.len() + 4) as u16;
                 writer.write_all(&len.to_le_bytes())?;
                 // Padding byte
@@ -164,7 +175,7 @@ impl DeviceSQLString {
             Self::LongUtf16(chars) => {
                 // Flags: 0x90 for UTF-16LE
                 writer.write_all(&[0x90])?;
-                // Length: (char count * 2) + 4
+                // Length: (char count * 2) + 4 (includes header)
                 let len = (chars.len() * 2 + 4) as u16;
                 writer.write_all(&len.to_le_bytes())?;
                 // Padding byte
@@ -179,13 +190,17 @@ impl DeviceSQLString {
     }
 }
 
+// ============================================================================
+// Row Group Structure
+// ============================================================================
+
 /// A row group contains up to 16 row offsets and presence flags
 #[derive(Debug, Clone)]
 struct RowGroup {
-    /// Offsets to rows within the page heap (relative to heap start)
+    /// Offsets to rows within the page heap (relative to heap start at 0x28)
     row_offsets: [u16; MAX_ROWS_PER_GROUP],
     /// Bitmask indicating which rows are present
-    row_presence_flags: u16,
+    presence_flags: u16,
     /// Number of rows in this group
     num_rows: usize,
 }
@@ -194,7 +209,7 @@ impl RowGroup {
     fn new() -> Self {
         Self {
             row_offsets: [0; MAX_ROWS_PER_GROUP],
-            row_presence_flags: 0,
+            presence_flags: 0,
             num_rows: 0,
         }
     }
@@ -203,11 +218,10 @@ impl RowGroup {
         if self.num_rows >= MAX_ROWS_PER_GROUP {
             return false;
         }
-        // Offsets are stored from the end of the array
-        let idx = MAX_ROWS_PER_GROUP - 1 - self.num_rows;
-        self.row_offsets[idx] = offset;
-        // Set presence bit (bit 0 = row 0, bit 1 = row 1, etc.)
-        self.row_presence_flags |= 1 << self.num_rows;
+        // Store offset at the position corresponding to this row
+        self.row_offsets[self.num_rows] = offset;
+        // Set presence bit
+        self.presence_flags |= 1 << self.num_rows;
         self.num_rows += 1;
         true
     }
@@ -216,83 +230,118 @@ impl RowGroup {
         self.num_rows >= MAX_ROWS_PER_GROUP
     }
 
-    /// Write the row group backwards from the current position
-    #[allow(dead_code)]
-    fn write<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
-        // Write only the offsets that are present (from the first present row)
-        let skip = self.row_presence_flags.leading_zeros() as usize;
-        for offset in self.row_offsets.iter().skip(skip) {
-            writer.write_all(&offset.to_le_bytes())?;
+    /// Calculate the size this row group will take at the end of the page
+    fn binary_size(&self) -> usize {
+        // Row offsets are stored from the end, skipping leading zeros
+        // Format: [present offsets...] [presence_flags: u16] [row_count: u16]
+        let leading_zeros = self.presence_flags.leading_zeros() as usize;
+        let num_offsets = 16 - leading_zeros;
+        num_offsets * 2 + 4 // offsets + presence_flags + row_count
+    }
+
+    /// Write the row group to a buffer (at the correct position)
+    fn write_to(&self, buffer: &mut [u8], end_position: usize) {
+        let leading_zeros = self.presence_flags.leading_zeros() as usize;
+        let num_offsets = 16 - leading_zeros;
+        let group_size = num_offsets * 2 + 4;
+        let start_pos = end_position - group_size;
+
+        let mut pos = start_pos;
+
+        // Write the present offsets (from first present to last)
+        for i in 0..num_offsets {
+            let idx = leading_zeros + i;
+            buffer[pos..pos + 2].copy_from_slice(&self.row_offsets[idx].to_le_bytes());
+            pos += 2;
         }
+
         // Write presence flags
-        writer.write_all(&self.row_presence_flags.to_le_bytes())?;
-        // Write unknown field (usually 0)
-        writer.write_all(&0u16.to_le_bytes())?;
-        Ok(())
+        buffer[pos..pos + 2].copy_from_slice(&self.presence_flags.to_le_bytes());
+        pos += 2;
+
+        // Write row count (this is what rekordbox expects)
+        buffer[pos..pos + 2].copy_from_slice(&(self.num_rows as u16).to_le_bytes());
     }
 }
 
+// ============================================================================
+// Page Builder
+// ============================================================================
+
 /// Builds a page with proper layout
+#[allow(dead_code)]
 struct PageBuilder {
     /// Page type (table type)
     page_type: TableType,
-    /// Page index
+    /// Page index (will be set during final write)
     page_index: u32,
-    /// Next page index (0 if last)
+    /// Next page index (will be set during final write)
     next_page: u32,
-    /// Row data buffer
-    row_data: Vec<u8>,
+    /// Row data buffer (heap)
+    heap_data: Vec<u8>,
     /// Row groups
     row_groups: Vec<RowGroup>,
     /// Current row group being filled
     current_group: RowGroup,
-    /// Total row count
+    /// Total row count on this page
     total_rows: u16,
-    /// Total row offsets ever allocated
-    total_offsets: u16,
+    /// Sequence number for this page
+    sequence: u32,
 }
 
 impl PageBuilder {
-    fn new(page_type: TableType, page_index: u32) -> Self {
+    fn new(page_type: TableType) -> Self {
         Self {
             page_type,
-            page_index,
+            page_index: 0,
             next_page: 0,
-            row_data: Vec::new(),
+            heap_data: Vec::new(),
             row_groups: Vec::new(),
             current_group: RowGroup::new(),
             total_rows: 0,
-            total_offsets: 0,
+            sequence: 1,
         }
     }
 
-    #[allow(dead_code)]
-    fn set_next_page(&mut self, next: u32) {
-        self.next_page = next;
+    /// Calculate the size needed for all row groups
+    fn row_groups_size(&self) -> usize {
+        let mut size = 0;
+        for group in &self.row_groups {
+            size += group.binary_size();
+        }
+        if self.current_group.num_rows > 0 {
+            size += self.current_group.binary_size();
+        }
+        size
     }
 
-    /// Calculate available space for row data
+    /// Calculate available space for new row data
     fn available_space(&self) -> usize {
-        let header_space = ROW_DATA_OFFSET;
-        let row_groups_count = self.row_groups.len() + 1; // Include current group
-        let row_group_space = row_groups_count * ROW_GROUP_SIZE;
-        let used = self.row_data.len();
+        let total_page = PAGE_SIZE as usize;
+        let header_space = HEAP_START_OFFSET;
+        let heap_used = self.heap_data.len();
+        let row_groups_space = self.row_groups_size();
 
-        PAGE_SIZE as usize - header_space - row_group_space - used
+        // Need to account for potential new row group entry (worst case: 4 bytes)
+        let potential_index_growth = if self.current_group.is_full() { 36 } else { 2 };
+
+        total_page
+            .saturating_sub(header_space)
+            .saturating_sub(heap_used)
+            .saturating_sub(row_groups_space)
+            .saturating_sub(potential_index_growth)
     }
 
     /// Add a row to the page, returns false if page is full
     fn add_row(&mut self, row_data: &[u8]) -> bool {
-        // Check if we have space
-        let needed = row_data.len() + 2; // +2 for potential new offset in current group
-        if needed > self.available_space() {
+        if row_data.len() > self.available_space() {
             return false;
         }
 
-        // Record the offset where this row starts (relative to heap start at 0x28)
-        let offset = self.row_data.len() as u16;
+        // Record the offset where this row starts (relative to heap start)
+        let offset = self.heap_data.len() as u16;
 
-        // If current group is full, start a new one
+        // If current group is full, finalize it and start a new one
         if self.current_group.is_full() {
             self.row_groups.push(self.current_group.clone());
             self.current_group = RowGroup::new();
@@ -301,144 +350,126 @@ impl PageBuilder {
         // Add the row offset to current group
         self.current_group.add_row(offset);
         self.total_rows += 1;
-        self.total_offsets += 1;
 
-        // Append row data
-        self.row_data.extend_from_slice(row_data);
+        // Append row data to heap
+        self.heap_data.extend_from_slice(row_data);
 
         true
     }
 
     /// Build the complete page as a byte vector
-    fn build(mut self) -> Vec<u8> {
+    fn build(mut self, page_index: u32, next_page: u32, sequence: u32) -> Vec<u8> {
         let mut page = vec![0u8; PAGE_SIZE as usize];
 
-        // Finalize the current group if it has rows
+        // Finalize current group if it has rows
         if self.current_group.num_rows > 0 {
-            self.row_groups.push(self.current_group);
+            self.row_groups.push(self.current_group.clone());
         }
 
+        // Calculate sizes
+        let used_size = self.heap_data.len() as u16;
+        let row_groups_total_size: usize = self.row_groups.iter().map(|g| g.binary_size()).sum();
+        let heap_capacity = (PAGE_SIZE as usize) - HEAP_START_OFFSET;
+        let free_size = (heap_capacity - self.heap_data.len() - row_groups_total_size) as u16;
+
+        // Calculate packed row counts
+        // num_rows (lower 5 bits of byte at 0x1A) and num_row_groups (13 bits)
+        let num_row_groups = self.row_groups.len() as u32;
+        // Packed format: bits 0-12 = num_row_groups, bits 13-23 = num_rows
+        let packed = (num_row_groups & 0x1FFF) | (((self.total_rows as u32) & 0x7FF) << 13);
+
         // === Write Page Header (32 bytes at 0x00-0x1F) ===
-        // 0x00-0x03: Padding (zeros)
+        // 0x00-0x03: Magic (zeros)
         // 0x04-0x07: Page index
-        page[0x04..0x08].copy_from_slice(&self.page_index.to_le_bytes());
+        page[0x04..0x08].copy_from_slice(&page_index.to_le_bytes());
         // 0x08-0x0B: Page type
         page[0x08..0x0C].copy_from_slice(&(self.page_type as u32).to_le_bytes());
         // 0x0C-0x0F: Next page
-        page[0x0C..0x10].copy_from_slice(&self.next_page.to_le_bytes());
-        // 0x10-0x13: Unknown1 (version/sequence, use 1)
-        page[0x10..0x14].copy_from_slice(&1u32.to_le_bytes());
+        page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
+        // 0x10-0x13: Unknown1 (sequence/version)
+        page[0x10..0x14].copy_from_slice(&sequence.to_le_bytes());
         // 0x14-0x17: Unknown2 (zeros)
         // 0x18-0x1A: Packed row counts (3 bytes)
-        //   Bits 0-12: num_row_offsets (13 bits)
-        //   Bits 13-23: num_rows (11 bits)
-        let packed =
-            ((self.total_offsets as u32) & 0x1FFF) | (((self.total_rows as u32) & 0x7FF) << 13);
         page[0x18..0x1B].copy_from_slice(&packed.to_le_bytes()[0..3]);
-        // 0x1B: Page flags (0x34 for data pages)
+        // 0x1B: Page flags (0x24 for data pages)
         page[0x1B] = PAGE_FLAGS_DATA;
         // 0x1C-0x1D: Free size
-        let used_size = self.row_data.len() as u16;
-        let row_groups_size = (self.row_groups.len() * ROW_GROUP_SIZE) as u16;
-        let heap_size = (PAGE_SIZE as u16) - (ROW_DATA_OFFSET as u16);
-        let free_size = heap_size - used_size - row_groups_size;
         page[0x1C..0x1E].copy_from_slice(&free_size.to_le_bytes());
         // 0x1E-0x1F: Used size
         page[0x1E..0x20].copy_from_slice(&used_size.to_le_bytes());
 
         // === Write Data Page Header (8 bytes at 0x20-0x27) ===
-        // Usually all zeros or small values for data pages
-        // 0x20-0x21: unknown5 (often 1 or 0x1fff for empty)
+        // These values match what rekordbox produces
         if self.total_rows == 0 {
-            page[0x20..0x22].copy_from_slice(&0x1fffu16.to_le_bytes());
-            page[0x22..0x24].copy_from_slice(&0x1fffu16.to_le_bytes());
+            page[0x20..0x22].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+            page[0x22..0x24].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
         } else {
-            page[0x20..0x22].copy_from_slice(&1u16.to_le_bytes());
+            page[0x20..0x22].copy_from_slice(&(self.total_rows.min(0x1FFF)).to_le_bytes());
+            page[0x22..0x24].copy_from_slice(&((self.total_rows - 1).min(0x1FFF)).to_le_bytes());
         }
-        // 0x22-0x27: Other unknown fields (zeros)
+        // 0x24-0x27: Other unknown fields (zeros)
 
-        // === Write Row Data (starting at 0x28) ===
-        page[ROW_DATA_OFFSET..ROW_DATA_OFFSET + self.row_data.len()]
-            .copy_from_slice(&self.row_data);
+        // === Write Heap Data (starting at 0x28) ===
+        page[HEAP_START_OFFSET..HEAP_START_OFFSET + self.heap_data.len()]
+            .copy_from_slice(&self.heap_data);
 
         // === Write Row Groups (backwards from page end) ===
-        let mut cursor = Cursor::new(&mut page[..]);
-        let mut group_offset = PAGE_SIZE as usize;
-
+        let mut end_position = PAGE_SIZE as usize;
         for group in self.row_groups.iter().rev() {
-            // Each group is written from its end position backwards
-            group_offset -= ROW_GROUP_SIZE;
-            cursor.seek(SeekFrom::Start(group_offset as u64)).unwrap();
-
-            // Write the group
-            let skip = group.row_presence_flags.leading_zeros() as usize;
-            // First, skip the unused offset slots
-            let skip_bytes = skip * 2;
-            cursor.seek(SeekFrom::Current(skip_bytes as i64)).unwrap();
-
-            // Write present offsets
-            for offset in group.row_offsets.iter().skip(skip) {
-                cursor.write_all(&offset.to_le_bytes()).unwrap();
-            }
-
-            // Write presence flags and row count (rekordbox uses row count here, not 0)
-            cursor
-                .write_all(&group.row_presence_flags.to_le_bytes())
-                .unwrap();
-            let row_count = group.row_presence_flags.count_ones() as u16;
-            cursor.write_all(&row_count.to_le_bytes()).unwrap();
+            let group_size = group.binary_size();
+            group.write_to(&mut page, end_position);
+            end_position -= group_size;
         }
 
         page
     }
 }
 
+// ============================================================================
+// Index Page Builder
+// ============================================================================
+
 /// Builds an index page for a table
-/// Index pages point to data pages and are required by Pioneer equipment
 fn build_index_page(
     page_type: TableType,
     page_index: u32,
     next_page: u32,
     data_page_indices: &[u32],
+    sequence: u32,
 ) -> Vec<u8> {
     let mut page = vec![0u8; PAGE_SIZE as usize];
 
     // === Page Header (32 bytes at 0x00-0x1F) ===
-    // 0x00-0x03: Padding (zeros)
     // 0x04-0x07: Page index
     page[0x04..0x08].copy_from_slice(&page_index.to_le_bytes());
     // 0x08-0x0B: Page type
     page[0x08..0x0C].copy_from_slice(&(page_type as u32).to_le_bytes());
-    // 0x0C-0x0F: Next page
+    // 0x0C-0x0F: Next page (points to first data page)
     page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
-    // 0x10-0x13: Unknown1 (use 1)
-    page[0x10..0x14].copy_from_slice(&1u32.to_le_bytes());
-    // 0x14-0x17: Unknown2 (zeros)
-    // 0x18-0x1A: Packed row counts (zeros for index pages)
+    // 0x10-0x13: Unknown1 (sequence)
+    page[0x10..0x14].copy_from_slice(&sequence.to_le_bytes());
     // 0x1B: Page flags (0x64 for index pages)
     page[0x1B] = PAGE_FLAGS_INDEX;
-    // 0x1C-0x1D: Free size (0 for index pages)
-    // 0x1E-0x1F: Used size (0 for index pages)
 
     // === Index Page Header (starts at 0x20) ===
     // 0x20-0x21: unknown_a (0x1fff)
-    page[0x20..0x22].copy_from_slice(&0x1fffu16.to_le_bytes());
+    page[0x20..0x22].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
     // 0x22-0x23: unknown_b (0x1fff)
-    page[0x22..0x24].copy_from_slice(&0x1fffu16.to_le_bytes());
+    page[0x22..0x24].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
     // 0x24-0x25: magic (0x03ec)
-    page[0x24..0x26].copy_from_slice(&0x03ecu16.to_le_bytes());
+    page[0x24..0x26].copy_from_slice(&INDEX_MAGIC.to_le_bytes());
     // 0x26-0x27: next_offset (number of entries)
     page[0x26..0x28].copy_from_slice(&(data_page_indices.len() as u16).to_le_bytes());
     // 0x28-0x2B: page_index (redundant)
     page[0x28..0x2C].copy_from_slice(&page_index.to_le_bytes());
     // 0x2C-0x2F: next_page (redundant)
     page[0x2C..0x30].copy_from_slice(&next_page.to_le_bytes());
-    // 0x30-0x37: magic (0x0000000003ffffff)
-    page[0x30..0x38].copy_from_slice(&0x0000_0000_03ff_ffffu64.to_le_bytes());
+    // 0x30-0x37: magic2 (0x0000000003ffffff)
+    page[0x30..0x38].copy_from_slice(&INDEX_MAGIC2.to_le_bytes());
     // 0x38-0x39: num_entries
     page[0x38..0x3A].copy_from_slice(&(data_page_indices.len() as u16).to_le_bytes());
-    // 0x3A-0x3B: first_empty (0x1fff if none)
-    page[0x3A..0x3C].copy_from_slice(&0x1fffu16.to_le_bytes());
+    // 0x3A-0x3B: first_empty (0x1fff)
+    page[0x3A..0x3C].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
 
     // === Index Entries (starting at 0x3C) ===
     // Each entry is 4 bytes: (page_index << 3) | flags
@@ -450,7 +481,7 @@ fn build_index_page(
     }
 
     // Fill remaining entries with empty marker (0x1ffffff8)
-    let remaining_space = PAGE_SIZE as usize - offset - 20; // Leave 20 bytes at end
+    let remaining_space = (PAGE_SIZE as usize) - offset - 20; // Leave 20 bytes at end
     let empty_entries = remaining_space / 4;
     for _ in 0..empty_entries {
         page[offset..offset + 4].copy_from_slice(&EMPTY_INDEX_ENTRY.to_le_bytes());
@@ -463,45 +494,30 @@ fn build_index_page(
 }
 
 /// Builds an empty index page for tables with no data
-/// In rekordbox format, empty tables have a single page with no index entries
-fn build_empty_index_page(page_type: TableType, page_index: u32, next_page: u32) -> Vec<u8> {
+fn build_empty_index_page(page_type: TableType, page_index: u32, sequence: u32) -> Vec<u8> {
     let mut page = vec![0u8; PAGE_SIZE as usize];
 
-    // === Page Header (32 bytes at 0x00-0x1F) ===
-    // 0x04-0x07: Page index
+    // === Page Header ===
     page[0x04..0x08].copy_from_slice(&page_index.to_le_bytes());
-    // 0x08-0x0B: Page type
     page[0x08..0x0C].copy_from_slice(&(page_type as u32).to_le_bytes());
-    // 0x0C-0x0F: Next page (points to empty candidate)
-    page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
-    // 0x10-0x13: Unknown1 (use 1)
-    page[0x10..0x14].copy_from_slice(&1u32.to_le_bytes());
-    // 0x1B: Page flags (0x64 for index pages)
+    page[0x0C..0x10].copy_from_slice(&NULL_PAGE_MARKER.to_le_bytes()); // No next page
+    page[0x10..0x14].copy_from_slice(&sequence.to_le_bytes());
     page[0x1B] = PAGE_FLAGS_INDEX;
 
-    // === Index Page Header (starts at 0x20) ===
-    // 0x20-0x21: unknown_a (0x1fff)
-    page[0x20..0x22].copy_from_slice(&0x1fffu16.to_le_bytes());
-    // 0x22-0x23: unknown_b (0x1fff)
-    page[0x22..0x24].copy_from_slice(&0x1fffu16.to_le_bytes());
-    // 0x24-0x25: magic (0x03ec)
-    page[0x24..0x26].copy_from_slice(&0x03ecu16.to_le_bytes());
-    // 0x26-0x27: next_offset = 0 (no entries for empty table)
-    page[0x26..0x28].copy_from_slice(&0u16.to_le_bytes());
-    // 0x28-0x2B: page_index (redundant)
+    // === Index Page Header ===
+    page[0x20..0x22].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+    page[0x22..0x24].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+    page[0x24..0x26].copy_from_slice(&INDEX_MAGIC.to_le_bytes());
+    page[0x26..0x28].copy_from_slice(&0u16.to_le_bytes()); // next_offset = 0
     page[0x28..0x2C].copy_from_slice(&page_index.to_le_bytes());
-    // 0x2C-0x2F: next_page = 0x03ffffff (no data pages)
-    page[0x2C..0x30].copy_from_slice(&0x03ff_ffffu32.to_le_bytes());
-    // 0x30-0x37: magic2 (0x03ffffff then 0x00000000)
-    page[0x30..0x38].copy_from_slice(&0x0000_0000_03ff_ffffu64.to_le_bytes());
-    // 0x38-0x39: num_entries = 0
-    page[0x38..0x3A].copy_from_slice(&0u16.to_le_bytes());
-    // 0x3A-0x3B: first_empty (0x1fff)
-    page[0x3A..0x3C].copy_from_slice(&0x1fffu16.to_le_bytes());
+    page[0x2C..0x30].copy_from_slice(&NULL_PAGE_MARKER.to_le_bytes());
+    page[0x30..0x38].copy_from_slice(&INDEX_MAGIC2.to_le_bytes());
+    page[0x38..0x3A].copy_from_slice(&0u16.to_le_bytes()); // num_entries = 0
+    page[0x3A..0x3C].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
 
-    // Fill all index entries with empty marker (0x1ffffff8)
+    // Fill all index entries with empty marker
     let mut offset = 0x3C;
-    let remaining_space = PAGE_SIZE as usize - offset - 20;
+    let remaining_space = (PAGE_SIZE as usize) - offset - 20;
     let empty_entries = remaining_space / 4;
     for _ in 0..empty_entries {
         page[offset..offset + 4].copy_from_slice(&EMPTY_INDEX_ENTRY.to_le_bytes());
@@ -511,7 +527,11 @@ fn build_empty_index_page(page_type: TableType, page_index: u32, next_page: u32)
     page
 }
 
-/// A track entry for the PDB
+// ============================================================================
+// Internal Data Structures
+// ============================================================================
+
+/// Internal track data for PDB generation
 #[derive(Debug, Clone)]
 struct PdbTrack {
     id: u32,
@@ -530,10 +550,12 @@ struct PdbTrack {
     filename: String,
     rating: u8,
     year: u16,
-    file_type: u16, // File type code: MP3=1, M4A=4, FLAC=5, WAV=11, AIFF=12
+    file_type: u16,
+    date_added: String,
+    comment: String,
 }
 
-/// A playlist tree entry
+/// Internal playlist node for PDB generation
 #[derive(Debug, Clone)]
 struct PdbPlaylistNode {
     id: u32,
@@ -543,7 +565,7 @@ struct PdbPlaylistNode {
     sort_order: u32,
 }
 
-/// A playlist entry (track in playlist)
+/// Internal playlist entry for PDB generation
 #[derive(Debug, Clone)]
 struct PdbPlaylistEntry {
     entry_index: u32,
@@ -551,14 +573,367 @@ struct PdbPlaylistEntry {
     playlist_id: u32,
 }
 
+// ============================================================================
+// Row Building Functions
+// ============================================================================
+
+/// Build a track row (most complex row type)
+fn build_track_row(track: &PdbTrack, row_index: u16) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // Fixed header (0x5C = 92 bytes)
+    // 0x00-0x01: Subtype (0x24 = U16 offsets)
+    row.extend_from_slice(&0x0024u16.to_le_bytes());
+    // 0x02-0x03: Index shift (row_index * 0x20)
+    row.extend_from_slice(&(row_index.wrapping_mul(0x20)).to_le_bytes());
+    // 0x04-0x07: Bitmask (0x000c0700)
+    row.extend_from_slice(&0x000c0700u32.to_le_bytes());
+    // 0x08-0x0B: Sample rate
+    row.extend_from_slice(&track.sample_rate.to_le_bytes());
+    // 0x0C-0x0F: Composer ID (0 = none)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x10-0x13: File size
+    row.extend_from_slice(&track.file_size.to_le_bytes());
+    // 0x14-0x17: Unknown2
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x18-0x1B: Unknown3/4 (2x u16)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x1C-0x1F: Artwork ID (0 = none)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x20-0x23: Key ID
+    row.extend_from_slice(&track.key_id.to_le_bytes());
+    // 0x24-0x27: Original artist ID (0 = none)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x28-0x2B: Label ID (0 = none)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x2C-0x2F: Remixer ID (0 = none)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x30-0x33: Bitrate
+    row.extend_from_slice(&track.bitrate.to_le_bytes());
+    // 0x34-0x37: Track number (0)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x38-0x3B: Tempo (BPM * 100)
+    row.extend_from_slice(&track.tempo.to_le_bytes());
+    // 0x3C-0x3F: Genre ID
+    row.extend_from_slice(&track.genre_id.to_le_bytes());
+    // 0x40-0x43: Album ID
+    row.extend_from_slice(&track.album_id.to_le_bytes());
+    // 0x44-0x47: Artist ID
+    row.extend_from_slice(&track.artist_id.to_le_bytes());
+    // 0x48-0x4B: Track ID
+    row.extend_from_slice(&track.id.to_le_bytes());
+    // 0x4C-0x4D: Disc number
+    row.extend_from_slice(&0u16.to_le_bytes());
+    // 0x4E-0x4F: Play count
+    row.extend_from_slice(&0u16.to_le_bytes());
+    // 0x50-0x51: Year
+    row.extend_from_slice(&track.year.to_le_bytes());
+    // 0x52-0x53: Sample depth (16 or 24)
+    row.extend_from_slice(&16u16.to_le_bytes());
+    // 0x54-0x55: Duration (seconds)
+    row.extend_from_slice(&track.duration_seconds.to_le_bytes());
+    // 0x56-0x57: Unknown5 (0x0029)
+    row.extend_from_slice(&0x0029u16.to_le_bytes());
+    // 0x58: Color ID
+    row.push(track.color_id);
+    // 0x59: Rating (0-5)
+    row.push(track.rating);
+    // 0x5A-0x5B: File type
+    row.extend_from_slice(&track.file_type.to_le_bytes());
+
+    // Build the 22 strings
+    let strings: [DeviceSQLString; 22] = [
+        DeviceSQLString::empty(),                   // 0: ISRC (placeholder)
+        DeviceSQLString::empty(),                   // 1: Lyricist
+        DeviceSQLString::empty(),                   // 2: Unknown
+        DeviceSQLString::empty(),                   // 3: Unknown
+        DeviceSQLString::empty(),                   // 4: Unknown
+        DeviceSQLString::empty(),                   // 5: Message
+        DeviceSQLString::empty(),                   // 6: Publish info
+        DeviceSQLString::empty(),                   // 7: Autoload hotcues
+        DeviceSQLString::empty(),                   // 8: Unknown
+        DeviceSQLString::empty(),                   // 9: Unknown
+        DeviceSQLString::new(&track.date_added),    // 10: Date added
+        DeviceSQLString::empty(),                   // 11: Release date
+        DeviceSQLString::empty(),                   // 12: Mix name
+        DeviceSQLString::empty(),                   // 13: Unknown
+        DeviceSQLString::empty(),                   // 14: Analyze path (no ANLZ files)
+        DeviceSQLString::empty(),                   // 15: Analyze date
+        DeviceSQLString::new(&track.comment),       // 16: Comment
+        DeviceSQLString::new(&track.title),         // 17: Title
+        DeviceSQLString::empty(),                   // 18: Unknown
+        DeviceSQLString::new(&track.filename),      // 19: Filename
+        DeviceSQLString::new(&track.file_path),     // 20: File path
+        DeviceSQLString::empty(),                   // 21: Extra (padding)
+    ];
+
+    // Calculate string offsets
+    // Fixed header = 0x5C (92 bytes)
+    // 22 u16 offsets = 44 bytes
+    // String data starts at 92 + 44 = 136
+    let fixed_header_size: u16 = 0x5C; // 92 bytes
+    let offset_array_size: u16 = 22 * 2; // 44 bytes for 22 u16 offsets
+    let string_data_start: u16 = fixed_header_size + offset_array_size; // 136
+
+    let mut offsets: Vec<u16> = Vec::with_capacity(22);
+    let mut current_pos = string_data_start;
+
+    // First offset is always 3 (convention)
+    offsets.push(3);
+
+    // Calculate remaining offsets
+    for (i, s) in strings.iter().enumerate() {
+        if i > 0 {
+            offsets.push(current_pos);
+        }
+        current_pos += s.binary_size() as u16;
+    }
+
+    // Write the 22 u16 offsets (44 bytes)
+    for offset in &offsets {
+        row.extend_from_slice(&offset.to_le_bytes());
+    }
+
+    // Write the strings
+    let mut string_buf = Vec::new();
+    for s in &strings {
+        s.write_to(&mut string_buf).unwrap();
+    }
+    row.extend_from_slice(&string_buf);
+
+    row
+}
+
+/// Build an artist row (short variant with u8 offsets)
+fn build_artist_row(id: u32, name: &str, row_index: u16) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x01: Subtype (0x60 = short variant, u8 offsets)
+    row.extend_from_slice(&0x0060u16.to_le_bytes());
+    // 0x02-0x03: Index shift
+    row.extend_from_slice(&(row_index.wrapping_mul(0x20)).to_le_bytes());
+    // 0x04-0x07: ID
+    row.extend_from_slice(&id.to_le_bytes());
+    // 0x08-0x09: Offset array [3, name_offset]
+    // Name starts at offset 10 (after 8 bytes header + 2 bytes offsets)
+    row.push(3); // First offset is always 3
+    row.push(10); // Name offset
+
+    // Write the name string
+    let name_str = DeviceSQLString::new(name);
+    name_str.write_to(&mut row).unwrap();
+
+    row
+}
+
+/// Build an album row (short variant with u8 offsets)
+fn build_album_row(id: u32, name: &str, artist_id: u32, row_index: u16) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x01: Subtype (0x80 = short variant, u8 offsets)
+    row.extend_from_slice(&0x0080u16.to_le_bytes());
+    // 0x02-0x03: Index shift
+    row.extend_from_slice(&(row_index.wrapping_mul(0x20)).to_le_bytes());
+    // 0x04-0x07: Unknown2 (0)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x08-0x0B: Artist ID
+    row.extend_from_slice(&artist_id.to_le_bytes());
+    // 0x0C-0x0F: ID
+    row.extend_from_slice(&id.to_le_bytes());
+    // 0x10-0x13: Unknown3 (0)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x14-0x15: Offset array [3, name_offset]
+    // Name starts at offset 22 (after 20 bytes header + 2 bytes offsets)
+    row.push(3); // First offset is always 3
+    row.push(22); // Name offset
+
+    // Write the name string
+    let name_str = DeviceSQLString::new(name);
+    name_str.write_to(&mut row).unwrap();
+
+    row
+}
+
+/// Build a genre row
+fn build_genre_row(id: u32, name: &str) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x03: ID
+    row.extend_from_slice(&id.to_le_bytes());
+
+    // Name string
+    let name_str = DeviceSQLString::new(name);
+    name_str.write_to(&mut row).unwrap();
+
+    row
+}
+
+/// Build a key row
+fn build_key_row(id: u32, name: &str) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x03: ID
+    row.extend_from_slice(&id.to_le_bytes());
+    // 0x04-0x07: ID again
+    row.extend_from_slice(&id.to_le_bytes());
+
+    // Name string
+    let name_str = DeviceSQLString::new(name);
+    name_str.write_to(&mut row).unwrap();
+
+    row
+}
+
+/// Build a color row
+fn build_color_row(id: u8, name: &str) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x03: Unknown1 (0)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x04: Unknown2 (same as color ID)
+    row.push(id);
+    // 0x05: Color index
+    row.push(id);
+    // 0x06-0x07: Unknown3 (0)
+    row.extend_from_slice(&0u16.to_le_bytes());
+
+    // Name string
+    let name_str = DeviceSQLString::new(name);
+    name_str.write_to(&mut row).unwrap();
+
+    row
+}
+
+/// Build a playlist tree row
+fn build_playlist_tree_row(node: &PdbPlaylistNode) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x03: Parent ID
+    row.extend_from_slice(&node.parent_id.to_le_bytes());
+    // 0x04-0x07: Unknown (0)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x08-0x0B: Sort order
+    row.extend_from_slice(&node.sort_order.to_le_bytes());
+    // 0x0C-0x0F: ID
+    row.extend_from_slice(&node.id.to_le_bytes());
+    // 0x10-0x13: Is folder flag (u32)
+    let is_folder_val: u32 = if node.is_folder { 1 } else { 0 };
+    row.extend_from_slice(&is_folder_val.to_le_bytes());
+
+    // Name string
+    let name_str = DeviceSQLString::new(&node.name);
+    name_str.write_to(&mut row).unwrap();
+
+    row
+}
+
+/// Build a playlist entry row
+fn build_playlist_entry_row(entry: &PdbPlaylistEntry) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x03: Entry index
+    row.extend_from_slice(&entry.entry_index.to_le_bytes());
+    // 0x04-0x07: Track ID
+    row.extend_from_slice(&entry.track_id.to_le_bytes());
+    // 0x08-0x0B: Playlist ID
+    row.extend_from_slice(&entry.playlist_id.to_le_bytes());
+
+    row
+}
+
+/// Build a column row (menu column definition)
+fn build_column_row(id: u16, unknown: u16, name: &str) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x01: ID
+    row.extend_from_slice(&id.to_le_bytes());
+    // 0x02-0x03: Unknown/content pointer
+    row.extend_from_slice(&unknown.to_le_bytes());
+
+    // Name string
+    let name_str = DeviceSQLString::new(name);
+    name_str.write_to(&mut row).unwrap();
+
+    row
+}
+
+// ============================================================================
+// Standard Color Definitions
+// ============================================================================
+
+/// Standard Rekordbox color definitions
+const STANDARD_COLORS: &[(u8, &str)] = &[
+    (1, "Pink"),
+    (2, "Red"),
+    (3, "Orange"),
+    (4, "Yellow"),
+    (5, "Green"),
+    (6, "Aqua"),
+    (7, "Blue"),
+    (8, "Purple"),
+];
+
+/// Map color name to Rekordbox color ID
+fn color_name_to_id(name: &str) -> u8 {
+    match name.to_lowercase().as_str() {
+        "pink" => 1,
+        "red" => 2,
+        "orange" => 3,
+        "yellow" => 4,
+        "green" => 5,
+        "aqua" | "cyan" | "teal" => 6,
+        "blue" => 7,
+        "purple" | "violet" => 8,
+        _ => 0, // No color
+    }
+}
+
+// ============================================================================
+// Column Definitions
+// ============================================================================
+
+/// Standard column definitions for CDJ/XDJ menu
+const COLUMN_DEFS: &[(u16, u16, &str)] = &[
+    (1, 128, "GENRE"),
+    (2, 129, "ARTIST"),
+    (3, 130, "ALBUM"),
+    (4, 131, "TRACK"),
+    (5, 132, "PLAYLIST"),
+    (6, 133, "BPM"),
+    (7, 134, "RATING"),
+    (8, 135, "YEAR"),
+    (9, 136, "REMIXER"),
+    (10, 137, "LABEL"),
+    (11, 138, "ORIGINAL ARTIST"),
+    (12, 139, "KEY"),
+    (13, 140, "DATE ADDED"),
+    (14, 142, "COLOR"),
+    (15, 143, "TIME"),
+    (16, 144, "BITRATE"),
+    (17, 145, "FILENAME"),
+    (18, 146, "HISTORY"),
+    (19, 141, "COMMENT"),
+    (20, 147, "DJ PLAY COUNT"),
+    (21, 148, "MY TAG"),
+    (22, 149, "HOT CUE BANK"),
+    (23, 150, "SEARCH"),
+    (24, 151, "FOLDER"),
+    (25, 152, "TRACK FILTER"),
+    (26, 153, "MASTER TEMPO"),
+    (27, 154, "QUANTIZE"),
+];
+
+// ============================================================================
+// Rekordbox PDB Writer
+// ============================================================================
+
 /// Rekordbox PDB file writer
 pub struct RekordboxPdbWriter {
     // Deduplicated lookup tables
     artists: HashMap<String, u32>,
-    albums: HashMap<String, u32>,
+    albums: HashMap<(String, u32), u32>, // (name, artist_id) -> album_id
     genres: HashMap<String, u32>,
     keys: HashMap<String, u32>,
-    colors: HashMap<String, u8>,
 
     // Main data
     tracks: Vec<PdbTrack>,
@@ -571,7 +946,6 @@ pub struct RekordboxPdbWriter {
     next_album_id: u32,
     next_genre_id: u32,
     next_key_id: u32,
-    next_color_id: u8,
     next_playlist_id: u32,
     next_entry_index: u32,
 
@@ -587,7 +961,6 @@ impl RekordboxPdbWriter {
             albums: HashMap::new(),
             genres: HashMap::new(),
             keys: HashMap::new(),
-            colors: HashMap::new(),
             tracks: Vec::new(),
             playlist_nodes: Vec::new(),
             playlist_entries: Vec::new(),
@@ -596,7 +969,6 @@ impl RekordboxPdbWriter {
             next_album_id: 1,
             next_genre_id: 1,
             next_key_id: 1,
-            next_color_id: 1,
             next_playlist_id: 1,
             next_entry_index: 1,
             playlist_id_map: HashMap::new(),
@@ -606,8 +978,6 @@ impl RekordboxPdbWriter {
     /// Create from existing PDB data (for merging)
     /// Note: Full merging is not yet implemented - this starts fresh
     pub fn from_existing(_data: &[u8]) -> Result<Self> {
-        // For now, start fresh - merging with existing PDB requires parsing
-        // the existing file to extract max IDs and continue from there
         log::warn!("Merging with existing PDB not yet implemented, starting fresh");
         Ok(Self::new())
     }
@@ -622,30 +992,37 @@ impl RekordboxPdbWriter {
             .artist
             .clone()
             .unwrap_or_else(|| "Unknown Artist".to_string());
-        let artist_id = *self.artists.entry(artist_name).or_insert_with(|| {
+        let artist_id = *self.artists.entry(artist_name.clone()).or_insert_with(|| {
             let id = self.next_artist_id;
             self.next_artist_id += 1;
             id
         });
 
-        // Get or create album
+        // Get or create album (keyed by name + artist_id for proper dedup)
         let album_name = track
             .album
             .clone()
             .unwrap_or_else(|| "Unknown Album".to_string());
-        let album_id = *self.albums.entry(album_name).or_insert_with(|| {
-            let id = self.next_album_id;
-            self.next_album_id += 1;
-            id
-        });
+        let album_id = *self
+            .albums
+            .entry((album_name.clone(), artist_id))
+            .or_insert_with(|| {
+                let id = self.next_album_id;
+                self.next_album_id += 1;
+                id
+            });
 
         // Get or create genre
-        let genre_name = track.genre.clone().unwrap_or_else(|| "Unknown".to_string());
-        let genre_id = *self.genres.entry(genre_name).or_insert_with(|| {
-            let id = self.next_genre_id;
-            self.next_genre_id += 1;
-            id
-        });
+        let genre_name = track.genre.clone().unwrap_or_default();
+        let genre_id = if genre_name.is_empty() {
+            0
+        } else {
+            *self.genres.entry(genre_name).or_insert_with(|| {
+                let id = self.next_genre_id;
+                self.next_genre_id += 1;
+                id
+            })
+        };
 
         // Get or create key
         let key_name = track.key.clone().unwrap_or_default();
@@ -659,17 +1036,12 @@ impl RekordboxPdbWriter {
             })
         };
 
-        // Get or create color
-        let color_name = track.color.clone().unwrap_or_default();
-        let color_id = if color_name.is_empty() {
-            0
-        } else {
-            *self.colors.entry(color_name).or_insert_with(|| {
-                let id = self.next_color_id;
-                self.next_color_id += 1;
-                id
-            })
-        };
+        // Get color ID
+        let color_id = track
+            .color
+            .as_ref()
+            .map(|c| color_name_to_id(c))
+            .unwrap_or(0);
 
         // Calculate tempo (BPM * 100)
         let tempo = track.bpm.map(|b| (b * 100.0) as u32).unwrap_or(0);
@@ -684,6 +1056,11 @@ impl RekordboxPdbWriter {
             .unwrap_or("unknown")
             .to_string();
 
+        // Get file size if available
+        let file_size = std::fs::metadata(&track.file_path)
+            .map(|m| m.len() as u32)
+            .unwrap_or(0);
+
         // Detect file type from extension
         let file_type = std::path::Path::new(&track.file_path)
             .extension()
@@ -697,6 +1074,14 @@ impl RekordboxPdbWriter {
                 _ => 0x00,
             })
             .unwrap_or(0x00);
+
+        // Get date added - extract just the date part (YYYY-MM-DD)
+        let date_added = track
+            .date_added
+            .split('T')
+            .next()
+            .unwrap_or("")
+            .to_string();
 
         let pdb_track = PdbTrack {
             id,
@@ -713,12 +1098,14 @@ impl RekordboxPdbWriter {
             tempo,
             bitrate: track.bitrate.unwrap_or(0) as u32,
             sample_rate: track.sample_rate.unwrap_or(44100) as u32,
-            file_size: 0, // We don't have file size readily available
+            file_size,
             file_path,
             filename,
             rating: track.rating as u8,
-            year: 0, // Not currently tracked
+            year: track.year.unwrap_or(0) as u16,
             file_type,
+            date_added,
+            comment: String::new(),
         };
 
         self.tracks.push(pdb_track);
@@ -773,104 +1160,94 @@ impl RekordboxPdbWriter {
             .map_err(|e| CrateError::Device(format!("Failed to create PDB file: {e}")))?;
         let mut writer = BufWriter::new(file);
 
-        // Build all data pages for each table
-        let mut all_data_pages: Vec<(TableType, Vec<Vec<u8>>)> = Vec::new();
+        // Build all table data
+        let table_data = self.build_all_tables()?;
 
-        // Build pages for each table type
-        for &table_type in TableType::all_required() {
-            let pages = self.build_table_pages(table_type)?;
-            all_data_pages.push((table_type, pages));
-        }
+        // Calculate page layout
+        // Page 0 = header
+        // Then for each table: index page + data pages
+        let mut current_page: u32 = 1;
+        let mut table_layouts: Vec<TableLayout> = Vec::new();
 
-        // Calculate page assignments
-        // Tables with data: 1 index page + N data pages
-        // Empty tables: 1 index page only (first == last, matching rekordbox format)
-        let mut current_page: u32 = 1; // Page 0 is the header
-        let mut table_info: Vec<(TableType, u32, u32, bool)> = Vec::new(); // (type, first_page, last_page, is_empty)
-
-        for (table_type, data_pages) in &all_data_pages {
-            let is_empty = data_pages.is_empty();
-
-            if is_empty {
-                // Empty table: single page (first == last)
-                let single_page = current_page;
-                log::debug!("Table {table_type:?}: EMPTY, single_page={single_page}");
-                table_info.push((*table_type, single_page, single_page, true));
+        for (table_type, data_pages) in &table_data {
+            if data_pages.is_empty() {
+                // Empty table: just index page
+                table_layouts.push(TableLayout {
+                    table_type: *table_type,
+                    index_page: current_page,
+                    first_data_page: None,
+                    last_data_page: None,
+                    empty_candidate: current_page, // Points to itself for empty
+                });
                 current_page += 1;
             } else {
                 // Table with data: index page + data pages
                 let index_page = current_page;
-                let num_data_pages = data_pages.len() as u32;
-                let first_data_page = index_page + 1;
-                let last_data_page = first_data_page + num_data_pages - 1;
+                let first_data_page = current_page + 1;
+                let last_data_page = first_data_page + (data_pages.len() as u32) - 1;
 
-                log::debug!(
-                    "Table {:?}: data_pages.len()={}, index_page={}, first_data={}, last_data={}",
-                    table_type,
-                    data_pages.len(),
+                table_layouts.push(TableLayout {
+                    table_type: *table_type,
                     index_page,
-                    first_data_page,
-                    last_data_page
-                );
-
-                // first_page = index page, last_page = last data page
-                table_info.push((*table_type, index_page, last_data_page, false));
+                    first_data_page: Some(first_data_page),
+                    last_data_page: Some(last_data_page),
+                    empty_candidate: last_data_page + 1, // Next available
+                });
                 current_page = last_data_page + 1;
             }
         }
 
         let total_pages = current_page;
-        log::debug!("Total pages: {total_pages}");
 
         // Write file header (page 0)
-        self.write_file_header(&mut writer, total_pages, &table_info)?;
+        self.write_file_header(&mut writer, total_pages, &table_layouts)?;
 
         // Write table pages
-        for (i, (table_type, data_pages)) in all_data_pages.iter().enumerate() {
-            let (_, first_page, last_page, is_empty) = table_info[i];
+        let sequence = 1u32;
+        for (i, (table_type, data_pages)) in table_data.iter().enumerate() {
+            let layout = &table_layouts[i];
 
-            if is_empty {
-                // Empty table: write single empty index page
-                // Use null page marker (0x03ffffff) for next_page
-                let empty_page = build_empty_index_page(*table_type, first_page, 0x03ff_ffff);
+            if data_pages.is_empty() {
+                // Empty table: just write empty index page
+                let index_page =
+                    build_empty_index_page(*table_type, layout.index_page, sequence);
                 writer
-                    .write_all(&empty_page)
-                    .map_err(|e| CrateError::Device(format!("Failed to write empty page: {e}")))?;
+                    .write_all(&index_page)
+                    .map_err(|e| CrateError::Device(format!("Failed to write page: {e}")))?;
             } else {
                 // Table with data: write index page + data pages
-                let index_page = first_page;
-                let first_data_page = index_page + 1;
-                let num_data_pages = data_pages.len() as u32;
+                let data_page_indices: Vec<u32> = (layout.first_data_page.unwrap()
+                    ..=layout.last_data_page.unwrap())
+                    .collect();
 
-                // Collect data page indices for the index page
-                let data_page_indices: Vec<u32> =
-                    (0..num_data_pages).map(|j| first_data_page + j).collect();
-
-                // Build and write the index page
-                let idx_page =
-                    build_index_page(*table_type, index_page, first_data_page, &data_page_indices);
+                let index_page = build_index_page(
+                    *table_type,
+                    layout.index_page,
+                    layout.first_data_page.unwrap(),
+                    &data_page_indices,
+                    sequence,
+                );
                 writer
-                    .write_all(&idx_page)
+                    .write_all(&index_page)
                     .map_err(|e| CrateError::Device(format!("Failed to write index page: {e}")))?;
 
                 // Write data pages
                 for (j, page_data) in data_pages.iter().enumerate() {
-                    let page_num = first_data_page + j as u32;
-                    let next_page = if page_num < last_page {
-                        page_num + 1
+                    let page_idx = layout.first_data_page.unwrap() + j as u32;
+                    let next_page = if page_idx < layout.last_data_page.unwrap() {
+                        page_idx + 1
                     } else {
-                        // Last data page uses null page marker
-                        0x03ff_ffff
+                        NULL_PAGE_MARKER
                     };
 
-                    // Update the next_page and page_index fields in the page
+                    // The page was built with placeholder indices, update them
                     let mut page = page_data.clone();
+                    page[0x04..0x08].copy_from_slice(&page_idx.to_le_bytes());
                     page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
-                    page[0x04..0x08].copy_from_slice(&page_num.to_le_bytes());
 
                     writer
                         .write_all(&page)
-                        .map_err(|e| CrateError::Device(format!("Failed to write page: {e}")))?;
+                        .map_err(|e| CrateError::Device(format!("Failed to write data page: {e}")))?;
                 }
             }
         }
@@ -887,44 +1264,35 @@ impl RekordboxPdbWriter {
         &self,
         writer: &mut W,
         total_pages: u32,
-        table_info: &[(TableType, u32, u32, bool)],
+        table_layouts: &[TableLayout],
     ) -> Result<()> {
         let mut page = vec![0u8; PAGE_SIZE as usize];
 
-        // File header structure (28 bytes):
+        // File header structure:
         // 0x00-0x03: Magic (always 0)
         // 0x04-0x07: Page size
         page[0x04..0x08].copy_from_slice(&PAGE_SIZE.to_le_bytes());
         // 0x08-0x0B: Number of tables
-        page[0x08..0x0C].copy_from_slice(&(table_info.len() as u32).to_le_bytes());
+        page[0x08..0x0C].copy_from_slice(&(table_layouts.len() as u32).to_le_bytes());
         // 0x0C-0x0F: Next unused page
         page[0x0C..0x10].copy_from_slice(&total_pages.to_le_bytes());
-        // 0x10-0x13: Unknown (usually small number or 0)
-        page[0x10..0x14].copy_from_slice(&0u32.to_le_bytes());
+        // 0x10-0x13: Unknown (0)
         // 0x14-0x17: Sequence number
         page[0x14..0x18].copy_from_slice(&1u32.to_le_bytes());
-        // 0x18-0x1B: Gap (always 0)
+        // 0x18-0x1B: Gap (0)
 
         // Table descriptors start at 0x1C
         let mut offset = FILE_HEADER_SIZE;
-        for (table_type, first_page, last_page, _is_empty) in table_info.iter() {
-            // Extract values explicitly to avoid any reference issues
-            let tt = *table_type as u32;
-            let fp = *first_page;
-            let lp = *last_page;
-
-            log::debug!(
-                "Writing table descriptor at offset 0x{offset:X}: type={tt}, empty=0, first={fp}, last={lp}"
-            );
-
-            // Table type
-            page[offset..offset + 4].copy_from_slice(&tt.to_le_bytes());
-            // Empty candidate (0 for now - rekordbox uses non-zero but doesn't seem required)
-            page[offset + 4..offset + 8].copy_from_slice(&0u32.to_le_bytes());
-            // First page
-            page[offset + 8..offset + 12].copy_from_slice(&fp.to_le_bytes());
-            // Last page (equals first_page for empty tables)
-            page[offset + 12..offset + 16].copy_from_slice(&lp.to_le_bytes());
+        for layout in table_layouts {
+            // Type
+            page[offset..offset + 4].copy_from_slice(&(layout.table_type as u32).to_le_bytes());
+            // Empty candidate
+            page[offset + 4..offset + 8].copy_from_slice(&layout.empty_candidate.to_le_bytes());
+            // First page (index page)
+            page[offset + 8..offset + 12].copy_from_slice(&layout.index_page.to_le_bytes());
+            // Last page (last data page, or index page if empty)
+            let last_page = layout.last_data_page.unwrap_or(layout.index_page);
+            page[offset + 12..offset + 16].copy_from_slice(&last_page.to_le_bytes());
             offset += TABLE_DESCRIPTOR_SIZE;
         }
 
@@ -935,583 +1303,242 @@ impl RekordboxPdbWriter {
         Ok(())
     }
 
-    /// Build pages for a specific table type
-    fn build_table_pages(&self, table_type: TableType) -> Result<Vec<Vec<u8>>> {
-        match table_type {
-            TableType::Tracks => self.build_track_pages(),
-            TableType::Genres => self.build_genre_pages(),
-            TableType::Artists => self.build_artist_pages(),
-            TableType::Albums => self.build_album_pages(),
-            TableType::Labels => Ok(Vec::new()),
-            TableType::Keys => self.build_key_pages(),
-            TableType::Colors => self.build_color_pages(),
-            TableType::PlaylistTree => self.build_playlist_tree_pages(),
-            TableType::PlaylistEntries => self.build_playlist_entries_pages(),
-            TableType::Unknown9 => Ok(Vec::new()),
-            TableType::Unknown10 => Ok(Vec::new()),
-            TableType::HistoryPlaylists => Ok(Vec::new()),
-            TableType::HistoryEntries => Ok(Vec::new()),
-            TableType::Artwork => Ok(Vec::new()),
-            TableType::Unknown14 => Ok(Vec::new()),
-            TableType::Unknown15 => Ok(Vec::new()),
-            TableType::Columns => self.build_column_pages(),
-            TableType::Menu => Ok(Vec::new()),
-            TableType::Unknown18 => Ok(Vec::new()),
-            TableType::History => Ok(Vec::new()),
+    /// Build all table data pages
+    fn build_all_tables(&self) -> Result<Vec<(TableType, Vec<Vec<u8>>)>> {
+        let mut result = Vec::new();
+
+        for &table_type in TableType::all_required() {
+            let pages = match table_type {
+                TableType::Tracks => self.build_track_pages()?,
+                TableType::Genres => self.build_genre_pages()?,
+                TableType::Artists => self.build_artist_pages()?,
+                TableType::Albums => self.build_album_pages()?,
+                TableType::Labels => Vec::new(),
+                TableType::Keys => self.build_key_pages()?,
+                TableType::Colors => self.build_color_pages()?,
+                TableType::PlaylistTree => self.build_playlist_tree_pages()?,
+                TableType::PlaylistEntries => self.build_playlist_entries_pages()?,
+                TableType::Artwork => Vec::new(),
+                TableType::Columns => self.build_column_pages()?,
+                _ => Vec::new(), // Empty tables
+            };
+            result.push((table_type, pages));
         }
+
+        Ok(result)
     }
 
     /// Build track pages
     fn build_track_pages(&self) -> Result<Vec<Vec<u8>>> {
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::Tracks, 0);
+        let mut builder = PageBuilder::new(TableType::Tracks);
 
-        for (row_index, track) in self.tracks.iter().enumerate() {
-            let row_data = self.build_track_row(track, row_index as u16)?;
+        for (idx, track) in self.tracks.iter().enumerate() {
+            let row_data = build_track_row(track, idx as u16);
 
             if !builder.add_row(&row_data) {
-                // Current page is full, finalize it and start a new one
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::Tracks, 0);
+                // Page is full, finalize and start a new one
+                pages.push(builder.build(0, 0, 1)); // Indices will be fixed later
+                builder = PageBuilder::new(TableType::Tracks);
                 builder.add_row(&row_data);
             }
         }
 
-        // Finalize the last page
-        if !self.tracks.is_empty() {
-            pages.push(builder.build());
+        // Finalize last page if it has data
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
         }
 
         Ok(pages)
-    }
-
-    /// Build a single track row
-    fn build_track_row(&self, track: &PdbTrack, row_index: u16) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Fixed header (92 bytes = 0x5C)
-        // 0x00-0x01: Subtype (0x24 = 36, with bit 0x04 set means U16 offsets)
-        row.extend_from_slice(&0x0024u16.to_le_bytes());
-        // 0x02-0x03: Index shift (0x20 * row_index)
-        row.extend_from_slice(&(row_index * 0x20).to_le_bytes());
-        // 0x04-0x07: Bitmask (always 0x000c0700)
-        row.extend_from_slice(&0x000c0700u32.to_le_bytes());
-        // 0x08-0x0B: Sample rate
-        row.extend_from_slice(&track.sample_rate.to_le_bytes());
-        // 0x0C-0x0F: Composer ID (0 = none)
-        row.extend_from_slice(&0u32.to_le_bytes());
-        // 0x10-0x13: File size
-        row.extend_from_slice(&track.file_size.to_le_bytes());
-        // 0x14-0x17: Unknown2
-        row.extend_from_slice(&0u32.to_le_bytes());
-        // 0x18-0x19: Unknown3
-        row.extend_from_slice(&0u16.to_le_bytes());
-        // 0x1A-0x1B: Unknown4
-        row.extend_from_slice(&0u16.to_le_bytes());
-        // 0x1C-0x1F: Artwork ID (0 = none)
-        row.extend_from_slice(&0u32.to_le_bytes());
-        // 0x20-0x23: Key ID
-        row.extend_from_slice(&track.key_id.to_le_bytes());
-        // 0x24-0x27: Original artist ID (0 = none)
-        row.extend_from_slice(&0u32.to_le_bytes());
-        // 0x28-0x2B: Label ID (0 = none)
-        row.extend_from_slice(&0u32.to_le_bytes());
-        // 0x2C-0x2F: Remixer ID (0 = none)
-        row.extend_from_slice(&0u32.to_le_bytes());
-        // 0x30-0x33: Bitrate
-        row.extend_from_slice(&track.bitrate.to_le_bytes());
-        // 0x34-0x37: Track number (0)
-        row.extend_from_slice(&0u32.to_le_bytes());
-        // 0x38-0x3B: Tempo (BPM * 100)
-        row.extend_from_slice(&track.tempo.to_le_bytes());
-        // 0x3C-0x3F: Genre ID
-        row.extend_from_slice(&track.genre_id.to_le_bytes());
-        // 0x40-0x43: Album ID
-        row.extend_from_slice(&track.album_id.to_le_bytes());
-        // 0x44-0x47: Artist ID
-        row.extend_from_slice(&track.artist_id.to_le_bytes());
-        // 0x48-0x4B: Track ID
-        row.extend_from_slice(&track.id.to_le_bytes());
-        // 0x4C-0x4D: Disc number
-        row.extend_from_slice(&0u16.to_le_bytes());
-        // 0x4E-0x4F: Play count
-        row.extend_from_slice(&0u16.to_le_bytes());
-        // 0x50-0x51: Year
-        row.extend_from_slice(&track.year.to_le_bytes());
-        // 0x52-0x53: Sample depth (16 bit typical)
-        row.extend_from_slice(&16u16.to_le_bytes());
-        // 0x54-0x55: Duration (seconds)
-        row.extend_from_slice(&track.duration_seconds.to_le_bytes());
-        // 0x56-0x57: Unknown5 (always 0x29)
-        row.extend_from_slice(&0x0029u16.to_le_bytes());
-        // 0x58: Color ID
-        row.push(track.color_id);
-        // 0x59: Rating (0-5)
-        row.push(track.rating);
-        // 0x5A-0x5B: File type (1 = MP3, 4 = M4A, 5 = FLAC, 11 = WAV, 12 = AIFF)
-        row.extend_from_slice(&track.file_type.to_le_bytes());
-
-        // Now we need to write 22 U16 string offsets followed by the strings
-        // Since subtype is 0x24 (bit 0x04 IS set), we use U16 offsets
-
-        // Build the strings we need
-        let strings = [
-            DeviceSQLString::empty(),               // 0: unused/padding
-            DeviceSQLString::empty(),               // 1: ISRC
-            DeviceSQLString::empty(),               // 2: Lyricist
-            DeviceSQLString::empty(),               // 3: Unknown
-            DeviceSQLString::empty(),               // 4: Unknown
-            DeviceSQLString::empty(),               // 5: Unknown
-            DeviceSQLString::empty(),               // 6: Message
-            DeviceSQLString::empty(),               // 7: Publish info
-            DeviceSQLString::empty(),               // 8: Autoload hotcues
-            DeviceSQLString::empty(),               // 9: Unknown
-            DeviceSQLString::empty(),               // 10: Unknown
-            DeviceSQLString::empty(),               // 11: Date added
-            DeviceSQLString::empty(),               // 12: Release date
-            DeviceSQLString::empty(),               // 13: Mix name
-            DeviceSQLString::empty(),               // 14: Unknown
-            DeviceSQLString::empty(),               // 15: Analyze path
-            DeviceSQLString::empty(),               // 16: Analyze date
-            DeviceSQLString::empty(),               // 17: Comment
-            DeviceSQLString::new(&track.title),     // 18: Title
-            DeviceSQLString::empty(),               // 19: Unknown
-            DeviceSQLString::new(&track.filename),  // 20: Filename
-            DeviceSQLString::new(&track.file_path), // 21: File path
-        ];
-
-        // Calculate offsets - these are ABSOLUTE positions within the row
-        // Fixed header is 0x5C (92) bytes, followed by 22 U16 offset values (44 bytes)
-        // String data starts at position 92 + 44 = 136 within the row
-        let fixed_header_size: u16 = 0x5C; // 92 bytes
-        let num_offsets: u16 = 22;
-        let offset_array_size: u16 = num_offsets * 2; // 44 bytes for U16 offsets
-        let string_data_start: u16 = fixed_header_size + offset_array_size; // 136
-        let mut current_position = string_data_start;
-        let mut offsets: Vec<u16> = Vec::new();
-
-        for (i, s) in strings.iter().enumerate() {
-            if i == 0 {
-                // First offset is always 3 (convention to match rekordbox)
-                offsets.push(3);
-            } else {
-                offsets.push(current_position);
-            }
-            current_position += s.binary_size() as u16;
-        }
-
-        // Write the offsets (44 bytes = 22 U16 values)
-        for offset in &offsets {
-            row.extend_from_slice(&offset.to_le_bytes());
-        }
-
-        // Write the strings
-        let mut string_buf = Vec::new();
-        for s in &strings {
-            s.write(&mut string_buf).unwrap();
-        }
-        row.extend_from_slice(&string_buf);
-
-        Ok(row)
     }
 
     /// Build genre pages
     fn build_genre_pages(&self) -> Result<Vec<Vec<u8>>> {
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::Genres, 0);
+        let mut builder = PageBuilder::new(TableType::Genres);
 
         let mut genres: Vec<_> = self.genres.iter().collect();
         genres.sort_by_key(|(_, id)| *id);
 
         for (name, id) in genres {
-            let row_data = self.build_genre_row(*id, name)?;
+            let row_data = build_genre_row(*id, name);
 
             if !builder.add_row(&row_data) {
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::Genres, 0);
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::Genres);
                 builder.add_row(&row_data);
             }
         }
 
-        if !self.genres.is_empty() {
-            pages.push(builder.build());
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
         }
 
         Ok(pages)
-    }
-
-    /// Build a genre row
-    fn build_genre_row(&self, id: u32, name: &str) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Genre row structure:
-        // 4 bytes: ID
-        // Variable: DeviceSQLString name
-
-        row.extend_from_slice(&id.to_le_bytes());
-
-        let name_str = DeviceSQLString::new(name);
-        name_str.write(&mut row).unwrap();
-
-        Ok(row)
     }
 
     /// Build artist pages
     fn build_artist_pages(&self) -> Result<Vec<Vec<u8>>> {
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::Artists, 0);
+        let mut builder = PageBuilder::new(TableType::Artists);
 
         let mut artists: Vec<_> = self.artists.iter().collect();
         artists.sort_by_key(|(_, id)| *id);
 
-        for (row_index, (name, id)) in artists.iter().enumerate() {
-            let row_data = self.build_artist_row(**id, name, row_index as u16)?;
+        for (idx, (name, id)) in artists.iter().enumerate() {
+            let row_data = build_artist_row(**id, name, idx as u16);
 
             if !builder.add_row(&row_data) {
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::Artists, 0);
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::Artists);
                 builder.add_row(&row_data);
             }
         }
 
-        if !self.artists.is_empty() {
-            pages.push(builder.build());
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
         }
 
         Ok(pages)
-    }
-
-    /// Build an artist row
-    fn build_artist_row(&self, id: u32, name: &str, row_index: u16) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Artist row structure:
-        // 2 bytes: Subtype (0x60)
-        // 2 bytes: Index shift (0x20 * row_index)
-        // 4 bytes: ID
-        // 2 bytes: Offset array (2 offsets for name)
-        // Variable: Name string
-
-        row.extend_from_slice(&0x0060u16.to_le_bytes());
-        row.extend_from_slice(&(row_index * 0x20).to_le_bytes());
-        row.extend_from_slice(&id.to_le_bytes());
-
-        // Offset array: 2 offsets (8 bytes base + 2 bytes for offsets = start at 10)
-        let name_str = DeviceSQLString::new(name);
-        let name_offset = 10u8; // Name starts at offset 10 (after fixed header + 2 offset bytes)
-
-        row.push(3); // First offset (convention: always 3 to match rekordbox)
-        row.push(name_offset);
-
-        name_str.write(&mut row).unwrap();
-
-        Ok(row)
     }
 
     /// Build album pages
     fn build_album_pages(&self) -> Result<Vec<Vec<u8>>> {
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::Albums, 0);
+        let mut builder = PageBuilder::new(TableType::Albums);
 
         let mut albums: Vec<_> = self.albums.iter().collect();
-        albums.sort_by_key(|(_, id)| *id);
+        albums.sort_by_key(|((_, _), id)| *id);
 
-        for (row_index, (name, id)) in albums.iter().enumerate() {
-            let row_data = self.build_album_row(**id, name, row_index as u16)?;
+        for (idx, ((name, artist_id), id)) in albums.iter().enumerate() {
+            let row_data = build_album_row(**id, name, *artist_id, idx as u16);
 
             if !builder.add_row(&row_data) {
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::Albums, 0);
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::Albums);
                 builder.add_row(&row_data);
             }
         }
 
-        if !self.albums.is_empty() {
-            pages.push(builder.build());
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
         }
 
         Ok(pages)
-    }
-
-    /// Build an album row
-    fn build_album_row(&self, id: u32, name: &str, row_index: u16) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Album row structure:
-        // 2 bytes: Subtype (0x80)
-        // 2 bytes: Index shift
-        // 4 bytes: Unknown
-        // 4 bytes: Artist ID (0 = no linked artist)
-        // 4 bytes: ID
-        // 4 bytes: Unknown
-        // 2 bytes: Offset array (2 offsets)
-        // Variable: Name string
-
-        row.extend_from_slice(&0x0080u16.to_le_bytes());
-        row.extend_from_slice(&(row_index * 0x20).to_le_bytes());
-        row.extend_from_slice(&0u32.to_le_bytes()); // Unknown
-        row.extend_from_slice(&0u32.to_le_bytes()); // Artist ID
-        row.extend_from_slice(&id.to_le_bytes());
-        row.extend_from_slice(&0u32.to_le_bytes()); // Unknown
-
-        // Offset array
-        let name_str = DeviceSQLString::new(name);
-        let name_offset = 22u8; // After fixed header (20 bytes) + 2 offset bytes
-
-        row.push(3); // First offset (convention: always 3 to match rekordbox)
-        row.push(name_offset);
-
-        name_str.write(&mut row).unwrap();
-
-        Ok(row)
     }
 
     /// Build key pages
     fn build_key_pages(&self) -> Result<Vec<Vec<u8>>> {
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::Keys, 0);
+        let mut builder = PageBuilder::new(TableType::Keys);
 
         let mut keys: Vec<_> = self.keys.iter().collect();
         keys.sort_by_key(|(_, id)| *id);
 
         for (name, id) in keys {
-            let row_data = self.build_key_row(*id, name)?;
+            let row_data = build_key_row(*id, name);
 
             if !builder.add_row(&row_data) {
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::Keys, 0);
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::Keys);
                 builder.add_row(&row_data);
             }
         }
 
-        if !self.keys.is_empty() {
-            pages.push(builder.build());
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
         }
 
         Ok(pages)
-    }
-
-    /// Build a key row
-    fn build_key_row(&self, id: u32, name: &str) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Key row structure:
-        // 4 bytes: ID
-        // 4 bytes: ID again (weird but that's the format)
-        // Variable: DeviceSQLString name
-
-        row.extend_from_slice(&id.to_le_bytes());
-        row.extend_from_slice(&id.to_le_bytes());
-
-        let name_str = DeviceSQLString::new(name);
-        name_str.write(&mut row).unwrap();
-
-        Ok(row)
     }
 
     /// Build color pages
     fn build_color_pages(&self) -> Result<Vec<Vec<u8>>> {
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::Colors, 0);
+        let mut builder = PageBuilder::new(TableType::Colors);
 
-        let mut colors: Vec<_> = self.colors.iter().collect();
-        colors.sort_by_key(|(_, id)| *id);
-
-        for (name, id) in colors {
-            let row_data = self.build_color_row(*id, name)?;
+        // Always write all 8 standard colors
+        for &(id, name) in STANDARD_COLORS {
+            let row_data = build_color_row(id, name);
 
             if !builder.add_row(&row_data) {
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::Colors, 0);
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::Colors);
                 builder.add_row(&row_data);
             }
         }
 
-        if !self.colors.is_empty() {
-            pages.push(builder.build());
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
         }
 
         Ok(pages)
-    }
-
-    /// Build a color row
-    fn build_color_row(&self, id: u8, name: &str) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Color row structure (from rekordcrate):
-        // 4 bytes: unknown1 (usually 0)
-        // 1 byte: unknown2 (should be the color ID, 1-based index)
-        // 1 byte: color (ColorIndex, same value as unknown2)
-        // 2 bytes: unknown3 (usually 0)
-        // Variable: DeviceSQLString name
-
-        row.extend_from_slice(&0u32.to_le_bytes()); // unknown1
-        row.push(id); // unknown2 = color ID (1-based)
-        row.push(id); // color = ColorIndex (same as id)
-        row.extend_from_slice(&0u16.to_le_bytes()); // unknown3
-
-        let name_str = DeviceSQLString::new(name);
-        name_str.write(&mut row).unwrap();
-
-        Ok(row)
     }
 
     /// Build playlist tree pages
     fn build_playlist_tree_pages(&self) -> Result<Vec<Vec<u8>>> {
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::PlaylistTree, 0);
+        let mut builder = PageBuilder::new(TableType::PlaylistTree);
 
         for node in &self.playlist_nodes {
-            let row_data = self.build_playlist_tree_row(node)?;
+            let row_data = build_playlist_tree_row(node);
 
             if !builder.add_row(&row_data) {
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::PlaylistTree, 0);
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::PlaylistTree);
                 builder.add_row(&row_data);
             }
         }
 
-        if !self.playlist_nodes.is_empty() {
-            pages.push(builder.build());
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
         }
 
         Ok(pages)
-    }
-
-    /// Build a playlist tree row
-    fn build_playlist_tree_row(&self, node: &PdbPlaylistNode) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Playlist tree row structure:
-        // 4 bytes: Parent ID
-        // 4 bytes: Unknown
-        // 4 bytes: Sort order
-        // 4 bytes: ID
-        // 4 bytes: Is folder flag (u32, not u8!)
-        // Variable: DeviceSQLString name
-
-        row.extend_from_slice(&node.parent_id.to_le_bytes());
-        row.extend_from_slice(&0u32.to_le_bytes()); // Unknown
-        row.extend_from_slice(&node.sort_order.to_le_bytes());
-        row.extend_from_slice(&node.id.to_le_bytes());
-        // node_is_folder must be u32 (0 = playlist, non-zero = folder)
-        let is_folder_val: u32 = if node.is_folder { 1 } else { 0 };
-        row.extend_from_slice(&is_folder_val.to_le_bytes());
-
-        let name_str = DeviceSQLString::new(&node.name);
-        name_str.write(&mut row).unwrap();
-
-        Ok(row)
     }
 
     /// Build playlist entries pages
     fn build_playlist_entries_pages(&self) -> Result<Vec<Vec<u8>>> {
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::PlaylistEntries, 0);
+        let mut builder = PageBuilder::new(TableType::PlaylistEntries);
 
         for entry in &self.playlist_entries {
-            let row_data = self.build_playlist_entry_row(entry)?;
+            let row_data = build_playlist_entry_row(entry);
 
             if !builder.add_row(&row_data) {
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::PlaylistEntries, 0);
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::PlaylistEntries);
                 builder.add_row(&row_data);
             }
         }
 
-        if !self.playlist_entries.is_empty() {
-            pages.push(builder.build());
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
         }
 
         Ok(pages)
-    }
-
-    /// Build a playlist entry row
-    fn build_playlist_entry_row(&self, entry: &PdbPlaylistEntry) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Playlist entry row structure:
-        // 4 bytes: Entry index
-        // 4 bytes: Track ID
-        // 4 bytes: Playlist ID
-
-        row.extend_from_slice(&entry.entry_index.to_le_bytes());
-        row.extend_from_slice(&entry.track_id.to_le_bytes());
-        row.extend_from_slice(&entry.playlist_id.to_le_bytes());
-
-        Ok(row)
     }
 
     /// Build column pages
-    /// Columns define the menu column headings shown on CDJ/XDJ screens
     fn build_column_pages(&self) -> Result<Vec<Vec<u8>>> {
-        // Column definitions matching rekordbox export format
-        // Format: (id, unknown, name)
-        const COLUMN_DEFS: &[(u16, u16, &str)] = &[
-            (1, 128, "GENRE"),
-            (2, 129, "ARTIST"),
-            (3, 130, "ALBUM"),
-            (4, 131, "TRACK"),
-            (5, 132, "PLAYLIST"),
-            (6, 133, "BPM"),
-            (7, 134, "RATING"),
-            (8, 135, "YEAR"),
-            (9, 136, "REMIXER"),
-            (10, 137, "LABEL"),
-            (11, 138, "ORIGINAL ARTIST"),
-            (12, 139, "KEY"),
-            (13, 140, "DATE ADDED"),
-            (14, 142, "COLOR"),
-            (15, 143, "TIME"),
-            (16, 144, "BITRATE"),
-            (17, 145, "FILENAME"),
-            (18, 146, "HISTORY"),
-            (19, 141, "COMMENT"),
-            (20, 147, "DJ PLAY COUNT"),
-            (21, 148, "MY TAG"),
-            (22, 149, "HOT CUE BANK"),
-            (23, 150, "SEARCH"),
-            (24, 151, "FOLDER"),
-            (25, 152, "TRACK FILTER"),
-            (26, 153, "MASTER TEMPO"),
-            (27, 154, "QUANTIZE"),
-        ];
-
         let mut pages = Vec::new();
-        let mut builder = PageBuilder::new(TableType::Columns, 0);
+        let mut builder = PageBuilder::new(TableType::Columns);
 
         for &(id, unknown, name) in COLUMN_DEFS {
-            let row_data = self.build_column_row(id, unknown, name)?;
+            let row_data = build_column_row(id, unknown, name);
 
             if !builder.add_row(&row_data) {
-                pages.push(builder.build());
-                builder = PageBuilder::new(TableType::Columns, 0);
+                pages.push(builder.build(0, 0, 1));
+                builder = PageBuilder::new(TableType::Columns);
                 builder.add_row(&row_data);
             }
         }
 
-        // COLUMN_DEFS is a const array that is never empty
-        pages.push(builder.build());
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
+        }
 
         Ok(pages)
-    }
-
-    /// Build a column row
-    fn build_column_row(&self, id: u16, unknown: u16, name: &str) -> Result<Vec<u8>> {
-        let mut row = Vec::new();
-
-        // Column row structure:
-        // 2 bytes: ID (u16)
-        // 2 bytes: Unknown/content pointer (u16)
-        // Variable: DeviceSQLString name
-
-        row.extend_from_slice(&id.to_le_bytes());
-        row.extend_from_slice(&unknown.to_le_bytes());
-
-        let name_str = DeviceSQLString::new(name);
-        name_str.write(&mut row).unwrap();
-
-        Ok(row)
     }
 }
 
@@ -1519,4 +1546,587 @@ impl Default for RekordboxPdbWriter {
     fn default() -> Self {
         Self::new()
     }
+}
+
+/// Internal struct for tracking table page layout
+struct TableLayout {
+    table_type: TableType,
+    index_page: u32,
+    first_data_page: Option<u32>,
+    last_data_page: Option<u32>,
+    empty_candidate: u32,
+}
+
+// ============================================================================
+// Extended Format (exportExt.pdb) Support
+// ============================================================================
+
+/// Extended table types for exportExt.pdb
+#[allow(dead_code)]
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ExtTableType {
+    Unknown0 = 0,
+    Unknown1 = 1,
+    Unknown2 = 2,
+    Tags = 3,        // Tag/Category definitions
+    TrackTags = 4,   // Track-to-tag associations
+}
+
+impl ExtTableType {
+    fn all_required() -> &'static [ExtTableType] {
+        &[
+            ExtTableType::Unknown0,
+            ExtTableType::Unknown1,
+            ExtTableType::Unknown2,
+            ExtTableType::Tags,
+            ExtTableType::TrackTags,
+        ]
+    }
+}
+
+/// Internal tag data for PDB generation
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+struct PdbTag {
+    id: u32,
+    name: String,
+    category_id: u32,      // 0 if this is a category
+    category_pos: u32,     // Position within category
+    is_category: bool,
+}
+
+/// Internal track-tag association
+#[allow(dead_code)]
+#[derive(Debug, Clone)]
+struct PdbTrackTag {
+    track_id: u32,
+    tag_id: u32,
+}
+
+/// Build a tag row (short variant with u8 offsets)
+#[allow(dead_code)]
+fn build_tag_row(tag: &PdbTag, row_index: u16) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x01: Subtype (0x0680 = short variant, u8 offsets)
+    row.extend_from_slice(&0x0680u16.to_le_bytes());
+    // 0x02-0x03: Tag index (row_index * 0x20)
+    row.extend_from_slice(&(row_index.wrapping_mul(0x20)).to_le_bytes());
+    // 0x04-0x0B: Unknown (8 bytes of zeros)
+    row.extend_from_slice(&[0u8; 8]);
+    // 0x0C-0x0F: Category ID
+    row.extend_from_slice(&tag.category_id.to_le_bytes());
+    // 0x10-0x13: Category position
+    row.extend_from_slice(&tag.category_pos.to_le_bytes());
+    // 0x14-0x17: ID
+    row.extend_from_slice(&tag.id.to_le_bytes());
+    // 0x18-0x1B: Is category flag
+    let is_cat_val: u32 = if tag.is_category { 1 } else { 0 };
+    row.extend_from_slice(&is_cat_val.to_le_bytes());
+    // 0x1C: Unknown
+    row.push(0);
+    // 0x1D: Flags
+    row.push(0);
+    // 0x1E: Constant (0x03)
+    row.push(0x03);
+    // 0x1F: Name offset (points to string at offset 0x21)
+    row.push(0x21);
+    // 0x20: Unknown string offset
+    row.push(0x22);
+
+    // Write the name string
+    let name_str = DeviceSQLString::new(&tag.name);
+    name_str.write_to(&mut row).unwrap();
+
+    // Write empty unknown string
+    let empty_str = DeviceSQLString::empty();
+    empty_str.write_to(&mut row).unwrap();
+
+    row
+}
+
+/// Build a track-tag row
+#[allow(dead_code)]
+fn build_track_tag_row(track_tag: &PdbTrackTag) -> Vec<u8> {
+    let mut row = Vec::new();
+
+    // 0x00-0x03: Unknown (zeros)
+    row.extend_from_slice(&0u32.to_le_bytes());
+    // 0x04-0x07: Track ID
+    row.extend_from_slice(&track_tag.track_id.to_le_bytes());
+    // 0x08-0x0B: Tag ID
+    row.extend_from_slice(&track_tag.tag_id.to_le_bytes());
+    // 0x0C-0x0F: Unknown (zeros)
+    row.extend_from_slice(&0u32.to_le_bytes());
+
+    row
+}
+
+/// Extended PDB writer for exportExt.pdb
+#[allow(dead_code)]
+pub struct RekordboxExtPdbWriter {
+    tags: Vec<PdbTag>,
+    track_tags: Vec<PdbTrackTag>,
+    next_tag_id: u32,
+    // Maps: category_name -> tag_id
+    category_ids: HashMap<String, u32>,
+    // Maps: (category_name, tag_name) -> tag_id
+    tag_ids: HashMap<(String, String), u32>,
+}
+
+impl RekordboxExtPdbWriter {
+    /// Create a new extended PDB writer
+    pub fn new() -> Self {
+        Self {
+            tags: Vec::new(),
+            track_tags: Vec::new(),
+            next_tag_id: 1,
+            category_ids: HashMap::new(),
+            tag_ids: HashMap::new(),
+        }
+    }
+
+    /// Add a tag (with its category) and return the tag ID
+    /// If the category doesn't exist, it will be created automatically
+    pub fn add_tag(&mut self, category_name: &str, tag_name: &str) -> u32 {
+        // Check if tag already exists
+        let key = (category_name.to_string(), tag_name.to_string());
+        if let Some(&id) = self.tag_ids.get(&key) {
+            return id;
+        }
+
+        // Get or create category
+        let category_id = if let Some(&id) = self.category_ids.get(category_name) {
+            id
+        } else {
+            let id = self.next_tag_id;
+            self.next_tag_id += 1;
+
+            // Create category entry
+            self.tags.push(PdbTag {
+                id,
+                name: category_name.to_string(),
+                category_id: 0, // Categories have category_id = 0
+                category_pos: (self.category_ids.len() + 1) as u32,
+                is_category: true,
+            });
+
+            self.category_ids.insert(category_name.to_string(), id);
+            id
+        };
+
+        // Create tag entry
+        let tag_id = self.next_tag_id;
+        self.next_tag_id += 1;
+
+        // Count existing tags in this category for position
+        let tags_in_category = self
+            .tags
+            .iter()
+            .filter(|t| !t.is_category && t.category_id == category_id)
+            .count() as u32;
+
+        self.tags.push(PdbTag {
+            id: tag_id,
+            name: tag_name.to_string(),
+            category_id,
+            category_pos: tags_in_category + 1,
+            is_category: false,
+        });
+
+        self.tag_ids.insert(key, tag_id);
+        tag_id
+    }
+
+    /// Associate a track with a tag
+    pub fn add_track_tag(&mut self, track_id: u32, tag_id: u32) {
+        self.track_tags.push(PdbTrackTag { track_id, tag_id });
+    }
+
+    /// Write the extended PDB file to disk
+    pub fn write(&self, path: &Path) -> Result<()> {
+        let file = File::create(path)
+            .map_err(|e| CrateError::Device(format!("Failed to create exportExt.pdb: {e}")))?;
+        let mut writer = BufWriter::new(file);
+
+        // Build all table data
+        let table_data = self.build_all_tables()?;
+
+        // Calculate page layout
+        let mut current_page: u32 = 1;
+        let mut table_layouts: Vec<ExtTableLayout> = Vec::new();
+
+        for (table_type, data_pages) in &table_data {
+            if data_pages.is_empty() {
+                table_layouts.push(ExtTableLayout {
+                    table_type: *table_type,
+                    index_page: current_page,
+                    first_data_page: None,
+                    last_data_page: None,
+                    empty_candidate: current_page,
+                });
+                current_page += 1;
+            } else {
+                let index_page = current_page;
+                let first_data_page = current_page + 1;
+                let last_data_page = first_data_page + (data_pages.len() as u32) - 1;
+
+                table_layouts.push(ExtTableLayout {
+                    table_type: *table_type,
+                    index_page,
+                    first_data_page: Some(first_data_page),
+                    last_data_page: Some(last_data_page),
+                    empty_candidate: last_data_page + 1,
+                });
+                current_page = last_data_page + 1;
+            }
+        }
+
+        let total_pages = current_page;
+
+        // Write file header
+        self.write_file_header(&mut writer, total_pages, &table_layouts)?;
+
+        // Write table pages
+        let sequence = 1u32;
+        for (i, (table_type, data_pages)) in table_data.iter().enumerate() {
+            let layout = &table_layouts[i];
+
+            if data_pages.is_empty() {
+                let index_page = build_empty_ext_index_page(*table_type, layout.index_page, sequence);
+                writer
+                    .write_all(&index_page)
+                    .map_err(|e| CrateError::Device(format!("Failed to write page: {e}")))?;
+            } else {
+                let data_page_indices: Vec<u32> = (layout.first_data_page.unwrap()
+                    ..=layout.last_data_page.unwrap())
+                    .collect();
+
+                let index_page = build_ext_index_page(
+                    *table_type,
+                    layout.index_page,
+                    layout.first_data_page.unwrap(),
+                    &data_page_indices,
+                    sequence,
+                );
+                writer
+                    .write_all(&index_page)
+                    .map_err(|e| CrateError::Device(format!("Failed to write index page: {e}")))?;
+
+                for (j, page_data) in data_pages.iter().enumerate() {
+                    let page_idx = layout.first_data_page.unwrap() + j as u32;
+                    let next_page = if page_idx < layout.last_data_page.unwrap() {
+                        page_idx + 1
+                    } else {
+                        NULL_PAGE_MARKER
+                    };
+
+                    let mut page = page_data.clone();
+                    page[0x04..0x08].copy_from_slice(&page_idx.to_le_bytes());
+                    page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
+
+                    writer
+                        .write_all(&page)
+                        .map_err(|e| CrateError::Device(format!("Failed to write data page: {e}")))?;
+                }
+            }
+        }
+
+        writer
+            .flush()
+            .map_err(|e| CrateError::Device(format!("Failed to flush exportExt.pdb: {e}")))?;
+
+        Ok(())
+    }
+
+    fn write_file_header<W: Write>(
+        &self,
+        writer: &mut W,
+        total_pages: u32,
+        table_layouts: &[ExtTableLayout],
+    ) -> Result<()> {
+        let mut page = vec![0u8; PAGE_SIZE as usize];
+
+        page[0x04..0x08].copy_from_slice(&PAGE_SIZE.to_le_bytes());
+        page[0x08..0x0C].copy_from_slice(&(table_layouts.len() as u32).to_le_bytes());
+        page[0x0C..0x10].copy_from_slice(&total_pages.to_le_bytes());
+        page[0x14..0x18].copy_from_slice(&1u32.to_le_bytes());
+
+        let mut offset = FILE_HEADER_SIZE;
+        for layout in table_layouts {
+            page[offset..offset + 4].copy_from_slice(&(layout.table_type as u32).to_le_bytes());
+            page[offset + 4..offset + 8].copy_from_slice(&layout.empty_candidate.to_le_bytes());
+            page[offset + 8..offset + 12].copy_from_slice(&layout.index_page.to_le_bytes());
+            let last_page = layout.last_data_page.unwrap_or(layout.index_page);
+            page[offset + 12..offset + 16].copy_from_slice(&last_page.to_le_bytes());
+            offset += TABLE_DESCRIPTOR_SIZE;
+        }
+
+        writer
+            .write_all(&page)
+            .map_err(|e| CrateError::Device(format!("Failed to write header: {e}")))?;
+
+        Ok(())
+    }
+
+    fn build_all_tables(&self) -> Result<Vec<(ExtTableType, Vec<Vec<u8>>)>> {
+        let mut result = Vec::new();
+
+        for &table_type in ExtTableType::all_required() {
+            let pages = match table_type {
+                ExtTableType::Tags => self.build_tag_pages()?,
+                ExtTableType::TrackTags => self.build_track_tag_pages()?,
+                _ => Vec::new(),
+            };
+            result.push((table_type, pages));
+        }
+
+        Ok(result)
+    }
+
+    fn build_tag_pages(&self) -> Result<Vec<Vec<u8>>> {
+        let mut pages = Vec::new();
+        let mut builder = ExtPageBuilder::new(ExtTableType::Tags);
+
+        for (idx, tag) in self.tags.iter().enumerate() {
+            let row_data = build_tag_row(tag, idx as u16);
+
+            if !builder.add_row(&row_data) {
+                pages.push(builder.build(0, 0, 1));
+                builder = ExtPageBuilder::new(ExtTableType::Tags);
+                builder.add_row(&row_data);
+            }
+        }
+
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
+        }
+
+        Ok(pages)
+    }
+
+    fn build_track_tag_pages(&self) -> Result<Vec<Vec<u8>>> {
+        let mut pages = Vec::new();
+        let mut builder = ExtPageBuilder::new(ExtTableType::TrackTags);
+
+        for track_tag in &self.track_tags {
+            let row_data = build_track_tag_row(track_tag);
+
+            if !builder.add_row(&row_data) {
+                pages.push(builder.build(0, 0, 1));
+                builder = ExtPageBuilder::new(ExtTableType::TrackTags);
+                builder.add_row(&row_data);
+            }
+        }
+
+        if builder.total_rows > 0 {
+            pages.push(builder.build(0, 0, 1));
+        }
+
+        Ok(pages)
+    }
+}
+
+impl Default for RekordboxExtPdbWriter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Table layout for extended format
+#[allow(dead_code)]
+struct ExtTableLayout {
+    table_type: ExtTableType,
+    index_page: u32,
+    first_data_page: Option<u32>,
+    last_data_page: Option<u32>,
+    empty_candidate: u32,
+}
+
+/// Page builder for extended format
+#[allow(dead_code)]
+struct ExtPageBuilder {
+    page_type: ExtTableType,
+    heap_data: Vec<u8>,
+    row_groups: Vec<RowGroup>,
+    current_group: RowGroup,
+    total_rows: u16,
+}
+
+impl ExtPageBuilder {
+    fn new(page_type: ExtTableType) -> Self {
+        Self {
+            page_type,
+            heap_data: Vec::new(),
+            row_groups: Vec::new(),
+            current_group: RowGroup::new(),
+            total_rows: 0,
+        }
+    }
+
+    fn row_groups_size(&self) -> usize {
+        let mut size = 0;
+        for group in &self.row_groups {
+            size += group.binary_size();
+        }
+        if self.current_group.num_rows > 0 {
+            size += self.current_group.binary_size();
+        }
+        size
+    }
+
+    fn available_space(&self) -> usize {
+        let total_page = PAGE_SIZE as usize;
+        let header_space = HEAP_START_OFFSET;
+        let heap_used = self.heap_data.len();
+        let row_groups_space = self.row_groups_size();
+        let potential_index_growth = if self.current_group.is_full() { 36 } else { 2 };
+
+        total_page
+            .saturating_sub(header_space)
+            .saturating_sub(heap_used)
+            .saturating_sub(row_groups_space)
+            .saturating_sub(potential_index_growth)
+    }
+
+    fn add_row(&mut self, row_data: &[u8]) -> bool {
+        if row_data.len() > self.available_space() {
+            return false;
+        }
+
+        let offset = self.heap_data.len() as u16;
+
+        if self.current_group.is_full() {
+            self.row_groups.push(self.current_group.clone());
+            self.current_group = RowGroup::new();
+        }
+
+        self.current_group.add_row(offset);
+        self.total_rows += 1;
+        self.heap_data.extend_from_slice(row_data);
+
+        true
+    }
+
+    fn build(mut self, page_index: u32, next_page: u32, sequence: u32) -> Vec<u8> {
+        let mut page = vec![0u8; PAGE_SIZE as usize];
+
+        if self.current_group.num_rows > 0 {
+            self.row_groups.push(self.current_group.clone());
+        }
+
+        let used_size = self.heap_data.len() as u16;
+        let row_groups_total_size: usize = self.row_groups.iter().map(|g| g.binary_size()).sum();
+        let heap_capacity = (PAGE_SIZE as usize) - HEAP_START_OFFSET;
+        let free_size = (heap_capacity - self.heap_data.len() - row_groups_total_size) as u16;
+
+        let num_row_groups = self.row_groups.len() as u32;
+        let packed = (num_row_groups & 0x1FFF) | (((self.total_rows as u32) & 0x7FF) << 13);
+
+        page[0x04..0x08].copy_from_slice(&page_index.to_le_bytes());
+        page[0x08..0x0C].copy_from_slice(&(self.page_type as u32).to_le_bytes());
+        page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
+        page[0x10..0x14].copy_from_slice(&sequence.to_le_bytes());
+        page[0x18..0x1B].copy_from_slice(&packed.to_le_bytes()[0..3]);
+        page[0x1B] = PAGE_FLAGS_DATA;
+        page[0x1C..0x1E].copy_from_slice(&free_size.to_le_bytes());
+        page[0x1E..0x20].copy_from_slice(&used_size.to_le_bytes());
+
+        if self.total_rows == 0 {
+            page[0x20..0x22].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+            page[0x22..0x24].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+        } else {
+            page[0x20..0x22].copy_from_slice(&(self.total_rows.min(0x1FFF)).to_le_bytes());
+            page[0x22..0x24].copy_from_slice(&((self.total_rows - 1).min(0x1FFF)).to_le_bytes());
+        }
+
+        page[HEAP_START_OFFSET..HEAP_START_OFFSET + self.heap_data.len()]
+            .copy_from_slice(&self.heap_data);
+
+        let mut end_position = PAGE_SIZE as usize;
+        for group in self.row_groups.iter().rev() {
+            let group_size = group.binary_size();
+            group.write_to(&mut page, end_position);
+            end_position -= group_size;
+        }
+
+        page
+    }
+}
+
+/// Build an index page for extended format
+#[allow(dead_code)]
+fn build_ext_index_page(
+    page_type: ExtTableType,
+    page_index: u32,
+    next_page: u32,
+    data_page_indices: &[u32],
+    sequence: u32,
+) -> Vec<u8> {
+    let mut page = vec![0u8; PAGE_SIZE as usize];
+
+    page[0x04..0x08].copy_from_slice(&page_index.to_le_bytes());
+    page[0x08..0x0C].copy_from_slice(&(page_type as u32).to_le_bytes());
+    page[0x0C..0x10].copy_from_slice(&next_page.to_le_bytes());
+    page[0x10..0x14].copy_from_slice(&sequence.to_le_bytes());
+    page[0x1B] = PAGE_FLAGS_INDEX;
+
+    page[0x20..0x22].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+    page[0x22..0x24].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+    page[0x24..0x26].copy_from_slice(&INDEX_MAGIC.to_le_bytes());
+    page[0x26..0x28].copy_from_slice(&(data_page_indices.len() as u16).to_le_bytes());
+    page[0x28..0x2C].copy_from_slice(&page_index.to_le_bytes());
+    page[0x2C..0x30].copy_from_slice(&next_page.to_le_bytes());
+    page[0x30..0x38].copy_from_slice(&INDEX_MAGIC2.to_le_bytes());
+    page[0x38..0x3A].copy_from_slice(&(data_page_indices.len() as u16).to_le_bytes());
+    page[0x3A..0x3C].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+
+    let mut offset = 0x3C;
+    for &data_page_idx in data_page_indices {
+        let entry = data_page_idx << 3;
+        page[offset..offset + 4].copy_from_slice(&entry.to_le_bytes());
+        offset += 4;
+    }
+
+    let remaining_space = (PAGE_SIZE as usize) - offset - 20;
+    let empty_entries = remaining_space / 4;
+    for _ in 0..empty_entries {
+        page[offset..offset + 4].copy_from_slice(&EMPTY_INDEX_ENTRY.to_le_bytes());
+        offset += 4;
+    }
+
+    page
+}
+
+/// Build an empty index page for extended format
+#[allow(dead_code)]
+fn build_empty_ext_index_page(page_type: ExtTableType, page_index: u32, sequence: u32) -> Vec<u8> {
+    let mut page = vec![0u8; PAGE_SIZE as usize];
+
+    page[0x04..0x08].copy_from_slice(&page_index.to_le_bytes());
+    page[0x08..0x0C].copy_from_slice(&(page_type as u32).to_le_bytes());
+    page[0x0C..0x10].copy_from_slice(&NULL_PAGE_MARKER.to_le_bytes());
+    page[0x10..0x14].copy_from_slice(&sequence.to_le_bytes());
+    page[0x1B] = PAGE_FLAGS_INDEX;
+
+    page[0x20..0x22].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+    page[0x22..0x24].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+    page[0x24..0x26].copy_from_slice(&INDEX_MAGIC.to_le_bytes());
+    page[0x26..0x28].copy_from_slice(&0u16.to_le_bytes());
+    page[0x28..0x2C].copy_from_slice(&page_index.to_le_bytes());
+    page[0x2C..0x30].copy_from_slice(&NULL_PAGE_MARKER.to_le_bytes());
+    page[0x30..0x38].copy_from_slice(&INDEX_MAGIC2.to_le_bytes());
+    page[0x38..0x3A].copy_from_slice(&0u16.to_le_bytes());
+    page[0x3A..0x3C].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
+
+    let mut offset = 0x3C;
+    let remaining_space = (PAGE_SIZE as usize) - offset - 20;
+    let empty_entries = remaining_space / 4;
+    for _ in 0..empty_entries {
+        page[offset..offset + 4].copy_from_slice(&EMPTY_INDEX_ENTRY.to_le_bytes());
+        offset += 4;
+    }
+
+    page
 }

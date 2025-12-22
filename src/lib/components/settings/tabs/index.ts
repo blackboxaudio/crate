@@ -1,0 +1,6 @@
+export { default as GeneralTab } from './GeneralTab.svelte'
+export { default as LibraryTab } from './LibraryTab.svelte'
+export { default as AppearanceTab } from './AppearanceTab.svelte'
+export { default as SoundTab } from './SoundTab.svelte'
+export { default as DiagnosticsTab } from './DiagnosticsTab.svelte'
+export { default as AboutTab } from './AboutTab.svelte'

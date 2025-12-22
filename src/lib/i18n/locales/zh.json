@@ -302,6 +302,7 @@
 		}
 	},
 	"export": {
+		"exporting": "导出中...",
 		"title": "导出到设备",
 		"quickExport": "快速导出",
 		"exportTo": "导出到 {deviceName}",

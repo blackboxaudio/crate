@@ -303,6 +303,7 @@
 		}
 	},
 	"export": {
+		"exporting": "エクスポート中...",
 		"title": "デバイスにエクスポート",
 		"quickExport": "クイックエクスポート",
 		"exportTo": "{deviceName}にエクスポート",

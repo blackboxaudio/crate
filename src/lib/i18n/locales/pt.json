@@ -302,6 +302,7 @@
 		}
 	},
 	"export": {
+		"exporting": "Exportando...",
 		"title": "Exportar para dispositivo",
 		"quickExport": "Exportação rápida",
 		"exportTo": "Exportar para {deviceName}",
