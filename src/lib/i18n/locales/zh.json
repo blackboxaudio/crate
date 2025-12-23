@@ -16,7 +16,9 @@
 		"untitled": "未命名",
 		"unknownArtist": "未知艺术家",
 		"folder": "文件夹",
-		"playlist": "播放列表"
+		"playlist": "播放列表",
+		"next": "下一个",
+		"back": "返回"
 	},
 	"nav": {
 		"library": "曲库",
@@ -27,6 +29,7 @@
 		"title": "设置",
 		"tabs": {
 			"general": "常规",
+			"library": "曲库",
 			"appearance": "外观",
 			"sound": "声音",
 			"diagnostics": "诊断",
@@ -35,6 +38,31 @@
 		"general": {
 			"language": "语言",
 			"languageDescription": "选择应用程序的显示语言。"
+		},
+		"library": {
+			"analysis": "分析",
+			"keyNotation": "调式标记",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "标准",
+			"keyNotationDescription": "选择音乐调式的显示方式。",
+			"autoAnalyzeOnImport": "导入时自动分析",
+			"autoAnalyzeOnImportDescription": "导入曲目时自动分析BPM和调式。",
+			"sync": "同步",
+			"syncDescription": "配置与USB设备的自动同步。",
+			"autoSyncOnConnect": "设备连接时自动同步",
+			"autoSyncOnConnectDescription": "当USB设备重新连接时，自动同步任何待处理的更改。",
+			"autoSyncOnChange": "曲库变更时自动同步",
+			"autoSyncOnChangeDescription": "编辑曲目或播放列表时，自动同步到已连接的设备。",
+			"ignoredDevices": "被忽略的设备",
+			"ignoredDevicesDescription": "此列表中的设备将从侧边栏隐藏，不会触发自动同步。",
+			"noIgnoredDevices": "当前没有被忽略的设备",
+			"deviceNotConnected": "未连接",
+			"exportFormat": "导出格式",
+			"exportFormatDescription": "选择 USB 导出的数据库格式。",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "用于较旧 CDJ 的旧版格式",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "适用于 OPUS-QUAD、OMNIS-DUO、XDJ-AZ"
 		},
 		"appearance": {
 			"font": "字体",
@@ -92,6 +120,8 @@
 		"matchOr": "或",
 		"matchAnd": "且",
 		"clearAll": "全部清除",
+		"noTracksYet": "暂无曲目",
+		"dragDropHint": "将音频文件拖放至此处以导入",
 		"columns": {
 			"title": "标题",
 			"artist": "艺术家",
@@ -112,7 +142,9 @@
 		"deleteFolder": "删除文件夹",
 		"moveToFolder": "移动到文件夹",
 		"rootNoFolder": "根目录（无文件夹）",
-		"folderEmpty": "此文件夹为空"
+		"folderEmpty": "此文件夹为空",
+		"noPlaylistsYet": "暂无播放列表",
+		"exportToDevice": "导出到设备"
 	},
 	"tags": {
 		"newCategory": "新建分类",
@@ -122,7 +154,9 @@
 		"deleteTag": "删除标签",
 		"deleteCategory": "删除分类",
 		"addCategory": "添加分类",
-		"addTag": "添加标签"
+		"addTag": "添加标签",
+		"noTags": "暂无标签",
+		"noTagCategoriesYet": "暂无标签分类"
 	},
 	"contextMenu": {
 		"viewInFinder": "在访达中显示",
@@ -134,7 +168,9 @@
 		"remove": "移除",
 		"removeFromPlaylist": "从播放列表移除",
 		"removeFromLibrary": "从曲库移除",
-		"relocate": "重新定位..."
+		"relocate": "重新定位...",
+		"analyze": "分析",
+		"stopAnalysis": "停止分析"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -257,11 +293,16 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "无法将文件夹拖放到自身内部",
-		"cannotDropIntoSubfolder": "无法将文件夹拖放到其子文件夹内"
+		"cannotDropIntoSubfolder": "无法将文件夹拖放到其子文件夹内",
+		"analysisFailed": "分析失败",
+		"exportInProgress": "导出已在进行中"
 	},
 	"devices": {
 		"title": "设备",
 		"eject": "弹出",
+		"ignore": "忽略",
+		"unignore": "取消忽略",
+		"selectDevice": "选择设备",
 		"deviceInfo": "设备信息",
 		"capacity": "容量",
 		"available": "可用",
@@ -269,7 +310,59 @@
 		"noDevices": "无已连接设备",
 		"free": "可用",
 		"connected": "已连接",
-		"viewInfo": "查看信息"
+		"statusCompatible": "兼容USB导出",
+		"statusIncompatible": "不兼容的格式（{fileSystem}）",
+		"viewInfo": "查看信息",
+		"exportTo": "导出到...",
+		"reformat": {
+			"menuItem": "格式化",
+			"title": "格式化设备",
+			"warning": "所有数据将被永久删除",
+			"warningDetails": "格式化\"{deviceName}\"将删除此设备上的所有文件。此操作无法撤销。",
+			"volumeName": "卷标名称",
+			"volumeNamePlaceholder": "输入卷标名称",
+			"fat32Hint": "FAT32 最多支持 11 个字符",
+			"confirm": "格式化"
+		}
+	},
+	"export": {
+		"exporting": "导出中...",
+		"title": "导出到设备",
+		"quickExport": "快速导出",
+		"exportTo": "导出到 {deviceName}",
+		"exportPlaylist": "导出 {playlistName}",
+		"selectPlaylists": "选择要导出的播放列表",
+		"selectPlaylistsDescription": "选择要导出到所选设备的播放列表。",
+		"selectDevice": "选择设备",
+		"selectDevicesDescription": "选择一个或多个设备进行导出。",
+		"devicesSelected": "{count, plural, =1 {已选择 1 台设备} other {已选择 {count} 台设备}}",
+		"devicesToExport": "设备",
+		"noDevicesConnected": "未连接 USB 设备",
+		"noPlaylistsAvailable": "没有可用的播放列表",
+		"destination": "目标",
+		"playlistsToExport": "要导出的播放列表",
+		"tracksToExport": "要导出的曲目",
+		"enableSync": "启用同步",
+		"export": "导出",
+		"preparing": "准备中...",
+		"copying": "正在复制文件...",
+		"generatingDatabase": "正在生成数据库...",
+		"complete": "导出完成",
+		"failed": "导出失败",
+		"cancel": "取消",
+		"keepPartial": "保留部分",
+		"cleanUp": "清理",
+		"whatToDo": "您想怎么做？",
+		"filesCopiedBeforeFailure": "失败前已复制 {count, plural, =1 {1 个文件} other {{count} 个文件}}。",
+		"exportingTo": "正在导出到 {deviceName}",
+		"transferringProgress": "正在从 {playlistCount} 个播放列表传输 {trackCount} 首曲目",
+		"noPlaylistsInFolder": "此文件夹中没有要导出的播放列表",
+		"resume": "继续",
+		"resumeExport": "继续导出",
+		"checkpointAvailable": "可以继续之前的导出",
+		"tracksCompleted": "{count, plural, =1 {1 首曲目已完成} other {{count} 首曲目已完成}}",
+		"filesRemaining": "{count, plural, =1 {1 个文件剩余} other {{count} 个文件剩余}}",
+		"resumeFromCheckpoint": "从上一个检查点继续"
 	},
 	"editor": {
 		"trackInfo": "曲目信息",
@@ -320,10 +413,17 @@
 		"help": "帮助",
 		"about": "关于 {appName}",
 		"settings": "设置...",
+		"settingsSubmenu": "设置",
+		"settingsGeneral": "常规",
+		"settingsLibrary": "曲库",
+		"settingsAppearance": "外观",
+		"settingsSound": "声音",
+		"settingsDiagnostics": "诊断",
 		"quit": "退出 {appName}",
 		"importTracks": "导入曲目...",
 		"newPlaylist": "新建播放列表",
 		"newFolder": "新建文件夹",
+		"quickExport": "快速导出...",
 		"undo": "撤销",
 		"redo": "重做",
 		"cut": "剪切",
@@ -332,6 +432,7 @@
 		"selectAllTracks": "全选曲目",
 		"playPause": "播放/暂停",
 		"stop": "停止",
+		"jumpToPlaying": "跳转到正在播放的曲目",
 		"toggleSidebar": "切换侧边栏",
 		"showDevTools": "显示开发者工具",
 		"minimize": "最小化",

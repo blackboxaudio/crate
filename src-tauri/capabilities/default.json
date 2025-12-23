@@ -16,6 +16,7 @@
     "fs:allow-read-dir",
     "fs:allow-appdata-write-recursive",
     "fs:allow-mkdir",
-    "clipboard-manager:allow-write-text"
+    "clipboard-manager:allow-write-text",
+    "window-state:default"
   ]
 }

@@ -10,7 +10,7 @@
 export interface DropTarget {
 	element: HTMLElement
 	id: string
-	type: 'playlist' | 'folder'
+	type: 'playlist' | 'folder' | 'device'
 	rect: DOMRect
 }
 
@@ -39,7 +39,7 @@ export function findDropTargets(): DropTarget[] {
 		const value = element.getAttribute(DROP_TARGET_ATTR)
 		if (!value) return
 
-		// Parse the value: "playlist-{id}" or "folder-{id}"
+		// Parse the value: "playlist-{id}", "folder-{id}", or "device-{id}"
 		// Split only on the first dash to preserve UUIDs which contain dashes
 		const dashIndex = value.indexOf('-')
 		if (dashIndex === -1) return
@@ -47,12 +47,12 @@ export function findDropTargets(): DropTarget[] {
 		const type = value.substring(0, dashIndex)
 		const id = value.substring(dashIndex + 1)
 		if (!type || !id) return
-		if (type !== 'playlist' && type !== 'folder') return
+		if (type !== 'playlist' && type !== 'folder' && type !== 'device') return
 
 		targets.push({
 			element,
 			id,
-			type: type as 'playlist' | 'folder',
+			type: type as 'playlist' | 'folder' | 'device',
 			rect: element.getBoundingClientRect(),
 		})
 	})

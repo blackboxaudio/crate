@@ -5,16 +5,19 @@
 	type TooltipPosition = 'top' | 'bottom' | 'left' | 'right'
 
 	type Props = {
+		text?: string
 		position?: TooltipPosition
+		delay?: number
 		class?: string
 		children: Snippet
 	}
 
-	let { position = 'top', class: className = '', children }: Props = $props()
+	let { text, position = 'top', delay = 0, class: className = '', children }: Props = $props()
 
 	let visible = $state(false)
 	let message = $state('')
 	let timeoutId: ReturnType<typeof setTimeout> | undefined = $state()
+	let hoverTimeoutId: ReturnType<typeof setTimeout> | undefined = $state()
 
 	const positionStyles: Record<TooltipPosition, string> = {
 		top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
@@ -23,6 +26,7 @@
 		right: 'left-full top-1/2 -translate-y-1/2 ml-2',
 	}
 
+	// Programmatic API
 	export function show(text: string, duration: number = 2000): void {
 		if (timeoutId) {
 			clearTimeout(timeoutId)
@@ -45,9 +49,34 @@
 		}
 		visible = false
 	}
+
+	// Hover handlers for declarative usage with `text` prop
+	function handleMouseEnter() {
+		if (!text) return
+
+		if (delay > 0) {
+			hoverTimeoutId = setTimeout(() => {
+				message = text
+				visible = true
+			}, delay)
+		} else {
+			message = text
+			visible = true
+		}
+	}
+
+	function handleMouseLeave() {
+		if (!text) return
+
+		if (hoverTimeoutId) {
+			clearTimeout(hoverTimeoutId)
+			hoverTimeoutId = undefined
+		}
+		visible = false
+	}
 </script>
 
-<div class="relative inline-flex">
+<div class="relative inline-flex" role="group" onmouseenter={handleMouseEnter} onmouseleave={handleMouseLeave}>
 	{@render children()}
 
 	{#if visible}

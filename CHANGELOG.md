@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Export playlists to USB devices with Pioneer/Rekordbox compatibility
+- Multi-language support with 11 locales: English, Japanese, Dutch, French, German, Spanish, Italian, Swedish, Korean, Portuguese, and Chinese
+- Automatic system language detection with user preference override in Settings
+- Track BPM and key analysis
+
 ## [0.1.0] - 2024-12-20
 
 Initial release.

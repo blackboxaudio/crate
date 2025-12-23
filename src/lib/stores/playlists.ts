@@ -2,6 +2,7 @@ import { writable, derived, get } from 'svelte/store'
 import type { Playlist, Track, BreadcrumbItem, MoveConflictResolution, MovePlaylistResult } from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
 import { translate } from '$lib/i18n'
+import { syncStore } from './sync'
 
 // =============================================================================
 // State
@@ -101,6 +102,10 @@ function createPlaylistsStore() {
 					...state,
 					playlists: state.playlists.map((p) => (p.id === id ? updated : p)),
 				}))
+
+				// Notify sync store about playlist changes (for auto-sync)
+				syncStore.notifyPlaylistChanges([id])
+
 				return updated
 			} catch (error) {
 				update((state) => ({
@@ -193,17 +198,15 @@ function createPlaylistsStore() {
 		 */
 		async addTracks(playlistId: string, trackIds: string[]) {
 			try {
-				await playlistsApi.addToPlaylist(playlistId, trackIds)
-				// Update track count
+				const updatedPlaylist = await playlistsApi.addToPlaylist(playlistId, trackIds)
+				// Update playlist with accurate data from backend
 				update((state) => ({
 					...state,
-					playlists: state.playlists.map((p) => {
-						if (p.id === playlistId) {
-							return { ...p, track_count: p.track_count + trackIds.length }
-						}
-						return p
-					}),
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
 				}))
+
+				// Notify sync store about playlist changes (for auto-sync)
+				syncStore.notifyPlaylistChanges([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,
@@ -217,17 +220,15 @@ function createPlaylistsStore() {
 		 */
 		async removeTracks(playlistId: string, trackIds: string[]) {
 			try {
-				await playlistsApi.removeFromPlaylist(playlistId, trackIds)
-				// Update track count
+				const updatedPlaylist = await playlistsApi.removeFromPlaylist(playlistId, trackIds)
+				// Update playlist with accurate data from backend
 				update((state) => ({
 					...state,
-					playlists: state.playlists.map((p) => {
-						if (p.id === playlistId) {
-							return { ...p, track_count: Math.max(0, p.track_count - trackIds.length) }
-						}
-						return p
-					}),
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
 				}))
+
+				// Notify sync store about playlist changes (for auto-sync)
+				syncStore.notifyPlaylistChanges([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,
@@ -242,6 +243,9 @@ function createPlaylistsStore() {
 		async reorderTracks(playlistId: string, trackIds: string[]) {
 			try {
 				await playlistsApi.reorderPlaylist(playlistId, trackIds)
+
+				// Notify sync store about playlist changes (for auto-sync)
+				syncStore.notifyPlaylistChanges([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,
@@ -288,15 +292,22 @@ export interface PlaylistTreeNode {
 }
 
 export function buildPlaylistTree(playlists: Playlist[]): PlaylistTreeNode[] {
-	const rootItems = playlists.filter((p) => p.parent_id === null)
+	// Sort items: folders first, then alphabetically by name
+	const sortItems = (items: Playlist[]) =>
+		[...items].sort((a, b) => {
+			if (a.is_folder !== b.is_folder) {
+				return a.is_folder ? -1 : 1
+			}
+			return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+		})
+
+	const rootItems = sortItems(playlists.filter((p) => p.parent_id === null))
 
 	function buildChildren(parentId: string): PlaylistTreeNode[] {
-		return playlists
-			.filter((p) => p.parent_id === parentId)
-			.map((playlist) => ({
-				playlist,
-				children: buildChildren(playlist.id),
-			}))
+		return sortItems(playlists.filter((p) => p.parent_id === parentId)).map((playlist) => ({
+			playlist,
+			children: buildChildren(playlist.id),
+		}))
 	}
 
 	return rootItems.map((playlist) => ({

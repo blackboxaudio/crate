@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { fade } from 'svelte/transition'
 	import type { Track, TrackColor } from '$lib/types'
 	import { formatDurationCompact, formatBpm, formatKey, getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { AlbumArt, AlbumArtModal, Text } from '$lib/components/common'
-	import { missingTrackIds, dragStore } from '$lib/stores'
+	import { AlbumArt, AlbumArtModal, Spinner, Text, Tooltip } from '$lib/components/common'
+	import { missingTrackIds, dragStore, keyNotationFormat } from '$lib/stores'
+	import { translate } from '$lib/i18n'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import TrackColorCell from './TrackColorCell.svelte'
 
@@ -12,6 +14,7 @@
 		track: Track
 		selected?: boolean
 		playing?: boolean
+		analyzing?: boolean
 		dragTrackIds?: string[]
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -19,12 +22,14 @@
 		ondblclick?: (e: MouseEvent) => void
 		oncontextmenu?: (e: MouseEvent) => void
 		onColorChange?: (color: TrackColor | null) => void
+		onCancelAnalysis?: () => void
 	}
 
 	let {
 		track,
 		selected = false,
 		playing = false,
+		analyzing = false,
 		dragTrackIds = [],
 		categoryColors,
 		categorySortOrders,
@@ -32,9 +37,11 @@
 		ondblclick,
 		oncontextmenu,
 		onColorChange,
+		onCancelAnalysis,
 	}: Props = $props()
 
 	let showArtworkModal = $state(false)
+	let isHoveringColorCell = $state(false)
 
 	// Track pointer state for drag detection
 	let pointerStartPos: { x: number; y: number } | null = null
@@ -87,7 +94,7 @@
 	role="row"
 	tabindex="0"
 	data-track-row
-	class="relative grid cursor-pointer grid-cols-[24px_40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors select-none {selected
+	class="relative grid cursor-pointer grid-cols-[24px_40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-1 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'} {isMissing
 		? 'bg-red-500/5'
@@ -106,13 +113,45 @@
 		<div class="pointer-events-none absolute inset-0 border-l-2 border-red-500/50"></div>
 	{/if}
 	<!-- Color -->
-	<TrackColorCell color={track.color} onselect={onColorChange} />
+	<div
+		role="presentation"
+		class="relative flex h-full items-center justify-center"
+		onmouseenter={() => (isHoveringColorCell = true)}
+		onmouseleave={() => (isHoveringColorCell = false)}
+	>
+		{#if analyzing}
+			{#if isHoveringColorCell && onCancelAnalysis}
+				<Tooltip text={$translate('contextMenu.stopAnalysis')} position="right">
+					<div transition:fade={{ duration: 150 }}>
+						<button
+							type="button"
+							class="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors hover:bg-red-500/20"
+							onclick={(e) => {
+								e.stopPropagation()
+								onCancelAnalysis?.()
+							}}
+						>
+							<Icon name="x" class="h-3 w-3 text-red-500" />
+						</button>
+					</div>
+				</Tooltip>
+			{:else}
+				<div class="absolute inset-0 flex items-center justify-center" transition:fade={{ duration: 150 }}>
+					<Spinner class="h-3 w-3" />
+				</div>
+			{/if}
+		{:else}
+			<div transition:fade={{ duration: 150 }}>
+				<TrackColorCell color={track.color} onselect={onColorChange} />
+			</div>
+		{/if}
+	</div>
 
 	<!-- Artwork -->
 	<div class="flex justify-center">
 		<AlbumArt
 			artworkPath={track.artwork_path}
-			size="sm"
+			size="xs"
 			onclick={handleArtworkClick}
 			class={track.artwork_path ? 'cursor-zoom-in' : ''}
 		/>
@@ -143,8 +182,8 @@
 	</div>
 
 	<!-- Key -->
-	<div class="text-center text-text-secondary">
-		{formatKey(track.key)}
+	<div class="flex items-center justify-center text-text-secondary">
+		{formatKey(track.key, $keyNotationFormat)}
 	</div>
 
 	<!-- Duration -->

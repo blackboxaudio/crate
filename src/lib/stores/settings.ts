@@ -1,5 +1,6 @@
+import { tick } from 'svelte'
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor, Font, AudioDevice, Language } from '$lib/types'
+import type { Theme, AccentColor, Font, AudioDevice, Language, KeyNotationFormat, ExportFormat } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
 import { setLanguage as setI18nLanguage, translate } from '$lib/i18n'
@@ -17,6 +18,12 @@ interface SettingsState {
 	audioDevice: string | null
 	audioDevices: AudioDevice[]
 	language: Language
+	keyNotationFormat: KeyNotationFormat
+	exportFormat: ExportFormat
+	autoAnalyzeOnImport: boolean
+	autoSyncOnConnect: boolean
+	autoSyncOnChange: boolean
+	ignoredDeviceIds: string[]
 	loading: boolean
 	error: string | null
 }
@@ -29,6 +36,12 @@ const initialState: SettingsState = {
 	audioDevice: null,
 	audioDevices: [],
 	language: 'en',
+	keyNotationFormat: 'camelot',
+	exportFormat: 'pdb',
+	autoAnalyzeOnImport: true,
+	autoSyncOnConnect: false,
+	autoSyncOnChange: false,
+	ignoredDeviceIds: [],
 	loading: false,
 	error: null,
 }
@@ -141,6 +154,7 @@ function createSettingsStore() {
 			importTracks: t('menu.importTracks'),
 			newPlaylist: t('menu.newPlaylist'),
 			newFolder: t('menu.newFolder'),
+			quickExport: t('menu.quickExport'),
 			// Edit menu items
 			undo: t('menu.undo'),
 			redo: t('menu.redo'),
@@ -151,9 +165,17 @@ function createSettingsStore() {
 			// Playback menu items
 			playPause: t('menu.playPause'),
 			stop: t('menu.stop'),
+			jumpToPlaying: t('menu.jumpToPlaying'),
 			// View menu items
 			toggleSidebar: t('menu.toggleSidebar'),
 			showDevTools: t('menu.showDevTools'),
+			// Settings submenu
+			settingsSubmenu: t('menu.settingsSubmenu'),
+			settingsGeneral: t('menu.settingsGeneral'),
+			settingsLibrary: t('menu.settingsLibrary'),
+			settingsAppearance: t('menu.settingsAppearance'),
+			settingsSound: t('menu.settingsSound'),
+			settingsDiagnostics: t('menu.settingsDiagnostics'),
 			// Window menu items
 			minimize: t('menu.minimize'),
 			zoom: t('menu.zoom'),
@@ -192,6 +214,12 @@ function createSettingsStore() {
 					audioDevice: settings.audioDevice,
 					audioDevices,
 					language: settings.language,
+					keyNotationFormat: settings.keyNotationFormat,
+					exportFormat: settings.exportFormat ?? 'pdb',
+					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
+					autoSyncOnConnect: settings.autoSyncOnConnect,
+					autoSyncOnChange: settings.autoSyncOnChange,
+					ignoredDeviceIds: settings.ignoredDeviceIds,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -204,6 +232,7 @@ function createSettingsStore() {
 
 				// Update i18n language and menu
 				await setI18nLanguage(settings.language)
+				await tick()
 				await updateMenuTranslations()
 			} catch (error) {
 				update((s) => ({
@@ -291,6 +320,7 @@ function createSettingsStore() {
 
 			update((s) => ({ ...s, language }))
 			await setI18nLanguage(language)
+			await tick()
 			await updateMenuTranslations()
 			persistToLocalStorage(state.theme, state.accentColor, language)
 
@@ -298,6 +328,103 @@ function createSettingsStore() {
 				await settingsApi.setSetting('language', language)
 			} catch (error) {
 				console.error('Failed to save language setting:', error)
+			}
+		},
+
+		/**
+		 * Set key notation format (standard or camelot)
+		 */
+		async setKeyNotationFormat(format: KeyNotationFormat) {
+			update((s) => ({ ...s, keyNotationFormat: format }))
+
+			try {
+				await settingsApi.setSetting('key_notation_format', format)
+			} catch (error) {
+				console.error('Failed to save key notation format setting:', error)
+			}
+		},
+
+		/**
+		 * Set export format (pdb or device_library_plus)
+		 */
+		async setExportFormat(format: ExportFormat) {
+			update((s) => ({ ...s, exportFormat: format }))
+
+			try {
+				await settingsApi.setSetting('export_format', format)
+			} catch (error) {
+				console.error('Failed to save export format setting:', error)
+			}
+		},
+
+		/**
+		 * Set auto-analyze on import
+		 */
+		async setAutoAnalyzeOnImport(enabled: boolean) {
+			update((s) => ({ ...s, autoAnalyzeOnImport: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_analyze_on_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto analyze on import setting:', error)
+			}
+		},
+
+		/**
+		 * Set auto-sync on device connected
+		 */
+		async setAutoSyncOnConnect(enabled: boolean) {
+			update((s) => ({ ...s, autoSyncOnConnect: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_sync_on_connect', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto sync on connect setting:', error)
+			}
+		},
+
+		/**
+		 * Set auto-sync on library changes
+		 */
+		async setAutoSyncOnChange(enabled: boolean) {
+			update((s) => ({ ...s, autoSyncOnChange: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_sync_on_change', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto sync on change setting:', error)
+			}
+		},
+
+		/**
+		 * Add a device to the ignore list
+		 */
+		async ignoreDevice(deviceId: string) {
+			const state = get({ subscribe })
+			if (state.ignoredDeviceIds.includes(deviceId)) return
+
+			const newList = [...state.ignoredDeviceIds, deviceId]
+			update((s) => ({ ...s, ignoredDeviceIds: newList }))
+
+			try {
+				await settingsApi.setSetting('ignored_device_ids', JSON.stringify(newList))
+			} catch (error) {
+				console.error('Failed to save ignored devices setting:', error)
+			}
+		},
+
+		/**
+		 * Remove a device from the ignore list
+		 */
+		async unignoreDevice(deviceId: string) {
+			const state = get({ subscribe })
+			const newList = state.ignoredDeviceIds.filter((id) => id !== deviceId)
+			update((s) => ({ ...s, ignoredDeviceIds: newList }))
+
+			try {
+				await settingsApi.setSetting('ignored_device_ids', JSON.stringify(newList))
+			} catch (error) {
+				console.error('Failed to save ignored devices setting:', error)
 			}
 		},
 
@@ -341,5 +468,17 @@ export const audioDevice = derived(settingsStore, ($s) => $s.audioDevice)
 export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
 
 export const language = derived(settingsStore, ($s) => $s.language)
+
+export const keyNotationFormat = derived(settingsStore, ($s) => $s.keyNotationFormat)
+
+export const exportFormat = derived(settingsStore, ($s) => $s.exportFormat)
+
+export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyzeOnImport)
+
+export const autoSyncOnConnect = derived(settingsStore, ($s) => $s.autoSyncOnConnect)
+
+export const autoSyncOnChange = derived(settingsStore, ($s) => $s.autoSyncOnChange)
+
+export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceIds)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

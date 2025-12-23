@@ -1,6 +1,7 @@
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { onMenuAction, type MenuAction } from '$lib/api/menu'
 import { isInputFocused } from '$lib/utils'
+import type { SettingsPage } from '$lib/types'
 
 // =============================================================================
 // Types
@@ -13,7 +14,9 @@ export interface MenuActionHandlers {
 	onSelectAll: () => void
 	onPlayPause: () => void
 	onStop: () => void
-	onOpenSettings: () => void
+	onOpenSettings: (tab?: SettingsPage) => void
+	onQuickExport: () => void
+	onJumpToPlayingTrack: () => void
 }
 
 // =============================================================================
@@ -33,6 +36,8 @@ export interface MenuActionHandlers {
  * - select_all: Select all (text in input, or tracks)
  * - play_pause: Toggle playback (when not typing)
  * - stop: Stop playback
+ * - quick_export: Open quick export modal
+ * - jump_to_playing: Jump to currently playing track
  * - toggle_sidebar, documentation, report_issue: TODOs
  *
  * Menu actions handled by backend:
@@ -43,7 +48,17 @@ export interface MenuActionHandlers {
  * @returns Promise of cleanup function to remove the listener
  */
 export async function useMenuActions(handlers: MenuActionHandlers): Promise<() => void> {
-	const { onImport, onCreatePlaylist, onCreateFolder, onSelectAll, onPlayPause, onStop, onOpenSettings } = handlers
+	const {
+		onImport,
+		onCreatePlaylist,
+		onCreateFolder,
+		onSelectAll,
+		onPlayPause,
+		onStop,
+		onOpenSettings,
+		onQuickExport,
+		onJumpToPlayingTrack,
+	} = handlers
 
 	let unlistenMenu: UnlistenFn | null = null
 
@@ -66,6 +81,9 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				break
 			case 'new_folder':
 				onCreateFolder()
+				break
+			case 'quick_export':
+				onQuickExport()
 				break
 
 			// Edit menu - text editing commands
@@ -102,10 +120,30 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 			case 'stop':
 				onStop()
 				break
+			case 'jump_to_playing':
+				onJumpToPlayingTrack()
+				break
 
 			// View menu
 			case 'toggle_sidebar':
 				// TODO: Implement sidebar toggle
+				break
+
+			// View > Settings submenu
+			case 'settings_general':
+				onOpenSettings('general')
+				break
+			case 'settings_library':
+				onOpenSettings('library')
+				break
+			case 'settings_appearance':
+				onOpenSettings('appearance')
+				break
+			case 'settings_sound':
+				onOpenSettings('sound')
+				break
+			case 'settings_diagnostics':
+				onOpenSettings('diagnostics')
 				break
 
 			// Help menu

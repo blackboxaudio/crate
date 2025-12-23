@@ -26,6 +26,7 @@
 		onPlaylistContextMenu?: (e: MouseEvent, playlist: Playlist) => void
 		onPlaylistTreeContextMenu?: (e: MouseEvent) => void
 		onDeviceContextMenu?: (e: MouseEvent, device: UsbDevice) => void
+		onCancelExport?: () => void
 		onTagSelect?: (tagId: string) => void
 		onTagToggle?: (tagId: string, state: TagSelectionState) => void
 		onTagContextMenu?: (e: MouseEvent, tag: Tag, category: TagCategory) => void
@@ -57,6 +58,7 @@
 		onPlaylistContextMenu,
 		onPlaylistTreeContextMenu,
 		onDeviceContextMenu,
+		onCancelExport,
 		onTagSelect,
 		onTagToggle,
 		onTagContextMenu,
@@ -88,7 +90,7 @@
 		</div>
 	{/if}
 
-	<DeviceList {devices} onContextMenu={onDeviceContextMenu} />
+	<DeviceList {devices} onContextMenu={onDeviceContextMenu} {onCancelExport} />
 
 	<!-- Library -->
 	<div class="mx-0 border-t border-stroke px-2 pt-6">

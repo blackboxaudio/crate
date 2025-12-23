@@ -32,10 +32,59 @@ export function formatBpm(bpm: number | null): string {
 }
 
 /**
- * Format key for display (already in Camelot or standard notation)
+ * Mapping from Standard notation to Camelot wheel notation
+ * Keys are stored in Standard format and converted to Camelot for display when needed
  */
-export function formatKey(key: string | null): string {
+const STANDARD_TO_CAMELOT: Record<string, string> = {
+	// Major keys
+	C: '8B',
+	G: '9B',
+	D: '10B',
+	A: '11B',
+	E: '12B',
+	B: '1B',
+	'F#': '2B',
+	Gb: '2B',
+	'C#': '3B',
+	Db: '3B',
+	Ab: '4B',
+	'G#': '4B',
+	Eb: '5B',
+	'D#': '5B',
+	Bb: '6B',
+	'A#': '6B',
+	F: '7B',
+	// Minor keys
+	Am: '8A',
+	Em: '9A',
+	Bm: '10A',
+	'F#m': '11A',
+	Gbm: '11A',
+	'C#m': '12A',
+	Dbm: '12A',
+	'G#m': '1A',
+	Abm: '1A',
+	'D#m': '2A',
+	Ebm: '2A',
+	'A#m': '3A',
+	Bbm: '3A',
+	Fm: '4A',
+	Cm: '5A',
+	Gm: '6A',
+	Dm: '7A',
+}
+
+/**
+ * Format key for display based on notation format preference
+ * Keys are stored in Standard notation and converted to Camelot when that format is selected
+ */
+export function formatKey(key: string | null, format: 'standard' | 'camelot' = 'camelot'): string {
 	if (!key) return '-'
+
+	if (format === 'camelot') {
+		return STANDARD_TO_CAMELOT[key] ?? key
+	}
+
 	return key
 }
 
@@ -48,6 +97,18 @@ export function formatFileSize(bytes: number): string {
 	const sizes = ['B', 'KB', 'MB', 'GB']
 	const i = Math.floor(Math.log(bytes) / Math.log(k))
 	return `${parseFloat((bytes / Math.pow(k, i)).toFixed(1))} ${sizes[i]}`
+}
+
+/**
+ * Format bytes to human-readable string (handles null/undefined)
+ */
+export function formatBytes(bytes: number | null | undefined): string {
+	if (bytes === null || bytes === undefined) return '-'
+	if (bytes === 0) return '0 B'
+	const k = 1024
+	const sizes = ['B', 'KB', 'MB', 'GB', 'TB']
+	const i = Math.floor(Math.log(bytes) / Math.log(k))
+	return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`
 }
 
 /**

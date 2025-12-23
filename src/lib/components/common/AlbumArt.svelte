@@ -2,7 +2,7 @@
 	import { getArtworkUrl } from '$lib/utils'
 	import Icon from './Icon.svelte'
 
-	type Size = 'sm' | 'md' | 'lg'
+	type Size = 'xs' | 'sm' | 'md' | 'lg'
 
 	type Props = {
 		artworkPath: string | null
@@ -14,12 +14,14 @@
 	let { artworkPath, size = 'md', class: className = '', onclick }: Props = $props()
 
 	const sizeClasses: Record<Size, string> = {
+		xs: 'h-6 w-6',
 		sm: 'h-8 w-8',
 		md: 'h-12 w-12',
 		lg: 'aspect-square w-full max-w-[400px]',
 	}
 
 	const iconSizes: Record<Size, string> = {
+		xs: 'h-4 w-4',
 		sm: 'h-4 w-4',
 		md: 'h-6 w-6',
 		lg: 'h-16 w-16',

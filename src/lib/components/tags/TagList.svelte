@@ -2,7 +2,7 @@
 	import type { Tag, TagCategory, TagSelectionState } from '$lib/types'
 	import TagChip from './TagChip.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { Text } from '$lib/components/common'
+	import { Text, Tooltip } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
 
 	type Props = {
@@ -77,14 +77,15 @@
 				<Text variant="header-table" as="h3" weight="semibold" class="cursor-default">
 					{category.name}
 				</Text>
-				<button
-					type="button"
-					class="rounded p-0.5 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-secondary"
-					onclick={() => onCreateTag?.(category.id)}
-					title={$translate('tags.addTag')}
-				>
-					<Icon name="plus" class="h-3.5 w-3.5" />
-				</button>
+				<Tooltip text={$translate('tags.addTag')} position="left" delay={250}>
+					<button
+						type="button"
+						class="rounded p-0.5 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-secondary"
+						onclick={() => onCreateTag?.(category.id)}
+					>
+						<Icon name="plus" class="h-3.5 w-3.5" />
+					</button>
+				</Tooltip>
 			</div>
 			<div class="flex flex-wrap gap-1.5 px-3">
 				{#each category.tags.toSorted((a, b) => a.name.localeCompare(b.name)) as tag (tag.id)}
@@ -99,13 +100,13 @@
 					/>
 				{/each}
 				{#if category.tags.length === 0}
-					<Text variant="caption" italic>No tags</Text>
+					<Text variant="caption" italic>{$translate('tags.noTags')}</Text>
 				{/if}
 			</div>
 		</div>
 	{/each}
 
 	{#if categories.length === 0}
-		<Text variant="caption" as="p" class="py-4 text-center">No tag categories yet</Text>
+		<Text variant="caption" as="p" class="py-4 text-center">{$translate('tags.noTagCategoriesYet')}</Text>
 	{/if}
 </div>

@@ -63,15 +63,15 @@ export async function getPlaylistTracks(playlistId: string): Promise<Track[]> {
 /**
  * Add tracks to a playlist
  */
-export async function addToPlaylist(playlistId: string, trackIds: string[]): Promise<void> {
-	return invoke<void>('add_to_playlist', { playlistId, trackIds })
+export async function addToPlaylist(playlistId: string, trackIds: string[]): Promise<Playlist> {
+	return invoke<Playlist>('add_to_playlist', { playlistId, trackIds })
 }
 
 /**
  * Remove tracks from a playlist
  */
-export async function removeFromPlaylist(playlistId: string, trackIds: string[]): Promise<void> {
-	return invoke<void>('remove_from_playlist', { playlistId, trackIds })
+export async function removeFromPlaylist(playlistId: string, trackIds: string[]): Promise<Playlist> {
+	return invoke<Playlist>('remove_from_playlist', { playlistId, trackIds })
 }
 
 /**

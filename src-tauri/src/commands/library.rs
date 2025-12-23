@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use tauri::State;
 
-use crate::error::CrateError;
+use crate::error::Result;
 use crate::models::{
     DuplicateResolution, FileMatchResult, ImportResult, ImportResultWithDuplicates, Track,
     TrackFilter, TrackUpdate,
@@ -14,7 +14,7 @@ use crate::services::LibraryService;
 pub async fn import_tracks(
     paths: Vec<String>,
     library: State<'_, LibraryService>,
-) -> Result<ImportResult, CrateError> {
+) -> Result<ImportResult> {
     let pathbufs: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
     library.import_tracks(pathbufs)
 }
@@ -23,15 +23,12 @@ pub async fn import_tracks(
 pub async fn get_tracks(
     filter: Option<TrackFilter>,
     library: State<'_, LibraryService>,
-) -> Result<Vec<Track>, CrateError> {
+) -> Result<Vec<Track>> {
     library.get_tracks(filter)
 }
 
 #[tauri::command]
-pub async fn get_track(
-    id: String,
-    library: State<'_, LibraryService>,
-) -> Result<Track, CrateError> {
+pub async fn get_track(id: String, library: State<'_, LibraryService>) -> Result<Track> {
     library.get_track(&id)
 }
 
@@ -40,15 +37,12 @@ pub async fn update_track(
     id: String,
     update: TrackUpdate,
     library: State<'_, LibraryService>,
-) -> Result<Track, CrateError> {
+) -> Result<Track> {
     library.update_track(&id, update)
 }
 
 #[tauri::command]
-pub async fn delete_tracks(
-    ids: Vec<String>,
-    library: State<'_, LibraryService>,
-) -> Result<(), CrateError> {
+pub async fn delete_tracks(ids: Vec<String>, library: State<'_, LibraryService>) -> Result<()> {
     library.delete_tracks(ids)
 }
 
@@ -56,7 +50,7 @@ pub async fn delete_tracks(
 pub async fn search_tracks(
     query: String,
     library: State<'_, LibraryService>,
-) -> Result<Vec<Track>, CrateError> {
+) -> Result<Vec<Track>> {
     let filter = TrackFilter {
         search: Some(query),
         ..Default::default()
@@ -65,17 +59,12 @@ pub async fn search_tracks(
 }
 
 #[tauri::command]
-pub async fn rescan_artwork(
-    library: State<'_, LibraryService>,
-) -> Result<RescanResult, CrateError> {
+pub async fn rescan_artwork(library: State<'_, LibraryService>) -> Result<RescanResult> {
     library.rescan_all_artwork()
 }
 
 #[tauri::command]
-pub async fn rescan_track_artwork(
-    id: String,
-    library: State<'_, LibraryService>,
-) -> Result<bool, CrateError> {
+pub async fn rescan_track_artwork(id: String, library: State<'_, LibraryService>) -> Result<bool> {
     library.rescan_track_artwork(&id)
 }
 
@@ -83,7 +72,7 @@ pub async fn rescan_track_artwork(
 pub async fn check_file_exists(
     track_id: String,
     library: State<'_, LibraryService>,
-) -> Result<bool, CrateError> {
+) -> Result<bool> {
     library.check_track_file_exists(&track_id)
 }
 
@@ -92,7 +81,7 @@ pub async fn validate_replacement_file(
     track_id: String,
     new_path: String,
     library: State<'_, LibraryService>,
-) -> Result<FileMatchResult, CrateError> {
+) -> Result<FileMatchResult> {
     library.validate_replacement_file(&track_id, &PathBuf::from(new_path))
 }
 
@@ -102,7 +91,7 @@ pub async fn relocate_track(
     new_path: String,
     force: bool,
     library: State<'_, LibraryService>,
-) -> Result<Track, CrateError> {
+) -> Result<Track> {
     library.relocate_track(&track_id, &PathBuf::from(new_path), force)
 }
 
@@ -111,7 +100,7 @@ pub async fn set_track_colors(
     track_ids: Vec<String>,
     color: Option<String>,
     library: State<'_, LibraryService>,
-) -> Result<(), CrateError> {
+) -> Result<()> {
     library.set_track_colors(track_ids, color)
 }
 
@@ -120,7 +109,7 @@ pub async fn update_tracks(
     ids: Vec<String>,
     update: TrackUpdate,
     library: State<'_, LibraryService>,
-) -> Result<Vec<Track>, CrateError> {
+) -> Result<Vec<Track>> {
     library.update_tracks(ids, update)
 }
 
@@ -129,7 +118,7 @@ pub async fn set_track_artwork(
     track_id: String,
     file_path: String,
     library: State<'_, LibraryService>,
-) -> Result<Track, CrateError> {
+) -> Result<Track> {
     library.set_track_artwork(&track_id, &PathBuf::from(file_path))
 }
 
@@ -137,7 +126,7 @@ pub async fn set_track_artwork(
 pub async fn delete_track_artwork(
     track_id: String,
     library: State<'_, LibraryService>,
-) -> Result<Track, CrateError> {
+) -> Result<Track> {
     library.delete_track_artwork(&track_id)
 }
 
@@ -145,7 +134,7 @@ pub async fn delete_track_artwork(
 pub async fn reextract_track_artwork(
     track_id: String,
     library: State<'_, LibraryService>,
-) -> Result<Track, CrateError> {
+) -> Result<Track> {
     library.reextract_track_artwork(&track_id)
 }
 
@@ -153,7 +142,7 @@ pub async fn reextract_track_artwork(
 pub async fn import_tracks_with_duplicates(
     paths: Vec<String>,
     library: State<'_, LibraryService>,
-) -> Result<ImportResultWithDuplicates, CrateError> {
+) -> Result<ImportResultWithDuplicates> {
     let pathbufs: Vec<PathBuf> = paths.into_iter().map(PathBuf::from).collect();
     library.import_tracks_with_duplicate_detection(pathbufs)
 }
@@ -162,6 +151,6 @@ pub async fn import_tracks_with_duplicates(
 pub async fn resolve_duplicate(
     resolution: DuplicateResolution,
     library: State<'_, LibraryService>,
-) -> Result<Option<Track>, CrateError> {
+) -> Result<Option<Track>> {
     library.resolve_duplicate(resolution)
 }

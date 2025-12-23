@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
+use serde_json;
 
 use crate::error::{CrateError, Result};
 use crate::models::AppSettings;
@@ -42,12 +43,45 @@ impl SettingsService {
             .and_then(|v| v.parse().ok())
             .unwrap_or_default();
 
+        let key_notation_format = self
+            .get_setting_value(&conn, "key_notation_format")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
+        // Default to true if not set (enabled by default)
+        let auto_analyze_on_import = self
+            .get_setting_value(&conn, "auto_analyze_on_import")?
+            .map(|v| v != "false")
+            .unwrap_or(true);
+
+        // Default to false if not set (disabled by default)
+        let auto_sync_on_connect = self
+            .get_setting_value(&conn, "auto_sync_on_connect")?
+            .map(|v| v == "true")
+            .unwrap_or(false);
+
+        let auto_sync_on_change = self
+            .get_setting_value(&conn, "auto_sync_on_change")?
+            .map(|v| v == "true")
+            .unwrap_or(false);
+
+        // Parse ignored device IDs from JSON array, default to empty
+        let ignored_device_ids = self
+            .get_setting_value(&conn, "ignored_device_ids")?
+            .and_then(|v| serde_json::from_str(&v).ok())
+            .unwrap_or_default();
+
         Ok(AppSettings {
             theme,
             accent_color,
             font,
             audio_device,
             language,
+            key_notation_format,
+            auto_analyze_on_import,
+            auto_sync_on_connect,
+            auto_sync_on_change,
+            ignored_device_ids,
         })
     }
 

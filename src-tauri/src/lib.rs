@@ -5,10 +5,12 @@ mod menu;
 mod models;
 mod services;
 
+use std::sync::Arc;
+
 use db::Database;
 use services::{
-    AudioService, DeviceService, DiagnosticsService, LibraryService, PlaylistService,
-    SettingsService, TagService,
+    export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
+    ExportService, LibraryService, PlaylistService, SettingsService, SyncService, TagService,
 };
 use tauri::Manager;
 
@@ -21,6 +23,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build())
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
@@ -83,12 +86,36 @@ pub fn run() {
             // Device commands
             commands::device::get_devices,
             commands::device::eject_device,
+            commands::device::reformat_device,
+            // Export commands
+            commands::export::export_playlists,
+            commands::export::get_device_exports,
+            commands::export::cancel_export,
+            commands::export::cleanup_failed_export,
+            commands::export::get_pending_checkpoint,
+            commands::export::delete_checkpoint,
+            commands::export::resume_export,
+            // Sync commands
+            commands::sync::sync_device,
+            commands::sync::get_pending_sync_playlists,
+            commands::sync::has_pending_sync_changes,
+            commands::sync::is_syncing,
+            commands::sync::cancel_sync,
+            commands::sync::get_playlists_containing_track,
+            commands::sync::get_playlists_containing_tracks,
+            commands::sync::get_devices_for_playlist,
+            commands::sync::get_devices_for_playlists,
             // Diagnostics commands
             commands::diagnostics::get_diagnostic_entries,
             commands::diagnostics::get_system_info,
             commands::diagnostics::get_diagnostics_report,
             commands::diagnostics::clear_diagnostic_entries,
             commands::diagnostics::log_error,
+            // Analysis commands
+            commands::analysis::analyze_tracks,
+            commands::analysis::cancel_track_analysis,
+            commands::analysis::cancel_analysis,
+            commands::analysis::get_analyzed_tracks,
         ])
         .setup(|app| {
             // Get Tauri's app data directory
@@ -111,9 +138,13 @@ pub fn run() {
             let tag_service = TagService::new(conn.clone());
             let playlist_service = PlaylistService::new(conn.clone());
             let settings_service = SettingsService::new(conn.clone());
+            let export_service = Arc::new(ExportService::new(conn.clone()));
+            let checkpoint_service = Arc::new(CheckpointService::new(conn.clone()));
+            let sync_service = SyncService::new(conn.clone(), export_service.clone());
             let audio_service = AudioService::new().expect("Failed to initialize audio service");
             let device_service = DeviceService::new();
             let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
+            let analysis_service = AnalysisService::new(conn.clone());
 
             // Load saved audio device setting
             if let Ok(settings) = settings_service.get_settings() {
@@ -129,9 +160,13 @@ pub fn run() {
             app.manage(tag_service);
             app.manage(playlist_service);
             app.manage(settings_service);
+            app.manage(export_service);
+            app.manage(checkpoint_service);
+            app.manage(sync_service);
             app.manage(audio_service);
             app.manage(device_service);
             app.manage(diagnostics_service);
+            app.manage(analysis_service);
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

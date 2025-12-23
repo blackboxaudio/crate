@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Tag, TagFilterMode } from '$lib/types'
-	import { Button, IconButton } from '$lib/components/common'
+	import { Button, IconButton, Tooltip } from '$lib/components/common'
 	import { SearchBar } from '$lib/components/library'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { isDev } from '$lib/stores'
@@ -54,13 +54,12 @@
 			{$translate('library.importTracks')}
 		</Button>
 		{#if $isDev}
-			<IconButton
-				title={$translate('common.developerTools')}
-				icon="terminal"
-				iconClass="h-5 w-5"
-				onclick={onDevTools}
-			/>
+			<Tooltip text={$translate('common.developerTools')} position="bottom" delay={250}>
+				<IconButton icon="terminal" iconClass="h-5 w-5" onclick={onDevTools} />
+			</Tooltip>
 		{/if}
-		<IconButton title={$translate('settings.title')} icon="settings" iconClass="h-5 w-5" onclick={onSettings} />
+		<Tooltip text={$translate('settings.title')} position="bottom" delay={250}>
+			<IconButton icon="settings" iconClass="h-5 w-5" onclick={onSettings} />
+		</Tooltip>
 	</div>
 </div>

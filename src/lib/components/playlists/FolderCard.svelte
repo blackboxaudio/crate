@@ -2,6 +2,8 @@
 	import type { Playlist } from '$lib/types'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { translate } from '$lib/i18n'
+	import { dragStore } from '$lib/stores'
+	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 
 	type Props = {
 		playlist: Playlist
@@ -11,6 +13,35 @@
 	}
 
 	let { playlist, childCount = 0, onclick, oncontextmenu }: Props = $props()
+
+	// Track pointer state for drag detection
+	let pointerStartPos: { x: number; y: number } | null = null
+	let isDragStarted = false
+
+	function handlePointerDown(e: PointerEvent) {
+		// Only handle primary button (left click)
+		if (e.button !== 0) return
+
+		pointerStartPos = { x: e.clientX, y: e.clientY }
+		isDragStarted = false
+	}
+
+	function handlePointerMove(e: PointerEvent) {
+		if (!pointerStartPos) return
+
+		const distance = getDistance(pointerStartPos.x, pointerStartPos.y, e.clientX, e.clientY)
+
+		// Start drag if threshold exceeded
+		if (!isDragStarted && distance >= DRAG_THRESHOLD) {
+			isDragStarted = true
+			dragStore.startPlaylistDrag(playlist.id, playlist.is_folder, e.clientX, e.clientY)
+		}
+	}
+
+	function handlePointerUp() {
+		pointerStartPos = null
+		isDragStarted = false
+	}
 </script>
 
 <button
@@ -18,6 +49,10 @@
 	class="flex flex-col items-center gap-3 rounded-lg bg-surface-1 p-6 text-center transition-colors hover:cursor-pointer hover:bg-surface-2"
 	{onclick}
 	{oncontextmenu}
+	onpointerdown={handlePointerDown}
+	onpointermove={handlePointerMove}
+	onpointerup={handlePointerUp}
+	onpointercancel={handlePointerUp}
 >
 	<!-- Icon -->
 	<div class="flex h-12 w-12 items-center justify-center rounded-lg bg-stroke">

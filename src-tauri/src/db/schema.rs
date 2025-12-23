@@ -132,5 +132,57 @@ CREATE INDEX idx_tracks_color ON tracks(color);
 ALTER TABLE tracks ADD COLUMN artwork_source TEXT;
 -- Values: 'extracted', 'user_provided', or NULL
 "#,
+        // Migration 6: Device export tracking for USB sync
+        r#"
+-- Track which playlists have been exported to which devices
+CREATE TABLE device_exports (
+    id TEXT PRIMARY KEY,
+    device_id TEXT NOT NULL,           -- Volume UUID (stable across reconnections)
+    device_name TEXT NOT NULL,         -- Human-readable device name
+    playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+    last_export_at TEXT NOT NULL,      -- ISO timestamp
+    sync_enabled INTEGER NOT NULL DEFAULT 1,
+    UNIQUE(device_id, playlist_id)
+);
+
+-- Track which files have been copied to which devices
+CREATE TABLE device_tracks (
+    device_id TEXT NOT NULL,
+    track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
+    usb_path TEXT NOT NULL,            -- Path on USB relative to Contents/
+    file_hash TEXT NOT NULL,           -- Hash at time of export
+    pdb_track_id INTEGER,              -- Sequential ID assigned in PDB
+    exported_at TEXT NOT NULL,
+    PRIMARY KEY (device_id, track_id)
+);
+
+CREATE INDEX idx_device_exports_device ON device_exports(device_id);
+CREATE INDEX idx_device_exports_playlist ON device_exports(playlist_id);
+CREATE INDEX idx_device_tracks_device ON device_tracks(device_id);
+"#,
+        // Migration 7: Add last_sync_at for tracking sync timestamps
+        r#"
+ALTER TABLE device_exports ADD COLUMN last_sync_at TEXT;
+"#,
+        // Migration 8: Export checkpoints for resume support
+        r#"
+-- Track export progress for resumable exports
+CREATE TABLE export_checkpoints (
+    id TEXT PRIMARY KEY,
+    device_id TEXT NOT NULL,
+    device_name TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    state TEXT NOT NULL,               -- 'copying' | 'generating_pdb'
+    playlist_ids TEXT NOT NULL,        -- JSON array
+    tracks_completed TEXT NOT NULL,    -- JSON array of track IDs
+    tracks_failed TEXT NOT NULL,       -- JSON array of [track_id, error] tuples
+    last_updated_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_export_checkpoints_device ON export_checkpoints(device_id);
+
+-- Add metadata hash for detecting track changes
+ALTER TABLE device_tracks ADD COLUMN metadata_hash TEXT;
+"#,
     ]
 }

@@ -21,6 +21,7 @@
 		onBreadcrumbNavigate: (item: BreadcrumbItem) => void
 		onBreadcrumbContextMenu: (e: MouseEvent, item: BreadcrumbItem) => void
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
+		onCancelAnalysis?: (trackId: string) => void
 	}
 
 	let {
@@ -41,6 +42,7 @@
 		onBreadcrumbNavigate,
 		onBreadcrumbContextMenu,
 		onTrackColorChange,
+		onCancelAnalysis,
 	}: Props = $props()
 
 	function handleEmptySpaceContextMenu(e: MouseEvent) {
@@ -68,6 +70,7 @@
 			{onContextMenu}
 			onEmptySpaceContextMenu={handleEmptySpaceContextMenu}
 			{onTrackColorChange}
+			{onCancelAnalysis}
 		/>
 	</div>
 </div>

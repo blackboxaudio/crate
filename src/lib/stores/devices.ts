@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store'
 import type { UsbDevice } from '$lib/types'
 import * as devicesApi from '$lib/api/devices'
+import { ignoredDeviceIds } from './settings'
 
 // =============================================================================
 // Types
@@ -9,6 +10,7 @@ import * as devicesApi from '$lib/api/devices'
 interface DevicesState {
 	devices: UsbDevice[]
 	loading: boolean
+	reformattingDeviceId: string | null
 }
 
 // =============================================================================
@@ -18,6 +20,7 @@ interface DevicesState {
 const initialState: DevicesState = {
 	devices: [],
 	loading: false,
+	reformattingDeviceId: null,
 }
 
 // =============================================================================
@@ -63,6 +66,31 @@ function createDevicesStore() {
 		},
 
 		/**
+		 * Get current reformatting device ID synchronously
+		 */
+		getReformattingDeviceId(): string | null {
+			let reformattingDeviceId: string | null = null
+			subscribe((state) => {
+				reformattingDeviceId = state.reformattingDeviceId
+			})()
+			return reformattingDeviceId
+		},
+
+		/**
+		 * Set reformatting device ID (called when reformat starts)
+		 */
+		setReformattingDevice(deviceId: string) {
+			update((state) => ({ ...state, reformattingDeviceId: deviceId }))
+		},
+
+		/**
+		 * Clear reformatting device ID (called when reformat completes)
+		 */
+		clearReformattingDevice() {
+			update((state) => ({ ...state, reformattingDeviceId: null }))
+		},
+
+		/**
 		 * Reset to initial state
 		 */
 		reset() {
@@ -84,3 +112,14 @@ export const deviceCount = derived(devicesStore, ($store) => $store.devices.leng
 export const hasDevices = derived(devicesStore, ($store) => $store.devices.length > 0)
 
 export const devicesLoading = derived(devicesStore, ($store) => $store.loading)
+
+export const reformattingDeviceId = derived(devicesStore, ($store) => $store.reformattingDeviceId)
+
+// Filter out ignored devices for display in the UI
+export const visibleDevices = derived([devices, ignoredDeviceIds], ([$devices, $ignoredDeviceIds]) =>
+	$devices.filter((device) => !$ignoredDeviceIds.includes(device.id))
+)
+
+export const visibleDeviceCount = derived(visibleDevices, ($devices) => $devices.length)
+
+export const hasVisibleDevices = derived(visibleDevices, ($devices) => $devices.length > 0)

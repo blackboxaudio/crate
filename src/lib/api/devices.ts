@@ -14,3 +14,11 @@ export async function getDevices(): Promise<UsbDevice[]> {
 export async function ejectDevice(mountPoint: string): Promise<void> {
 	return invoke<void>('eject_device', { mountPoint })
 }
+
+/**
+ * Reformat a device to FAT32 with the given volume name
+ * Requires elevated privileges (system password prompt)
+ */
+export async function reformatDevice(mountPoint: string, volumeName: string): Promise<void> {
+	return invoke<void>('reformat_device', { mountPoint, volumeName })
+}

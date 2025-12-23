@@ -68,6 +68,7 @@ export async function setLanguage(language: Language): Promise<void> {
  * Get the current language
  */
 export function getCurrentLanguage(): Language {
+	// @ts-expect-error this is intentional
 	const current = locale.subscribe ? undefined : 'en'
 	let lang: Language = 'en'
 	const unsubscribe = locale.subscribe((value) => {

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { toastStore } from '$lib/stores/toast'
 	import { libraryStore } from '$lib/stores/library'
+	import { syncStore } from '$lib/stores/sync'
 	import { uiStore } from '$lib/stores/ui'
 	import { computeBulkTrackInfo } from '$lib/utils'
 	import * as libraryApi from '$lib/api/library'
@@ -67,6 +68,9 @@
 			// Update the library store with the new track data
 			libraryStore.updateTracksInState(updatedTracks)
 
+			// Notify sync store about track changes (for auto-sync)
+			syncStore.notifyTrackChanges(ids)
+
 			formData = {}
 		} catch (error) {
 			console.error('Failed to update tracks:', error)
@@ -87,6 +91,9 @@
 				updatedTracks.push(updatedTrack)
 			}
 			libraryStore.updateTracksInState(updatedTracks)
+
+			// Notify sync store about track changes (for auto-sync)
+			syncStore.notifyTrackChanges(updatedTracks.map((t) => t.id))
 		} catch (error) {
 			console.error('Failed to set artwork:', error)
 			toastStore.error(get(translate)('toast.failedToSetArtwork'))
@@ -103,6 +110,9 @@
 				updatedTracks.push(updatedTrack)
 			}
 			libraryStore.updateTracksInState(updatedTracks)
+
+			// Notify sync store about track changes (for auto-sync)
+			syncStore.notifyTrackChanges(updatedTracks.map((t) => t.id))
 		} catch (error) {
 			console.error('Failed to remove artwork:', error)
 			toastStore.error(get(translate)('toast.failedToRemoveArtwork'))
@@ -115,6 +125,9 @@
 		try {
 			const updatedTrack = await libraryApi.reextractTrackArtwork(selectedTracks[0].id)
 			libraryStore.updateTracksInState([updatedTrack])
+
+			// Notify sync store about track changes (for auto-sync)
+			syncStore.notifyTrackChanges([updatedTrack.id])
 		} catch (error) {
 			console.error('Failed to re-extract artwork:', error)
 			toastStore.error(get(translate)('toast.noArtworkInFile'))

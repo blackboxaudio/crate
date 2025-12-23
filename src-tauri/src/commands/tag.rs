@@ -1,13 +1,11 @@
 use tauri::State;
 
-use crate::error::CrateError;
+use crate::error::Result;
 use crate::models::{Tag, TagCategory};
 use crate::services::TagService;
 
 #[tauri::command]
-pub async fn get_tag_categories(
-    tags: State<'_, TagService>,
-) -> Result<Vec<TagCategory>, CrateError> {
+pub async fn get_tag_categories(tags: State<'_, TagService>) -> Result<Vec<TagCategory>> {
     tags.get_categories()
 }
 
@@ -16,7 +14,7 @@ pub async fn create_tag_category(
     name: String,
     color: Option<String>,
     tags: State<'_, TagService>,
-) -> Result<TagCategory, CrateError> {
+) -> Result<TagCategory> {
     tags.create_category(name, color)
 }
 
@@ -26,15 +24,12 @@ pub async fn update_tag_category(
     name: Option<String>,
     color: Option<String>,
     tags: State<'_, TagService>,
-) -> Result<TagCategory, CrateError> {
+) -> Result<TagCategory> {
     tags.update_category(&id, name, color)
 }
 
 #[tauri::command]
-pub async fn delete_tag_category(
-    id: String,
-    tags: State<'_, TagService>,
-) -> Result<(), CrateError> {
+pub async fn delete_tag_category(id: String, tags: State<'_, TagService>) -> Result<()> {
     tags.delete_category(&id)
 }
 
@@ -44,7 +39,7 @@ pub async fn create_tag(
     name: String,
     color: Option<String>,
     tags: State<'_, TagService>,
-) -> Result<Tag, CrateError> {
+) -> Result<Tag> {
     tags.create_tag(category_id, name, color)
 }
 
@@ -54,12 +49,12 @@ pub async fn update_tag(
     name: Option<String>,
     color: Option<String>,
     tags: State<'_, TagService>,
-) -> Result<Tag, CrateError> {
+) -> Result<Tag> {
     tags.update_tag(&id, name, color)
 }
 
 #[tauri::command]
-pub async fn delete_tag(id: String, tags: State<'_, TagService>) -> Result<(), CrateError> {
+pub async fn delete_tag(id: String, tags: State<'_, TagService>) -> Result<()> {
     tags.delete_tag(&id)
 }
 
@@ -68,7 +63,7 @@ pub async fn assign_tags(
     track_ids: Vec<String>,
     tag_ids: Vec<String>,
     tags: State<'_, TagService>,
-) -> Result<(), CrateError> {
+) -> Result<()> {
     tags.assign_tags(track_ids, tag_ids)
 }
 
@@ -77,6 +72,6 @@ pub async fn remove_tags(
     track_ids: Vec<String>,
     tag_ids: Vec<String>,
     tags: State<'_, TagService>,
-) -> Result<(), CrateError> {
+) -> Result<()> {
     tags.remove_tags(track_ids, tag_ids)
 }

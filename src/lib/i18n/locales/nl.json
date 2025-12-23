@@ -16,7 +16,9 @@
 		"untitled": "Naamloos",
 		"unknownArtist": "Onbekende Artiest",
 		"folder": "map",
-		"playlist": "afspeellijst"
+		"playlist": "afspeellijst",
+		"next": "Volgende",
+		"back": "Terug"
 	},
 	"nav": {
 		"library": "Bibliotheek",
@@ -27,6 +29,7 @@
 		"title": "Instellingen",
 		"tabs": {
 			"general": "Algemeen",
+			"library": "Bibliotheek",
 			"appearance": "Uiterlijk",
 			"sound": "Geluid",
 			"diagnostics": "Diagnostiek",
@@ -35,6 +38,31 @@
 		"general": {
 			"language": "Taal",
 			"languageDescription": "Kies de weergavetaal voor de applicatie."
+		},
+		"library": {
+			"analysis": "Analyse",
+			"keyNotation": "Toonsoortnotatie",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standaard",
+			"keyNotationDescription": "Kies hoe toonsoorten worden weergegeven.",
+			"autoAnalyzeOnImport": "Automatisch analyseren bij import",
+			"autoAnalyzeOnImportDescription": "Analyseer automatisch BPM en toonsoort bij het importeren van nummers.",
+			"sync": "Synchronisatie",
+			"syncDescription": "Configureer automatische synchronisatie met USB-apparaten.",
+			"autoSyncOnConnect": "Automatisch synchroniseren bij apparaatverbinding",
+			"autoSyncOnConnectDescription": "Wanneer een USB-apparaat opnieuw wordt aangesloten, worden ausstehende wijzigingen automatisch gesynchroniseerd.",
+			"autoSyncOnChange": "Automatisch synchroniseren bij bibliotheekwijzigingen",
+			"autoSyncOnChangeDescription": "Wanneer nummers of afspeellijsten worden bewerkt, worden deze automatisch met aangesloten apparaten gesynchroniseerd.",
+			"ignoredDevices": "Genegeerde apparaten",
+			"ignoredDevicesDescription": "Apparaten in deze lijst zijn verborgen in de zijbalk en activeren geen automatische synchronisatie.",
+			"noIgnoredDevices": "Er worden momenteel geen apparaten genegeerd",
+			"deviceNotConnected": "Niet verbonden",
+			"exportFormat": "Exportindelingformat",
+			"exportFormatDescription": "Kies het databaseformaat voor USB-exports.",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "Verouderd formaat voor oudere CDJs",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "Voor OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
 		"appearance": {
 			"font": "Lettertype",
@@ -92,6 +120,8 @@
 		"matchOr": "OF",
 		"matchAnd": "EN",
 		"clearAll": "Alles wissen",
+		"noTracksYet": "Nog geen tracks",
+		"dragDropHint": "Sleep audiobestanden hiernaartoe om deze te importeren",
 		"columns": {
 			"title": "Titel",
 			"artist": "Artiest",
@@ -112,7 +142,9 @@
 		"deleteFolder": "Map verwijderen",
 		"moveToFolder": "Verplaatsen naar map",
 		"rootNoFolder": "Hoofdmap (geen map)",
-		"folderEmpty": "Deze map is leeg"
+		"folderEmpty": "Deze map is leeg",
+		"noPlaylistsYet": "Nog geen afspeellijsten",
+		"exportToDevice": "Exporteren naar apparaat"
 	},
 	"tags": {
 		"newCategory": "Nieuwe categorie",
@@ -122,7 +154,9 @@
 		"deleteTag": "Tag verwijderen",
 		"deleteCategory": "Categorie verwijderen",
 		"addCategory": "Categorie toevoegen",
-		"addTag": "Tag toevoegen"
+		"addTag": "Tag toevoegen",
+		"noTags": "Geen tags",
+		"noTagCategoriesYet": "Nog geen tagcategorieën"
 	},
 	"contextMenu": {
 		"viewInFinder": "Bekijken in Finder",
@@ -134,7 +168,9 @@
 		"remove": "Verwijderen",
 		"removeFromPlaylist": "Verwijderen uit afspeellijst",
 		"removeFromLibrary": "Verwijderen uit bibliotheek",
-		"relocate": "Verplaatsen..."
+		"relocate": "Verplaatsen...",
+		"analyze": "Analyseren",
+		"stopAnalysis": "Analyse stoppen"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -257,11 +293,16 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Kan een map niet in zichzelf slepen",
-		"cannotDropIntoSubfolder": "Kan een map niet in zijn eigen submap slepen"
+		"cannotDropIntoSubfolder": "Kan een map niet in zijn eigen submap slepen",
+		"analysisFailed": "Analyse mislukt",
+		"exportInProgress": "Exporteren is al bezig"
 	},
 	"devices": {
 		"title": "Apparaten",
 		"eject": "Uitwerpen",
+		"ignore": "Negeren",
+		"unignore": "Niet meer negeren",
+		"selectDevice": "Selecteer apparaat",
 		"deviceInfo": "Apparaatinfo",
 		"capacity": "Capaciteit",
 		"available": "Beschikbaar",
@@ -269,7 +310,59 @@
 		"noDevices": "Geen apparaten verbonden",
 		"free": "vrij",
 		"connected": "Verbonden",
-		"viewInfo": "Info bekijken"
+		"statusCompatible": "Compatibel voor USB-export",
+		"statusIncompatible": "Incompatibel formaat ({fileSystem})",
+		"viewInfo": "Info bekijken",
+		"exportTo": "Exporteren naar...",
+		"reformat": {
+			"menuItem": "Formatteren",
+			"title": "Apparaat formatteren",
+			"warning": "Alle gegevens worden permanent verwijderd",
+			"warningDetails": "Het formatteren van \"{deviceName}\" zal alle bestanden op dit apparaat wissen. Deze actie kan niet ongedaan worden gemaakt.",
+			"volumeName": "Volumenaam",
+			"volumeNamePlaceholder": "Voer volumenaam in",
+			"fat32Hint": "FAT32 ondersteunt maximaal 11 tekens",
+			"confirm": "Formatteren"
+		}
+	},
+	"export": {
+		"exporting": "Exporteren...",
+		"title": "Exporteren naar apparaat",
+		"quickExport": "Snelle export",
+		"exportTo": "Exporteren naar {deviceName}",
+		"exportPlaylist": "{playlistName} exporteren",
+		"selectPlaylists": "Selecteer afspeellijsten om te exporteren",
+		"selectPlaylistsDescription": "Kies welke afspeellijsten u naar de geselecteerde apparaten wilt exporteren.",
+		"selectDevice": "Selecteer een apparaat",
+		"selectDevicesDescription": "Selecteer een of meer apparaten om naar te exporteren.",
+		"devicesSelected": "{count, plural, =1 {1 apparaat geselecteerd} other {{count} apparaten geselecteerd}}",
+		"devicesToExport": "Apparaten",
+		"noDevicesConnected": "Geen USB-apparaten verbonden",
+		"noPlaylistsAvailable": "Geen afspeellijsten beschikbaar",
+		"destination": "Bestemming",
+		"playlistsToExport": "Te exporteren afspeellijsten",
+		"tracksToExport": "Te exporteren nummers",
+		"enableSync": "Synchronisatie inschakelen",
+		"export": "Exporteren",
+		"preparing": "Voorbereiden...",
+		"copying": "Bestanden kopiëren...",
+		"generatingDatabase": "Database genereren...",
+		"complete": "Export voltooid",
+		"failed": "Export mislukt",
+		"cancel": "Annuleren",
+		"keepPartial": "Gedeeltelijk behouden",
+		"cleanUp": "Opruimen",
+		"whatToDo": "Wat wilt u doen?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 bestand is gekopieerd} other {{count} bestanden zijn gekopieerd}} voor de fout.",
+		"exportingTo": "Exporteren naar {deviceName}",
+		"transferringProgress": "{trackCount} nummers uit {playlistCount} afspeellijsten",
+		"noPlaylistsInFolder": "Geen afspeellijsten om te exporteren in deze map",
+		"resume": "Hervatten",
+		"resumeExport": "Export hervatten",
+		"checkpointAvailable": "Een vorige export kan worden hervat",
+		"tracksCompleted": "{count, plural, =1 {1 track voltooid} other {{count} tracks voltooid}}",
+		"filesRemaining": "{count, plural, =1 {1 bestand resterend} other {{count} bestanden resterend}}",
+		"resumeFromCheckpoint": "Hervatten vanaf laatste checkpoint"
 	},
 	"editor": {
 		"trackInfo": "Trackinfo",
@@ -320,10 +413,17 @@
 		"help": "Help",
 		"about": "Over {appName}",
 		"settings": "Instellingen...",
+		"settingsSubmenu": "Instellingen",
+		"settingsGeneral": "Algemeen",
+		"settingsLibrary": "Bibliotheek",
+		"settingsAppearance": "Uiterlijk",
+		"settingsSound": "Geluid",
+		"settingsDiagnostics": "Diagnostiek",
 		"quit": "{appName} afsluiten",
 		"importTracks": "Tracks importeren...",
 		"newPlaylist": "Nieuwe afspeellijst",
 		"newFolder": "Nieuwe map",
+		"quickExport": "Snelle export...",
 		"undo": "Ongedaan maken",
 		"redo": "Opnieuw",
 		"cut": "Knippen",
@@ -332,6 +432,7 @@
 		"selectAllTracks": "Alle tracks selecteren",
 		"playPause": "Afspelen/Pauzeren",
 		"stop": "Stoppen",
+		"jumpToPlaying": "Naar huidig afgespeelde track",
 		"toggleSidebar": "Zijbalk wisselen",
 		"showDevTools": "DevTools tonen",
 		"minimize": "Minimaliseren",

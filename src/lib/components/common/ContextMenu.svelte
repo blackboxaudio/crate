@@ -2,6 +2,12 @@
 	import { scale } from 'svelte/transition'
 	import type { ContextMenuItem } from '$lib/types'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import {
+		calculateBoundedPosition,
+		calculateSubmenuPosition,
+		getOriginClass,
+		type AnchorOrigin,
+	} from '$lib/utils/position'
 
 	type Props = {
 		open: boolean
@@ -19,7 +25,11 @@
 	let visible = $state(false)
 	// Track active submenu path as array of item IDs (supports unlimited nesting)
 	let activeSubmenuPath = $state<string[]>([])
-	let adjustedPosition = $derived({ x, y })
+	let adjustedPosition = $state({ x: 0, y: 0 })
+	let menuOrigin = $state<AnchorOrigin>('top-left')
+	// Track submenu positions and origins
+	let submenuStyles = $state<Record<string, string>>({})
+	let submenuOrigins = $state<Record<string, AnchorOrigin>>({})
 
 	// Track open state changes
 	$effect(() => {
@@ -32,33 +42,37 @@
 		onClosed?.()
 	}
 
+	// Reset position when x/y change (runs before DOM updates)
+	$effect.pre(() => {
+		adjustedPosition = { x, y }
+		menuOrigin = 'top-left'
+	})
+
 	// Adjust position when menu opens to prevent overflow
 	$effect(() => {
 		if (open && menuEl) {
 			const rect = menuEl.getBoundingClientRect()
-			const viewportWidth = window.innerWidth
-			const viewportHeight = window.innerHeight
-
-			let newX = x
-			let newY = y
-
-			// Adjust horizontal position
-			if (x + rect.width > viewportWidth - 8) {
-				newX = viewportWidth - rect.width - 8
-			}
-
-			// Adjust vertical position
-			if (y + rect.height > viewportHeight - 8) {
-				newY = viewportHeight - rect.height - 8
-			}
-
-			adjustedPosition = { x: Math.max(8, newX), y: Math.max(8, newY) }
+			const result = calculateBoundedPosition({ x, y }, { width: rect.width, height: rect.height })
+			adjustedPosition = result.position
+			menuOrigin = result.origin
 		}
 	})
 
-	// Reset position when x/y change
+	// Recalculate position on window resize
 	$effect(() => {
-		adjustedPosition = { x, y }
+		if (open) {
+			const handleResize = () => {
+				if (menuEl) {
+					const rect = menuEl.getBoundingClientRect()
+					const result = calculateBoundedPosition({ x, y }, { width: rect.width, height: rect.height })
+					adjustedPosition = result.position
+					menuOrigin = result.origin
+				}
+			}
+
+			window.addEventListener('resize', handleResize)
+			return () => window.removeEventListener('resize', handleResize)
+		}
 	})
 
 	// Close on click outside
@@ -111,19 +125,34 @@
 		return activeSubmenuPath[depth] === itemId
 	}
 
-	function getSubmenuStyle(parentEl: HTMLElement | null): string {
-		if (!parentEl) return 'left: 100%; top: 0;'
-
+	function updateSubmenuPosition(itemId: string, depth: number, parentEl: HTMLElement, submenuEl: HTMLElement) {
+		const key = `${depth}-${itemId}`
 		const parentRect = parentEl.getBoundingClientRect()
-		const submenuWidth = 192 // min-w-48 = 12rem = 192px
+		const submenuRect = submenuEl.getBoundingClientRect()
 
-		// Check if submenu fits on the right
-		const fitsRight = parentRect.right + submenuWidth < window.innerWidth - 8
+		const result = calculateSubmenuPosition(parentRect, { width: submenuRect.width, height: submenuRect.height })
 
-		if (fitsRight) {
-			return 'left: 100%; top: 0;'
-		} else {
-			return 'right: 100%; top: 0;'
+		submenuStyles[key] = result.style
+		submenuOrigins[key] = result.origin
+	}
+
+	function getSubmenuKey(itemId: string, depth: number): string {
+		return `${depth}-${itemId}`
+	}
+
+	// Svelte action to position submenu after mount
+	function positionSubmenu(el: HTMLElement, params: { itemId: string; depth: number }) {
+		const parent = el.parentElement
+		if (parent) {
+			// Use requestAnimationFrame to ensure the element has been rendered
+			requestAnimationFrame(() => {
+				updateSubmenuPosition(params.itemId, params.depth, parent, el)
+			})
+		}
+		return {
+			destroy() {
+				// Cleanup if needed
+			},
 		}
 	}
 </script>
@@ -133,10 +162,11 @@
 		{#if item.divider}
 			<div class="my-1 border-t border-stroke"></div>
 		{:else}
-			<div class="group relative" role="none" onmouseenter={() => handleItemMouseEnter(item, depth)}>
+			{@const submenuKey = getSubmenuKey(item.id, depth)}
+			<div class="group relative" role="none" onmouseenter={(e) => handleItemMouseEnter(item, depth)}>
 				<button
 					type="button"
-					class="flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors
+					class="flex w-full items-center gap-3 px-3 py-1 text-left text-sm transition-colors
 						{item.disabled
 						? 'cursor-not-allowed text-text-tertiary'
 						: item.variant === 'danger'
@@ -166,10 +196,13 @@
 
 				{#if item.submenu && isSubmenuActive(item.id, depth)}
 					<div
-						class="absolute z-50 min-w-48 origin-top-left rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
-						style={getSubmenuStyle(null)}
+						class="absolute z-50 min-w-48 {getOriginClass(
+							submenuOrigins[submenuKey] || 'top-left'
+						)} rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
+						style={submenuStyles[submenuKey] || 'left: 100%; top: 0;'}
 						role="menu"
 						transition:scale={{ start: 0.95, duration: 200 }}
+						use:positionSubmenu={{ itemId: item.id, depth }}
 					>
 						{@render menuItems(item.submenu, depth + 1)}
 					</div>
@@ -182,7 +215,7 @@
 {#if visible}
 	<div
 		bind:this={menuEl}
-		class="fixed z-50 min-w-48 origin-top-left rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
+		class="fixed z-50 min-w-48 {getOriginClass(menuOrigin)} rounded-md border border-stroke bg-surface-1 py-1 shadow-lg"
 		style="left: {adjustedPosition.x}px; top: {adjustedPosition.y}px;"
 		role="menu"
 		transition:scale={{ start: 0.95, duration: 200 }}

@@ -16,7 +16,9 @@
 		"untitled": "無題",
 		"unknownArtist": "不明なアーティスト",
 		"folder": "フォルダ",
-		"playlist": "プレイリスト"
+		"playlist": "プレイリスト",
+		"next": "次へ",
+		"back": "戻る"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -27,6 +29,7 @@
 		"title": "設定",
 		"tabs": {
 			"general": "一般",
+			"library": "ライブラリ",
 			"appearance": "外観",
 			"sound": "サウンド",
 			"diagnostics": "診断",
@@ -35,6 +38,31 @@
 		"general": {
 			"language": "言語",
 			"languageDescription": "アプリケーションの表示言語を選択します。"
+		},
+		"library": {
+			"analysis": "解析",
+			"keyNotation": "キー表記",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "スタンダード",
+			"keyNotationDescription": "音楽キーの表示方法を選択します。",
+			"autoAnalyzeOnImport": "インポート時に自動解析",
+			"autoAnalyzeOnImportDescription": "トラックのインポート時にBPMとキーを自動的に解析します。",
+			"sync": "同期",
+			"syncDescription": "USBデバイスとの自動同期を設定します。",
+			"autoSyncOnConnect": "デバイス接続時に自動同期",
+			"autoSyncOnConnectDescription": "USBデバイスが再接続された場合、保留中の変更を自動的に同期します。",
+			"autoSyncOnChange": "ライブラリ変更時に自動同期",
+			"autoSyncOnChangeDescription": "トラックまたはプレイリストが編集された場合、接続されているデバイスに自動的に同期します。",
+			"ignoredDevices": "無視されたデバイス",
+			"ignoredDevicesDescription": "このリストのデバイスはサイドバーに表示されず、自動同期をトリガーしません。",
+			"noIgnoredDevices": "現在無視されているデバイスはありません",
+			"deviceNotConnected": "接続されていません",
+			"exportFormat": "エクスポート形式",
+			"exportFormatDescription": "USBエクスポート用のデータベース形式を選択します。",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "古いCDJ向けのレガシー形式",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "OPUS-QUAD、OMNIS-DUO、XDJ-AZ向け"
 		},
 		"appearance": {
 			"font": "フォント",
@@ -92,6 +120,8 @@
 		"matchOr": "または",
 		"matchAnd": "かつ",
 		"clearAll": "すべてクリア",
+		"noTracksYet": "まだトラックがありません",
+		"dragDropHint": "ここにオーディオファイルをドラッグアンドドロップしてインポートしてください",
 		"columns": {
 			"title": "タイトル",
 			"artist": "アーティスト",
@@ -112,7 +142,9 @@
 		"deleteFolder": "フォルダを削除",
 		"moveToFolder": "フォルダに移動",
 		"rootNoFolder": "ルート（フォルダなし）",
-		"folderEmpty": "このフォルダは空です"
+		"folderEmpty": "このフォルダは空です",
+		"noPlaylistsYet": "まだプレイリストがありません",
+		"exportToDevice": "デバイスにエクスポート"
 	},
 	"tags": {
 		"newCategory": "新しいカテゴリ",
@@ -122,7 +154,9 @@
 		"deleteTag": "タグを削除",
 		"deleteCategory": "カテゴリを削除",
 		"addCategory": "カテゴリを追加",
-		"addTag": "タグを追加"
+		"addTag": "タグを追加",
+		"noTags": "タグなし",
+		"noTagCategoriesYet": "まだタグカテゴリがありません"
 	},
 	"contextMenu": {
 		"viewInFinder": "Finderで表示",
@@ -134,7 +168,9 @@
 		"remove": "削除",
 		"removeFromPlaylist": "プレイリストから削除",
 		"removeFromLibrary": "ライブラリから削除",
-		"relocate": "再配置..."
+		"relocate": "再配置...",
+		"analyze": "分析",
+		"stopAnalysis": "分析を停止"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -235,6 +271,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1曲} other {{count}曲}}を{playlistName}に追加、{failed}曲が失敗しました",
 		"tracksImported": "{count, plural, =1 {1曲} other {{count}曲}}をインポートしました",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1曲} other {{imported}曲}}をインポート、{skipped}曲をスキップしました",
+		"tracksExported": "{exported, plural, =1 {1曲} other {{exported}曲}}を{deviceName}にエクスポート、{skipped, plural, =1 {1曲スキップ} other {{skipped}曲スキップ}}",
 		"trackRemoved": "{count, plural, =1 {1曲} other {{count}曲}}をプレイリストから削除しました",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1曲} other {{count}曲}}をライブラリから削除しました",
 		"movedSuccessfully": "移動しました",
@@ -257,11 +294,16 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "フォルダを自分自身にドロップすることはできません",
-		"cannotDropIntoSubfolder": "フォルダをそのサブフォルダにドロップすることはできません"
+		"cannotDropIntoSubfolder": "フォルダをそのサブフォルダにドロップすることはできません",
+		"analysisFailed": "分析が失敗しました",
+		"exportInProgress": "エクスポートが既に進行中です"
 	},
 	"devices": {
 		"title": "デバイス",
 		"eject": "取り出し",
+		"ignore": "無視する",
+		"unignore": "無視を解除",
+		"selectDevice": "デバイスを選択",
 		"deviceInfo": "デバイス情報",
 		"capacity": "容量",
 		"available": "空き容量",
@@ -269,7 +311,59 @@
 		"noDevices": "デバイスが接続されていません",
 		"free": "空き",
 		"connected": "接続済み",
-		"viewInfo": "情報を表示"
+		"statusCompatible": "USBエクスポートに対応",
+		"statusIncompatible": "非互換フォーマット（{fileSystem}）",
+		"viewInfo": "情報を表示",
+		"exportTo": "エクスポート...",
+		"reformat": {
+			"menuItem": "フォーマット",
+			"title": "デバイスをフォーマット",
+			"warning": "すべてのデータが完全に削除されます",
+			"warningDetails": "「{deviceName}」をフォーマットすると、このデバイス上のすべてのファイルが消去されます。この操作は元に戻せません。",
+			"volumeName": "ボリューム名",
+			"volumeNamePlaceholder": "ボリューム名を入力",
+			"fat32Hint": "FAT32は最大11文字をサポート",
+			"confirm": "フォーマット"
+		}
+	},
+	"export": {
+		"exporting": "エクスポート中...",
+		"title": "デバイスにエクスポート",
+		"quickExport": "クイックエクスポート",
+		"exportTo": "{deviceName}にエクスポート",
+		"exportPlaylist": "{playlistName}をエクスポート",
+		"selectPlaylists": "エクスポートするプレイリストを選択",
+		"selectPlaylistsDescription": "選択したデバイスにエクスポートするプレイリストを選択してください。",
+		"selectDevice": "デバイスを選択",
+		"selectDevicesDescription": "エクスポート先として1つ以上のデバイスを選択してください。",
+		"devicesSelected": "{count, plural, =1 {1個のデバイスを選択} other {{count}個のデバイスを選択}}",
+		"devicesToExport": "デバイス",
+		"noDevicesConnected": "USBデバイスが接続されていません",
+		"noPlaylistsAvailable": "プレイリストがありません",
+		"destination": "エクスポート先",
+		"playlistsToExport": "エクスポートするプレイリスト",
+		"tracksToExport": "エクスポートするトラック",
+		"enableSync": "同期を有効にする",
+		"export": "エクスポート",
+		"preparing": "準備中...",
+		"copying": "ファイルをコピー中...",
+		"generatingDatabase": "データベースを生成中...",
+		"complete": "エクスポート完了",
+		"failed": "エクスポート失敗",
+		"cancel": "キャンセル",
+		"keepPartial": "部分的に保持",
+		"cleanUp": "クリーンアップ",
+		"whatToDo": "どうしますか？",
+		"filesCopiedBeforeFailure": "失敗前に{count, plural, =1 {1ファイル} other {{count}ファイル}}がコピーされました。",
+		"exportingTo": "{deviceName}にエクスポート中",
+		"transferringProgress": "{playlistCount}個のプレイリストから{trackCount}曲を転送中",
+		"noPlaylistsInFolder": "このフォルダにエクスポートするプレイリストがありません",
+		"resume": "再開",
+		"resumeExport": "エクスポートを再開",
+		"checkpointAvailable": "前回のエクスポートを再開できます",
+		"tracksCompleted": "{count, plural, =1 {1曲完了} other {{count}曲完了}}",
+		"filesRemaining": "{count, plural, =1 {1ファイル残り} other {{count}ファイル残り}}",
+		"resumeFromCheckpoint": "最後のチェックポイントから再開"
 	},
 	"editor": {
 		"trackInfo": "トラック情報",
@@ -320,10 +414,17 @@
 		"help": "ヘルプ",
 		"about": "{appName}について",
 		"settings": "設定...",
+		"settingsSubmenu": "設定",
+		"settingsGeneral": "一般",
+		"settingsLibrary": "ライブラリ",
+		"settingsAppearance": "外観",
+		"settingsSound": "サウンド",
+		"settingsDiagnostics": "診断",
 		"quit": "{appName}を終了",
 		"importTracks": "トラックをインポート...",
 		"newPlaylist": "新しいプレイリスト",
 		"newFolder": "新しいフォルダ",
+		"quickExport": "クイックエクスポート...",
 		"undo": "取り消す",
 		"redo": "やり直す",
 		"cut": "カット",
@@ -332,6 +433,7 @@
 		"selectAllTracks": "すべてのトラックを選択",
 		"playPause": "再生/一時停止",
 		"stop": "停止",
+		"jumpToPlaying": "再生中のトラックへジャンプ",
 		"toggleSidebar": "サイドバーを切り替え",
 		"showDevTools": "開発者ツールを表示",
 		"minimize": "しまう",

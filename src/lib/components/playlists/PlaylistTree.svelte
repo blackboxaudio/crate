@@ -2,6 +2,7 @@
 	import type { Playlist } from '$lib/types'
 	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
 	import { getStoredSet, setStoredSet } from '$lib/utils'
+	import { translate } from '$lib/i18n'
 	import PlaylistItem from './PlaylistItem.svelte'
 	import { SvelteSet } from 'svelte/reactivity'
 
@@ -120,6 +121,6 @@
 	{/each}
 
 	{#if playlists.length === 0}
-		<p class="py-4 text-center text-xs text-text-tertiary">No playlists yet</p>
+		<p class="py-4 text-center text-xs text-text-tertiary">{$translate('playlists.noPlaylistsYet')}</p>
 	{/if}
 </div>

@@ -8,6 +8,8 @@
 		MoveConflict,
 		DuplicateTrack,
 		DuplicateResolutionAction,
+		ExportRequest,
+		SettingsPage,
 	} from '$lib/types'
 
 	// Discriminated union for all modal states
@@ -38,7 +40,7 @@
 				existingItem: Playlist
 				targetParentId: string | null
 		  }
-		| { type: 'settings' }
+		| { type: 'settings'; initialTab?: SettingsPage }
 		| {
 				type: 'duplicateTrack'
 				duplicates: DuplicateTrack[]
@@ -49,6 +51,19 @@
 				replacedTrackIds: string[]
 				onComplete: (updatedTracks: Track[], newTracks: Track[], replacedTrackIds: string[]) => void
 		  }
+		// Export modals
+		| { type: 'exportToDevice'; mode: 'selectPlaylists'; device: UsbDevice }
+		| { type: 'exportToDevice'; mode: 'selectDevice'; playlist: Playlist }
+		| { type: 'quickExport' }
+		| {
+				type: 'exportFailure'
+				error: string
+				deviceId: string
+				mountPoint: string
+				filesCopied: number
+		  }
+		// Device modals
+		| { type: 'reformatDevice'; device: UsbDevice }
 
 	// Move resolution result type
 	export type MoveResult = {
@@ -63,9 +78,10 @@
 	import MoveConflictModal from './MoveConflictModal.svelte'
 	import DuplicateTrackModal from './DuplicateTrackModal.svelte'
 	import { TagInputModal } from '$lib/components/tags'
-	import { DeviceInfoModal } from '$lib/components/devices'
+	import { DeviceInfoModal, ReformatDeviceModal } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
 	import { RelocateTrackModal } from '$lib/components/library'
+	import { ExportModal, ExportFailureModal, QuickExportModal } from '$lib/components/export'
 	import { toastStore } from '$lib/stores/toast'
 	import { resolveDuplicate } from '$lib/api/library'
 	import { translate } from '$lib/i18n'
@@ -78,6 +94,7 @@
 		// Data needed by modals
 		playlists: Playlist[]
 		tagCategories: TagCategory[]
+		devices: UsbDevice[]
 
 		// Creation callbacks
 		onCreatePlaylist: (name: string, parentId: string | null) => Promise<Playlist | null>
@@ -106,11 +123,21 @@
 
 		// Relocate callback
 		onRelocateComplete: (track: Track) => void
+
+		// Export callbacks
+		onExport: (request: ExportRequest) => Promise<void>
+		onQuickExport: (requests: ExportRequest[]) => Promise<void>
+		onExportFailureKeep: () => void
+		onExportFailureCleanup: (deviceId: string, mountPoint: string) => Promise<void>
+
+		// Device callbacks
+		onReformatDevice: (device: UsbDevice, volumeName: string) => Promise<void>
 	}
 
 	let {
 		playlists,
 		tagCategories,
+		devices,
 		onCreatePlaylist,
 		onCreateFolder,
 		onCreateCategory,
@@ -127,6 +154,11 @@
 		onMoveConflictMerge,
 		onTagInputSubmit,
 		onRelocateComplete,
+		onExport,
+		onQuickExport,
+		onExportFailureKeep,
+		onExportFailureCleanup,
+		onReformatDevice,
 	}: Props = $props()
 
 	// =========================================================================
@@ -214,8 +246,8 @@
 		activeModal = { type: 'moveConflict', movingItem, existingItem, targetParentId }
 	}
 
-	export function openSettingsModal() {
-		activeModal = { type: 'settings' }
+	export function openSettingsModal(initialTab?: SettingsPage) {
+		activeModal = { type: 'settings', initialTab }
 	}
 
 	export function openDuplicateTrackModal(
@@ -237,6 +269,28 @@
 			replacedTrackIds: [],
 			onComplete,
 		}
+	}
+
+	// Export modals
+	export function openExportToDeviceModal(device: UsbDevice) {
+		activeModal = { type: 'exportToDevice', mode: 'selectPlaylists', device }
+	}
+
+	export function openExportPlaylistModal(playlist: Playlist) {
+		activeModal = { type: 'exportToDevice', mode: 'selectDevice', playlist }
+	}
+
+	export function openQuickExportModal() {
+		activeModal = { type: 'quickExport' }
+	}
+
+	export function openExportFailureModal(error: string, deviceId: string, mountPoint: string, filesCopied: number) {
+		activeModal = { type: 'exportFailure', error, deviceId, mountPoint, filesCopied }
+	}
+
+	// Device modals
+	export function openReformatDeviceModal(device: UsbDevice) {
+		activeModal = { type: 'reformatDevice', device }
 	}
 
 	// =========================================================================
@@ -520,6 +574,39 @@
 		}
 	}
 
+	// Export handlers
+	async function handleExportSubmit(request: ExportRequest) {
+		closeAll()
+		await onExport(request)
+	}
+
+	async function handleQuickExportSubmit(requests: ExportRequest[]) {
+		closeAll()
+		await onQuickExport(requests)
+	}
+
+	function handleExportFailureKeep() {
+		closeAll()
+		onExportFailureKeep()
+	}
+
+	async function handleExportFailureCleanup() {
+		if (activeModal.type === 'exportFailure') {
+			const { deviceId, mountPoint } = activeModal
+			closeAll()
+			await onExportFailureCleanup(deviceId, mountPoint)
+		}
+	}
+
+	// Device handlers
+	async function handleReformatDeviceSubmit(volumeName: string) {
+		if (activeModal.type === 'reformatDevice') {
+			const device = activeModal.device
+			closeAll()
+			await onReformatDevice(device, volumeName)
+		}
+	}
+
 	// Derived values for delete warnings
 	const deleteWarnings = $derived.by(() => {
 		if (activeModal.type !== 'deletePlaylist') return []
@@ -729,7 +816,7 @@
 
 <!-- Settings Modal -->
 {#if activeModal.type === 'settings'}
-	<SettingsModal open={true} onClose={closeAll} />
+	<SettingsModal open={true} initialTab={activeModal.initialTab} onClose={closeAll} />
 {/if}
 
 <!-- Duplicate Track Modal -->
@@ -741,5 +828,45 @@
 		totalCount={activeModal.duplicates.length}
 		onResolve={handleDuplicateResolve}
 		onCancel={handleDuplicateCancel}
+	/>
+{/if}
+
+<!-- Export to Device Modal -->
+{#if activeModal.type === 'exportToDevice'}
+	<ExportModal
+		open={true}
+		mode={activeModal.mode}
+		device={activeModal.mode === 'selectPlaylists' ? activeModal.device : undefined}
+		playlist={activeModal.mode === 'selectDevice' ? activeModal.playlist : undefined}
+		{playlists}
+		{devices}
+		onExport={handleExportSubmit}
+		onClose={closeAll}
+	/>
+{/if}
+
+<!-- Quick Export Modal -->
+{#if activeModal.type === 'quickExport'}
+	<QuickExportModal open={true} {playlists} {devices} onExport={handleQuickExportSubmit} onClose={closeAll} />
+{/if}
+
+<!-- Export Failure Modal -->
+{#if activeModal.type === 'exportFailure'}
+	<ExportFailureModal
+		open={true}
+		error={activeModal.error}
+		filesCopied={activeModal.filesCopied}
+		onKeepPartial={handleExportFailureKeep}
+		onCleanUp={handleExportFailureCleanup}
+	/>
+{/if}
+
+<!-- Reformat Device Modal -->
+{#if activeModal.type === 'reformatDevice'}
+	<ReformatDeviceModal
+		open={true}
+		device={activeModal.device}
+		onSubmit={handleReformatDeviceSubmit}
+		onClose={closeAll}
 	/>
 {/if}

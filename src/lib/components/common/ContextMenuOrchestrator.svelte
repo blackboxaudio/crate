@@ -27,6 +27,10 @@
 	import TagsSidebarContextMenu from '$lib/components/tags/TagsSidebarContextMenu.svelte'
 	import DeviceContextMenu from '$lib/components/devices/DeviceContextMenu.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import { devices, reformattingDeviceId } from '$lib/stores/devices'
+	import { activeDeviceId } from '$lib/stores/export'
+	import { syncingDeviceIds } from '$lib/stores/sync'
+	import { isAnalyzing } from '$lib/stores/analysis'
 
 	// =========================================================================
 	// Props - Callback handlers passed from parent
@@ -45,6 +49,7 @@
 		onTrackRemoveFromLibrary: (tracks: Track[]) => void
 		onTrackRelocate: (track: Track) => void
 		onTrackSetColor: (color: TrackColor | null, tracks: Track[]) => void
+		onTrackAnalyze: (tracks: Track[]) => void
 
 		// Playlist callbacks
 		onPlaylistRename: (playlist: Playlist) => void
@@ -79,7 +84,13 @@
 		// Device callbacks
 		onDeviceViewInfo: (device: UsbDevice) => void
 		onDeviceRevealInFinder: (device: UsbDevice) => void
+		onDeviceReformat: (device: UsbDevice) => void
 		onDeviceEject: (device: UsbDevice) => void
+		onDeviceExport: (device: UsbDevice) => void
+		onDeviceIgnore: (device: UsbDevice) => void
+
+		// Playlist export callback
+		onPlaylistExport: (playlist: Playlist) => void
 
 		// Close callback
 		onClose?: () => void
@@ -96,6 +107,7 @@
 		onTrackRemoveFromLibrary,
 		onTrackRelocate,
 		onTrackSetColor,
+		onTrackAnalyze,
 		onPlaylistRename,
 		onPlaylistDelete,
 		onPlaylistMove,
@@ -114,7 +126,11 @@
 		onTagsSidebarAddTag,
 		onDeviceViewInfo,
 		onDeviceRevealInFinder,
+		onDeviceReformat,
 		onDeviceEject,
+		onDeviceExport,
+		onDeviceIgnore,
+		onPlaylistExport,
 		onClose,
 	}: Props = $props()
 
@@ -125,6 +141,16 @@
 	// visibleMenu: What's currently rendered (stays during out-transition)
 	let activeMenu = $state<ActiveContextMenu>({ type: 'none' })
 	let visibleMenu = $state<ActiveContextMenu | null>(null)
+
+	// Close device context menu if the device is disconnected
+	$effect(() => {
+		if (activeMenu.type === 'device') {
+			const deviceStillExists = $devices.some((d) => d.id === activeMenu.device.id)
+			if (!deviceStillExists) {
+				closeAll()
+			}
+		}
+	})
 
 	// =========================================================================
 	// Exported Functions - API for parent component
@@ -296,6 +322,14 @@
 		}
 	}
 
+	function handleTrackAnalyze() {
+		if (activeMenu.type === 'track') {
+			const tracks = activeMenu.tracks
+			closeAll()
+			onTrackAnalyze(tracks)
+		}
+	}
+
 	// Playlist handlers
 	function handlePlaylistRename(playlist: Playlist) {
 		closeAll()
@@ -399,9 +433,30 @@
 		onDeviceRevealInFinder(device)
 	}
 
+	function handleDeviceReformat(device: UsbDevice) {
+		closeAll()
+		onDeviceReformat(device)
+	}
+
 	function handleDeviceEject(device: UsbDevice) {
 		closeAll()
 		onDeviceEject(device)
+	}
+
+	function handleDeviceExport(device: UsbDevice) {
+		closeAll()
+		onDeviceExport(device)
+	}
+
+	function handleDeviceIgnore(device: UsbDevice) {
+		closeAll()
+		onDeviceIgnore(device)
+	}
+
+	// Playlist export handler
+	function handlePlaylistExport(playlist: Playlist) {
+		closeAll()
+		onPlaylistExport(playlist)
 	}
 </script>
 
@@ -414,6 +469,7 @@
 		selectedTracks={visibleMenu.tracks}
 		{playlists}
 		{currentPlaylistId}
+		isAnalyzing={$isAnalyzing}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onRevealInExplorer={handleTrackRevealInExplorer}
@@ -422,6 +478,7 @@
 		onRemoveFromLibrary={handleTrackRemoveFromLibrary}
 		onRelocate={handleTrackRelocate}
 		onSetColor={handleTrackSetColor}
+		onAnalyze={handleTrackAnalyze}
 	/>
 {/if}
 
@@ -438,6 +495,7 @@
 		onRename={handlePlaylistRename}
 		onDelete={handlePlaylistDelete}
 		onMove={handlePlaylistMove}
+		onExport={handlePlaylistExport}
 	/>
 {/if}
 
@@ -533,10 +591,15 @@
 		x={visibleMenu.x}
 		y={visibleMenu.y}
 		device={visibleMenu.device}
+		isReformatting={visibleMenu.device.id === $reformattingDeviceId}
+		isExporting={visibleMenu.device.id === $activeDeviceId || $syncingDeviceIds.includes(visibleMenu.device.id)}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
+		onExport={handleDeviceExport}
 		onViewInfo={handleDeviceViewInfo}
 		onRevealInFinder={handleDeviceRevealInFinder}
+		onReformat={handleDeviceReformat}
 		onEject={handleDeviceEject}
+		onIgnore={handleDeviceIgnore}
 	/>
 {/if}

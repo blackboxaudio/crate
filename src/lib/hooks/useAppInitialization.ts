@@ -7,6 +7,7 @@ import type { tagsStore as TagsStoreType } from '$lib/stores/tags'
 import type { playlistsStore as PlaylistsStoreType } from '$lib/stores/playlists'
 import type { settingsStore as SettingsStoreType } from '$lib/stores/settings'
 import type { devicesStore as DevicesStoreType } from '$lib/stores/devices'
+import type { syncStore as SyncStoreType } from '$lib/stores/sync'
 import type { toastStore as ToastStoreType } from '$lib/stores/toast'
 
 // =============================================================================
@@ -21,6 +22,7 @@ export interface AppInitConfig {
 		playlistsStore: typeof PlaylistsStoreType
 		settingsStore: typeof SettingsStoreType
 		devicesStore: typeof DevicesStoreType
+		syncStore: typeof SyncStoreType
 	}
 	toastStore: typeof ToastStoreType
 	onExternalFileDrop: (audioPaths: string[]) => Promise<void>
@@ -44,7 +46,7 @@ const AUDIO_EXTENSIONS = ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac']
  */
 export async function useAppInitialization(config: AppInitConfig): Promise<() => void> {
 	const { stores, toastStore, onExternalFileDrop, onDragStateChange } = config
-	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore } = stores
+	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore, syncStore } = stores
 
 	// Store unlisten functions
 	let unlistenDevices: UnlistenFn | undefined
@@ -98,12 +100,30 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenDevices = await listen<UsbDevice[]>('devices-changed', (event) => {
 			const previousDevices = devicesStore.getDevices()
 			const newDevices = event.payload
+			const reformattingId = devicesStore.getReformattingDeviceId()
+
+			// Get ignored device IDs from settings
+			let ignoredIds: string[] = []
+			settingsStore.subscribe((state) => {
+				ignoredIds = state.ignoredDeviceIds
+			})()
 
 			// Detect new devices (connected)
 			const prevIds = new Set(previousDevices.map((d) => d.id))
 			for (const device of newDevices) {
 				if (!prevIds.has(device.id)) {
-					toastStore.info(`${device.name} connected`)
+					// Skip toast and auto-sync for ignored devices
+					if (ignoredIds.includes(device.id)) {
+						continue
+					}
+
+					// Suppress toast if a reformat is in progress
+					if (!reformattingId) {
+						toastStore.info(`${device.name} connected`)
+					}
+
+					// Trigger auto-sync on device connected (if enabled)
+					syncStore.onDeviceConnected(device)
 				}
 			}
 
@@ -111,7 +131,15 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 			const newIds = new Set(newDevices.map((d) => d.id))
 			for (const device of previousDevices) {
 				if (!newIds.has(device.id)) {
-					toastStore.info(`${device.name} disconnected`)
+					// Skip toast for ignored devices
+					if (ignoredIds.includes(device.id)) {
+						continue
+					}
+
+					// Suppress toast if this device is being reformatted
+					if (reformattingId !== device.id) {
+						toastStore.info(`${device.name} disconnected`)
+					}
 				}
 			}
 

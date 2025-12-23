@@ -36,6 +36,9 @@ pub enum CrateError {
 
     #[error("Track not found: {0}")]
     TrackNotFound(String),
+
+    #[error("Analysis error: {0}")]
+    Analysis(String),
 }
 
 impl serde::Serialize for CrateError {

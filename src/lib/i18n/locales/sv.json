@@ -16,7 +16,9 @@
 		"untitled": "Namnlös",
 		"unknownArtist": "Okänd artist",
 		"folder": "mapp",
-		"playlist": "spellista"
+		"playlist": "spellista",
+		"next": "Nästa",
+		"back": "Tillbaka"
 	},
 	"nav": {
 		"library": "Bibliotek",
@@ -27,6 +29,7 @@
 		"title": "Inställningar",
 		"tabs": {
 			"general": "Allmänt",
+			"library": "Bibliotek",
 			"appearance": "Utseende",
 			"sound": "Ljud",
 			"diagnostics": "Diagnostik",
@@ -35,6 +38,31 @@
 		"general": {
 			"language": "Språk",
 			"languageDescription": "Välj visningsspråk för programmet."
+		},
+		"library": {
+			"analysis": "Analys",
+			"keyNotation": "Tonartsbeteckning",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standard",
+			"keyNotationDescription": "Välj hur tonarter visas.",
+			"autoAnalyzeOnImport": "Analysera automatiskt vid import",
+			"autoAnalyzeOnImportDescription": "Analysera automatiskt BPM och tonart vid import av spår.",
+			"sync": "Synkronisering",
+			"syncDescription": "Konfigurera automatisk synkronisering med USB-enheter.",
+			"autoSyncOnConnect": "Synkronisera automatiskt vid anslutning av enhet",
+			"autoSyncOnConnectDescription": "När en USB-enhet återansluts synkroniseras väntande ändringar automatiskt.",
+			"autoSyncOnChange": "Synkronisera automatiskt vid biblioteksändringar",
+			"autoSyncOnChangeDescription": "När spår eller spellistor redigeras synkroniseras de automatiskt till anslutna enheter.",
+			"ignoredDevices": "Ignorerade enheter",
+			"ignoredDevicesDescription": "Enheter i denna lista är dolda från sidofältet och utlöser inte automatisk synkronisering.",
+			"noIgnoredDevices": "Inga enheter ignoreras för närvarande",
+			"deviceNotConnected": "Inte ansluten",
+			"exportFormat": "Exportformat",
+			"exportFormatDescription": "Välj databasformat för USB-export.",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "Äldre format för gamla CDJ:er",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "För OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
 		"appearance": {
 			"font": "Typsnitt",
@@ -92,6 +120,8 @@
 		"matchOr": "ELLER",
 		"matchAnd": "OCH",
 		"clearAll": "Rensa alla",
+		"noTracksYet": "Inga spår än",
+		"dragDropHint": "Dra och släpp ljudfiler här för att importera dem",
 		"columns": {
 			"title": "Titel",
 			"artist": "Artist",
@@ -112,7 +142,9 @@
 		"deleteFolder": "Ta bort mapp",
 		"moveToFolder": "Flytta till mapp",
 		"rootNoFolder": "Rot (ingen mapp)",
-		"folderEmpty": "Denna mapp är tom"
+		"folderEmpty": "Denna mapp är tom",
+		"noPlaylistsYet": "Inga spellistor än",
+		"exportToDevice": "Exportera till enhet"
 	},
 	"tags": {
 		"newCategory": "Ny kategori",
@@ -122,7 +154,9 @@
 		"deleteTag": "Ta bort tagg",
 		"deleteCategory": "Ta bort kategori",
 		"addCategory": "Lägg till kategori",
-		"addTag": "Lägg till tagg"
+		"addTag": "Lägg till tagg",
+		"noTags": "Inga taggar",
+		"noTagCategoriesYet": "Inga taggkategorier än"
 	},
 	"contextMenu": {
 		"viewInFinder": "Visa i Finder",
@@ -134,7 +168,9 @@
 		"remove": "Ta bort",
 		"removeFromPlaylist": "Ta bort från spellista",
 		"removeFromLibrary": "Ta bort från bibliotek",
-		"relocate": "Flytta..."
+		"relocate": "Flytta...",
+		"analyze": "Analysera",
+		"stopAnalysis": "Stoppa analys"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -257,11 +293,16 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Kan inte släppa en mapp i sig själv",
-		"cannotDropIntoSubfolder": "Kan inte släppa en mapp i sin egen undermapp"
+		"cannotDropIntoSubfolder": "Kan inte släppa en mapp i sin egen undermapp",
+		"analysisFailed": "Analysen misslyckades",
+		"exportInProgress": "Export är redan i gång"
 	},
 	"devices": {
 		"title": "Enheter",
 		"eject": "Mata ut",
+		"ignore": "Ignorera",
+		"unignore": "Sluta ignorera",
+		"selectDevice": "Välj enhet",
 		"deviceInfo": "Enhetsinformation",
 		"capacity": "Kapacitet",
 		"available": "Tillgängligt",
@@ -269,7 +310,59 @@
 		"noDevices": "Inga enheter anslutna",
 		"free": "ledigt",
 		"connected": "Ansluten",
-		"viewInfo": "Visa info"
+		"statusCompatible": "Kompatibel för USB-export",
+		"statusIncompatible": "Inkompatibelt format ({fileSystem})",
+		"viewInfo": "Visa info",
+		"exportTo": "Exportera till...",
+		"reformat": {
+			"menuItem": "Formatera",
+			"title": "Formatera enhet",
+			"warning": "All data kommer att raderas permanent",
+			"warningDetails": "Formatering av \"{deviceName}\" kommer att radera alla filer på denna enhet. Denna åtgärd kan inte ångras.",
+			"volumeName": "Volymnamn",
+			"volumeNamePlaceholder": "Ange volymnamn",
+			"fat32Hint": "FAT32 stöder upp till 11 tecken",
+			"confirm": "Formatera"
+		}
+	},
+	"export": {
+		"exporting": "Exporterar...",
+		"title": "Exportera till enhet",
+		"quickExport": "Snabbexport",
+		"exportTo": "Exportera till {deviceName}",
+		"exportPlaylist": "Exportera {playlistName}",
+		"selectPlaylists": "Välj spellistor att exportera",
+		"selectPlaylistsDescription": "Välj vilka spellistor du vill exportera till de valda enheterna.",
+		"selectDevice": "Välj en enhet",
+		"selectDevicesDescription": "Välj en eller flera enheter att exportera till.",
+		"devicesSelected": "{count, plural, =1 {1 enhet vald} other {{count} enheter valda}}",
+		"devicesToExport": "Enheter",
+		"noDevicesConnected": "Inga USB-enheter anslutna",
+		"noPlaylistsAvailable": "Inga spellistor tillgängliga",
+		"destination": "Destination",
+		"playlistsToExport": "Spellistor att exportera",
+		"tracksToExport": "Spår att exportera",
+		"enableSync": "Aktivera synkronisering",
+		"export": "Exportera",
+		"preparing": "Förbereder...",
+		"copying": "Kopierar filer...",
+		"generatingDatabase": "Genererar databas...",
+		"complete": "Export klar",
+		"failed": "Export misslyckades",
+		"cancel": "Avbryt",
+		"keepPartial": "Behåll delvis",
+		"cleanUp": "Städa upp",
+		"whatToDo": "Vad vill du göra?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fil kopierades} other {{count} filer kopierades}} före felet.",
+		"exportingTo": "Exporterar till {deviceName}",
+		"transferringProgress": "Överför {trackCount} spår från {playlistCount} spellistor",
+		"noPlaylistsInFolder": "Inga spellistor att exportera i den här mappen",
+		"resume": "Återuppta",
+		"resumeExport": "Återuppta export",
+		"checkpointAvailable": "En tidigare export kan återupptas",
+		"tracksCompleted": "{count, plural, =1 {1 spår slutfört} other {{count} spår slutförda}}",
+		"filesRemaining": "{count, plural, =1 {1 fil återstår} other {{count} filer återstår}}",
+		"resumeFromCheckpoint": "Återuppta från senaste kontrollpunkt"
 	},
 	"editor": {
 		"trackInfo": "Spårinfo",
@@ -320,10 +413,17 @@
 		"help": "Hjälp",
 		"about": "Om {appName}",
 		"settings": "Inställningar...",
+		"settingsSubmenu": "Inställningar",
+		"settingsGeneral": "Allmänt",
+		"settingsLibrary": "Bibliotek",
+		"settingsAppearance": "Utseende",
+		"settingsSound": "Ljud",
+		"settingsDiagnostics": "Diagnostik",
 		"quit": "Avsluta {appName}",
 		"importTracks": "Importera spår...",
 		"newPlaylist": "Ny spellista",
 		"newFolder": "Ny mapp",
+		"quickExport": "Snabbexport...",
 		"undo": "Ångra",
 		"redo": "Gör om",
 		"cut": "Klipp ut",
@@ -332,6 +432,7 @@
 		"selectAllTracks": "Markera alla spår",
 		"playPause": "Spela/Paus",
 		"stop": "Stoppa",
+		"jumpToPlaying": "Gå till spår som spelas upp",
 		"toggleSidebar": "Visa/Dölj sidofält",
 		"showDevTools": "Visa DevTools",
 		"minimize": "Minimera",

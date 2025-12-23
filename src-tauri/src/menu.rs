@@ -43,6 +43,7 @@ pub struct MenuTranslations {
     pub import_tracks: String,
     pub new_playlist: String,
     pub new_folder: String,
+    pub quick_export: String,
     // Edit menu items
     pub undo: String,
     pub redo: String,
@@ -53,9 +54,17 @@ pub struct MenuTranslations {
     // Playback menu items
     pub play_pause: String,
     pub stop: String,
+    pub jump_to_playing: String,
     // View menu items
     pub toggle_sidebar: String,
     pub show_dev_tools: String,
+    // Settings submenu
+    pub settings_submenu: String,
+    pub settings_general: String,
+    pub settings_library: String,
+    pub settings_appearance: String,
+    pub settings_sound: String,
+    pub settings_diagnostics: String,
     // Window menu items
     pub minimize: String,
     pub zoom: String,
@@ -84,6 +93,7 @@ pub mod ids {
     pub const IMPORT_TRACKS: &str = "import_tracks";
     pub const NEW_PLAYLIST: &str = "new_playlist";
     pub const NEW_FOLDER: &str = "new_folder";
+    pub const QUICK_EXPORT: &str = "quick_export";
 
     // Edit menu items
     pub const UNDO: &str = "undo";
@@ -96,10 +106,19 @@ pub mod ids {
     // Playback menu items
     pub const PLAY_PAUSE: &str = "play_pause";
     pub const STOP: &str = "stop";
+    pub const JUMP_TO_PLAYING: &str = "jump_to_playing";
 
     // View menu items
     pub const TOGGLE_SIDEBAR: &str = "toggle_sidebar";
     pub const SHOW_DEVTOOLS: &str = "show_devtools";
+
+    // Settings submenu items
+    pub const SETTINGS_MENU: &str = "settings_menu";
+    pub const SETTINGS_GENERAL: &str = "settings_general";
+    pub const SETTINGS_LIBRARY: &str = "settings_library";
+    pub const SETTINGS_APPEARANCE: &str = "settings_appearance";
+    pub const SETTINGS_SOUND: &str = "settings_sound";
+    pub const SETTINGS_DIAGNOSTICS: &str = "settings_diagnostics";
 
     // Window menu items
     pub const MINIMIZE: &str = "minimize";
@@ -188,6 +207,14 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
             true,
             Some("CmdOrCtrl+Shift+N"),
         )?)
+        .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::QUICK_EXPORT,
+            "Quick Export...",
+            true,
+            Some("CmdOrCtrl+E"),
+        )?)
         .build()
 }
 
@@ -256,18 +283,67 @@ fn build_playback_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Erro
             true,
             Some("CmdOrCtrl+."),
         )?)
+        .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::JUMP_TO_PLAYING,
+            "Jump to Playing Track",
+            true,
+            Some("CmdOrCtrl+J"),
+        )?)
         .build()
 }
 
 fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, tauri::Error> {
-    let mut builder =
-        SubmenuBuilder::with_id(app, ids::VIEW_MENU, "View").item(&MenuItem::with_id(
+    // Build the Settings submenu
+    let settings_submenu = SubmenuBuilder::with_id(app, ids::SETTINGS_MENU, "Settings")
+        .item(&MenuItem::with_id(
+            app,
+            ids::SETTINGS_GENERAL,
+            "General",
+            true,
+            None::<&str>,
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::SETTINGS_LIBRARY,
+            "Library",
+            true,
+            None::<&str>,
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::SETTINGS_APPEARANCE,
+            "Appearance",
+            true,
+            None::<&str>,
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::SETTINGS_SOUND,
+            "Sound",
+            true,
+            None::<&str>,
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::SETTINGS_DIAGNOSTICS,
+            "Diagnostics",
+            true,
+            None::<&str>,
+        )?)
+        .build()?;
+
+    let mut builder = SubmenuBuilder::with_id(app, ids::VIEW_MENU, "View")
+        .item(&MenuItem::with_id(
             app,
             ids::TOGGLE_SIDEBAR,
             "Toggle Sidebar",
             true,
             Some("CmdOrCtrl+\\"),
-        )?);
+        )?)
+        .separator()
+        .item(&settings_submenu);
 
     if is_dev {
         builder = builder.separator().item(&MenuItem::with_id(
@@ -395,6 +471,7 @@ pub fn update_menu_translations(
     update_item_text(&menu, ids::IMPORT_TRACKS, &translations.import_tracks)?;
     update_item_text(&menu, ids::NEW_PLAYLIST, &translations.new_playlist)?;
     update_item_text(&menu, ids::NEW_FOLDER, &translations.new_folder)?;
+    update_item_text(&menu, ids::QUICK_EXPORT, &translations.quick_export)?;
 
     // Update Edit menu items
     update_item_text(&menu, ids::UNDO, &translations.undo)?;
@@ -407,12 +484,36 @@ pub fn update_menu_translations(
     // Update Playback menu items
     update_item_text(&menu, ids::PLAY_PAUSE, &translations.play_pause)?;
     update_item_text(&menu, ids::STOP, &translations.stop)?;
+    update_item_text(&menu, ids::JUMP_TO_PLAYING, &translations.jump_to_playing)?;
 
     // Update View menu items
     update_item_text(&menu, ids::TOGGLE_SIDEBAR, &translations.toggle_sidebar)?;
     if is_dev {
         update_item_text(&menu, ids::SHOW_DEVTOOLS, &translations.show_dev_tools)?;
     }
+
+    // Update Settings submenu (nested inside View menu)
+    update_nested_submenu_text(
+        &menu,
+        ids::VIEW_MENU,
+        ids::SETTINGS_MENU,
+        &translations.settings_submenu,
+    )?;
+    update_nested_submenu_items(
+        &menu,
+        ids::VIEW_MENU,
+        ids::SETTINGS_MENU,
+        &[
+            (ids::SETTINGS_GENERAL, &translations.settings_general),
+            (ids::SETTINGS_LIBRARY, &translations.settings_library),
+            (ids::SETTINGS_APPEARANCE, &translations.settings_appearance),
+            (ids::SETTINGS_SOUND, &translations.settings_sound),
+            (
+                ids::SETTINGS_DIAGNOSTICS,
+                &translations.settings_diagnostics,
+            ),
+        ],
+    )?;
 
     // Update Window menu items
     update_item_text(&menu, ids::MINIMIZE, &translations.minimize)?;
@@ -440,6 +541,43 @@ fn update_item_text(menu: &Menu<Wry>, id: &str, text: &str) -> Result<(), tauri:
                 if let Some(MenuItemKind::MenuItem(menu_item)) = submenu.get(id) {
                     menu_item.set_text(text)?;
                     return Ok(());
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Update the title of a nested submenu (e.g., View > Settings)
+fn update_nested_submenu_text(
+    menu: &Menu<Wry>,
+    parent_submenu_id: &str,
+    nested_submenu_id: &str,
+    text: &str,
+) -> Result<(), tauri::Error> {
+    if let Some(MenuItemKind::Submenu(parent)) = menu.get(parent_submenu_id) {
+        if let Some(MenuItemKind::Submenu(nested)) = parent.get(nested_submenu_id) {
+            nested.set_text(text)?;
+        }
+    }
+    Ok(())
+}
+
+/// Update menu items within a nested submenu (e.g., View > Settings > General)
+fn update_nested_submenu_items(
+    menu: &Menu<Wry>,
+    parent_submenu_id: &str,
+    nested_submenu_id: &str,
+    items: &[(&str, &str)],
+) -> Result<(), tauri::Error> {
+    // Find the parent submenu (e.g., View menu)
+    if let Some(MenuItemKind::Submenu(parent)) = menu.get(parent_submenu_id) {
+        // Find the nested submenu (e.g., Settings submenu)
+        if let Some(MenuItemKind::Submenu(nested)) = parent.get(nested_submenu_id) {
+            // Update each menu item in the nested submenu
+            for (item_id, text) in items {
+                if let Some(MenuItemKind::MenuItem(menu_item)) = nested.get(*item_id) {
+                    menu_item.set_text(*text)?;
                 }
             }
         }

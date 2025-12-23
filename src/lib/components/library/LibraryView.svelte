@@ -19,6 +19,7 @@
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
+		onCancelAnalysis?: (trackId: string) => void
 	}
 
 	let {
@@ -36,6 +37,7 @@
 		onContextMenu,
 		onEmptySpaceContextMenu,
 		onTrackColorChange,
+		onCancelAnalysis,
 	}: Props = $props()
 </script>
 
@@ -68,6 +70,7 @@
 			{onContextMenu}
 			{onEmptySpaceContextMenu}
 			{onTrackColorChange}
+			{onCancelAnalysis}
 		/>
 	</div>
 </div>

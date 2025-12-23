@@ -361,6 +361,8 @@ export interface UsbDevice {
 	id: string
 	name: string
 	mount_point: string
+	/** Volume UUID for stable identification across reconnections (platform-specific) */
+	volume_uuid: string | null
 	total_space_bytes: number
 	available_space_bytes: number
 	is_removable: boolean
@@ -390,12 +392,24 @@ export type Font = 'ibm-plex-mono' | 'jetbrains-mono' | 'fira-code' | 'inter' | 
 
 export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | 'ko' | 'pt' | 'zh'
 
+export type KeyNotationFormat = 'standard' | 'camelot'
+
+export type ExportFormat = 'pdb' | 'device_library_plus'
+
+export type SettingsPage = 'general' | 'library' | 'appearance' | 'sound' | 'diagnostics' | 'about'
+
 export interface AppSettings {
 	theme: Theme
 	accentColor: AccentColor
 	font: Font
 	audioDevice: string | null
 	language: Language
+	keyNotationFormat: KeyNotationFormat
+	exportFormat: ExportFormat
+	autoAnalyzeOnImport: boolean
+	autoSyncOnConnect: boolean
+	autoSyncOnChange: boolean
+	ignoredDeviceIds: string[]
 }
 
 export interface AudioDevice {
@@ -436,4 +450,119 @@ export interface DiagnosticsReport {
 	generatedAt: string
 	systemInfo: SystemInfo
 	entries: DiagnosticEntry[]
+}
+
+// =============================================================================
+// Export Types
+// =============================================================================
+
+export type ExportStatus = 'pending' | 'copying' | 'generating_database' | 'completed' | 'failed'
+
+export interface ExportProgress {
+	status: ExportStatus
+	current_file: string | null
+	files_copied: number
+	files_total: number
+	bytes_copied: number
+	bytes_total: number
+}
+
+export interface ExportRequest {
+	device_id: string
+	mount_point: string
+	device_name: string
+	playlist_ids: string[]
+	enable_sync: boolean
+	use_device_library_plus: boolean
+}
+
+export interface ExportResult {
+	success: boolean
+	tracks_copied: number
+	tracks_skipped: number
+	errors: string[]
+}
+
+export interface DeviceExport {
+	id: string
+	device_id: string
+	device_name: string
+	playlist_id: string
+	last_export_at: string
+	sync_enabled: boolean
+}
+
+export type CheckpointState =
+	| { type: 'copying'; current_track_id: string | null; bytes_copied: number }
+	| { type: 'generating_pdb' }
+
+export interface ExportCheckpoint {
+	id: string
+	device_id: string
+	device_name: string
+	started_at: string
+	state: CheckpointState
+	playlist_ids: string[]
+	tracks_completed: string[]
+	tracks_failed: [string, string][]
+	last_updated_at: string
+}
+
+// =============================================================================
+// Sync Types
+// =============================================================================
+
+export type SyncStatus = 'pending' | 'syncing' | 'generating_database' | 'completed' | 'failed'
+
+export interface SyncProgress {
+	status: SyncStatus
+	deviceId: string
+	deviceName: string
+	currentFile: string | null
+	filesSynced: number
+	filesTotal: number
+}
+
+export interface SyncResult {
+	success: boolean
+	tracksSynced: number
+	tracksSkipped: number
+	playlistsSynced: string[]
+	errors: string[]
+}
+
+export interface DeviceInfo {
+	deviceId: string
+	deviceName: string
+}
+
+// =============================================================================
+// Analysis Types
+// =============================================================================
+
+export interface AnalysisResult {
+	track_id: string
+	bpm: number | null
+	key: string | null
+	success: boolean
+	error: string | null
+}
+
+export type AnalysisStatus = 'pending' | 'analyzing' | 'completed' | 'failed' | 'cancelled'
+
+export interface AnalysisProgress {
+	status: AnalysisStatus
+	current_track_id: string | null
+	tracks_analyzed: number
+	tracks_total: number
+	result: AnalysisResult | null
+	updated_track: Track | null
+}
+
+export interface TrackAnalysisEvent {
+	track_id: string
+	state: AnalysisStatus
+	result: AnalysisResult | null
+	updated_track: Track | null
+	error: string | null
 }

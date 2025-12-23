@@ -8,6 +8,7 @@ export type MenuAction =
 	| 'import_tracks'
 	| 'new_playlist'
 	| 'new_folder'
+	| 'quick_export'
 	// Edit menu
 	| 'undo'
 	| 'redo'
@@ -18,8 +19,15 @@ export type MenuAction =
 	// Playback menu
 	| 'play_pause'
 	| 'stop'
+	| 'jump_to_playing'
 	// View menu
 	| 'toggle_sidebar'
+	// View > Settings submenu
+	| 'settings_general'
+	| 'settings_library'
+	| 'settings_appearance'
+	| 'settings_sound'
+	| 'settings_diagnostics'
 	// Help menu
 	| 'documentation'
 	| 'report_issue'

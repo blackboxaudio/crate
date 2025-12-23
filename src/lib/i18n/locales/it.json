@@ -16,7 +16,9 @@
 		"untitled": "Senza titolo",
 		"unknownArtist": "Artista sconosciuto",
 		"folder": "cartella",
-		"playlist": "playlist"
+		"playlist": "playlist",
+		"next": "Successivo",
+		"back": "Indietro"
 	},
 	"nav": {
 		"library": "Libreria",
@@ -27,6 +29,7 @@
 		"title": "Impostazioni",
 		"tabs": {
 			"general": "Generale",
+			"library": "Libreria",
 			"appearance": "Aspetto",
 			"sound": "Suono",
 			"diagnostics": "Diagnostica",
@@ -35,6 +38,31 @@
 		"general": {
 			"language": "Lingua",
 			"languageDescription": "Scegli la lingua di visualizzazione dell'applicazione."
+		},
+		"library": {
+			"analysis": "Analisi",
+			"keyNotation": "Notazione tonalità",
+			"keyNotationCamelot": "Camelot",
+			"keyNotationStandard": "Standard",
+			"keyNotationDescription": "Scegli come visualizzare le tonalità musicali.",
+			"autoAnalyzeOnImport": "Analisi automatica all'importazione",
+			"autoAnalyzeOnImportDescription": "Analizza automaticamente BPM e tonalità durante l'importazione delle tracce.",
+			"sync": "Sincronizzazione",
+			"syncDescription": "Configura la sincronizzazione automatica con i dispositivi USB.",
+			"autoSyncOnConnect": "Sincronizzazione automatica alla connessione del dispositivo",
+			"autoSyncOnConnectDescription": "Quando un dispositivo USB si ricollega, sincronizza automaticamente eventuali modifiche in sospeso.",
+			"autoSyncOnChange": "Sincronizzazione automatica alle modifiche della libreria",
+			"autoSyncOnChangeDescription": "Quando vengono modificate tracce o playlist, sincronizza automaticamente con i dispositivi connessi.",
+			"ignoredDevices": "Dispositivi ignorati",
+			"ignoredDevicesDescription": "I dispositivi in questo elenco sono nascosti dalla barra laterale e non attiveranno la sincronizzazione automatica.",
+			"noIgnoredDevices": "Nessun dispositivo è attualmente ignorato",
+			"deviceNotConnected": "Non connesso",
+			"exportFormat": "Formato di esportazione",
+			"exportFormatDescription": "Scegli il formato del database per le esportazioni USB.",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "Formato legacy per CDJ più vecchi",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "Per OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
 		"appearance": {
 			"font": "Carattere",
@@ -92,6 +120,8 @@
 		"matchOr": "O",
 		"matchAnd": "E",
 		"clearAll": "Cancella tutto",
+		"noTracksYet": "Nessuna traccia per ora",
+		"dragDropHint": "Trascina e rilascia i file audio qui per importarli",
 		"columns": {
 			"title": "Titolo",
 			"artist": "Artista",
@@ -112,7 +142,9 @@
 		"deleteFolder": "Elimina cartella",
 		"moveToFolder": "Sposta in cartella",
 		"rootNoFolder": "Radice (nessuna cartella)",
-		"folderEmpty": "Questa cartella è vuota"
+		"folderEmpty": "Questa cartella è vuota",
+		"noPlaylistsYet": "Nessuna playlist per ora",
+		"exportToDevice": "Esporta su dispositivo"
 	},
 	"tags": {
 		"newCategory": "Nuova categoria",
@@ -122,7 +154,9 @@
 		"deleteTag": "Elimina tag",
 		"deleteCategory": "Elimina categoria",
 		"addCategory": "Aggiungi categoria",
-		"addTag": "Aggiungi tag"
+		"addTag": "Aggiungi tag",
+		"noTags": "Nessun tag",
+		"noTagCategoriesYet": "Nessuna categoria di tag per ora"
 	},
 	"contextMenu": {
 		"viewInFinder": "Visualizza nel Finder",
@@ -134,7 +168,9 @@
 		"remove": "Rimuovi",
 		"removeFromPlaylist": "Rimuovi dalla playlist",
 		"removeFromLibrary": "Rimuovi dalla libreria",
-		"relocate": "Sposta..."
+		"relocate": "Sposta...",
+		"analyze": "Analizza",
+		"stopAnalysis": "Interrompi analisi"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -257,11 +293,16 @@
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Impossibile trascinare una cartella dentro sé stessa",
-		"cannotDropIntoSubfolder": "Impossibile trascinare una cartella nella propria sottocartella"
+		"cannotDropIntoSubfolder": "Impossibile trascinare una cartella nella propria sottocartella",
+		"analysisFailed": "Analisi non riuscita",
+		"exportInProgress": "Esportazione già in corso"
 	},
 	"devices": {
 		"title": "Dispositivi",
 		"eject": "Espelli",
+		"ignore": "Ignora",
+		"unignore": "Smetti di ignorare",
+		"selectDevice": "Seleziona dispositivo",
 		"deviceInfo": "Info dispositivo",
 		"capacity": "Capacità",
 		"available": "Disponibile",
@@ -269,7 +310,59 @@
 		"noDevices": "Nessun dispositivo connesso",
 		"free": "libero",
 		"connected": "Connesso",
-		"viewInfo": "Visualizza info"
+		"statusCompatible": "Compatibile per esportazione USB",
+		"statusIncompatible": "Formato incompatibile ({fileSystem})",
+		"viewInfo": "Visualizza info",
+		"exportTo": "Esporta su...",
+		"reformat": {
+			"menuItem": "Formatta",
+			"title": "Formatta dispositivo",
+			"warning": "Tutti i dati verranno eliminati definitivamente",
+			"warningDetails": "La formattazione di \"{deviceName}\" cancellerà tutti i file su questo dispositivo. Questa azione non può essere annullata.",
+			"volumeName": "Nome volume",
+			"volumeNamePlaceholder": "Inserisci nome volume",
+			"fat32Hint": "FAT32 supporta fino a 11 caratteri",
+			"confirm": "Formatta"
+		}
+	},
+	"export": {
+		"exporting": "Esportazione...",
+		"title": "Esporta su dispositivo",
+		"quickExport": "Esportazione rapida",
+		"exportTo": "Esporta su {deviceName}",
+		"exportPlaylist": "Esporta {playlistName}",
+		"selectPlaylists": "Seleziona le playlist da esportare",
+		"selectPlaylistsDescription": "Scegli quali playlist esportare sui dispositivi selezionati.",
+		"selectDevice": "Seleziona un dispositivo",
+		"selectDevicesDescription": "Seleziona uno o più dispositivi da esportare.",
+		"devicesSelected": "{count, plural, =1 {1 dispositivo selezionato} other {{count} dispositivi selezionati}}",
+		"devicesToExport": "Dispositivi",
+		"noDevicesConnected": "Nessun dispositivo USB connesso",
+		"noPlaylistsAvailable": "Nessuna playlist disponibile",
+		"destination": "Destinazione",
+		"playlistsToExport": "Playlist da esportare",
+		"tracksToExport": "Tracce da esportare",
+		"enableSync": "Abilita sincronizzazione",
+		"export": "Esporta",
+		"preparing": "Preparazione...",
+		"copying": "Copia dei file...",
+		"generatingDatabase": "Generazione database...",
+		"complete": "Esportazione completata",
+		"failed": "Esportazione fallita",
+		"cancel": "Annulla",
+		"keepPartial": "Mantieni parziale",
+		"cleanUp": "Pulisci",
+		"whatToDo": "Cosa vuoi fare?",
+		"filesCopiedBeforeFailure": "{count, plural, =1 {1 file è stato copiato} other {{count} file sono stati copiati}} prima dell'errore.",
+		"exportingTo": "Esportazione su {deviceName}",
+		"transferringProgress": "Trasferimento di {trackCount} brani da {playlistCount} playlist",
+		"noPlaylistsInFolder": "Nessuna playlist da esportare in questa cartella",
+		"resume": "Riprendi",
+		"resumeExport": "Riprendi esportazione",
+		"checkpointAvailable": "Un'esportazione precedente può essere ripresa",
+		"tracksCompleted": "{count, plural, =1 {1 traccia completata} other {{count} tracce completate}}",
+		"filesRemaining": "{count, plural, =1 {1 file rimanente} other {{count} file rimanenti}}",
+		"resumeFromCheckpoint": "Riprendi dall'ultimo checkpoint"
 	},
 	"editor": {
 		"trackInfo": "Info traccia",
@@ -320,10 +413,17 @@
 		"help": "Aiuto",
 		"about": "Informazioni su {appName}",
 		"settings": "Impostazioni...",
+		"settingsSubmenu": "Impostazioni",
+		"settingsGeneral": "Generale",
+		"settingsLibrary": "Libreria",
+		"settingsAppearance": "Aspetto",
+		"settingsSound": "Suono",
+		"settingsDiagnostics": "Diagnostica",
 		"quit": "Esci da {appName}",
 		"importTracks": "Importa tracce...",
 		"newPlaylist": "Nuova playlist",
 		"newFolder": "Nuova cartella",
+		"quickExport": "Esportazione rapida...",
 		"undo": "Annulla",
 		"redo": "Ripeti",
 		"cut": "Taglia",
@@ -332,6 +432,7 @@
 		"selectAllTracks": "Seleziona tutte le tracce",
 		"playPause": "Riproduci/Pausa",
 		"stop": "Ferma",
+		"jumpToPlaying": "Vai alla traccia in riproduzione",
 		"toggleSidebar": "Mostra/Nascondi barra laterale",
 		"showDevTools": "Mostra DevTools",
 		"minimize": "Riduci a icona",

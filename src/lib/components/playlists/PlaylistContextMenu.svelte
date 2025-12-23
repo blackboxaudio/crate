@@ -15,9 +15,10 @@
 		onRename: (playlist: Playlist) => void
 		onDelete: (playlist: Playlist) => void
 		onMove: (playlist: Playlist, folderId: string | null) => void
+		onExport: (playlist: Playlist) => void
 	}
 
-	let { open, x, y, playlist, folders, onClose, onClosed, onRename, onDelete, onMove }: Props = $props()
+	let { open, x, y, playlist, folders, onClose, onClosed, onRename, onDelete, onMove, onExport }: Props = $props()
 
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		if (!playlist) return []
@@ -64,6 +65,14 @@
 					submenu: moveSubmenu,
 				})
 			}
+
+			// Export to device (only for non-folders)
+			items.push({
+				id: 'export',
+				label: get(translate)('playlists.exportToDevice'),
+				icon: 'arrow-up-from-bracket',
+				action: () => onExport(playlist),
+			})
 		}
 
 		items.push({ id: 'divider-1', label: '', divider: true })

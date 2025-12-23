@@ -1,18 +1,24 @@
+pub mod analysis;
 pub mod artwork;
 pub mod audio;
 pub mod device;
 pub mod diagnostics;
+pub mod export;
 pub mod hash;
 pub mod library;
 pub mod playlist;
 pub mod settings;
+pub mod sync;
 pub mod tag;
 
+pub use analysis::AnalysisService;
 pub use artwork::ArtworkService;
 pub use audio::AudioService;
 pub use device::DeviceService;
 pub use diagnostics::DiagnosticsService;
+pub use export::ExportService;
 pub use library::LibraryService;
 pub use playlist::PlaylistService;
 pub use settings::SettingsService;
+pub use sync::SyncService;
 pub use tag::TagService;
