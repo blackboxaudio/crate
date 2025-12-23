@@ -14,10 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Automatic system language detection with user preference override in Settings
 - Track BPM and key analysis
 
-### Fixed
-
-- USB export format now correctly matches Pioneer/Rekordbox specifications for XDJ and CDJ compatibility
-
 ## [0.1.0] - 2024-12-20
 
 Initial release.
