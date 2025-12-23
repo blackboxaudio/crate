@@ -166,7 +166,7 @@
 			<div class="group relative" role="none" onmouseenter={(e) => handleItemMouseEnter(item, depth)}>
 				<button
 					type="button"
-					class="flex w-full items-center gap-3 px-3 py-1.5 text-left text-sm transition-colors
+					class="flex w-full items-center gap-3 px-3 py-1 text-left text-sm transition-colors
 						{item.disabled
 						? 'cursor-not-allowed text-text-tertiary'
 						: item.variant === 'danger'

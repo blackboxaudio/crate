@@ -56,7 +56,13 @@
 			"ignoredDevices": "무시된 장치",
 			"ignoredDevicesDescription": "이 목록의 장치는 사이드바에서 숨겨지며 자동 동기화를 트리거하지 않습니다.",
 			"noIgnoredDevices": "현재 무시되는 장치가 없습니다",
-			"deviceNotConnected": "연결되지 않음"
+			"deviceNotConnected": "연결되지 않음",
+			"exportFormat": "내보내기 형식",
+			"exportFormatDescription": "USB 내보내기에 사용할 데이터베이스 형식을 선택하세요.",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "더 오래된 CDJ용 레거시 형식",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "OPUS-QUAD, OMNIS-DUO, XDJ-AZ용"
 		},
 		"appearance": {
 			"font": "글꼴",
@@ -350,7 +356,13 @@
 		"filesCopiedBeforeFailure": "오류 발생 전 {count, plural, =1 {1개 파일이} other {{count}개 파일이}} 복사되었습니다.",
 		"exportingTo": "{deviceName}(으)로 내보내는 중",
 		"transferringProgress": "{playlistCount}개 플레이리스트에서 {trackCount}개 트랙 전송 중",
-		"noPlaylistsInFolder": "이 폴더에서 내보낼 재생목록이 없습니다"
+		"noPlaylistsInFolder": "이 폴더에서 내보낼 재생목록이 없습니다",
+		"resume": "재개",
+		"resumeExport": "내보내기 재개",
+		"checkpointAvailable": "이전 내보내기를 재개할 수 있습니다",
+		"tracksCompleted": "{count, plural, =1 {1개 트랙 완료} other {{count}개 트랙 완료}}",
+		"filesRemaining": "{count, plural, =1 {1개 파일 남음} other {{count}개 파일 남음}}",
+		"resumeFromCheckpoint": "마지막 체크포인트에서 재개"
 	},
 	"editor": {
 		"trackInfo": "트랙 정보",

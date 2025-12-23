@@ -35,6 +35,11 @@ pub struct ExportRequest {
     pub playlist_ids: Vec<String>,
     /// Whether to enable auto-sync for these playlists
     pub enable_sync: bool,
+    /// Whether to use Device Library Plus format (SQLCipher encrypted SQLite)
+    /// instead of the legacy PDB format. Device Library Plus is used by newer
+    /// Pioneer DJ hardware (OPUS-QUAD, OMNIS-DUO, XDJ-AZ).
+    #[serde(default)]
+    pub use_device_library_plus: bool,
 }
 
 /// Result of an export operation
@@ -69,6 +74,35 @@ pub struct DeviceTrack {
     /// Sequential ID assigned in PDB (for Rekordbox compatibility)
     pub pdb_track_id: Option<i32>,
     pub exported_at: String,
+    /// Hash of metadata for detecting changes
+    pub metadata_hash: Option<String>,
+}
+
+/// State of an export checkpoint
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum CheckpointState {
+    /// Currently copying tracks
+    Copying {
+        current_track_id: Option<String>,
+        bytes_copied: u64,
+    },
+    /// Generating PDB database
+    GeneratingPdb,
+}
+
+/// Export checkpoint for resumable exports
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExportCheckpoint {
+    pub id: String,
+    pub device_id: String,
+    pub device_name: String,
+    pub started_at: String,
+    pub state: CheckpointState,
+    pub playlist_ids: Vec<String>,
+    pub tracks_completed: Vec<String>,
+    pub tracks_failed: Vec<(String, String)>,
+    pub last_updated_at: String,
 }
 
 impl ExportProgress {

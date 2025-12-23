@@ -193,6 +193,7 @@ impl SyncService {
             device_name: device_name.to_string(),
             playlist_ids: playlist_ids.to_vec(),
             enable_sync: true,
+            use_device_library_plus: false,
         };
 
         // Use the export service to perform the sync

@@ -56,7 +56,13 @@
 			"ignoredDevices": "被忽略的设备",
 			"ignoredDevicesDescription": "此列表中的设备将从侧边栏隐藏，不会触发自动同步。",
 			"noIgnoredDevices": "当前没有被忽略的设备",
-			"deviceNotConnected": "未连接"
+			"deviceNotConnected": "未连接",
+			"exportFormat": "导出格式",
+			"exportFormatDescription": "选择 USB 导出的数据库格式。",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "用于较旧 CDJ 的旧版格式",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "适用于 OPUS-QUAD、OMNIS-DUO、XDJ-AZ"
 		},
 		"appearance": {
 			"font": "字体",
@@ -350,7 +356,13 @@
 		"filesCopiedBeforeFailure": "失败前已复制 {count, plural, =1 {1 个文件} other {{count} 个文件}}。",
 		"exportingTo": "正在导出到 {deviceName}",
 		"transferringProgress": "正在从 {playlistCount} 个播放列表传输 {trackCount} 首曲目",
-		"noPlaylistsInFolder": "此文件夹中没有要导出的播放列表"
+		"noPlaylistsInFolder": "此文件夹中没有要导出的播放列表",
+		"resume": "继续",
+		"resumeExport": "继续导出",
+		"checkpointAvailable": "可以继续之前的导出",
+		"tracksCompleted": "{count, plural, =1 {1 首曲目已完成} other {{count} 首曲目已完成}}",
+		"filesRemaining": "{count, plural, =1 {1 个文件剩余} other {{count} 个文件剩余}}",
+		"resumeFromCheckpoint": "从上一个检查点继续"
 	},
 	"editor": {
 		"trackInfo": "曲目信息",

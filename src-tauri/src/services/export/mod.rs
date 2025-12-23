@@ -1,5 +1,10 @@
 pub mod anlz;
-pub mod rekordbox;
+pub mod checkpoint;
+pub mod device_library_plus;
+pub mod pdb;
+pub mod sync_diff;
+
+pub use checkpoint::CheckpointService;
 
 use std::collections::HashMap;
 use std::fs;
@@ -12,10 +17,15 @@ use tauri::{AppHandle, Emitter};
 
 use crate::error::{CrateError, Result};
 use crate::models::{
-    DeviceExport, DeviceTrack, ExportProgress, ExportRequest, ExportResult, Playlist, Track,
+    Cue, CueType, DeviceExport, DeviceTrack, ExportProgress, ExportRequest, ExportResult,
+    Playlist, Track,
 };
 
-use self::rekordbox::RekordboxPdbWriter;
+use self::device_library_plus::{
+    Content, CueKind, DeviceLibraryPlusWriter, FileType, Playlist as DlpPlaylist, PlaylistType,
+    Property, Cue as DlpCue,
+};
+use self::pdb::RekordboxPdbWriter;
 
 /// Service for exporting playlists to USB devices in Rekordbox-compatible format
 pub struct ExportService {
@@ -92,12 +102,20 @@ impl ExportService {
             });
         }
 
-        // Update progress for PDB generation
+        // Update progress for database generation
         progress = progress.generating_database();
         let _ = app_handle.emit("export-progress", &progress);
 
-        // Generate Rekordbox PDB
-        self.generate_rekordbox_pdb(&request.mount_point, &playlists_with_tracks, &device_tracks)?;
+        // Generate database (PDB or Device Library Plus based on request)
+        if request.use_device_library_plus {
+            self.generate_device_library_plus(
+                &request.mount_point,
+                &playlists_with_tracks,
+                &device_tracks,
+            )?;
+        } else {
+            self.generate_rekordbox_pdb(&request.mount_point, &playlists_with_tracks, &device_tracks)?;
+        }
 
         // Record export state in database
         self.record_export_state(&request)?;
@@ -425,6 +443,7 @@ impl ExportService {
                 file_hash: track.file_hash.clone().unwrap_or_default(),
                 pdb_track_id: None, // Will be set during PDB generation
                 exported_at: now.clone(),
+                metadata_hash: None,
             };
             device_tracks.push(device_track);
         }
@@ -479,13 +498,14 @@ impl ExportService {
             for track in tracks {
                 if let Some(usb_path) = track_paths.get(&track.id) {
                     if !track_pdb_ids.contains_key(&track.id) {
-                        // Generate ANLZ file for this track
+                        // Generate ANLZ files for this track (.DAT, .EXT, .2EX)
                         let anlz_path = self.generate_anlz_file(
                             mount_point,
                             next_pdb_id,
                             usb_path,
                             track.duration_ms as u32,
                             track.bpm.map(|b| b as f32),
+                            &track.id,
                         )?;
 
                         let pdb_id = writer.add_track(track, usb_path, &anlz_path);
@@ -514,7 +534,294 @@ impl ExportService {
         Ok(())
     }
 
-    /// Generate an ANLZ file for a track and return the device path
+    /// Generate the Device Library Plus database (SQLCipher encrypted SQLite)
+    fn generate_device_library_plus(
+        &self,
+        mount_point: &str,
+        playlists_with_tracks: &[(Playlist, Vec<Track>)],
+        device_tracks: &[DeviceTrack],
+    ) -> Result<()> {
+        let db_path = Path::new(mount_point)
+            .join("PIONEER")
+            .join("rekordbox")
+            .join("exportLibrary.db");
+
+        // Create the Device Library Plus writer (creates encrypted database)
+        let mut writer = DeviceLibraryPlusWriter::create(&db_path)?;
+
+        // Build track ID to USB path mapping
+        let track_paths: HashMap<String, String> = device_tracks
+            .iter()
+            .map(|dt| (dt.track_id.clone(), dt.usb_path.clone()))
+            .collect();
+
+        // Track content ID mapping (Crate track ID -> Device Library Plus content ID)
+        let mut content_ids: HashMap<String, i64> = HashMap::new();
+        let mut next_content_id: u32 = 1;
+
+        // Add tracks to database
+        for (_, tracks) in playlists_with_tracks {
+            for track in tracks {
+                if let Some(usb_path) = track_paths.get(&track.id) {
+                    if content_ids.contains_key(&track.id) {
+                        continue;
+                    }
+
+                    // Generate ANLZ files for this track (.DAT, .EXT, .2EX)
+                    let anlz_path = self.generate_anlz_file(
+                        mount_point,
+                        next_content_id,
+                        usb_path,
+                        track.duration_ms as u32,
+                        track.bpm.map(|b| b as f32),
+                        &track.id,
+                    )?;
+
+                    // Build content entry
+                    let content_id = self.add_track_to_device_library_plus(
+                        &mut writer,
+                        track,
+                        usb_path,
+                        &anlz_path,
+                    )?;
+
+                    content_ids.insert(track.id.clone(), content_id);
+                    next_content_id += 1;
+                }
+            }
+        }
+
+        // Add playlists to database
+        let mut playlist_ids: HashMap<String, i64> = HashMap::new();
+        let mut seq_no = 1;
+
+        for (playlist, tracks) in playlists_with_tracks {
+            // Determine playlist type
+            let playlist_type = if playlist.is_folder {
+                PlaylistType::Folder
+            } else if playlist.is_smart {
+                PlaylistType::SmartPlaylist
+            } else {
+                PlaylistType::Playlist
+            };
+
+            // Create playlist entry
+            let mut dlp_playlist = DlpPlaylist::new(
+                playlist.name.clone(),
+                seq_no,
+                playlist_type,
+            );
+
+            // Set parent if exists
+            if let Some(ref parent_id) = playlist.parent_id {
+                if let Some(&parent_dlp_id) = playlist_ids.get(parent_id) {
+                    dlp_playlist = dlp_playlist.with_parent(parent_dlp_id);
+                }
+            }
+
+            let dlp_playlist_id = writer.add_playlist(&dlp_playlist, &playlist.id)?;
+            playlist_ids.insert(playlist.id.clone(), dlp_playlist_id);
+
+            // Add tracks to playlist
+            let mut track_seq = 1;
+            for track in tracks {
+                if let Some(&content_id) = content_ids.get(&track.id) {
+                    writer.add_playlist_content(dlp_playlist_id, content_id, track_seq)?;
+                    track_seq += 1;
+                }
+            }
+
+            seq_no += 1;
+        }
+
+        // Set database property
+        let now = chrono::Utc::now();
+        let created_date = now.format("%Y-%m-%d %H:%M:%S%.3f +00:00").to_string();
+        let mut property = Property::new("Crate Export".to_string());
+        property.created_date = Some(created_date);
+        writer.set_property(&property)?;
+        writer.update_content_count()?;
+
+        // Commit changes
+        writer.commit()?;
+
+        // Update device_tracks with content IDs
+        let track_pdb_ids: HashMap<String, u32> = content_ids
+            .iter()
+            .map(|(k, v)| (k.clone(), *v as u32))
+            .collect();
+        self.update_device_track_pdb_ids(&track_pdb_ids)?;
+
+        Ok(())
+    }
+
+    /// Add a track to the Device Library Plus database
+    fn add_track_to_device_library_plus(
+        &self,
+        writer: &mut DeviceLibraryPlusWriter,
+        track: &Track,
+        usb_path: &str,
+        anlz_path: &str,
+    ) -> Result<i64> {
+        // Get or create artist
+        let artist_id = if let Some(ref artist) = track.artist {
+            Some(writer.get_or_create_artist(artist)?)
+        } else {
+            None
+        };
+
+        // Get or create album
+        let album_id = if let Some(ref album) = track.album {
+            Some(writer.get_or_create_album(album, artist_id)?)
+        } else {
+            None
+        };
+
+        // Get or create genre
+        let genre_id = if let Some(ref genre) = track.genre {
+            Some(writer.get_or_create_genre(genre)?)
+        } else {
+            None
+        };
+
+        // Get or create key
+        let key_id = if let Some(ref key) = track.key {
+            Some(writer.get_or_create_key(key)?)
+        } else {
+            None
+        };
+
+        // Get or create color
+        let color_id = if let Some(ref color) = track.color {
+            Some(writer.get_or_create_color(color)?)
+        } else {
+            None
+        };
+
+        // Get or create label
+        let label_id = if let Some(ref label) = track.label {
+            Some(writer.get_or_create_label(label)?)
+        } else {
+            None
+        };
+
+        // Determine file type from format
+        let file_type = FileType::from_extension(&track.format)
+            .map(|ft| ft as i32)
+            .unwrap_or(1); // Default to MP3
+
+        // Build file path on device
+        let device_path = format!("/Contents/{}", usb_path);
+        let file_name = Path::new(usb_path)
+            .file_name()
+            .unwrap_or_default()
+            .to_string_lossy()
+            .to_string();
+
+        // Get file size
+        let file_size = fs::metadata(&track.file_path)
+            .map(|m| m.len() as i64)
+            .unwrap_or(0);
+
+        // Build content entry
+        let mut content = Content::new(
+            device_path,
+            file_name,
+            file_size,
+            file_type,
+            track.bitrate.unwrap_or(0) as i32,
+            16, // Default bit depth
+            track.sample_rate.unwrap_or(44100) as i32,
+        );
+
+        // Set metadata
+        content.title = track.title.clone();
+        content.title_for_search = track.title.as_ref().map(|t| t.to_lowercase());
+        content.bpmx100 = track.bpm.map(|b| (b * 100.0) as i32);
+        content.length = Some((track.duration_ms / 1000) as i32);
+        content.artist_id_artist = artist_id;
+        content.album_id = album_id;
+        content.genre_id = genre_id;
+        content.key_id = key_id;
+        content.color_id = color_id;
+        content.label_id = label_id;
+        content.rating = Some(track.rating as i32);
+        content.release_year = track.year;
+        content.analysis_data_file_path = Some(anlz_path.to_string());
+
+        // Set dates
+        let now = chrono::Utc::now();
+        let date_str = now.format("%Y-%m-%d %H:%M:%S%.3f +00:00").to_string();
+        content.date_added = Some(date_str.clone());
+        content.date_created = Some(date_str);
+
+        // Add content to database
+        let content_id = writer.add_content(&content)?;
+
+        // Add cue points
+        let cues = self.get_track_cues(&track.id)?;
+        for cue in cues {
+            let kind = match cue.cue_type {
+                CueType::Memory => CueKind::Cue,
+                CueType::Hot => CueKind::Cue,
+                CueType::Loop => CueKind::Loop,
+            };
+
+            let mut dlp_cue = DlpCue::new(content_id, kind, (cue.position_ms * 1000) as i64);
+            dlp_cue.cue_comment = cue.name;
+            dlp_cue.color_table_index = cue.hot_cue_index;
+
+            if cue.cue_type == CueType::Loop {
+                if let Some(loop_end) = cue.loop_end_ms {
+                    dlp_cue.out_usec = Some((loop_end * 1000) as i64);
+                    dlp_cue.is_active_loop = Some(1);
+                }
+            }
+
+            writer.add_cue(&dlp_cue)?;
+        }
+
+        Ok(content_id)
+    }
+
+    /// Get all cue points for a track
+    fn get_track_cues(&self, track_id: &str) -> Result<Vec<Cue>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT id, track_id, position_ms, type, loop_end_ms, hot_cue_index, name, color
+            FROM cues
+            WHERE track_id = ?1
+            ORDER BY position_ms
+            "#,
+        )?;
+
+        let cues = stmt
+            .query_map([track_id], |row| {
+                let cue_type_str: String = row.get(3)?;
+                let cue_type = cue_type_str.parse::<CueType>().unwrap_or(CueType::Memory);
+
+                Ok(Cue {
+                    id: row.get(0)?,
+                    track_id: row.get(1)?,
+                    position_ms: row.get(2)?,
+                    cue_type,
+                    loop_end_ms: row.get(4)?,
+                    hot_cue_index: row.get(5)?,
+                    name: row.get(6)?,
+                    color: row.get(7)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        Ok(cues)
+    }
+
+    /// Generate ANLZ files for a track and return the device path
     fn generate_anlz_file(
         &self,
         mount_point: &str,
@@ -522,22 +829,17 @@ impl ExportService {
         usb_audio_path: &str,
         duration_ms: u32,
         bpm: Option<f32>,
+        track_id: &str,
     ) -> Result<String> {
-        use crate::services::export::anlz;
+        // Fetch cues for this track
+        let cues = self.get_track_cues(track_id)?;
 
-        // Generate the ANLZ directory and file paths
-        let anlz_dir = anlz::generate_anlz_dir(pdb_track_id);
-        let anlz_path = anlz::generate_anlz_path(pdb_track_id);
-
-        // Create the directory on the USB
-        let full_dir = Path::new(mount_point).join(&anlz_dir[1..]); // Remove leading /
-        fs::create_dir_all(&full_dir)
-            .map_err(|e| CrateError::Device(format!("Failed to create ANLZ directory: {e}")))?;
-
-        // Write the ANLZ file with beat grid based on BPM
-        let full_path = Path::new(mount_point).join(&anlz_path[1..]); // Remove leading /
+        // Build device audio path
         let device_audio_path = format!("/Contents/{usb_audio_path}");
-        anlz::write_anlz_file(&full_path, &device_audio_path, duration_ms, bpm)?;
+
+        // Write all ANLZ variants (.DAT, .EXT, .2EX) using the new module
+        let anlz_path =
+            anlz::write_anlz_files(mount_point, pdb_track_id, &device_audio_path, duration_ms, bpm, &cues)?;
 
         Ok(anlz_path)
     }
@@ -664,7 +966,7 @@ impl ExportService {
 
         let mut stmt = conn.prepare(
             r#"
-            SELECT device_id, track_id, usb_path, file_hash, pdb_track_id, exported_at
+            SELECT device_id, track_id, usb_path, file_hash, pdb_track_id, exported_at, metadata_hash
             FROM device_tracks
             WHERE device_id = ?1
             "#,
@@ -679,6 +981,7 @@ impl ExportService {
                     file_hash: row.get(3)?,
                     pdb_track_id: row.get(4)?,
                     exported_at: row.get(5)?,
+                    metadata_hash: row.get(6)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;

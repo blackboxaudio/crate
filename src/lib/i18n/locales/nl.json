@@ -56,7 +56,13 @@
 			"ignoredDevices": "Genegeerde apparaten",
 			"ignoredDevicesDescription": "Apparaten in deze lijst zijn verborgen in de zijbalk en activeren geen automatische synchronisatie.",
 			"noIgnoredDevices": "Er worden momenteel geen apparaten genegeerd",
-			"deviceNotConnected": "Niet verbonden"
+			"deviceNotConnected": "Niet verbonden",
+			"exportFormat": "Exportindelingformat",
+			"exportFormatDescription": "Kies het databaseformaat voor USB-exports.",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "Verouderd formaat voor oudere CDJs",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "Voor OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
 		"appearance": {
 			"font": "Lettertype",
@@ -350,7 +356,13 @@
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 bestand is gekopieerd} other {{count} bestanden zijn gekopieerd}} voor de fout.",
 		"exportingTo": "Exporteren naar {deviceName}",
 		"transferringProgress": "{trackCount} nummers uit {playlistCount} afspeellijsten",
-		"noPlaylistsInFolder": "Geen afspeellijsten om te exporteren in deze map"
+		"noPlaylistsInFolder": "Geen afspeellijsten om te exporteren in deze map",
+		"resume": "Hervatten",
+		"resumeExport": "Export hervatten",
+		"checkpointAvailable": "Een vorige export kan worden hervat",
+		"tracksCompleted": "{count, plural, =1 {1 track voltooid} other {{count} tracks voltooid}}",
+		"filesRemaining": "{count, plural, =1 {1 bestand resterend} other {{count} bestanden resterend}}",
+		"resumeFromCheckpoint": "Hervatten vanaf laatste checkpoint"
 	},
 	"editor": {
 		"trackInfo": "Trackinfo",

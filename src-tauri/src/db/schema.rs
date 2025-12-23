@@ -164,5 +164,25 @@ CREATE INDEX idx_device_tracks_device ON device_tracks(device_id);
         r#"
 ALTER TABLE device_exports ADD COLUMN last_sync_at TEXT;
 "#,
+        // Migration 8: Export checkpoints for resume support
+        r#"
+-- Track export progress for resumable exports
+CREATE TABLE export_checkpoints (
+    id TEXT PRIMARY KEY,
+    device_id TEXT NOT NULL,
+    device_name TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    state TEXT NOT NULL,               -- 'copying' | 'generating_pdb'
+    playlist_ids TEXT NOT NULL,        -- JSON array
+    tracks_completed TEXT NOT NULL,    -- JSON array of track IDs
+    tracks_failed TEXT NOT NULL,       -- JSON array of [track_id, error] tuples
+    last_updated_at TEXT NOT NULL
+);
+
+CREATE INDEX idx_export_checkpoints_device ON export_checkpoints(device_id);
+
+-- Add metadata hash for detecting track changes
+ALTER TABLE device_tracks ADD COLUMN metadata_hash TEXT;
+"#,
     ]
 }

@@ -9,8 +9,8 @@ use std::sync::Arc;
 
 use db::Database;
 use services::{
-    AnalysisService, AudioService, DeviceService, DiagnosticsService, ExportService,
-    LibraryService, PlaylistService, SettingsService, SyncService, TagService,
+    export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
+    ExportService, LibraryService, PlaylistService, SettingsService, SyncService, TagService,
 };
 use tauri::Manager;
 
@@ -92,6 +92,9 @@ pub fn run() {
             commands::export::get_device_exports,
             commands::export::cancel_export,
             commands::export::cleanup_failed_export,
+            commands::export::get_pending_checkpoint,
+            commands::export::delete_checkpoint,
+            commands::export::resume_export,
             // Sync commands
             commands::sync::sync_device,
             commands::sync::get_pending_sync_playlists,
@@ -136,6 +139,7 @@ pub fn run() {
             let playlist_service = PlaylistService::new(conn.clone());
             let settings_service = SettingsService::new(conn.clone());
             let export_service = Arc::new(ExportService::new(conn.clone()));
+            let checkpoint_service = Arc::new(CheckpointService::new(conn.clone()));
             let sync_service = SyncService::new(conn.clone(), export_service.clone());
             let audio_service = AudioService::new().expect("Failed to initialize audio service");
             let device_service = DeviceService::new();
@@ -157,6 +161,7 @@ pub fn run() {
             app.manage(playlist_service);
             app.manage(settings_service);
             app.manage(export_service);
+            app.manage(checkpoint_service);
             app.manage(sync_service);
             app.manage(audio_service);
             app.manage(device_service);

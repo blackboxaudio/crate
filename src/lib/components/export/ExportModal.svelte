@@ -7,6 +7,7 @@
 	import { formatBytes } from '$lib/utils'
 	import type { Playlist, UsbDevice, ExportRequest } from '$lib/types'
 	import { SvelteSet } from 'svelte/reactivity'
+	import { exportFormat } from '$lib/stores/settings'
 
 	type Props = {
 		open: boolean
@@ -162,6 +163,7 @@
 			device_name: targetDevice.name,
 			playlist_ids: Array.from(selectedPlaylistIds),
 			enable_sync: enableSync,
+			use_device_library_plus: $exportFormat === 'device_library_plus',
 		}
 
 		onExport(request)

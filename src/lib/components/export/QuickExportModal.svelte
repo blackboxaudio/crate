@@ -7,6 +7,7 @@
 	import { DeviceItem } from '$lib/components/devices'
 	import { translate } from '$lib/i18n'
 	import { activeDeviceId } from '$lib/stores/export'
+	import { exportFormat } from '$lib/stores/settings'
 	import type { Playlist, UsbDevice, ExportRequest } from '$lib/types'
 	import { SvelteSet } from 'svelte/reactivity'
 
@@ -176,6 +177,7 @@
 			device_name: device.name,
 			playlist_ids: Array.from(selectedPlaylistIds),
 			enable_sync: enableSync,
+			use_device_library_plus: $exportFormat === 'device_library_plus',
 		}))
 
 		onExport(requests)

@@ -394,6 +394,8 @@ export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | '
 
 export type KeyNotationFormat = 'standard' | 'camelot'
 
+export type ExportFormat = 'pdb' | 'device_library_plus'
+
 export type SettingsPage = 'general' | 'library' | 'appearance' | 'sound' | 'diagnostics' | 'about'
 
 export interface AppSettings {
@@ -403,6 +405,7 @@ export interface AppSettings {
 	audioDevice: string | null
 	language: Language
 	keyNotationFormat: KeyNotationFormat
+	exportFormat: ExportFormat
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
 	autoSyncOnChange: boolean
@@ -470,6 +473,7 @@ export interface ExportRequest {
 	device_name: string
 	playlist_ids: string[]
 	enable_sync: boolean
+	use_device_library_plus: boolean
 }
 
 export interface ExportResult {
@@ -486,6 +490,22 @@ export interface DeviceExport {
 	playlist_id: string
 	last_export_at: string
 	sync_enabled: boolean
+}
+
+export type CheckpointState =
+	| { type: 'copying'; current_track_id: string | null; bytes_copied: number }
+	| { type: 'generating_pdb' }
+
+export interface ExportCheckpoint {
+	id: string
+	device_id: string
+	device_name: string
+	started_at: string
+	state: CheckpointState
+	playlist_ids: string[]
+	tracks_completed: string[]
+	tracks_failed: [string, string][]
+	last_updated_at: string
 }
 
 // =============================================================================

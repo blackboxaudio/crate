@@ -56,7 +56,13 @@
 			"ignoredDevices": "Ignorierte Geräte",
 			"ignoredDevicesDescription": "Geräte in dieser Liste werden aus der Seitenleiste ausgeblendet und lösen keine automatische Synchronisierung aus.",
 			"noIgnoredDevices": "Keine Geräte werden derzeit ignoriert",
-			"deviceNotConnected": "Nicht verbunden"
+			"deviceNotConnected": "Nicht verbunden",
+			"exportFormat": "Exportformat",
+			"exportFormatDescription": "Wählen Sie das Datenbankformat für USB-Exporte.",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "Legacy-Format für ältere CDJs",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "Für OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
 		"appearance": {
 			"font": "Schriftart",
@@ -350,7 +356,13 @@
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 Datei wurde} other {{count} Dateien wurden}} vor dem Fehler kopiert.",
 		"exportingTo": "Exportiere nach {deviceName}",
 		"transferringProgress": "{trackCount} Tracks aus {playlistCount} Playlists übertragen",
-		"noPlaylistsInFolder": "Keine Playlists zum Exportieren in diesem Ordner"
+		"noPlaylistsInFolder": "Keine Playlists zum Exportieren in diesem Ordner",
+		"resume": "Fortsetzen",
+		"resumeExport": "Export fortsetzen",
+		"checkpointAvailable": "Ein vorheriger Export kann fortgesetzt werden",
+		"tracksCompleted": "{count, plural, =1 {1 Track abgeschlossen} other {{count} Tracks abgeschlossen}}",
+		"filesRemaining": "{count, plural, =1 {1 Datei verbleibend} other {{count} Dateien verbleibend}}",
+		"resumeFromCheckpoint": "Vom letzten Checkpoint fortsetzen"
 	},
 	"editor": {
 		"trackInfo": "Track-Info",

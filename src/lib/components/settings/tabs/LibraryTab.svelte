@@ -1,10 +1,11 @@
 <script lang="ts">
-	import type { KeyNotationFormat, UsbDevice } from '$lib/types'
+	import type { KeyNotationFormat, ExportFormat, UsbDevice } from '$lib/types'
 	import { Text, Checkbox } from '$lib/components/common'
 	import DeviceItem from '$lib/components/devices/DeviceItem.svelte'
 	import {
 		settingsStore,
 		keyNotationFormat,
+		exportFormat,
 		autoAnalyzeOnImport,
 		autoSyncOnConnect,
 		autoSyncOnChange,
@@ -15,6 +16,10 @@
 
 	function handleKeyNotationFormatChange(format: KeyNotationFormat) {
 		settingsStore.setKeyNotationFormat(format)
+	}
+
+	function handleExportFormatChange(format: ExportFormat) {
+		settingsStore.setExportFormat(format)
 	}
 
 	function handleAutoAnalyzeOnImportChange(checked: boolean) {
@@ -132,6 +137,38 @@
 					{$translate('settings.library.autoSyncOnChangeDescription')}
 				</Text>
 			</div>
+		</div>
+	</section>
+
+	<!-- Export Format Section -->
+	<section>
+		<Text variant="header-3" class="mb-2">{$translate('settings.library.exportFormat')}</Text>
+		<Text variant="caption" as="p" class="mb-2">{$translate('settings.library.exportFormatDescription')}</Text>
+		<div class="flex gap-3">
+			<button
+				type="button"
+				class="flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4
+				transition-colors {$exportFormat === 'pdb'
+					? 'border-brand-primary bg-brand-muted'
+					: 'border-stroke hover:cursor-pointer hover:border-text-tertiary'}"
+				onclick={() => handleExportFormatChange('pdb')}
+			>
+				<Text variant="body-2" as="span">{$translate('settings.library.exportFormatPdb')}</Text>
+				<Text variant="caption" color="secondary">{$translate('settings.library.exportFormatPdbDescription')}</Text>
+			</button>
+			<button
+				type="button"
+				class="flex flex-1 flex-col items-center gap-2 rounded-lg border-2 p-4
+				transition-colors {$exportFormat === 'device_library_plus'
+					? 'border-brand-primary bg-brand-muted'
+					: 'border-stroke hover:cursor-pointer hover:border-text-tertiary'}"
+				onclick={() => handleExportFormatChange('device_library_plus')}
+			>
+				<Text variant="body-2" as="span">{$translate('settings.library.exportFormatDeviceLibraryPlus')}</Text>
+				<Text variant="caption" color="secondary"
+					>{$translate('settings.library.exportFormatDeviceLibraryPlusDescription')}</Text
+				>
+			</button>
 		</div>
 	</section>
 

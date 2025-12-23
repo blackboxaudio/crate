@@ -56,7 +56,13 @@
 			"ignoredDevices": "Appareils ignorés",
 			"ignoredDevicesDescription": "Les appareils de cette liste sont cachés de la barre latérale et ne déclencheront pas la synchronisation automatique.",
 			"noIgnoredDevices": "Aucun appareil n'est actuellement ignoré",
-			"deviceNotConnected": "Non connecté"
+			"deviceNotConnected": "Non connecté",
+			"exportFormat": "Format d'exportation",
+			"exportFormatDescription": "Choisissez le format de base de données pour les exportations USB.",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "Format hérité pour les anciens CDJ",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "Pour OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
 		"appearance": {
 			"font": "Police",
@@ -350,7 +356,13 @@
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fichier a été copié} other {{count} fichiers ont été copiés}} avant l'échec.",
 		"exportingTo": "Exportation vers {deviceName}",
 		"transferringProgress": "Transfert de {trackCount} pistes de {playlistCount} playlists",
-		"noPlaylistsInFolder": "Aucune playlist à exporter dans ce dossier"
+		"noPlaylistsInFolder": "Aucune playlist à exporter dans ce dossier",
+		"resume": "Reprendre",
+		"resumeExport": "Reprendre l'export",
+		"checkpointAvailable": "Une exportation précédente peut être reprise",
+		"tracksCompleted": "{count, plural, =1 {1 piste complétée} other {{count} pistes complétées}}",
+		"filesRemaining": "{count, plural, =1 {1 fichier restant} other {{count} fichiers restants}}",
+		"resumeFromCheckpoint": "Reprendre depuis le dernier point de sauvegarde"
 	},
 	"editor": {
 		"trackInfo": "Infos piste",

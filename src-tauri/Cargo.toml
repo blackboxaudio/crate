@@ -27,7 +27,7 @@ tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-window-state = "2.4.1"
 
 # Database
-rusqlite = { version = "0.38.0", features = ["bundled"] }
+rusqlite = { version = "0.38.0", features = ["bundled-sqlcipher"] }
 
 # Audio
 rodio = "0.21.1"
@@ -61,4 +61,8 @@ log = "0.4.29"
 env_logger = "0.11.8"
 walkdir = "2.5.0"
 sysinfo = "0.37.2"
+
+# Device Library Plus key deobfuscation
+flate2 = "1.0"
+base85 = "2.0"
 

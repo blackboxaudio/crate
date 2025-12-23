@@ -1,6 +1,6 @@
 import { tick } from 'svelte'
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor, Font, AudioDevice, Language, KeyNotationFormat } from '$lib/types'
+import type { Theme, AccentColor, Font, AudioDevice, Language, KeyNotationFormat, ExportFormat } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
 import { setLanguage as setI18nLanguage, translate } from '$lib/i18n'
@@ -19,6 +19,7 @@ interface SettingsState {
 	audioDevices: AudioDevice[]
 	language: Language
 	keyNotationFormat: KeyNotationFormat
+	exportFormat: ExportFormat
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
 	autoSyncOnChange: boolean
@@ -36,6 +37,7 @@ const initialState: SettingsState = {
 	audioDevices: [],
 	language: 'en',
 	keyNotationFormat: 'camelot',
+	exportFormat: 'pdb',
 	autoAnalyzeOnImport: true,
 	autoSyncOnConnect: false,
 	autoSyncOnChange: false,
@@ -213,6 +215,7 @@ function createSettingsStore() {
 					audioDevices,
 					language: settings.language,
 					keyNotationFormat: settings.keyNotationFormat,
+					exportFormat: settings.exportFormat ?? 'pdb',
 					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
 					autoSyncOnConnect: settings.autoSyncOnConnect,
 					autoSyncOnChange: settings.autoSyncOnChange,
@@ -342,6 +345,19 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set export format (pdb or device_library_plus)
+		 */
+		async setExportFormat(format: ExportFormat) {
+			update((s) => ({ ...s, exportFormat: format }))
+
+			try {
+				await settingsApi.setSetting('export_format', format)
+			} catch (error) {
+				console.error('Failed to save export format setting:', error)
+			}
+		},
+
+		/**
 		 * Set auto-analyze on import
 		 */
 		async setAutoAnalyzeOnImport(enabled: boolean) {
@@ -454,6 +470,8 @@ export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
 export const language = derived(settingsStore, ($s) => $s.language)
 
 export const keyNotationFormat = derived(settingsStore, ($s) => $s.keyNotationFormat)
+
+export const exportFormat = derived(settingsStore, ($s) => $s.exportFormat)
 
 export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyzeOnImport)
 

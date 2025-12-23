@@ -94,7 +94,7 @@
 	role="row"
 	tabindex="0"
 	data-track-row
-	class="relative grid cursor-pointer grid-cols-[24px_40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-2 text-sm transition-colors select-none {selected
+	class="relative grid cursor-pointer grid-cols-[24px_40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-1 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'} {isMissing
 		? 'bg-red-500/5'
@@ -151,7 +151,7 @@
 	<div class="flex justify-center">
 		<AlbumArt
 			artworkPath={track.artwork_path}
-			size="sm"
+			size="xs"
 			onclick={handleArtworkClick}
 			class={track.artwork_path ? 'cursor-zoom-in' : ''}
 		/>

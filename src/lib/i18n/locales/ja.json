@@ -56,7 +56,13 @@
 			"ignoredDevices": "無視されたデバイス",
 			"ignoredDevicesDescription": "このリストのデバイスはサイドバーに表示されず、自動同期をトリガーしません。",
 			"noIgnoredDevices": "現在無視されているデバイスはありません",
-			"deviceNotConnected": "接続されていません"
+			"deviceNotConnected": "接続されていません",
+			"exportFormat": "エクスポート形式",
+			"exportFormatDescription": "USBエクスポート用のデータベース形式を選択します。",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "古いCDJ向けのレガシー形式",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "OPUS-QUAD、OMNIS-DUO、XDJ-AZ向け"
 		},
 		"appearance": {
 			"font": "フォント",
@@ -351,7 +357,13 @@
 		"filesCopiedBeforeFailure": "失敗前に{count, plural, =1 {1ファイル} other {{count}ファイル}}がコピーされました。",
 		"exportingTo": "{deviceName}にエクスポート中",
 		"transferringProgress": "{playlistCount}個のプレイリストから{trackCount}曲を転送中",
-		"noPlaylistsInFolder": "このフォルダにエクスポートするプレイリストがありません"
+		"noPlaylistsInFolder": "このフォルダにエクスポートするプレイリストがありません",
+		"resume": "再開",
+		"resumeExport": "エクスポートを再開",
+		"checkpointAvailable": "前回のエクスポートを再開できます",
+		"tracksCompleted": "{count, plural, =1 {1曲完了} other {{count}曲完了}}",
+		"filesRemaining": "{count, plural, =1 {1ファイル残り} other {{count}ファイル残り}}",
+		"resumeFromCheckpoint": "最後のチェックポイントから再開"
 	},
 	"editor": {
 		"trackInfo": "トラック情報",

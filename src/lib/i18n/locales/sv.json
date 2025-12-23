@@ -56,7 +56,13 @@
 			"ignoredDevices": "Ignorerade enheter",
 			"ignoredDevicesDescription": "Enheter i denna lista är dolda från sidofältet och utlöser inte automatisk synkronisering.",
 			"noIgnoredDevices": "Inga enheter ignoreras för närvarande",
-			"deviceNotConnected": "Inte ansluten"
+			"deviceNotConnected": "Inte ansluten",
+			"exportFormat": "Exportformat",
+			"exportFormatDescription": "Välj databasformat för USB-export.",
+			"exportFormatPdb": "Rekordbox PDB",
+			"exportFormatPdbDescription": "Äldre format för gamla CDJ:er",
+			"exportFormatDeviceLibraryPlus": "Device Library Plus",
+			"exportFormatDeviceLibraryPlusDescription": "För OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
 		"appearance": {
 			"font": "Typsnitt",
@@ -350,7 +356,13 @@
 		"filesCopiedBeforeFailure": "{count, plural, =1 {1 fil kopierades} other {{count} filer kopierades}} före felet.",
 		"exportingTo": "Exporterar till {deviceName}",
 		"transferringProgress": "Överför {trackCount} spår från {playlistCount} spellistor",
-		"noPlaylistsInFolder": "Inga spellistor att exportera i den här mappen"
+		"noPlaylistsInFolder": "Inga spellistor att exportera i den här mappen",
+		"resume": "Återuppta",
+		"resumeExport": "Återuppta export",
+		"checkpointAvailable": "En tidigare export kan återupptas",
+		"tracksCompleted": "{count, plural, =1 {1 spår slutfört} other {{count} spår slutförda}}",
+		"filesRemaining": "{count, plural, =1 {1 fil återstår} other {{count} filer återstår}}",
+		"resumeFromCheckpoint": "Återuppta från senaste kontrollpunkt"
 	},
 	"editor": {
 		"trackInfo": "Spårinfo",
