@@ -68,11 +68,15 @@ pub fn build_tag_row(tag: &PdbTag, row_index: u16) -> Vec<u8> {
 
     // Write the name string
     let name_str = DeviceSQLString::new(&tag.name);
-    name_str.write_to(&mut row).expect("write to Vec should not fail");
+    name_str
+        .write_to(&mut row)
+        .expect("write to Vec should not fail");
 
     // Write empty unknown string
     let empty_str = DeviceSQLString::empty();
-    empty_str.write_to(&mut row).expect("write to Vec should not fail");
+    empty_str
+        .write_to(&mut row)
+        .expect("write to Vec should not fail");
 
     row
 }

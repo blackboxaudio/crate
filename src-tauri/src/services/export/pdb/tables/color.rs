@@ -51,7 +51,9 @@ pub fn build_color_row(id: u8, name: &str) -> Vec<u8> {
 
     // Name string
     let name_str = DeviceSQLString::new(name);
-    name_str.write_to(&mut row).expect("write to Vec should not fail");
+    name_str
+        .write_to(&mut row)
+        .expect("write to Vec should not fail");
 
     row
 }

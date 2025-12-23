@@ -46,7 +46,9 @@ pub fn build_playlist_tree_row(node: &PdbPlaylistNode) -> Vec<u8> {
 
     // Name string
     let name_str = DeviceSQLString::new(&node.name);
-    name_str.write_to(&mut row).expect("write to Vec should not fail");
+    name_str
+        .write_to(&mut row)
+        .expect("write to Vec should not fail");
 
     row
 }

@@ -52,7 +52,7 @@ impl From<FileType> for i32 {
 /// Cue point kind
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CueKind {
-    Cue = 0,       // Also Fade-In, Fade-Out
+    Cue = 0, // Also Fade-In, Fade-Out
     Load = 3,
     Loop = 4,
 }
@@ -166,10 +166,7 @@ pub struct Key {
 
 impl Key {
     pub fn new(name: String) -> Self {
-        Self {
-            key_id: None,
-            name,
-        }
+        Self { key_id: None, name }
     }
 }
 

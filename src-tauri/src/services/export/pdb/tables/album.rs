@@ -35,7 +35,9 @@ pub fn build_album_row(id: u32, name: &str, artist_id: u32, row_index: u16) -> V
 
     // Write the name string
     let name_str = DeviceSQLString::new(name);
-    name_str.write_to(&mut row).expect("write to Vec should not fail");
+    name_str
+        .write_to(&mut row)
+        .expect("write to Vec should not fail");
 
     row
 }

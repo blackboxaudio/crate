@@ -280,8 +280,11 @@ mod tests {
     #[test]
     fn test_unchanged_track() {
         let tracks = vec![make_track("1", "Existing Track", "Artist")];
-        let device_tracks =
-            vec![make_device_track("1", "Artist/Test Album/existing_track.mp3", "hash123")];
+        let device_tracks = vec![make_device_track(
+            "1",
+            "Artist/Test Album/existing_track.mp3",
+            "hash123",
+        )];
 
         let diff = SyncDiff::calculate(&tracks, &device_tracks, TrackRemovalStrategy::Conservative);
 
@@ -294,11 +297,13 @@ mod tests {
     #[test]
     fn test_remove_orphaned() {
         let tracks = vec![];
-        let device_tracks =
-            vec![make_device_track("1", "Artist/Album/track.mp3", "hash123")];
+        let device_tracks = vec![make_device_track("1", "Artist/Album/track.mp3", "hash123")];
 
-        let diff =
-            SyncDiff::calculate(&tracks, &device_tracks, TrackRemovalStrategy::RemoveOrphaned);
+        let diff = SyncDiff::calculate(
+            &tracks,
+            &device_tracks,
+            TrackRemovalStrategy::RemoveOrphaned,
+        );
 
         assert!(diff.tracks_to_add.is_empty());
         assert!(diff.tracks_to_update.is_empty());
@@ -308,8 +313,7 @@ mod tests {
     #[test]
     fn test_never_remove() {
         let tracks = vec![];
-        let device_tracks =
-            vec![make_device_track("1", "Artist/Album/track.mp3", "hash123")];
+        let device_tracks = vec![make_device_track("1", "Artist/Album/track.mp3", "hash123")];
 
         let diff = SyncDiff::calculate(&tracks, &device_tracks, TrackRemovalStrategy::NeverRemove);
 

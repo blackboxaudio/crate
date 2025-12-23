@@ -214,12 +214,7 @@ pub struct TableDescriptor {
 
 impl TableDescriptor {
     /// Create a new table descriptor
-    pub fn new(
-        table_type: u32,
-        first_page: u32,
-        last_page: u32,
-        empty_candidate: u32,
-    ) -> Self {
+    pub fn new(table_type: u32, first_page: u32, last_page: u32, empty_candidate: u32) -> Self {
         Self {
             table_type,
             empty_candidate,

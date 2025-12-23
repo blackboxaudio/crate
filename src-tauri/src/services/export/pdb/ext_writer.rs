@@ -110,7 +110,8 @@ impl ExtPageBuilder {
             page[0x22..0x24].copy_from_slice(&INDEX_EMPTY_MARKER.to_le_bytes());
         } else {
             page[0x20..0x22].copy_from_slice(&(self.total_rows.min(0x1FFF)).to_le_bytes());
-            page[0x22..0x24].copy_from_slice(&((self.total_rows.saturating_sub(1)).min(0x1FFF)).to_le_bytes());
+            page[0x22..0x24]
+                .copy_from_slice(&((self.total_rows.saturating_sub(1)).min(0x1FFF)).to_le_bytes());
         }
 
         page[HEAP_START_OFFSET..HEAP_START_OFFSET + self.heap_data.len()]

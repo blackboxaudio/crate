@@ -4,8 +4,8 @@
 
 #![allow(dead_code)]
 
-pub mod pcob;
 pub mod pco2;
+pub mod pcob;
 pub mod ppth;
 pub mod pqt2;
 pub mod pqtz;
@@ -20,8 +20,8 @@ pub mod pwv6;
 pub mod pwv7;
 pub mod pwvc;
 
-pub use pcob::CueListTag;
 pub use pco2::ExtCueListTag;
+pub use pcob::CueListTag;
 pub use ppth::PathTag;
 pub use pqt2::ExtBeatGridTag;
 pub use pqtz::BeatGridTag;

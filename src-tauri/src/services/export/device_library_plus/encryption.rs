@@ -16,7 +16,8 @@ use std::io::Read;
 use crate::error::{CrateError, Result};
 
 /// Obfuscated blob containing the SQLCipher key (from pyrekordbox)
-const BLOB: &str = "PN_1dH8$oLJY)16j_RvM6qphWw`476>;C1cWmI#se(PG`j}~xAjlufj?`#0i{;=glh(SkW)y0>n?YEiD`l%t(";
+const BLOB: &str =
+    "PN_1dH8$oLJY)16j_RvM6qphWw`476>;C1cWmI#se(PG`j}~xAjlufj?`#0i{;=glh(SkW)y0>n?YEiD`l%t(";
 
 /// XOR key used for deobfuscation
 const BLOB_KEY: &[u8] = b"657f48f84c437cc1";
@@ -42,9 +43,7 @@ pub fn get_sqlcipher_key() -> Result<String> {
     let mut decoder = ZlibDecoder::new(&xored[..]);
     let mut decompressed = Vec::new();
     decoder.read_to_end(&mut decompressed).map_err(|e| {
-        CrateError::Export(format!(
-            "Failed to decompress Device Library Plus key: {e}"
-        ))
+        CrateError::Export(format!("Failed to decompress Device Library Plus key: {e}"))
     })?;
 
     // Step 4: UTF-8 decode

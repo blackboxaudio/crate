@@ -64,17 +64,17 @@ impl PioneerColor {
     }
 
     /// Get RGB color values for this Pioneer color ID
-    pub fn to_rgb(&self) -> (u8, u8, u8) {
+    pub fn to_rgb(self) -> (u8, u8, u8) {
         match self {
-            PioneerColor::None => (0, 0, 0),
-            PioneerColor::Pink => (255, 0, 255),
-            PioneerColor::Red => (255, 0, 0),
-            PioneerColor::Orange => (255, 127, 0),
-            PioneerColor::Yellow => (255, 255, 0),
-            PioneerColor::Green => (0, 255, 0),
-            PioneerColor::Aqua => (0, 255, 255),
-            PioneerColor::Blue => (0, 0, 255),
-            PioneerColor::Purple => (127, 0, 255),
+            Self::None => (0, 0, 0),
+            Self::Pink => (255, 0, 255),
+            Self::Red => (255, 0, 0),
+            Self::Orange => (255, 127, 0),
+            Self::Yellow => (255, 255, 0),
+            Self::Green => (0, 255, 0),
+            Self::Aqua => (0, 255, 255),
+            Self::Blue => (0, 0, 255),
+            Self::Purple => (127, 0, 255),
         }
     }
 }

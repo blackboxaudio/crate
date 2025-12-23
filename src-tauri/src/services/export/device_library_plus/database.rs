@@ -43,18 +43,14 @@ impl DeviceLibraryPlusWriter {
         // Remove existing file if present
         if path.exists() {
             std::fs::remove_file(path).map_err(|e| {
-                CrateError::Export(format!(
-                    "Failed to remove existing database: {e}"
-                ))
+                CrateError::Export(format!("Failed to remove existing database: {e}"))
             })?;
         }
 
         // Create parent directories if needed
         if let Some(parent) = path.parent() {
             std::fs::create_dir_all(parent).map_err(|e| {
-                CrateError::Export(format!(
-                    "Failed to create database directory: {e}"
-                ))
+                CrateError::Export(format!("Failed to create database directory: {e}"))
             })?;
         }
 
@@ -109,11 +105,7 @@ impl DeviceLibraryPlusWriter {
     // ========================================================================
 
     /// Get or create an album by name. Returns the album_id.
-    pub fn get_or_create_album(
-        &mut self,
-        name: &str,
-        artist_id: Option<i64>,
-    ) -> Result<i64> {
+    pub fn get_or_create_album(&mut self, name: &str, artist_id: Option<i64>) -> Result<i64> {
         if let Some(&id) = self.albums.get(name) {
             return Ok(id);
         }
@@ -361,11 +353,7 @@ impl DeviceLibraryPlusWriter {
 
     /// Add a playlist. Returns the playlist_id.
     /// The crate_playlist_id is used for mapping back to the source playlist.
-    pub fn add_playlist(
-        &mut self,
-        playlist: &Playlist,
-        crate_playlist_id: &str,
-    ) -> Result<i64> {
+    pub fn add_playlist(&mut self, playlist: &Playlist, crate_playlist_id: &str) -> Result<i64> {
         self.conn.execute(
             r#"
             INSERT INTO playlist (sequenceNo, name, image_id, attribute, playlist_id_parent)
@@ -432,11 +420,9 @@ impl DeviceLibraryPlusWriter {
 
     /// Update the content count in the property table.
     pub fn update_content_count(&mut self) -> Result<()> {
-        let count: i32 = self.conn.query_row(
-            "SELECT COUNT(*) FROM content",
-            [],
-            |row| row.get(0),
-        )?;
+        let count: i32 = self
+            .conn
+            .query_row("SELECT COUNT(*) FROM content", [], |row| row.get(0))?;
 
         self.conn.execute(
             "UPDATE property SET numberOfContents = ?1",

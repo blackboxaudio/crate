@@ -106,7 +106,7 @@ impl PdbWriter {
                 })
             }
             Err(e) => {
-                log::warn!("Failed to parse existing PDB: {}, starting fresh", e);
+                log::warn!("Failed to parse existing PDB: {e}, starting fresh");
                 Ok(Self::new())
             }
         }
@@ -638,7 +638,8 @@ impl PdbWriter {
         let mut builder = PageBuilder::new(TableType::Menu);
 
         for &(category_id, content_ptr, unknown, visibility, sort_order) in STANDARD_MENUS {
-            let row_data = build_menu_row(category_id, content_ptr, unknown, visibility, sort_order);
+            let row_data =
+                build_menu_row(category_id, content_ptr, unknown, visibility, sort_order);
 
             if !builder.add_row(&row_data) {
                 pages.push(builder.build(0, 0, 1));

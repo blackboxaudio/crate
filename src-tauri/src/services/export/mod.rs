@@ -17,13 +17,13 @@ use tauri::{AppHandle, Emitter};
 
 use crate::error::{CrateError, Result};
 use crate::models::{
-    Cue, CueType, DeviceExport, DeviceTrack, ExportProgress, ExportRequest, ExportResult,
-    Playlist, Track,
+    Cue, CueType, DeviceExport, DeviceTrack, ExportProgress, ExportRequest, ExportResult, Playlist,
+    Track,
 };
 
 use self::device_library_plus::{
-    Content, CueKind, DeviceLibraryPlusWriter, FileType, Playlist as DlpPlaylist, PlaylistType,
-    Property, Cue as DlpCue,
+    Content, Cue as DlpCue, CueKind, DeviceLibraryPlusWriter, FileType, Playlist as DlpPlaylist,
+    PlaylistType, Property,
 };
 use self::pdb::RekordboxPdbWriter;
 
@@ -114,7 +114,11 @@ impl ExportService {
                 &device_tracks,
             )?;
         } else {
-            self.generate_rekordbox_pdb(&request.mount_point, &playlists_with_tracks, &device_tracks)?;
+            self.generate_rekordbox_pdb(
+                &request.mount_point,
+                &playlists_with_tracks,
+                &device_tracks,
+            )?;
         }
 
         // Record export state in database
@@ -606,11 +610,7 @@ impl ExportService {
             };
 
             // Create playlist entry
-            let mut dlp_playlist = DlpPlaylist::new(
-                playlist.name.clone(),
-                seq_no,
-                playlist_type,
-            );
+            let mut dlp_playlist = DlpPlaylist::new(playlist.name.clone(), seq_no, playlist_type);
 
             // Set parent if exists
             if let Some(ref parent_id) = playlist.parent_id {
@@ -711,7 +711,7 @@ impl ExportService {
             .unwrap_or(1); // Default to MP3
 
         // Build file path on device
-        let device_path = format!("/Contents/{}", usb_path);
+        let device_path = format!("/Contents/{usb_path}");
         let file_name = Path::new(usb_path)
             .file_name()
             .unwrap_or_default()
@@ -729,9 +729,9 @@ impl ExportService {
             file_name,
             file_size,
             file_type,
-            track.bitrate.unwrap_or(0) as i32,
+            track.bitrate.unwrap_or(0),
             16, // Default bit depth
-            track.sample_rate.unwrap_or(44100) as i32,
+            track.sample_rate.unwrap_or(44100),
         );
 
         // Set metadata
@@ -745,7 +745,7 @@ impl ExportService {
         content.key_id = key_id;
         content.color_id = color_id;
         content.label_id = label_id;
-        content.rating = Some(track.rating as i32);
+        content.rating = Some(track.rating);
         content.release_year = track.year;
         content.analysis_data_file_path = Some(anlz_path.to_string());
 
@@ -767,13 +767,13 @@ impl ExportService {
                 CueType::Loop => CueKind::Loop,
             };
 
-            let mut dlp_cue = DlpCue::new(content_id, kind, (cue.position_ms * 1000) as i64);
+            let mut dlp_cue = DlpCue::new(content_id, kind, cue.position_ms * 1000);
             dlp_cue.cue_comment = cue.name;
             dlp_cue.color_table_index = cue.hot_cue_index;
 
             if cue.cue_type == CueType::Loop {
                 if let Some(loop_end) = cue.loop_end_ms {
-                    dlp_cue.out_usec = Some((loop_end * 1000) as i64);
+                    dlp_cue.out_usec = Some(loop_end * 1000);
                     dlp_cue.is_active_loop = Some(1);
                 }
             }
@@ -838,8 +838,14 @@ impl ExportService {
         let device_audio_path = format!("/Contents/{usb_audio_path}");
 
         // Write all ANLZ variants (.DAT, .EXT, .2EX) using the new module
-        let anlz_path =
-            anlz::write_anlz_files(mount_point, pdb_track_id, &device_audio_path, duration_ms, bpm, &cues)?;
+        let anlz_path = anlz::write_anlz_files(
+            mount_point,
+            pdb_track_id,
+            &device_audio_path,
+            duration_ms,
+            bpm,
+            &cues,
+        )?;
 
         Ok(anlz_path)
     }

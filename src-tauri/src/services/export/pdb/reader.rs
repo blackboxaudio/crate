@@ -60,6 +60,9 @@ pub struct ParsedPdb {
     pub next_playlist_id: u32,
 }
 
+/// A playlist tree node: (parent_id, sort_order, name, is_folder, id)
+type PlaylistTreeNode = (u32, u32, String, bool, u32);
+
 impl ParsedPdb {
     /// Parse a PDB file from bytes
     pub fn from_bytes(data: &[u8]) -> Result<Self> {
@@ -126,14 +129,16 @@ impl ParsedPdb {
         // Build playlists with track IDs
         let mut playlists: Vec<ParsedPlaylist> = playlist_nodes
             .into_iter()
-            .map(|(id, parent_id, name, is_folder, sort_order)| ParsedPlaylist {
-                id,
-                parent_id,
-                name,
-                is_folder,
-                sort_order,
-                track_ids: Vec::new(),
-            })
+            .map(
+                |(id, parent_id, name, is_folder, sort_order)| ParsedPlaylist {
+                    id,
+                    parent_id,
+                    name,
+                    is_folder,
+                    sort_order,
+                    track_ids: Vec::new(),
+                },
+            )
             .collect();
 
         // Associate tracks with playlists
@@ -569,10 +574,7 @@ fn parse_key_table(data: &[u8], desc: &TableDescriptor) -> Result<HashMap<u32, S
 }
 
 /// Parse playlist tree table rows
-fn parse_playlist_tree_table(
-    data: &[u8],
-    desc: &TableDescriptor,
-) -> Result<Vec<(u32, u32, String, bool, u32)>> {
+fn parse_playlist_tree_table(data: &[u8], desc: &TableDescriptor) -> Result<Vec<PlaylistTreeNode>> {
     let rows = collect_table_rows(data, desc)?;
     let mut nodes = Vec::new();
 

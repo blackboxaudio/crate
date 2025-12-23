@@ -94,8 +94,18 @@ impl CuePointEntry {
     pub fn from_cue(cue: &Cue, index: u16) -> Self {
         let (hot_cue, cue_type, loop_time_ms, status) = match cue.cue_type {
             CueType::Memory => (0, 1, -1, CUE_STATUS_ENABLED),
-            CueType::Hot => (cue.hot_cue_index.unwrap_or(0) as u32, 1, -1, CUE_STATUS_ENABLED),
-            CueType::Loop => (0, 2, cue.loop_end_ms.unwrap_or(-1) as i32, CUE_STATUS_ENABLED),
+            CueType::Hot => (
+                cue.hot_cue_index.unwrap_or(0) as u32,
+                1,
+                -1,
+                CUE_STATUS_ENABLED,
+            ),
+            CueType::Loop => (
+                0,
+                2,
+                cue.loop_end_ms.unwrap_or(-1) as i32,
+                CUE_STATUS_ENABLED,
+            ),
         };
 
         Self {

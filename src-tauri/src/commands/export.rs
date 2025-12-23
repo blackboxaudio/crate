@@ -74,7 +74,9 @@ pub async fn resume_export(
     // Get the pending checkpoint
     let checkpoint = checkpoint_service
         .get_pending_checkpoint(&device_id)?
-        .ok_or_else(|| crate::error::CrateError::Export("No pending checkpoint found".to_string()))?;
+        .ok_or_else(|| {
+            crate::error::CrateError::Export("No pending checkpoint found".to_string())
+        })?;
 
     // Create a request from the checkpoint
     let request = ExportRequest {

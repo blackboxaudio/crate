@@ -26,7 +26,9 @@ pub fn build_artist_row(id: u32, name: &str, row_index: u16) -> Vec<u8> {
 
     // Write the name string
     let name_str = DeviceSQLString::new(name);
-    name_str.write_to(&mut row).expect("write to Vec should not fail");
+    name_str
+        .write_to(&mut row)
+        .expect("write to Vec should not fail");
 
     row
 }

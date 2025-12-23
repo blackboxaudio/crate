@@ -169,7 +169,8 @@ pub fn build_track_row(track: &PdbTrack, row_index: u16) -> Vec<u8> {
     // Write the strings
     let mut string_buf = Vec::new();
     for s in &strings {
-        s.write_to(&mut string_buf).expect("write to Vec should not fail");
+        s.write_to(&mut string_buf)
+            .expect("write to Vec should not fail");
     }
     row.extend_from_slice(&string_buf);
 

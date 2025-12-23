@@ -56,16 +56,17 @@ impl CheckpointService {
 
     /// Save a checkpoint to the database
     pub fn save_checkpoint(&self, checkpoint: &ExportCheckpoint) -> Result<()> {
-        let conn = self.conn.lock().map_err(|e| {
-            CrateError::Export(format!("Failed to acquire database lock: {e}"))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| CrateError::Export(format!("Failed to acquire database lock: {e}")))?;
 
         let state_json = serde_json::to_string(&checkpoint.state)
             .map_err(|e| CrateError::Export(format!("Failed to serialize state: {e}")))?;
         let playlist_ids_json = serde_json::to_string(&checkpoint.playlist_ids)
             .map_err(|e| CrateError::Export(format!("Failed to serialize playlist_ids: {e}")))?;
-        let tracks_completed_json = serde_json::to_string(&checkpoint.tracks_completed)
-            .map_err(|e| {
+        let tracks_completed_json =
+            serde_json::to_string(&checkpoint.tracks_completed).map_err(|e| {
                 CrateError::Export(format!("Failed to serialize tracks_completed: {e}"))
             })?;
         let tracks_failed_json = serde_json::to_string(&checkpoint.tracks_failed)
@@ -102,9 +103,10 @@ impl CheckpointService {
 
     /// Get a pending checkpoint for a device
     pub fn get_pending_checkpoint(&self, device_id: &str) -> Result<Option<ExportCheckpoint>> {
-        let conn = self.conn.lock().map_err(|e| {
-            CrateError::Export(format!("Failed to acquire database lock: {e}"))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| CrateError::Export(format!("Failed to acquire database lock: {e}")))?;
 
         let mut stmt = conn
             .prepare(
@@ -155,8 +157,8 @@ impl CheckpointService {
             )) => {
                 let state: CheckpointState = serde_json::from_str(&state_json)
                     .map_err(|e| CrateError::Export(format!("Failed to parse state: {e}")))?;
-                let playlist_ids: Vec<String> = serde_json::from_str(&playlist_ids_json)
-                    .map_err(|e| {
+                let playlist_ids: Vec<String> =
+                    serde_json::from_str(&playlist_ids_json).map_err(|e| {
                         CrateError::Export(format!("Failed to parse playlist_ids: {e}"))
                     })?;
                 let tracks_completed: Vec<String> = serde_json::from_str(&tracks_completed_json)
@@ -186,9 +188,10 @@ impl CheckpointService {
 
     /// Mark a checkpoint as completed (delete it)
     pub fn complete_checkpoint(&self, checkpoint_id: &str) -> Result<()> {
-        let conn = self.conn.lock().map_err(|e| {
-            CrateError::Export(format!("Failed to acquire database lock: {e}"))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| CrateError::Export(format!("Failed to acquire database lock: {e}")))?;
 
         conn.execute(
             "DELETE FROM export_checkpoints WHERE id = ?1",
@@ -251,9 +254,10 @@ impl CheckpointService {
 
     /// Get a checkpoint by ID
     fn get_checkpoint_by_id(&self, checkpoint_id: &str) -> Result<Option<ExportCheckpoint>> {
-        let conn = self.conn.lock().map_err(|e| {
-            CrateError::Export(format!("Failed to acquire database lock: {e}"))
-        })?;
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|e| CrateError::Export(format!("Failed to acquire database lock: {e}")))?;
 
         let mut stmt = conn
             .prepare(
@@ -302,8 +306,8 @@ impl CheckpointService {
             )) => {
                 let state: CheckpointState = serde_json::from_str(&state_json)
                     .map_err(|e| CrateError::Export(format!("Failed to parse state: {e}")))?;
-                let playlist_ids: Vec<String> = serde_json::from_str(&playlist_ids_json)
-                    .map_err(|e| {
+                let playlist_ids: Vec<String> =
+                    serde_json::from_str(&playlist_ids_json).map_err(|e| {
                         CrateError::Export(format!("Failed to parse playlist_ids: {e}"))
                     })?;
                 let tracks_completed: Vec<String> = serde_json::from_str(&tracks_completed_json)

@@ -96,7 +96,8 @@ impl DeviceSQLString {
     /// Convert to bytes
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(self.binary_size());
-        self.write_to(&mut buf).expect("write to Vec should not fail");
+        self.write_to(&mut buf)
+            .expect("write to Vec should not fail");
         buf
     }
 
@@ -189,7 +190,7 @@ impl BinRead for DeviceSQLString {
         _endian: binrw::Endian,
         _args: Self::Args<'_>,
     ) -> binrw::BinResult<Self> {
-        Self::read_from(reader).map_err(|e| binrw::Error::Io(e))
+        Self::read_from(reader).map_err(binrw::Error::Io)
     }
 }
 
@@ -292,8 +293,8 @@ mod tests {
             "A".to_string(),
             "Hello World".to_string(),
             "Track Title - Artist Name".to_string(),
-            "a".repeat(126),  // Max short ASCII
-            "a".repeat(127),  // Long ASCII threshold
+            "a".repeat(126), // Max short ASCII
+            "a".repeat(127), // Long ASCII threshold
             "日本語".to_string(),
             "Café résumé naïve".to_string(),
             "Mixed 日本語 and ASCII".to_string(),
@@ -306,11 +307,7 @@ mod tests {
             let mut cursor = std::io::Cursor::new(bytes);
             let read_back = DeviceSQLString::read_from(&mut cursor).unwrap();
 
-            assert_eq!(
-                original, read_back,
-                "Round-trip failed for: {:?}",
-                case
-            );
+            assert_eq!(original, read_back, "Round-trip failed for: {:?}", case);
             assert_eq!(
                 read_back.to_string_lossy(),
                 case,
