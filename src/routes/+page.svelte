@@ -1043,9 +1043,9 @@
 			/>
 		</div>
 
-		<div class="relative flex flex-1 overflow-hidden">
+		<div class="relative flex flex-1 overflow-hidden bg-surface-1">
 			<!-- Left: Sidebar (without header) -->
-			<div class="flex-shrink-0 rounded-tr-md" style="width: {sidebarWidth}px">
+			<div class="flex-shrink-0" style="width: {sidebarWidth}px">
 				<Sidebar
 					{playlists}
 					{tagCategories}

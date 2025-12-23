@@ -1,7 +1,10 @@
 //! Track row building for PDB files
 //!
 //! Track rows are the most complex row type, with a 92-byte fixed header
-//! followed by 22 string fields.
+//! followed by 21 string fields.
+//!
+//! Reference: Deep Symmetry analysis
+//! https://djl-analysis.deepsymmetry.org/rekordbox-export-analysis/exports.html
 
 use crate::services::export::pdb::strings::DeviceSQLString;
 
@@ -32,8 +35,11 @@ pub struct PdbTrack {
 
 /// Track row header constants
 const TRACK_HEADER_SIZE: u16 = 0x5C; // 92 bytes
+/// Number of string fields in a track row (indices 0-21)
+/// Format has 22 strings total, with 21 explicit offsets (string 0 is implicit at start)
 const TRACK_STRING_COUNT: usize = 22;
-const TRACK_OFFSET_ARRAY_SIZE: u16 = (TRACK_STRING_COUNT * 2) as u16; // 44 bytes
+/// Size of the offset array (u7 marker + 21 offsets = 22 u16 values = 44 bytes)
+const TRACK_OFFSET_ARRAY_SIZE: u16 = 44; // (1 + 21) * 2
 
 /// Build a track row (most complex row type)
 ///
@@ -104,7 +110,9 @@ pub fn build_track_row(track: &PdbTrack, row_index: u16) -> Vec<u8> {
     // 0x5A-0x5B: File type
     row.extend_from_slice(&track.file_type.to_le_bytes());
 
-    // Build the 22 strings
+    // Build the 22 strings (indices 0-21 per Deep Symmetry spec)
+    // String 0 is implicitly at start of string data (no explicit offset)
+    // Offsets array contains: u7 marker + 21 offsets pointing to strings 1-21
     let strings: [DeviceSQLString; TRACK_STRING_COUNT] = [
         DeviceSQLString::empty(),                // 0: ISRC (placeholder)
         DeviceSQLString::empty(),                // 1: Lyricist
@@ -127,20 +135,25 @@ pub fn build_track_row(track: &PdbTrack, row_index: u16) -> Vec<u8> {
         DeviceSQLString::empty(),                // 18: Unknown
         DeviceSQLString::new(&track.filename),   // 19: Filename
         DeviceSQLString::new(&track.file_path),  // 20: File path
-        DeviceSQLString::empty(),                // 21: Extra (padding)
+        DeviceSQLString::empty(),                // 21: Unused (padding)
     ];
 
     // Calculate string offsets
     // String data starts after header + offset array
+    // Format: u7 marker (value 3) + 21 actual offsets = 22 u16 values = 44 bytes
     let string_data_start: u16 = TRACK_HEADER_SIZE + TRACK_OFFSET_ARRAY_SIZE;
 
+    // Offset array: u7 marker followed by 21 offsets
+    // - offsets[0] = 3 (marker indicating 16-bit offsets)
+    // - offsets[1..22] = offsets to strings 1..21 (string 0 has no explicit offset)
     let mut offsets: Vec<u16> = Vec::with_capacity(TRACK_STRING_COUNT);
     let mut current_pos = string_data_start;
 
-    // First offset is always 3 (convention)
+    // First entry is the u7 marker (value 3 = use 16-bit offsets)
     offsets.push(3);
 
-    // Calculate remaining offsets
+    // Calculate offsets for strings 1-21 (string 0 is implicit at string_data_start)
+    // First advance past string 0, then push offsets for remaining strings
     for (i, s) in strings.iter().enumerate() {
         if i > 0 {
             offsets.push(current_pos);
@@ -148,7 +161,7 @@ pub fn build_track_row(track: &PdbTrack, row_index: u16) -> Vec<u8> {
         current_pos += s.binary_size() as u16;
     }
 
-    // Write the 22 u16 offsets (44 bytes)
+    // Write the 22 u16 values (u7 marker + 21 offsets = 44 bytes)
     for offset in &offsets {
         row.extend_from_slice(&offset.to_le_bytes());
     }

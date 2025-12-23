@@ -1,6 +1,8 @@
 //! PCOB (Cue List) tag - cue points for memory and hot cues
 //!
 //! Contains a list of cue points with PCPT (Cue Point) entries.
+//!
+//! Reference: pyrekordbox and Deep Symmetry analysis
 
 #![allow(dead_code)]
 
@@ -14,23 +16,51 @@ const HEADER_SIZE: u32 = 24;
 /// PCPT cue entry size in bytes
 const CUE_ENTRY_SIZE: u32 = 56;
 
+/// PCPT header size (includes magic through unknown1)
+const PCPT_HEADER_SIZE: u32 = 0x1C; // 28 bytes
+
 /// Cue list type for memory cues
 pub const CUE_LIST_TYPE_MEMORY: u32 = 0;
 
 /// Cue list type for hot cues
 pub const CUE_LIST_TYPE_HOT: u32 = 1;
 
+/// Cue point status - enabled
+pub const CUE_STATUS_ENABLED: u32 = 4;
+
+/// Cue point status - disabled
+pub const CUE_STATUS_DISABLED: u32 = 0;
+
+/// Constant value u2 in PCPT entries (always 1000 = 0x03E8)
+const PCPT_CONST_U2: u16 = 1000;
+
 /// A single cue point entry (PCPT)
+///
+/// Format from pyrekordbox/Deep Symmetry:
+/// - Bytes 0-3: "PCPT" magic
+/// - Bytes 4-7: len_header (0x1C = 28)
+/// - Bytes 8-11: len_entry (0x38 = 56)
+/// - Bytes 12-15: hot_cue (0 for memory)
+/// - Bytes 16-19: status (0=disabled, 4=enabled)
+/// - Bytes 20-23: unknown1 (0x00010000)
+/// - Bytes 24-25: order_first
+/// - Bytes 26-27: order_last
+/// - Byte 28: cue_type (1=single, 2=loop)
+/// - Byte 29: padding
+/// - Bytes 30-31: const_u2 (1000 = 0x03E8)
+/// - Bytes 32-35: time_ms
+/// - Bytes 36-39: loop_time_ms (-1 if not loop)
+/// - Bytes 40-55: padding (16 bytes)
 #[derive(Debug, Clone, BinRead, BinWrite)]
 #[brw(big, magic = b"PCPT")]
 pub struct CuePointEntry {
-    /// Header size (always 20)
+    /// Header size (always 0x1C = 28)
     pub len_header: u32,
     /// Total entry size (always 56)
     pub len_entry: u32,
     /// Hot cue index (0-7 for hot cues, 0 for memory cues)
     pub hot_cue: u32,
-    /// Status flags (always 0)
+    /// Status flags (0=disabled, 4=enabled/active loop)
     pub status: u32,
     /// Unknown field (always 0x00010000)
     pub unknown1: u32,
@@ -40,9 +70,10 @@ pub struct CuePointEntry {
     pub order_last: u16,
     /// Cue type (1 = regular cue, 2 = loop)
     pub cue_type: u8,
-    /// Padding
-    #[brw(pad_before = 0)]
-    pub padding1: [u8; 3],
+    /// Padding (1 byte)
+    pub padding1: u8,
+    /// Constant field (always 1000 = 0x03E8)
+    pub const_u2: u16,
     /// Time position in milliseconds
     pub time_ms: u32,
     /// Loop end time in milliseconds (-1 if not a loop)
@@ -61,22 +92,23 @@ impl CuePointEntry {
     /// * `cue` - The cue to convert
     /// * `index` - The order index within the cue list
     pub fn from_cue(cue: &Cue, index: u16) -> Self {
-        let (hot_cue, cue_type, loop_time_ms) = match cue.cue_type {
-            CueType::Memory => (0, 1, -1),
-            CueType::Hot => (cue.hot_cue_index.unwrap_or(0) as u32, 1, -1),
-            CueType::Loop => (0, 2, cue.loop_end_ms.unwrap_or(-1) as i32),
+        let (hot_cue, cue_type, loop_time_ms, status) = match cue.cue_type {
+            CueType::Memory => (0, 1, -1, CUE_STATUS_ENABLED),
+            CueType::Hot => (cue.hot_cue_index.unwrap_or(0) as u32, 1, -1, CUE_STATUS_ENABLED),
+            CueType::Loop => (0, 2, cue.loop_end_ms.unwrap_or(-1) as i32, CUE_STATUS_ENABLED),
         };
 
         Self {
-            len_header: 20,
+            len_header: PCPT_HEADER_SIZE,
             len_entry: CUE_ENTRY_SIZE,
             hot_cue,
-            status: 0,
+            status,
             unknown1: 0x00010000,
             order_first: index,
             order_last: index,
             cue_type,
-            padding1: [0; 3],
+            padding1: 0,
+            const_u2: PCPT_CONST_U2,
             time_ms: cue.position_ms as u32,
             loop_time_ms,
             padding2: [0; 16],
