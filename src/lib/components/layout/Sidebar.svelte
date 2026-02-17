@@ -101,13 +101,18 @@
 	</div>
 
 	<!-- Section tabs -->
-	<div class="mx-0 mt-1 flex border-b border-stroke">
+	<div class="relative mx-0 mt-1 flex border-b border-stroke">
+		<!-- Sliding indicator -->
+		<div
+			class="absolute bottom-0 h-0.5 w-1/2 bg-brand-primary transition-transform duration-200 ease-out motion-reduce:transition-none"
+			style="transform: translateX({activeSection === 'playlists' ? '0%' : '100%'})"
+		></div>
 		<button
 			type="button"
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
 			'playlists'
-				? 'border-b-2 border-brand-primary text-text-primary'
-				: 'border-b-2 border-[#00000000] text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+				? 'text-text-primary'
+				: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
 			onclick={() => (activeSection = 'playlists')}
 		>
 			<Icon name="grid" class="h-3.5 w-3.5" />
@@ -117,8 +122,8 @@
 			type="button"
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
 			'tags'
-				? 'border-b-2 border-brand-primary text-text-primary'
-				: 'border-b-2 border-[#00000000] text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+				? 'text-text-primary'
+				: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
 			onclick={() => (activeSection = 'tags')}
 		>
 			<Icon name="tag" class="h-3.5 w-3.5" />
