@@ -6,7 +6,7 @@
 	type Props = {
 		open: boolean
 		onClose: () => void
-		onSubmit: (create: DiscoveryReleaseCreate) => void
+		onSubmit: (create: DiscoveryReleaseCreate) => Promise<void>
 	}
 
 	let { open, onClose, onSubmit }: Props = $props()
@@ -50,7 +50,7 @@
 		onClose()
 	}
 
-	function handleSubmit() {
+	async function handleSubmit() {
 		if (!url.trim()) return
 
 		const create: DiscoveryReleaseCreate = {
@@ -62,8 +62,7 @@
 		if (title.trim()) create.title = title.trim()
 		if (label.trim()) create.label = label.trim()
 
-		onSubmit(create)
-		resetForm()
+		await onSubmit(create)
 	}
 
 	// Reset form when modal opens

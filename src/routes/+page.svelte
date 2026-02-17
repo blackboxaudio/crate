@@ -516,8 +516,10 @@
 	}
 
 	async function handleAddRelease(create: DiscoveryReleaseCreate) {
-		await discoveryStore.createRelease(create)
-		showAddReleaseModal = false
+		const release = await discoveryStore.createRelease(create)
+		if (release) {
+			showAddReleaseModal = false
+		}
 	}
 
 	function handleRelocateComplete(updatedTrack: Track) {

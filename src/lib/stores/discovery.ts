@@ -58,7 +58,7 @@ function createDiscoveryStore() {
 				update((state) => ({
 					...state,
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to load releases',
+					error: typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to load releases',
 				}))
 			}
 		},
@@ -72,7 +72,9 @@ function createDiscoveryStore() {
 				}))
 				return release
 			} catch (error) {
-				toastStore.error(error instanceof Error ? error.message : 'Failed to create release')
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to add release'
+				)
 				return null
 			}
 		},
@@ -86,7 +88,9 @@ function createDiscoveryStore() {
 				}))
 				return release
 			} catch (error) {
-				toastStore.error(error instanceof Error ? error.message : 'Failed to update release')
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to update release'
+				)
 				return null
 			}
 		},
@@ -99,7 +103,9 @@ function createDiscoveryStore() {
 					releases: state.releases.filter((r) => r.id !== id),
 				}))
 			} catch (error) {
-				toastStore.error(error instanceof Error ? error.message : 'Failed to delete release')
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to delete release'
+				)
 			}
 		},
 
@@ -124,7 +130,9 @@ function createDiscoveryStore() {
 					releases: state.releases.map((r) => (r.id === id ? { ...r, status } : r)),
 				}))
 			} catch (error) {
-				toastStore.error(error instanceof Error ? error.message : 'Failed to update status')
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to update status'
+				)
 			}
 		},
 
