@@ -192,7 +192,7 @@
 			? 'cursor-not-allowed border border-transparent opacity-50'
 			: 'cursor-pointer border hover:bg-surface-2 hover:text-text-primary ' +
 				(selected ? 'border-brand-primary bg-brand-primary-10' : 'border-transparent')
-		: 'hover:bg-surface-2 hover:text-text-primary'} {isDragHovered
+		: 'cursor-default hover:bg-surface-2 hover:text-text-primary'} {isDragHovered
 		? 'bg-brand-primary-5 ring-2 ring-brand-primary'
 		: ''}"
 	transition:deviceItem={{ duration: 200 }}

@@ -72,7 +72,7 @@
 		type="search"
 		placeholder={$translate('library.searchPlaceholder')}
 		value={inputValue}
-		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pl-10 text-sm text-text-primary placeholder-text-tertiary focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none {activeFilterTags &&
+		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pl-10 text-sm text-text-primary placeholder-text-tertiary transition-colors duration-150 focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none {activeFilterTags &&
 		activeFilterTags.length > 0
 			? 'pr-[8.5rem]'
 			: 'pr-8'}"

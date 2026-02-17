@@ -8,3 +8,6 @@ export { useAppInitialization } from './useAppInitialization'
 export type { AppInitConfig } from './useAppInitialization'
 
 export { useGlobalErrorHandler } from './useGlobalErrorHandler'
+
+export { useDragDropCoordination } from './useDragDropCoordination'
+export type { DragDropCoordinationConfig } from './useDragDropCoordination'
