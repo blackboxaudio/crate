@@ -136,6 +136,28 @@ function createDiscoveryStore() {
 			}
 		},
 
+		async assignTags(releaseIds: string[], tagIds: string[]) {
+			try {
+				await discoveryApi.assignTags(releaseIds, tagIds)
+				await this.loadReleases()
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to assign tags'
+				)
+			}
+		},
+
+		async removeTags(releaseIds: string[], tagIds: string[]) {
+			try {
+				await discoveryApi.removeTags(releaseIds, tagIds)
+				await this.loadReleases()
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to remove tags'
+				)
+			}
+		},
+
 		setFilter(filter: DiscoveryFilter) {
 			update((state) => ({ ...state, filter }))
 		},

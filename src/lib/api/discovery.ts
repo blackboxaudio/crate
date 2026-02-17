@@ -28,3 +28,11 @@ export async function deleteReleases(ids: string[]): Promise<void> {
 export async function setReleaseStatus(id: string, status: string): Promise<void> {
 	return invoke<void>('set_discovery_release_status', { id, status })
 }
+
+export async function assignTags(releaseIds: string[], tagIds: string[]): Promise<void> {
+	return invoke<void>('assign_discovery_tags', { releaseIds, tagIds })
+}
+
+export async function removeTags(releaseIds: string[], tagIds: string[]): Promise<void> {
+	return invoke<void>('remove_discovery_tags', { releaseIds, tagIds })
+}

@@ -125,6 +125,8 @@ pub fn run() {
             commands::discovery::delete_discovery_release,
             commands::discovery::delete_discovery_releases,
             commands::discovery::set_discovery_release_status,
+            commands::discovery::assign_discovery_tags,
+            commands::discovery::remove_discovery_tags,
         ])
         .setup(|app| {
             // Get Tauri's app data directory

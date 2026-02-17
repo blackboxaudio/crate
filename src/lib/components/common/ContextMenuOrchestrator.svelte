@@ -1,5 +1,14 @@
 <script lang="ts" module>
-	import type { Track, Playlist, Tag, TagCategory, UsbDevice, TrackColor } from '$lib/types'
+	import type {
+		Track,
+		Playlist,
+		Tag,
+		TagCategory,
+		UsbDevice,
+		TrackColor,
+		DiscoveryRelease,
+		DiscoveryStatus,
+	} from '$lib/types'
 
 	// Tag context target discriminated union
 	export type TagContextTarget =
@@ -18,6 +27,7 @@
 		| { type: 'tag'; x: number; y: number; target: TagContextTarget }
 		| { type: 'tagsSidebar'; x: number; y: number }
 		| { type: 'device'; x: number; y: number; device: UsbDevice }
+		| { type: 'discoveryRelease'; x: number; y: number; releases: DiscoveryRelease[] }
 </script>
 
 <script lang="ts">
@@ -26,6 +36,7 @@
 	import TagContextMenu from '$lib/components/tags/TagContextMenu.svelte'
 	import TagsSidebarContextMenu from '$lib/components/tags/TagsSidebarContextMenu.svelte'
 	import DeviceContextMenu from '$lib/components/devices/DeviceContextMenu.svelte'
+	import DiscoveryContextMenu from '$lib/components/discovery/DiscoveryContextMenu.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { devices, reformattingDeviceId } from '$lib/stores/devices'
 	import { activeDeviceId } from '$lib/stores/export'
@@ -92,6 +103,11 @@
 		// Playlist export callback
 		onPlaylistExport: (playlist: Playlist) => void
 
+		// Discovery callbacks
+		onDiscoveryReleaseOpenInBrowser: (release: DiscoveryRelease) => void
+		onDiscoveryReleaseSetStatus: (releases: DiscoveryRelease[], status: DiscoveryStatus) => void
+		onDiscoveryReleaseDelete: (releases: DiscoveryRelease[]) => void
+
 		// Close callback
 		onClose?: () => void
 	}
@@ -131,6 +147,9 @@
 		onDeviceExport,
 		onDeviceIgnore,
 		onPlaylistExport,
+		onDiscoveryReleaseOpenInBrowser,
+		onDiscoveryReleaseSetStatus,
+		onDiscoveryReleaseDelete,
 		onClose,
 	}: Props = $props()
 
@@ -267,6 +286,18 @@
 			x: e.clientX,
 			y: e.clientY,
 			device,
+		}
+		activeMenu = menu
+		visibleMenu = menu
+	}
+
+	export function openDiscoveryReleaseMenu(e: MouseEvent, releases: DiscoveryRelease[]) {
+		e.preventDefault()
+		const menu = {
+			type: 'discoveryRelease' as const,
+			x: e.clientX,
+			y: e.clientY,
+			releases,
 		}
 		activeMenu = menu
 		visibleMenu = menu
@@ -458,6 +489,31 @@
 		closeAll()
 		onPlaylistExport(playlist)
 	}
+
+	// Discovery handlers
+	function handleDiscoveryReleaseOpenInBrowser() {
+		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length === 1) {
+			const release = activeMenu.releases[0]
+			closeAll()
+			onDiscoveryReleaseOpenInBrowser(release)
+		}
+	}
+
+	function handleDiscoveryReleaseSetStatus(status: DiscoveryStatus) {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releases = activeMenu.releases
+			closeAll()
+			onDiscoveryReleaseSetStatus(releases, status)
+		}
+	}
+
+	function handleDiscoveryReleaseDelete() {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releases = activeMenu.releases
+			closeAll()
+			onDiscoveryReleaseDelete(releases)
+		}
+	}
 </script>
 
 <!-- Track Context Menu -->
@@ -601,5 +657,20 @@
 		onReformat={handleDeviceReformat}
 		onEject={handleDeviceEject}
 		onIgnore={handleDeviceIgnore}
+	/>
+{/if}
+
+<!-- Discovery Release Context Menu -->
+{#if visibleMenu?.type === 'discoveryRelease'}
+	<DiscoveryContextMenu
+		open={activeMenu.type === 'discoveryRelease'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		selectedReleases={visibleMenu.releases}
+		onClose={closeAll}
+		onClosed={handleMenuClosed}
+		onOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
+		onSetStatus={handleDiscoveryReleaseSetStatus}
+		onDelete={handleDiscoveryReleaseDelete}
 	/>
 {/if}

@@ -1,6 +1,15 @@
-import type { Tag, TagCategory, TagSelectionState, TagFilterMode, TrackFilter } from '$lib/types'
+import type {
+	ActiveView,
+	Tag,
+	TagCategory,
+	TagSelectionState,
+	TagFilterMode,
+	TrackFilter,
+	DiscoveryFilter,
+} from '$lib/types'
 import type { tagsStore as TagsStoreType } from '$lib/stores/tags'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
+import type { discoveryStore as DiscoveryStoreType } from '$lib/stores/discovery'
 import type { uiStore as UIStoreType } from '$lib/stores/ui'
 
 // =============================================================================
@@ -10,13 +19,16 @@ import type { uiStore as UIStoreType } from '$lib/stores/ui'
 export interface TagControllerDeps {
 	tagsStore: typeof TagsStoreType
 	libraryStore: typeof LibraryStoreType
+	discoveryStore: typeof DiscoveryStoreType
 	uiStore: typeof UIStoreType
 	// Getters for reactive state (these return current values)
 	getSelectedTagIds: () => string[]
 	getSelectedPlaylistId: () => string | null
 	getTagFilterMode: () => TagFilterMode
 	getSelectedTrackIds: () => Set<string>
+	getSelectedReleaseIds: () => Set<string>
 	getRecentlyToggledMixedTags: () => Set<string>
+	getActiveView: () => ActiveView
 }
 
 export interface TagControllerModalActions {
@@ -54,16 +66,19 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 	const {
 		tagsStore,
 		libraryStore,
+		discoveryStore,
 		uiStore,
 		getSelectedTagIds,
 		getSelectedPlaylistId,
 		getTagFilterMode,
 		getSelectedTrackIds,
+		getSelectedReleaseIds,
 		getRecentlyToggledMixedTags,
+		getActiveView,
 	} = deps
 
 	/**
-	 * Toggle a tag in the filter and reload tracks
+	 * Toggle a tag in the filter and reload tracks/releases
 	 */
 	async function selectTag(tagId: string): Promise<void> {
 		// Capture current state BEFORE toggling (subscription updates synchronously)
@@ -76,71 +91,97 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 
 		uiStore.toggleTagFilter(tagId)
 
-		const filter: TrackFilter = {}
-		if (updatedTagIds.length > 0) {
-			filter.tag_ids = updatedTagIds
-			filter.tag_filter_mode = tagFilterMode
+		if (getActiveView() === 'discovery') {
+			const filter: DiscoveryFilter = {}
+			if (updatedTagIds.length > 0) {
+				filter.tag_ids = updatedTagIds
+				filter.tag_filter_mode = tagFilterMode
+			}
+			await discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
+		} else {
+			const filter: TrackFilter = {}
+			if (updatedTagIds.length > 0) {
+				filter.tag_ids = updatedTagIds
+				filter.tag_filter_mode = tagFilterMode
+			}
+			if (selectedPlaylistId) {
+				filter.playlist_id = selectedPlaylistId
+			}
+			await libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
 		}
-		if (selectedPlaylistId) {
-			filter.playlist_id = selectedPlaylistId
-		}
-		await libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
 	}
 
 	/**
-	 * Toggle a tag on/off for the currently selected tracks
+	 * Toggle a tag on/off for the currently selected tracks or releases
 	 */
 	async function toggleTagOnTracks(tagId: string, currentState: TagSelectionState): Promise<void> {
-		const trackIds = Array.from(getSelectedTrackIds())
+		if (getActiveView() === 'discovery') {
+			const releaseIds = Array.from(getSelectedReleaseIds())
 
-		if (currentState === 'active') {
-			// Remove from all selected tracks
-			await tagsStore.removeTags(trackIds, [tagId])
-		} else if (currentState === 'inactive') {
-			// Add to all selected tracks
-			await tagsStore.assignTags(trackIds, [tagId])
-		} else if (currentState === 'mixed') {
-			// Check if this tag was recently toggled
-			const wasRecentlyToggled = getRecentlyToggledMixedTags().has(tagId)
-
-			if (wasRecentlyToggled) {
-				// Second click on mixed = add to all
-				await tagsStore.assignTags(trackIds, [tagId])
-				uiStore.clearRecentlyToggledTag(tagId)
-			} else {
-				// First click on mixed = remove from all
-				await tagsStore.removeTags(trackIds, [tagId])
-				uiStore.markTagAsRecentlyToggled(tagId)
+			if (currentState === 'active') {
+				await discoveryStore.removeTags(releaseIds, [tagId])
+			} else if (currentState === 'inactive') {
+				await discoveryStore.assignTags(releaseIds, [tagId])
+			} else if (currentState === 'mixed') {
+				const wasRecentlyToggled = getRecentlyToggledMixedTags().has(tagId)
+				if (wasRecentlyToggled) {
+					await discoveryStore.assignTags(releaseIds, [tagId])
+					uiStore.clearRecentlyToggledTag(tagId)
+				} else {
+					await discoveryStore.removeTags(releaseIds, [tagId])
+					uiStore.markTagAsRecentlyToggled(tagId)
+				}
 			}
-		}
-
-		// Reload tracks to reflect tag changes
-		const selectedPlaylistId = getSelectedPlaylistId()
-		if (selectedPlaylistId) {
-			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
 		} else {
-			await libraryStore.loadTracks()
+			const trackIds = Array.from(getSelectedTrackIds())
+
+			if (currentState === 'active') {
+				await tagsStore.removeTags(trackIds, [tagId])
+			} else if (currentState === 'inactive') {
+				await tagsStore.assignTags(trackIds, [tagId])
+			} else if (currentState === 'mixed') {
+				const wasRecentlyToggled = getRecentlyToggledMixedTags().has(tagId)
+				if (wasRecentlyToggled) {
+					await tagsStore.assignTags(trackIds, [tagId])
+					uiStore.clearRecentlyToggledTag(tagId)
+				} else {
+					await tagsStore.removeTags(trackIds, [tagId])
+					uiStore.markTagAsRecentlyToggled(tagId)
+				}
+			}
+
+			// Reload tracks to reflect tag changes
+			const selectedPlaylistId = getSelectedPlaylistId()
+			if (selectedPlaylistId) {
+				await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+			} else {
+				await libraryStore.loadTracks()
+			}
 		}
 	}
 
 	/**
-	 * Clear all tag filters and reload tracks
+	 * Clear all tag filters and reload tracks/releases
 	 */
 	async function clearTagFilters(): Promise<void> {
 		const selectedPlaylistId = getSelectedPlaylistId()
 
 		uiStore.clearTagFilters()
-		libraryStore.clearFilters()
 
-		if (selectedPlaylistId) {
-			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+		if (getActiveView() === 'discovery') {
+			await discoveryStore.loadReleases()
 		} else {
-			await libraryStore.loadTracks()
+			libraryStore.clearFilters()
+			if (selectedPlaylistId) {
+				await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+			} else {
+				await libraryStore.loadTracks()
+			}
 		}
 	}
 
 	/**
-	 * Remove a single tag from the filter and reload tracks
+	 * Remove a single tag from the filter and reload tracks/releases
 	 */
 	async function removeTagFilter(tagId: string): Promise<void> {
 		const selectedTagIds = getSelectedTagIds()
@@ -150,20 +191,29 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 		uiStore.removeTagFilter(tagId)
 		const updatedTagIds = selectedTagIds.filter((id) => id !== tagId)
 
-		const filter: TrackFilter = {}
-		if (updatedTagIds.length > 0) {
-			filter.tag_ids = updatedTagIds
-			filter.tag_filter_mode = tagFilterMode
-		}
-		if (selectedPlaylistId) {
-			filter.playlist_id = selectedPlaylistId
-		}
-
-		if (Object.keys(filter).length > 0) {
-			await libraryStore.loadTracks(filter)
+		if (getActiveView() === 'discovery') {
+			const filter: DiscoveryFilter = {}
+			if (updatedTagIds.length > 0) {
+				filter.tag_ids = updatedTagIds
+				filter.tag_filter_mode = tagFilterMode
+			}
+			await discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
 		} else {
-			libraryStore.clearFilters()
-			await libraryStore.loadTracks()
+			const filter: TrackFilter = {}
+			if (updatedTagIds.length > 0) {
+				filter.tag_ids = updatedTagIds
+				filter.tag_filter_mode = tagFilterMode
+			}
+			if (selectedPlaylistId) {
+				filter.playlist_id = selectedPlaylistId
+			}
+
+			if (Object.keys(filter).length > 0) {
+				await libraryStore.loadTracks(filter)
+			} else {
+				libraryStore.clearFilters()
+				await libraryStore.loadTracks()
+			}
 		}
 	}
 
@@ -177,19 +227,26 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 
 		uiStore.toggleTagFilterMode()
 
-		// Reload tracks with the new mode if tags are selected
+		// Reload with the new mode if tags are selected
 		if (selectedTagIds.length > 0) {
-			// Note: tagFilterMode still has the OLD value here since we just called toggleTagFilterMode
-			// The actual new mode is the opposite
 			const newMode = tagFilterMode === 'or' ? 'and' : 'or'
-			const filter: TrackFilter = {
-				tag_ids: selectedTagIds,
-				tag_filter_mode: newMode,
+
+			if (getActiveView() === 'discovery') {
+				const filter: DiscoveryFilter = {
+					tag_ids: selectedTagIds,
+					tag_filter_mode: newMode,
+				}
+				await discoveryStore.loadReleases(filter)
+			} else {
+				const filter: TrackFilter = {
+					tag_ids: selectedTagIds,
+					tag_filter_mode: newMode,
+				}
+				if (selectedPlaylistId) {
+					filter.playlist_id = selectedPlaylistId
+				}
+				await libraryStore.loadTracks(filter)
 			}
-			if (selectedPlaylistId) {
-				filter.playlist_id = selectedPlaylistId
-			}
-			await libraryStore.loadTracks(filter)
 		}
 	}
 

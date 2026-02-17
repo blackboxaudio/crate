@@ -156,6 +156,22 @@
 			"listened": "Beluisterd",
 			"purchased": "Gekocht",
 			"dismissed": "Afgewezen"
+		},
+		"openInBrowser": "In browser openen",
+		"setStatus": "Status instellen",
+		"deleteRelease": "Release verwijderen",
+		"deleteReleases": "Releases verwijderen",
+		"editor": {
+			"releaseInfo": "Release-info",
+			"releasesCount": "{count, plural, =1 {1 release} other {{count} releases}}",
+			"artist": "Artiest",
+			"title": "Titel",
+			"label": "Label",
+			"releaseDate": "Releasedatum",
+			"notes": "Opmerkingen",
+			"status": "Status",
+			"saveChanges": "Wijzigingen opslaan",
+			"saving": "Opslaan..."
 		}
 	},
 	"playlists": {

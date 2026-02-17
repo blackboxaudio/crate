@@ -98,9 +98,7 @@ function createUIStore() {
 				lastSelectedTrackId: null,
 				selectedReleaseIds: new Set(),
 				lastSelectedReleaseId: null,
-				selectedTagIds: [],
-				searchQuery: '',
-				sidebarView: 'library',
+				// Keep selectedTagIds, tagFilterMode, sidebarView, searchQuery as-is
 				selectedPlaylistId: null,
 				selectedFolderId: null,
 			}))

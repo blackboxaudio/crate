@@ -156,6 +156,22 @@
 			"listened": "청취됨",
 			"purchased": "구매함",
 			"dismissed": "거절됨"
+		},
+		"openInBrowser": "브라우저에서 열기",
+		"setStatus": "상태 설정",
+		"deleteRelease": "릴리스 삭제",
+		"deleteReleases": "릴리스 삭제",
+		"editor": {
+			"releaseInfo": "릴리스 정보",
+			"releasesCount": "{count, plural, =1 {1개의 릴리스} other {{count}개의 릴리스}}",
+			"artist": "아티스트",
+			"title": "제목",
+			"label": "레이블",
+			"releaseDate": "릴리스 날짜",
+			"notes": "노트",
+			"status": "상태",
+			"saveChanges": "변경사항 저장",
+			"saving": "저장 중..."
 		}
 	},
 	"playlists": {

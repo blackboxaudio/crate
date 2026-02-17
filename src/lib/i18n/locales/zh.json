@@ -156,6 +156,22 @@
 			"listened": "已听过",
 			"purchased": "已购买",
 			"dismissed": "已驳回"
+		},
+		"openInBrowser": "在浏览器中打开",
+		"setStatus": "设置状态",
+		"deleteRelease": "删除发行",
+		"deleteReleases": "删除发行",
+		"editor": {
+			"releaseInfo": "发行信息",
+			"releasesCount": "{count, plural, =1 {1 个发行} other {{count} 个发行}}",
+			"artist": "艺术家",
+			"title": "标题",
+			"label": "厂牌",
+			"releaseDate": "发行日期",
+			"notes": "备注",
+			"status": "状态",
+			"saveChanges": "保存更改",
+			"saving": "保存中..."
 		}
 	},
 	"playlists": {

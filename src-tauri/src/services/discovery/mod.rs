@@ -447,6 +447,42 @@ impl DiscoveryService {
         Ok(())
     }
 
+    pub fn assign_tags(&self, release_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        for release_id in &release_ids {
+            for tag_id in &tag_ids {
+                conn.execute(
+                    "INSERT OR IGNORE INTO discovery_release_tags (release_id, tag_id) VALUES (?1, ?2)",
+                    rusqlite::params![release_id, tag_id],
+                )?;
+            }
+        }
+
+        Ok(())
+    }
+
+    pub fn remove_tags(&self, release_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        for release_id in &release_ids {
+            for tag_id in &tag_ids {
+                conn.execute(
+                    "DELETE FROM discovery_release_tags WHERE release_id = ?1 AND tag_id = ?2",
+                    rusqlite::params![release_id, tag_id],
+                )?;
+            }
+        }
+
+        Ok(())
+    }
+
     pub fn set_status(&self, id: &str, status: &str) -> Result<()> {
         let conn = self
             .conn

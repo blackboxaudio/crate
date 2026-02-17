@@ -156,6 +156,22 @@
 			"listened": "Lyssnad",
 			"purchased": "Köpt",
 			"dismissed": "Avvisad"
+		},
+		"openInBrowser": "Öppna i webbläsare",
+		"setStatus": "Ange status",
+		"deleteRelease": "Ta bort utgåva",
+		"deleteReleases": "Ta bort utgåvor",
+		"editor": {
+			"releaseInfo": "Utgåvainformation",
+			"releasesCount": "{count, plural, =1 {1 utgåva} other {{count} utgåvor}}",
+			"artist": "Artist",
+			"title": "Titel",
+			"label": "Skivbolag",
+			"releaseDate": "Releasedatum",
+			"notes": "Anteckningar",
+			"status": "Status",
+			"saveChanges": "Spara ändringar",
+			"saving": "Sparar..."
 		}
 	},
 	"playlists": {

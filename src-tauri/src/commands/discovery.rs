@@ -1,7 +1,9 @@
 use tauri::State;
 
 use crate::error::Result;
-use crate::models::{DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate};
+use crate::models::{
+    DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate,
+};
 use crate::services::DiscoveryService;
 
 #[tauri::command]
@@ -60,4 +62,22 @@ pub async fn set_discovery_release_status(
     discovery: State<'_, DiscoveryService>,
 ) -> Result<()> {
     discovery.set_status(&id, &status)
+}
+
+#[tauri::command]
+pub async fn assign_discovery_tags(
+    release_ids: Vec<String>,
+    tag_ids: Vec<String>,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    discovery.assign_tags(release_ids, tag_ids)
+}
+
+#[tauri::command]
+pub async fn remove_discovery_tags(
+    release_ids: Vec<String>,
+    tag_ids: Vec<String>,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    discovery.remove_tags(release_ids, tag_ids)
 }

@@ -156,6 +156,22 @@
 			"listened": "再生済み",
 			"purchased": "購入済み",
 			"dismissed": "却下"
+		},
+		"openInBrowser": "ブラウザで開く",
+		"setStatus": "ステータスを設定",
+		"deleteRelease": "リリースを削除",
+		"deleteReleases": "リリースを削除",
+		"editor": {
+			"releaseInfo": "リリース情報",
+			"releasesCount": "{count, plural, =1 {1つのリリース} other {{count}つのリリース}}",
+			"artist": "アーティスト",
+			"title": "タイトル",
+			"label": "レーベル",
+			"releaseDate": "リリース日",
+			"notes": "メモ",
+			"status": "ステータス",
+			"saveChanges": "変更を保存",
+			"saving": "保存中..."
 		}
 	},
 	"playlists": {

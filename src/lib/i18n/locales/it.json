@@ -156,6 +156,22 @@
 			"listened": "Ascoltato",
 			"purchased": "Acquistato",
 			"dismissed": "Scartato"
+		},
+		"openInBrowser": "Apri nel browser",
+		"setStatus": "Imposta stato",
+		"deleteRelease": "Elimina rilascio",
+		"deleteReleases": "Elimina rilasci",
+		"editor": {
+			"releaseInfo": "Info rilascio",
+			"releasesCount": "{count, plural, =1 {1 rilascio} other {{count} rilasci}}",
+			"artist": "Artista",
+			"title": "Titolo",
+			"label": "Etichetta",
+			"releaseDate": "Data di rilascio",
+			"notes": "Note",
+			"status": "Stato",
+			"saveChanges": "Salva modifiche",
+			"saving": "Salvataggio..."
 		}
 	},
 	"playlists": {

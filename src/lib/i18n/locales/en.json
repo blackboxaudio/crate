@@ -156,6 +156,22 @@
 			"listened": "Listened",
 			"purchased": "Purchased",
 			"dismissed": "Dismissed"
+		},
+		"openInBrowser": "Open in Browser",
+		"setStatus": "Set Status",
+		"deleteRelease": "Delete Release",
+		"deleteReleases": "Delete Releases",
+		"editor": {
+			"releaseInfo": "Release Info",
+			"releasesCount": "{count, plural, =1 {1 release} other {{count} releases}}",
+			"artist": "Artist",
+			"title": "Title",
+			"label": "Label",
+			"releaseDate": "Release Date",
+			"notes": "Notes",
+			"status": "Status",
+			"saveChanges": "Save Changes",
+			"saving": "Saving..."
 		}
 	},
 	"playlists": {

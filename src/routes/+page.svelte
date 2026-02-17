@@ -9,10 +9,14 @@
 		SortConfig,
 		DiscoverySortConfig,
 		DiscoveryReleaseCreate,
+		DiscoveryFilter,
+		DiscoveryRelease,
+		DiscoveryStatus,
 		Playlist,
 		TagCategory,
 		Tag,
 		TagSelectionState,
+		TrackFilter,
 		UsbDevice,
 		BreadcrumbItem,
 		SettingsPage,
@@ -66,7 +70,8 @@
 
 	import { Sidebar, Toolbar, RightSidebar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
-	import { DiscoveryView, AddReleaseModal } from '$lib/components/discovery'
+	import { DiscoveryView, AddReleaseModal, DiscoveryEditor } from '$lib/components/discovery'
+	import { TrackEditor } from '$lib/components/editor'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { Player } from '$lib/components/player'
 	import {
@@ -81,6 +86,7 @@
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { openDevTools, closeDevTools } from '$lib/api/app'
 	import { exportStore } from '$lib/stores/export'
+	import { SvelteMap } from 'svelte/reactivity'
 
 	// =============================================================================
 	// State
@@ -130,12 +136,15 @@
 	const tagController = createTagController({
 		tagsStore,
 		libraryStore,
+		discoveryStore,
 		uiStore,
 		getSelectedTagIds: () => selectedTagIds,
 		getSelectedPlaylistId: () => selectedPlaylistId,
 		getTagFilterMode: () => $tagFilterMode,
 		getSelectedTrackIds: () => $selectedTrackIds,
+		getSelectedReleaseIds: () => $selectedReleaseIds,
 		getRecentlyToggledMixedTags: () => $recentlyToggledMixedTags,
+		getActiveView: () => $activeView,
 	})
 
 	// Track controller
@@ -240,17 +249,46 @@
 		}
 	})
 
-	// Compute tag states when selection or tracks change
+	// Compute tag states when selection or tracks/releases change
 	$effect(() => {
-		const result = computeTagStates(tagCategories, $displayedTracks, $selectedTrackIds)
-		tagStates = result.states
-		tagCounts = result.counts
+		if ($activeView === 'discovery') {
+			// Compute tag states from selected releases
+			const states = new SvelteMap<string, TagSelectionState>()
+			const counts = new SvelteMap<string, number>()
+			const selectedIds = $selectedReleaseIds
+			if (selectedIds.size > 0) {
+				const selectedReleases = $sortedReleases.filter((r) => selectedIds.has(r.id))
+				const totalSelected = selectedReleases.length
+				if (totalSelected > 0) {
+					const tagCountMap = new SvelteMap<string, number>()
+					for (const release of selectedReleases) {
+						for (const tag of release.tags) {
+							tagCountMap.set(tag.id, (tagCountMap.get(tag.id) || 0) + 1)
+						}
+					}
+					const allTags = tagCategories.flatMap((c) => c.tags)
+					for (const tag of allTags) {
+						const count = tagCountMap.get(tag.id) || 0
+						counts.set(tag.id, count)
+						if (count === 0) states.set(tag.id, 'inactive')
+						else if (count === totalSelected) states.set(tag.id, 'active')
+						else states.set(tag.id, 'mixed')
+					}
+				}
+			}
+			tagStates = states
+			tagCounts = counts
+		} else {
+			const result = computeTagStates(tagCategories, $displayedTracks, $selectedTrackIds)
+			tagStates = result.states
+			tagCounts = result.counts
+		}
 	})
 
 	// Clear recently toggled tags when selection changes
 	let previousSelectedIds = $state<Set<string>>(new Set())
 	$effect(() => {
-		const currentIds = $selectedTrackIds
+		const currentIds = $activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds
 		if (currentIds.size !== previousSelectedIds.size || ![...currentIds].every((id) => previousSelectedIds.has(id))) {
 			uiStore.clearAllRecentlyToggledTags()
 			previousSelectedIds = new Set(currentIds)
@@ -498,7 +536,19 @@
 	function handleViewChange(view: ActiveView) {
 		uiStore.setActiveView(view)
 		if (view === 'discovery') {
-			discoveryStore.loadReleases()
+			const filter: DiscoveryFilter = {}
+			if (selectedTagIds.length > 0) {
+				filter.tag_ids = selectedTagIds
+				filter.tag_filter_mode = $tagFilterMode
+			}
+			discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
+		} else {
+			const filter: TrackFilter = {}
+			if (selectedTagIds.length > 0) {
+				filter.tag_ids = selectedTagIds
+				filter.tag_filter_mode = $tagFilterMode
+			}
+			libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
 		}
 	}
 
@@ -559,6 +609,33 @@
 		contextMenuOrchestrator.openTagMenu(e, { type: 'category', category })
 	}
 
+	function handleReleaseContextMenu(e: MouseEvent, release: DiscoveryRelease) {
+		const currentSelection = $selectedReleaseIds
+		let releases: DiscoveryRelease[]
+		if (currentSelection.has(release.id)) {
+			releases = $sortedReleases.filter((r) => currentSelection.has(r.id))
+		} else {
+			releases = [release]
+		}
+		contextMenuOrchestrator.openDiscoveryReleaseMenu(e, releases)
+	}
+
+	function handleDiscoveryReleaseOpenInBrowser(release: DiscoveryRelease) {
+		openUrl(release.url)
+	}
+
+	async function handleDiscoveryReleaseSetStatus(releases: DiscoveryRelease[], status: DiscoveryStatus) {
+		for (const release of releases) {
+			await discoveryStore.setStatus(release.id, status)
+		}
+	}
+
+	async function handleDiscoveryReleaseDelete(releases: DiscoveryRelease[]) {
+		const ids = releases.map((r) => r.id)
+		await discoveryStore.deleteReleases(ids)
+		uiStore.clearReleaseSelection()
+	}
+
 	function handleBreadcrumbNavigate(item: BreadcrumbItem) {
 		if (item.id === null) {
 			playlistController.handleLibraryClick()
@@ -579,6 +656,7 @@
 	// =============================================================================
 
 	let selectedTracksArray = $derived($displayedTracks.filter((t) => $selectedTrackIds.has(t.id)))
+	let selectedReleasesArray = $derived($sortedReleases.filter((r) => $selectedReleaseIds.has(r.id)))
 	const playlistFolders = $derived(playlists.filter((p) => p.is_folder))
 	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 	const categorySortOrders = $derived(new Map(tagCategories.map((c) => [c.id, c.sort_order])))
@@ -653,7 +731,7 @@
 					{selectedFolderId}
 					{contextMenuPlaylistId}
 					{selectedTagIds}
-					selectedTrackIds={$selectedTrackIds}
+					selectedTrackIds={$activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds}
 					{tagStates}
 					{tagCounts}
 					trackCount={$trackCount}
@@ -694,6 +772,7 @@
 							onSelectionChange={handleReleaseSelectionChange}
 							onReleaseOpen={handleReleaseOpen}
 							onSortChange={handleDiscoverySortChange}
+							onContextMenu={handleReleaseContextMenu}
 						/>
 					{:else if selectedFolderId}
 						<FolderView
@@ -751,14 +830,18 @@
 					{/if}
 				</div>
 
-				{#if $activeView !== 'discovery'}
-					<RightSidebar
-						selectedTracks={selectedTracksArray}
-						isVisible={$rightSidebarVisible}
-						width={$rightSidebarWidth}
-						onResize={handleRightSidebarResize}
-					/>
-				{/if}
+				<RightSidebar
+					hasContent={$activeView === 'discovery' ? selectedReleasesArray.length > 0 : selectedTracksArray.length > 0}
+					isVisible={$rightSidebarVisible}
+					width={$rightSidebarWidth}
+					onResize={handleRightSidebarResize}
+				>
+					{#if $activeView === 'discovery'}
+						<DiscoveryEditor selectedReleases={selectedReleasesArray} />
+					{:else}
+						<TrackEditor selectedTracks={selectedTracksArray} />
+					{/if}
+				</RightSidebar>
 			</div>
 		</div>
 
@@ -803,6 +886,9 @@
 	onDeviceExport={exportController.handleDeviceExport}
 	onDeviceIgnore={deviceController.handleDeviceIgnore}
 	onPlaylistExport={exportController.handlePlaylistExport}
+	onDiscoveryReleaseOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
+	onDiscoveryReleaseSetStatus={handleDiscoveryReleaseSetStatus}
+	onDiscoveryReleaseDelete={handleDiscoveryReleaseDelete}
 	onClose={() => (contextMenuPlaylistId = null)}
 />
 
