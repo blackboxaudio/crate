@@ -184,5 +184,66 @@ CREATE INDEX idx_export_checkpoints_device ON export_checkpoints(device_id);
 -- Add metadata hash for detecting track changes
 ALTER TABLE device_tracks ADD COLUMN metadata_hash TEXT;
 "#,
+        // Migration 9: Discovery feature tables
+        r#"
+-- Discovery releases
+CREATE TABLE discovery_releases (
+    id TEXT PRIMARY KEY,
+    url TEXT NOT NULL UNIQUE,
+    source_type TEXT NOT NULL DEFAULT 'other',
+    artist TEXT,
+    title TEXT,
+    label TEXT,
+    release_date TEXT,
+    artwork_url TEXT,
+    artwork_path TEXT,
+    status TEXT NOT NULL DEFAULT 'unlistened',
+    notes TEXT,
+    date_added TEXT NOT NULL,
+    date_modified TEXT NOT NULL
+);
+
+CREATE INDEX idx_discovery_releases_status ON discovery_releases(status);
+CREATE INDEX idx_discovery_releases_date_added ON discovery_releases(date_added);
+
+-- Discovery track listing
+CREATE TABLE discovery_tracks (
+    id TEXT PRIMARY KEY,
+    release_id TEXT NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    position INTEGER NOT NULL,
+    duration_ms INTEGER
+);
+
+CREATE INDEX idx_discovery_tracks_release ON discovery_tracks(release_id);
+
+-- Tag junction (reuses existing tags table)
+CREATE TABLE discovery_release_tags (
+    release_id TEXT NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
+    tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (release_id, tag_id)
+);
+
+-- Add context to playlists for library/discovery separation
+ALTER TABLE playlists ADD COLUMN context TEXT NOT NULL DEFAULT 'library';
+CREATE INDEX idx_playlists_context ON playlists(context);
+
+-- Playlist junction for discovery releases
+CREATE TABLE playlist_discovery_releases (
+    playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+    release_id TEXT NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
+    position INTEGER,
+    date_added TEXT,
+    PRIMARY KEY (playlist_id, release_id)
+);
+
+-- Purchase tracking
+CREATE TABLE discovery_purchased_tracks (
+    discovery_release_id TEXT NOT NULL REFERENCES discovery_releases(id),
+    discovery_track_id TEXT NOT NULL REFERENCES discovery_tracks(id),
+    library_track_id TEXT NOT NULL REFERENCES tracks(id),
+    PRIMARY KEY (discovery_release_id, discovery_track_id)
+);
+"#,
     ]
 }

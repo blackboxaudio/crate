@@ -4,8 +4,11 @@
 	import { get } from 'svelte/store'
 
 	import type {
+		ActiveView,
 		Track,
 		SortConfig,
+		DiscoverySortConfig,
+		DiscoveryReleaseCreate,
 		Playlist,
 		TagCategory,
 		Tag,
@@ -25,7 +28,9 @@
 		tagsStore,
 		playlistsStore,
 		uiStore,
+		activeView,
 		selectedTrackIds,
+		selectedReleaseIds,
 		recentlyToggledMixedTags,
 		tagFilterMode,
 		settingsStore,
@@ -42,6 +47,9 @@
 		devToolsOpen,
 		isDev,
 		analysisStore,
+		discoveryStore,
+		sortedReleases,
+		releaseCount,
 	} from '$lib/stores'
 	import { syncStore } from '$lib/stores/sync'
 	import { toastStore } from '$lib/stores/toast'
@@ -58,6 +66,8 @@
 
 	import { Sidebar, Toolbar, RightSidebar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
+	import { DiscoveryView, AddReleaseModal } from '$lib/components/discovery'
+	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { Player } from '$lib/components/player'
 	import {
 		ResizeHandle,
@@ -82,6 +92,8 @@
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
+	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'date_added', direction: 'desc' })
+	let showAddReleaseModal = $state(false)
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
 	let devices = $state<UsbDevice[]>([])
@@ -413,6 +425,11 @@
 			await new Promise((r) => setTimeout(r, minDisplayTime - elapsed))
 		}
 
+		// Load discovery releases if that's the persisted view
+		if (get(activeView) === 'discovery') {
+			discoveryStore.loadReleases()
+		}
+
 		// Dismiss splash screen
 		showSplash = false
 
@@ -472,6 +489,35 @@
 
 	async function handleCancelAnalysis(trackId: string) {
 		await analysisStore.cancelTrackAnalysis(trackId)
+	}
+
+	// =============================================================================
+	// Discovery Handlers
+	// =============================================================================
+
+	function handleViewChange(view: ActiveView) {
+		uiStore.setActiveView(view)
+		if (view === 'discovery') {
+			discoveryStore.loadReleases()
+		}
+	}
+
+	function handleDiscoverySortChange(config: DiscoverySortConfig) {
+		discoverySortConfig = config
+		discoveryStore.setSort(config)
+	}
+
+	function handleReleaseOpen(release: { url: string }) {
+		openUrl(release.url)
+	}
+
+	function handleReleaseSelectionChange(ids: Set<string>) {
+		uiStore.setSelectedReleases(ids)
+	}
+
+	async function handleAddRelease(create: DiscoveryReleaseCreate) {
+		await discoveryStore.createRelease(create)
+		showAddReleaseModal = false
 	}
 
 	function handleRelocateComplete(updatedTrack: Track) {
@@ -579,13 +625,16 @@
 				{/if}
 			</div>
 			<Toolbar
+				activeView={$activeView}
 				{activeFilterTags}
 				{tagColors}
 				tagFilterMode={$tagFilterMode}
+				onViewChange={handleViewChange}
 				onRemoveTagFilter={tagController.removeTagFilter}
 				onClearAllTagFilters={tagController.clearTagFilters}
 				onToggleTagFilterMode={tagController.toggleTagFilterMode}
-				onImport={trackController.handleImport}
+				onImport={$activeView === 'library' ? trackController.handleImport : undefined}
+				onAddRelease={$activeView === 'discovery' ? () => (showAddReleaseModal = true) : undefined}
 				onSettings={() => modalOrchestrator.openSettingsModal()}
 				onDevTools={handleToggleDevTools}
 			/>
@@ -632,7 +681,19 @@
 			<!-- Right: Main Content + Optional TrackEditor -->
 			<div class="flex flex-1 overflow-hidden rounded-tl-md border-t border-l border-stroke">
 				<div class="flex-1 overflow-hidden">
-					{#if selectedFolderId}
+					{#if $activeView === 'discovery'}
+						<DiscoveryView
+							releases={$sortedReleases}
+							releaseCount={$releaseCount}
+							selectedIds={$selectedReleaseIds}
+							sortConfig={discoverySortConfig}
+							{categoryColors}
+							{categorySortOrders}
+							onSelectionChange={handleReleaseSelectionChange}
+							onReleaseOpen={handleReleaseOpen}
+							onSortChange={handleDiscoverySortChange}
+						/>
+					{:else if selectedFolderId}
 						<FolderView
 							folderId={selectedFolderId}
 							{playlists}
@@ -688,12 +749,14 @@
 					{/if}
 				</div>
 
-				<RightSidebar
-					selectedTracks={selectedTracksArray}
-					isVisible={$rightSidebarVisible}
-					width={$rightSidebarWidth}
-					onResize={handleRightSidebarResize}
-				/>
+				{#if $activeView !== 'discovery'}
+					<RightSidebar
+						selectedTracks={selectedTracksArray}
+						isVisible={$rightSidebarVisible}
+						width={$rightSidebarWidth}
+						onResize={handleRightSidebarResize}
+					/>
+				{/if}
 			</div>
 		</div>
 
@@ -838,6 +901,11 @@
 	onExportFailureCleanup={exportController.handleExportFailureCleanup}
 	onReformatDevice={deviceController.handleReformatDevice}
 />
+
+<!-- Add Release Modal -->
+{#if showAddReleaseModal}
+	<AddReleaseModal open={true} onClose={() => (showAddReleaseModal = false)} onSubmit={handleAddRelease} />
+{/if}
 
 <!-- Drag Preview -->
 {#if $isDragging && $dragPosition}

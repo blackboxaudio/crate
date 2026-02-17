@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use tauri::{
-    menu::{Menu, MenuBuilder, MenuItem, MenuItemKind, Submenu, SubmenuBuilder},
+    menu::{Menu, MenuBuilder, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder},
     AppHandle, Emitter, Manager, Wry,
 };
 
@@ -45,11 +45,6 @@ pub struct MenuTranslations {
     pub new_folder: String,
     pub quick_export: String,
     // Edit menu items
-    pub undo: String,
-    pub redo: String,
-    pub cut: String,
-    pub copy: String,
-    pub paste: String,
     pub select_all_tracks: String,
     // Playback menu items
     pub play_pause: String,
@@ -96,11 +91,6 @@ pub mod ids {
     pub const QUICK_EXPORT: &str = "quick_export";
 
     // Edit menu items
-    pub const UNDO: &str = "undo";
-    pub const REDO: &str = "redo";
-    pub const CUT: &str = "cut";
-    pub const COPY: &str = "copy";
-    pub const PASTE: &str = "paste";
     pub const SELECT_ALL: &str = "select_all";
 
     // Playback menu items
@@ -220,42 +210,12 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
 
 fn build_edit_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     SubmenuBuilder::with_id(app, ids::EDIT_MENU, "Edit")
-        .item(&MenuItem::with_id(
-            app,
-            ids::UNDO,
-            "Undo",
-            true,
-            Some("CmdOrCtrl+Z"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::REDO,
-            "Redo",
-            true,
-            Some("CmdOrCtrl+Shift+Z"),
-        )?)
+        .item(&PredefinedMenuItem::undo(app, None)?)
+        .item(&PredefinedMenuItem::redo(app, None)?)
         .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::CUT,
-            "Cut",
-            true,
-            Some("CmdOrCtrl+X"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::COPY,
-            "Copy",
-            true,
-            Some("CmdOrCtrl+C"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::PASTE,
-            "Paste",
-            true,
-            Some("CmdOrCtrl+V"),
-        )?)
+        .item(&PredefinedMenuItem::cut(app, None)?)
+        .item(&PredefinedMenuItem::copy(app, None)?)
+        .item(&PredefinedMenuItem::paste(app, None)?)
         .separator()
         .item(&MenuItem::with_id(
             app,
@@ -473,12 +433,7 @@ pub fn update_menu_translations(
     update_item_text(&menu, ids::NEW_FOLDER, &translations.new_folder)?;
     update_item_text(&menu, ids::QUICK_EXPORT, &translations.quick_export)?;
 
-    // Update Edit menu items
-    update_item_text(&menu, ids::UNDO, &translations.undo)?;
-    update_item_text(&menu, ids::REDO, &translations.redo)?;
-    update_item_text(&menu, ids::CUT, &translations.cut)?;
-    update_item_text(&menu, ids::COPY, &translations.copy)?;
-    update_item_text(&menu, ids::PASTE, &translations.paste)?;
+    // Update Edit menu items (undo/redo/cut/copy/paste are PredefinedMenuItems, localized by OS)
     update_item_text(&menu, ids::SELECT_ALL, &translations.select_all_tracks)?;
 
     // Update Playback menu items

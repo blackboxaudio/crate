@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "Library",
+		"discovery": "Discovery",
 		"playlists": "Playlists",
 		"tags": "Tags"
 	},
@@ -134,6 +135,28 @@
 		"tracks": "tracks",
 		"item": "item",
 		"items": "items"
+	},
+	"discovery": {
+		"addRelease": "Add Release",
+		"url": "URL",
+		"source": "Source",
+		"release": "release",
+		"releases": "releases",
+		"noReleasesYet": "No releases yet",
+		"addReleaseHint": "Add releases from Bandcamp, SoundCloud, YouTube, or Discogs to track your discoveries",
+		"columns": {
+			"artistTitle": "Artist / Title",
+			"label": "Label",
+			"status": "Status",
+			"tags": "Tags",
+			"dateAdded": "Date Added"
+		},
+		"status": {
+			"unlistened": "Unlistened",
+			"listened": "Listened",
+			"purchased": "Purchased",
+			"dismissed": "Dismissed"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "New Playlist",
@@ -425,11 +448,6 @@
 		"newPlaylist": "New Playlist",
 		"newFolder": "New Folder",
 		"quickExport": "Quick Export...",
-		"undo": "Undo",
-		"redo": "Redo",
-		"cut": "Cut",
-		"copy": "Copy",
-		"paste": "Paste",
 		"selectAllTracks": "Select All Tracks",
 		"playPause": "Play/Pause",
 		"stop": "Stop",

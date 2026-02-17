@@ -32,7 +32,6 @@ export interface MenuActionHandlers {
  * - import_tracks: Import audio files
  * - new_playlist: Create new playlist
  * - new_folder: Create new folder
- * - undo/redo/cut/copy/paste: Text editing commands
  * - select_all: Select all (text in input, or tracks)
  * - play_pause: Toggle playback (when not typing)
  * - stop: Stop playback
@@ -86,22 +85,7 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				onQuickExport()
 				break
 
-			// Edit menu - text editing commands
-			case 'undo':
-				document.execCommand('undo')
-				break
-			case 'redo':
-				document.execCommand('redo')
-				break
-			case 'cut':
-				document.execCommand('cut')
-				break
-			case 'copy':
-				document.execCommand('copy')
-				break
-			case 'paste':
-				document.execCommand('paste')
-				break
+			// Edit menu
 			case 'select_all':
 				if (isInputFocused()) {
 					const input = document.activeElement as HTMLInputElement | HTMLTextAreaElement

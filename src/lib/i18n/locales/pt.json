@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "Biblioteca",
+		"discovery": "Descobertas",
 		"playlists": "Playlists",
 		"tags": "Tags"
 	},
@@ -134,6 +135,28 @@
 		"tracks": "faixas",
 		"item": "item",
 		"items": "itens"
+	},
+	"discovery": {
+		"addRelease": "Adicionar lançamento",
+		"url": "URL",
+		"source": "Fonte",
+		"release": "lançamento",
+		"releases": "lançamentos",
+		"noReleasesYet": "Nenhum lançamento ainda",
+		"addReleaseHint": "Adicione lançamentos do Bandcamp, SoundCloud, YouTube ou Discogs para rastrear suas descobertas",
+		"columns": {
+			"artistTitle": "Artista / Título",
+			"label": "Gravadora",
+			"status": "Status",
+			"tags": "Tags",
+			"dateAdded": "Data de adição"
+		},
+		"status": {
+			"unlistened": "Não ouvido",
+			"listened": "Ouvido",
+			"purchased": "Comprado",
+			"dismissed": "Rejeitado"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nova playlist",
@@ -424,11 +447,6 @@
 		"newPlaylist": "Nova playlist",
 		"newFolder": "Nova pasta",
 		"quickExport": "Exportação rápida...",
-		"undo": "Desfazer",
-		"redo": "Refazer",
-		"cut": "Recortar",
-		"copy": "Copiar",
-		"paste": "Colar",
 		"selectAllTracks": "Selecionar todas as faixas",
 		"playPause": "Reproduzir/Pausar",
 		"stop": "Parar",

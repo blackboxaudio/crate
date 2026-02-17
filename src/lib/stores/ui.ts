@@ -1,15 +1,27 @@
 import { writable, derived } from 'svelte/store'
-import type { SidebarView, TagFilterMode } from '$lib/types'
-import { getStoredBoolean, getStoredNumber, setStoredBoolean, setStoredNumber } from '$lib/utils/storage'
+import type { ActiveView, SidebarView, TagFilterMode } from '$lib/types'
+import {
+	getStoredBoolean,
+	getStoredNumber,
+	getStoredString,
+	setStoredBoolean,
+	setStoredNumber,
+	setStoredString,
+} from '$lib/utils/storage'
 
 // =============================================================================
 // State
 // =============================================================================
 
 interface UIState {
+	// Active view
+	activeView: ActiveView
+
 	// Selection
 	selectedTrackIds: Set<string>
 	lastSelectedTrackId: string | null
+	selectedReleaseIds: Set<string>
+	lastSelectedReleaseId: string | null
 
 	// Sidebar
 	sidebarView: SidebarView
@@ -39,8 +51,11 @@ interface UIState {
 }
 
 const initialState: UIState = {
+	activeView: getStoredString<ActiveView>('activeView', 'library', ['library', 'discovery']),
 	selectedTrackIds: new Set(),
 	lastSelectedTrackId: null,
+	selectedReleaseIds: new Set(),
+	lastSelectedReleaseId: null,
 	sidebarView: 'library',
 	selectedPlaylistId: null,
 	selectedFolderId: null,
@@ -66,6 +81,30 @@ function createUIStore() {
 
 	return {
 		subscribe,
+
+		// =========================================================================
+		// Active View
+		// =========================================================================
+
+		/**
+		 * Switch between library and discovery views
+		 */
+		setActiveView(view: ActiveView) {
+			setStoredString('activeView', view)
+			update((state) => ({
+				...state,
+				activeView: view,
+				selectedTrackIds: new Set(),
+				lastSelectedTrackId: null,
+				selectedReleaseIds: new Set(),
+				lastSelectedReleaseId: null,
+				selectedTagIds: [],
+				searchQuery: '',
+				sidebarView: 'library',
+				selectedPlaylistId: null,
+				selectedFolderId: null,
+			}))
+		},
 
 		// =========================================================================
 		// Selection
@@ -121,6 +160,43 @@ function createUIStore() {
 					lastSelectedTrackId: id,
 				}
 			})
+		},
+
+		// =========================================================================
+		// Release Selection
+		// =========================================================================
+
+		/**
+		 * Set selected release IDs
+		 */
+		setSelectedReleases(ids: Set<string>, lastId?: string) {
+			update((state) => ({
+				...state,
+				selectedReleaseIds: ids,
+				lastSelectedReleaseId: lastId ?? state.lastSelectedReleaseId,
+			}))
+		},
+
+		/**
+		 * Clear release selection
+		 */
+		clearReleaseSelection() {
+			update((state) => ({
+				...state,
+				selectedReleaseIds: new Set(),
+				lastSelectedReleaseId: null,
+			}))
+		},
+
+		/**
+		 * Select a single release
+		 */
+		selectRelease(id: string) {
+			update((state) => ({
+				...state,
+				selectedReleaseIds: new Set([id]),
+				lastSelectedReleaseId: id,
+			}))
 		},
 
 		// =========================================================================
@@ -422,6 +498,12 @@ export const recentlyToggledMixedTags = derived(uiStore, ($ui) => $ui.recentlyTo
 export const selectedTagIds = derived(uiStore, ($ui) => $ui.selectedTagIds)
 
 export const tagFilterMode = derived(uiStore, ($ui) => $ui.tagFilterMode)
+
+export const activeView = derived(uiStore, ($ui) => $ui.activeView)
+
+export const selectedReleaseIds = derived(uiStore, ($ui) => $ui.selectedReleaseIds)
+
+export const selectedReleaseCount = derived(uiStore, ($ui) => $ui.selectedReleaseIds.size)
 
 export const rightSidebarVisible = derived(uiStore, ($ui) => $ui.rightSidebarVisible)
 

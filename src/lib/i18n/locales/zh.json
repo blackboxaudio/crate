@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "曲库",
+		"discovery": "发现",
 		"playlists": "播放列表",
 		"tags": "标签"
 	},
@@ -134,6 +135,28 @@
 		"tracks": "曲目",
 		"item": "项目",
 		"items": "项目"
+	},
+	"discovery": {
+		"addRelease": "添加发行",
+		"url": "URL",
+		"source": "来源",
+		"release": "发行",
+		"releases": "发行",
+		"noReleasesYet": "暂无发行",
+		"addReleaseHint": "从 Bandcamp、SoundCloud、YouTube 或 Discogs 添加发行以跟踪您的发现",
+		"columns": {
+			"artistTitle": "艺术家 / 标题",
+			"label": "厂牌",
+			"status": "状态",
+			"tags": "标签",
+			"dateAdded": "添加日期"
+		},
+		"status": {
+			"unlistened": "未听过",
+			"listened": "已听过",
+			"purchased": "已购买",
+			"dismissed": "已驳回"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "新建播放列表",
@@ -424,11 +447,6 @@
 		"newPlaylist": "新建播放列表",
 		"newFolder": "新建文件夹",
 		"quickExport": "快速导出...",
-		"undo": "撤销",
-		"redo": "重做",
-		"cut": "剪切",
-		"copy": "复制",
-		"paste": "粘贴",
 		"selectAllTracks": "全选曲目",
 		"playPause": "播放/暂停",
 		"stop": "停止",

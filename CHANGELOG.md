@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Music discovery feature for tracking releases from Bandcamp, SoundCloud, YouTube, and Discogs
 - Export playlists to USB devices with Pioneer/Rekordbox compatibility
 - Multi-language support with 11 locales: English, Japanese, Dutch, French, German, Spanish, Italian, Swedish, Korean, Portuguese, and Chinese
 - Automatic system language detection with user preference override in Settings

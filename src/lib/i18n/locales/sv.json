@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "Bibliotek",
+		"discovery": "Upptäckter",
 		"playlists": "Spellistor",
 		"tags": "Taggar"
 	},
@@ -134,6 +135,28 @@
 		"tracks": "spår",
 		"item": "objekt",
 		"items": "objekt"
+	},
+	"discovery": {
+		"addRelease": "Lägg till utgåva",
+		"url": "URL",
+		"source": "Källa",
+		"release": "utgåva",
+		"releases": "utgåvor",
+		"noReleasesYet": "Inga utgåvor än",
+		"addReleaseHint": "Lägg till utgåvor från Bandcamp, SoundCloud, YouTube eller Discogs för att spåra dina upptäckter",
+		"columns": {
+			"artistTitle": "Artist / Titel",
+			"label": "Skivbolag",
+			"status": "Status",
+			"tags": "Taggar",
+			"dateAdded": "Tillagd"
+		},
+		"status": {
+			"unlistened": "Olyssnad",
+			"listened": "Lyssnad",
+			"purchased": "Köpt",
+			"dismissed": "Avvisad"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Ny spellista",
@@ -424,11 +447,6 @@
 		"newPlaylist": "Ny spellista",
 		"newFolder": "Ny mapp",
 		"quickExport": "Snabbexport...",
-		"undo": "Ångra",
-		"redo": "Gör om",
-		"cut": "Klipp ut",
-		"copy": "Kopiera",
-		"paste": "Klistra in",
 		"selectAllTracks": "Markera alla spår",
 		"playPause": "Spela/Paus",
 		"stop": "Stoppa",

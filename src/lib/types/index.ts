@@ -344,6 +344,8 @@ export interface BreadcrumbItem {
 // Sidebar View Types
 // =============================================================================
 
+export type ActiveView = 'library' | 'discovery'
+
 export type SidebarView = 'library' | 'playlist' | 'tag' | 'folder'
 
 export interface SidebarState {
@@ -565,4 +567,81 @@ export interface TrackAnalysisEvent {
 	result: AnalysisResult | null
 	updated_track: Track | null
 	error: string | null
+}
+
+// =============================================================================
+// Discovery Types
+// =============================================================================
+
+export type DiscoverySourceType = 'bandcamp' | 'soundcloud' | 'youtube' | 'discogs' | 'other'
+
+export type DiscoveryStatus = 'unlistened' | 'listened' | 'purchased' | 'dismissed'
+
+export interface DiscoveryTrack {
+	id: string
+	release_id: string
+	name: string
+	position: number
+	duration_ms: number | null
+}
+
+export interface DiscoveryRelease {
+	id: string
+	url: string
+	source_type: DiscoverySourceType
+	artist: string | null
+	title: string | null
+	label: string | null
+	release_date: string | null
+	artwork_url: string | null
+	artwork_path: string | null
+	status: DiscoveryStatus
+	notes: string | null
+	date_added: string
+	date_modified: string
+	tracks: DiscoveryTrack[]
+	tags: Tag[]
+}
+
+export interface DiscoveryReleaseCreate {
+	url: string
+	source_type?: DiscoverySourceType
+	artist?: string
+	title?: string
+	label?: string
+	release_date?: string
+	artwork_url?: string
+	notes?: string
+	tracks?: DiscoveryTrackCreate[]
+}
+
+export interface DiscoveryTrackCreate {
+	name: string
+	position: number
+	duration_ms?: number
+}
+
+export interface DiscoveryReleaseUpdate {
+	artist?: string
+	title?: string
+	label?: string
+	release_date?: string
+	artwork_url?: string
+	artwork_path?: string
+	notes?: string
+	status?: DiscoveryStatus
+}
+
+export interface DiscoveryFilter {
+	search?: string
+	status?: DiscoveryStatus
+	tag_ids?: string[]
+	tag_filter_mode?: TagFilterMode
+}
+
+export type DiscoverySortField = 'artist' | 'title' | 'label' | 'status' | 'date_added'
+
+export interface DiscoverySortConfig {
+	field: DiscoverySortField
+	direction: SortDirection
 }

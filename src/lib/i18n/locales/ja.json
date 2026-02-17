@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "ライブラリ",
+		"discovery": "ディスカバリー",
 		"playlists": "プレイリスト",
 		"tags": "タグ"
 	},
@@ -134,6 +135,28 @@
 		"tracks": "曲",
 		"item": "項目",
 		"items": "項目"
+	},
+	"discovery": {
+		"addRelease": "リリースを追加",
+		"url": "URL",
+		"source": "ソース",
+		"release": "リリース",
+		"releases": "リリース",
+		"noReleasesYet": "まだリリースがありません",
+		"addReleaseHint": "Bandcamp、SoundCloud、YouTube、または Discogs からリリースを追加して、発見を追跡します",
+		"columns": {
+			"artistTitle": "アーティスト / タイトル",
+			"label": "レーベル",
+			"status": "ステータス",
+			"tags": "タグ",
+			"dateAdded": "追加日時"
+		},
+		"status": {
+			"unlistened": "未再生",
+			"listened": "再生済み",
+			"purchased": "購入済み",
+			"dismissed": "却下"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",
@@ -425,11 +448,6 @@
 		"newPlaylist": "新しいプレイリスト",
 		"newFolder": "新しいフォルダ",
 		"quickExport": "クイックエクスポート...",
-		"undo": "取り消す",
-		"redo": "やり直す",
-		"cut": "カット",
-		"copy": "コピー",
-		"paste": "ペースト",
 		"selectAllTracks": "すべてのトラックを選択",
 		"playPause": "再生/一時停止",
 		"stop": "停止",

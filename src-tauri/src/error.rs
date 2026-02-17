@@ -39,6 +39,9 @@ pub enum CrateError {
 
     #[error("Analysis error: {0}")]
     Analysis(String),
+
+    #[error("Discovery error: {0}")]
+    Discovery(String),
 }
 
 impl serde::Serialize for CrateError {

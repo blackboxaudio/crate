@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "라이브러리",
+		"discovery": "발견",
 		"playlists": "재생목록",
 		"tags": "태그"
 	},
@@ -134,6 +135,28 @@
 		"tracks": "트랙",
 		"item": "항목",
 		"items": "항목"
+	},
+	"discovery": {
+		"addRelease": "릴리스 추가",
+		"url": "URL",
+		"source": "출처",
+		"release": "릴리스",
+		"releases": "릴리스",
+		"noReleasesYet": "아직 릴리스가 없습니다",
+		"addReleaseHint": "Bandcamp, SoundCloud, YouTube 또는 Discogs에서 릴리스를 추가하여 발견을 추적하세요",
+		"columns": {
+			"artistTitle": "아티스트 / 제목",
+			"label": "레이블",
+			"status": "상태",
+			"tags": "태그",
+			"dateAdded": "추가 날짜"
+		},
+		"status": {
+			"unlistened": "미청취",
+			"listened": "청취됨",
+			"purchased": "구매함",
+			"dismissed": "거절됨"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "새 재생목록",
@@ -424,11 +447,6 @@
 		"newPlaylist": "새 재생목록",
 		"newFolder": "새 폴더",
 		"quickExport": "빠른 내보내기...",
-		"undo": "실행 취소",
-		"redo": "다시 실행",
-		"cut": "잘라내기",
-		"copy": "복사",
-		"paste": "붙여넣기",
 		"selectAllTracks": "모든 트랙 선택",
 		"playPause": "재생/일시정지",
 		"stop": "정지",

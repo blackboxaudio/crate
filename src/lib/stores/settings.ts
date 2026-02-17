@@ -156,11 +156,6 @@ function createSettingsStore() {
 			newFolder: t('menu.newFolder'),
 			quickExport: t('menu.quickExport'),
 			// Edit menu items
-			undo: t('menu.undo'),
-			redo: t('menu.redo'),
-			cut: t('menu.cut'),
-			copy: t('menu.copy'),
-			paste: t('menu.paste'),
 			selectAllTracks: t('menu.selectAllTracks'),
 			// Playback menu items
 			playPause: t('menu.playPause'),

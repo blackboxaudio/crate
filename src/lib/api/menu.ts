@@ -10,11 +10,6 @@ export type MenuAction =
 	| 'new_folder'
 	| 'quick_export'
 	// Edit menu
-	| 'undo'
-	| 'redo'
-	| 'cut'
-	| 'copy'
-	| 'paste'
 	| 'select_all'
 	// Playback menu
 	| 'play_pause'

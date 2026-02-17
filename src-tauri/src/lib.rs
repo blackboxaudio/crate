@@ -10,7 +10,8 @@ use std::sync::Arc;
 use db::Database;
 use services::{
     export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
-    ExportService, LibraryService, PlaylistService, SettingsService, SyncService, TagService,
+    DiscoveryService, ExportService, LibraryService, PlaylistService, SettingsService, SyncService,
+    TagService,
 };
 use tauri::Manager;
 
@@ -116,6 +117,14 @@ pub fn run() {
             commands::analysis::cancel_track_analysis,
             commands::analysis::cancel_analysis,
             commands::analysis::get_analyzed_tracks,
+            // Discovery commands
+            commands::discovery::create_discovery_release,
+            commands::discovery::get_discovery_release,
+            commands::discovery::get_discovery_releases,
+            commands::discovery::update_discovery_release,
+            commands::discovery::delete_discovery_release,
+            commands::discovery::delete_discovery_releases,
+            commands::discovery::set_discovery_release_status,
         ])
         .setup(|app| {
             // Get Tauri's app data directory
@@ -145,6 +154,7 @@ pub fn run() {
             let device_service = DeviceService::new();
             let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
             let analysis_service = AnalysisService::new(conn.clone());
+            let discovery_service = DiscoveryService::new(conn.clone());
 
             // Load saved audio device setting
             if let Ok(settings) = settings_service.get_settings() {
@@ -167,6 +177,7 @@ pub fn run() {
             app.manage(device_service);
             app.manage(diagnostics_service);
             app.manage(analysis_service);
+            app.manage(discovery_service);
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

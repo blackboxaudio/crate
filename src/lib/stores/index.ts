@@ -15,9 +15,12 @@ export { playlistsStore, rootPlaylists, getPlaylistChildren, buildPlaylistTree }
 export type { PlaylistTreeNode } from './playlists'
 export {
 	uiStore,
+	activeView,
 	selectedTrackIds,
 	selectedTrackCount,
 	hasSelection,
+	selectedReleaseIds,
+	selectedReleaseCount,
 	searchQuery,
 	isSearchActive,
 	recentlyToggledMixedTags,
@@ -55,3 +58,4 @@ export type { DragData } from './drag'
 export { crashStore, hasCrashed, crashError } from './crash'
 export type { CrashInfo } from './crash'
 export { analysisStore, analyzingTrackIds, isAnalyzing } from './analysis'
+export { discoveryStore, sortedReleases, releaseCount, isDiscoveryLoading } from './discovery'

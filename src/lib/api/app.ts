@@ -46,11 +46,6 @@ export interface MenuTranslations {
 	newFolder: string
 	quickExport: string
 	// Edit menu items
-	undo: string
-	redo: string
-	cut: string
-	copy: string
-	paste: string
 	selectAllTracks: string
 	// Playback menu items
 	playPause: string
