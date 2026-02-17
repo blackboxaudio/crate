@@ -16,11 +16,6 @@
 	--color-text-secondary: var(--text-secondary);
 	--color-text-tertiary: var(--text-tertiary);
 
-	/* Brand/accent color */
-	--color-brand-primary: var(--brand-primary);
-	--color-brand-hover: var(--brand-hover);
-	--color-brand-muted: var(--brand-muted);
-
 	/* Stroke/border colors */
 	--color-stroke: var(--stroke);
 	--color-stroke-subtle: var(--stroke-subtle);
@@ -30,6 +25,47 @@
 	--color-warning: #f59e0b;
 	--color-success: #22c55e;
 	--color-info: #3b82f6;
+}
+
+/* =============================================================================
+   Brand Color Utilities
+
+   Defined manually because Tailwind CSS 4's @theme color processing breaks
+   CSS variable reactivity for dynamic accent colors. These utilities use
+   raw var() references to ensure colors update when data-accent changes.
+   ============================================================================= */
+
+@utility text-brand-primary {
+	color: var(--brand-primary);
+}
+
+@utility bg-brand-primary {
+	background-color: var(--brand-primary);
+}
+
+@utility bg-brand-hover {
+	background-color: var(--brand-hover);
+}
+
+@utility bg-brand-muted {
+	background-color: var(--brand-muted);
+}
+
+@utility border-brand-primary {
+	border-color: var(--brand-primary);
+}
+
+@utility ring-brand-primary {
+	--tw-ring-color: var(--brand-primary);
+}
+
+/* Opacity variants - use color-mix since Tailwind's /opacity syntax won't work */
+@utility bg-brand-primary-5 {
+	background-color: color-mix(in srgb, var(--brand-primary) 5%, transparent);
+}
+
+@utility bg-brand-primary-10 {
+	background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent);
 }
 
 /* =============================================================================
@@ -75,7 +111,13 @@
    Accent Color Variants
    ============================================================================= */
 
-:root,
+/* Default (blue) - only when no accent is explicitly set */
+:root:not([data-accent]) {
+	--brand-primary: #3b82f6;
+	--brand-hover: #2563eb;
+	--brand-muted: rgba(59, 130, 246, 0.2);
+}
+
 [data-accent='blue'] {
 	--brand-primary: #3b82f6;
 	--brand-hover: #2563eb;
