@@ -1,6 +1,15 @@
 <script lang="ts">
-	import type { Playlist, Track, TrackColor, SortConfig, BreadcrumbItem } from '$lib/types'
+	import type {
+		Playlist,
+		Track,
+		TrackColor,
+		SortConfig,
+		BreadcrumbItem,
+		DiscoveryRelease,
+		DiscoverySortConfig,
+	} from '$lib/types'
 	import { TrackList } from '$lib/components/library'
+	import { DiscoveryList } from '$lib/components/discovery'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 
 	type Props = {
@@ -13,6 +22,8 @@
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
 		breadcrumbItems: BreadcrumbItem[]
+		isDiscovery?: boolean
+		releases?: DiscoveryRelease[]
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onSortChange?: (config: SortConfig) => void
@@ -34,6 +45,8 @@
 		categoryColors,
 		categorySortOrders,
 		breadcrumbItems,
+		isDiscovery = false,
+		releases = [],
 		onSelectionChange,
 		onTrackPlay,
 		onSortChange,
@@ -48,6 +61,9 @@
 	function handleEmptySpaceContextMenu(e: MouseEvent) {
 		onEmptySpaceContextMenu?.(e, playlist)
 	}
+
+	// Provide a default sort config for discovery lists
+	const discoverySortConfig: DiscoverySortConfig = { field: 'date_added', direction: 'desc' }
 </script>
 
 <div class="flex h-full flex-col overflow-hidden bg-surface-0">
@@ -56,21 +72,36 @@
 
 	<!-- Content -->
 	<div class="flex-1 overflow-hidden">
-		<TrackList
-			{tracks}
-			{selectedIds}
-			{playingTrackId}
-			{sortConfig}
-			{isDragOver}
-			{categoryColors}
-			{categorySortOrders}
-			{onSelectionChange}
-			{onTrackPlay}
-			{onSortChange}
-			{onContextMenu}
-			onEmptySpaceContextMenu={handleEmptySpaceContextMenu}
-			{onTrackColorChange}
-			{onCancelAnalysis}
-		/>
+		{#if isDiscovery}
+			<DiscoveryList
+				{releases}
+				{selectedIds}
+				sortConfig={discoverySortConfig}
+				{categoryColors}
+				{categorySortOrders}
+				{onSelectionChange}
+				onContextMenu={(e, release) => {
+					// Adapt release context menu to the track-style callback
+					onContextMenu?.(e, release as unknown as Track)
+				}}
+			/>
+		{:else}
+			<TrackList
+				{tracks}
+				{selectedIds}
+				{playingTrackId}
+				{sortConfig}
+				{isDragOver}
+				{categoryColors}
+				{categorySortOrders}
+				{onSelectionChange}
+				{onTrackPlay}
+				{onSortChange}
+				{onContextMenu}
+				onEmptySpaceContextMenu={handleEmptySpaceContextMenu}
+				{onTrackColorChange}
+				{onCancelAnalysis}
+			/>
+		{/if}
 	</div>
 </div>

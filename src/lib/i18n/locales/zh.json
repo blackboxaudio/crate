@@ -463,7 +463,7 @@
 		"playPause": "播放/暂停",
 		"stop": "停止",
 		"jumpToPlaying": "跳转到正在播放的曲目",
-		"toggleSidebar": "切换侧边栏",
+		"toggleEditor": "切换编辑器",
 		"toggleView": "切换视图",
 		"showDevTools": "显示开发者工具",
 		"minimize": "最小化",

@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use rusqlite::Connection;
 
 use crate::error::{CrateError, Result};
-use crate::models::{MoveConflict, MovePlaylistResult, Playlist, Tag, Track};
+use crate::models::{DiscoveryRelease, DiscoveryTrack, MoveConflict, MovePlaylistResult, Playlist, Tag, Track};
 
 pub struct PlaylistService {
     conn: Arc<Mutex<Connection>>,
@@ -14,7 +14,7 @@ impl PlaylistService {
         Self { conn }
     }
 
-    pub fn get_playlists(&self) -> Result<Vec<Playlist>> {
+    pub fn get_playlists(&self, context: &str) -> Result<Vec<Playlist>> {
         let conn = self
             .conn
             .lock()
@@ -25,14 +25,21 @@ impl PlaylistService {
             SELECT
                 p.id, p.name, p.parent_id, p.is_folder, p.is_smart,
                 p.smart_rules, p.sort_order, p.date_created, p.date_modified,
-                COALESCE((SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id), 0) as track_count
+                COALESCE(
+                    CASE WHEN p.context = 'discovery'
+                        THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                        ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
+                    END, 0
+                ) as track_count,
+                p.context
             FROM playlists p
+            WHERE p.context = ?1
             ORDER BY p.sort_order, p.name
             "#,
         )?;
 
         let playlists = stmt
-            .query_map([], |row| {
+            .query_map([context], |row| {
                 Ok(Playlist {
                     id: row.get(0)?,
                     name: row.get(1)?,
@@ -44,6 +51,7 @@ impl PlaylistService {
                     date_created: row.get(7)?,
                     date_modified: row.get(8)?,
                     track_count: row.get(9)?,
+                    context: row.get(10)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -51,7 +59,7 @@ impl PlaylistService {
         Ok(playlists)
     }
 
-    pub fn create_playlist(&self, name: String, parent_id: Option<String>) -> Result<Playlist> {
+    pub fn create_playlist(&self, name: String, parent_id: Option<String>, context: String) -> Result<Playlist> {
         let conn = self
             .conn
             .lock()
@@ -77,12 +85,13 @@ impl PlaylistService {
             date_created: chrono::Utc::now().to_rfc3339(),
             date_modified: chrono::Utc::now().to_rfc3339(),
             track_count: 0,
+            context: context.clone(),
         };
 
         conn.execute(
             r#"
-            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified, context)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
             "#,
             rusqlite::params![
                 playlist.id,
@@ -94,13 +103,14 @@ impl PlaylistService {
                 playlist.sort_order,
                 playlist.date_created,
                 playlist.date_modified,
+                context,
             ],
         )?;
 
         Ok(playlist)
     }
 
-    pub fn create_folder(&self, name: String, parent_id: Option<String>) -> Result<Playlist> {
+    pub fn create_folder(&self, name: String, parent_id: Option<String>, context: String) -> Result<Playlist> {
         let conn = self
             .conn
             .lock()
@@ -125,12 +135,13 @@ impl PlaylistService {
             date_created: chrono::Utc::now().to_rfc3339(),
             date_modified: chrono::Utc::now().to_rfc3339(),
             track_count: 0,
+            context: context.clone(),
         };
 
         conn.execute(
             r#"
-            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)
+            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified, context)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
             "#,
             rusqlite::params![
                 folder.id,
@@ -142,6 +153,7 @@ impl PlaylistService {
                 folder.sort_order,
                 folder.date_created,
                 folder.date_modified,
+                context,
             ],
         )?;
 
@@ -163,6 +175,64 @@ impl PlaylistService {
 
         drop(conn);
         self.get_playlist(id)
+    }
+
+    /// Collect all track IDs and release IDs associated with a playlist (or folder subtree).
+    /// Must be called BEFORE delete_playlist since CASCADE deletes junction table entries.
+    /// Returns (track_ids, release_ids) — one will be empty depending on context.
+    pub fn collect_associated_item_ids(&self, id: &str) -> Result<(Vec<String>, Vec<String>)> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        // Use recursive CTE to find all playlist IDs in the subtree (handles folders)
+        let mut stmt = conn.prepare(
+            r#"
+            WITH RECURSIVE subtree(id, context) AS (
+                SELECT id, context FROM playlists WHERE id = ?1
+                UNION ALL
+                SELECT p.id, p.context FROM playlists p
+                JOIN subtree s ON p.parent_id = s.id
+            )
+            SELECT id, context FROM subtree
+            "#,
+        )?;
+
+        let rows: Vec<(String, String)> = stmt
+            .query_map([id], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        let mut track_ids = Vec::new();
+        let mut release_ids = Vec::new();
+
+        for (playlist_id, context) in &rows {
+            if context == "discovery" {
+                let mut rel_stmt = conn.prepare(
+                    "SELECT release_id FROM playlist_discovery_releases WHERE playlist_id = ?1",
+                )?;
+                let ids: Vec<String> = rel_stmt
+                    .query_map([playlist_id], |row| row.get(0))?
+                    .collect::<std::result::Result<Vec<_>, _>>()?;
+                release_ids.extend(ids);
+            } else {
+                let mut trk_stmt = conn.prepare(
+                    "SELECT track_id FROM playlist_tracks WHERE playlist_id = ?1",
+                )?;
+                let ids: Vec<String> = trk_stmt
+                    .query_map([playlist_id], |row| row.get(0))?
+                    .collect::<std::result::Result<Vec<_>, _>>()?;
+                track_ids.extend(ids);
+            }
+        }
+
+        // Deduplicate
+        track_ids.sort();
+        track_ids.dedup();
+        release_ids.sort();
+        release_ids.dedup();
+
+        Ok((track_ids, release_ids))
     }
 
     pub fn delete_playlist(&self, id: &str) -> Result<()> {
@@ -192,7 +262,13 @@ impl PlaylistService {
                 SELECT
                     p.id, p.name, p.parent_id, p.is_folder, p.is_smart,
                     p.smart_rules, p.sort_order, p.date_created, p.date_modified,
-                    COALESCE((SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id), 0) as track_count
+                    COALESCE(
+                        CASE WHEN p.context = 'discovery'
+                            THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                            ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
+                        END, 0
+                    ) as track_count,
+                    p.context
                 FROM playlists p
                 WHERE p.parent_id IS ?1 AND p.name = ?2 AND p.id != ?3
                 "#,
@@ -209,6 +285,7 @@ impl PlaylistService {
                         date_created: row.get(7)?,
                         date_modified: row.get(8)?,
                         track_count: row.get(9)?,
+                        context: row.get(10)?,
                     })
                 },
             )
@@ -229,7 +306,13 @@ impl PlaylistService {
             SELECT
                 p.id, p.name, p.parent_id, p.is_folder, p.is_smart,
                 p.smart_rules, p.sort_order, p.date_created, p.date_modified,
-                COALESCE((SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id), 0) as track_count
+                COALESCE(
+                    CASE WHEN p.context = 'discovery'
+                        THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                        ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
+                    END, 0
+                ) as track_count,
+                p.context
             FROM playlists p
             WHERE p.parent_id = ?1
             ORDER BY p.sort_order, p.name
@@ -249,6 +332,7 @@ impl PlaylistService {
                     date_created: row.get(7)?,
                     date_modified: row.get(8)?,
                     track_count: row.get(9)?,
+                    context: row.get(10)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -263,7 +347,13 @@ impl PlaylistService {
             SELECT
                 p.id, p.name, p.parent_id, p.is_folder, p.is_smart,
                 p.smart_rules, p.sort_order, p.date_created, p.date_modified,
-                COALESCE((SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id), 0) as track_count
+                COALESCE(
+                    CASE WHEN p.context = 'discovery'
+                        THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                        ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
+                    END, 0
+                ) as track_count,
+                p.context
             FROM playlists p
             WHERE p.id = ?1
             "#,
@@ -280,6 +370,7 @@ impl PlaylistService {
                     date_created: row.get(7)?,
                     date_modified: row.get(8)?,
                     track_count: row.get(9)?,
+                    context: row.get(10)?,
                 })
             },
         )
@@ -440,7 +531,13 @@ impl PlaylistService {
             SELECT
                 p.id, p.name, p.parent_id, p.is_folder, p.is_smart,
                 p.smart_rules, p.sort_order, p.date_created, p.date_modified,
-                COALESCE((SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id), 0) as track_count
+                COALESCE(
+                    CASE WHEN p.context = 'discovery'
+                        THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                        ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
+                    END, 0
+                ) as track_count,
+                p.context
             FROM playlists p
             WHERE p.id = ?1
             "#,
@@ -457,6 +554,7 @@ impl PlaylistService {
                     date_created: row.get(7)?,
                     date_modified: row.get(8)?,
                     track_count: row.get(9)?,
+                    context: row.get(10)?,
                 })
             },
         )
@@ -694,5 +792,194 @@ impl PlaylistService {
         )?;
 
         Ok(())
+    }
+
+    // =========================================================================
+    // Discovery Release Operations
+    // =========================================================================
+
+    pub fn add_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<Playlist> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        // Get current max position
+        let max_position: i32 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(position), -1) FROM playlist_discovery_releases WHERE playlist_id = ?1",
+                [playlist_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(-1);
+
+        let now = chrono::Utc::now().to_rfc3339();
+
+        for (i, release_id) in release_ids.iter().enumerate() {
+            let position = max_position + 1 + i as i32;
+            conn.execute(
+                "INSERT OR IGNORE INTO playlist_discovery_releases (playlist_id, release_id, position, date_added) VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params![playlist_id, release_id, position, now],
+            )?;
+        }
+
+        // Update playlist modified date
+        conn.execute(
+            "UPDATE playlists SET date_modified = ?1 WHERE id = ?2",
+            rusqlite::params![now, playlist_id],
+        )?;
+
+        drop(conn);
+        self.get_playlist(playlist_id)
+    }
+
+    pub fn remove_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<Playlist> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        for release_id in &release_ids {
+            conn.execute(
+                "DELETE FROM playlist_discovery_releases WHERE playlist_id = ?1 AND release_id = ?2",
+                rusqlite::params![playlist_id, release_id],
+            )?;
+        }
+
+        // Reorder remaining releases
+        let remaining: Vec<String> = {
+            let mut stmt = conn.prepare(
+                "SELECT release_id FROM playlist_discovery_releases WHERE playlist_id = ?1 ORDER BY position",
+            )?;
+            let result = stmt.query_map([playlist_id], |row| row.get(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            result
+        };
+
+        for (i, release_id) in remaining.iter().enumerate() {
+            conn.execute(
+                "UPDATE playlist_discovery_releases SET position = ?1 WHERE playlist_id = ?2 AND release_id = ?3",
+                rusqlite::params![i as i32, playlist_id, release_id],
+            )?;
+        }
+
+        // Update playlist modified date
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE playlists SET date_modified = ?1 WHERE id = ?2",
+            rusqlite::params![now, playlist_id],
+        )?;
+
+        drop(conn);
+        self.get_playlist(playlist_id)
+    }
+
+    pub fn get_playlist_releases(&self, playlist_id: &str) -> Result<Vec<DiscoveryRelease>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let mut stmt = conn.prepare(
+            r#"
+            SELECT
+                dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label,
+                dr.release_date, dr.artwork_url, dr.artwork_path, dr.status,
+                dr.notes, dr.date_added, dr.date_modified
+            FROM discovery_releases dr
+            JOIN playlist_discovery_releases pdr ON dr.id = pdr.release_id
+            WHERE pdr.playlist_id = ?1
+            ORDER BY pdr.position
+            "#,
+        )?;
+
+        let mut releases: Vec<DiscoveryRelease> = stmt
+            .query_map([playlist_id], |row| {
+                Ok(DiscoveryRelease {
+                    id: row.get(0)?,
+                    url: row.get(1)?,
+                    source_type: row.get(2)?,
+                    artist: row.get(3)?,
+                    title: row.get(4)?,
+                    label: row.get(5)?,
+                    release_date: row.get(6)?,
+                    artwork_url: row.get(7)?,
+                    artwork_path: row.get(8)?,
+                    status: row.get(9)?,
+                    notes: row.get(10)?,
+                    date_added: row.get(11)?,
+                    date_modified: row.get(12)?,
+                    tracks: Vec::new(),
+                    tags: Vec::new(),
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        if releases.is_empty() {
+            return Ok(releases);
+        }
+
+        // Batch load tracks and tags
+        let release_ids: Vec<String> = releases.iter().map(|r| r.id.clone()).collect();
+        let placeholders = release_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+        let param_refs: Vec<&dyn rusqlite::ToSql> = release_ids
+            .iter()
+            .map(|id| id as &dyn rusqlite::ToSql)
+            .collect();
+
+        // Load tracks
+        let mut stmt = conn.prepare(&format!(
+            "SELECT id, release_id, name, position, duration_ms FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
+        ))?;
+        let all_tracks: Vec<DiscoveryTrack> = stmt
+            .query_map(param_refs.as_slice(), |row| {
+                Ok(DiscoveryTrack {
+                    id: row.get(0)?,
+                    release_id: row.get(1)?,
+                    name: row.get(2)?,
+                    position: row.get(3)?,
+                    duration_ms: row.get(4)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        // Load tags
+        let mut stmt = conn.prepare(&format!(
+            "SELECT drt.release_id, t.id, t.category_id, t.name, t.color, t.sort_order
+             FROM tags t
+             INNER JOIN discovery_release_tags drt ON t.id = drt.tag_id
+             WHERE drt.release_id IN ({placeholders})
+             ORDER BY t.sort_order, t.name"
+        ))?;
+        let all_tags: Vec<(String, Tag)> = stmt
+            .query_map(param_refs.as_slice(), |row| {
+                Ok((
+                    row.get::<_, String>(0)?,
+                    Tag {
+                        id: row.get(1)?,
+                        category_id: row.get(2)?,
+                        name: row.get(3)?,
+                        color: row.get(4)?,
+                        sort_order: row.get(5)?,
+                    },
+                ))
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        // Merge tracks and tags into releases
+        for release in &mut releases {
+            release.tracks = all_tracks
+                .iter()
+                .filter(|t| t.release_id == release.id)
+                .cloned()
+                .collect();
+            release.tags = all_tags
+                .iter()
+                .filter(|(rid, _)| *rid == release.id)
+                .map(|(_, tag)| tag.clone())
+                .collect();
+        }
+
+        Ok(releases)
     }
 }

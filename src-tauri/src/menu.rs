@@ -52,7 +52,7 @@ pub struct MenuTranslations {
     pub jump_to_playing: String,
     // View menu items
     pub toggle_view: String,
-    pub toggle_sidebar: String,
+    pub toggle_editor: String,
     pub show_dev_tools: String,
     // Settings submenu
     pub settings_submenu: String,
@@ -101,7 +101,7 @@ pub mod ids {
 
     // View menu items
     pub const TOGGLE_VIEW: &str = "toggle_view";
-    pub const TOGGLE_SIDEBAR: &str = "toggle_sidebar";
+    pub const TOGGLE_EDITOR: &str = "toggle_editor";
     pub const SHOW_DEVTOOLS: &str = "show_devtools";
 
     // Settings submenu items
@@ -306,10 +306,10 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
         )?)
         .item(&MenuItem::with_id(
             app,
-            ids::TOGGLE_SIDEBAR,
-            "Toggle Sidebar",
+            ids::TOGGLE_EDITOR,
+            "Toggle Editor",
             true,
-            Some("CmdOrCtrl+\\"),
+            Some("CmdOrCtrl+I"),
         )?)
         .separator()
         .item(&settings_submenu);
@@ -469,7 +469,7 @@ pub fn update_menu_translations(
 
     // Update View menu items
     update_item_text(&menu, ids::TOGGLE_VIEW, &translations.toggle_view)?;
-    update_item_text(&menu, ids::TOGGLE_SIDEBAR, &translations.toggle_sidebar)?;
+    update_item_text(&menu, ids::TOGGLE_EDITOR, &translations.toggle_editor)?;
     if is_dev {
         update_item_text(&menu, ids::SHOW_DEVTOOLS, &translations.show_dev_tools)?;
     }

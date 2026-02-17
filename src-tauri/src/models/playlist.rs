@@ -14,6 +14,12 @@ pub struct Playlist {
     pub date_modified: String,
     #[serde(default)]
     pub track_count: i32,
+    #[serde(default = "default_context")]
+    pub context: String,
+}
+
+fn default_context() -> String {
+    "library".to_string()
 }
 
 #[allow(dead_code)]
@@ -31,6 +37,7 @@ impl Playlist {
             date_created: now.clone(),
             date_modified: now,
             track_count: 0,
+            context: "library".to_string(),
         }
     }
 

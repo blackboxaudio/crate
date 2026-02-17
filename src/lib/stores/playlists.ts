@@ -1,5 +1,13 @@
 import { writable, derived, get } from 'svelte/store'
-import type { Playlist, Track, BreadcrumbItem, MoveConflictResolution, MovePlaylistResult } from '$lib/types'
+import type {
+	ActiveView,
+	DiscoveryRelease,
+	Playlist,
+	Track,
+	BreadcrumbItem,
+	MoveConflictResolution,
+	MovePlaylistResult,
+} from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
 import { translate } from '$lib/i18n'
 import { syncStore } from './sync'
@@ -31,16 +39,19 @@ function createPlaylistsStore() {
 		subscribe,
 
 		/**
-		 * Load all playlists
+		 * Load all playlists from both contexts
 		 */
 		async load() {
 			update((state) => ({ ...state, loading: true, error: null }))
 
 			try {
-				const playlists = await playlistsApi.getPlaylists()
+				const [libraryPlaylists, discoveryPlaylists] = await Promise.all([
+					playlistsApi.getPlaylists('library'),
+					playlistsApi.getPlaylists('discovery'),
+				])
 				update((state) => ({
 					...state,
-					playlists,
+					playlists: [...libraryPlaylists, ...discoveryPlaylists],
 					loading: false,
 				}))
 			} catch (error) {
@@ -55,9 +66,9 @@ function createPlaylistsStore() {
 		/**
 		 * Create a new playlist
 		 */
-		async createPlaylist(name: string, parentId?: string) {
+		async createPlaylist(name: string, parentId?: string, context: ActiveView = 'library') {
 			try {
-				const playlist = await playlistsApi.createPlaylist(name, parentId)
+				const playlist = await playlistsApi.createPlaylist(name, parentId, context)
 				update((state) => ({
 					...state,
 					playlists: [...state.playlists, playlist],
@@ -75,9 +86,9 @@ function createPlaylistsStore() {
 		/**
 		 * Create a new folder
 		 */
-		async createFolder(name: string, parentId?: string) {
+		async createFolder(name: string, parentId?: string, context: ActiveView = 'library') {
 			try {
-				const folder = await playlistsApi.createFolder(name, parentId)
+				const folder = await playlistsApi.createFolder(name, parentId, context)
 				update((state) => ({
 					...state,
 					playlists: [...state.playlists, folder],
@@ -119,13 +130,27 @@ function createPlaylistsStore() {
 		/**
 		 * Delete a playlist or folder
 		 */
-		async delete(id: string) {
+		async delete(id: string, deleteTracksFromCollection: boolean = false) {
 			try {
-				await playlistsApi.deletePlaylist(id)
-				update((state) => ({
-					...state,
-					playlists: state.playlists.filter((p) => p.id !== id),
-				}))
+				await playlistsApi.deletePlaylist(id, deleteTracksFromCollection)
+				// Collect all descendant IDs to remove (handles folder with children)
+				update((state) => {
+					const idsToRemove = new Set<string>()
+					idsToRemove.add(id)
+					const collectDescendants = (parentId: string) => {
+						for (const p of state.playlists) {
+							if (p.parent_id === parentId && !idsToRemove.has(p.id)) {
+								idsToRemove.add(p.id)
+								collectDescendants(p.id)
+							}
+						}
+					}
+					collectDescendants(id)
+					return {
+						...state,
+						playlists: state.playlists.filter((p) => !idsToRemove.has(p.id)),
+					}
+				})
 			} catch (error) {
 				update((state) => ({
 					...state,
@@ -255,6 +280,57 @@ function createPlaylistsStore() {
 		},
 
 		/**
+		 * Add discovery releases to a playlist
+		 */
+		async addReleases(playlistId: string, releaseIds: string[]) {
+			try {
+				const updatedPlaylist = await playlistsApi.addReleasesToPlaylist(playlistId, releaseIds)
+				update((state) => ({
+					...state,
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
+				}))
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to add releases',
+				}))
+			}
+		},
+
+		/**
+		 * Remove discovery releases from a playlist
+		 */
+		async removeReleases(playlistId: string, releaseIds: string[]) {
+			try {
+				const updatedPlaylist = await playlistsApi.removeReleasesFromPlaylist(playlistId, releaseIds)
+				update((state) => ({
+					...state,
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
+				}))
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to remove releases',
+				}))
+			}
+		},
+
+		/**
+		 * Get discovery releases in a playlist
+		 */
+		async getPlaylistReleases(playlistId: string): Promise<DiscoveryRelease[]> {
+			try {
+				return await playlistsApi.getPlaylistReleases(playlistId)
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to get playlist releases',
+				}))
+				return []
+			}
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {
@@ -348,7 +424,8 @@ export function buildBreadcrumbItems(
 	selectedFolderId: string | null,
 	selectedPlaylistId: string | null,
 	trackCount?: number,
-	childCount?: number
+	childCount?: number,
+	activeView: ActiveView = 'library'
 ): BreadcrumbItem[] {
 	const items: BreadcrumbItem[] = []
 
@@ -356,14 +433,15 @@ export function buildBreadcrumbItems(
 	const targetId = selectedPlaylistId || selectedFolderId
 
 	if (!targetId) {
-		// At library root - no breadcrumbs needed
+		// At root - no breadcrumbs needed
 		return []
 	}
 
-	// Add Library as root
+	// Add root breadcrumb based on active view
+	const rootLabel = activeView === 'discovery' ? get(translate)('nav.discovery') : get(translate)('nav.library')
 	items.push({
 		id: null,
-		name: get(translate)('nav.library'),
+		name: rootLabel,
 		type: 'library',
 	})
 
@@ -386,11 +464,13 @@ export function buildBreadcrumbItems(
 				item.count = childCount
 				item.countLabel = childCount === 1 ? get(translate)('library.item') : get(translate)('library.items')
 			} else {
-				item.count = trackCount ?? playlist.track_count
-				item.countLabel =
-					(trackCount ?? playlist.track_count) === 1
-						? get(translate)('library.track')
-						: get(translate)('library.tracks')
+				const count = trackCount ?? playlist.track_count
+				item.count = count
+				if (activeView === 'discovery') {
+					item.countLabel = count === 1 ? get(translate)('discovery.release') : get(translate)('discovery.releases')
+				} else {
+					item.countLabel = count === 1 ? get(translate)('library.track') : get(translate)('library.tracks')
+				}
 			}
 		}
 

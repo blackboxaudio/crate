@@ -463,7 +463,7 @@
 		"playPause": "재생/일시정지",
 		"stop": "정지",
 		"jumpToPlaying": "재생 중인 트랙으로 이동",
-		"toggleSidebar": "사이드바 전환",
+		"toggleEditor": "에디터 전환",
 		"toggleView": "보기 전환",
 		"showDevTools": "개발자 도구 표시",
 		"minimize": "최소화",

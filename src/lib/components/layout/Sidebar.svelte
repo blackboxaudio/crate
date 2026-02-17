@@ -192,7 +192,13 @@
 				{$translate('playlists.newFolder')}
 			</Button>
 		{:else}
-			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateCategory}>
+			<Button
+				variant="ghost"
+				size="sm"
+				class="w-full justify-start"
+				onclick={onCreateCategory}
+				disabled={tagCategories.length >= 4}
+			>
 				<Icon name="plus" class="mr-2 h-4 w-4" />
 				{$translate('tags.newCategory')}
 			</Button>

@@ -464,7 +464,7 @@
 		"playPause": "再生/一時停止",
 		"stop": "停止",
 		"jumpToPlaying": "再生中のトラックへジャンプ",
-		"toggleSidebar": "サイドバーを切り替え",
+		"toggleEditor": "エディターを切り替え",
 		"toggleView": "ビューを切り替え",
 		"showDevTools": "開発者ツールを表示",
 		"minimize": "しまう",

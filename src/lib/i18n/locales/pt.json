@@ -463,7 +463,7 @@
 		"playPause": "Reproduzir/Pausar",
 		"stop": "Parar",
 		"jumpToPlaying": "Ir para a faixa em reprodução",
-		"toggleSidebar": "Alternar barra lateral",
+		"toggleEditor": "Alternar editor",
 		"toggleView": "Alternar visualização",
 		"showDevTools": "Mostrar DevTools",
 		"minimize": "Minimizar",

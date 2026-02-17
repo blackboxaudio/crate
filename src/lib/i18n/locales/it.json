@@ -463,7 +463,7 @@
 		"playPause": "Riproduci/Pausa",
 		"stop": "Ferma",
 		"jumpToPlaying": "Vai alla traccia in riproduzione",
-		"toggleSidebar": "Mostra/Nascondi barra laterale",
+		"toggleEditor": "Mostra/Nascondi editor",
 		"toggleView": "Cambia vista",
 		"showDevTools": "Mostra DevTools",
 		"minimize": "Riduci a icona",

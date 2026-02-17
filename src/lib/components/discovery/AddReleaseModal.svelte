@@ -80,6 +80,7 @@
 			<Input
 				bind:value={url}
 				placeholder="https://..."
+				autofocus
 				oninput={handleUrlInput}
 				onkeydown={(e) => e.key === 'Enter' && handleSubmit()}
 			/>

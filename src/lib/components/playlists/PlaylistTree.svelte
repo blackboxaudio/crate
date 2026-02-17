@@ -121,6 +121,6 @@
 	{/each}
 
 	{#if playlists.length === 0}
-		<p class="py-4 text-center text-xs text-text-tertiary">{$translate('playlists.noPlaylistsYet')}</p>
+		<p class="py-4 text-center text-xs text-text-tertiary italic">{$translate('playlists.noPlaylistsYet')}</p>
 	{/if}
 </div>

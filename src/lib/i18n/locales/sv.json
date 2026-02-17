@@ -463,7 +463,7 @@
 		"playPause": "Spela/Paus",
 		"stop": "Stoppa",
 		"jumpToPlaying": "Gå till spår som spelas upp",
-		"toggleSidebar": "Visa/Dölj sidofält",
+		"toggleEditor": "Visa/Dölj redigerare",
 		"toggleView": "Växla vy",
 		"showDevTools": "Visa DevTools",
 		"minimize": "Minimera",

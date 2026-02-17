@@ -107,6 +107,7 @@
 		onDiscoveryReleaseOpenInBrowser: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseSetStatus: (releases: DiscoveryRelease[], status: DiscoveryStatus) => void
 		onDiscoveryReleaseDelete: (releases: DiscoveryRelease[]) => void
+		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
 		// Close callback
 		onClose?: () => void
@@ -150,6 +151,7 @@
 		onDiscoveryReleaseOpenInBrowser,
 		onDiscoveryReleaseSetStatus,
 		onDiscoveryReleaseDelete,
+		onDiscoveryReleaseAddToPlaylist,
 		onClose,
 	}: Props = $props()
 
@@ -514,6 +516,17 @@
 			onDiscoveryReleaseDelete(releases)
 		}
 	}
+
+	function handleDiscoveryReleaseAddToPlaylist(playlistId: string) {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releases = activeMenu.releases
+			closeAll()
+			onDiscoveryReleaseAddToPlaylist?.(playlistId, releases)
+		}
+	}
+
+	// Discovery playlists for the context menu submenu
+	const discoveryPlaylists = $derived(playlists.filter((p) => p.context === 'discovery'))
 </script>
 
 <!-- Track Context Menu -->
@@ -667,10 +680,12 @@
 		x={visibleMenu.x}
 		y={visibleMenu.y}
 		selectedReleases={visibleMenu.releases}
+		playlists={discoveryPlaylists}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
 		onSetStatus={handleDiscoveryReleaseSetStatus}
 		onDelete={handleDiscoveryReleaseDelete}
+		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}
 	/>
 {/if}

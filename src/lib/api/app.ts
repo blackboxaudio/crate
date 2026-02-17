@@ -60,7 +60,7 @@ export interface MenuTranslations {
 	jumpToPlaying: string
 	// View menu items
 	toggleView: string
-	toggleSidebar: string
+	toggleEditor: string
 	showDevTools: string
 	// Settings submenu
 	settingsSubmenu: string

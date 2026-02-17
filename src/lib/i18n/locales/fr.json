@@ -463,7 +463,7 @@
 		"playPause": "Lecture/Pause",
 		"stop": "Arrêt",
 		"jumpToPlaying": "Aller à la piste en cours de lecture",
-		"toggleSidebar": "Afficher/Masquer la barre latérale",
+		"toggleEditor": "Afficher/Masquer l'éditeur",
 		"toggleView": "Basculer la vue",
 		"showDevTools": "Afficher les outils de développement",
 		"minimize": "Réduire",

@@ -4,6 +4,7 @@
 		placeholder?: string
 		type?: 'text' | 'search' | 'number'
 		disabled?: boolean
+		autofocus?: boolean
 		class?: string
 		oninput?: (e: Event) => void
 		onfocus?: (e: FocusEvent) => void
@@ -16,15 +17,25 @@
 		placeholder = '',
 		type = 'text',
 		disabled = false,
+		autofocus = false,
 		class: className = '',
 		oninput,
 		onfocus,
 		onblur,
 		onkeydown,
 	}: Props = $props()
+
+	let inputEl: HTMLInputElement | undefined = $state()
+
+	$effect(() => {
+		if (autofocus && inputEl) {
+			setTimeout(() => inputEl?.focus(), 50)
+		}
+	})
 </script>
 
 <input
+	bind:this={inputEl}
 	{type}
 	{placeholder}
 	{disabled}

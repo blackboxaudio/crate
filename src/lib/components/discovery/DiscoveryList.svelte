@@ -93,6 +93,7 @@
 				<DiscoveryRow
 					{release}
 					selected={selectedIds.has(release.id)}
+					dragReleaseIds={Array.from(selectedIds)}
 					{categoryColors}
 					{categorySortOrders}
 					onclick={(e) => handleReleaseClick(release, e)}

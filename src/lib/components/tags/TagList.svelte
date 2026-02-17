@@ -100,13 +100,13 @@
 					/>
 				{/each}
 				{#if category.tags.length === 0}
-					<Text variant="caption">{$translate('tags.noTags')}</Text>
+					<Text variant="caption" italic>{$translate('tags.noTags')}</Text>
 				{/if}
 			</div>
 		</div>
 	{/each}
 
 	{#if categories.length === 0}
-		<Text variant="caption" as="p" class="py-4 text-center">{$translate('tags.noTagCategoriesYet')}</Text>
+		<Text variant="caption" as="p" class="py-4 text-center" italic>{$translate('tags.noTagCategoriesYet')}</Text>
 	{/if}
 </div>

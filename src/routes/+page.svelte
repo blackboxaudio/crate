@@ -21,6 +21,7 @@
 		BreadcrumbItem,
 		SettingsPage,
 	} from '$lib/types'
+	import { pickTagCategoryColor } from '$lib/types'
 	import {
 		appStore,
 		libraryStore,
@@ -295,6 +296,25 @@
 		}
 	})
 
+	// Load discovery playlist releases when a discovery playlist is selected
+	let prevDiscoveryPlaylistId = $state<string | null>(null)
+	$effect(() => {
+		const playlistId = selectedPlaylistId
+		const view = $activeView
+		if (view === 'discovery' && playlistId && playlistId !== prevDiscoveryPlaylistId) {
+			const playlist = playlists.find((p) => p.id === playlistId)
+			if (playlist && playlist.context === 'discovery' && !playlist.is_folder) {
+				prevDiscoveryPlaylistId = playlistId
+				playlistsStore.getPlaylistReleases(playlistId).then((releases) => {
+					discoveryPlaylistReleases = releases
+				})
+			}
+		} else if (!playlistId) {
+			prevDiscoveryPlaylistId = null
+			discoveryPlaylistReleases = []
+		}
+	})
+
 	// =============================================================================
 	// Drag-Drop Coordination
 	// =============================================================================
@@ -306,6 +326,9 @@
 			getPlaylists: () => playlists,
 			getDevices: () => devices,
 			onTracksDropOnPlaylist: trackController.handleTracksDropOnPlaylist,
+			onReleasesDropOnPlaylist: async (playlistId: string, releaseIds: string[]) => {
+				await playlistsStore.addReleases(playlistId, releaseIds)
+			},
 			onPlaylistMove: playlistController.handlePlaylistDragMove,
 			onPlaylistExportToDevice: exportController.handlePlaylistDropOnDevice,
 		})
@@ -352,7 +375,6 @@
 				uiStore.setSelectedTracks(allIds)
 			},
 			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator.openSettingsModal(tab),
-			onToggleInspector: () => uiStore.toggleRightSidebar(),
 			onNewPlaylist: () => playlistController.handleCreatePlaylist(),
 			onNewFolder: () => playlistController.handleCreateFolder(),
 			onImport: () => trackController.handleImport(),
@@ -465,6 +487,7 @@
 				const next = $activeView === 'library' ? 'discovery' : 'library'
 				handleViewChange(next)
 			},
+			onToggleEditor: () => uiStore.toggleRightSidebar(),
 		})
 
 		// Ensure minimum display time for splash screen
@@ -544,6 +567,11 @@
 	// =============================================================================
 
 	function handleViewChange(view: ActiveView) {
+		// Clear playlist/folder selection when switching views
+		uiStore.selectPlaylist(null)
+		uiStore.selectFolder(null)
+		discoveryPlaylistReleases = []
+
 		uiStore.setActiveView(view)
 		if (view === 'discovery') {
 			const filter: DiscoveryFilter = {}
@@ -667,7 +695,8 @@
 
 	let selectedTracksArray = $derived($displayedTracks.filter((t) => $selectedTrackIds.has(t.id)))
 	let selectedReleasesArray = $derived($sortedReleases.filter((r) => $selectedReleaseIds.has(r.id)))
-	const playlistFolders = $derived(playlists.filter((p) => p.is_folder))
+	const contextPlaylists = $derived(playlists.filter((p) => p.context === $activeView))
+	const playlistFolders = $derived(contextPlaylists.filter((p) => p.is_folder))
 	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 	const categorySortOrders = $derived(new Map(tagCategories.map((c) => [c.id, c.sort_order])))
 
@@ -685,16 +714,33 @@
 	const tagColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 
 	const currentFolderChildCount = $derived(
-		selectedFolderId ? getPlaylistChildren(playlists, selectedFolderId).length : 0
+		selectedFolderId ? getPlaylistChildren(contextPlaylists, selectedFolderId).length : 0
 	)
+
+	// Discovery playlist releases (loaded when a discovery playlist is selected)
+	let discoveryPlaylistReleases = $state<DiscoveryRelease[]>([])
+
+	// Combine all available releases for drag preview lookups
+	const allAvailableReleases = $derived.by(() => {
+		const sorted = $sortedReleases
+		if (discoveryPlaylistReleases.length === 0) return sorted
+		const idSet = new Set(sorted.map((r) => r.id))
+		const extra = discoveryPlaylistReleases.filter((r) => !idSet.has(r.id))
+		return extra.length > 0 ? [...sorted, ...extra] : sorted
+	})
 
 	const breadcrumbItems = $derived(
 		buildBreadcrumbItems(
-			playlists,
+			contextPlaylists,
 			selectedFolderId,
 			selectedPlaylistId,
-			selectedPlaylistId ? $displayedTracks.length : undefined,
-			currentFolderChildCount
+			selectedPlaylistId
+				? $activeView === 'discovery'
+					? discoveryPlaylistReleases.length
+					: $displayedTracks.length
+				: undefined,
+			currentFolderChildCount,
+			$activeView
 		)
 	)
 </script>
@@ -734,7 +780,7 @@
 			<!-- Left: Sidebar -->
 			<div class="flex-shrink-0" style="width: {sidebarWidth}px">
 				<Sidebar
-					{playlists}
+					playlists={contextPlaylists}
 					{tagCategories}
 					{devices}
 					{selectedPlaylistId}
@@ -744,7 +790,7 @@
 					selectedTrackIds={$activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds}
 					{tagStates}
 					{tagCounts}
-					trackCount={$trackCount}
+					trackCount={$activeView === 'discovery' ? $releaseCount : $trackCount}
 					showHeader={false}
 					onLibraryClick={playlistController.handleLibraryClick}
 					onPlaylistSelect={playlistController.handlePlaylistSelect}
@@ -771,7 +817,62 @@
 			<!-- Right: Main Content + Optional TrackEditor -->
 			<div class="flex flex-1 overflow-hidden rounded-tl-md border-t border-l border-stroke">
 				<div class="flex-1 overflow-hidden">
-					{#if $activeView === 'discovery'}
+					{#if selectedFolderId}
+						<FolderView
+							folderId={selectedFolderId}
+							playlists={contextPlaylists}
+							onSelect={playlistController.handlePlaylistSelect}
+							{breadcrumbItems}
+							onBreadcrumbNavigate={handleBreadcrumbNavigate}
+							onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+							onEmptySpaceContextMenu={(e, folderId) => contextMenuOrchestrator.openFolderViewMenu(e, folderId)}
+							onCardContextMenu={(e, playlist) => contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'folder')}
+						/>
+					{:else if selectedPlaylistId}
+						{@const playlist = contextPlaylists.find((p) => p.id === selectedPlaylistId)}
+						{#if playlist}
+							{#if playlist.context === 'discovery'}
+								<PlaylistView
+									{playlist}
+									isDiscovery
+									releases={discoveryPlaylistReleases}
+									tracks={[]}
+									selectedIds={$selectedReleaseIds}
+									{sortConfig}
+									{categoryColors}
+									{categorySortOrders}
+									{breadcrumbItems}
+									onSelectionChange={handleReleaseSelectionChange}
+									onContextMenu={(e, item) => {
+										handleReleaseContextMenu(e, item as unknown as DiscoveryRelease)
+									}}
+									onBreadcrumbNavigate={handleBreadcrumbNavigate}
+									onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+								/>
+							{:else}
+								<PlaylistView
+									{playlist}
+									tracks={$displayedTracks}
+									selectedIds={$selectedTrackIds}
+									playingTrackId={$currentTrack?.id ?? null}
+									{sortConfig}
+									{isDragOver}
+									{categoryColors}
+									{categorySortOrders}
+									{breadcrumbItems}
+									onSelectionChange={trackController.handleSelectionChange}
+									onTrackPlay={trackController.play}
+									onSortChange={handleSortChange}
+									onContextMenu={handleTrackContextMenu}
+									onEmptySpaceContextMenu={(e, pl) => contextMenuOrchestrator.openPlaylistViewMenu(e, pl)}
+									onBreadcrumbNavigate={handleBreadcrumbNavigate}
+									onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+									onTrackColorChange={trackController.setColor}
+									onCancelAnalysis={handleCancelAnalysis}
+								/>
+							{/if}
+						{/if}
+					{:else if $activeView === 'discovery'}
 						<DiscoveryView
 							releases={$sortedReleases}
 							releaseCount={$releaseCount}
@@ -784,41 +885,6 @@
 							onSortChange={handleDiscoverySortChange}
 							onContextMenu={handleReleaseContextMenu}
 						/>
-					{:else if selectedFolderId}
-						<FolderView
-							folderId={selectedFolderId}
-							{playlists}
-							onSelect={playlistController.handlePlaylistSelect}
-							{breadcrumbItems}
-							onBreadcrumbNavigate={handleBreadcrumbNavigate}
-							onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-							onEmptySpaceContextMenu={(e, folderId) => contextMenuOrchestrator.openFolderViewMenu(e, folderId)}
-							onCardContextMenu={(e, playlist) => contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'folder')}
-						/>
-					{:else if selectedPlaylistId}
-						{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
-						{#if playlist}
-							<PlaylistView
-								{playlist}
-								tracks={$displayedTracks}
-								selectedIds={$selectedTrackIds}
-								playingTrackId={$currentTrack?.id ?? null}
-								{sortConfig}
-								{isDragOver}
-								{categoryColors}
-								{categorySortOrders}
-								{breadcrumbItems}
-								onSelectionChange={trackController.handleSelectionChange}
-								onTrackPlay={trackController.play}
-								onSortChange={handleSortChange}
-								onContextMenu={handleTrackContextMenu}
-								onEmptySpaceContextMenu={(e, pl) => contextMenuOrchestrator.openPlaylistViewMenu(e, pl)}
-								onBreadcrumbNavigate={handleBreadcrumbNavigate}
-								onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-								onTrackColorChange={trackController.setColor}
-								onCancelAnalysis={handleCancelAnalysis}
-							/>
-						{/if}
 					{:else}
 						<LibraryView
 							tracks={$displayedTracks}
@@ -899,6 +965,10 @@
 	onDiscoveryReleaseOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
 	onDiscoveryReleaseSetStatus={handleDiscoveryReleaseSetStatus}
 	onDiscoveryReleaseDelete={handleDiscoveryReleaseDelete}
+	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {
+		const releaseIds = releases.map((r) => r.id)
+		await playlistsStore.addReleases(playlistId, releaseIds)
+	}}
 	onClose={() => (contextMenuPlaylistId = null)}
 />
 
@@ -911,22 +981,29 @@
 		setMenuItemEnabled('toggle_view', !isOpen)
 	}}
 	onCreatePlaylist={async (name, parentId) => {
-		const playlist = await playlistsStore.createPlaylist(name, parentId ?? undefined)
+		const context = $activeView
+		const playlist = await playlistsStore.createPlaylist(name, parentId ?? undefined, context)
 		if (playlist) {
 			uiStore.selectPlaylist(playlist.id)
-			await libraryStore.loadPlaylistTracks(playlist.id)
+			if (context === 'library') {
+				await libraryStore.loadPlaylistTracks(playlist.id)
+			}
 		}
 		return playlist
 	}}
 	onCreateFolder={async (name, parentId) => {
-		const folder = await playlistsStore.createFolder(name, parentId ?? undefined)
+		const context = $activeView
+		const folder = await playlistsStore.createFolder(name, parentId ?? undefined, context)
 		if (folder) {
 			uiStore.selectFolder(folder.id)
 		}
 		return folder
 	}}
 	onCreateCategory={async (name) => {
-		await tagsStore.createCategory(name)
+		const categories = get(tagsStore).categories
+		const accent = get(settingsStore).accentColor
+		const color = pickTagCategoryColor(categories, accent)
+		await tagsStore.createCategory(name, color)
 	}}
 	onCreateTag={async (categoryId, name) => {
 		await tagsStore.createTag(categoryId, name)
@@ -940,10 +1017,19 @@
 	onRenameCategory={async (id, name) => {
 		await tagsStore.updateCategory(id, name)
 	}}
-	onDeletePlaylist={async (id, _deleteTracksToo) => {
+	onDeletePlaylist={async (id, deleteTracksToo) => {
 		const playlist = playlists.find((p) => p.id === id)
 		const parentId = playlist?.parent_id ?? null
-		await playlistsStore.delete(id)
+		const context = playlist?.context
+		await playlistsStore.delete(id, deleteTracksToo)
+		if (deleteTracksToo) {
+			if (context === 'discovery') {
+				await discoveryStore.loadReleases()
+			} else {
+				await libraryStore.loadTracks()
+			}
+			await playlistsStore.load()
+		}
 		if (parentId) {
 			const parentFolder = playlists.find((p) => p.id === parentId)
 			if (parentFolder) {
@@ -1010,5 +1096,12 @@
 
 <!-- Drag Preview -->
 {#if $isDragging && $dragPosition}
-	<DragPreview data={$dragData} tracks={$libraryStore.tracks} {playlists} x={$dragPosition.x} y={$dragPosition.y} />
+	<DragPreview
+		data={$dragData}
+		tracks={$libraryStore.tracks}
+		releases={allAvailableReleases}
+		{playlists}
+		x={$dragPosition.x}
+		y={$dragPosition.y}
+	/>
 {/if}

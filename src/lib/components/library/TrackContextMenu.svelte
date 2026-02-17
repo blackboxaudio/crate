@@ -112,7 +112,7 @@
 		}
 
 		// Add to Playlist submenu
-		const playlistItems = playlists.filter((p) => !p.is_folder)
+		const playlistItems = playlists.filter((p) => !p.is_folder && p.context === 'library')
 		if (playlistItems.length > 0) {
 			items.push({
 				id: 'add-to-playlist',

@@ -163,7 +163,7 @@ function createSettingsStore() {
 			jumpToPlaying: t('menu.jumpToPlaying'),
 			// View menu items
 			toggleView: t('menu.toggleView'),
-			toggleSidebar: t('menu.toggleSidebar'),
+			toggleEditor: t('menu.toggleEditor'),
 			showDevTools: t('menu.showDevTools'),
 			// Settings submenu
 			settingsSubmenu: t('menu.settingsSubmenu'),

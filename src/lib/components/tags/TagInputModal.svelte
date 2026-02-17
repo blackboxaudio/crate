@@ -66,7 +66,7 @@
 		</div>
 		<div>
 			<Text as="label" variant="body-2" color="secondary" class="mb-1.5 block" for="tag-name">Tag name</Text>
-			<Input bind:value={tagName} placeholder="Enter tag name" onkeydown={handleKeydown} />
+			<Input bind:value={tagName} placeholder="Enter tag name" autofocus onkeydown={handleKeydown} />
 		</div>
 	</div>
 

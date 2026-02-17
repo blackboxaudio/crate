@@ -82,6 +82,9 @@ pub fn run() {
             commands::playlist::add_to_playlist,
             commands::playlist::remove_from_playlist,
             commands::playlist::reorder_playlist,
+            commands::playlist::add_releases_to_playlist,
+            commands::playlist::remove_releases_from_playlist,
+            commands::playlist::get_playlist_releases,
             // Settings commands
             commands::settings::get_settings,
             commands::settings::set_setting,

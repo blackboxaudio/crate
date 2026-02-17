@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoveryStatus, ContextMenuItem } from '$lib/types'
+	import type { DiscoveryRelease, DiscoveryStatus, Playlist, ContextMenuItem } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
@@ -9,14 +9,28 @@
 		x: number
 		y: number
 		selectedReleases: DiscoveryRelease[]
+		playlists?: Playlist[]
 		onClose: () => void
 		onClosed?: () => void
 		onOpenInBrowser: () => void
 		onSetStatus: (status: DiscoveryStatus) => void
 		onDelete: () => void
+		onAddToPlaylist?: (playlistId: string) => void
 	}
 
-	let { open, x, y, selectedReleases, onClose, onClosed, onOpenInBrowser, onSetStatus, onDelete }: Props = $props()
+	let {
+		open,
+		x,
+		y,
+		selectedReleases,
+		playlists = [],
+		onClose,
+		onClosed,
+		onOpenInBrowser,
+		onSetStatus,
+		onDelete,
+		onAddToPlaylist,
+	}: Props = $props()
 
 	const currentStatus = $derived(() => {
 		if (selectedReleases.length === 0) return null
@@ -25,6 +39,9 @@
 	})
 
 	const statusOptions: DiscoveryStatus[] = ['unlistened', 'listened', 'purchased', 'dismissed']
+
+	// Filter to only non-folder discovery playlists
+	const availablePlaylists = $derived(playlists.filter((p) => !p.is_folder))
 
 	const menuItems = $derived<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
@@ -38,6 +55,21 @@
 				action: onOpenInBrowser,
 			})
 			items.push({ id: 'browser-divider', label: '', divider: true })
+		}
+
+		// Add to Playlist submenu
+		if (onAddToPlaylist && availablePlaylists.length > 0) {
+			items.push({
+				id: 'add-to-playlist',
+				label: get(translate)('contextMenu.addToPlaylist'),
+				icon: 'playlist',
+				submenu: availablePlaylists.map((p) => ({
+					id: `playlist-${p.id}`,
+					label: p.name,
+					action: () => onAddToPlaylist!(p.id),
+				})),
+			})
+			items.push({ id: 'playlist-divider', label: '', divider: true })
 		}
 
 		// Set Status submenu

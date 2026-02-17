@@ -463,7 +463,7 @@
 		"playPause": "Afspelen/Pauzeren",
 		"stop": "Stoppen",
 		"jumpToPlaying": "Naar huidig afgespeelde track",
-		"toggleSidebar": "Zijbalk wisselen",
+		"toggleEditor": "Editor wisselen",
 		"toggleView": "Weergave wisselen",
 		"showDevTools": "DevTools tonen",
 		"minimize": "Minimaliseren",

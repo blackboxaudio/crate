@@ -56,6 +56,31 @@ export const TAG_CATEGORY_COLORS: { id: TagCategoryColor; label: string; hex: st
 	{ id: 'rose', label: 'Rose', hex: '#f43f5e' },
 ]
 
+export const ACCENT_TO_TAG_COLOR_HEX: Record<AccentColor, string> = {
+	blue: '#3b82f6',
+	indigo: '#6366f1',
+	violet: '#8b5cf6',
+	purple: '#8b5cf6',
+	pink: '#ec4899',
+	rose: '#f43f5e',
+	orange: '#f97316',
+	amber: '#f59e0b',
+	emerald: '#22c55e',
+	teal: '#14b8a6',
+}
+
+export function pickTagCategoryColor(existingCategories: TagCategory[], accentColor: AccentColor): string {
+	if (existingCategories.length === 0) {
+		return ACCENT_TO_TAG_COLOR_HEX[accentColor]
+	}
+
+	const usedColors = new Set(existingCategories.map((c) => c.color).filter(Boolean))
+	const available = TAG_CATEGORY_COLORS.filter((c) => !usedColors.has(c.hex))
+
+	const pool = available.length > 0 ? available : TAG_CATEGORY_COLORS
+	return pool[Math.floor(Math.random() * pool.length)].hex
+}
+
 // =============================================================================
 // Artwork Types
 // =============================================================================
@@ -237,6 +262,7 @@ export interface Playlist {
 	date_created: string
 	date_modified: string
 	track_count: number
+	context: ActiveView
 }
 
 export type MoveConflictResolution = 'overwrite' | 'merge'

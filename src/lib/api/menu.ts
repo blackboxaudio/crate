@@ -17,7 +17,7 @@ export type MenuAction =
 	| 'jump_to_playing'
 	// View menu
 	| 'toggle_view'
-	| 'toggle_sidebar'
+	| 'toggle_editor'
 	// View > Settings submenu
 	| 'settings_general'
 	| 'settings_library'

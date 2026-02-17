@@ -18,6 +18,7 @@ export interface MenuActionHandlers {
 	onQuickExport: () => void
 	onJumpToPlayingTrack: () => void
 	onToggleView: () => void
+	onToggleEditor: () => void
 }
 
 // =============================================================================
@@ -38,7 +39,8 @@ export interface MenuActionHandlers {
  * - stop: Stop playback
  * - quick_export: Open quick export modal
  * - jump_to_playing: Jump to currently playing track
- * - toggle_sidebar, documentation, report_issue: TODOs
+ * - toggle_editor: Toggle right sidebar editor
+ * - documentation, report_issue: TODOs
  *
  * Menu actions handled by backend:
  * - quit: Exit application
@@ -59,6 +61,7 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 		onQuickExport,
 		onJumpToPlayingTrack,
 		onToggleView,
+		onToggleEditor,
 	} = handlers
 
 	let unlistenMenu: UnlistenFn | null = null
@@ -114,8 +117,8 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 			case 'toggle_view':
 				onToggleView()
 				break
-			case 'toggle_sidebar':
-				// TODO: Implement sidebar toggle
+			case 'toggle_editor':
+				onToggleEditor()
 				break
 
 			// View > Settings submenu

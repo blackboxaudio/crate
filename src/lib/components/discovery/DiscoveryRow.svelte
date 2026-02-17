@@ -3,11 +3,14 @@
 	import { formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import { AlbumArt, Text } from '$lib/components/common'
+	import { dragStore } from '$lib/stores'
+	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
 
 	type Props = {
 		release: DiscoveryRelease
 		selected?: boolean
+		dragReleaseIds?: string[]
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
 		onclick?: (e: MouseEvent) => void
@@ -18,12 +21,40 @@
 	let {
 		release,
 		selected = false,
+		dragReleaseIds = [],
 		categoryColors,
 		categorySortOrders,
 		onclick,
 		ondblclick,
 		oncontextmenu,
 	}: Props = $props()
+
+	// Track pointer state for drag detection
+	let pointerStartPos: { x: number; y: number } | null = null
+	let isDragStarted = false
+
+	function handlePointerDown(e: PointerEvent) {
+		if (e.button !== 0) return
+		const target = e.target as HTMLElement
+		if (target.closest('button, [role="button"]')) return
+		pointerStartPos = { x: e.clientX, y: e.clientY }
+		isDragStarted = false
+	}
+
+	function handlePointerMove(e: PointerEvent) {
+		if (!pointerStartPos) return
+		const distance = getDistance(pointerStartPos.x, pointerStartPos.y, e.clientX, e.clientY)
+		if (!isDragStarted && distance >= DRAG_THRESHOLD) {
+			isDragStarted = true
+			const releaseIds = selected && dragReleaseIds.length > 0 ? dragReleaseIds : [release.id]
+			dragStore.startReleaseDrag(releaseIds, e.clientX, e.clientY)
+		}
+	}
+
+	function handlePointerUp() {
+		pointerStartPos = null
+		isDragStarted = false
+	}
 
 	const statusColors: Record<string, string> = {
 		unlistened: 'bg-surface-2 text-text-tertiary',
@@ -43,6 +74,10 @@
 	{onclick}
 	{ondblclick}
 	{oncontextmenu}
+	onpointerdown={handlePointerDown}
+	onpointermove={handlePointerMove}
+	onpointerup={handlePointerUp}
+	onpointercancel={handlePointerUp}
 	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
 	<!-- Artwork -->

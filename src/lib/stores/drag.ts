@@ -6,6 +6,7 @@ import { writable, derived } from 'svelte/store'
 
 export type DragData =
 	| { type: 'tracks'; trackIds: string[] }
+	| { type: 'releases'; releaseIds: string[] }
 	| { type: 'playlist'; playlistId: string; isFolder: boolean }
 
 interface DragState {
@@ -38,6 +39,18 @@ function createDragStore() {
 		startTrackDrag(trackIds: string[], x: number, y: number) {
 			set({
 				data: { type: 'tracks', trackIds },
+				position: { x, y },
+				hoveredDropTarget: null,
+				needsDropTargetRefresh: false,
+			})
+		},
+
+		/**
+		 * Start dragging releases
+		 */
+		startReleaseDrag(releaseIds: string[], x: number, y: number) {
+			set({
+				data: { type: 'releases', releaseIds },
 				position: { x, y },
 				hoveredDropTarget: null,
 				needsDropTargetRefresh: false,
@@ -131,6 +144,8 @@ export const dragPosition = derived(dragStore, ($drag) => $drag.position)
 export const hoveredDropTarget = derived(dragStore, ($drag) => $drag.hoveredDropTarget)
 
 export const isDraggingTracks = derived(dragStore, ($drag) => $drag.data?.type === 'tracks')
+
+export const isDraggingReleases = derived(dragStore, ($drag) => $drag.data?.type === 'releases')
 
 export const isDraggingPlaylist = derived(dragStore, ($drag) => $drag.data?.type === 'playlist')
 

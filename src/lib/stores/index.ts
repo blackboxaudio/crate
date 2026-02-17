@@ -51,6 +51,7 @@ export {
 	dragPosition,
 	hoveredDropTarget,
 	isDraggingTracks,
+	isDraggingReleases,
 	isDraggingPlaylist,
 	needsDropTargetRefresh,
 } from './drag'

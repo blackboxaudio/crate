@@ -463,7 +463,7 @@
 		"playPause": "Reproducir/Pausar",
 		"stop": "Detener",
 		"jumpToPlaying": "Ir a la pista en reproducción",
-		"toggleSidebar": "Alternar barra lateral",
+		"toggleEditor": "Alternar editor",
 		"toggleView": "Alternar vista",
 		"showDevTools": "Mostrar DevTools",
 		"minimize": "Minimizar",

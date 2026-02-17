@@ -463,7 +463,7 @@
 		"playPause": "Wiedergabe/Pause",
 		"stop": "Stopp",
 		"jumpToPlaying": "Zum laufenden Track springen",
-		"toggleSidebar": "Seitenleiste ein-/ausblenden",
+		"toggleEditor": "Editor ein-/ausblenden",
 		"toggleView": "Ansicht wechseln",
 		"showDevTools": "Entwicklertools anzeigen",
 		"minimize": "Minimieren",

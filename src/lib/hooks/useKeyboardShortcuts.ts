@@ -10,7 +10,6 @@ export interface KeyboardShortcutHandlers {
 	onClearSelection: () => void
 	onSelectAll: () => void
 	onOpenSettings: () => void
-	onToggleInspector: () => void
 	// New shortcuts
 	onNewPlaylist: () => void
 	onNewFolder: () => void
@@ -44,7 +43,6 @@ export interface KeyboardShortcutHandlers {
  * - Escape: clear selection
  * - Cmd/Ctrl+A: select all (text in input, or tracks)
  * - Cmd/Ctrl+,: open settings
- * - Cmd/Ctrl+I: toggle track inspector
  * - Cmd/Ctrl+N: new playlist
  * - Cmd/Ctrl+Shift+N: new folder
  * - Cmd/Ctrl+O: import files
@@ -72,7 +70,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		onClearSelection,
 		onSelectAll,
 		onOpenSettings,
-		onToggleInspector,
 		onNewPlaylist,
 		onNewFolder,
 		onImport,
@@ -134,12 +131,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		if ((e.metaKey || e.ctrlKey) && e.key === ',') {
 			e.preventDefault()
 			onOpenSettings()
-		}
-
-		// Cmd/Ctrl+I: toggle track inspector
-		if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
-			e.preventDefault()
-			onToggleInspector()
 		}
 
 		// Cmd/Ctrl+N: new playlist

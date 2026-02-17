@@ -464,7 +464,7 @@
 		"playPause": "Play/Pause",
 		"stop": "Stop",
 		"jumpToPlaying": "Jump to Playing Track",
-		"toggleSidebar": "Toggle Sidebar",
+		"toggleEditor": "Toggle Editor",
 		"toggleView": "Toggle View",
 		"showDevTools": "Show DevTools",
 		"minimize": "Minimize",

@@ -12,6 +12,7 @@ export interface DragDropCoordinationConfig {
 	getPlaylists: () => Playlist[]
 	getDevices: () => UsbDevice[]
 	onTracksDropOnPlaylist: (playlistId: string, trackIds: string[]) => Promise<void>
+	onReleasesDropOnPlaylist: (playlistId: string, releaseIds: string[]) => Promise<void>
 	onPlaylistMove: (playlistId: string, targetFolderId: string | null) => Promise<void>
 	onPlaylistExportToDevice: (playlistId: string, isFolder: boolean, deviceId: string) => Promise<void>
 }
@@ -31,7 +32,8 @@ export interface DragDropCoordinationConfig {
  * @returns Cleanup function to remove event listeners
  */
 export function useDragDropCoordination(config: DragDropCoordinationConfig): () => void {
-	const { getPlaylists, onTracksDropOnPlaylist, onPlaylistMove, onPlaylistExportToDevice } = config
+	const { getPlaylists, onTracksDropOnPlaylist, onReleasesDropOnPlaylist, onPlaylistMove, onPlaylistExportToDevice } =
+		config
 
 	let dropTargets: DropTarget[] = []
 	let rafId: number | null = null
@@ -96,6 +98,9 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 			if (data.type === 'tracks' && target.type === 'playlist') {
 				// Dropping tracks on a playlist
 				onTracksDropOnPlaylist(target.id, data.trackIds)
+			} else if (data.type === 'releases' && target.type === 'playlist') {
+				// Dropping releases on a discovery playlist
+				onReleasesDropOnPlaylist(target.id, data.releaseIds)
 			} else if (data.type === 'playlist' && target.type === 'folder') {
 				// Validate: prevent dropping on self
 				if (data.playlistId === target.id) {
