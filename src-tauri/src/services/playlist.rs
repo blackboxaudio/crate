@@ -3,7 +3,9 @@ use std::sync::{Arc, Mutex};
 use rusqlite::Connection;
 
 use crate::error::{CrateError, Result};
-use crate::models::{DiscoveryRelease, DiscoveryTrack, MoveConflict, MovePlaylistResult, Playlist, Tag, Track};
+use crate::models::{
+    DiscoveryRelease, DiscoveryTrack, MoveConflict, MovePlaylistResult, Playlist, Tag, Track,
+};
 
 pub struct PlaylistService {
     conn: Arc<Mutex<Connection>>,
@@ -59,7 +61,12 @@ impl PlaylistService {
         Ok(playlists)
     }
 
-    pub fn create_playlist(&self, name: String, parent_id: Option<String>, context: String) -> Result<Playlist> {
+    pub fn create_playlist(
+        &self,
+        name: String,
+        parent_id: Option<String>,
+        context: String,
+    ) -> Result<Playlist> {
         let conn = self
             .conn
             .lock()
@@ -110,7 +117,12 @@ impl PlaylistService {
         Ok(playlist)
     }
 
-    pub fn create_folder(&self, name: String, parent_id: Option<String>, context: String) -> Result<Playlist> {
+    pub fn create_folder(
+        &self,
+        name: String,
+        parent_id: Option<String>,
+        context: String,
+    ) -> Result<Playlist> {
         let conn = self
             .conn
             .lock()
@@ -216,9 +228,8 @@ impl PlaylistService {
                     .collect::<std::result::Result<Vec<_>, _>>()?;
                 release_ids.extend(ids);
             } else {
-                let mut trk_stmt = conn.prepare(
-                    "SELECT track_id FROM playlist_tracks WHERE playlist_id = ?1",
-                )?;
+                let mut trk_stmt =
+                    conn.prepare("SELECT track_id FROM playlist_tracks WHERE playlist_id = ?1")?;
                 let ids: Vec<String> = trk_stmt
                     .query_map([playlist_id], |row| row.get(0))?
                     .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -851,7 +862,8 @@ impl PlaylistService {
             let mut stmt = conn.prepare(
                 "SELECT release_id FROM playlist_discovery_releases WHERE playlist_id = ?1 ORDER BY position",
             )?;
-            let result = stmt.query_map([playlist_id], |row| row.get(0))?
+            let result = stmt
+                .query_map([playlist_id], |row| row.get(0))?
                 .collect::<std::result::Result<Vec<_>, _>>()?;
             result
         };
@@ -921,7 +933,11 @@ impl PlaylistService {
 
         // Batch load tracks and tags
         let release_ids: Vec<String> = releases.iter().map(|r| r.id.clone()).collect();
-        let placeholders = release_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+        let placeholders = release_ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<_>>()
+            .join(", ");
         let param_refs: Vec<&dyn rusqlite::ToSql> = release_ids
             .iter()
             .map(|id| id as &dyn rusqlite::ToSql)

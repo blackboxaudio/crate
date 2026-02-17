@@ -180,10 +180,7 @@ impl DiscoveryService {
         // Tag filter join
         if let Some(ref tag_ids) = filter.tag_ids {
             if !tag_ids.is_empty() {
-                let mode = filter
-                    .tag_filter_mode
-                    .as_deref()
-                    .unwrap_or("or");
+                let mode = filter.tag_filter_mode.as_deref().unwrap_or("or");
 
                 if mode == "and" {
                     // AND mode: release must have ALL specified tags
@@ -249,24 +246,17 @@ impl DiscoveryService {
                 if !other_conditions.is_empty() {
                     sql.push_str(&format!(" WHERE {}", other_conditions.join(" AND ")));
                 }
-                sql.push_str(&format!(
-                    " {}",
-                    group_condition.replace("1=1 ", "")
-                ));
+                sql.push_str(&format!(" {}", group_condition.replace("1=1 ", "")));
             } else {
                 sql.push_str(&format!(" WHERE {}", conditions.join(" AND ")));
             }
         }
 
-        // Add ORDER BY if no GROUP BY already present
-        if !sql.contains("GROUP BY") {
-            sql.push_str(" ORDER BY dr.date_added DESC");
-        } else {
-            sql.push_str(" ORDER BY dr.date_added DESC");
-        }
+        sql.push_str(" ORDER BY dr.date_added DESC");
 
         let mut stmt = conn.prepare(&sql)?;
-        let param_refs: Vec<&dyn rusqlite::types::ToSql> = params.iter().map(|p| p.as_ref()).collect();
+        let param_refs: Vec<&dyn rusqlite::types::ToSql> =
+            params.iter().map(|p| p.as_ref()).collect();
 
         let mut releases: Vec<DiscoveryRelease> = stmt
             .query_map(param_refs.as_slice(), |row| {
@@ -296,7 +286,11 @@ impl DiscoveryService {
 
         // Batch load tracks for all releases
         let release_ids: Vec<String> = releases.iter().map(|r| r.id.clone()).collect();
-        let placeholders = release_ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
+        let placeholders = release_ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<_>>()
+            .join(", ");
 
         let mut stmt = conn.prepare(&format!(
             "SELECT id, release_id, name, position, duration_ms FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"

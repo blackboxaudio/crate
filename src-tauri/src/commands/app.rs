@@ -61,7 +61,11 @@ pub fn close_dev_tools(app: tauri::AppHandle) {
 }
 
 #[tauri::command]
-pub fn set_menu_item_enabled(app: tauri::AppHandle, id: String, enabled: bool) -> Result<(), String> {
+pub fn set_menu_item_enabled(
+    app: tauri::AppHandle,
+    id: String,
+    enabled: bool,
+) -> Result<(), String> {
     menu::set_menu_item_enabled(&app, &id, enabled).map_err(|e| e.to_string())
 }
 

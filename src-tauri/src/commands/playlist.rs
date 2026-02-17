@@ -5,7 +5,10 @@ use crate::models::{DiscoveryRelease, MovePlaylistResult, Playlist, Track};
 use crate::services::{DiscoveryService, LibraryService, PlaylistService};
 
 #[tauri::command]
-pub async fn get_playlists(context: String, playlists: State<'_, PlaylistService>) -> Result<Vec<Playlist>> {
+pub async fn get_playlists(
+    context: String,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Vec<Playlist>> {
     playlists.get_playlists(&context)
 }
 

@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use tauri::{
-    menu::{Menu, MenuBuilder, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder},
+    menu::{
+        Menu, MenuBuilder, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder,
+    },
     AppHandle, Emitter, Manager, Wry,
 };
 
@@ -412,7 +414,11 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
 }
 
 /// Set the enabled state of a menu item by its ID
-pub fn set_menu_item_enabled(app: &AppHandle<Wry>, id: &str, enabled: bool) -> Result<(), tauri::Error> {
+pub fn set_menu_item_enabled(
+    app: &AppHandle<Wry>,
+    id: &str,
+    enabled: bool,
+) -> Result<(), tauri::Error> {
     if let Some(menu) = app.menu() {
         if let Ok(items) = menu.items() {
             for item in items {
