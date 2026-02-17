@@ -169,9 +169,7 @@
 			"label": "Label",
 			"releaseDate": "Releasedatum",
 			"notes": "Opmerkingen",
-			"status": "Status",
-			"saveChanges": "Wijzigingen opslaan",
-			"saving": "Opslaan..."
+			"status": "Status"
 		}
 	},
 	"playlists": {
@@ -414,8 +412,6 @@
 		"label": "Label",
 		"bpm": "BPM",
 		"key": "Toonsoort",
-		"saving": "Opslaan...",
-		"saveChanges": "Wijzigingen opslaan",
 		"multipleArtworks": "Meerdere artworks",
 		"addArtwork": "Artwork toevoegen",
 		"replaceArtwork": "Artwork vervangen",
@@ -468,6 +464,7 @@
 		"stop": "Stoppen",
 		"jumpToPlaying": "Naar huidig afgespeelde track",
 		"toggleSidebar": "Zijbalk wisselen",
+		"toggleView": "Weergave wisselen",
 		"showDevTools": "DevTools tonen",
 		"minimize": "Minimaliseren",
 		"zoom": "Zoomen",

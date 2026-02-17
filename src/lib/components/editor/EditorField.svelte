@@ -10,6 +10,7 @@
 		disabled?: boolean
 		onchange?: (value: string | number | null) => void
 		onsubmit?: () => void
+		onblur?: () => void
 	}
 
 	let {
@@ -21,6 +22,7 @@
 		disabled = false,
 		onchange,
 		onsubmit,
+		onblur,
 	}: Props = $props()
 
 	// Local state for the input - shows placeholder when mixed
@@ -69,6 +71,7 @@
 		{disabled}
 		oninput={handleInput}
 		onkeydown={handleKeydown}
+		onblur={() => onblur?.()}
 		class="w-full rounded-md border border-stroke bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder-text-tertiary focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 	/>
 </label>

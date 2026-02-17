@@ -17,6 +17,7 @@ export interface MenuActionHandlers {
 	onOpenSettings: (tab?: SettingsPage) => void
 	onQuickExport: () => void
 	onJumpToPlayingTrack: () => void
+	onToggleView: () => void
 }
 
 // =============================================================================
@@ -57,6 +58,7 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 		onOpenSettings,
 		onQuickExport,
 		onJumpToPlayingTrack,
+		onToggleView,
 	} = handlers
 
 	let unlistenMenu: UnlistenFn | null = null
@@ -109,6 +111,9 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				break
 
 			// View menu
+			case 'toggle_view':
+				onToggleView()
+				break
 			case 'toggle_sidebar':
 				// TODO: Implement sidebar toggle
 				break

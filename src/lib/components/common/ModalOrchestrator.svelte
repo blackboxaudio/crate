@@ -132,6 +132,9 @@
 
 		// Device callbacks
 		onReformatDevice: (device: UsbDevice, volumeName: string) => Promise<void>
+
+		// Modal state change callback
+		onModalOpenChange?: (isOpen: boolean) => void
 	}
 
 	let {
@@ -159,6 +162,7 @@
 		onExportFailureKeep,
 		onExportFailureCleanup,
 		onReformatDevice,
+		onModalOpenChange,
 	}: Props = $props()
 
 	// =========================================================================
@@ -167,6 +171,18 @@
 	let activeModal = $state<ActiveModal>({ type: 'none' })
 	let pendingMergeConflicts = $state<MoveConflict[]>([])
 	let deleteTracksFromCollection = $state(false)
+
+	// =========================================================================
+	// Modal open state tracking
+	// =========================================================================
+
+	export function isModalOpen(): boolean {
+		return activeModal.type !== 'none'
+	}
+
+	$effect(() => {
+		onModalOpenChange?.(activeModal.type !== 'none')
+	})
 
 	// =========================================================================
 	// Exported Functions - API for parent component

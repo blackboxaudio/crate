@@ -28,6 +28,13 @@ export async function closeDevTools(): Promise<void> {
 	return invoke('close_dev_tools')
 }
 
+/**
+ * Set the enabled state of a native menu item by its ID
+ */
+export async function setMenuItemEnabled(id: string, enabled: boolean): Promise<void> {
+	return invoke('set_menu_item_enabled', { id, enabled })
+}
+
 export interface MenuTranslations {
 	// Menu titles
 	file: string
@@ -52,6 +59,7 @@ export interface MenuTranslations {
 	stop: string
 	jumpToPlaying: string
 	// View menu items
+	toggleView: string
 	toggleSidebar: string
 	showDevTools: string
 	// Settings submenu

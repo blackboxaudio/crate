@@ -6,7 +6,6 @@
 	import { computeBulkTrackInfo } from '$lib/utils'
 	import * as libraryApi from '$lib/api/library'
 	import type { Track, TrackUpdate } from '$lib/types'
-	import Button from '$lib/components/common/Button.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import EditorField from './EditorField.svelte'
 	import EditorArtwork from './EditorArtwork.svelte'
@@ -25,6 +24,7 @@
 	// Form state - only track changed values
 	let formData = $state<Partial<TrackUpdate>>({})
 	let saving = $state(false)
+	let pendingSave = $state(false)
 
 	// Reset form when selection changes
 	$effect(() => {
@@ -49,15 +49,20 @@
 	}
 
 	async function handleSave() {
-		if (!hasChanges || saving) return
+		if (!hasChanges) return
+		if (saving) {
+			pendingSave = true
+			return
+		}
 
 		saving = true
+		const snapshot = { ...formData }
 		try {
 			const ids = selectedTracks.map((t) => t.id)
 			const update: TrackUpdate = {}
 
 			// Only include fields that have actual values
-			for (const [key, value] of Object.entries(formData)) {
+			for (const [key, value] of Object.entries(snapshot)) {
 				if (value !== undefined) {
 					;(update as Record<string, unknown>)[key] = value === '' ? null : value
 				}
@@ -71,12 +76,23 @@
 			// Notify sync store about track changes (for auto-sync)
 			syncStore.notifyTrackChanges(ids)
 
-			formData = {}
+			// Only clear snapshotted keys (preserve any new edits made during save)
+			const updated = { ...formData }
+			for (const key of Object.keys(snapshot)) {
+				if (updated[key as keyof TrackUpdate] === snapshot[key as keyof TrackUpdate]) {
+					delete updated[key as keyof TrackUpdate]
+				}
+			}
+			formData = updated
 		} catch (error) {
 			console.error('Failed to update tracks:', error)
 			toastStore.error(get(translate)('toast.failedToUpdateTracks'))
 		} finally {
 			saving = false
+			if (pendingSave) {
+				pendingSave = false
+				handleSave()
+			}
 		}
 	}
 
@@ -178,6 +194,7 @@
 				mixed={bulkInfo.title.mixed && formData.title === undefined}
 				onchange={handleFieldChange('title')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 			<EditorField
 				label={$translate('editor.artist')}
@@ -185,6 +202,7 @@
 				mixed={bulkInfo.artist.mixed && formData.artist === undefined}
 				onchange={handleFieldChange('artist')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 			<EditorField
 				label={$translate('editor.album')}
@@ -192,6 +210,7 @@
 				mixed={bulkInfo.album.mixed && formData.album === undefined}
 				onchange={handleFieldChange('album')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 
 			<div class="grid grid-cols-2 gap-3">
@@ -202,6 +221,7 @@
 					mixed={bulkInfo.year.mixed && formData.year === undefined}
 					onchange={handleFieldChange('year')}
 					onsubmit={handleSave}
+					onblur={handleSave}
 				/>
 				<EditorField
 					label={$translate('editor.genre')}
@@ -209,6 +229,7 @@
 					mixed={bulkInfo.genre.mixed && formData.genre === undefined}
 					onchange={handleFieldChange('genre')}
 					onsubmit={handleSave}
+					onblur={handleSave}
 				/>
 			</div>
 
@@ -218,6 +239,7 @@
 				mixed={bulkInfo.label.mixed && formData.label === undefined}
 				onchange={handleFieldChange('label')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 
 			<div class="grid grid-cols-2 gap-3">
@@ -228,6 +250,7 @@
 					mixed={bulkInfo.bpm.mixed && formData.bpm === undefined}
 					onchange={handleFieldChange('bpm')}
 					onsubmit={handleSave}
+					onblur={handleSave}
 				/>
 				<EditorField
 					label={$translate('editor.key')}
@@ -235,15 +258,9 @@
 					mixed={bulkInfo.key.mixed && formData.key === undefined}
 					onchange={handleFieldChange('key')}
 					onsubmit={handleSave}
+					onblur={handleSave}
 				/>
 			</div>
 		</div>
-	</div>
-
-	<!-- Footer with save button -->
-	<div class="p-4">
-		<Button variant="primary" class="w-full" onclick={handleSave} disabled={!hasChanges || saving}>
-			{saving ? $translate('editor.saving') : $translate('editor.saveChanges')}
-		</Button>
 	</div>
 </div>

@@ -28,6 +28,7 @@ export interface KeyboardShortcutHandlers {
 	onSelectNextTrack: () => void
 	onQuickExport: () => void
 	onJumpToPlayingTrack: () => void
+	onToggleView: () => void
 }
 
 // =============================================================================
@@ -60,6 +61,7 @@ export interface KeyboardShortcutHandlers {
  * - Cmd/Ctrl+Down Arrow: select next track
  * - Cmd/Ctrl+E: quick export
  * - Cmd/Ctrl+J: jump to playing track
+ * - Shift+Tab: toggle between Library and Discovery views
  *
  * @returns Cleanup function to remove the event listener
  */
@@ -87,10 +89,18 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		onSelectNextTrack,
 		onQuickExport,
 		onJumpToPlayingTrack,
+		onToggleView,
 	} = handlers
 
 	function handleKeydown(e: KeyboardEvent): void {
 		const inputFocused = isInputFocused()
+
+		// Shift+Tab: toggle between Library and Discovery views
+		if (e.key === 'Tab' && e.shiftKey && !inputFocused) {
+			e.preventDefault()
+			onToggleView()
+			return
+		}
 
 		// Space: toggle play/pause
 		if (e.code === 'Space' && !inputFocused) {

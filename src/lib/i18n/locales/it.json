@@ -169,9 +169,7 @@
 			"label": "Etichetta",
 			"releaseDate": "Data di rilascio",
 			"notes": "Note",
-			"status": "Stato",
-			"saveChanges": "Salva modifiche",
-			"saving": "Salvataggio..."
+			"status": "Stato"
 		}
 	},
 	"playlists": {
@@ -414,8 +412,6 @@
 		"label": "Etichetta",
 		"bpm": "BPM",
 		"key": "Tonalità",
-		"saving": "Salvataggio...",
-		"saveChanges": "Salva modifiche",
 		"multipleArtworks": "Copertine multiple",
 		"addArtwork": "Aggiungi copertina",
 		"replaceArtwork": "Sostituisci copertina",
@@ -468,6 +464,7 @@
 		"stop": "Ferma",
 		"jumpToPlaying": "Vai alla traccia in riproduzione",
 		"toggleSidebar": "Mostra/Nascondi barra laterale",
+		"toggleView": "Cambia vista",
 		"showDevTools": "Mostra DevTools",
 		"minimize": "Riduci a icona",
 		"zoom": "Zoom",

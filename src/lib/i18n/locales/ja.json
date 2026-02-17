@@ -169,9 +169,7 @@
 			"label": "レーベル",
 			"releaseDate": "リリース日",
 			"notes": "メモ",
-			"status": "ステータス",
-			"saveChanges": "変更を保存",
-			"saving": "保存中..."
+			"status": "ステータス"
 		}
 	},
 	"playlists": {
@@ -415,8 +413,6 @@
 		"label": "レーベル",
 		"bpm": "BPM",
 		"key": "キー",
-		"saving": "保存中...",
-		"saveChanges": "変更を保存",
 		"multipleArtworks": "複数のアートワーク",
 		"addArtwork": "アートワークを追加",
 		"replaceArtwork": "アートワークを置き換え",
@@ -469,6 +465,7 @@
 		"stop": "停止",
 		"jumpToPlaying": "再生中のトラックへジャンプ",
 		"toggleSidebar": "サイドバーを切り替え",
+		"toggleView": "ビューを切り替え",
 		"showDevTools": "開発者ツールを表示",
 		"minimize": "しまう",
 		"zoom": "拡大/縮小",

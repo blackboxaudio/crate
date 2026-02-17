@@ -169,9 +169,7 @@
 			"label": "레이블",
 			"releaseDate": "릴리스 날짜",
 			"notes": "노트",
-			"status": "상태",
-			"saveChanges": "변경사항 저장",
-			"saving": "저장 중..."
+			"status": "상태"
 		}
 	},
 	"playlists": {
@@ -414,8 +412,6 @@
 		"label": "레이블",
 		"bpm": "BPM",
 		"key": "키",
-		"saving": "저장 중...",
-		"saveChanges": "변경사항 저장",
 		"multipleArtworks": "여러 아트워크",
 		"addArtwork": "아트워크 추가",
 		"replaceArtwork": "아트워크 교체",
@@ -468,6 +464,7 @@
 		"stop": "정지",
 		"jumpToPlaying": "재생 중인 트랙으로 이동",
 		"toggleSidebar": "사이드바 전환",
+		"toggleView": "보기 전환",
 		"showDevTools": "개발자 도구 표시",
 		"minimize": "최소화",
 		"zoom": "확대/축소",

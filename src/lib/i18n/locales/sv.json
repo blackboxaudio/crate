@@ -169,9 +169,7 @@
 			"label": "Skivbolag",
 			"releaseDate": "Releasedatum",
 			"notes": "Anteckningar",
-			"status": "Status",
-			"saveChanges": "Spara ändringar",
-			"saving": "Sparar..."
+			"status": "Status"
 		}
 	},
 	"playlists": {
@@ -414,8 +412,6 @@
 		"label": "Skivbolag",
 		"bpm": "BPM",
 		"key": "Tonart",
-		"saving": "Sparar...",
-		"saveChanges": "Spara ändringar",
 		"multipleArtworks": "Flera omslag",
 		"addArtwork": "Lägg till omslag",
 		"replaceArtwork": "Ersätt omslag",
@@ -468,6 +464,7 @@
 		"stop": "Stoppa",
 		"jumpToPlaying": "Gå till spår som spelas upp",
 		"toggleSidebar": "Visa/Dölj sidofält",
+		"toggleView": "Växla vy",
 		"showDevTools": "Visa DevTools",
 		"minimize": "Minimera",
 		"zoom": "Zooma",

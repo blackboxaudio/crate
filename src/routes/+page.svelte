@@ -84,7 +84,7 @@
 		SplashScreen,
 	} from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
-	import { openDevTools, closeDevTools } from '$lib/api/app'
+	import { openDevTools, closeDevTools, setMenuItemEnabled } from '$lib/api/app'
 	import { exportStore } from '$lib/stores/export'
 	import { SvelteMap } from 'svelte/reactivity'
 
@@ -432,6 +432,11 @@
 				if (selectedPlaylistId) playlistController.handleLibraryClick()
 				uiStore.selectTrack(track.id)
 			},
+			onToggleView: () => {
+				if (modalOrchestrator?.isModalOpen()) return
+				const next = $activeView === 'library' ? 'discovery' : 'library'
+				handleViewChange(next)
+			},
 		})
 
 		// Set up menu action listener
@@ -454,6 +459,11 @@
 				if (!track) return
 				if (selectedPlaylistId) playlistController.handleLibraryClick()
 				uiStore.selectTrack(track.id)
+			},
+			onToggleView: () => {
+				if (modalOrchestrator?.isModalOpen()) return
+				const next = $activeView === 'library' ? 'discovery' : 'library'
+				handleViewChange(next)
 			},
 		})
 
@@ -897,6 +907,9 @@
 	bind:this={modalOrchestrator}
 	{playlists}
 	{tagCategories}
+	onModalOpenChange={(isOpen) => {
+		setMenuItemEnabled('toggle_view', !isOpen)
+	}}
 	onCreatePlaylist={async (name, parentId) => {
 		const playlist = await playlistsStore.createPlaylist(name, parentId ?? undefined)
 		if (playlist) {

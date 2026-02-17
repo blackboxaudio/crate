@@ -169,9 +169,7 @@
 			"label": "Label",
 			"releaseDate": "Release Date",
 			"notes": "Notes",
-			"status": "Status",
-			"saveChanges": "Save Changes",
-			"saving": "Saving..."
+			"status": "Status"
 		}
 	},
 	"playlists": {
@@ -415,8 +413,6 @@
 		"label": "Label",
 		"bpm": "BPM",
 		"key": "Key",
-		"saving": "Saving...",
-		"saveChanges": "Save Changes",
 		"multipleArtworks": "Multiple artworks",
 		"addArtwork": "Add Artwork",
 		"replaceArtwork": "Replace Artwork",
@@ -469,6 +465,7 @@
 		"stop": "Stop",
 		"jumpToPlaying": "Jump to Playing Track",
 		"toggleSidebar": "Toggle Sidebar",
+		"toggleView": "Toggle View",
 		"showDevTools": "Show DevTools",
 		"minimize": "Minimize",
 		"zoom": "Zoom",

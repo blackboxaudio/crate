@@ -3,7 +3,6 @@
 	import { uiStore } from '$lib/stores/ui'
 	import { toastStore } from '$lib/stores/toast'
 	import type { DiscoveryRelease, DiscoveryReleaseUpdate, DiscoveryStatus } from '$lib/types'
-	import Button from '$lib/components/common/Button.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Select from '$lib/components/common/Select.svelte'
 	import EditorField from '$lib/components/editor/EditorField.svelte'
@@ -22,6 +21,7 @@
 	// Form state - only track changed values
 	let formData = $state<Partial<DiscoveryReleaseUpdate>>({})
 	let saving = $state(false)
+	let pendingSave = $state(false)
 
 	// Reset form when selection changes
 	$effect(() => {
@@ -50,12 +50,17 @@
 	}
 
 	async function handleSave() {
-		if (!hasChanges || saving) return
+		if (!hasChanges) return
+		if (saving) {
+			pendingSave = true
+			return
+		}
 
 		saving = true
+		const snapshot = { ...formData }
 		try {
 			const update: DiscoveryReleaseUpdate = {}
-			for (const [key, value] of Object.entries(formData)) {
+			for (const [key, value] of Object.entries(snapshot)) {
 				if (value !== undefined) {
 					;(update as Record<string, unknown>)[key] = value === '' ? null : value
 				}
@@ -65,12 +70,23 @@
 				await discoveryStore.updateRelease(release.id, update)
 			}
 
-			formData = {}
+			// Only clear snapshotted keys (preserve any new edits made during save)
+			const updated = { ...formData }
+			for (const key of Object.keys(snapshot)) {
+				if (updated[key as keyof DiscoveryReleaseUpdate] === snapshot[key as keyof DiscoveryReleaseUpdate]) {
+					delete updated[key as keyof DiscoveryReleaseUpdate]
+				}
+			}
+			formData = updated
 		} catch (error) {
 			console.error('Failed to update releases:', error)
 			toastStore.error(get(translate)('errors.generic'))
 		} finally {
 			saving = false
+			if (pendingSave) {
+				pendingSave = false
+				handleSave()
+			}
 		}
 	}
 
@@ -141,6 +157,7 @@
 				mixed={bulkInfo.artist.mixed && formData.artist === undefined}
 				onchange={handleFieldChange('artist')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 			<EditorField
 				label={$translate('discovery.editor.title')}
@@ -148,6 +165,7 @@
 				mixed={bulkInfo.title.mixed && formData.title === undefined}
 				onchange={handleFieldChange('title')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 			<EditorField
 				label={$translate('discovery.editor.label')}
@@ -155,6 +173,7 @@
 				mixed={bulkInfo.label.mixed && formData.label === undefined}
 				onchange={handleFieldChange('label')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 			<EditorField
 				label={$translate('discovery.editor.releaseDate')}
@@ -162,6 +181,7 @@
 				mixed={bulkInfo.releaseDate.mixed && formData.release_date === undefined}
 				onchange={handleFieldChange('release_date')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 			<EditorField
 				label={$translate('discovery.editor.notes')}
@@ -169,6 +189,7 @@
 				mixed={bulkInfo.notes.mixed && formData.notes === undefined}
 				onchange={handleFieldChange('notes')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 
 			<!-- Status dropdown -->
@@ -179,16 +200,10 @@
 					options={statusOptions}
 					onchange={(value) => {
 						formData = { ...formData, status: value as DiscoveryStatus }
+						handleSave()
 					}}
 				/>
 			</label>
 		</div>
-	</div>
-
-	<!-- Footer -->
-	<div class="p-4">
-		<Button variant="primary" class="w-full" onclick={handleSave} disabled={!hasChanges || saving}>
-			{saving ? $translate('discovery.editor.saving') : $translate('discovery.editor.saveChanges')}
-		</Button>
 	</div>
 </div>

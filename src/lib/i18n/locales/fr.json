@@ -169,9 +169,7 @@
 			"label": "Label",
 			"releaseDate": "Date de sortie",
 			"notes": "Notes",
-			"status": "Statut",
-			"saveChanges": "Enregistrer les modifications",
-			"saving": "Enregistrement..."
+			"status": "Statut"
 		}
 	},
 	"playlists": {
@@ -414,8 +412,6 @@
 		"label": "Label",
 		"bpm": "BPM",
 		"key": "Tonalité",
-		"saving": "Enregistrement...",
-		"saveChanges": "Enregistrer les modifications",
 		"multipleArtworks": "Pochettes multiples",
 		"addArtwork": "Ajouter une pochette",
 		"replaceArtwork": "Remplacer la pochette",
@@ -468,6 +464,7 @@
 		"stop": "Arrêt",
 		"jumpToPlaying": "Aller à la piste en cours de lecture",
 		"toggleSidebar": "Afficher/Masquer la barre latérale",
+		"toggleView": "Basculer la vue",
 		"showDevTools": "Afficher les outils de développement",
 		"minimize": "Réduire",
 		"zoom": "Zoom",

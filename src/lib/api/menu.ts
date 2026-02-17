@@ -16,6 +16,7 @@ export type MenuAction =
 	| 'stop'
 	| 'jump_to_playing'
 	// View menu
+	| 'toggle_view'
 	| 'toggle_sidebar'
 	// View > Settings submenu
 	| 'settings_general'

@@ -51,6 +51,7 @@ pub struct MenuTranslations {
     pub stop: String,
     pub jump_to_playing: String,
     // View menu items
+    pub toggle_view: String,
     pub toggle_sidebar: String,
     pub show_dev_tools: String,
     // Settings submenu
@@ -99,6 +100,7 @@ pub mod ids {
     pub const JUMP_TO_PLAYING: &str = "jump_to_playing";
 
     // View menu items
+    pub const TOGGLE_VIEW: &str = "toggle_view";
     pub const TOGGLE_SIDEBAR: &str = "toggle_sidebar";
     pub const SHOW_DEVTOOLS: &str = "show_devtools";
 
@@ -297,6 +299,13 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
     let mut builder = SubmenuBuilder::with_id(app, ids::VIEW_MENU, "View")
         .item(&MenuItem::with_id(
             app,
+            ids::TOGGLE_VIEW,
+            "Toggle View",
+            true,
+            Some("Shift+Tab"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
             ids::TOGGLE_SIDEBAR,
             "Toggle Sidebar",
             true,
@@ -402,6 +411,23 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
     });
 }
 
+/// Set the enabled state of a menu item by its ID
+pub fn set_menu_item_enabled(app: &AppHandle<Wry>, id: &str, enabled: bool) -> Result<(), tauri::Error> {
+    if let Some(menu) = app.menu() {
+        if let Ok(items) = menu.items() {
+            for item in items {
+                if let MenuItemKind::Submenu(submenu) = item {
+                    if let Some(MenuItemKind::MenuItem(menu_item)) = submenu.get(id) {
+                        menu_item.set_enabled(enabled)?;
+                        return Ok(());
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Update existing menu items with translated text in-place
 /// This is preferred over rebuilding the entire menu as it works better on macOS
 pub fn update_menu_translations(
@@ -442,6 +468,7 @@ pub fn update_menu_translations(
     update_item_text(&menu, ids::JUMP_TO_PLAYING, &translations.jump_to_playing)?;
 
     // Update View menu items
+    update_item_text(&menu, ids::TOGGLE_VIEW, &translations.toggle_view)?;
     update_item_text(&menu, ids::TOGGLE_SIDEBAR, &translations.toggle_sidebar)?;
     if is_dev {
         update_item_text(&menu, ids::SHOW_DEVTOOLS, &translations.show_dev_tools)?;

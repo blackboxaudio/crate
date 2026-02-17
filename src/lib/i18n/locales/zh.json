@@ -169,9 +169,7 @@
 			"label": "厂牌",
 			"releaseDate": "发行日期",
 			"notes": "备注",
-			"status": "状态",
-			"saveChanges": "保存更改",
-			"saving": "保存中..."
+			"status": "状态"
 		}
 	},
 	"playlists": {
@@ -414,8 +412,6 @@
 		"label": "厂牌",
 		"bpm": "BPM",
 		"key": "调性",
-		"saving": "保存中...",
-		"saveChanges": "保存更改",
 		"multipleArtworks": "多个封面",
 		"addArtwork": "添加封面",
 		"replaceArtwork": "替换封面",
@@ -468,6 +464,7 @@
 		"stop": "停止",
 		"jumpToPlaying": "跳转到正在播放的曲目",
 		"toggleSidebar": "切换侧边栏",
+		"toggleView": "切换视图",
 		"showDevTools": "显示开发者工具",
 		"minimize": "最小化",
 		"zoom": "缩放",

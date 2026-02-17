@@ -169,9 +169,7 @@
 			"label": "Sello",
 			"releaseDate": "Fecha de lanzamiento",
 			"notes": "Notas",
-			"status": "Estado",
-			"saveChanges": "Guardar cambios",
-			"saving": "Guardando..."
+			"status": "Estado"
 		}
 	},
 	"playlists": {
@@ -414,8 +412,6 @@
 		"label": "Sello",
 		"bpm": "BPM",
 		"key": "Tono",
-		"saving": "Guardando...",
-		"saveChanges": "Guardar cambios",
 		"multipleArtworks": "Múltiples carátulas",
 		"addArtwork": "Añadir carátula",
 		"replaceArtwork": "Reemplazar carátula",
@@ -468,6 +464,7 @@
 		"stop": "Detener",
 		"jumpToPlaying": "Ir a la pista en reproducción",
 		"toggleSidebar": "Alternar barra lateral",
+		"toggleView": "Alternar vista",
 		"showDevTools": "Mostrar DevTools",
 		"minimize": "Minimizar",
 		"zoom": "Zoom",

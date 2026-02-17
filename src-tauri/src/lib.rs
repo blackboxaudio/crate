@@ -31,6 +31,7 @@ pub fn run() {
             commands::app::open_dev_tools,
             commands::app::close_dev_tools,
             commands::app::rebuild_menu,
+            commands::app::set_menu_item_enabled,
             // Library commands
             commands::library::import_tracks,
             commands::library::get_tracks,

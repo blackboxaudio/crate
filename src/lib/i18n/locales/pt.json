@@ -169,9 +169,7 @@
 			"label": "Gravadora",
 			"releaseDate": "Data de lançamento",
 			"notes": "Notas",
-			"status": "Status",
-			"saveChanges": "Salvar alterações",
-			"saving": "Salvando..."
+			"status": "Status"
 		}
 	},
 	"playlists": {
@@ -414,8 +412,6 @@
 		"label": "Gravadora",
 		"bpm": "BPM",
 		"key": "Tom",
-		"saving": "Salvando...",
-		"saveChanges": "Salvar alterações",
 		"multipleArtworks": "Múltiplas capas",
 		"addArtwork": "Adicionar capa",
 		"replaceArtwork": "Substituir capa",
@@ -468,6 +464,7 @@
 		"stop": "Parar",
 		"jumpToPlaying": "Ir para a faixa em reprodução",
 		"toggleSidebar": "Alternar barra lateral",
+		"toggleView": "Alternar visualização",
 		"showDevTools": "Mostrar DevTools",
 		"minimize": "Minimizar",
 		"zoom": "Zoom",
