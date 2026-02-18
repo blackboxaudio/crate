@@ -150,6 +150,11 @@
 			"tags": "タグ",
 			"dateAdded": "追加日時"
 		},
+		"fetchingMetadata": "メタデータを取得中...",
+		"refreshMetadata": "メタデータを更新",
+		"fetchError": "このURLからメタデータを取得できませんでした",
+		"tracks": "トラック",
+		"trackCount": "{count, plural, =1 {1曲} other {{count}曲}}",
 		"openInBrowser": "ブラウザで開く",
 		"importToLibrary": "ライブラリにインポート",
 		"deleteRelease": "リリースを削除",

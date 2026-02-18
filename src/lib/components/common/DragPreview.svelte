@@ -76,7 +76,7 @@
 		<div
 			class="relative flex items-center gap-2.5 rounded bg-surface-2 px-2.5 py-2 shadow-lg ring-1 ring-stroke-subtle"
 		>
-			<AlbumArt artworkPath={release.artwork_path} size="sm" />
+			<AlbumArt artworkPath={release.artwork_path} artworkUrl={release.artwork_url} size="sm" />
 			<div class="flex flex-col gap-0.5">
 				<Text as="span" class="max-w-48 truncate text-sm font-medium text-text-primary">
 					{release.title || 'Untitled'}

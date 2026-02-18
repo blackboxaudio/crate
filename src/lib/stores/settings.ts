@@ -31,7 +31,7 @@ interface SettingsState {
 const initialState: SettingsState = {
 	theme: 'system',
 	accentColor: 'blue',
-	font: 'ibm-plex-mono',
+	font: 'open-sans',
 	resolvedTheme: 'dark',
 	audioDevice: null,
 	audioDevices: [],

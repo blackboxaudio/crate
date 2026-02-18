@@ -130,6 +130,8 @@ pub fn run() {
             commands::discovery::delete_discovery_releases,
             commands::discovery::assign_discovery_tags,
             commands::discovery::remove_discovery_tags,
+            commands::discovery::fetch_release_metadata,
+            commands::discovery::refresh_release_metadata,
         ])
         .setup(|app| {
             // Get Tauri's app data directory

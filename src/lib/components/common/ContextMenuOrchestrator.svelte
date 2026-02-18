@@ -96,6 +96,7 @@
 
 		// Discovery callbacks
 		onDiscoveryReleaseOpenInBrowser: (release: DiscoveryRelease) => void
+		onDiscoveryReleaseRefreshMetadata: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseImport: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseDelete: (releases: DiscoveryRelease[]) => void
 		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
@@ -140,6 +141,7 @@
 		onDeviceIgnore,
 		onPlaylistExport,
 		onDiscoveryReleaseOpenInBrowser,
+		onDiscoveryReleaseRefreshMetadata,
 		onDiscoveryReleaseImport,
 		onDiscoveryReleaseDelete,
 		onDiscoveryReleaseAddToPlaylist,
@@ -492,6 +494,14 @@
 		}
 	}
 
+	function handleDiscoveryReleaseRefreshMetadata() {
+		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length === 1) {
+			const release = activeMenu.releases[0]
+			closeAll()
+			onDiscoveryReleaseRefreshMetadata(release)
+		}
+	}
+
 	function handleDiscoveryReleaseImport() {
 		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length === 1) {
 			const release = activeMenu.releases[0]
@@ -675,6 +685,7 @@
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
+		onRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
 		onImport={handleDiscoveryReleaseImport}
 		onDelete={handleDiscoveryReleaseDelete}
 		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}

@@ -150,6 +150,11 @@
 			"tags": "标签",
 			"dateAdded": "添加日期"
 		},
+		"fetchingMetadata": "正在获取元数据...",
+		"refreshMetadata": "刷新元数据",
+		"fetchError": "无法从此URL获取元数据",
+		"tracks": "曲目",
+		"trackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}",
 		"openInBrowser": "在浏览器中打开",
 		"importToLibrary": "导入到音乐库",
 		"deleteRelease": "删除发行",

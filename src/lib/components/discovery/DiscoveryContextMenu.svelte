@@ -13,6 +13,7 @@
 		onClose: () => void
 		onClosed?: () => void
 		onOpenInBrowser: () => void
+		onRefreshMetadata?: () => void
 		onImport: () => void
 		onDelete: () => void
 		onAddToPlaylist?: (playlistId: string) => void
@@ -27,6 +28,7 @@
 		onClose,
 		onClosed,
 		onOpenInBrowser,
+		onRefreshMetadata,
 		onImport,
 		onDelete,
 		onAddToPlaylist,
@@ -46,6 +48,14 @@
 				icon: 'globe',
 				action: onOpenInBrowser,
 			})
+			if (onRefreshMetadata) {
+				items.push({
+					id: 'refresh-metadata',
+					label: get(translate)('discovery.refreshMetadata'),
+					icon: 'refresh',
+					action: onRefreshMetadata,
+				})
+			}
 			items.push({ id: 'browser-divider', label: '', divider: true })
 		}
 

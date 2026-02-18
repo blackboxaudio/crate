@@ -4,8 +4,11 @@
 	import { toastStore } from '$lib/stores/toast'
 	import type { DiscoveryRelease, DiscoveryReleaseUpdate } from '$lib/types'
 	import IconButton from '$lib/components/common/IconButton.svelte'
+	import Spinner from '$lib/components/common/Spinner.svelte'
 	import Text from '$lib/components/common/Text.svelte'
+	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import EditorField from '$lib/components/editor/EditorField.svelte'
+	import { EditorTextArea } from '$lib/components/editor'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
 
@@ -22,6 +25,17 @@
 	let formData = $state<Partial<DiscoveryReleaseUpdate>>({})
 	let saving = $state(false)
 	let pendingSave = $state(false)
+	let refreshing = $state(false)
+
+	async function handleRefreshMetadata() {
+		if (refreshing || selectedReleases.length !== 1) return
+		refreshing = true
+		try {
+			await discoveryStore.refreshMetadata(selectedReleases[0].id)
+		} finally {
+			refreshing = false
+		}
+	}
 
 	// Reset form when selection changes
 	$effect(() => {
@@ -121,7 +135,20 @@
 				? $translate('discovery.editor.releaseInfo')
 				: $translate('discovery.editor.releasesCount', { values: { count: selectedReleases.length } })}
 		</Text>
-		<IconButton icon="x" size="sm" onclick={handleClose} />
+		<div class="flex items-center gap-1">
+			{#if selectedReleases.length === 1}
+				{#if refreshing}
+					<Spinner class="mx-1.5 h-3.5 w-3.5" />
+				{:else}
+					<Tooltip text={$translate('discovery.refreshMetadata')} position="bottom" delay={250}>
+						<IconButton icon="refresh" size="sm" onclick={handleRefreshMetadata} />
+					</Tooltip>
+				{/if}
+			{/if}
+			<Tooltip text={$translate('common.close')} position="bottom" delay={250}>
+				<IconButton icon="x" size="sm" onclick={handleClose} />
+			</Tooltip>
+		</div>
 	</div>
 
 	<!-- Scrollable content -->
@@ -166,16 +193,13 @@
 				label={$translate('discovery.editor.releaseDate')}
 				value={formData.release_date ?? bulkInfo.releaseDate.value}
 				mixed={bulkInfo.releaseDate.mixed && formData.release_date === undefined}
-				onchange={handleFieldChange('release_date')}
-				onsubmit={handleSave}
-				onblur={handleSave}
+				disabled={true}
 			/>
-			<EditorField
+			<EditorTextArea
 				label={$translate('discovery.editor.notes')}
 				value={formData.notes ?? bulkInfo.notes.value}
 				mixed={bulkInfo.notes.mixed && formData.notes === undefined}
 				onchange={handleFieldChange('notes')}
-				onsubmit={handleSave}
 				onblur={handleSave}
 			/>
 		</div>

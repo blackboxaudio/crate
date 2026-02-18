@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Music discovery feature for tracking releases from Bandcamp, SoundCloud, YouTube, and Discogs
+- Automatic metadata fetching for discovery releases from Bandcamp, SoundCloud, and YouTube URLs
 - Playlist support for discovery releases with separate playlist hierarchies per view
 - Export playlists to USB devices with Pioneer/Rekordbox compatibility
 - Multi-language support with 11 locales: English, Japanese, Dutch, French, German, Spanish, Italian, Swedish, Korean, Portuguese, and Chinese

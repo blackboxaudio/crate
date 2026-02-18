@@ -53,6 +53,9 @@ image = { version = "0.25.9", default-features = false, features = ["png", "jpeg
 # Hashing
 blake3 = "1.8.2"
 
+# HTTP client
+reqwest = { version = "0.12", features = ["json"] }
+
 # Utilities
 uuid = { version = "1.19.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.42", features = ["serde"] }

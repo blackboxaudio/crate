@@ -680,6 +680,10 @@
 		await discoveryStore.deleteRelease(release.id)
 	}
 
+	async function handleDiscoveryReleaseRefreshMetadata(release: DiscoveryRelease) {
+		await discoveryStore.refreshMetadata(release.id)
+	}
+
 	async function handleDiscoveryReleaseDelete(releases: DiscoveryRelease[]) {
 		const ids = releases.map((r) => r.id)
 		await discoveryStore.deleteReleases(ids)
@@ -976,6 +980,7 @@
 	onDeviceIgnore={deviceController.handleDeviceIgnore}
 	onPlaylistExport={exportController.handlePlaylistExport}
 	onDiscoveryReleaseOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
+	onDiscoveryReleaseRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
 	onDiscoveryReleaseImport={handleDiscoveryReleaseImport}
 	onDiscoveryReleaseDelete={handleDiscoveryReleaseDelete}
 	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {

@@ -150,6 +150,11 @@
 			"tags": "Tags",
 			"dateAdded": "Toegevoegd op"
 		},
+		"fetchingMetadata": "Metagegevens ophalen...",
+		"refreshMetadata": "Metagegevens vernieuwen",
+		"fetchError": "Kan metagegevens niet ophalen van deze URL",
+		"tracks": "Tracks",
+		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "In browser openen",
 		"importToLibrary": "Importeren naar bibliotheek",
 		"deleteRelease": "Release verwijderen",

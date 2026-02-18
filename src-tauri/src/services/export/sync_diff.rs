@@ -227,7 +227,7 @@ mod tests {
             key: None,
             bitrate: Some(320),
             sample_rate: Some(44100),
-            format: Some("mp3".to_string()),
+            format: "mp3".to_string(),
             analysis_source: None,
             waveform_data: None,
             rating: 0,
@@ -239,6 +239,7 @@ mod tests {
             artwork_path: None,
             artwork_source: None,
             color: None,
+            tags: vec![],
         }
     }
 

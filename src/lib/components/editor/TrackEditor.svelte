@@ -9,6 +9,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import IconButton from '$lib/components/common/IconButton.svelte'
 	import Text from '$lib/components/common/Text.svelte'
+	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import EditorField from './EditorField.svelte'
 	import EditorArtwork from './EditorArtwork.svelte'
 	import { translate } from '$lib/i18n'
@@ -165,7 +166,9 @@
 				? $translate('editor.trackInfo')
 				: $translate('editor.tracksCount', { values: { count: selectedTracks.length } })}
 		</Text>
-		<IconButton icon="x" size="sm" onclick={handleClose} />
+		<Tooltip text={$translate('common.close')} position="bottom" delay={250}>
+			<IconButton icon="x" size="sm" onclick={handleClose} />
+		</Tooltip>
 	</div>
 
 	<!-- Scrollable content -->

@@ -53,47 +53,18 @@
 	// Position the dropdown
 	let dropdownStyle = $state('')
 
-	function calculateDropdownPosition() {
-		if (triggerEl && menuEl) {
+	$effect(() => {
+		if (open && triggerEl && menuEl) {
 			const triggerRect = triggerEl.getBoundingClientRect()
 			const menuHeight = menuEl.offsetHeight
 			const viewportHeight = window.innerHeight
-
-			const left = triggerRect.left
-			const width = triggerRect.width
-
-			// Check if dropdown fits below
 			const spaceBelow = viewportHeight - triggerRect.bottom
 			const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
 
 			if (openUpward) {
-				const top = triggerRect.top - menuHeight - 4
-				dropdownStyle = `position: fixed; top: ${top}px; left: ${left}px; width: ${width}px; transform-origin: bottom;`
+				dropdownStyle = 'bottom: 100%; margin-bottom: 4px;'
 			} else {
-				const top = triggerRect.bottom + 4
-				dropdownStyle = `position: fixed; top: ${top}px; left: ${left}px; width: ${width}px; transform-origin: top;`
-			}
-		}
-	}
-
-	$effect(() => {
-		if (open && triggerEl && menuEl) {
-			calculateDropdownPosition()
-		}
-	})
-
-	// Recalculate position on window resize, close on scroll
-	$effect(() => {
-		if (open) {
-			const handleResize = () => calculateDropdownPosition()
-			const handleScroll = () => {
-				open = false
-			}
-			window.addEventListener('resize', handleResize)
-			window.addEventListener('scroll', handleScroll, true)
-			return () => {
-				window.removeEventListener('resize', handleResize)
-				window.removeEventListener('scroll', handleScroll, true)
+				dropdownStyle = 'top: 100%; margin-top: 4px;'
 			}
 		}
 	})
@@ -204,7 +175,7 @@
 	{#if open}
 		<div
 			bind:this={menuEl}
-			class="z-50 max-h-60 overflow-auto rounded-lg border border-stroke bg-surface-1
+			class="absolute right-0 left-0 z-50 max-h-60 overflow-auto rounded-lg border border-stroke bg-surface-1
 				py-1 shadow-lg hover:cursor-pointer"
 			style={dropdownStyle}
 			role="listbox"

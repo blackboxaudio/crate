@@ -416,7 +416,7 @@ export type AccentColor =
 	| 'emerald'
 	| 'teal'
 
-export type Font = 'ibm-plex-mono' | 'jetbrains-mono' | 'fira-code' | 'inter' | 'open-sans'
+export type Font = 'open-sans' | 'inter' | 'fira-code' | 'jetbrains-mono' | 'ibm-plex-mono'
 
 export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | 'ko' | 'pt' | 'zh'
 
@@ -644,6 +644,22 @@ export interface DiscoveryTrackCreate {
 	duration_ms?: number
 }
 
+export interface FetchedMetadata {
+	artist: string | null
+	title: string | null
+	label: string | null
+	release_date: string | null
+	artwork_url: string | null
+	tracks: FetchedTrack[]
+	source_type: string
+}
+
+export interface FetchedTrack {
+	name: string
+	position: number
+	duration_ms: number | null
+}
+
 export interface DiscoveryReleaseUpdate {
 	artist?: string
 	title?: string
@@ -660,7 +676,7 @@ export interface DiscoveryFilter {
 	tag_filter_mode?: TagFilterMode
 }
 
-export type DiscoverySortField = 'artist' | 'title' | 'label' | 'date_added'
+export type DiscoverySortField = 'artist' | 'title' | 'label' | 'release_date' | 'source_type' | 'date_added'
 
 export interface DiscoverySortConfig {
 	field: DiscoverySortField

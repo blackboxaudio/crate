@@ -132,6 +132,22 @@ function createDiscoveryStore() {
 			}
 		},
 
+		async refreshMetadata(id: string): Promise<DiscoveryRelease | null> {
+			try {
+				const release = await discoveryApi.refreshMetadata(id)
+				update((state) => ({
+					...state,
+					releases: state.releases.map((r) => (r.id === id ? release : r)),
+				}))
+				return release
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to refresh metadata'
+				)
+				return null
+			}
+		},
+
 		async removeTags(releaseIds: string[], tagIds: string[]) {
 			try {
 				await discoveryApi.removeTags(releaseIds, tagIds)

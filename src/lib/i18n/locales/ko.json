@@ -150,6 +150,11 @@
 			"tags": "태그",
 			"dateAdded": "추가 날짜"
 		},
+		"fetchingMetadata": "메타데이터 가져오는 중...",
+		"refreshMetadata": "메타데이터 새로 고침",
+		"fetchError": "이 URL에서 메타데이터를 가져올 수 없습니다",
+		"tracks": "트랙",
+		"trackCount": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}}",
 		"openInBrowser": "브라우저에서 열기",
 		"importToLibrary": "라이브러리로 가져오기",
 		"deleteRelease": "릴리스 삭제",

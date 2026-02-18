@@ -29,9 +29,14 @@ CREATE TABLE tracks (
     analysis_source TEXT,
     waveform_data BLOB,
 
+    -- Artwork
+    artwork_path TEXT,
+    artwork_source TEXT,
+
     -- User data
     rating INTEGER DEFAULT 0,
     play_count INTEGER DEFAULT 0,
+    color TEXT,
 
     -- Timestamps
     date_added TEXT NOT NULL,
@@ -48,12 +53,14 @@ CREATE INDEX idx_tracks_artist ON tracks(artist);
 CREATE INDEX idx_tracks_bpm ON tracks(bpm);
 CREATE INDEX idx_tracks_key ON tracks(key);
 CREATE INDEX idx_tracks_date_added ON tracks(date_added);
+CREATE INDEX idx_tracks_color ON tracks(color);
 
 -- Tag system
 CREATE TABLE tag_categories (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL UNIQUE,
-    sort_order INTEGER NOT NULL DEFAULT 0
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    color TEXT DEFAULT '#6366f1'
 );
 
 CREATE TABLE tags (
@@ -80,9 +87,12 @@ CREATE TABLE playlists (
     is_smart INTEGER NOT NULL DEFAULT 0,
     smart_rules TEXT,
     sort_order INTEGER NOT NULL DEFAULT 0,
+    context TEXT NOT NULL DEFAULT 'library',
     date_created TEXT NOT NULL,
     date_modified TEXT NOT NULL
 );
+
+CREATE INDEX idx_playlists_context ON playlists(context);
 
 CREATE TABLE playlist_tracks (
     playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
@@ -113,79 +123,50 @@ CREATE TABLE settings (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
 );
-"#,
-        // Migration 2: Add color to tag_categories
-        r#"
-ALTER TABLE tag_categories ADD COLUMN color TEXT DEFAULT '#6366f1';
-"#,
-        // Migration 3: Add artwork_path to tracks
-        r#"
-ALTER TABLE tracks ADD COLUMN artwork_path TEXT;
-"#,
-        // Migration 4: Add color to tracks (Rekordbox-compatible track colors)
-        r#"
-ALTER TABLE tracks ADD COLUMN color TEXT;
-CREATE INDEX idx_tracks_color ON tracks(color);
-"#,
-        // Migration 5: Add artwork_source to tracks (for tracking extracted vs user-provided artwork)
-        r#"
-ALTER TABLE tracks ADD COLUMN artwork_source TEXT;
--- Values: 'extracted', 'user_provided', or NULL
-"#,
-        // Migration 6: Device export tracking for USB sync
-        r#"
--- Track which playlists have been exported to which devices
+
+-- Device export tracking
 CREATE TABLE device_exports (
     id TEXT PRIMARY KEY,
-    device_id TEXT NOT NULL,           -- Volume UUID (stable across reconnections)
-    device_name TEXT NOT NULL,         -- Human-readable device name
+    device_id TEXT NOT NULL,
+    device_name TEXT NOT NULL,
     playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
-    last_export_at TEXT NOT NULL,      -- ISO timestamp
+    last_export_at TEXT NOT NULL,
+    last_sync_at TEXT,
     sync_enabled INTEGER NOT NULL DEFAULT 1,
     UNIQUE(device_id, playlist_id)
 );
 
--- Track which files have been copied to which devices
+CREATE INDEX idx_device_exports_device ON device_exports(device_id);
+CREATE INDEX idx_device_exports_playlist ON device_exports(playlist_id);
+
 CREATE TABLE device_tracks (
     device_id TEXT NOT NULL,
     track_id TEXT NOT NULL REFERENCES tracks(id) ON DELETE CASCADE,
-    usb_path TEXT NOT NULL,            -- Path on USB relative to Contents/
-    file_hash TEXT NOT NULL,           -- Hash at time of export
-    pdb_track_id INTEGER,              -- Sequential ID assigned in PDB
+    usb_path TEXT NOT NULL,
+    file_hash TEXT NOT NULL,
+    pdb_track_id INTEGER,
+    metadata_hash TEXT,
     exported_at TEXT NOT NULL,
     PRIMARY KEY (device_id, track_id)
 );
 
-CREATE INDEX idx_device_exports_device ON device_exports(device_id);
-CREATE INDEX idx_device_exports_playlist ON device_exports(playlist_id);
 CREATE INDEX idx_device_tracks_device ON device_tracks(device_id);
-"#,
-        // Migration 7: Add last_sync_at for tracking sync timestamps
-        r#"
-ALTER TABLE device_exports ADD COLUMN last_sync_at TEXT;
-"#,
-        // Migration 8: Export checkpoints for resume support
-        r#"
--- Track export progress for resumable exports
+
+-- Export checkpoints for resume support
 CREATE TABLE export_checkpoints (
     id TEXT PRIMARY KEY,
     device_id TEXT NOT NULL,
     device_name TEXT NOT NULL,
     started_at TEXT NOT NULL,
-    state TEXT NOT NULL,               -- 'copying' | 'generating_pdb'
-    playlist_ids TEXT NOT NULL,        -- JSON array
-    tracks_completed TEXT NOT NULL,    -- JSON array of track IDs
-    tracks_failed TEXT NOT NULL,       -- JSON array of [track_id, error] tuples
+    state TEXT NOT NULL,
+    playlist_ids TEXT NOT NULL,
+    tracks_completed TEXT NOT NULL,
+    tracks_failed TEXT NOT NULL,
     last_updated_at TEXT NOT NULL
 );
 
 CREATE INDEX idx_export_checkpoints_device ON export_checkpoints(device_id);
 
--- Add metadata hash for detecting track changes
-ALTER TABLE device_tracks ADD COLUMN metadata_hash TEXT;
-"#,
-        // Migration 9: Discovery feature tables
-        r#"
 -- Discovery releases
 CREATE TABLE discovery_releases (
     id TEXT PRIMARY KEY,
@@ -204,7 +185,6 @@ CREATE TABLE discovery_releases (
 
 CREATE INDEX idx_discovery_releases_date_added ON discovery_releases(date_added);
 
--- Discovery track listing
 CREATE TABLE discovery_tracks (
     id TEXT PRIMARY KEY,
     release_id TEXT NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
@@ -215,18 +195,12 @@ CREATE TABLE discovery_tracks (
 
 CREATE INDEX idx_discovery_tracks_release ON discovery_tracks(release_id);
 
--- Tag junction (reuses existing tags table)
 CREATE TABLE discovery_release_tags (
     release_id TEXT NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
     tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
     PRIMARY KEY (release_id, tag_id)
 );
 
--- Add context to playlists for library/discovery separation
-ALTER TABLE playlists ADD COLUMN context TEXT NOT NULL DEFAULT 'library';
-CREATE INDEX idx_playlists_context ON playlists(context);
-
--- Playlist junction for discovery releases
 CREATE TABLE playlist_discovery_releases (
     playlist_id TEXT NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
     release_id TEXT NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
@@ -234,7 +208,6 @@ CREATE TABLE playlist_discovery_releases (
     date_added TEXT,
     PRIMARY KEY (playlist_id, release_id)
 );
-
 "#,
     ]
 }

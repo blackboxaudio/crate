@@ -150,6 +150,11 @@
 			"tags": "Tags",
 			"dateAdded": "Hinzugefügt am"
 		},
+		"fetchingMetadata": "Metadaten werden abgerufen...",
+		"refreshMetadata": "Metadaten aktualisieren",
+		"fetchError": "Metadaten von dieser URL konnten nicht abgerufen werden",
+		"tracks": "Tracks",
+		"trackCount": "{count, plural, =1 {1 Track} other {{count} Tracks}}",
 		"openInBrowser": "Im Browser öffnen",
 		"importToLibrary": "In Bibliothek importieren",
 		"deleteRelease": "Release löschen",

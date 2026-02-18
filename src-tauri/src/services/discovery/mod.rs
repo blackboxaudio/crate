@@ -1,3 +1,5 @@
+pub mod metadata;
+
 use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
@@ -466,7 +468,7 @@ impl DiscoveryService {
 
 }
 
-fn detect_source_type(url: &str) -> String {
+pub(crate) fn detect_source_type(url: &str) -> String {
     let url_lower = url.to_lowercase();
     if url_lower.contains("bandcamp.com") {
         "bandcamp".to_string()

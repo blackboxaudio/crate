@@ -150,6 +150,11 @@
 			"tags": "Tags",
 			"dateAdded": "Date d'ajout"
 		},
+		"fetchingMetadata": "Récupération des métadonnées...",
+		"refreshMetadata": "Actualiser les métadonnées",
+		"fetchError": "Impossible de récupérer les métadonnées à partir de cette URL",
+		"tracks": "Pistes",
+		"trackCount": "{count, plural, =1 {1 piste} other {{count} pistes}}",
 		"openInBrowser": "Ouvrir dans le navigateur",
 		"importToLibrary": "Importer dans la bibliothèque",
 		"deleteRelease": "Supprimer la sortie",

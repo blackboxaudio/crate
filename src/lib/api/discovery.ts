@@ -1,5 +1,11 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate, DiscoveryFilter } from '$lib/types'
+import type {
+	DiscoveryRelease,
+	DiscoveryReleaseCreate,
+	DiscoveryReleaseUpdate,
+	DiscoveryFilter,
+	FetchedMetadata,
+} from '$lib/types'
 
 export async function createRelease(create: DiscoveryReleaseCreate): Promise<DiscoveryRelease> {
 	return invoke<DiscoveryRelease>('create_discovery_release', { create })
@@ -31,4 +37,12 @@ export async function assignTags(releaseIds: string[], tagIds: string[]): Promis
 
 export async function removeTags(releaseIds: string[], tagIds: string[]): Promise<void> {
 	return invoke<void>('remove_discovery_tags', { releaseIds, tagIds })
+}
+
+export async function fetchMetadata(url: string): Promise<FetchedMetadata> {
+	return invoke<FetchedMetadata>('fetch_release_metadata', { url })
+}
+
+export async function refreshMetadata(id: string): Promise<DiscoveryRelease> {
+	return invoke<DiscoveryRelease>('refresh_release_metadata', { id })
 }

@@ -150,6 +150,11 @@
 			"tags": "Taggar",
 			"dateAdded": "Tillagd"
 		},
+		"fetchingMetadata": "Hämtar metadata...",
+		"refreshMetadata": "Uppdatera metadata",
+		"fetchError": "Kunde inte hämta metadata från denna URL",
+		"tracks": "Spår",
+		"trackCount": "{count, plural, =1 {1 spår} other {{count} spår}}",
 		"openInBrowser": "Öppna i webbläsare",
 		"importToLibrary": "Importera till bibliotek",
 		"deleteRelease": "Ta bort utgåva",

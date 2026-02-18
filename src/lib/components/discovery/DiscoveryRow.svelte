@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$lib/types'
-	import { formatRelativeDate } from '$lib/utils'
+	import { formatDate, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import { AlbumArt, IconButton, Text, Tooltip } from '$lib/components/common'
 	import { dragStore } from '$lib/stores'
@@ -53,6 +53,14 @@
 		}
 	}
 
+	const sourceLabels: Record<string, string> = {
+		bandcamp: 'Bandcamp',
+		soundcloud: 'SoundCloud',
+		youtube: 'YouTube',
+		discogs: 'Discogs',
+		other: 'Other',
+	}
+
 	function handlePointerUp() {
 		pointerStartPos = null
 		isDragStarted = false
@@ -63,7 +71,7 @@
 	role="row"
 	tabindex="0"
 	data-release-row
-	class="grid cursor-pointer grid-cols-[40px_1fr_1fr_1fr_100px_40px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+	class="grid cursor-pointer grid-cols-[40px_1.25fr_0.6fr_1fr_110px_110px_100px_40px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'}"
 	{onclick}
@@ -77,7 +85,7 @@
 >
 	<!-- Artwork -->
 	<div class="flex justify-center">
-		<AlbumArt artworkPath={release.artwork_path} size="xs" />
+		<AlbumArt artworkPath={release.artwork_path} artworkUrl={release.artwork_url} size="xs" />
 	</div>
 
 	<!-- Artist / Title -->
@@ -112,8 +120,18 @@
 		{/if}
 	</div>
 
+	<!-- Release Date -->
+	<div class="truncate text-text-tertiary">
+		{release.release_date ? formatDate(release.release_date) : ''}
+	</div>
+
+	<!-- Source -->
+	<div class="truncate text-text-tertiary">
+		{sourceLabels[release.source_type] ?? release.source_type}
+	</div>
+
 	<!-- Date Added -->
-	<div class="text-right text-text-tertiary">
+	<div class="truncate text-text-tertiary">
 		{formatRelativeDate(release.date_added)}
 	</div>
 

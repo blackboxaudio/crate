@@ -145,21 +145,21 @@ impl std::str::FromStr for AccentColor {
 #[serde(rename_all = "kebab-case")]
 pub enum Font {
     #[default]
-    IbmPlexMono,
-    JetBrainsMono,
-    FiraCode,
-    Inter,
     OpenSans,
+    Inter,
+    FiraCode,
+    JetBrainsMono,
+    IbmPlexMono,
 }
 
 impl std::fmt::Display for Font {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Font::IbmPlexMono => write!(f, "ibm-plex-mono"),
-            Font::JetBrainsMono => write!(f, "jetbrains-mono"),
-            Font::FiraCode => write!(f, "fira-code"),
-            Font::Inter => write!(f, "inter"),
             Font::OpenSans => write!(f, "open-sans"),
+            Font::Inter => write!(f, "inter"),
+            Font::FiraCode => write!(f, "fira-code"),
+            Font::JetBrainsMono => write!(f, "jetbrains-mono"),
+            Font::IbmPlexMono => write!(f, "ibm-plex-mono"),
         }
     }
 }
@@ -169,11 +169,11 @@ impl std::str::FromStr for Font {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "ibm-plex-mono" => Ok(Font::IbmPlexMono),
-            "jetbrains-mono" => Ok(Font::JetBrainsMono),
-            "fira-code" => Ok(Font::FiraCode),
-            "inter" => Ok(Font::Inter),
             "open-sans" => Ok(Font::OpenSans),
+            "inter" => Ok(Font::Inter),
+            "fira-code" => Ok(Font::FiraCode),
+            "jetbrains-mono" => Ok(Font::JetBrainsMono),
+            "ibm-plex-mono" => Ok(Font::IbmPlexMono),
             _ => Err(format!("Unknown font: {s}")),
         }
     }
