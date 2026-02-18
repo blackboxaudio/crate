@@ -195,6 +195,19 @@ function createDiscoveryStore() {
 			update((state) => ({ ...state, sort }))
 		},
 
+		/**
+		 * Update category_id for a tag across all releases
+		 */
+		updateTagCategory(tagId: string, newCategoryId: string) {
+			update((state) => ({
+				...state,
+				releases: state.releases.map((r) => ({
+					...r,
+					tags: r.tags.map((tag) => (tag.id === tagId ? { ...tag, category_id: newCategoryId } : tag)),
+				})),
+			}))
+		},
+
 		reset() {
 			set(initialState)
 		},

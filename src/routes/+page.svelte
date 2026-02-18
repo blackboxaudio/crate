@@ -335,6 +335,12 @@
 			onTagDropOnCategory: async (tagId: string, _sourceCategoryId: string, targetCategoryId: string) => {
 				try {
 					await tagsStore.moveTag(tagId, targetCategoryId)
+					libraryStore.updateTagCategory(tagId, targetCategoryId)
+					discoveryStore.updateTagCategory(tagId, targetCategoryId)
+					discoveryPlaylistReleases = discoveryPlaylistReleases.map((r) => ({
+						...r,
+						tags: r.tags.map((tag) => (tag.id === tagId ? { ...tag, category_id: targetCategoryId } : tag)),
+					}))
 				} catch (error) {
 					const message = error instanceof Error ? error.message : get(translate)('errors.tagNameConflict')
 					toastStore.error(message)
@@ -988,6 +994,12 @@
 	onTagMove={async (tag, targetCategoryId) => {
 		try {
 			await tagsStore.moveTag(tag.id, targetCategoryId)
+			libraryStore.updateTagCategory(tag.id, targetCategoryId)
+			discoveryStore.updateTagCategory(tag.id, targetCategoryId)
+			discoveryPlaylistReleases = discoveryPlaylistReleases.map((r) => ({
+				...r,
+				tags: r.tags.map((t) => (t.id === tag.id ? { ...t, category_id: targetCategoryId } : t)),
+			}))
 		} catch (error) {
 			const message = error instanceof Error ? error.message : get(translate)('errors.tagNameConflict')
 			toastStore.error(message)

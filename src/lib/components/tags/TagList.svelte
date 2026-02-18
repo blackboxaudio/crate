@@ -42,6 +42,7 @@
 	let dragTagId: string | null = $state(null)
 	let dragCategoryId: string | null = $state(null)
 	let isDragActive = $state(false)
+	let didDrag = false
 
 	function handleTagPointerDown(e: PointerEvent, tag: Tag, categoryId: string) {
 		if (isToggleMode || e.button !== 0) return
@@ -58,6 +59,7 @@
 		const distance = getDistance(pointerStartPos.x, pointerStartPos.y, e.clientX, e.clientY)
 		if (distance >= DRAG_THRESHOLD) {
 			isDragActive = true
+			didDrag = true
 			dragStore.startTagDrag(dragTagId, dragCategoryId, e.clientX, e.clientY)
 		}
 	}
@@ -67,6 +69,7 @@
 		dragTagId = null
 		dragCategoryId = null
 		isDragActive = false
+		// Note: didDrag is NOT reset here — it's consumed by handleTagClick
 	}
 
 	function handleContainerContextMenu(e: MouseEvent) {
@@ -90,6 +93,10 @@
 	}
 
 	function handleTagClick(tag: Tag) {
+		if (didDrag) {
+			didDrag = false
+			return
+		}
 		if (isToggleMode && onTagToggle && tagStates) {
 			const state = tagStates.get(tag.id) || 'inactive'
 			onTagToggle(tag.id, state)
