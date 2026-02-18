@@ -48,7 +48,7 @@
 					<Icon name="warning" class="h-5 w-5 flex-shrink-0 text-warning" />
 					<div class="space-y-1">
 						{#each warnings as warning (warning)}
-							<p class="text-sm text-warning">{warning}</p>
+							<Text color="warning">{warning}</Text>
 						{/each}
 					</div>
 				</div>

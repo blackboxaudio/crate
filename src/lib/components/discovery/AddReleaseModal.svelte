@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { DiscoveryReleaseCreate, DiscoverySourceType } from '$lib/types'
-	import { Modal, Input, Select, Button } from '$lib/components/common'
+	import { Modal, Input, Select, Button, Text } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
 
 	type Props = {
@@ -74,9 +74,9 @@
 <Modal {open} title={$translate('discovery.addRelease')} onClose={handleClose}>
 	<div class="flex flex-col gap-4">
 		<div>
-			<label for="release-url" class="mb-1.5 block text-sm font-medium text-text-secondary">
+			<Text as="label" for="release-url" size="sm" weight="medium" color="secondary" class="mb-1.5 block">
 				{$translate('discovery.url')}
-			</label>
+			</Text>
 			<Input
 				bind:value={url}
 				placeholder="https://..."
@@ -87,30 +87,30 @@
 		</div>
 
 		<div>
-			<label for="release-source" class="mb-1.5 block text-sm font-medium text-text-secondary">
+			<Text as="label" for="release-source" size="sm" weight="medium" color="secondary" class="mb-1.5 block">
 				{$translate('discovery.source')}
-			</label>
+			</Text>
 			<Select bind:value={sourceType} options={sourceOptions} />
 		</div>
 
 		<div>
-			<label for="release-artist" class="mb-1.5 block text-sm font-medium text-text-secondary">
+			<Text as="label" for="release-artist" size="sm" weight="medium" color="secondary" class="mb-1.5 block">
 				{$translate('library.columns.artist')}
-			</label>
+			</Text>
 			<Input bind:value={artist} placeholder={$translate('library.columns.artist')} />
 		</div>
 
 		<div>
-			<label for="release-title" class="mb-1.5 block text-sm font-medium text-text-secondary">
+			<Text as="label" for="release-title" size="sm" weight="medium" color="secondary" class="mb-1.5 block">
 				{$translate('library.columns.title')}
-			</label>
+			</Text>
 			<Input bind:value={title} placeholder={$translate('library.columns.title')} />
 		</div>
 
 		<div>
-			<label for="release-label" class="mb-1.5 block text-sm font-medium text-text-secondary">
+			<Text as="label" for="release-label" size="sm" weight="medium" color="secondary" class="mb-1.5 block">
 				{$translate('editor.label')}
-			</label>
+			</Text>
 			<Input bind:value={label} placeholder={$translate('editor.label')} />
 		</div>
 	</div>

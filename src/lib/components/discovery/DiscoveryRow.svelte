@@ -87,12 +87,12 @@
 
 	<!-- Artist / Title -->
 	<div class="flex flex-col justify-center truncate">
-		<span class="truncate font-medium text-text-primary">
+		<Text as="span" weight="medium" truncate>
 			{release.title || $translate('common.untitled')}
-		</span>
-		<span class="truncate text-xs text-text-tertiary">
+		</Text>
+		<Text as="span" variant="caption" truncate>
 			{release.artist || $translate('common.unknownArtist')}
-		</span>
+		</Text>
 	</div>
 
 	<!-- Label -->

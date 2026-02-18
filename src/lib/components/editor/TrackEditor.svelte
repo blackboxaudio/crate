@@ -7,6 +7,8 @@
 	import * as libraryApi from '$lib/api/library'
 	import type { Track, TrackUpdate } from '$lib/types'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import IconButton from '$lib/components/common/IconButton.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import EditorField from './EditorField.svelte'
 	import EditorArtwork from './EditorArtwork.svelte'
 	import { translate } from '$lib/i18n'
@@ -158,17 +160,12 @@
 <div class="flex h-full flex-col border-l border-stroke bg-surface-1">
 	<!-- Header -->
 	<div class="flex items-center justify-between px-4 py-4.5">
-		<h2 class="text-sm font-semibold text-text-primary">
+		<Text variant="header-2" as="h2">
 			{selectedTracks.length === 1
 				? $translate('editor.trackInfo')
 				: $translate('editor.tracksCount', { values: { count: selectedTracks.length } })}
-		</h2>
-		<button
-			class="rounded p-1 text-text-secondary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-primary"
-			onclick={handleClose}
-		>
-			<Icon name="x" class="h-4 w-4" />
-		</button>
+		</Text>
+		<IconButton icon="x" size="sm" onclick={handleClose} />
 	</div>
 
 	<!-- Scrollable content -->

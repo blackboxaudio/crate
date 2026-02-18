@@ -69,9 +69,9 @@
 
 			<!-- Volume Name Input -->
 			<div class="space-y-2">
-				<label for="volume-name" class="block text-sm font-medium text-text-primary">
+				<Text as="label" for="volume-name" weight="medium" class="block">
 					{$translate('devices.reformat.volumeName')}
-				</label>
+				</Text>
 				<input
 					id="volume-name"
 					type="text"

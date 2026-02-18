@@ -4,6 +4,7 @@
 	import { getStoredSet, setStoredSet } from '$lib/utils'
 	import { translate } from '$lib/i18n'
 	import PlaylistItem from './PlaylistItem.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import { SvelteSet } from 'svelte/reactivity'
 
 	const EXPANDED_STORAGE_KEY = 'expandedPlaylistIds'
@@ -121,6 +122,6 @@
 	{/each}
 
 	{#if playlists.length === 0}
-		<p class="py-4 text-center text-xs text-text-tertiary italic">{$translate('playlists.noPlaylistsYet')}</p>
+		<Text variant="caption" italic class="py-4 text-center">{$translate('playlists.noPlaylistsYet')}</Text>
 	{/if}
 </div>

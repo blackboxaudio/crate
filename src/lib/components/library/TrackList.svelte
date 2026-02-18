@@ -6,6 +6,7 @@
 	import TrackListHeader from './TrackListHeader.svelte'
 	import TrackRow from './TrackRow.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 
 	type Props = {
 		tracks: Track[]
@@ -103,15 +104,15 @@
 			<div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-brand-muted">
 				<div class="rounded-lg border-2 border-dashed border-brand-primary bg-surface-1/90 px-8 py-6 text-center">
 					<Icon name="upload" class="mx-auto mb-2 h-10 w-10 text-brand-primary" />
-					<p class="text-sm font-medium text-brand-primary">Drop audio files to import</p>
+					<Text variant="body-2" color="brand">Drop audio files to import</Text>
 				</div>
 			</div>
 		{/if}
 		{#if tracks.length === 0}
 			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
 				<Icon name="music-note" class="mb-4 h-16 w-16" />
-				<p class="mb-2 text-lg font-medium">{$translate('library.noTracksYet')}</p>
-				<p class="text-sm">{$translate('library.dragDropHint')}</p>
+				<Text variant="header-1" weight="medium" class="mb-2">{$translate('library.noTracksYet')}</Text>
+				<Text color="tertiary">{$translate('library.dragDropHint')}</Text>
 			</div>
 		{:else}
 			{#each tracks as track (track.id)}

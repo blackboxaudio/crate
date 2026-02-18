@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MIXED_PLACEHOLDER } from '$lib/utils'
+	import Text from '$lib/components/common/Text.svelte'
 
 	type Props = {
 		label: string
@@ -63,7 +64,7 @@
 </script>
 
 <label class="block space-y-1">
-	<span class="block text-xs font-medium text-text-secondary">{label}</span>
+	<Text as="span" size="xs" weight="medium" color="secondary" class="block">{label}</Text>
 	<input
 		{type}
 		value={inputValue}

@@ -2,6 +2,7 @@
 	import Modal from './Modal.svelte'
 	import Button from './Button.svelte'
 	import Icon from './Icon.svelte'
+	import Text from './Text.svelte'
 	import { translate } from '$lib/i18n'
 	import type { Playlist } from '$lib/types'
 
@@ -38,9 +39,9 @@
 			</div>
 		{/if}
 
-		<p class="text-sm text-text-secondary">
+		<Text color="secondary">
 			{$translate('modals.conflict.message', { values: { type: conflictTypeName, name: conflictingItem?.name } })}
-		</p>
+		</Text>
 
 		<div class="space-y-3">
 			<!-- Merge option -->
@@ -57,8 +58,8 @@
 						<Icon name={isFolder ? 'folder' : 'music-note'} class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">{$translate('modals.conflict.merge')}</p>
-						<p class="mt-0.5 text-xs text-text-secondary">
+						<Text variant="body-2">{$translate('modals.conflict.merge')}</Text>
+						<Text variant="caption" color="secondary" class="mt-0.5">
 							{#if canMerge}
 								{#if isFolder}
 									{$translate('modals.conflict.mergeFolder')}
@@ -68,7 +69,7 @@
 							{:else}
 								{$translate('modals.conflict.mergeNotAvailable')}
 							{/if}
-						</p>
+						</Text>
 					</div>
 				</div>
 			</button>
@@ -87,8 +88,8 @@
 						<Icon name="refresh" class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">{$translate('modals.conflict.replace')}</p>
-						<p class="mt-0.5 text-xs text-text-secondary">
+						<Text variant="body-2">{$translate('modals.conflict.replace')}</Text>
+						<Text variant="caption" color="secondary" class="mt-0.5">
 							{#if canOverwrite}
 								{$translate('modals.conflict.replaceDescription', {
 									values: { type: conflictTypeName, item: itemTypeName },
@@ -96,7 +97,7 @@
 							{:else}
 								{$translate('modals.conflict.replaceNotAvailable')}
 							{/if}
-						</p>
+						</Text>
 					</div>
 				</div>
 			</button>
@@ -106,13 +107,13 @@
 			<div class="rounded-md border border-warning/20 bg-warning/10 p-3">
 				<div class="flex gap-2">
 					<Icon name="warning" class="h-5 w-5 flex-shrink-0 text-warning" />
-					<p class="text-sm text-warning">
+					<Text color="warning">
 						{#if isFolder}
 							{$translate('modals.conflict.replaceFolderWarning')}
 						{:else}
 							{$translate('modals.conflict.replacePlaylistWarning')}
 						{/if}
-					</p>
+					</Text>
 				</div>
 			</div>
 		{/if}

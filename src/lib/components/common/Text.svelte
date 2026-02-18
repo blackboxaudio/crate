@@ -14,7 +14,7 @@
 
 	type TextSize = 'xs' | 'sm' | 'base' | 'lg'
 	type TextWeight = 'normal' | 'medium' | 'semibold' | 'bold'
-	type TextColor = 'primary' | 'secondary' | 'tertiary' | 'brand' | 'danger'
+	type TextColor = 'primary' | 'secondary' | 'tertiary' | 'brand' | 'danger' | 'warning' | 'success'
 	type TextElement = 'p' | 'span' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6' | 'div' | 'label'
 	type TextTracking = 'normal' | 'wide' | 'wider'
 
@@ -146,6 +146,8 @@
 		tertiary: 'text-text-tertiary',
 		brand: 'text-brand-primary',
 		danger: 'text-danger',
+		warning: 'text-warning',
+		success: 'text-success',
 	}
 
 	const trackingStyles: Record<TextTracking, string> = {

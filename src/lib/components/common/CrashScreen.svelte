@@ -4,6 +4,7 @@
 	import Icon from './Icon.svelte'
 	import IconButton from './IconButton.svelte'
 	import Button from './Button.svelte'
+	import Text from './Text.svelte'
 	import Tooltip from './Tooltip.svelte'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
@@ -74,15 +75,15 @@
 					<Icon name="alert-circle" class="h-5 w-5 text-danger" />
 				</div>
 				<div>
-					<h2 class="text-lg font-semibold text-text-primary">{$translate('crash.title')}</h2>
-					<p class="text-sm text-text-secondary">{$translate('crash.description')}</p>
+					<Text variant="header-1">{$translate('crash.title')}</Text>
+					<Text color="secondary">{$translate('crash.description')}</Text>
 				</div>
 			</div>
 
 			<!-- Error details box -->
 			<div class="mb-4 rounded-md border border-stroke bg-surface-2 p-3">
 				<div class="mb-2 flex items-center justify-between">
-					<span class="text-xs font-medium text-text-secondary">{$translate('crash.errorDetails')}</span>
+					<Text as="span" variant="caption" weight="medium" color="secondary">{$translate('crash.errorDetails')}</Text>
 					<Tooltip bind:this={copyTooltip} position="left">
 						<IconButton
 							size="sm"

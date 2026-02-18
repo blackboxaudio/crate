@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Track } from '$lib/types'
 	import { getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
-	import { AlbumArt, AlbumArtModal } from '$lib/components/common'
+	import { AlbumArt, AlbumArtModal, Text } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
 
 	type Props = {
@@ -31,14 +31,14 @@
 	<!-- Track info -->
 	<div class="min-w-0 flex-1">
 		{#if track}
-			<p class="truncate text-sm font-medium text-text-primary">
+			<Text variant="body-2" truncate>
 				{getTrackDisplayName(track)}
-			</p>
-			<p class="truncate text-xs text-text-secondary">
+			</Text>
+			<Text variant="caption" as="p" color="secondary" truncate>
 				{getTrackDisplayArtist(track)}
-			</p>
+			</Text>
 		{:else}
-			<p class="text-sm text-text-tertiary">{$translate('player.noTrackSelected')}</p>
+			<Text color="tertiary">{$translate('player.noTrackSelected')}</Text>
 		{/if}
 	</div>
 </div>

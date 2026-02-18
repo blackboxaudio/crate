@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte'
 	import Modal from '$lib/components/common/Modal.svelte'
 	import Button from '$lib/components/common/Button.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import { translate } from '$lib/i18n'
 	import { getPendingCheckpoint } from '$lib/api/export'
 	import type { ExportCheckpoint } from '$lib/types'
@@ -57,24 +58,24 @@
 	<div class="failure-content">
 		<div class="error-icon">⚠️</div>
 
-		<p class="error-message">{error}</p>
+		<Text>{error}</Text>
 
 		{#if filesCopied > 0}
-			<p class="files-info">
+			<Text color="secondary" class="rounded-md bg-surface-2 px-3 py-2">
 				{$translate('export.filesCopiedBeforeFailure', { values: { count: filesCopied } })}
-			</p>
+			</Text>
 		{/if}
 
 		{#if checkpoint && !checkingCheckpoint}
 			<div class="checkpoint-info">
-				<p class="checkpoint-label">{$translate('export.checkpointAvailable')}</p>
-				<p class="checkpoint-detail">
+				<Text variant="body-2" class="mb-1">{$translate('export.checkpointAvailable')}</Text>
+				<Text variant="caption" color="secondary">
 					{$translate('export.tracksCompleted', { values: { count: checkpoint.tracks_completed.length } })}
-				</p>
+				</Text>
 			</div>
 		{/if}
 
-		<p class="action-prompt">{$translate('export.whatToDo')}</p>
+		<Text color="tertiary">{$translate('export.whatToDo')}</Text>
 	</div>
 
 	{#snippet footer()}
@@ -106,44 +107,10 @@
 		font-size: 48px;
 	}
 
-	.error-message {
-		color: var(--text-primary);
-		font-size: 14px;
-		margin: 0;
-	}
-
-	.files-info {
-		color: var(--text-secondary);
-		font-size: 13px;
-		margin: 0;
-		padding: 8px 12px;
-		background: var(--bg-secondary);
-		border-radius: 6px;
-	}
-
 	.checkpoint-info {
 		padding: 12px 16px;
 		background: var(--bg-tertiary);
 		border-radius: 8px;
 		border: 1px solid var(--border-primary);
-	}
-
-	.checkpoint-label {
-		color: var(--text-primary);
-		font-size: 13px;
-		font-weight: 500;
-		margin: 0 0 4px 0;
-	}
-
-	.checkpoint-detail {
-		color: var(--text-secondary);
-		font-size: 12px;
-		margin: 0;
-	}
-
-	.action-prompt {
-		color: var(--text-tertiary);
-		font-size: 13px;
-		margin: 0;
 	}
 </style>

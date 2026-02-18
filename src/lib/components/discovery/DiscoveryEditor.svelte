@@ -4,6 +4,8 @@
 	import { toastStore } from '$lib/stores/toast'
 	import type { DiscoveryRelease, DiscoveryReleaseUpdate, DiscoveryStatus } from '$lib/types'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import IconButton from '$lib/components/common/IconButton.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import Select from '$lib/components/common/Select.svelte'
 	import EditorField from '$lib/components/editor/EditorField.svelte'
 	import { translate } from '$lib/i18n'
@@ -124,17 +126,12 @@
 <div class="flex h-full flex-col border-l border-stroke bg-surface-1">
 	<!-- Header -->
 	<div class="flex items-center justify-between px-4 py-4.5">
-		<h2 class="text-sm font-semibold text-text-primary">
+		<Text variant="header-2" as="h2">
 			{selectedReleases.length === 1
 				? $translate('discovery.editor.releaseInfo')
 				: $translate('discovery.editor.releasesCount', { values: { count: selectedReleases.length } })}
-		</h2>
-		<button
-			class="rounded p-1 text-text-secondary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-primary"
-			onclick={handleClose}
-		>
-			<Icon name="x" class="h-4 w-4" />
-		</button>
+		</Text>
+		<IconButton icon="x" size="sm" onclick={handleClose} />
 	</div>
 
 	<!-- Scrollable content -->
@@ -194,7 +191,9 @@
 
 			<!-- Status dropdown -->
 			<label class="block space-y-1">
-				<span class="block text-xs font-medium text-text-secondary">{$translate('discovery.editor.status')}</span>
+				<Text as="span" size="xs" weight="medium" color="secondary" class="block"
+					>{$translate('discovery.editor.status')}</Text
+				>
 				<Select
 					value={formData.status ?? bulkInfo.status.value ?? 'unlistened'}
 					options={statusOptions}

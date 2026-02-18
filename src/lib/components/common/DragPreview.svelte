@@ -55,8 +55,10 @@
 					{getTrackDisplayName(track)}
 				</Text>
 				<div class="flex items-center gap-2 text-xs text-text-secondary">
-					<span class="max-w-32 truncate">{getTrackDisplayArtist(track)}</span>
-					<span class="tabular-nums">{formatDurationCompact(track.duration_ms)}</span>
+					<Text as="span" variant="caption" color="secondary" truncate class="max-w-32"
+						>{getTrackDisplayArtist(track)}</Text
+					>
+					<Text as="span" variant="caption" color="secondary" tabular>{formatDurationCompact(track.duration_ms)}</Text>
 				</div>
 			</div>
 

@@ -5,6 +5,7 @@
 	import { formatFileSize } from '$lib/utils'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import IconButton from '$lib/components/common/IconButton.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import Checkbox from '$lib/components/common/Checkbox.svelte'
@@ -227,16 +228,16 @@
 		<Icon name="usb" class="h-4 w-4 shrink-0" />
 
 		<div class="min-w-0 flex-1">
-			<div class="truncate text-sm font-medium">{device.name}</div>
+			<Text as="div" variant="body-2" truncate>{device.name}</Text>
 			{#if isConnected}
-				<div class="text-xs text-text-tertiary">
+				<Text as="div" variant="caption">
 					{formatFileSize(device.available_space_bytes)}
 					{$translate('devices.free')}
-				</div>
+				</Text>
 			{:else}
-				<div class="text-xs text-text-tertiary">
+				<Text as="div" variant="caption">
 					{$translate('settings.library.deviceNotConnected')}
-				</div>
+				</Text>
 			{/if}
 		</div>
 
@@ -283,9 +284,9 @@
 					{currentTrackName() || $translate('export.exporting')}
 				</span>
 				<Tooltip text={tooltipText} position="bottom">
-					<span class="text-xs whitespace-nowrap text-text-secondary">
+					<Text as="span" variant="caption" color="secondary" class="whitespace-nowrap">
 						{effectiveProgress.files_copied} / {effectiveProgress.files_total}
-					</span>
+					</Text>
 				</Tooltip>
 			</div>
 

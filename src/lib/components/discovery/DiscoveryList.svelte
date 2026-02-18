@@ -5,6 +5,7 @@
 	import DiscoveryListHeader from './DiscoveryListHeader.svelte'
 	import DiscoveryRow from './DiscoveryRow.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 
 	type Props = {
 		releases: DiscoveryRelease[]
@@ -85,8 +86,8 @@
 		{#if releases.length === 0}
 			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
 				<Icon name="globe" class="mb-4 h-16 w-16" />
-				<p class="mb-2 text-lg font-medium">{$translate('discovery.noReleasesYet')}</p>
-				<p class="max-w-sm text-center text-sm">{$translate('discovery.addReleaseHint')}</p>
+				<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.noReleasesYet')}</Text>
+				<Text color="tertiary" class="max-w-sm text-center">{$translate('discovery.addReleaseHint')}</Text>
 			</div>
 		{:else}
 			{#each releases as release (release.id)}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 	import { scale } from 'svelte/transition'
+	import Text from './Text.svelte'
 
 	type Props = {
 		open: boolean
@@ -59,7 +60,7 @@
 		>
 			{#if title}
 				<div class="border-b border-stroke-subtle px-4 py-3">
-					<h2 class="text-lg font-medium">{title}</h2>
+					<Text variant="header-1" weight="medium">{title}</Text>
 				</div>
 			{/if}
 
