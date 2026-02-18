@@ -73,7 +73,7 @@ impl SettingsService {
         let continuous_playback = self
             .get_setting_value(&conn, "continuous_playback")?
             .map(|v| v == "true")
-            .unwrap_or(false);
+            .unwrap_or(true);
 
         let auto_fetch_metadata = self
             .get_setting_value(&conn, "auto_fetch_metadata")?

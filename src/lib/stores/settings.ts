@@ -56,7 +56,7 @@ const initialState: SettingsState = {
 	autoAnalyzeOnImport: true,
 	autoSyncOnConnect: false,
 	autoSyncOnChange: false,
-	continuousPlayback: false,
+	continuousPlayback: true,
 	autoFetchMetadata: true,
 	transferTagsOnImport: true,
 	removeReleaseAfterImport: true,

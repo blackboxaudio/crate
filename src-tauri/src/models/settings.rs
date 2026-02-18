@@ -279,7 +279,7 @@ impl Default for AppSettings {
             auto_analyze_on_import: true,
             auto_sync_on_connect: false,
             auto_sync_on_change: false,
-            continuous_playback: false,
+            continuous_playback: true,
             auto_fetch_metadata: true,
             transfer_tags_on_import: true,
             remove_release_after_import: true,
