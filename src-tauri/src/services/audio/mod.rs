@@ -1,3 +1,5 @@
+mod fade;
+
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -17,6 +19,8 @@ use symphonia::core::probe::Hint;
 
 use crate::error::{CrateError, Result};
 use crate::models::AudioDevice;
+
+use fade::FadeOutEnding;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlaybackState {
@@ -439,6 +443,7 @@ fn handle_command(
                 Err(e) => return AudioResponse::Error(format!("Failed to decode audio: {e}")),
             };
 
+            let source = FadeOutEnding::new(source, duration_ms);
             sink.append(source);
             sink.set_volume(*current_volume);
 
@@ -594,6 +599,7 @@ fn handle_command(
                         }
                     };
 
+                    let source = FadeOutEnding::new(source, duration_ms);
                     sink.append(source);
                     sink.set_volume(*current_volume);
 
