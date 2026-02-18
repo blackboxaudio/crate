@@ -38,7 +38,14 @@
 		},
 		"general": {
 			"language": "Taal",
-			"languageDescription": "Kies de weergavetaal voor de applicatie."
+			"languageDescription": "Kies de weergavetaal voor de applicatie.",
+			"dateFormat": "Datumformaat",
+			"dateFormatDescription": "Kies hoe datums in de applicatie worden weergegeven.",
+			"dateFormatLocale": "Systeemstandaard",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "Europees (DD/MM/YYYY)",
+			"dateFormatDot": "Punt (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Analyse",
@@ -148,7 +155,9 @@
 			"artistTitle": "Artiest / Titel",
 			"label": "Label",
 			"tags": "Tags",
-			"dateAdded": "Toegevoegd op"
+			"dateAdded": "Toegevoegd op",
+			"released": "Uitgebracht",
+			"added": "Toegevoegd"
 		},
 		"fetchingMetadata": "Metagegevens ophalen...",
 		"refreshMetadata": "Metagegevens vernieuwen",
@@ -167,6 +176,18 @@
 			"label": "Label",
 			"releaseDate": "Releasedatum",
 			"notes": "Opmerkingen"
+		},
+		"import": {
+			"title": "Importeren naar bibliotheek",
+			"selectFiles": "Bestanden selecteren",
+			"matched": "Gekoppeld",
+			"unmatched": "Niet gekoppeld",
+			"importAllFiles": "Alle bestanden importeren",
+			"transferTags": "Tags overdragen",
+			"transferTagsCount": "Tags overdragen ({count})",
+			"importing": "Importeren...",
+			"noFilesSelected": "Geen bestanden geselecteerd",
+			"filesSelected": "{count, plural, =1 {1 bestand} other {{count} bestanden}} geselecteerd"
 		}
 	},
 	"playlists": {
@@ -189,6 +210,7 @@
 		"deleteCategory": "Categorie verwijderen",
 		"addCategory": "Categorie toevoegen",
 		"addTag": "Tag toevoegen",
+		"moveToCategory": "Verplaatsen naar categorie",
 		"noTags": "Geen tags",
 		"noTagCategoriesYet": "Nog geen tagcategorieën"
 	},
@@ -329,7 +351,8 @@
 		"cannotDropIntoSelf": "Kan een map niet in zichzelf slepen",
 		"cannotDropIntoSubfolder": "Kan een map niet in zijn eigen submap slepen",
 		"analysisFailed": "Analyse mislukt",
-		"exportInProgress": "Exporteren is al bezig"
+		"exportInProgress": "Exporteren is al bezig",
+		"tagNameConflict": "Een tag met deze naam bestaat al in de doelcategorie"
 	},
 	"devices": {
 		"title": "Apparaten",

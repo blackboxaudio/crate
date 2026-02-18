@@ -32,21 +32,14 @@
 		}
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
-			e.preventDefault()
-			handleSubmit()
-		}
-	}
-
 	function handleCancel() {
 		inputValue = ''
 		onCancel()
 	}
 </script>
 
-<Modal {open} {title} onClose={handleCancel}>
-	<Input bind:value={inputValue} {placeholder} autofocus onkeydown={handleKeydown} />
+<Modal {open} {title} onClose={handleCancel} onSubmit={handleSubmit}>
+	<Input bind:value={inputValue} {placeholder} autofocus />
 
 	{#snippet footer()}
 		<Button variant="ghost" onclick={handleCancel}>{$translate('common.cancel')}</Button>

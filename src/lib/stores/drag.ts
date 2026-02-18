@@ -8,6 +8,7 @@ export type DragData =
 	| { type: 'tracks'; trackIds: string[] }
 	| { type: 'releases'; releaseIds: string[] }
 	| { type: 'playlist'; playlistId: string; isFolder: boolean }
+	| { type: 'tag'; tagId: string; sourceCategoryId: string }
 
 interface DragState {
 	data: DragData | null
@@ -63,6 +64,18 @@ function createDragStore() {
 		startPlaylistDrag(playlistId: string, isFolder: boolean, x: number, y: number) {
 			set({
 				data: { type: 'playlist', playlistId, isFolder },
+				position: { x, y },
+				hoveredDropTarget: null,
+				needsDropTargetRefresh: false,
+			})
+		},
+
+		/**
+		 * Start dragging a tag
+		 */
+		startTagDrag(tagId: string, sourceCategoryId: string, x: number, y: number) {
+			set({
+				data: { type: 'tag', tagId, sourceCategoryId },
 				position: { x, y },
 				hoveredDropTarget: null,
 				needsDropTargetRefresh: false,
@@ -148,5 +161,7 @@ export const isDraggingTracks = derived(dragStore, ($drag) => $drag.data?.type =
 export const isDraggingReleases = derived(dragStore, ($drag) => $drag.data?.type === 'releases')
 
 export const isDraggingPlaylist = derived(dragStore, ($drag) => $drag.data?.type === 'playlist')
+
+export const isDraggingTag = derived(dragStore, ($drag) => $drag.data?.type === 'tag')
 
 export const needsDropTargetRefresh = derived(dragStore, ($drag) => $drag.needsDropTargetRefresh)

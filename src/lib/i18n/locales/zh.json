@@ -38,7 +38,14 @@
 		},
 		"general": {
 			"language": "语言",
-			"languageDescription": "选择应用程序的显示语言。"
+			"languageDescription": "选择应用程序的显示语言。",
+			"dateFormat": "日期格式",
+			"dateFormatDescription": "选择应用程序中日期的显示方式。",
+			"dateFormatLocale": "系统默认",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "欧洲 (DD/MM/YYYY)",
+			"dateFormatDot": "点 (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "分析",
@@ -148,7 +155,9 @@
 			"artistTitle": "艺术家 / 标题",
 			"label": "厂牌",
 			"tags": "标签",
-			"dateAdded": "添加日期"
+			"dateAdded": "添加日期",
+			"released": "发行日期",
+			"added": "已添加"
 		},
 		"fetchingMetadata": "正在获取元数据...",
 		"refreshMetadata": "刷新元数据",
@@ -167,6 +176,18 @@
 			"label": "厂牌",
 			"releaseDate": "发行日期",
 			"notes": "备注"
+		},
+		"import": {
+			"title": "导入到音乐库",
+			"selectFiles": "选择文件",
+			"matched": "已匹配",
+			"unmatched": "未匹配",
+			"importAllFiles": "导入所有文件",
+			"transferTags": "转移标签",
+			"transferTagsCount": "转移标签 ({count})",
+			"importing": "导入中...",
+			"noFilesSelected": "未选择文件",
+			"filesSelected": "已选择 {count, plural, =1 {1 个文件} other {{count} 个文件}}"
 		}
 	},
 	"playlists": {
@@ -189,6 +210,7 @@
 		"deleteCategory": "删除分类",
 		"addCategory": "添加分类",
 		"addTag": "添加标签",
+		"moveToCategory": "移动到分类",
 		"noTags": "暂无标签",
 		"noTagCategoriesYet": "暂无标签分类"
 	},
@@ -329,7 +351,8 @@
 		"cannotDropIntoSelf": "无法将文件夹拖放到自身内部",
 		"cannotDropIntoSubfolder": "无法将文件夹拖放到其子文件夹内",
 		"analysisFailed": "分析失败",
-		"exportInProgress": "导出已在进行中"
+		"exportInProgress": "导出已在进行中",
+		"tagNameConflict": "目标分类中已存在同名标签"
 	},
 	"devices": {
 		"title": "设备",

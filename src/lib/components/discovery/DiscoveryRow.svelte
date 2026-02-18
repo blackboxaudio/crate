@@ -3,7 +3,7 @@
 	import { formatDate, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import { AlbumArt, IconButton, Text, Tooltip } from '$lib/components/common'
-	import { dragStore } from '$lib/stores'
+	import { dateFormat, dragStore } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
 
@@ -120,14 +120,14 @@
 		{/if}
 	</div>
 
-	<!-- Release Date -->
-	<div class="truncate text-text-tertiary">
-		{release.release_date ? formatDate(release.release_date) : ''}
-	</div>
-
 	<!-- Source -->
 	<div class="truncate text-text-tertiary">
 		{sourceLabels[release.source_type] ?? release.source_type}
+	</div>
+
+	<!-- Release Date -->
+	<div class="truncate text-text-tertiary">
+		{release.release_date ? formatDate(release.release_date, $dateFormat) : ''}
 	</div>
 
 	<!-- Date Added -->

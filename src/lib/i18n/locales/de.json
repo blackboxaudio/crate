@@ -38,7 +38,14 @@
 		},
 		"general": {
 			"language": "Sprache",
-			"languageDescription": "Wählen Sie die Anzeigesprache für die Anwendung."
+			"languageDescription": "Wählen Sie die Anzeigesprache für die Anwendung.",
+			"dateFormat": "Datumsformat",
+			"dateFormatDescription": "Wählen Sie, wie Daten in der gesamten Anwendung angezeigt werden.",
+			"dateFormatLocale": "Systemstandard",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "Europäisch (DD/MM/YYYY)",
+			"dateFormatDot": "Punkt (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Analyse",
@@ -148,7 +155,9 @@
 			"artistTitle": "Künstler / Titel",
 			"label": "Label",
 			"tags": "Tags",
-			"dateAdded": "Hinzugefügt am"
+			"dateAdded": "Hinzugefügt am",
+			"released": "Veröffentlicht",
+			"added": "Hinzugefügt"
 		},
 		"fetchingMetadata": "Metadaten werden abgerufen...",
 		"refreshMetadata": "Metadaten aktualisieren",
@@ -167,6 +176,18 @@
 			"label": "Label",
 			"releaseDate": "Release-Datum",
 			"notes": "Notizen"
+		},
+		"import": {
+			"title": "In Bibliothek importieren",
+			"selectFiles": "Dateien auswählen",
+			"matched": "Zugeordnet",
+			"unmatched": "Nicht zugeordnet",
+			"importAllFiles": "Alle Dateien importieren",
+			"transferTags": "Tags übertragen",
+			"transferTagsCount": "Tags übertragen ({count})",
+			"importing": "Wird importiert...",
+			"noFilesSelected": "Keine Dateien ausgewählt",
+			"filesSelected": "{count, plural, =1 {1 Datei} other {{count} Dateien}} ausgewählt"
 		}
 	},
 	"playlists": {
@@ -189,6 +210,7 @@
 		"deleteCategory": "Kategorie löschen",
 		"addCategory": "Kategorie hinzufügen",
 		"addTag": "Tag hinzufügen",
+		"moveToCategory": "In Kategorie verschieben",
 		"noTags": "Keine Tags",
 		"noTagCategoriesYet": "Noch keine Tag-Kategorien"
 	},
@@ -329,7 +351,8 @@
 		"cannotDropIntoSelf": "Ein Ordner kann nicht in sich selbst gezogen werden",
 		"cannotDropIntoSubfolder": "Ein Ordner kann nicht in seinen eigenen Unterordner gezogen werden",
 		"analysisFailed": "Analyse fehlgeschlagen",
-		"exportInProgress": "Export läuft bereits"
+		"exportInProgress": "Export läuft bereits",
+		"tagNameConflict": "Ein Tag mit diesem Namen existiert bereits in der Zielkategorie"
 	},
 	"devices": {
 		"title": "Geräte",

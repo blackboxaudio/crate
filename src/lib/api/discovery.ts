@@ -5,6 +5,7 @@ import type {
 	DiscoveryReleaseUpdate,
 	DiscoveryFilter,
 	FetchedMetadata,
+	ImportResultWithDuplicates,
 } from '$lib/types'
 
 export async function createRelease(create: DiscoveryReleaseCreate): Promise<DiscoveryRelease> {
@@ -45,4 +46,16 @@ export async function fetchMetadata(url: string): Promise<FetchedMetadata> {
 
 export async function refreshMetadata(id: string): Promise<DiscoveryRelease> {
 	return invoke<DiscoveryRelease>('refresh_release_metadata', { id })
+}
+
+export async function purchaseRelease(
+	releaseId: string,
+	filePaths: string[],
+	transferTags: boolean
+): Promise<ImportResultWithDuplicates> {
+	return invoke<ImportResultWithDuplicates>('purchase_discovery_release', {
+		releaseId,
+		filePaths,
+		transferTags,
+	})
 }

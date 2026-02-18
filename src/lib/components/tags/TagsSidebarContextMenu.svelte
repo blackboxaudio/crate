@@ -12,10 +12,9 @@
 		onClose: () => void
 		onClosed?: () => void
 		onAddCategory: () => void
-		onAddTag: () => void
 	}
 
-	let { open, x, y, categoryCount, onClose, onClosed, onAddCategory, onAddTag }: Props = $props()
+	let { open, x, y, categoryCount, onClose, onClosed, onAddCategory }: Props = $props()
 
 	const menuItems = $derived<ContextMenuItem[]>([
 		{
@@ -24,13 +23,6 @@
 			icon: 'plus',
 			disabled: categoryCount >= 4,
 			action: onAddCategory,
-		},
-		{
-			id: 'add-tag',
-			label: get(translate)('tags.addTag'),
-			icon: 'tag',
-			disabled: categoryCount === 0,
-			action: onAddTag,
 		},
 	])
 </script>

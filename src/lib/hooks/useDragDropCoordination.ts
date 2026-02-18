@@ -15,6 +15,7 @@ export interface DragDropCoordinationConfig {
 	onReleasesDropOnPlaylist: (playlistId: string, releaseIds: string[]) => Promise<void>
 	onPlaylistMove: (playlistId: string, targetFolderId: string | null) => Promise<void>
 	onPlaylistExportToDevice: (playlistId: string, isFolder: boolean, deviceId: string) => Promise<void>
+	onTagDropOnCategory?: (tagId: string, sourceCategoryId: string, targetCategoryId: string) => Promise<void>
 }
 
 // =============================================================================
@@ -32,8 +33,14 @@ export interface DragDropCoordinationConfig {
  * @returns Cleanup function to remove event listeners
  */
 export function useDragDropCoordination(config: DragDropCoordinationConfig): () => void {
-	const { getPlaylists, onTracksDropOnPlaylist, onReleasesDropOnPlaylist, onPlaylistMove, onPlaylistExportToDevice } =
-		config
+	const {
+		getPlaylists,
+		onTracksDropOnPlaylist,
+		onReleasesDropOnPlaylist,
+		onPlaylistMove,
+		onPlaylistExportToDevice,
+		onTagDropOnCategory,
+	} = config
 
 	let dropTargets: DropTarget[] = []
 	let rafId: number | null = null
@@ -121,6 +128,11 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 			} else if (data.type === 'playlist' && target.type === 'device') {
 				// Dropping a playlist/folder on a device - export immediately
 				onPlaylistExportToDevice(data.playlistId, data.isFolder, target.id)
+			} else if (data.type === 'tag' && target.type === 'category') {
+				// Dropping a tag on a category - move it
+				if (data.sourceCategoryId !== target.id) {
+					onTagDropOnCategory?.(data.tagId, data.sourceCategoryId, target.id)
+				}
 			}
 		}
 

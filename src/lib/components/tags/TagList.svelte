@@ -4,6 +4,8 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { Text, Tooltip } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
+	import { dragStore, isDraggingTag, hoveredDropTarget } from '$lib/stores'
+	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 
 	type Props = {
 		categories: TagCategory[]
@@ -35,10 +37,42 @@
 		onWhitespaceContextMenu,
 	}: Props = $props()
 
+	// Drag state tracking
+	let pointerStartPos: { x: number; y: number } | null = $state(null)
+	let dragTagId: string | null = $state(null)
+	let dragCategoryId: string | null = $state(null)
+	let isDragActive = $state(false)
+
+	function handleTagPointerDown(e: PointerEvent, tag: Tag, categoryId: string) {
+		if (isToggleMode || e.button !== 0) return
+		pointerStartPos = { x: e.clientX, y: e.clientY }
+		dragTagId = tag.id
+		dragCategoryId = categoryId
+		isDragActive = false
+	}
+
+	function handleTagPointerMove(e: PointerEvent) {
+		if (!pointerStartPos || !dragTagId || !dragCategoryId) return
+		if (isDragActive) return
+
+		const distance = getDistance(pointerStartPos.x, pointerStartPos.y, e.clientX, e.clientY)
+		if (distance >= DRAG_THRESHOLD) {
+			isDragActive = true
+			dragStore.startTagDrag(dragTagId, dragCategoryId, e.clientX, e.clientY)
+		}
+	}
+
+	function handleTagPointerUp() {
+		pointerStartPos = null
+		dragTagId = null
+		dragCategoryId = null
+		isDragActive = false
+	}
+
 	function handleContainerContextMenu(e: MouseEvent) {
 		const target = e.target as HTMLElement
 		// Don't trigger if clicking on a tag, category, or button
-		if (target.closest('[data-tag]') || target.closest('[role="group"]') || target.closest('button')) return
+		if (target.closest('[data-tag]') || target.closest('[data-category]') || target.closest('button')) return
 		if (onWhitespaceContextMenu) {
 			e.preventDefault()
 			onWhitespaceContextMenu(e)
@@ -69,7 +103,12 @@
 	{#each categories as category (category.id)}
 		<div>
 			<div
-				class="group mb-2 flex items-center justify-between py-1.5 pr-1.5 pl-3"
+				class="group mb-2 flex items-center justify-between rounded-sm py-1.5 pr-1.5 pl-3 transition-colors {$isDraggingTag &&
+				$hoveredDropTarget === `category-${category.id}`
+					? 'bg-brand-primary/10 ring-brand-primary/30 ring-1'
+					: ''}"
+				data-category
+				data-drop-target="category-{category.id}"
 				role="group"
 				aria-label="{category.name} category"
 				oncontextmenu={(e) => handleCategoryContextMenu(e, category)}
@@ -87,17 +126,31 @@
 					</button>
 				</Tooltip>
 			</div>
-			<div class="flex flex-wrap gap-1.5 px-3">
+			<div
+				class="flex flex-wrap gap-1.5 px-3"
+				oncontextmenu={(e) => {
+					if ((e.target as HTMLElement).closest('[data-tag]')) return
+					e.stopPropagation()
+					handleCategoryContextMenu(e, category)
+				}}
+			>
 				{#each category.tags.toSorted((a, b) => a.name.localeCompare(b.name)) as tag (tag.id)}
-					<TagChip
-						{tag}
-						color={category.color}
-						state={isToggleMode ? tagStates?.get(tag.id) : undefined}
-						selectionCount={isToggleMode ? tagCounts?.get(tag.id) : undefined}
-						selectionTotal={isToggleMode ? selectedTrackCount : undefined}
-						onclick={() => handleTagClick(tag)}
-						oncontextmenu={(e) => handleTagContextMenu(e, tag, category)}
-					/>
+					<span
+						onpointerdown={(e) => handleTagPointerDown(e, tag, category.id)}
+						onpointermove={handleTagPointerMove}
+						onpointerup={handleTagPointerUp}
+						onpointercancel={handleTagPointerUp}
+					>
+						<TagChip
+							{tag}
+							color={category.color}
+							state={isToggleMode ? tagStates?.get(tag.id) : undefined}
+							selectionCount={isToggleMode ? tagCounts?.get(tag.id) : undefined}
+							selectionTotal={isToggleMode ? selectedTrackCount : undefined}
+							onclick={() => handleTagClick(tag)}
+							oncontextmenu={(e) => handleTagContextMenu(e, tag, category)}
+						/>
+					</span>
 				{/each}
 				{#if category.tags.length === 0}
 					<Text variant="caption" italic>{$translate('tags.noTags')}</Text>

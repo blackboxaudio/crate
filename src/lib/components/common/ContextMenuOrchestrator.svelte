@@ -73,15 +73,19 @@
 		onPlaylistViewImport: (playlist: Playlist) => void
 
 		// Tag callbacks
+		onTagAddTag: (categoryId: string) => void
 		onTagRename: (tag: Tag) => void
 		onTagDelete: (tag: Tag) => void
+		onTagMove?: (tag: Tag, targetCategoryId: string) => void
 		onCategoryRename: (category: TagCategory) => void
 		onCategoryDelete: (category: TagCategory) => void
 		onCategoryChangeColor: (category: TagCategory, color: string | null) => void
 
+		// Tag categories for move submenu
+		tagCategories?: TagCategory[]
+
 		// TagsSidebar callbacks
 		onTagsSidebarAddCategory: () => void
-		onTagsSidebarAddTag: () => void
 
 		// Device callbacks
 		onDeviceViewInfo: (device: UsbDevice) => void
@@ -126,13 +130,15 @@
 		onPlaylistTreeCreateFolder,
 		onLibraryViewImport,
 		onPlaylistViewImport,
+		onTagAddTag,
 		onTagRename,
 		onTagDelete,
+		onTagMove,
 		onCategoryRename,
 		onCategoryDelete,
 		onCategoryChangeColor,
+		tagCategories = [],
 		onTagsSidebarAddCategory,
-		onTagsSidebarAddTag,
 		onDeviceViewInfo,
 		onDeviceRevealInFinder,
 		onDeviceReformat,
@@ -412,6 +418,11 @@
 	}
 
 	// Tag handlers
+	function handleTagAddTag(categoryId: string) {
+		closeAll()
+		onTagAddTag(categoryId)
+	}
+
 	function handleTagRename(tag: Tag) {
 		closeAll()
 		onTagRename(tag)
@@ -420,6 +431,11 @@
 	function handleTagDelete(tag: Tag) {
 		closeAll()
 		onTagDelete(tag)
+	}
+
+	function handleTagMove(tag: Tag, targetCategoryId: string) {
+		closeAll()
+		onTagMove?.(tag, targetCategoryId)
 	}
 
 	function handleCategoryRename(category: TagCategory) {
@@ -441,11 +457,6 @@
 	function handleTagsSidebarAddCategory() {
 		closeAll()
 		onTagsSidebarAddCategory()
-	}
-
-	function handleTagsSidebarAddTag() {
-		closeAll()
-		onTagsSidebarAddTag()
 	}
 
 	// Device handlers
@@ -630,10 +641,15 @@
 		x={visibleMenu.x}
 		y={visibleMenu.y}
 		target={visibleMenu.target}
+		categories={tagCategories}
+		{categoryCount}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
+		onAddCategory={handleTagsSidebarAddCategory}
+		onAddTag={handleTagAddTag}
 		onRenameTag={handleTagRename}
 		onDeleteTag={handleTagDelete}
+		onMoveTag={handleTagMove}
 		onRenameCategory={handleCategoryRename}
 		onDeleteCategory={handleCategoryDelete}
 		onChangeColor={handleCategoryChangeColor}
@@ -650,7 +666,6 @@
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onAddCategory={handleTagsSidebarAddCategory}
-		onAddTag={handleTagsSidebarAddTag}
 	/>
 {/if}
 

@@ -1,11 +1,14 @@
+use std::path::PathBuf;
+
 use tauri::State;
 
 use crate::error::Result;
 use crate::models::{
     DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate,
+    ImportResultWithDuplicates,
 };
 use crate::services::discovery::metadata::{self, FetchedMetadata};
-use crate::services::DiscoveryService;
+use crate::services::{DiscoveryService, LibraryService, TagService};
 
 #[tauri::command]
 pub async fn create_discovery_release(
@@ -105,4 +108,29 @@ pub async fn refresh_release_metadata(
     }
 
     discovery.update_release(&id, update)
+}
+
+#[tauri::command]
+pub async fn purchase_discovery_release(
+    release_id: String,
+    file_paths: Vec<String>,
+    transfer_tags: bool,
+    discovery: State<'_, DiscoveryService>,
+    library: State<'_, LibraryService>,
+    tag: State<'_, TagService>,
+) -> Result<ImportResultWithDuplicates> {
+    let release = discovery.get_release(&release_id)?;
+
+    let pathbufs: Vec<PathBuf> = file_paths.into_iter().map(PathBuf::from).collect();
+    let result = library.import_tracks_with_duplicate_detection(pathbufs)?;
+
+    if transfer_tags && !release.tags.is_empty() && !result.tracks.is_empty() {
+        let track_ids: Vec<String> = result.tracks.iter().map(|t| t.id.clone()).collect();
+        let tag_ids: Vec<String> = release.tags.iter().map(|t| t.id.clone()).collect();
+        tag.assign_tags(track_ids, tag_ids)?;
+    }
+
+    discovery.delete_release(&release_id)?;
+
+    Ok(result)
 }

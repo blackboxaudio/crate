@@ -7,11 +7,12 @@
 		open: boolean
 		title?: string
 		onClose: () => void
+		onSubmit?: () => void
 		children: Snippet
 		footer?: Snippet
 	}
 
-	let { open, title, onClose, children, footer }: Props = $props()
+	let { open, title, onClose, onSubmit, children, footer }: Props = $props()
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
 	let visible = $state(false)
@@ -35,6 +36,12 @@
 		if (e.key === 'Escape') {
 			e.preventDefault()
 			onClose()
+		} else if (e.key === 'Enter' && onSubmit) {
+			const target = e.target as HTMLElement
+			if (target.tagName !== 'TEXTAREA' && target.tagName !== 'BUTTON') {
+				e.preventDefault()
+				onSubmit()
+			}
 		}
 	}
 
@@ -64,7 +71,7 @@
 				</div>
 			{/if}
 
-			<div class="px-4 py-4">
+			<div class="min-h-0 overflow-y-auto px-4 py-4">
 				{@render children()}
 			</div>
 

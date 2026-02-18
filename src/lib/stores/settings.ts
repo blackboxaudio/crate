@@ -1,6 +1,15 @@
 import { tick } from 'svelte'
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor, Font, AudioDevice, Language, KeyNotationFormat, ExportFormat } from '$lib/types'
+import type {
+	Theme,
+	AccentColor,
+	Font,
+	AudioDevice,
+	Language,
+	KeyNotationFormat,
+	DateFormat,
+	ExportFormat,
+} from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
 import { setLanguage as setI18nLanguage, translate } from '$lib/i18n'
@@ -19,6 +28,7 @@ interface SettingsState {
 	audioDevices: AudioDevice[]
 	language: Language
 	keyNotationFormat: KeyNotationFormat
+	dateFormat: DateFormat
 	exportFormat: ExportFormat
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
@@ -37,6 +47,7 @@ const initialState: SettingsState = {
 	audioDevices: [],
 	language: 'en',
 	keyNotationFormat: 'camelot',
+	dateFormat: 'locale',
 	exportFormat: 'pdb',
 	autoAnalyzeOnImport: true,
 	autoSyncOnConnect: false,
@@ -211,6 +222,7 @@ function createSettingsStore() {
 					audioDevices,
 					language: settings.language,
 					keyNotationFormat: settings.keyNotationFormat,
+					dateFormat: settings.dateFormat ?? 'locale',
 					exportFormat: settings.exportFormat ?? 'pdb',
 					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
 					autoSyncOnConnect: settings.autoSyncOnConnect,
@@ -341,6 +353,19 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set date format
+		 */
+		async setDateFormat(format: DateFormat) {
+			update((s) => ({ ...s, dateFormat: format }))
+
+			try {
+				await settingsApi.setSetting('date_format', format)
+			} catch (error) {
+				console.error('Failed to save date format setting:', error)
+			}
+		},
+
+		/**
 		 * Set export format (pdb or device_library_plus)
 		 */
 		async setExportFormat(format: ExportFormat) {
@@ -466,6 +491,8 @@ export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
 export const language = derived(settingsStore, ($s) => $s.language)
 
 export const keyNotationFormat = derived(settingsStore, ($s) => $s.keyNotationFormat)
+
+export const dateFormat = derived(settingsStore, ($s) => $s.dateFormat)
 
 export const exportFormat = derived(settingsStore, ($s) => $s.exportFormat)
 

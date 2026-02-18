@@ -112,11 +112,31 @@ export function formatBytes(bytes: number | null | undefined): string {
 }
 
 /**
- * Format date string to localized display
+ * Format date string to localized display based on format preference.
+ * Uses UTC getters for date-only strings (YYYY-MM-DD) to avoid timezone day-shift.
  */
-export function formatDate(dateStr: string): string {
+export function formatDate(dateStr: string, format: 'locale' | 'iso' | 'us' | 'eu' | 'dot' = 'locale'): string {
 	const date = new Date(dateStr)
-	return date.toLocaleDateString()
+	const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+	const y = isDateOnly ? date.getUTCFullYear() : date.getFullYear()
+	const m = isDateOnly ? date.getUTCMonth() : date.getMonth()
+	const d = isDateOnly ? date.getUTCDate() : date.getDate()
+	const mm = String(m + 1).padStart(2, '0')
+	const dd = String(d).padStart(2, '0')
+
+	switch (format) {
+		case 'iso':
+			return `${y}-${mm}-${dd}`
+		case 'us':
+			return `${mm}/${dd}/${y}`
+		case 'eu':
+			return `${dd}/${mm}/${y}`
+		case 'dot':
+			return `${dd}.${mm}.${y}`
+		case 'locale':
+		default:
+			return isDateOnly ? new Date(Date.UTC(y, m, d)).toLocaleDateString() : date.toLocaleDateString()
+	}
 }
 
 /**

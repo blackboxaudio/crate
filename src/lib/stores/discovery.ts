@@ -5,6 +5,7 @@ import type {
 	DiscoveryReleaseUpdate,
 	DiscoveryFilter,
 	DiscoverySortConfig,
+	ImportResultWithDuplicates,
 } from '$lib/types'
 import * as discoveryApi from '$lib/api/discovery'
 import { toastStore } from './toast'
@@ -156,6 +157,26 @@ function createDiscoveryStore() {
 				toastStore.error(
 					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to remove tags'
 				)
+			}
+		},
+
+		async purchaseRelease(
+			releaseId: string,
+			filePaths: string[],
+			transferTags: boolean
+		): Promise<ImportResultWithDuplicates | null> {
+			try {
+				const result = await discoveryApi.purchaseRelease(releaseId, filePaths, transferTags)
+				update((state) => ({
+					...state,
+					releases: state.releases.filter((r) => r.id !== releaseId),
+				}))
+				return result
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to import release'
+				)
+				return null
 			}
 		},
 

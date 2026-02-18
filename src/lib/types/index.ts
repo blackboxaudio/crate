@@ -422,6 +422,8 @@ export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | '
 
 export type KeyNotationFormat = 'standard' | 'camelot'
 
+export type DateFormat = 'locale' | 'iso' | 'us' | 'eu' | 'dot'
+
 export type ExportFormat = 'pdb' | 'device_library_plus'
 
 export type SettingsPage = 'general' | 'library' | 'appearance' | 'sound' | 'diagnostics' | 'about'
@@ -433,6 +435,7 @@ export interface AppSettings {
 	audioDevice: string | null
 	language: Language
 	keyNotationFormat: KeyNotationFormat
+	dateFormat: DateFormat
 	exportFormat: ExportFormat
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean

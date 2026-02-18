@@ -48,6 +48,11 @@ impl SettingsService {
             .and_then(|v| v.parse().ok())
             .unwrap_or_default();
 
+        let date_format = self
+            .get_setting_value(&conn, "date_format")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
         // Default to true if not set (enabled by default)
         let auto_analyze_on_import = self
             .get_setting_value(&conn, "auto_analyze_on_import")?
@@ -78,6 +83,7 @@ impl SettingsService {
             audio_device,
             language,
             key_notation_format,
+            date_format,
             auto_analyze_on_import,
             auto_sync_on_connect,
             auto_sync_on_change,

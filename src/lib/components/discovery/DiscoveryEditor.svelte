@@ -1,8 +1,11 @@
 <script lang="ts">
 	import { discoveryStore } from '$lib/stores/discovery'
+	import { dateFormat } from '$lib/stores/settings'
 	import { uiStore } from '$lib/stores/ui'
 	import { toastStore } from '$lib/stores/toast'
+	import { formatDate } from '$lib/utils'
 	import type { DiscoveryRelease, DiscoveryReleaseUpdate } from '$lib/types'
+	import Button from '$lib/components/common/Button.svelte'
 	import IconButton from '$lib/components/common/IconButton.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -14,9 +17,10 @@
 
 	type Props = {
 		selectedReleases: DiscoveryRelease[]
+		onImport?: (release: DiscoveryRelease) => void
 	}
 
-	let { selectedReleases }: Props = $props()
+	let { selectedReleases, onImport }: Props = $props()
 
 	// Compute bulk info from selected releases
 	let bulkInfo = $derived(computeBulkReleaseInfo(selectedReleases))
@@ -191,7 +195,10 @@
 			/>
 			<EditorField
 				label={$translate('discovery.editor.releaseDate')}
-				value={formData.release_date ?? bulkInfo.releaseDate.value}
+				value={(() => {
+					const raw = formData.release_date ?? bulkInfo.releaseDate.value
+					return raw ? formatDate(raw, $dateFormat) : null
+				})()}
 				mixed={bulkInfo.releaseDate.mixed && formData.release_date === undefined}
 				disabled={true}
 			/>
@@ -203,5 +210,14 @@
 				onblur={handleSave}
 			/>
 		</div>
+
+		<!-- Import button -->
+		{#if selectedReleases.length === 1 && onImport}
+			<div class="border-t border-stroke pt-4">
+				<Button variant="outline" class="w-full" onclick={() => onImport?.(selectedReleases[0])}>
+					{$translate('discovery.importToLibrary')}
+				</Button>
+			</div>
+		{/if}
 	</div>
 </div>

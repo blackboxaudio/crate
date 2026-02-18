@@ -54,6 +54,15 @@ pub async fn update_tag(
 }
 
 #[tauri::command]
+pub async fn move_tag(
+    tag_id: String,
+    target_category_id: String,
+    tags: State<'_, TagService>,
+) -> Result<Tag> {
+    tags.move_tag(&tag_id, &target_category_id)
+}
+
+#[tauri::command]
 pub async fn delete_tag(id: String, tags: State<'_, TagService>) -> Result<()> {
     tags.delete_tag(&id)
 }

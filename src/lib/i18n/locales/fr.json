@@ -38,7 +38,14 @@
 		},
 		"general": {
 			"language": "Langue",
-			"languageDescription": "Choisissez la langue d'affichage de l'application."
+			"languageDescription": "Choisissez la langue d'affichage de l'application.",
+			"dateFormat": "Format de date",
+			"dateFormatDescription": "Choisissez comment les dates sont affichées dans l'application.",
+			"dateFormatLocale": "Paramètre système par défaut",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "Européen (DD/MM/YYYY)",
+			"dateFormatDot": "Point (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Analyse",
@@ -148,7 +155,9 @@
 			"artistTitle": "Artiste / Titre",
 			"label": "Label",
 			"tags": "Tags",
-			"dateAdded": "Date d'ajout"
+			"dateAdded": "Date d'ajout",
+			"released": "Date de sortie",
+			"added": "Ajouté"
 		},
 		"fetchingMetadata": "Récupération des métadonnées...",
 		"refreshMetadata": "Actualiser les métadonnées",
@@ -167,6 +176,18 @@
 			"label": "Label",
 			"releaseDate": "Date de sortie",
 			"notes": "Notes"
+		},
+		"import": {
+			"title": "Importer dans la bibliothèque",
+			"selectFiles": "Sélectionner les fichiers",
+			"matched": "Correspondant",
+			"unmatched": "Non correspondant",
+			"importAllFiles": "Importer tous les fichiers",
+			"transferTags": "Transférer les tags",
+			"transferTagsCount": "Transférer les tags ({count})",
+			"importing": "Importation...",
+			"noFilesSelected": "Aucun fichier sélectionné",
+			"filesSelected": "{count, plural, =1 {1 fichier} other {{count} fichiers}} sélectionné(s)"
 		}
 	},
 	"playlists": {
@@ -189,6 +210,7 @@
 		"deleteCategory": "Supprimer la catégorie",
 		"addCategory": "Ajouter une catégorie",
 		"addTag": "Ajouter un tag",
+		"moveToCategory": "Déplacer vers la catégorie",
 		"noTags": "Aucun tag",
 		"noTagCategoriesYet": "Aucune catégorie de tag pour le moment"
 	},
@@ -329,7 +351,8 @@
 		"cannotDropIntoSelf": "Impossible de déposer un dossier dans lui-même",
 		"cannotDropIntoSubfolder": "Impossible de déposer un dossier dans son propre sous-dossier",
 		"analysisFailed": "Échec de l'analyse",
-		"exportInProgress": "Exportation déjà en cours"
+		"exportInProgress": "Exportation déjà en cours",
+		"tagNameConflict": "Un tag portant ce nom existe déjà dans la catégorie cible"
 	},
 	"devices": {
 		"title": "Appareils",

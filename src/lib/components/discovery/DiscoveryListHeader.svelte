@@ -36,9 +36,9 @@
 		{ field: 'artist', labelKey: 'discovery.columns.artistTitle', align: 'left' },
 		{ field: 'label', labelKey: 'discovery.columns.label', align: 'left' },
 		{ field: 'tags', labelKey: 'discovery.columns.tags', align: 'left' },
-		{ field: 'release_date', labelKey: 'discovery.editor.releaseDate', align: 'left' },
 		{ field: 'source_type', labelKey: 'discovery.source', align: 'left' },
-		{ field: 'date_added', labelKey: 'discovery.columns.dateAdded', align: 'left' },
+		{ field: 'release_date', labelKey: 'discovery.columns.released', align: 'left' },
+		{ field: 'date_added', labelKey: 'discovery.columns.added', align: 'left' },
 		{ field: null, labelKey: '', align: 'center' },
 	]
 </script>

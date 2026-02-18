@@ -208,6 +208,44 @@ impl std::str::FromStr for KeyNotationFormat {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum DateFormat {
+    #[default]
+    Locale,
+    Iso,
+    Us,
+    Eu,
+    Dot,
+}
+
+impl std::fmt::Display for DateFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            DateFormat::Locale => write!(f, "locale"),
+            DateFormat::Iso => write!(f, "iso"),
+            DateFormat::Us => write!(f, "us"),
+            DateFormat::Eu => write!(f, "eu"),
+            DateFormat::Dot => write!(f, "dot"),
+        }
+    }
+}
+
+impl std::str::FromStr for DateFormat {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "locale" => Ok(DateFormat::Locale),
+            "iso" => Ok(DateFormat::Iso),
+            "us" => Ok(DateFormat::Us),
+            "eu" => Ok(DateFormat::Eu),
+            "dot" => Ok(DateFormat::Dot),
+            _ => Err(format!("Unknown date format: {s}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
@@ -217,6 +255,7 @@ pub struct AppSettings {
     pub audio_device: Option<String>,
     pub language: Language,
     pub key_notation_format: KeyNotationFormat,
+    pub date_format: DateFormat,
     pub auto_analyze_on_import: bool,
     pub auto_sync_on_connect: bool,
     pub auto_sync_on_change: bool,
@@ -232,6 +271,7 @@ impl Default for AppSettings {
             audio_device: None,
             language: Language::default(),
             key_notation_format: KeyNotationFormat::default(),
+            date_format: DateFormat::default(),
             auto_analyze_on_import: true,
             auto_sync_on_connect: false,
             auto_sync_on_change: false,

@@ -253,6 +253,7 @@ body {
 	background-color: var(--surface-0);
 	color: var(--text-primary);
 	font-family: var(--font-family);
+	cursor: default;
 	-webkit-user-select: none;
 	user-select: none;
 }

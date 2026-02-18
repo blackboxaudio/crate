@@ -15,13 +15,18 @@
 		x: number
 		y: number
 		target: ContextTarget
+		categories?: TagCategory[]
+		categoryCount: number
 		onClose: () => void
 		onClosed?: () => void
+		onAddCategory: () => void
+		onAddTag: (categoryId: string) => void
 		onRenameTag: (tag: Tag) => void
 		onDeleteTag: (tag: Tag) => void
 		onRenameCategory: (category: TagCategory) => void
 		onDeleteCategory: (category: TagCategory) => void
 		onChangeColor?: (category: TagCategory, color: string | null) => void
+		onMoveTag?: (tag: Tag, targetCategoryId: string) => void
 	}
 
 	let {
@@ -29,13 +34,18 @@
 		x,
 		y,
 		target,
+		categories = [],
+		categoryCount,
 		onClose,
 		onClosed,
+		onAddCategory,
+		onAddTag,
 		onRenameTag,
 		onDeleteTag,
 		onRenameCategory,
 		onDeleteCategory,
 		onChangeColor,
+		onMoveTag,
 	}: Props = $props()
 
 	const menuItems = $derived<ContextMenuItem[]>(() => {
@@ -50,6 +60,21 @@
 				icon: 'pencil',
 				action: () => onRenameTag(target.tag),
 			})
+			if (onMoveTag && categoryCount >= 2) {
+				const moveTargets = categories.filter((c) => c.id !== target.category.id)
+				const submenuItems: ContextMenuItem[] = moveTargets.map((c) => ({
+					id: `move-to-${c.id}`,
+					label: c.name,
+					colorDot: c.color ?? undefined,
+					action: () => onMoveTag(target.tag, c.id),
+				}))
+				items.push({
+					id: 'move-to-category',
+					label: get(translate)('tags.moveToCategory'),
+					icon: 'folder-arrow',
+					submenu: submenuItems,
+				})
+			}
 			items.push({ id: 'divider-1', label: '', divider: true })
 			items.push({
 				id: 'delete-tag',
@@ -59,6 +84,20 @@
 				action: () => onDeleteTag(target.tag),
 			})
 		} else if (target.type === 'category') {
+			items.push({
+				id: 'add-category',
+				label: get(translate)('tags.addCategory'),
+				icon: 'plus',
+				disabled: categoryCount >= 4,
+				action: onAddCategory,
+			})
+			items.push({
+				id: 'add-tag',
+				label: get(translate)('tags.addTag'),
+				icon: 'tag',
+				action: () => onAddTag(target.category.id),
+			})
+			items.push({ id: 'divider-0', label: '', divider: true })
 			items.push({
 				id: 'rename-category',
 				label: get(translate)('tags.renameCategory'),

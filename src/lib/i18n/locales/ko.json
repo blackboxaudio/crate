@@ -38,7 +38,14 @@
 		},
 		"general": {
 			"language": "언어",
-			"languageDescription": "애플리케이션의 표시 언어를 선택하세요."
+			"languageDescription": "애플리케이션의 표시 언어를 선택하세요.",
+			"dateFormat": "날짜 형식",
+			"dateFormatDescription": "애플리케이션 전체에서 날짜가 표시되는 방식을 선택하세요.",
+			"dateFormatLocale": "시스템 기본값",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "유럽식 (DD/MM/YYYY)",
+			"dateFormatDot": "점 (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "분석",
@@ -148,7 +155,9 @@
 			"artistTitle": "아티스트 / 제목",
 			"label": "레이블",
 			"tags": "태그",
-			"dateAdded": "추가 날짜"
+			"dateAdded": "추가 날짜",
+			"released": "릴리스 날짜",
+			"added": "추가됨"
 		},
 		"fetchingMetadata": "메타데이터 가져오는 중...",
 		"refreshMetadata": "메타데이터 새로 고침",
@@ -167,6 +176,18 @@
 			"label": "레이블",
 			"releaseDate": "릴리스 날짜",
 			"notes": "노트"
+		},
+		"import": {
+			"title": "라이브러리로 가져오기",
+			"selectFiles": "파일 선택",
+			"matched": "일치함",
+			"unmatched": "일치하지 않음",
+			"importAllFiles": "모든 파일 가져오기",
+			"transferTags": "태그 전송",
+			"transferTagsCount": "태그 전송 ({count})",
+			"importing": "가져오는 중...",
+			"noFilesSelected": "선택된 파일 없음",
+			"filesSelected": "{count, plural, =1 {1개의 파일} other {{count}개의 파일}} 선택됨"
 		}
 	},
 	"playlists": {
@@ -189,6 +210,7 @@
 		"deleteCategory": "카테고리 삭제",
 		"addCategory": "카테고리 추가",
 		"addTag": "태그 추가",
+		"moveToCategory": "카테고리로 이동",
 		"noTags": "태그 없음",
 		"noTagCategoriesYet": "아직 태그 카테고리가 없습니다"
 	},
@@ -329,7 +351,8 @@
 		"cannotDropIntoSelf": "폴더를 자기 자신 안에 놓을 수 없습니다",
 		"cannotDropIntoSubfolder": "폴더를 자신의 하위 폴더 안에 놓을 수 없습니다",
 		"analysisFailed": "분석 실패",
-		"exportInProgress": "내보내기가 이미 진행 중입니다"
+		"exportInProgress": "내보내기가 이미 진행 중입니다",
+		"tagNameConflict": "대상 카테고리에 같은 이름의 태그가 이미 존재합니다"
 	},
 	"devices": {
 		"title": "장치",

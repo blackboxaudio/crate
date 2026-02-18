@@ -38,7 +38,7 @@
 	}
 </script>
 
-<Modal {open} {title} onClose={onCancel}>
+<Modal {open} {title} onClose={onCancel} onSubmit={handleConfirm}>
 	<div class="space-y-4">
 		<Text color="secondary">{message}</Text>
 

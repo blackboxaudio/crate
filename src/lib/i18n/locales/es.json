@@ -38,7 +38,14 @@
 		},
 		"general": {
 			"language": "Idioma",
-			"languageDescription": "Elige el idioma de visualización de la aplicación."
+			"languageDescription": "Elige el idioma de visualización de la aplicación.",
+			"dateFormat": "Formato de fecha",
+			"dateFormatDescription": "Elige cómo se muestran las fechas en toda la aplicación.",
+			"dateFormatLocale": "Predeterminado del sistema",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "Europeo (DD/MM/YYYY)",
+			"dateFormatDot": "Punto (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Análisis",
@@ -148,7 +155,9 @@
 			"artistTitle": "Artista / Título",
 			"label": "Sello",
 			"tags": "Etiquetas",
-			"dateAdded": "Fecha de adición"
+			"dateAdded": "Fecha de adición",
+			"released": "Lanzado",
+			"added": "Añadido"
 		},
 		"fetchingMetadata": "Obteniendo metadatos...",
 		"refreshMetadata": "Actualizar metadatos",
@@ -167,6 +176,18 @@
 			"label": "Sello",
 			"releaseDate": "Fecha de lanzamiento",
 			"notes": "Notas"
+		},
+		"import": {
+			"title": "Importar a la biblioteca",
+			"selectFiles": "Seleccionar archivos",
+			"matched": "Coincidente",
+			"unmatched": "No coincidente",
+			"importAllFiles": "Importar todos los archivos",
+			"transferTags": "Transferir etiquetas",
+			"transferTagsCount": "Transferir etiquetas ({count})",
+			"importing": "Importando...",
+			"noFilesSelected": "Sin archivos seleccionados",
+			"filesSelected": "{count, plural, =1 {1 archivo} other {{count} archivos}} seleccionado(s)"
 		}
 	},
 	"playlists": {
@@ -189,6 +210,7 @@
 		"deleteCategory": "Eliminar categoría",
 		"addCategory": "Añadir categoría",
 		"addTag": "Añadir etiqueta",
+		"moveToCategory": "Mover a categoría",
 		"noTags": "Sin etiquetas",
 		"noTagCategoriesYet": "Sin categorías de etiquetas aún"
 	},
@@ -329,7 +351,8 @@
 		"cannotDropIntoSelf": "No se puede soltar una carpeta dentro de sí misma",
 		"cannotDropIntoSubfolder": "No se puede soltar una carpeta dentro de su propia subcarpeta",
 		"analysisFailed": "Error en análisis",
-		"exportInProgress": "La exportación ya está en progreso"
+		"exportInProgress": "La exportación ya está en progreso",
+		"tagNameConflict": "Ya existe una etiqueta con este nombre en la categoría de destino"
 	},
 	"devices": {
 		"title": "Dispositivos",

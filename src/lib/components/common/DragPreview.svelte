@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Track, Playlist, DiscoveryRelease } from '$lib/types'
+	import type { Track, Playlist, DiscoveryRelease, TagCategory } from '$lib/types'
 	import type { DragData } from '$lib/stores/drag'
 	import { getTrackDisplayName, getTrackDisplayArtist, formatDurationCompact, getPlaylistById } from '$lib/utils'
 	import AlbumArt from './AlbumArt.svelte'
@@ -11,11 +11,12 @@
 		tracks: Track[]
 		releases: DiscoveryRelease[]
 		playlists: Playlist[]
+		tagCategories?: TagCategory[]
 		x: number
 		y: number
 	}
 
-	let { data, tracks, releases, playlists, x, y }: Props = $props()
+	let { data, tracks, releases, playlists, tagCategories = [], x, y }: Props = $props()
 
 	// Look up the first track when dragging tracks
 	const track = $derived.by(() => {
@@ -33,6 +34,16 @@
 	const playlist = $derived.by(() => {
 		if (data?.type !== 'playlist') return null
 		return getPlaylistById(playlists, data.playlistId)
+	})
+
+	// Look up the tag and its category color when dragging a tag
+	const draggedTag = $derived.by(() => {
+		if (data?.type !== 'tag') return null
+		for (const cat of tagCategories) {
+			const tag = cat.tags.find((t) => t.id === data.tagId)
+			if (tag) return { tag, categoryColor: cat.color }
+		}
+		return null
 	})
 
 	// Count for multi-item badge
@@ -110,6 +121,15 @@
 			<Text as="span" class="max-w-48 truncate text-sm text-text-primary">
 				{playlist.name}
 			</Text>
+		</div>
+	{:else if data?.type === 'tag' && draggedTag}
+		{@const color = draggedTag.categoryColor || draggedTag.tag.color || '#6366f1'}
+		<!-- Tag Preview -->
+		<div
+			class="inline-flex items-center rounded px-2 py-1 text-xs font-medium shadow-lg"
+			style="background-color: {color}20; color: {color}; border: 1px solid {color}40;"
+		>
+			{draggedTag.tag.name}
 		</div>
 	{/if}
 </div>

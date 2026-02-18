@@ -11,6 +11,7 @@
 		DiscoveryReleaseCreate,
 		DiscoveryFilter,
 		DiscoveryRelease,
+		ImportResultWithDuplicates,
 		Playlist,
 		TagCategory,
 		Tag,
@@ -70,9 +71,8 @@
 
 	import { Sidebar, Toolbar, RightSidebar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
-	import { DiscoveryView, AddReleaseModal, DiscoveryEditor } from '$lib/components/discovery'
+	import { DiscoveryView, AddReleaseModal, DiscoveryEditor, PurchaseReleaseModal } from '$lib/components/discovery'
 	import { TrackEditor } from '$lib/components/editor'
-	import { open } from '@tauri-apps/plugin-dialog'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { Player } from '$lib/components/player'
 	import {
@@ -101,6 +101,7 @@
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
 	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'date_added', direction: 'desc' })
 	let showAddReleaseModal = $state(false)
+	let purchaseRelease = $state<DiscoveryRelease | null>(null)
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
 	let devices = $state<UsbDevice[]>([])
@@ -331,6 +332,14 @@
 			},
 			onPlaylistMove: playlistController.handlePlaylistDragMove,
 			onPlaylistExportToDevice: exportController.handlePlaylistDropOnDevice,
+			onTagDropOnCategory: async (tagId: string, _sourceCategoryId: string, targetCategoryId: string) => {
+				try {
+					await tagsStore.moveTag(tagId, targetCategoryId)
+				} catch (error) {
+					const message = error instanceof Error ? error.message : get(translate)('errors.tagNameConflict')
+					toastStore.error(message)
+				}
+			},
 		})
 
 		return () => {
@@ -662,22 +671,29 @@
 		openUrl(release.url)
 	}
 
-	async function handleDiscoveryReleaseImport(release: DiscoveryRelease) {
-		const selected = await open({
-			multiple: true,
-			filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'] }],
-		})
-		if (!selected || !Array.isArray(selected) || selected.length === 0) return
+	function handleDiscoveryReleaseImport(release: DiscoveryRelease) {
+		purchaseRelease = release
+	}
 
-		const result = await libraryStore.importTracks(selected)
+	async function handlePurchaseComplete(result: ImportResultWithDuplicates) {
+		purchaseRelease = null
+		uiStore.clearReleaseSelection()
+
+		if (result.tracks.length > 0) {
+			libraryStore.addTracksToState(result.tracks)
+
+			if (get(settingsStore).autoAnalyzeOnImport) {
+				analysisStore
+					.analyzeTracks(result.tracks.map((t) => t.id))
+					.catch((error) => console.error('Auto-analysis failed:', error))
+			}
+		}
 
 		if (result.duplicates.length > 0) {
 			modalOrchestrator.openDuplicateTrackModal(result.duplicates, () => {
 				libraryStore.loadTracks()
 			})
 		}
-
-		await discoveryStore.deleteRelease(release.id)
 	}
 
 	async function handleDiscoveryReleaseRefreshMetadata(release: DiscoveryRelease) {
@@ -930,7 +946,7 @@
 					onResize={handleRightSidebarResize}
 				>
 					{#if $activeView === 'discovery'}
-						<DiscoveryEditor selectedReleases={selectedReleasesArray} />
+						<DiscoveryEditor selectedReleases={selectedReleasesArray} onImport={handleDiscoveryReleaseImport} />
 					{:else}
 						<TrackEditor selectedTracks={selectedTracksArray} />
 					{/if}
@@ -965,13 +981,22 @@
 	onPlaylistTreeCreateFolder={() => modalOrchestrator.openCreateFolderModal(null)}
 	onLibraryViewImport={trackController.handleImport}
 	onPlaylistViewImport={playlistController.handlePlaylistViewImport}
+	{tagCategories}
+	onTagAddTag={(categoryId) => modalOrchestrator.openCreateTagModal(categoryId)}
 	onTagRename={(tag) => modalOrchestrator.openRenameTagModal(tag)}
 	onTagDelete={(tag) => modalOrchestrator.openDeleteTagModal(tag)}
+	onTagMove={async (tag, targetCategoryId) => {
+		try {
+			await tagsStore.moveTag(tag.id, targetCategoryId)
+		} catch (error) {
+			const message = error instanceof Error ? error.message : get(translate)('errors.tagNameConflict')
+			toastStore.error(message)
+		}
+	}}
 	onCategoryRename={(category) => modalOrchestrator.openRenameCategoryModal(category)}
 	onCategoryDelete={(category) => modalOrchestrator.openDeleteCategoryModal(category)}
 	onCategoryChangeColor={tagController.changeCategoryColor}
 	onTagsSidebarAddCategory={() => modalOrchestrator.openCreateCategoryModal()}
-	onTagsSidebarAddTag={() => modalOrchestrator.openTagInputModal()}
 	onDeviceViewInfo={deviceController.handleViewDeviceInfo}
 	onDeviceRevealInFinder={deviceController.handleDeviceRevealInFinder}
 	onDeviceReformat={deviceController.handleDeviceReformat}
@@ -1112,6 +1137,16 @@
 	<AddReleaseModal open={true} onClose={() => (showAddReleaseModal = false)} onSubmit={handleAddRelease} />
 {/if}
 
+<!-- Purchase Release Modal -->
+{#if purchaseRelease}
+	<PurchaseReleaseModal
+		open={true}
+		release={purchaseRelease}
+		onClose={() => (purchaseRelease = null)}
+		onComplete={handlePurchaseComplete}
+	/>
+{/if}
+
 <!-- Drag Preview -->
 {#if $isDragging && $dragPosition}
 	<DragPreview
@@ -1119,6 +1154,7 @@
 		tracks={$libraryStore.tracks}
 		releases={allAvailableReleases}
 		{playlists}
+		{tagCategories}
 		x={$dragPosition.x}
 		y={$dragPosition.y}
 	/>

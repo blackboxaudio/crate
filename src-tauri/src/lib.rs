@@ -68,6 +68,7 @@ pub fn run() {
             commands::tag::delete_tag_category,
             commands::tag::create_tag,
             commands::tag::update_tag,
+            commands::tag::move_tag,
             commands::tag::delete_tag,
             commands::tag::assign_tags,
             commands::tag::remove_tags,
@@ -132,6 +133,7 @@ pub fn run() {
             commands::discovery::remove_discovery_tags,
             commands::discovery::fetch_release_metadata,
             commands::discovery::refresh_release_metadata,
+            commands::discovery::purchase_discovery_release,
         ])
         .setup(|app| {
             // Get Tauri's app data directory

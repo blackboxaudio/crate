@@ -17,6 +17,7 @@
 	let artist = $state('')
 	let title = $state('')
 	let label = $state('')
+	let releaseDate = $state('')
 
 	// Fetch state
 	let fetching = $state(false)
@@ -51,6 +52,7 @@
 		artist = ''
 		title = ''
 		label = ''
+		releaseDate = ''
 	}
 
 	function handleUrlInput() {
@@ -91,6 +93,7 @@
 			if (data.artist) artist = data.artist
 			if (data.title) title = data.title
 			if (data.label) label = data.label
+			if (data.release_date) releaseDate = data.release_date
 			if (data.artwork_url) artworkPreview = data.artwork_url
 			if (data.tracks.length > 0) {
 				tracks = data.tracks.map((t) => ({
@@ -123,6 +126,7 @@
 		artist = ''
 		title = ''
 		label = ''
+		releaseDate = ''
 		fetching = false
 		fetchError = ''
 		fetchedData = null
@@ -151,6 +155,7 @@
 		if (artist.trim()) create.artist = artist.trim()
 		if (title.trim()) create.title = title.trim()
 		if (label.trim()) create.label = label.trim()
+		if (releaseDate.trim()) create.release_date = releaseDate.trim()
 		if (artworkPreview) create.artwork_url = artworkPreview
 		if (tracks.length > 0) create.tracks = tracks
 
@@ -163,19 +168,13 @@
 	})
 </script>
 
-<Modal {open} title={$translate('discovery.addRelease')} onClose={handleClose}>
+<Modal {open} title={$translate('discovery.addRelease')} onClose={handleClose} onSubmit={handleSubmit}>
 	<div class="flex flex-col gap-4">
 		<div>
 			<Text as="label" for="release-url" size="sm" weight="medium" color="secondary" class="mb-1.5 block">
 				{$translate('discovery.url')}
 			</Text>
-			<Input
-				bind:value={url}
-				placeholder="https://..."
-				autofocus
-				oninput={handleUrlInput}
-				onkeydown={(e) => e.key === 'Enter' && handleSubmit()}
-			/>
+			<Input bind:value={url} placeholder="https://..." autofocus oninput={handleUrlInput} />
 			{#if fetching}
 				<div class="mt-2 flex items-center gap-2">
 					<Spinner class="h-3.5 w-3.5" />

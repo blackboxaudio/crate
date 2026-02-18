@@ -265,6 +265,83 @@ impl TagService {
         .map_err(|e| e.into())
     }
 
+    pub fn move_tag(&self, tag_id: &str, target_category_id: &str) -> Result<Tag> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        // Get current tag
+        let (current_category_id, tag_name): (String, String) = conn.query_row(
+            "SELECT category_id, name FROM tags WHERE id = ?1",
+            [tag_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )?;
+
+        // No-op if same category
+        if current_category_id == target_category_id {
+            return conn
+                .query_row(
+                    "SELECT id, category_id, name, color, sort_order FROM tags WHERE id = ?1",
+                    [tag_id],
+                    |row| {
+                        Ok(Tag {
+                            id: row.get(0)?,
+                            category_id: row.get(1)?,
+                            name: row.get(2)?,
+                            color: row.get(3)?,
+                            sort_order: row.get(4)?,
+                        })
+                    },
+                )
+                .map_err(|e| e.into());
+        }
+
+        // Check for name collision in target category
+        let collision: bool = conn.query_row(
+            "SELECT EXISTS(SELECT 1 FROM tags WHERE category_id = ?1 AND name = ?2)",
+            rusqlite::params![target_category_id, tag_name],
+            |row| row.get(0),
+        )?;
+
+        if collision {
+            return Err(CrateError::InvalidOperation(
+                "A tag with this name already exists in the target category".to_string(),
+            ));
+        }
+
+        // Compute next sort_order in target category
+        let max_order: i32 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(sort_order), -1) FROM tags WHERE category_id = ?1",
+                [target_category_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(-1);
+
+        // Update the tag
+        conn.execute(
+            "UPDATE tags SET category_id = ?1, sort_order = ?2 WHERE id = ?3",
+            rusqlite::params![target_category_id, max_order + 1, tag_id],
+        )?;
+
+        // Return updated tag
+        conn.query_row(
+            "SELECT id, category_id, name, color, sort_order FROM tags WHERE id = ?1",
+            [tag_id],
+            |row| {
+                Ok(Tag {
+                    id: row.get(0)?,
+                    category_id: row.get(1)?,
+                    name: row.get(2)?,
+                    color: row.get(3)?,
+                    sort_order: row.get(4)?,
+                })
+            },
+        )
+        .map_err(|e| e.into())
+    }
+
     pub fn delete_tag(&self, id: &str) -> Result<()> {
         let conn = self
             .conn

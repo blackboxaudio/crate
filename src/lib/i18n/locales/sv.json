@@ -38,7 +38,14 @@
 		},
 		"general": {
 			"language": "Språk",
-			"languageDescription": "Välj visningsspråk för programmet."
+			"languageDescription": "Välj visningsspråk för programmet.",
+			"dateFormat": "Datumformat",
+			"dateFormatDescription": "Välj hur datum visas i programmet.",
+			"dateFormatLocale": "Systemstandard",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "Europeisk (DD/MM/YYYY)",
+			"dateFormatDot": "Punkt (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Analys",
@@ -148,7 +155,9 @@
 			"artistTitle": "Artist / Titel",
 			"label": "Skivbolag",
 			"tags": "Taggar",
-			"dateAdded": "Tillagd"
+			"dateAdded": "Tillagd",
+			"released": "Lanserad",
+			"added": "Tillagd"
 		},
 		"fetchingMetadata": "Hämtar metadata...",
 		"refreshMetadata": "Uppdatera metadata",
@@ -167,6 +176,18 @@
 			"label": "Skivbolag",
 			"releaseDate": "Releasedatum",
 			"notes": "Anteckningar"
+		},
+		"import": {
+			"title": "Importera till bibliotek",
+			"selectFiles": "Välj filer",
+			"matched": "Matchad",
+			"unmatched": "Omatchad",
+			"importAllFiles": "Importera alla filer",
+			"transferTags": "Överför taggar",
+			"transferTagsCount": "Överför taggar ({count})",
+			"importing": "Importerar...",
+			"noFilesSelected": "Inga filer valda",
+			"filesSelected": "{count, plural, =1 {1 fil} other {{count} filer}} vald(a)"
 		}
 	},
 	"playlists": {
@@ -189,6 +210,7 @@
 		"deleteCategory": "Ta bort kategori",
 		"addCategory": "Lägg till kategori",
 		"addTag": "Lägg till tagg",
+		"moveToCategory": "Flytta till kategori",
 		"noTags": "Inga taggar",
 		"noTagCategoriesYet": "Inga taggkategorier än"
 	},
@@ -329,7 +351,8 @@
 		"cannotDropIntoSelf": "Kan inte släppa en mapp i sig själv",
 		"cannotDropIntoSubfolder": "Kan inte släppa en mapp i sin egen undermapp",
 		"analysisFailed": "Analysen misslyckades",
-		"exportInProgress": "Export är redan i gång"
+		"exportInProgress": "Export är redan i gång",
+		"tagNameConflict": "En tagg med detta namn finns redan i målkategorin"
 	},
 	"devices": {
 		"title": "Enheter",
