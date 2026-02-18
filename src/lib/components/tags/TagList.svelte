@@ -108,12 +108,13 @@
 
 <div class="h-full space-y-4" oncontextmenu={handleContainerContextMenu} role="group">
 	{#each categories as category (category.id)}
+		{@const categoryColor = category.color || '#6366f1'}
 		<div>
 			<div
-				class="group mb-2 flex items-center justify-between rounded-sm py-1.5 pr-1.5 pl-3 transition-colors {$isDraggingTag &&
-				$hoveredDropTarget === `category-${category.id}`
-					? 'bg-brand-primary/10 ring-brand-primary/30 ring-1'
-					: ''}"
+				class="group mb-2 flex items-center justify-between rounded-sm py-1.5 pr-1.5 pl-3 transition-[color,background-color,box-shadow]"
+				style={$isDraggingTag && $hoveredDropTarget === `category-${category.id}`
+					? `background-color: ${categoryColor}20; box-shadow: inset 0 0 0 1px ${categoryColor}40;`
+					: ''}
 				data-category
 				data-drop-target="category-{category.id}"
 				role="group"

@@ -10,7 +10,6 @@ export interface KeyboardShortcutHandlers {
 	onClearSelection: () => void
 	onSelectAll: () => void
 	onOpenSettings: () => void
-	// New shortcuts
 	onNewPlaylist: () => void
 	onNewFolder: () => void
 	onImport: () => void
@@ -28,6 +27,7 @@ export interface KeyboardShortcutHandlers {
 	onQuickExport: () => void
 	onJumpToPlayingTrack: () => void
 	onToggleView: () => void
+	isModalOpen?: () => boolean
 }
 
 // =============================================================================
@@ -87,9 +87,11 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		onQuickExport,
 		onJumpToPlayingTrack,
 		onToggleView,
+		isModalOpen,
 	} = handlers
 
 	function handleKeydown(e: KeyboardEvent): void {
+		if (isModalOpen?.()) return
 		const inputFocused = isInputFocused()
 
 		// Shift+Tab: toggle between Library and Discovery views

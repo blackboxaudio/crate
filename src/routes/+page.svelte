@@ -379,6 +379,7 @@
 
 		// Set up keyboard shortcuts
 		const cleanupKeyboard = useKeyboardShortcuts({
+			isModalOpen: () => modalOrchestrator?.isModalOpen() ?? false,
 			onPlayPause: () => playerStore.togglePlayPause(),
 			onFocusSearch: () => {
 				const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement

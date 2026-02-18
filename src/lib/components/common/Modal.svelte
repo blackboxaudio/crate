@@ -33,6 +33,7 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
+		e.stopPropagation()
 		if (e.key === 'Escape') {
 			e.preventDefault()
 			onClose()
