@@ -14,6 +14,7 @@
 		categorySortOrders?: Map<string, number>
 		onSelectionChange?: (ids: Set<string>) => void
 		onReleaseOpen?: (release: DiscoveryRelease) => void
+		onReleaseImport?: (release: DiscoveryRelease) => void
 		onSortChange?: (config: DiscoverySortConfig) => void
 		onContextMenu?: (e: MouseEvent, release: DiscoveryRelease) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
@@ -28,6 +29,7 @@
 		categorySortOrders,
 		onSelectionChange,
 		onReleaseOpen,
+		onReleaseImport,
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
@@ -57,6 +59,7 @@
 			{categorySortOrders}
 			{onSelectionChange}
 			{onReleaseOpen}
+			{onReleaseImport}
 			{onSortChange}
 			{onContextMenu}
 			{onEmptySpaceContextMenu}

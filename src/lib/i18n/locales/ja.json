@@ -147,18 +147,11 @@
 		"columns": {
 			"artistTitle": "アーティスト / タイトル",
 			"label": "レーベル",
-			"status": "ステータス",
 			"tags": "タグ",
 			"dateAdded": "追加日時"
 		},
-		"status": {
-			"unlistened": "未再生",
-			"listened": "再生済み",
-			"purchased": "購入済み",
-			"dismissed": "却下"
-		},
 		"openInBrowser": "ブラウザで開く",
-		"setStatus": "ステータスを設定",
+		"importToLibrary": "ライブラリにインポート",
 		"deleteRelease": "リリースを削除",
 		"deleteReleases": "リリースを削除",
 		"editor": {
@@ -168,8 +161,7 @@
 			"title": "タイトル",
 			"label": "レーベル",
 			"releaseDate": "リリース日",
-			"notes": "メモ",
-			"status": "ステータス"
+			"notes": "メモ"
 		}
 	},
 	"playlists": {

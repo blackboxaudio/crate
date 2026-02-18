@@ -5,7 +5,6 @@ import type {
 	DiscoveryReleaseUpdate,
 	DiscoveryFilter,
 	DiscoverySortConfig,
-	DiscoveryStatus,
 } from '$lib/types'
 import * as discoveryApi from '$lib/api/discovery'
 import { toastStore } from './toast'
@@ -119,20 +118,6 @@ function createDiscoveryStore() {
 				}))
 			} catch (error) {
 				toastStore.error(error instanceof Error ? error.message : 'Failed to delete releases')
-			}
-		},
-
-		async setStatus(id: string, status: DiscoveryStatus) {
-			try {
-				await discoveryApi.setReleaseStatus(id, status)
-				update((state) => ({
-					...state,
-					releases: state.releases.map((r) => (r.id === id ? { ...r, status } : r)),
-				}))
-			} catch (error) {
-				toastStore.error(
-					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to update status'
-				)
 			}
 		},
 

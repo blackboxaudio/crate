@@ -11,7 +11,6 @@
 		DiscoveryReleaseCreate,
 		DiscoveryFilter,
 		DiscoveryRelease,
-		DiscoveryStatus,
 		Playlist,
 		TagCategory,
 		Tag,
@@ -73,6 +72,7 @@
 	import { LibraryView } from '$lib/components/library'
 	import { DiscoveryView, AddReleaseModal, DiscoveryEditor } from '$lib/components/discovery'
 	import { TrackEditor } from '$lib/components/editor'
+	import { open } from '@tauri-apps/plugin-dialog'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { Player } from '$lib/components/player'
 	import {
@@ -662,10 +662,22 @@
 		openUrl(release.url)
 	}
 
-	async function handleDiscoveryReleaseSetStatus(releases: DiscoveryRelease[], status: DiscoveryStatus) {
-		for (const release of releases) {
-			await discoveryStore.setStatus(release.id, status)
+	async function handleDiscoveryReleaseImport(release: DiscoveryRelease) {
+		const selected = await open({
+			multiple: true,
+			filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'] }],
+		})
+		if (!selected || !Array.isArray(selected) || selected.length === 0) return
+
+		const result = await libraryStore.importTracks(selected)
+
+		if (result.duplicates.length > 0) {
+			modalOrchestrator.openDuplicateTrackModal(result.duplicates, () => {
+				libraryStore.loadTracks()
+			})
 		}
+
+		await discoveryStore.deleteRelease(release.id)
 	}
 
 	async function handleDiscoveryReleaseDelete(releases: DiscoveryRelease[]) {
@@ -882,6 +894,7 @@
 							{categorySortOrders}
 							onSelectionChange={handleReleaseSelectionChange}
 							onReleaseOpen={handleReleaseOpen}
+							onReleaseImport={handleDiscoveryReleaseImport}
 							onSortChange={handleDiscoverySortChange}
 							onContextMenu={handleReleaseContextMenu}
 						/>
@@ -963,7 +976,7 @@
 	onDeviceIgnore={deviceController.handleDeviceIgnore}
 	onPlaylistExport={exportController.handlePlaylistExport}
 	onDiscoveryReleaseOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
-	onDiscoveryReleaseSetStatus={handleDiscoveryReleaseSetStatus}
+	onDiscoveryReleaseImport={handleDiscoveryReleaseImport}
 	onDiscoveryReleaseDelete={handleDiscoveryReleaseDelete}
 	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {
 		const releaseIds = releases.map((r) => r.id)

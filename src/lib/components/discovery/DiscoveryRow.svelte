@@ -2,7 +2,7 @@
 	import type { DiscoveryRelease } from '$lib/types'
 	import { formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
-	import { AlbumArt, Text } from '$lib/components/common'
+	import { AlbumArt, IconButton, Text, Tooltip } from '$lib/components/common'
 	import { dragStore } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
@@ -16,6 +16,7 @@
 		onclick?: (e: MouseEvent) => void
 		ondblclick?: (e: MouseEvent) => void
 		oncontextmenu?: (e: MouseEvent) => void
+		onimport?: () => void
 	}
 
 	let {
@@ -27,6 +28,7 @@
 		onclick,
 		ondblclick,
 		oncontextmenu,
+		onimport,
 	}: Props = $props()
 
 	// Track pointer state for drag detection
@@ -55,20 +57,13 @@
 		pointerStartPos = null
 		isDragStarted = false
 	}
-
-	const statusColors: Record<string, string> = {
-		unlistened: 'bg-surface-2 text-text-tertiary',
-		listened: 'bg-blue-500/15 text-blue-500',
-		purchased: 'bg-green-500/15 text-green-500',
-		dismissed: 'bg-red-500/15 text-red-500',
-	}
 </script>
 
 <div
 	role="row"
 	tabindex="0"
 	data-release-row
-	class="grid cursor-pointer grid-cols-[40px_1fr_1fr_100px_1fr_100px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+	class="grid cursor-pointer grid-cols-[40px_1fr_1fr_1fr_100px_40px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'}"
 	{onclick}
@@ -100,15 +95,6 @@
 		{release.label || ''}
 	</div>
 
-	<!-- Status -->
-	<div class="flex items-center justify-center">
-		<span
-			class="rounded-full px-2 py-0.5 text-xs font-medium {statusColors[release.status] || statusColors.unlistened}"
-		>
-			{$translate(`discovery.status.${release.status}`)}
-		</span>
-	</div>
-
 	<!-- Tags -->
 	<div class="flex h-6 items-center gap-1 overflow-hidden">
 		{#each release.tags
@@ -129,5 +115,19 @@
 	<!-- Date Added -->
 	<div class="text-right text-text-tertiary">
 		{formatRelativeDate(release.date_added)}
+	</div>
+
+	<!-- Import -->
+	<div class="flex items-center justify-end pr-1">
+		<Tooltip text={$translate('discovery.importToLibrary')} position="left" delay={250}>
+			<IconButton
+				icon="plus"
+				size="sm"
+				onclick={(e) => {
+					e.stopPropagation()
+					onimport?.()
+				}}
+			/>
+		</Tooltip>
 	</div>
 </div>

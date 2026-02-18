@@ -56,15 +56,6 @@ pub async fn delete_discovery_releases(
 }
 
 #[tauri::command]
-pub async fn set_discovery_release_status(
-    id: String,
-    status: String,
-    discovery: State<'_, DiscoveryService>,
-) -> Result<()> {
-    discovery.set_status(&id, &status)
-}
-
-#[tauri::command]
 pub async fn assign_discovery_tags(
     release_ids: Vec<String>,
     tag_ids: Vec<String>,

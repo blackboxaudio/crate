@@ -2,11 +2,9 @@
 	import { discoveryStore } from '$lib/stores/discovery'
 	import { uiStore } from '$lib/stores/ui'
 	import { toastStore } from '$lib/stores/toast'
-	import type { DiscoveryRelease, DiscoveryReleaseUpdate, DiscoveryStatus } from '$lib/types'
-	import Icon from '$lib/components/common/Icon.svelte'
+	import type { DiscoveryRelease, DiscoveryReleaseUpdate } from '$lib/types'
 	import IconButton from '$lib/components/common/IconButton.svelte'
 	import Text from '$lib/components/common/Text.svelte'
-	import Select from '$lib/components/common/Select.svelte'
 	import EditorField from '$lib/components/editor/EditorField.svelte'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
@@ -33,13 +31,6 @@
 	})
 
 	let hasChanges = $derived(Object.keys(formData).length > 0)
-
-	let statusOptions = $derived(
-		(['unlistened', 'listened', 'purchased', 'dismissed'] as const).map((s) => ({
-			value: s,
-			label: $translate(`discovery.status.${s}`),
-		}))
-	)
 
 	function handleFieldChange(field: keyof DiscoveryReleaseUpdate) {
 		return (value: string | number | null) => {
@@ -117,7 +108,6 @@
 			label: computeValue((r) => r.label),
 			releaseDate: computeValue((r) => r.release_date),
 			notes: computeValue((r) => r.notes),
-			status: computeValue((r) => r.status),
 			artworkUrl: computeValue((r) => r.artwork_url),
 		}
 	}
@@ -188,21 +178,6 @@
 				onsubmit={handleSave}
 				onblur={handleSave}
 			/>
-
-			<!-- Status dropdown -->
-			<label class="block space-y-1">
-				<Text as="span" size="xs" weight="medium" color="secondary" class="block"
-					>{$translate('discovery.editor.status')}</Text
-				>
-				<Select
-					value={formData.status ?? bulkInfo.status.value ?? 'unlistened'}
-					options={statusOptions}
-					onchange={(value) => {
-						formData = { ...formData, status: value as DiscoveryStatus }
-						handleSave()
-					}}
-				/>
-			</label>
 		</div>
 	</div>
 </div>

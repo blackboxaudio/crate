@@ -1,14 +1,5 @@
 <script lang="ts" module>
-	import type {
-		Track,
-		Playlist,
-		Tag,
-		TagCategory,
-		UsbDevice,
-		TrackColor,
-		DiscoveryRelease,
-		DiscoveryStatus,
-	} from '$lib/types'
+	import type { Track, Playlist, Tag, TagCategory, UsbDevice, TrackColor, DiscoveryRelease } from '$lib/types'
 
 	// Tag context target discriminated union
 	export type TagContextTarget =
@@ -105,7 +96,7 @@
 
 		// Discovery callbacks
 		onDiscoveryReleaseOpenInBrowser: (release: DiscoveryRelease) => void
-		onDiscoveryReleaseSetStatus: (releases: DiscoveryRelease[], status: DiscoveryStatus) => void
+		onDiscoveryReleaseImport: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseDelete: (releases: DiscoveryRelease[]) => void
 		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
@@ -149,7 +140,7 @@
 		onDeviceIgnore,
 		onPlaylistExport,
 		onDiscoveryReleaseOpenInBrowser,
-		onDiscoveryReleaseSetStatus,
+		onDiscoveryReleaseImport,
 		onDiscoveryReleaseDelete,
 		onDiscoveryReleaseAddToPlaylist,
 		onClose,
@@ -501,11 +492,11 @@
 		}
 	}
 
-	function handleDiscoveryReleaseSetStatus(status: DiscoveryStatus) {
-		if (activeMenu.type === 'discoveryRelease') {
-			const releases = activeMenu.releases
+	function handleDiscoveryReleaseImport() {
+		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length === 1) {
+			const release = activeMenu.releases[0]
 			closeAll()
-			onDiscoveryReleaseSetStatus(releases, status)
+			onDiscoveryReleaseImport(release)
 		}
 	}
 
@@ -684,7 +675,7 @@
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
-		onSetStatus={handleDiscoveryReleaseSetStatus}
+		onImport={handleDiscoveryReleaseImport}
 		onDelete={handleDiscoveryReleaseDelete}
 		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}
 	/>

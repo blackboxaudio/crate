@@ -147,18 +147,11 @@
 		"columns": {
 			"artistTitle": "아티스트 / 제목",
 			"label": "레이블",
-			"status": "상태",
 			"tags": "태그",
 			"dateAdded": "추가 날짜"
 		},
-		"status": {
-			"unlistened": "미청취",
-			"listened": "청취됨",
-			"purchased": "구매함",
-			"dismissed": "거절됨"
-		},
 		"openInBrowser": "브라우저에서 열기",
-		"setStatus": "상태 설정",
+		"importToLibrary": "라이브러리로 가져오기",
 		"deleteRelease": "릴리스 삭제",
 		"deleteReleases": "릴리스 삭제",
 		"editor": {
@@ -168,8 +161,7 @@
 			"title": "제목",
 			"label": "레이블",
 			"releaseDate": "릴리스 날짜",
-			"notes": "노트",
-			"status": "상태"
+			"notes": "노트"
 		}
 	},
 	"playlists": {

@@ -147,18 +147,11 @@
 		"columns": {
 			"artistTitle": "Artiest / Titel",
 			"label": "Label",
-			"status": "Status",
 			"tags": "Tags",
 			"dateAdded": "Toegevoegd op"
 		},
-		"status": {
-			"unlistened": "Niet beluisterd",
-			"listened": "Beluisterd",
-			"purchased": "Gekocht",
-			"dismissed": "Afgewezen"
-		},
 		"openInBrowser": "In browser openen",
-		"setStatus": "Status instellen",
+		"importToLibrary": "Importeren naar bibliotheek",
 		"deleteRelease": "Release verwijderen",
 		"deleteReleases": "Releases verwijderen",
 		"editor": {
@@ -168,8 +161,7 @@
 			"title": "Titel",
 			"label": "Label",
 			"releaseDate": "Releasedatum",
-			"notes": "Opmerkingen",
-			"status": "Status"
+			"notes": "Opmerkingen"
 		}
 	},
 	"playlists": {

@@ -147,18 +147,11 @@
 		"columns": {
 			"artistTitle": "Artista / Título",
 			"label": "Sello",
-			"status": "Estado",
 			"tags": "Etiquetas",
 			"dateAdded": "Fecha de adición"
 		},
-		"status": {
-			"unlistened": "Sin escuchar",
-			"listened": "Escuchado",
-			"purchased": "Comprado",
-			"dismissed": "Rechazado"
-		},
 		"openInBrowser": "Abrir en navegador",
-		"setStatus": "Establecer estado",
+		"importToLibrary": "Importar a la biblioteca",
 		"deleteRelease": "Eliminar lanzamiento",
 		"deleteReleases": "Eliminar lanzamientos",
 		"editor": {
@@ -168,8 +161,7 @@
 			"title": "Título",
 			"label": "Sello",
 			"releaseDate": "Fecha de lanzamiento",
-			"notes": "Notas",
-			"status": "Estado"
+			"notes": "Notas"
 		}
 	},
 	"playlists": {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoveryStatus, Playlist, ContextMenuItem } from '$lib/types'
+	import type { DiscoveryRelease, Playlist, ContextMenuItem } from '$lib/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
@@ -13,7 +13,7 @@
 		onClose: () => void
 		onClosed?: () => void
 		onOpenInBrowser: () => void
-		onSetStatus: (status: DiscoveryStatus) => void
+		onImport: () => void
 		onDelete: () => void
 		onAddToPlaylist?: (playlistId: string) => void
 	}
@@ -27,18 +27,10 @@
 		onClose,
 		onClosed,
 		onOpenInBrowser,
-		onSetStatus,
+		onImport,
 		onDelete,
 		onAddToPlaylist,
 	}: Props = $props()
-
-	const currentStatus = $derived(() => {
-		if (selectedReleases.length === 0) return null
-		const first = selectedReleases[0].status
-		return selectedReleases.every((r) => r.status === first) ? first : null
-	})
-
-	const statusOptions: DiscoveryStatus[] = ['unlistened', 'listened', 'purchased', 'dismissed']
 
 	// Filter to only non-folder discovery playlists
 	const availablePlaylists = $derived(playlists.filter((p) => !p.is_folder))
@@ -57,6 +49,16 @@
 			items.push({ id: 'browser-divider', label: '', divider: true })
 		}
 
+		// Import to Library
+		if (selectedReleases.length === 1) {
+			items.push({
+				id: 'import-to-library',
+				label: get(translate)('discovery.importToLibrary'),
+				icon: 'plus',
+				action: onImport,
+			})
+		}
+
 		// Add to Playlist submenu
 		if (onAddToPlaylist && availablePlaylists.length > 0) {
 			items.push({
@@ -69,23 +71,9 @@
 					action: () => onAddToPlaylist!(p.id),
 				})),
 			})
-			items.push({ id: 'playlist-divider', label: '', divider: true })
 		}
 
-		// Set Status submenu
-		items.push({
-			id: 'set-status',
-			label: get(translate)('discovery.setStatus'),
-			icon: 'tag',
-			submenu: statusOptions.map((status) => ({
-				id: `status-${status}`,
-				label: get(translate)(`discovery.status.${status}`),
-				selected: currentStatus() === status,
-				action: () => onSetStatus(status),
-			})),
-		})
-
-		items.push({ id: 'status-divider', label: '', divider: true })
+		items.push({ id: 'actions-divider', label: '', divider: true })
 
 		// Delete
 		items.push({

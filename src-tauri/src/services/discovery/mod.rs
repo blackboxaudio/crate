@@ -30,8 +30,8 @@ impl DiscoveryService {
             .unwrap_or_else(|| detect_source_type(&create.url));
 
         conn.execute(
-            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, status, date_added, date_modified)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, 'unlistened', ?10, ?11)",
+            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, date_added, date_modified)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
             rusqlite::params![
                 id,
                 create.url,
@@ -76,7 +76,6 @@ impl DiscoveryService {
             release_date: create.release_date,
             artwork_url: create.artwork_url,
             artwork_path: None,
-            status: "unlistened".to_string(),
             notes: create.notes,
             date_added: now.clone(),
             date_modified: now,
@@ -92,7 +91,7 @@ impl DiscoveryService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut release = conn.query_row(
-            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, status, notes, date_added, date_modified
+            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, date_added, date_modified
              FROM discovery_releases WHERE id = ?1",
             [id],
             |row| {
@@ -106,10 +105,9 @@ impl DiscoveryService {
                     release_date: row.get(6)?,
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
-                    status: row.get(9)?,
-                    notes: row.get(10)?,
-                    date_added: row.get(11)?,
-                    date_modified: row.get(12)?,
+                    notes: row.get(9)?,
+                    date_added: row.get(10)?,
+                    date_modified: row.get(11)?,
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -170,7 +168,7 @@ impl DiscoveryService {
 
         // Build query with optional filters
         let mut sql = String::from(
-            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.status, dr.notes, dr.date_added, dr.date_modified
+            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.date_added, dr.date_modified
              FROM discovery_releases dr",
         );
 
@@ -206,12 +204,6 @@ impl DiscoveryService {
                     }
                 }
             }
-        }
-
-        // Status filter
-        if let Some(ref status) = filter.status {
-            conditions.push("dr.status = ?".to_string());
-            params.push(Box::new(status.clone()));
         }
 
         // Search filter
@@ -270,10 +262,9 @@ impl DiscoveryService {
                     release_date: row.get(6)?,
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
-                    status: row.get(9)?,
-                    notes: row.get(10)?,
-                    date_added: row.get(11)?,
-                    date_modified: row.get(12)?,
+                    notes: row.get(9)?,
+                    date_added: row.get(10)?,
+                    date_modified: row.get(11)?,
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -394,10 +385,6 @@ impl DiscoveryService {
             set_clauses.push("notes = ?".to_string());
             params.push(Box::new(notes.clone()));
         }
-        if let Some(ref status) = update.status {
-            set_clauses.push("status = ?".to_string());
-            params.push(Box::new(status.clone()));
-        }
 
         params.push(Box::new(id.to_string()));
 
@@ -477,20 +464,6 @@ impl DiscoveryService {
         Ok(())
     }
 
-    pub fn set_status(&self, id: &str, status: &str) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
-
-        let now = chrono::Utc::now().to_rfc3339();
-        conn.execute(
-            "UPDATE discovery_releases SET status = ?1, date_modified = ?2 WHERE id = ?3",
-            rusqlite::params![status, now, id],
-        )?;
-
-        Ok(())
-    }
 }
 
 fn detect_source_type(url: &str) -> String {

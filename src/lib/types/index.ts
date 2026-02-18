@@ -601,8 +601,6 @@ export interface TrackAnalysisEvent {
 
 export type DiscoverySourceType = 'bandcamp' | 'soundcloud' | 'youtube' | 'discogs' | 'other'
 
-export type DiscoveryStatus = 'unlistened' | 'listened' | 'purchased' | 'dismissed'
-
 export interface DiscoveryTrack {
 	id: string
 	release_id: string
@@ -621,7 +619,6 @@ export interface DiscoveryRelease {
 	release_date: string | null
 	artwork_url: string | null
 	artwork_path: string | null
-	status: DiscoveryStatus
 	notes: string | null
 	date_added: string
 	date_modified: string
@@ -655,17 +652,15 @@ export interface DiscoveryReleaseUpdate {
 	artwork_url?: string
 	artwork_path?: string
 	notes?: string
-	status?: DiscoveryStatus
 }
 
 export interface DiscoveryFilter {
 	search?: string
-	status?: DiscoveryStatus
 	tag_ids?: string[]
 	tag_filter_mode?: TagFilterMode
 }
 
-export type DiscoverySortField = 'artist' | 'title' | 'label' | 'status' | 'date_added'
+export type DiscoverySortField = 'artist' | 'title' | 'label' | 'date_added'
 
 export interface DiscoverySortConfig {
 	field: DiscoverySortField

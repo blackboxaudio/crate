@@ -147,18 +147,11 @@
 		"columns": {
 			"artistTitle": "Artist / Titel",
 			"label": "Skivbolag",
-			"status": "Status",
 			"tags": "Taggar",
 			"dateAdded": "Tillagd"
 		},
-		"status": {
-			"unlistened": "Olyssnad",
-			"listened": "Lyssnad",
-			"purchased": "Köpt",
-			"dismissed": "Avvisad"
-		},
 		"openInBrowser": "Öppna i webbläsare",
-		"setStatus": "Ange status",
+		"importToLibrary": "Importera till bibliotek",
 		"deleteRelease": "Ta bort utgåva",
 		"deleteReleases": "Ta bort utgåvor",
 		"editor": {
@@ -168,8 +161,7 @@
 			"title": "Titel",
 			"label": "Skivbolag",
 			"releaseDate": "Releasedatum",
-			"notes": "Anteckningar",
-			"status": "Status"
+			"notes": "Anteckningar"
 		}
 	},
 	"playlists": {

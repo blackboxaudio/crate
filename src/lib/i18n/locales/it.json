@@ -147,18 +147,11 @@
 		"columns": {
 			"artistTitle": "Artista / Titolo",
 			"label": "Etichetta",
-			"status": "Stato",
 			"tags": "Tag",
 			"dateAdded": "Data di aggiunta"
 		},
-		"status": {
-			"unlistened": "Non ascoltato",
-			"listened": "Ascoltato",
-			"purchased": "Acquistato",
-			"dismissed": "Scartato"
-		},
 		"openInBrowser": "Apri nel browser",
-		"setStatus": "Imposta stato",
+		"importToLibrary": "Importa nella libreria",
 		"deleteRelease": "Elimina rilascio",
 		"deleteReleases": "Elimina rilasci",
 		"editor": {
@@ -168,8 +161,7 @@
 			"title": "Titolo",
 			"label": "Etichetta",
 			"releaseDate": "Data di rilascio",
-			"notes": "Note",
-			"status": "Stato"
+			"notes": "Note"
 		}
 	},
 	"playlists": {

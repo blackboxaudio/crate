@@ -25,10 +25,6 @@ export async function deleteReleases(ids: string[]): Promise<void> {
 	return invoke<void>('delete_discovery_releases', { ids })
 }
 
-export async function setReleaseStatus(id: string, status: string): Promise<void> {
-	return invoke<void>('set_discovery_release_status', { id, status })
-}
-
 export async function assignTags(releaseIds: string[], tagIds: string[]): Promise<void> {
 	return invoke<void>('assign_discovery_tags', { releaseIds, tagIds })
 }

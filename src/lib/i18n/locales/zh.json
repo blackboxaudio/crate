@@ -147,18 +147,11 @@
 		"columns": {
 			"artistTitle": "艺术家 / 标题",
 			"label": "厂牌",
-			"status": "状态",
 			"tags": "标签",
 			"dateAdded": "添加日期"
 		},
-		"status": {
-			"unlistened": "未听过",
-			"listened": "已听过",
-			"purchased": "已购买",
-			"dismissed": "已驳回"
-		},
 		"openInBrowser": "在浏览器中打开",
-		"setStatus": "设置状态",
+		"importToLibrary": "导入到音乐库",
 		"deleteRelease": "删除发行",
 		"deleteReleases": "删除发行",
 		"editor": {
@@ -168,8 +161,7 @@
 			"title": "标题",
 			"label": "厂牌",
 			"releaseDate": "发行日期",
-			"notes": "备注",
-			"status": "状态"
+			"notes": "备注"
 		}
 	},
 	"playlists": {

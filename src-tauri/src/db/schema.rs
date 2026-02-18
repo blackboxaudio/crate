@@ -197,13 +197,11 @@ CREATE TABLE discovery_releases (
     release_date TEXT,
     artwork_url TEXT,
     artwork_path TEXT,
-    status TEXT NOT NULL DEFAULT 'unlistened',
     notes TEXT,
     date_added TEXT NOT NULL,
     date_modified TEXT NOT NULL
 );
 
-CREATE INDEX idx_discovery_releases_status ON discovery_releases(status);
 CREATE INDEX idx_discovery_releases_date_added ON discovery_releases(date_added);
 
 -- Discovery track listing
@@ -237,13 +235,6 @@ CREATE TABLE playlist_discovery_releases (
     PRIMARY KEY (playlist_id, release_id)
 );
 
--- Purchase tracking
-CREATE TABLE discovery_purchased_tracks (
-    discovery_release_id TEXT NOT NULL REFERENCES discovery_releases(id),
-    discovery_track_id TEXT NOT NULL REFERENCES discovery_tracks(id),
-    library_track_id TEXT NOT NULL REFERENCES tracks(id),
-    PRIMARY KEY (discovery_release_id, discovery_track_id)
-);
 "#,
     ]
 }
