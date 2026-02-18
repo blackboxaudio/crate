@@ -465,7 +465,6 @@ impl DiscoveryService {
 
         Ok(())
     }
-
 }
 
 pub(crate) fn detect_source_type(url: &str) -> String {

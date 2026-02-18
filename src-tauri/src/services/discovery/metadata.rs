@@ -113,7 +113,7 @@ fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                             // Skip if publisher name matches artist (self-released)
                             artist
                                 .as_ref()
-                                .map_or(true, |a| !a.eq_ignore_ascii_case(label_name))
+                                .is_none_or(|a| !a.eq_ignore_ascii_case(label_name))
                         });
 
                     // Parse tracks from albumRelease or track.itemListElement
@@ -179,7 +179,7 @@ fn parse_bandcamp_tracks(value: &serde_json::Value) -> Vec<FetchedTrack> {
 }
 
 async fn fetch_soundcloud(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
-    let oembed_url = format!("https://soundcloud.com/oembed?url={}&format=json", url);
+    let oembed_url = format!("https://soundcloud.com/oembed?url={url}&format=json");
 
     let resp: serde_json::Value = client
         .get(&oembed_url)
@@ -226,10 +226,7 @@ async fn fetch_soundcloud(client: &reqwest::Client, url: &str) -> Result<Fetched
 }
 
 async fn fetch_youtube(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
-    let oembed_url = format!(
-        "https://www.youtube.com/oembed?url={}&format=json",
-        url
-    );
+    let oembed_url = format!("https://www.youtube.com/oembed?url={url}&format=json");
 
     let resp: serde_json::Value = client
         .get(&oembed_url)
@@ -319,7 +316,7 @@ fn parse_iso_duration(s: &str) -> Option<i64> {
 fn extract_meta_content(html: &str, property: &str) -> Option<String> {
     // Match both property="..." and name="..." patterns
     for attr in ["property", "name"] {
-        let pattern = format!("{}=\"{}\"", attr, property);
+        let pattern = format!("{attr}=\"{property}\"");
         if let Some(pos) = html.find(&pattern) {
             // Look for content="..." nearby (within the same tag)
             let tag_start = html[..pos].rfind('<')?;
