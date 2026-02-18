@@ -13,6 +13,7 @@
 		sortConfig: DiscoverySortConfig
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
+		isDragOver?: boolean
 		onSelectionChange?: (ids: Set<string>) => void
 		onReleaseOpen?: (release: DiscoveryRelease) => void
 		onReleaseImport?: (release: DiscoveryRelease) => void
@@ -27,6 +28,7 @@
 		sortConfig,
 		categoryColors,
 		categorySortOrders,
+		isDragOver = false,
 		onSelectionChange,
 		onReleaseOpen,
 		onReleaseImport,
@@ -84,12 +86,27 @@
 
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div class="relative flex-1 overflow-auto" onclick={handleContainerClick} oncontextmenu={handleContainerContextMenu}>
+	<div
+		class="relative flex-1 overflow-auto"
+		data-drop-target="releaselist-main"
+		onclick={handleContainerClick}
+		oncontextmenu={handleContainerContextMenu}
+	>
 		{#if releases.length === 0}
-			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
+			<div
+				class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary {isDragOver
+					? 'border-brand-primary/50 bg-brand-primary/5 rounded-md border-2 border-dashed'
+					: ''}"
+			>
 				<Icon name="globe" class="mb-4 h-16 w-16" />
-				<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.noReleasesYet')}</Text>
-				<Text color="tertiary" class="max-w-sm text-center">{$translate('discovery.addReleaseHint')}</Text>
+				{#if isDragOver}
+					<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.dropHint')}</Text>
+				{:else}
+					<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.noReleasesYet')}</Text>
+					<Text color="tertiary" class="max-w-sm text-center">
+						{$translate('discovery.addReleaseHint', { values: { shortcut: '⌘D' } })}
+					</Text>
+				{/if}
 			</div>
 		{:else}
 			{#each releases as release (release.id)}

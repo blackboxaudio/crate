@@ -33,6 +33,10 @@ interface SettingsState {
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
 	autoSyncOnChange: boolean
+	continuousPlayback: boolean
+	autoFetchMetadata: boolean
+	transferTagsOnImport: boolean
+	removeReleaseAfterImport: boolean
 	ignoredDeviceIds: string[]
 	loading: boolean
 	error: string | null
@@ -52,6 +56,10 @@ const initialState: SettingsState = {
 	autoAnalyzeOnImport: true,
 	autoSyncOnConnect: false,
 	autoSyncOnChange: false,
+	continuousPlayback: false,
+	autoFetchMetadata: true,
+	transferTagsOnImport: true,
+	removeReleaseAfterImport: true,
 	ignoredDeviceIds: [],
 	loading: false,
 	error: null,
@@ -180,6 +188,7 @@ function createSettingsStore() {
 			settingsSubmenu: t('menu.settingsSubmenu'),
 			settingsGeneral: t('menu.settingsGeneral'),
 			settingsLibrary: t('menu.settingsLibrary'),
+			settingsDiscovery: t('menu.settingsDiscovery'),
 			settingsAppearance: t('menu.settingsAppearance'),
 			settingsSound: t('menu.settingsSound'),
 			settingsDiagnostics: t('menu.settingsDiagnostics'),
@@ -227,6 +236,10 @@ function createSettingsStore() {
 					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
 					autoSyncOnConnect: settings.autoSyncOnConnect,
 					autoSyncOnChange: settings.autoSyncOnChange,
+					continuousPlayback: settings.continuousPlayback,
+					autoFetchMetadata: settings.autoFetchMetadata,
+					transferTagsOnImport: settings.transferTagsOnImport,
+					removeReleaseAfterImport: settings.removeReleaseAfterImport,
 					ignoredDeviceIds: settings.ignoredDeviceIds,
 					resolvedTheme,
 					loading: false,
@@ -418,6 +431,45 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set continuous playback
+		 */
+		async setContinuousPlayback(enabled: boolean) {
+			update((s) => ({ ...s, continuousPlayback: enabled }))
+			try {
+				await settingsApi.setSetting('continuous_playback', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save continuous playback setting:', error)
+			}
+		},
+
+		async setAutoFetchMetadata(enabled: boolean) {
+			update((s) => ({ ...s, autoFetchMetadata: enabled }))
+			try {
+				await settingsApi.setSetting('auto_fetch_metadata', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto fetch metadata setting:', error)
+			}
+		},
+
+		async setTransferTagsOnImport(enabled: boolean) {
+			update((s) => ({ ...s, transferTagsOnImport: enabled }))
+			try {
+				await settingsApi.setSetting('transfer_tags_on_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save transfer tags on import setting:', error)
+			}
+		},
+
+		async setRemoveReleaseAfterImport(enabled: boolean) {
+			update((s) => ({ ...s, removeReleaseAfterImport: enabled }))
+			try {
+				await settingsApi.setSetting('remove_release_after_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save remove release after import setting:', error)
+			}
+		},
+
+		/**
 		 * Add a device to the ignore list
 		 */
 		async ignoreDevice(deviceId: string) {
@@ -501,6 +553,14 @@ export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyze
 export const autoSyncOnConnect = derived(settingsStore, ($s) => $s.autoSyncOnConnect)
 
 export const autoSyncOnChange = derived(settingsStore, ($s) => $s.autoSyncOnChange)
+
+export const continuousPlayback = derived(settingsStore, ($s) => $s.continuousPlayback)
+
+export const autoFetchMetadata = derived(settingsStore, ($s) => $s.autoFetchMetadata)
+
+export const transferTagsOnImport = derived(settingsStore, ($s) => $s.transferTagsOnImport)
+
+export const removeReleaseAfterImport = derived(settingsStore, ($s) => $s.removeReleaseAfterImport)
 
 export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceIds)
 

@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "Generale",
 			"library": "Libreria",
+			"discovery": "Scoperte",
 			"appearance": "Aspetto",
 			"sound": "Suono",
 			"diagnostics": "Diagnostica",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "Per OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metadati",
+			"autoFetchMetadata": "Recupero automatico metadati",
+			"autoFetchMetadataDescription": "Recupera automaticamente i metadati di rilascio quando si aggiunge un URL.",
+			"import": "Importa",
+			"transferTagsOnImport": "Trasferisci tag all'importazione",
+			"transferTagsOnImportDescription": "Trasferisci i tag di rilascio alle tracce importate per impostazione predefinita.",
+			"removeReleaseAfterImport": "Rimuovi rilascio dopo l'importazione",
+			"removeReleaseAfterImportDescription": "Rimuovi automaticamente i rilasci dalle scoperte dopo l'importazione dei file."
+		},
 		"appearance": {
 			"font": "Carattere",
 			"fontDescription": "Scegli il carattere utilizzato nell'applicazione.",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "Seleziona il dispositivo di uscita audio per la riproduzione.",
 			"systemDefault": "Predefinito di sistema",
 			"system": "Sistema",
-			"external": "Esterno"
+			"external": "Esterno",
+			"continuousPlayback": "Riproduzione continua",
+			"continuousPlaybackDescription": "Riproduci automaticamente la traccia successiva quando finisce quella attuale."
 		},
 		"diagnostics": {
 			"systemInfo": "Informazioni di sistema",
@@ -150,7 +163,8 @@
 		"release": "rilascio",
 		"releases": "rilasci",
 		"noReleasesYet": "Nessun rilascio per ora",
-		"addReleaseHint": "Aggiungi rilasci da Bandcamp, SoundCloud, YouTube o Discogs per tracciare le tue scoperte",
+		"addReleaseHint": "Premi {shortcut} o trascina un URL qui per aggiungere rilasci da Bandcamp, SoundCloud e altri",
+		"dropHint": "Rilascia URL per aggiungere rilascio",
 		"columns": {
 			"artistTitle": "Artista / Titolo",
 			"label": "Etichetta",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "Impostazioni",
 		"settingsGeneral": "Generale",
 		"settingsLibrary": "Libreria",
+		"settingsDiscovery": "Scoperte",
 		"settingsAppearance": "Aspetto",
 		"settingsSound": "Suono",
 		"settingsDiagnostics": "Diagnostica",

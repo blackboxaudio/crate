@@ -5,6 +5,13 @@
 	import VolumeControl from './VolumeControl.svelte'
 	import TrackInfo from './TrackInfo.svelte'
 
+	type Props = {
+		onNext?: () => void
+		onPrevious?: () => void
+	}
+
+	let { onNext, onPrevious }: Props = $props()
+
 	function handlePlayPause() {
 		playerStore.togglePlayPause()
 	}
@@ -35,6 +42,8 @@
 			hasTrack={$currentTrack !== null}
 			onPlayPause={handlePlayPause}
 			onStop={handleStop}
+			{onPrevious}
+			{onNext}
 		/>
 
 		<SeekBar position={$playbackPosition} duration={$playbackDuration} disabled={!$currentTrack} onSeek={handleSeek} />

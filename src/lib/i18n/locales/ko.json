@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "일반",
 			"library": "라이브러리",
+			"discovery": "발견",
 			"appearance": "모양",
 			"sound": "사운드",
 			"diagnostics": "진단",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "OPUS-QUAD, OMNIS-DUO, XDJ-AZ용"
 		},
+		"discovery": {
+			"metadata": "메타데이터",
+			"autoFetchMetadata": "메타데이터 자동 가져오기",
+			"autoFetchMetadataDescription": "URL을 추가할 때 릴리스 메타데이터를 자동으로 가져옵니다.",
+			"import": "가져오기",
+			"transferTagsOnImport": "가져오기 시 태그 전송",
+			"transferTagsOnImportDescription": "기본적으로 릴리스 태그를 가져온 트랙으로 전송합니다.",
+			"removeReleaseAfterImport": "가져오기 후 릴리스 제거",
+			"removeReleaseAfterImportDescription": "파일을 가져온 후 발견에서 자동으로 릴리스를 제거합니다."
+		},
 		"appearance": {
 			"font": "글꼴",
 			"fontDescription": "애플리케이션에서 사용할 글꼴을 선택하세요.",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "재생에 사용할 오디오 출력 장치를 선택하세요.",
 			"systemDefault": "시스템 기본값",
 			"system": "시스템",
-			"external": "외부"
+			"external": "외부",
+			"continuousPlayback": "연속 재생",
+			"continuousPlaybackDescription": "현재 트랙이 끝나면 다음 트랙을 자동으로 재생합니다."
 		},
 		"diagnostics": {
 			"systemInfo": "시스템 정보",
@@ -150,7 +163,8 @@
 		"release": "릴리스",
 		"releases": "릴리스",
 		"noReleasesYet": "아직 릴리스가 없습니다",
-		"addReleaseHint": "Bandcamp, SoundCloud, YouTube 또는 Discogs에서 릴리스를 추가하여 발견을 추적하세요",
+		"addReleaseHint": "{shortcut} 를 누르거나 URL을 여기로 드래그하여 Bandcamp, SoundCloud 등에서 릴리스를 추가하세요",
+		"dropHint": "릴리스를 추가하려면 URL을 놓으세요",
 		"columns": {
 			"artistTitle": "아티스트 / 제목",
 			"label": "레이블",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "설정",
 		"settingsGeneral": "일반",
 		"settingsLibrary": "라이브러리",
+		"settingsDiscovery": "발견",
 		"settingsAppearance": "모양",
 		"settingsSound": "사운드",
 		"settingsDiagnostics": "진단",

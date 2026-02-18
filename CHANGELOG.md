@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Continuous playback setting for automatically playing the next track
 - Music discovery feature for tracking releases from Bandcamp, SoundCloud, YouTube, and Discogs
+- Discovery settings tab with auto-fetch metadata, transfer tags on import, and remove release after import preferences
 - Automatic metadata fetching for discovery releases from Bandcamp, SoundCloud, and YouTube URLs
 - Playlist support for discovery releases with separate playlist hierarchies per view
 - Export playlists to USB devices with Pioneer/Rekordbox compatibility

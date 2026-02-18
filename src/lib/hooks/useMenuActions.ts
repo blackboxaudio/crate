@@ -128,6 +128,9 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 			case 'settings_library':
 				onOpenSettings('library')
 				break
+			case 'settings_discovery':
+				onOpenSettings('discovery')
+				break
 			case 'settings_appearance':
 				onOpenSettings('appearance')
 				break

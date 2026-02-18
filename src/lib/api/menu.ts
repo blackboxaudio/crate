@@ -21,6 +21,7 @@ export type MenuAction =
 	// View > Settings submenu
 	| 'settings_general'
 	| 'settings_library'
+	| 'settings_discovery'
 	| 'settings_appearance'
 	| 'settings_sound'
 	| 'settings_diagnostics'

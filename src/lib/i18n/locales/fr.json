@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "Général",
 			"library": "Bibliothèque",
+			"discovery": "Découvertes",
 			"appearance": "Apparence",
 			"sound": "Son",
 			"diagnostics": "Diagnostics",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "Pour OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Métadonnées",
+			"autoFetchMetadata": "Récupération automatique des métadonnées",
+			"autoFetchMetadataDescription": "Récupère automatiquement les métadonnées de sortie lors de l'ajout d'une URL.",
+			"import": "Importer",
+			"transferTagsOnImport": "Transférer les tags lors de l'import",
+			"transferTagsOnImportDescription": "Transférez les tags de sortie aux pistes importées par défaut.",
+			"removeReleaseAfterImport": "Supprimer la sortie après l'import",
+			"removeReleaseAfterImportDescription": "Supprimez automatiquement les sorties des découvertes après avoir importé les fichiers."
+		},
 		"appearance": {
 			"font": "Police",
 			"fontDescription": "Choisissez la police utilisée dans l'application.",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "Sélectionnez le périphérique de sortie audio pour la lecture.",
 			"systemDefault": "Par défaut du système",
 			"system": "Système",
-			"external": "Externe"
+			"external": "Externe",
+			"continuousPlayback": "Lecture continue",
+			"continuousPlaybackDescription": "Lire automatiquement la piste suivante à la fin de la piste actuelle."
 		},
 		"diagnostics": {
 			"systemInfo": "Informations système",
@@ -150,7 +163,8 @@
 		"release": "sortie",
 		"releases": "sorties",
 		"noReleasesYet": "Aucune sortie pour le moment",
-		"addReleaseHint": "Ajoutez des sorties de Bandcamp, SoundCloud, YouTube ou Discogs pour suivre vos découvertes",
+		"addReleaseHint": "Appuyez sur {shortcut} ou glissez-déposez une URL ici pour ajouter des sorties de Bandcamp, SoundCloud et plus",
+		"dropHint": "Déposer l'URL pour ajouter une sortie",
 		"columns": {
 			"artistTitle": "Artiste / Titre",
 			"label": "Label",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "Paramètres",
 		"settingsGeneral": "Général",
 		"settingsLibrary": "Bibliothèque",
+		"settingsDiscovery": "Découvertes",
 		"settingsAppearance": "Apparence",
 		"settingsSound": "Son",
 		"settingsDiagnostics": "Diagnostics",

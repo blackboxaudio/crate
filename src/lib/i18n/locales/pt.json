@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "Geral",
 			"library": "Biblioteca",
+			"discovery": "Descobertas",
 			"appearance": "Aparência",
 			"sound": "Som",
 			"diagnostics": "Diagnósticos",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "Para OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metadados",
+			"autoFetchMetadata": "Buscar metadados automaticamente",
+			"autoFetchMetadataDescription": "Obtém automaticamente metadados de lançamento ao adicionar uma URL.",
+			"import": "Importar",
+			"transferTagsOnImport": "Transferir tags ao importar",
+			"transferTagsOnImportDescription": "Transferir tags de lançamento para faixas importadas por padrão.",
+			"removeReleaseAfterImport": "Remover lançamento após importação",
+			"removeReleaseAfterImportDescription": "Remove automaticamente lançamentos das descobertas após importar arquivos."
+		},
 		"appearance": {
 			"font": "Fonte",
 			"fontDescription": "Escolha a fonte usada no aplicativo.",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "Selecione o dispositivo de saída de áudio para reprodução.",
 			"systemDefault": "Padrão do sistema",
 			"system": "Sistema",
-			"external": "Externo"
+			"external": "Externo",
+			"continuousPlayback": "Reprodução contínua",
+			"continuousPlaybackDescription": "Reproduzir automaticamente a próxima faixa quando a atual terminar."
 		},
 		"diagnostics": {
 			"systemInfo": "Informações do sistema",
@@ -150,7 +163,8 @@
 		"release": "lançamento",
 		"releases": "lançamentos",
 		"noReleasesYet": "Nenhum lançamento ainda",
-		"addReleaseHint": "Adicione lançamentos do Bandcamp, SoundCloud, YouTube ou Discogs para rastrear suas descobertas",
+		"addReleaseHint": "Pressione {shortcut} ou arraste uma URL aqui para adicionar lançamentos do Bandcamp, SoundCloud e muito mais",
+		"dropHint": "Solte URL para adicionar lançamento",
 		"columns": {
 			"artistTitle": "Artista / Título",
 			"label": "Gravadora",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "Configurações",
 		"settingsGeneral": "Geral",
 		"settingsLibrary": "Biblioteca",
+		"settingsDiscovery": "Descobertas",
 		"settingsAppearance": "Aparência",
 		"settingsSound": "Som",
 		"settingsDiagnostics": "Diagnósticos",

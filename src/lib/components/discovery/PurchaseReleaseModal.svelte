@@ -2,6 +2,7 @@
 	import type { DiscoveryRelease, DiscoveryTrack, ImportResultWithDuplicates } from '$lib/types'
 	import { Modal, Button, Text, Checkbox, Spinner, Icon } from '$lib/components/common'
 	import { discoveryStore } from '$lib/stores/discovery'
+	import { transferTagsOnImport, removeReleaseAfterImport } from '$lib/stores/settings'
 	import { translate } from '$lib/i18n'
 	import { open } from '@tauri-apps/plugin-dialog'
 	import { SvelteSet } from 'svelte/reactivity'
@@ -21,7 +22,7 @@
 		unmatched: [],
 	})
 	let importAll = $state(false)
-	let transferTags = $state(true)
+	let transferTags = $state($transferTagsOnImport)
 	let importing = $state(false)
 
 	let hasReleaseTags = $derived(release.tags.length > 0)
@@ -66,7 +67,12 @@
 		const pathsToImport = importAll ? filePaths : matchResults.matched.map((m) => m.path)
 
 		try {
-			const result = await discoveryStore.purchaseRelease(release.id, pathsToImport, transferTags && hasReleaseTags)
+			const result = await discoveryStore.purchaseRelease(
+				release.id,
+				pathsToImport,
+				transferTags && hasReleaseTags,
+				$removeReleaseAfterImport
+			)
 			if (result) {
 				onComplete(result)
 			}

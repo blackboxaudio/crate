@@ -163,14 +163,17 @@ function createDiscoveryStore() {
 		async purchaseRelease(
 			releaseId: string,
 			filePaths: string[],
-			transferTags: boolean
+			transferTags: boolean,
+			removeAfterImport: boolean
 		): Promise<ImportResultWithDuplicates | null> {
 			try {
-				const result = await discoveryApi.purchaseRelease(releaseId, filePaths, transferTags)
-				update((state) => ({
-					...state,
-					releases: state.releases.filter((r) => r.id !== releaseId),
-				}))
+				const result = await discoveryApi.purchaseRelease(releaseId, filePaths, transferTags, removeAfterImport)
+				if (removeAfterImport) {
+					update((state) => ({
+						...state,
+						releases: state.releases.filter((r) => r.id !== releaseId),
+					}))
+				}
 				return result
 			} catch (error) {
 				toastStore.error(

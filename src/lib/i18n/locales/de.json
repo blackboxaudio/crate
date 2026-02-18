@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "Allgemein",
 			"library": "Bibliothek",
+			"discovery": "Entdeckungen",
 			"appearance": "Erscheinung",
 			"sound": "Ton",
 			"diagnostics": "Diagnose",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "Für OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metadaten",
+			"autoFetchMetadata": "Metadaten automatisch abrufen",
+			"autoFetchMetadataDescription": "Ruft beim Hinzufügen einer URL automatisch Release-Metadaten ab.",
+			"import": "Importieren",
+			"transferTagsOnImport": "Tags beim Import übertragen",
+			"transferTagsOnImportDescription": "Übertragen Sie Release-Tags standardmäßig auf importierte Titel.",
+			"removeReleaseAfterImport": "Release nach Import entfernen",
+			"removeReleaseAfterImportDescription": "Entfernen Sie Releases nach dem Importieren von Dateien automatisch aus den Entdeckungen."
+		},
 		"appearance": {
 			"font": "Schriftart",
 			"fontDescription": "Wählen Sie die in der Anwendung verwendete Schriftart.",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "Wählen Sie das Audio-Ausgabegerät für die Wiedergabe.",
 			"systemDefault": "Systemstandard",
 			"system": "System",
-			"external": "Extern"
+			"external": "Extern",
+			"continuousPlayback": "Fortlaufende Wiedergabe",
+			"continuousPlaybackDescription": "Automatische Wiedergabe des nächsten Titels, wenn der aktuelle endet."
 		},
 		"diagnostics": {
 			"systemInfo": "Systeminformationen",
@@ -150,7 +163,8 @@
 		"release": "Release",
 		"releases": "Releases",
 		"noReleasesYet": "Noch keine Releases",
-		"addReleaseHint": "Fügen Sie Releases von Bandcamp, SoundCloud, YouTube oder Discogs hinzu, um Ihre Entdeckungen zu verfolgen",
+		"addReleaseHint": "Drücken Sie {shortcut} oder ziehen Sie eine URL hierher, um Releases von Bandcamp, SoundCloud und mehr hinzuzufügen",
+		"dropHint": "URL ablegen, um Release hinzuzufügen",
 		"columns": {
 			"artistTitle": "Künstler / Titel",
 			"label": "Label",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "Einstellungen",
 		"settingsGeneral": "Allgemein",
 		"settingsLibrary": "Bibliothek",
+		"settingsDiscovery": "Entdeckungen",
 		"settingsAppearance": "Erscheinung",
 		"settingsSound": "Ton",
 		"settingsDiagnostics": "Diagnose",

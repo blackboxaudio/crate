@@ -3,7 +3,7 @@
 	import { formatDate, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import { AlbumArt, IconButton, Text, Tooltip } from '$lib/components/common'
-	import { dateFormat, dragStore } from '$lib/stores'
+	import { dateFormat, dragStore, isDraggingTag } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
 
@@ -30,6 +30,13 @@
 		oncontextmenu,
 		onimport,
 	}: Props = $props()
+
+	let isTagDragHovered = $state(false)
+
+	// Clear hover when tag drag ends
+	$effect(() => {
+		if (!$isDraggingTag) isTagDragHovered = false
+	})
 
 	// Track pointer state for drag detection
 	let pointerStartPos: { x: number; y: number } | null = null
@@ -71,9 +78,10 @@
 	role="row"
 	tabindex="0"
 	data-release-row
+	data-release-id={release.id}
 	class="grid cursor-pointer grid-cols-[40px_1.25fr_0.6fr_1fr_110px_110px_100px_40px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
-		: 'hover:bg-surface-2/50'}"
+		: 'hover:bg-surface-2/50'} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
 	{onclick}
 	{ondblclick}
 	{oncontextmenu}
@@ -81,6 +89,8 @@
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}
 	onpointercancel={handlePointerUp}
+	onpointerenter={() => $isDraggingTag && (isTagDragHovered = true)}
+	onpointerleave={() => (isTagDragHovered = false)}
 	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
 	<!-- Artwork -->

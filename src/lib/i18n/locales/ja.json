@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "一般",
 			"library": "ライブラリ",
+			"discovery": "ディスカバリー",
 			"appearance": "外観",
 			"sound": "サウンド",
 			"diagnostics": "診断",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "OPUS-QUAD、OMNIS-DUO、XDJ-AZ向け"
 		},
+		"discovery": {
+			"metadata": "メタデータ",
+			"autoFetchMetadata": "メタデータの自動取得",
+			"autoFetchMetadataDescription": "URLを追加する際にリリースメタデータを自動的に取得します。",
+			"import": "インポート",
+			"transferTagsOnImport": "インポート時にタグを転送",
+			"transferTagsOnImportDescription": "デフォルトでリリースタグをインポートされたトラックに転送します。",
+			"removeReleaseAfterImport": "インポート後にリリースを削除",
+			"removeReleaseAfterImportDescription": "ファイルをインポートした後、自動的にディスカバリーからリリースを削除します。"
+		},
 		"appearance": {
 			"font": "フォント",
 			"fontDescription": "アプリケーション全体で使用するフォントを選択します。",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "再生に使用するオーディオ出力デバイスを選択します。",
 			"systemDefault": "システムデフォルト",
 			"system": "システム",
-			"external": "外部"
+			"external": "外部",
+			"continuousPlayback": "連続再生",
+			"continuousPlaybackDescription": "現在のトラックが終了したら、自動的に次のトラックを再生します。"
 		},
 		"diagnostics": {
 			"systemInfo": "システム情報",
@@ -150,7 +163,8 @@
 		"release": "リリース",
 		"releases": "リリース",
 		"noReleasesYet": "まだリリースがありません",
-		"addReleaseHint": "Bandcamp、SoundCloud、YouTube、または Discogs からリリースを追加して、発見を追跡します",
+		"addReleaseHint": "{shortcut} を押すか、URLをここにドラッグして Bandcamp、SoundCloud など からリリースを追加してください",
+		"dropHint": "URL をドロップしてリリースを追加",
 		"columns": {
 			"artistTitle": "アーティスト / タイトル",
 			"label": "レーベル",
@@ -472,6 +486,7 @@
 		"settingsSubmenu": "設定",
 		"settingsGeneral": "一般",
 		"settingsLibrary": "ライブラリ",
+		"settingsDiscovery": "ディスカバリー",
 		"settingsAppearance": "外観",
 		"settingsSound": "サウンド",
 		"settingsDiagnostics": "診断",

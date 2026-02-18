@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "Algemeen",
 			"library": "Bibliotheek",
+			"discovery": "Ontdekkingen",
 			"appearance": "Uiterlijk",
 			"sound": "Geluid",
 			"diagnostics": "Diagnostiek",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "Voor OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metagegevens",
+			"autoFetchMetadata": "Metagegevens automatisch ophalen",
+			"autoFetchMetadataDescription": "Haalt automatisch release-metagegevens op wanneer een URL wordt toegevoegd.",
+			"import": "Importeren",
+			"transferTagsOnImport": "Tags bij import overdragen",
+			"transferTagsOnImportDescription": "Overdraag release-tags standaard naar geïmporteerde nummers.",
+			"removeReleaseAfterImport": "Release na import verwijderen",
+			"removeReleaseAfterImportDescription": "Verwijder automatisch releases uit ontdekkingen na het importeren van bestanden."
+		},
 		"appearance": {
 			"font": "Lettertype",
 			"fontDescription": "Kies het lettertype dat in de applicatie wordt gebruikt.",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "Selecteer het audio-uitvoerapparaat voor afspelen.",
 			"systemDefault": "Systeemstandaard",
 			"system": "Systeem",
-			"external": "Extern"
+			"external": "Extern",
+			"continuousPlayback": "Doorlopend afspelen",
+			"continuousPlaybackDescription": "Speel automatisch het volgende nummer af wanneer het huidige eindigt."
 		},
 		"diagnostics": {
 			"systemInfo": "Systeeminformatie",
@@ -150,7 +163,8 @@
 		"release": "release",
 		"releases": "releases",
 		"noReleasesYet": "Nog geen releases",
-		"addReleaseHint": "Voeg releases toe van Bandcamp, SoundCloud, YouTube of Discogs om je ontdekkingen bij te houden",
+		"addReleaseHint": "Druk {shortcut} of sleep een URL hiernaartoe om releases van Bandcamp, SoundCloud en meer toe te voegen",
+		"dropHint": "URL hier neerleggen om release toe te voegen",
 		"columns": {
 			"artistTitle": "Artiest / Titel",
 			"label": "Label",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "Instellingen",
 		"settingsGeneral": "Algemeen",
 		"settingsLibrary": "Bibliotheek",
+		"settingsDiscovery": "Ontdekkingen",
 		"settingsAppearance": "Uiterlijk",
 		"settingsSound": "Geluid",
 		"settingsDiagnostics": "Diagnostiek",

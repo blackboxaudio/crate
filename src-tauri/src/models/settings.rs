@@ -259,6 +259,10 @@ pub struct AppSettings {
     pub auto_analyze_on_import: bool,
     pub auto_sync_on_connect: bool,
     pub auto_sync_on_change: bool,
+    pub continuous_playback: bool,
+    pub auto_fetch_metadata: bool,
+    pub transfer_tags_on_import: bool,
+    pub remove_release_after_import: bool,
     pub ignored_device_ids: Vec<String>,
 }
 
@@ -275,6 +279,10 @@ impl Default for AppSettings {
             auto_analyze_on_import: true,
             auto_sync_on_connect: false,
             auto_sync_on_change: false,
+            continuous_playback: false,
+            auto_fetch_metadata: true,
+            transfer_tags_on_import: true,
+            remove_release_after_import: true,
             ignored_device_ids: Vec::new(),
         }
     }

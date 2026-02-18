@@ -60,6 +60,7 @@ pub struct MenuTranslations {
     pub settings_submenu: String,
     pub settings_general: String,
     pub settings_library: String,
+    pub settings_discovery: String,
     pub settings_appearance: String,
     pub settings_sound: String,
     pub settings_diagnostics: String,
@@ -110,6 +111,7 @@ pub mod ids {
     pub const SETTINGS_MENU: &str = "settings_menu";
     pub const SETTINGS_GENERAL: &str = "settings_general";
     pub const SETTINGS_LIBRARY: &str = "settings_library";
+    pub const SETTINGS_DISCOVERY: &str = "settings_discovery";
     pub const SETTINGS_APPEARANCE: &str = "settings_appearance";
     pub const SETTINGS_SOUND: &str = "settings_sound";
     pub const SETTINGS_DIAGNOSTICS: &str = "settings_diagnostics";
@@ -272,6 +274,13 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
             app,
             ids::SETTINGS_LIBRARY,
             "Library",
+            true,
+            None::<&str>,
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::SETTINGS_DISCOVERY,
+            "Discovery",
             true,
             None::<&str>,
         )?)
@@ -494,6 +503,7 @@ pub fn update_menu_translations(
         &[
             (ids::SETTINGS_GENERAL, &translations.settings_general),
             (ids::SETTINGS_LIBRARY, &translations.settings_library),
+            (ids::SETTINGS_DISCOVERY, &translations.settings_discovery),
             (ids::SETTINGS_APPEARANCE, &translations.settings_appearance),
             (ids::SETTINGS_SOUND, &translations.settings_sound),
             (

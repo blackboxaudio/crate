@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "Allmänt",
 			"library": "Bibliotek",
+			"discovery": "Upptäckter",
 			"appearance": "Utseende",
 			"sound": "Ljud",
 			"diagnostics": "Diagnostik",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "För OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metadata",
+			"autoFetchMetadata": "Hämta metadata automatiskt",
+			"autoFetchMetadataDescription": "Hämta utgåvmetadata automatiskt när en URL läggs till.",
+			"import": "Importera",
+			"transferTagsOnImport": "Överför taggar vid import",
+			"transferTagsOnImportDescription": "Överför utgåvtaggar till importerade spår som standard.",
+			"removeReleaseAfterImport": "Ta bort utgåva efter import",
+			"removeReleaseAfterImportDescription": "Ta automatiskt bort utgåvor från upptäckterna efter att ha importerat filer."
+		},
 		"appearance": {
 			"font": "Typsnitt",
 			"fontDescription": "Välj typsnitt som används i programmet.",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "Välj ljudutgångsenhet för uppspelning.",
 			"systemDefault": "Systemstandard",
 			"system": "System",
-			"external": "Extern"
+			"external": "Extern",
+			"continuousPlayback": "Kontinuerlig uppspelning",
+			"continuousPlaybackDescription": "Spela automatiskt nästa spår när det aktuella spåret slutar."
 		},
 		"diagnostics": {
 			"systemInfo": "Systeminformation",
@@ -150,7 +163,8 @@
 		"release": "utgåva",
 		"releases": "utgåvor",
 		"noReleasesYet": "Inga utgåvor än",
-		"addReleaseHint": "Lägg till utgåvor från Bandcamp, SoundCloud, YouTube eller Discogs för att spåra dina upptäckter",
+		"addReleaseHint": "Tryck {shortcut} eller dra en URL hit för att lägga till utgåvor från Bandcamp, SoundCloud och mer",
+		"dropHint": "Släpp URL för att lägga till utgåva",
 		"columns": {
 			"artistTitle": "Artist / Titel",
 			"label": "Skivbolag",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "Inställningar",
 		"settingsGeneral": "Allmänt",
 		"settingsLibrary": "Bibliotek",
+		"settingsDiscovery": "Upptäckter",
 		"settingsAppearance": "Utseende",
 		"settingsSound": "Ljud",
 		"settingsDiagnostics": "Diagnostik",

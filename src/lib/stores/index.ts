@@ -39,6 +39,7 @@ export {
 	settingsLoading,
 	keyNotationFormat,
 	dateFormat,
+	continuousPlayback,
 } from './settings'
 export {
 	devicesStore,

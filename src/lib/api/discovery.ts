@@ -51,11 +51,13 @@ export async function refreshMetadata(id: string): Promise<DiscoveryRelease> {
 export async function purchaseRelease(
 	releaseId: string,
 	filePaths: string[],
-	transferTags: boolean
+	transferTags: boolean,
+	removeAfterImport: boolean
 ): Promise<ImportResultWithDuplicates> {
 	return invoke<ImportResultWithDuplicates>('purchase_discovery_release', {
 		releaseId,
 		filePaths,
 		transferTags,
+		removeAfterImport,
 	})
 }

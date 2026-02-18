@@ -2,6 +2,7 @@
 	import type { DiscoveryReleaseCreate, DiscoverySourceType, DiscoveryTrackCreate, FetchedMetadata } from '$lib/types'
 	import { Modal, Input, Select, Button, Text, Spinner } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
+	import { autoFetchMetadata } from '$lib/stores/settings'
 	import * as discoveryApi from '$lib/api/discovery'
 
 	type Props = {
@@ -69,7 +70,7 @@
 		// Debounced auto-fetch
 		if (fetchDebounceTimer) clearTimeout(fetchDebounceTimer)
 
-		if (trimmed.startsWith('http')) {
+		if (trimmed.startsWith('http') && $autoFetchMetadata) {
 			fetchDebounceTimer = setTimeout(() => {
 				autoFetch(trimmed)
 			}, 500)

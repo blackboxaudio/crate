@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "General",
 			"library": "Biblioteca",
+			"discovery": "Descubrimientos",
 			"appearance": "Apariencia",
 			"sound": "Sonido",
 			"diagnostics": "Diagnósticos",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "Para OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metadatos",
+			"autoFetchMetadata": "Buscar metadatos automáticamente",
+			"autoFetchMetadataDescription": "Obtiene automáticamente los metadatos del lanzamiento al agregar una URL.",
+			"import": "Importar",
+			"transferTagsOnImport": "Transferir etiquetas al importar",
+			"transferTagsOnImportDescription": "Transfiere las etiquetas del lanzamiento a las pistas importadas por defecto.",
+			"removeReleaseAfterImport": "Eliminar lanzamiento después de importar",
+			"removeReleaseAfterImportDescription": "Elimina automáticamente los lanzamientos del descubrimiento después de importar archivos."
+		},
 		"appearance": {
 			"font": "Fuente",
 			"fontDescription": "Elige la fuente utilizada en la aplicación.",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "Selecciona el dispositivo de salida de audio para la reproducción.",
 			"systemDefault": "Predeterminado del sistema",
 			"system": "Sistema",
-			"external": "Externo"
+			"external": "Externo",
+			"continuousPlayback": "Reproducción continua",
+			"continuousPlaybackDescription": "Reproducir automáticamente la siguiente pista cuando la actual finalice."
 		},
 		"diagnostics": {
 			"systemInfo": "Información del sistema",
@@ -150,7 +163,8 @@
 		"release": "lanzamiento",
 		"releases": "lanzamientos",
 		"noReleasesYet": "Sin lanzamientos aún",
-		"addReleaseHint": "Añade lanzamientos de Bandcamp, SoundCloud, YouTube o Discogs para rastrear tus descubrimientos",
+		"addReleaseHint": "Presiona {shortcut} o arrastra una URL aquí para añadir lanzamientos de Bandcamp, SoundCloud y más",
+		"dropHint": "Suelta URL para añadir lanzamiento",
 		"columns": {
 			"artistTitle": "Artista / Título",
 			"label": "Sello",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "Configuración",
 		"settingsGeneral": "General",
 		"settingsLibrary": "Biblioteca",
+		"settingsDiscovery": "Descubrimientos",
 		"settingsAppearance": "Apariencia",
 		"settingsSound": "Sonido",
 		"settingsDiagnostics": "Diagnósticos",

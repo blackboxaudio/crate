@@ -31,6 +31,7 @@
 		"tabs": {
 			"general": "常规",
 			"library": "曲库",
+			"discovery": "发现",
 			"appearance": "外观",
 			"sound": "声音",
 			"diagnostics": "诊断",
@@ -72,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "适用于 OPUS-QUAD、OMNIS-DUO、XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "元数据",
+			"autoFetchMetadata": "自动获取元数据",
+			"autoFetchMetadataDescription": "添加 URL 时自动获取发行元数据。",
+			"import": "导入",
+			"transferTagsOnImport": "导入时转移标签",
+			"transferTagsOnImportDescription": "默认将发行标签转移到导入的曲目。",
+			"removeReleaseAfterImport": "导入后删除发行",
+			"removeReleaseAfterImportDescription": "导入文件后自动从发现中删除发行。"
+		},
 		"appearance": {
 			"font": "字体",
 			"fontDescription": "选择应用程序中使用的字体。",
@@ -86,7 +97,9 @@
 			"outputDeviceDescription": "选择用于播放的音频输出设备。",
 			"systemDefault": "系统默认",
 			"system": "系统",
-			"external": "外部"
+			"external": "外部",
+			"continuousPlayback": "连续播放",
+			"continuousPlaybackDescription": "当前曲目播放结束时自动播放下一首曲目。"
 		},
 		"diagnostics": {
 			"systemInfo": "系统信息",
@@ -150,7 +163,8 @@
 		"release": "发行",
 		"releases": "发行",
 		"noReleasesYet": "暂无发行",
-		"addReleaseHint": "从 Bandcamp、SoundCloud、YouTube 或 Discogs 添加发行以跟踪您的发现",
+		"addReleaseHint": "按下 {shortcut} 或将 URL 拖放到此处，从 Bandcamp、SoundCloud 等添加发行",
+		"dropHint": "拖放 URL 以添加发行",
 		"columns": {
 			"artistTitle": "艺术家 / 标题",
 			"label": "厂牌",
@@ -471,6 +485,7 @@
 		"settingsSubmenu": "设置",
 		"settingsGeneral": "常规",
 		"settingsLibrary": "曲库",
+		"settingsDiscovery": "发现",
 		"settingsAppearance": "外观",
 		"settingsSound": "声音",
 		"settingsDiagnostics": "诊断",

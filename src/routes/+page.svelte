@@ -39,6 +39,7 @@
 		recentlyToggledMixedTags,
 		tagFilterMode,
 		settingsStore,
+		continuousPlayback,
 		devicesStore,
 		visibleDevices,
 		computeTagStates,
@@ -73,6 +74,7 @@
 	import { LibraryView } from '$lib/components/library'
 	import { DiscoveryView, AddReleaseModal, DiscoveryEditor, PurchaseReleaseModal } from '$lib/components/discovery'
 	import { TrackEditor } from '$lib/components/editor'
+	import { getVersion } from '@tauri-apps/api/app'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { Player } from '$lib/components/player'
 	import {
@@ -332,6 +334,19 @@
 			},
 			onPlaylistMove: playlistController.handlePlaylistDragMove,
 			onPlaylistExportToDevice: exportController.handlePlaylistDropOnDevice,
+			onTagDropOnTrack: async (tagId: string, trackId: string) => {
+				const trackIds = $selectedTrackIds.has(trackId) ? Array.from($selectedTrackIds) : [trackId]
+				await tagsStore.assignTags(trackIds, [tagId])
+				if (selectedPlaylistId) {
+					await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+				} else {
+					await libraryStore.loadTracks()
+				}
+			},
+			onTagDropOnRelease: async (tagId: string, releaseId: string) => {
+				const releaseIds = $selectedReleaseIds.has(releaseId) ? Array.from($selectedReleaseIds) : [releaseId]
+				await discoveryStore.assignTags(releaseIds, [tagId])
+			},
 			onTagDropOnCategory: async (tagId: string, _sourceCategoryId: string, targetCategoryId: string) => {
 				try {
 					await tagsStore.moveTag(tagId, targetCategoryId)
@@ -354,12 +369,35 @@
 	})
 
 	// =============================================================================
+	// Track Navigation
+	// =============================================================================
+
+	function playNextTrack() {
+		const id = $currentTrack?.id
+		if (!id) return
+		const tracks = $displayedTracks
+		const idx = tracks.findIndex((t) => t.id === id)
+		if (idx >= 0 && idx < tracks.length - 1) trackController.play(tracks[idx + 1])
+	}
+
+	function playPreviousTrack() {
+		const id = $currentTrack?.id
+		if (!id) return
+		const tracks = $displayedTracks
+		const idx = tracks.findIndex((t) => t.id === id)
+		if (idx > 0) trackController.play(tracks[idx - 1])
+	}
+
+	// =============================================================================
 	// Initialization
 	// =============================================================================
 
 	async function onMountHelper(): Promise<() => void> {
 		const splashStartTime = Date.now()
 		const minDisplayTime = 700
+
+		// Load version immediately (fast config read, no backend dependency)
+		splashVersion = await getVersion()
 
 		// Initialize export store event listening
 		await exportStore.startListening()
@@ -374,9 +412,6 @@
 			},
 		})
 
-		// Get version after stores load
-		splashVersion = get(appStore).info?.version ?? '0.0.0'
-
 		// Set up keyboard shortcuts
 		const cleanupKeyboard = useKeyboardShortcuts({
 			isModalOpen: () => modalOrchestrator?.isModalOpen() ?? false,
@@ -387,14 +422,26 @@
 			},
 			onClearSelection: () => uiStore.clearSelection(),
 			onSelectAll: () => {
-				const allIds = new Set($sortedTracks.map((t) => t.id))
-				uiStore.setSelectedTracks(allIds)
+				if ($activeView === 'discovery') {
+					uiStore.setSelectedReleases(new Set($sortedReleases.map((r) => r.id)))
+				} else {
+					const allIds = new Set($sortedTracks.map((t) => t.id))
+					uiStore.setSelectedTracks(allIds)
+				}
 			},
 			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator.openSettingsModal(tab),
 			onNewPlaylist: () => playlistController.handleCreatePlaylist(),
 			onNewFolder: () => playlistController.handleCreateFolder(),
 			onImport: () => trackController.handleImport(),
 			onDeleteSelected: () => {
+				if ($activeView === 'discovery') {
+					const releaseIds = $selectedReleaseIds
+					if (releaseIds.size > 0) {
+						const releases = $sortedReleases.filter((r) => releaseIds.has(r.id))
+						handleDiscoveryReleaseDelete(releases)
+						return
+					}
+				}
 				const ids = [...$selectedTrackIds]
 				if (ids.length > 0) {
 					if (selectedPlaylistId) {
@@ -411,6 +458,15 @@
 				}
 			},
 			onPlaySelected: () => {
+				if ($activeView === 'discovery') {
+					const releaseIds = $selectedReleaseIds
+					if (releaseIds.size > 0) {
+						const firstId = [...releaseIds][0]
+						const release = $sortedReleases.find((r) => r.id === firstId)
+						if (release) openUrl(release.url)
+					}
+					return
+				}
 				const selectedIds = $selectedTrackIds
 				if (selectedIds.size > 0) {
 					const firstSelectedId = [...selectedIds][0]
@@ -418,26 +474,29 @@
 					if (track) trackController.play(track)
 				}
 			},
-			onSeekBackward: () => playerStore.seekRelative(-5000),
-			onSeekForward: () => playerStore.seekRelative(5000),
-			onPreviousTrack: () => {
-				const currentTrackId = $currentTrack?.id
-				if (!currentTrackId) return
-				const tracks = $displayedTracks
-				const currentIndex = tracks.findIndex((t) => t.id === currentTrackId)
-				if (currentIndex > 0) trackController.play(tracks[currentIndex - 1])
-			},
-			onNextTrack: () => {
-				const currentTrackId = $currentTrack?.id
-				if (!currentTrackId) return
-				const tracks = $displayedTracks
-				const currentIndex = tracks.findIndex((t) => t.id === currentTrackId)
-				if (currentIndex >= 0 && currentIndex < tracks.length - 1) trackController.play(tracks[currentIndex + 1])
-			},
+			onSeekBackward: () => playerStore.seekRelative(-10000),
+			onSeekForward: () => playerStore.seekRelative(10000),
+			onFineSeekBackward: () => playerStore.seekRelative(-1000),
+			onFineSeekForward: () => playerStore.seekRelative(1000),
+			onPreviousTrack: playPreviousTrack,
+			onNextTrack: playNextTrack,
 			onVolumeUp: () => playerStore.adjustVolume(0.1),
 			onVolumeDown: () => playerStore.adjustVolume(-0.1),
 			onToggleMute: () => playerStore.toggleMute(),
 			onSelectPreviousTrack: () => {
+				if ($activeView === 'discovery') {
+					const releases = $sortedReleases
+					if (releases.length === 0) return
+					const selectedIds = $selectedReleaseIds
+					if (selectedIds.size === 0) {
+						uiStore.selectRelease(releases[releases.length - 1].id)
+					} else {
+						const firstSelectedId = [...selectedIds][0]
+						const currentIndex = releases.findIndex((r) => r.id === firstSelectedId)
+						if (currentIndex > 0) uiStore.selectRelease(releases[currentIndex - 1].id)
+					}
+					return
+				}
 				const tracks = $displayedTracks
 				if (tracks.length === 0) return
 				const selectedIds = $selectedTrackIds
@@ -450,6 +509,20 @@
 				}
 			},
 			onSelectNextTrack: () => {
+				if ($activeView === 'discovery') {
+					const releases = $sortedReleases
+					if (releases.length === 0) return
+					const selectedIds = $selectedReleaseIds
+					if (selectedIds.size === 0) {
+						uiStore.selectRelease(releases[0].id)
+					} else {
+						const lastSelectedId = [...selectedIds].pop()
+						const currentIndex = releases.findIndex((r) => r.id === lastSelectedId)
+						if (currentIndex >= 0 && currentIndex < releases.length - 1)
+							uiStore.selectRelease(releases[currentIndex + 1].id)
+					}
+					return
+				}
 				const tracks = $displayedTracks
 				if (tracks.length === 0) return
 				const selectedIds = $selectedTrackIds
@@ -474,6 +547,12 @@
 				if (modalOrchestrator?.isModalOpen()) return
 				const next = $activeView === 'library' ? 'discovery' : 'library'
 				handleViewChange(next)
+			},
+			onAddRelease: () => {
+				if ($activeView !== 'discovery') {
+					handleViewChange('discovery')
+				}
+				showAddReleaseModal = true
 			},
 		})
 
@@ -506,6 +585,13 @@
 			onToggleEditor: () => uiStore.toggleRightSidebar(),
 		})
 
+		// Register track-end callback for continuous playback
+		playerStore.onTrackEnd(() => {
+			if (get(continuousPlayback)) {
+				playNextTrack()
+			}
+		})
+
 		// Ensure minimum display time for splash screen
 		const elapsed = Date.now() - splashStartTime
 		if (elapsed < minDisplayTime) {
@@ -524,6 +610,7 @@
 			cleanupApp()
 			cleanupKeyboard()
 			cleanupMenu()
+			playerStore.onTrackEnd(null)
 			exportStore.stopListening()
 		}
 	}
@@ -924,6 +1011,9 @@
 							onReleaseImport={handleDiscoveryReleaseImport}
 							onSortChange={handleDiscoverySortChange}
 							onContextMenu={handleReleaseContextMenu}
+							onUrlDrop={async (url) => {
+								await handleAddRelease({ url })
+							}}
 						/>
 					{:else}
 						<LibraryView
@@ -961,7 +1051,7 @@
 			</div>
 		</div>
 
-		<Player />
+		<Player onNext={playNextTrack} onPrevious={playPreviousTrack} />
 	</div>
 {/if}
 

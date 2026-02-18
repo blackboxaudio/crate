@@ -6,7 +6,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { scale } from 'svelte/transition'
 	import { translate } from '$lib/i18n'
-	import { GeneralTab, LibraryTab, AppearanceTab, SoundTab, DiagnosticsTab, AboutTab } from './tabs'
+	import { GeneralTab, LibraryTab, DiscoveryTab, AppearanceTab, SoundTab, DiagnosticsTab, AboutTab } from './tabs'
 
 	type Props = {
 		open: boolean
@@ -114,6 +114,17 @@
 						<button
 							type="button"
 							class="flex w-full items-center gap-2 rounded-md px-3 py-2
+							text-sm font-medium hover:cursor-pointer {activePage === 'discovery'
+								? 'bg-brand-muted text-brand-primary'
+								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+							onclick={() => (activePage = 'discovery')}
+						>
+							<Icon name="search" class="h-4 w-4" />
+							{$translate('settings.tabs.discovery')}
+						</button>
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 rounded-md px-3 py-2
 							text-sm font-medium hover:cursor-pointer {activePage === 'appearance'
 								? 'bg-brand-muted text-brand-primary'
 								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
@@ -164,6 +175,8 @@
 						<GeneralTab />
 					{:else if activePage === 'library'}
 						<LibraryTab />
+					{:else if activePage === 'discovery'}
+						<DiscoveryTab />
 					{:else if activePage === 'appearance'}
 						<AppearanceTab />
 					{:else if activePage === 'sound'}

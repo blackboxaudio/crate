@@ -426,7 +426,7 @@ export type DateFormat = 'locale' | 'iso' | 'us' | 'eu' | 'dot'
 
 export type ExportFormat = 'pdb' | 'device_library_plus'
 
-export type SettingsPage = 'general' | 'library' | 'appearance' | 'sound' | 'diagnostics' | 'about'
+export type SettingsPage = 'general' | 'library' | 'discovery' | 'appearance' | 'sound' | 'diagnostics' | 'about'
 
 export interface AppSettings {
 	theme: Theme
@@ -440,6 +440,10 @@ export interface AppSettings {
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
 	autoSyncOnChange: boolean
+	continuousPlayback: boolean
+	autoFetchMetadata: boolean
+	transferTagsOnImport: boolean
+	removeReleaseAfterImport: boolean
 	ignoredDeviceIds: string[]
 }
 

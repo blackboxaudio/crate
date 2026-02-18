@@ -69,7 +69,13 @@
 		dragTagId = null
 		dragCategoryId = null
 		isDragActive = false
-		// Note: didDrag is NOT reset here — it's consumed by handleTagClick
+		// Reset didDrag after a microtask — if a click fires synchronously on the
+		// same element, it will still see didDrag=true and be suppressed. But if
+		// the pointerup was on a different element (e.g. a category header), no
+		// click fires and the flag is cleaned up to avoid eating the next click.
+		setTimeout(() => {
+			didDrag = false
+		}, 0)
 	}
 
 	function handleContainerContextMenu(e: MouseEvent) {

@@ -115,6 +115,7 @@ pub async fn purchase_discovery_release(
     release_id: String,
     file_paths: Vec<String>,
     transfer_tags: bool,
+    remove_after_import: bool,
     discovery: State<'_, DiscoveryService>,
     library: State<'_, LibraryService>,
     tag: State<'_, TagService>,
@@ -130,7 +131,9 @@ pub async fn purchase_discovery_release(
         tag.assign_tags(track_ids, tag_ids)?;
     }
 
-    discovery.delete_release(&release_id)?;
+    if remove_after_import {
+        discovery.delete_release(&release_id)?;
+    }
 
     Ok(result)
 }

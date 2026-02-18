@@ -66,6 +66,7 @@ export interface MenuTranslations {
 	settingsSubmenu: string
 	settingsGeneral: string
 	settingsLibrary: string
+	settingsDiscovery: string
 	settingsAppearance: string
 	settingsSound: string
 	settingsDiagnostics: string

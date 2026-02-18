@@ -40,18 +40,32 @@ function createPlayerStore() {
 	const { subscribe, set, update } = writable<PlayerState>(initialState)
 
 	let positionInterval: ReturnType<typeof setInterval> | null = null
+	let onTrackEndCallback: (() => void) | null = null
 
 	function startPositionTracking() {
 		stopPositionTracking()
 		positionInterval = setInterval(() => {
 			update((state) => {
 				if (state.playbackState.is_playing) {
+					const newPosition = Math.min(state.playbackState.position_ms + 100, state.playbackState.duration_ms)
+					if (newPosition >= state.playbackState.duration_ms && state.playbackState.duration_ms > 0) {
+						// Track ended — defer callback to avoid store update conflicts
+						setTimeout(() => {
+							stopPositionTracking()
+							onTrackEndCallback?.()
+						}, 0)
+						return {
+							...state,
+							playbackState: {
+								...state.playbackState,
+								position_ms: state.playbackState.duration_ms,
+								is_playing: false,
+							},
+						}
+					}
 					return {
 						...state,
-						playbackState: {
-							...state.playbackState,
-							position_ms: Math.min(state.playbackState.position_ms + 100, state.playbackState.duration_ms),
-						},
+						playbackState: { ...state.playbackState, position_ms: newPosition },
 					}
 				}
 				return state
@@ -278,10 +292,18 @@ function createPlayerStore() {
 		},
 
 		/**
+		 * Register a callback for when a track finishes playing
+		 */
+		onTrackEnd(callback: (() => void) | null) {
+			onTrackEndCallback = callback
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {
 			stopPositionTracking()
+			onTrackEndCallback = null
 			set(initialState)
 		},
 	}
