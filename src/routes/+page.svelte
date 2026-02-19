@@ -798,6 +798,9 @@
 		const release = await discoveryStore.createRelease(create)
 		if (release) {
 			showAddReleaseModal = false
+			if (release.tracks.length > 0) {
+				discoveryViewRef?.expandRelease(release.id)
+			}
 		}
 	}
 

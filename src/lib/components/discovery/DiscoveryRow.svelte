@@ -199,7 +199,7 @@
 				<div></div>
 				<div class="text-center text-xs text-text-tertiary">{track.position}</div>
 				<div class="truncate text-xs text-text-secondary">{track.name}</div>
-				<div class="text-right text-xs text-text-tertiary">
+				<div class="mr-1 text-right text-xs text-text-tertiary">
 					{track.duration_ms ? formatDuration(track.duration_ms) : ''}
 				</div>
 			</div>

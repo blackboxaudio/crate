@@ -122,6 +122,9 @@ pub async fn refresh_release_metadata(
     let release = discovery.get_release(&id)?;
     let fetched = metadata::fetch_metadata(&release.url).await?;
 
+    // Backfill any missing track durations from fetched data
+    discovery.update_track_durations(&id, &fetched.tracks)?;
+
     let mut update = DiscoveryReleaseUpdate::default();
     if let Some(artist) = fetched.artist {
         update.artist = Some(artist);

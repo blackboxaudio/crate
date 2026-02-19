@@ -76,6 +76,24 @@ async fn fetch_bandcamp(client: &reqwest::Client, url: &str) -> Result<FetchedMe
     })
 }
 
+/// Extract the recognized schema.org `@type` from a JSON-LD value.
+/// Handles both a plain string (`"@type": "MusicAlbum"`) and an array
+/// (`"@type": ["MusicAlbum", "MusicRelease"]`).
+fn extract_schema_type(value: &serde_json::Value) -> Option<&'static str> {
+    const RECOGNIZED: &[&str] = &["MusicRelease", "MusicAlbum", "MusicRecording"];
+
+    match value.get("@type") {
+        Some(serde_json::Value::String(s)) => {
+            RECOGNIZED.iter().find(|&&r| r == s).copied()
+        }
+        Some(serde_json::Value::Array(arr)) => arr.iter().find_map(|v| {
+            let s = v.as_str()?;
+            RECOGNIZED.iter().find(|&&r| r == s).copied()
+        }),
+        _ => None,
+    }
+}
+
 fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
     // Find <script type="application/ld+json"> blocks
     let mut search_from = 0;
@@ -84,10 +102,13 @@ fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
         if let Some(end) = html[abs_start..].find("</script>") {
             let json_str = &html[abs_start..abs_start + end];
             if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str) {
-                let schema_type = value.get("@type").and_then(|v| v.as_str()).unwrap_or("");
-                if schema_type == "MusicRelease"
-                    || schema_type == "MusicAlbum"
-                    || schema_type == "MusicRecording"
+                let schema_type = match extract_schema_type(&value) {
+                    Some(t) => t,
+                    None => {
+                        search_from = abs_start + end;
+                        continue;
+                    }
+                };
                 {
                     // For MusicRecording (individual track pages), Bandcamp puts the
                     // page owner in byArtist and the actual track artist in inAlbum.byArtist.
@@ -141,7 +162,23 @@ fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                         });
 
                     // Parse tracks from albumRelease or track.itemListElement
-                    let tracks = parse_bandcamp_tracks(&value);
+                    let mut tracks = parse_bandcamp_tracks(&value);
+
+                    // For MusicRecording (individual track pages), create a single
+                    // track from the root-level name/duration when no track list exists
+                    if tracks.is_empty() && schema_type == "MusicRecording" {
+                        if let Some(name) = title.clone() {
+                            let duration_ms = value
+                                .get("duration")
+                                .and_then(|d| d.as_str())
+                                .and_then(parse_iso_duration);
+                            tracks.push(FetchedTrack {
+                                name,
+                                position: 1,
+                                duration_ms,
+                            });
+                        }
+                    }
 
                     // For MusicRecording (individual track pages), extract parent album info
                     let (parent_url, parent_album_title) = if schema_type == "MusicRecording" {
@@ -410,7 +447,14 @@ fn parse_sc_playlist_hydration(html: &str) -> Option<FetchedMetadata> {
                 .iter()
                 .enumerate()
                 .filter_map(|(idx, track)| {
-                    let name = track.get("title").and_then(|t| t.as_str())?.to_string();
+                    let raw_name = track.get("title").and_then(|t| t.as_str())?.to_string();
+                    let name = artist
+                        .as_ref()
+                        .and_then(|a| {
+                            let prefix = format!("{a} - ");
+                            raw_name.strip_prefix(&prefix).map(|s| s.to_string())
+                        })
+                        .unwrap_or(raw_name);
                     let duration_ms = track.get("duration").and_then(|d| d.as_i64());
                     Some(FetchedTrack {
                         name,
@@ -751,5 +795,66 @@ mod tests {
     fn test_parse_sc_hydration_no_sound() {
         let html = make_sc_hydration_html(r#"[{"hydratable": "user", "data": {}}]"#);
         assert!(parse_sc_hydration(&html).is_none());
+    }
+
+    fn make_bandcamp_json_ld_html(json_ld: &str) -> String {
+        format!(
+            r#"<html><head><script type="application/ld+json">{json_ld}</script></head><body></body></html>"#
+        )
+    }
+
+    #[test]
+    fn test_bandcamp_music_recording_creates_single_track() {
+        let html = make_bandcamp_json_ld_html(
+            r#"{
+                "@type": "MusicRecording",
+                "name": "Echoes",
+                "duration": "P00H04M30S",
+                "byArtist": {"name": "Test Artist"},
+                "image": "https://example.com/art.jpg"
+            }"#,
+        );
+        let meta = parse_bandcamp_json_ld(&html).expect("should parse MusicRecording");
+        assert_eq!(meta.title.as_deref(), Some("Echoes"));
+        assert_eq!(meta.tracks.len(), 1);
+        assert_eq!(meta.tracks[0].name, "Echoes");
+        assert_eq!(meta.tracks[0].position, 1);
+        assert_eq!(meta.tracks[0].duration_ms, Some(270_000));
+    }
+
+    #[test]
+    fn test_bandcamp_music_recording_without_duration() {
+        let html = make_bandcamp_json_ld_html(
+            r#"{
+                "@type": "MusicRecording",
+                "name": "No Duration Track",
+                "byArtist": {"name": "Test Artist"}
+            }"#,
+        );
+        let meta = parse_bandcamp_json_ld(&html).expect("should parse MusicRecording");
+        assert_eq!(meta.tracks.len(), 1);
+        assert_eq!(meta.tracks[0].name, "No Duration Track");
+        assert_eq!(meta.tracks[0].duration_ms, None);
+    }
+
+    #[test]
+    fn test_bandcamp_type_as_array() {
+        let html = make_bandcamp_json_ld_html(
+            r#"{
+                "@type": ["MusicAlbum", "MusicRelease"],
+                "name": "Array Type Album",
+                "byArtist": {"name": "Test Artist"},
+                "track": {
+                    "itemListElement": [
+                        {"position": 1, "item": {"name": "Track One", "duration": "PT3M00S"}}
+                    ]
+                }
+            }"#,
+        );
+        let meta = parse_bandcamp_json_ld(&html).expect("should parse array @type");
+        assert_eq!(meta.title.as_deref(), Some("Array Type Album"));
+        assert_eq!(meta.tracks.len(), 1);
+        assert_eq!(meta.tracks[0].name, "Track One");
+        assert_eq!(meta.tracks[0].duration_ms, Some(180_000));
     }
 }

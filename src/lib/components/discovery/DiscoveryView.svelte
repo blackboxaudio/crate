@@ -62,6 +62,11 @@
 		expandedIds = new SvelteSet()
 	}
 
+	export function expandRelease(id: string) {
+		expandedIds = new SvelteSet(expandedIds)
+		expandedIds.add(id)
+	}
+
 	function hasUrlData(e: DragEvent): boolean {
 		if (!e.dataTransfer) return false
 		return e.dataTransfer.types.includes('text/uri-list') || e.dataTransfer.types.includes('text/plain')

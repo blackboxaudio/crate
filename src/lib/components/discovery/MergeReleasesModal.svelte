@@ -72,7 +72,7 @@
 			{#each releases as release (release.id)}
 				<button
 					type="button"
-					class="flex items-center gap-3 rounded-md border p-3 text-left transition-colors {selectedTargetId ===
+					class="flex items-center gap-3 rounded-md border p-3 text-left transition-colors hover:cursor-pointer {selectedTargetId ===
 					release.id
 						? 'border-brand-primary bg-brand-muted'
 						: 'border-stroke hover:bg-surface-2/50'}"

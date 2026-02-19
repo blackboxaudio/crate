@@ -10,6 +10,8 @@ use crate::models::{
     DiscoveryTrack, DiscoveryTrackCreate, Tag,
 };
 
+use metadata::FetchedTrack;
+
 pub struct DiscoveryService {
     conn: Arc<Mutex<Connection>>,
 }
@@ -716,6 +718,46 @@ impl DiscoveryService {
 
         drop(conn);
         self.get_release(target_id)
+    }
+
+    /// Update missing track durations by matching fetched tracks by name (case-insensitive).
+    /// Only fills in `duration_ms` for tracks that currently have `NULL` duration.
+    pub fn update_track_durations(
+        &self,
+        release_id: &str,
+        fetched_tracks: &[FetchedTrack],
+    ) -> Result<()> {
+        if fetched_tracks.is_empty() {
+            return Ok(());
+        }
+
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let mut stmt = conn.prepare(
+            "SELECT id, name FROM discovery_tracks WHERE release_id = ?1 AND duration_ms IS NULL",
+        )?;
+        let null_tracks: Vec<(String, String)> = stmt
+            .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        for (track_id, track_name) in &null_tracks {
+            if let Some(fetched) = fetched_tracks
+                .iter()
+                .find(|ft| ft.name.eq_ignore_ascii_case(track_name))
+            {
+                if let Some(duration_ms) = fetched.duration_ms {
+                    conn.execute(
+                        "UPDATE discovery_tracks SET duration_ms = ?1 WHERE id = ?2",
+                        rusqlite::params![duration_ms, track_id],
+                    )?;
+                }
+            }
+        }
+
+        Ok(())
     }
 }
 
