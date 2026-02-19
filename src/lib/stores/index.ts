@@ -10,6 +10,7 @@ export {
 	volume,
 	playbackProgress,
 	playbackSource,
+	playbackSpeed,
 	previewInfo,
 	previewTrackIndex,
 } from './player'

@@ -30,6 +30,7 @@ const initialPlaybackState: PlaybackState = {
 	position_ms: 0,
 	duration_ms: 0,
 	volume: 1.0,
+	speed: 1.0,
 	current_track_id: null,
 	current_track_path: null,
 }
@@ -70,7 +71,11 @@ function createPlayerStore() {
 		positionInterval = setInterval(() => {
 			update((state) => {
 				if (state.playbackState.is_playing) {
-					const newPosition = Math.min(state.playbackState.position_ms + 100, state.playbackState.duration_ms)
+					const speed = state.playbackState.speed ?? 1.0
+					const newPosition = Math.min(
+						state.playbackState.position_ms + Math.round(100 * speed),
+						state.playbackState.duration_ms
+					)
 					if (newPosition >= state.playbackState.duration_ms && state.playbackState.duration_ms > 0) {
 						// Track ended — defer callback to avoid store update conflicts
 						setTimeout(() => {
@@ -113,6 +118,8 @@ function createPlayerStore() {
 			update((state) => ({
 				...state,
 				playbackState: { ...state.playbackState, position_ms: positionMs },
+				// Clear loading spinner once audio is flowing at the new rate
+				previewLoadingReleaseId: null,
 			}))
 		})
 		previewPlayer.setOnDurationChange((durationMs: number) => {
@@ -127,6 +134,15 @@ function createPlayerStore() {
 				playbackState: { ...state.playbackState, is_playing: false },
 			}))
 			onTrackEndCallback?.()
+		})
+		previewPlayer.setOnWaiting(() => {
+			const state = getState()
+			if (state.playbackSource === 'preview' && state.previewInfo) {
+				update((s) => ({ ...s, previewLoadingReleaseId: state.previewInfo!.releaseId }))
+			}
+		})
+		previewPlayer.setOnPlaying(() => {
+			update((s) => ({ ...s, previewLoadingReleaseId: null }))
 		})
 		previewPlayer.setOnError(async (msg: string) => {
 			// Ignore duplicate error callbacks fired while a retry is in-flight
@@ -174,6 +190,8 @@ function createPlayerStore() {
 		previewPlayer.setOnDurationChange(null)
 		previewPlayer.setOnEnded(null)
 		previewPlayer.setOnError(null)
+		previewPlayer.setOnWaiting(null)
+		previewPlayer.setOnPlaying(null)
 	}
 
 	return {
@@ -196,7 +214,7 @@ function createPlayerStore() {
 				update((s) => ({
 					...s,
 					currentTrack: track,
-					playbackState,
+					playbackState: { ...playbackState, speed: 1.0 },
 					error: null,
 					playbackSource: 'library',
 					previewInfo: null,
@@ -238,9 +256,10 @@ function createPlayerStore() {
 
 				wirePreviewEvents()
 
-				// Sync volume to preview player
+				// Sync volume and reset speed for preview player
 				const currentVolume = state.isMuted ? 0 : state.playbackState.volume
 				previewPlayer.setVolume(currentVolume)
+				previewPlayer.setPlaybackRate(1.0)
 				previewPlayer.play(streamUrl)
 
 				update((s) => ({
@@ -251,6 +270,7 @@ function createPlayerStore() {
 						is_playing: true,
 						position_ms: 0,
 						duration_ms: track.duration_ms || 0,
+						speed: 1.0,
 						current_track_id: null,
 						current_track_path: null,
 					},
@@ -421,6 +441,39 @@ function createPlayerStore() {
 		},
 
 		/**
+		 * Set playback speed (source-aware)
+		 */
+		async setSpeed(speed: number) {
+			const state = getState()
+
+			if (state.playbackSource === 'preview') {
+				previewPlayer.setPlaybackRate(speed)
+				update((s) => ({
+					...s,
+					playbackState: { ...s.playbackState, speed },
+					previewLoadingReleaseId: s.previewInfo?.releaseId ?? null,
+					error: null,
+				}))
+				return
+			}
+
+			// Optimistic update for immediate UI response
+			update((s) => ({
+				...s,
+				playbackState: { ...s.playbackState, speed },
+			}))
+			try {
+				const playbackState = await playerApi.setSpeed(speed)
+				update((s) => ({ ...s, playbackState, error: null }))
+			} catch (error) {
+				update((s) => ({
+					...s,
+					error: error instanceof Error ? error.message : 'Failed to set speed',
+				}))
+			}
+		},
+
+		/**
 		 * Toggle play/pause (source-aware)
 		 */
 		async togglePlayPause() {
@@ -525,3 +578,5 @@ export const previewInfo = derived(playerStore, ($player) => $player.previewInfo
 export const previewTrackIndex = derived(playerStore, ($player) => $player.previewTrackIndex)
 
 export const previewLoadingReleaseId = derived(playerStore, ($player) => $player.previewLoadingReleaseId)
+
+export const playbackSpeed = derived(playerStore, ($player) => $player.playbackState.speed)

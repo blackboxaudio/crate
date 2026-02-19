@@ -132,7 +132,10 @@
 		"next": "下一首",
 		"mute": "静音",
 		"unmute": "取消静音",
-		"noTrackSelected": "未选择曲目"
+		"noTrackSelected": "未选择曲目",
+		"volume": "音量",
+		"tempo": "速度",
+		"resetTempo": "重置速度"
 	},
 	"library": {
 		"searchPlaceholder": "搜索曲目...",
@@ -485,6 +488,14 @@
 		"rose": "玫瑰色",
 		"emerald": "翠绿色"
 	},
+	"dates": {
+		"today": "今天",
+		"yesterday": "昨天",
+		"daysAgo": "{count, plural, =1 {1 天前} other {{count} 天前}}",
+		"weeksAgo": "{count, plural, =1 {1 周前} other {{count} 周前}}",
+		"monthsAgo": "{count, plural, =1 {1 个月前} other {{count} 个月前}}",
+		"yearsAgo": "{count, plural, =1 {1 年前} other {{count} 年前}}"
+	},
 	"crash": {
 		"title": "出现问题",
 		"description": "应用程序遇到意外错误。",
@@ -513,6 +524,11 @@
 		"newPlaylist": "新建播放列表",
 		"newFolder": "新建文件夹",
 		"quickExport": "快速导出...",
+		"undo": "撤销",
+		"redo": "重做",
+		"cut": "剪切",
+		"copy": "复制",
+		"paste": "粘贴",
 		"selectAll": "全选",
 		"playPause": "播放/暂停",
 		"stop": "停止",

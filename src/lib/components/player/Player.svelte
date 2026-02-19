@@ -6,10 +6,12 @@
 		playbackPosition,
 		playbackDuration,
 		volume,
+		playbackSpeed,
 		previewInfo,
 	} from '$lib/stores'
 	import PlaybackControls from './PlaybackControls.svelte'
 	import SeekBar from './SeekBar.svelte'
+	import TempoControl from './TempoControl.svelte'
 	import VolumeControl from './VolumeControl.svelte'
 	import TrackInfo from './TrackInfo.svelte'
 
@@ -37,6 +39,10 @@
 	function handleVolumeChange(vol: number) {
 		playerStore.setVolume(vol)
 	}
+
+	function handleSpeedChange(speed: number) {
+		playerStore.setSpeed(speed)
+	}
 </script>
 
 <div class="flex items-center gap-4 border-t border-stroke bg-surface-1 px-4 py-3">
@@ -58,6 +64,9 @@
 
 		<SeekBar position={$playbackPosition} duration={$playbackDuration} disabled={!hasTrack} onSeek={handleSeek} />
 	</div>
+
+	<!-- Tempo -->
+	<TempoControl speed={$playbackSpeed} onSpeedChange={handleSpeedChange} disabled={!hasTrack} />
 
 	<!-- Volume -->
 	<div class="flex w-40 flex-shrink-0 justify-end">

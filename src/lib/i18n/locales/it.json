@@ -132,7 +132,10 @@
 		"next": "Successivo",
 		"mute": "Muto",
 		"unmute": "Riattiva audio",
-		"noTrackSelected": "Nessuna traccia selezionata"
+		"noTrackSelected": "Nessuna traccia selezionata",
+		"volume": "Volume",
+		"tempo": "Tempo",
+		"resetTempo": "Ripristina tempo"
 	},
 	"library": {
 		"searchPlaceholder": "Cerca tracce...",
@@ -485,6 +488,14 @@
 		"rose": "Rosa",
 		"emerald": "Smeraldo"
 	},
+	"dates": {
+		"today": "Oggi",
+		"yesterday": "Ieri",
+		"daysAgo": "{count, plural, =1 {1 giorno fa} other {{count} giorni fa}}",
+		"weeksAgo": "{count, plural, =1 {1 settimana fa} other {{count} settimane fa}}",
+		"monthsAgo": "{count, plural, =1 {1 mese fa} other {{count} mesi fa}}",
+		"yearsAgo": "{count, plural, =1 {1 anno fa} other {{count} anni fa}}"
+	},
 	"crash": {
 		"title": "Qualcosa è andato storto",
 		"description": "L'applicazione ha riscontrato un errore imprevisto.",
@@ -513,6 +524,11 @@
 		"newPlaylist": "Nuova playlist",
 		"newFolder": "Nuova cartella",
 		"quickExport": "Esportazione rapida...",
+		"undo": "Annulla",
+		"redo": "Ripeti",
+		"cut": "Taglia",
+		"copy": "Copia",
+		"paste": "Incolla",
 		"selectAll": "Seleziona tutto",
 		"playPause": "Riproduci/Pausa",
 		"stop": "Ferma",

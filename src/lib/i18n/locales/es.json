@@ -132,7 +132,10 @@
 		"next": "Siguiente",
 		"mute": "Silenciar",
 		"unmute": "Activar sonido",
-		"noTrackSelected": "Ninguna pista seleccionada"
+		"noTrackSelected": "Ninguna pista seleccionada",
+		"volume": "Volumen",
+		"tempo": "Tempo",
+		"resetTempo": "Restablecer tempo"
 	},
 	"library": {
 		"searchPlaceholder": "Buscar pistas...",
@@ -485,6 +488,14 @@
 		"rose": "Rosa",
 		"emerald": "Esmeralda"
 	},
+	"dates": {
+		"today": "Hoy",
+		"yesterday": "Ayer",
+		"daysAgo": "{count, plural, =1 {hace 1 día} other {hace {count} días}}",
+		"weeksAgo": "{count, plural, =1 {hace 1 semana} other {hace {count} semanas}}",
+		"monthsAgo": "{count, plural, =1 {hace 1 mes} other {hace {count} meses}}",
+		"yearsAgo": "{count, plural, =1 {hace 1 año} other {hace {count} años}}"
+	},
 	"crash": {
 		"title": "Algo salió mal",
 		"description": "La aplicación encontró un error inesperado.",
@@ -513,6 +524,11 @@
 		"newPlaylist": "Nueva lista de reproducción",
 		"newFolder": "Nueva carpeta",
 		"quickExport": "Exportación rápida...",
+		"undo": "Deshacer",
+		"redo": "Rehacer",
+		"cut": "Cortar",
+		"copy": "Copiar",
+		"paste": "Pegar",
 		"selectAll": "Seleccionar todo",
 		"playPause": "Reproducir/Pausar",
 		"stop": "Detener",

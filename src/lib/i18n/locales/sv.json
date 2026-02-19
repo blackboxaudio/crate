@@ -132,7 +132,10 @@
 		"next": "Nästa",
 		"mute": "Tyst",
 		"unmute": "Ljud på",
-		"noTrackSelected": "Inget spår valt"
+		"noTrackSelected": "Inget spår valt",
+		"volume": "Volym",
+		"tempo": "Tempo",
+		"resetTempo": "Återställ tempo"
 	},
 	"library": {
 		"searchPlaceholder": "Sök spår...",
@@ -485,6 +488,14 @@
 		"rose": "Ros",
 		"emerald": "Smaragd"
 	},
+	"dates": {
+		"today": "Idag",
+		"yesterday": "Igår",
+		"daysAgo": "{count, plural, =1 {för 1 dag sedan} other {för {count} dagar sedan}}",
+		"weeksAgo": "{count, plural, =1 {för 1 vecka sedan} other {för {count} veckor sedan}}",
+		"monthsAgo": "{count, plural, =1 {för 1 månad sedan} other {för {count} månader sedan}}",
+		"yearsAgo": "{count, plural, =1 {för 1 år sedan} other {för {count} år sedan}}"
+	},
 	"crash": {
 		"title": "Något gick fel",
 		"description": "Programmet stötte på ett oväntat fel.",
@@ -513,6 +524,11 @@
 		"newPlaylist": "Ny spellista",
 		"newFolder": "Ny mapp",
 		"quickExport": "Snabbexport...",
+		"undo": "Ångra",
+		"redo": "Gör om",
+		"cut": "Klipp ut",
+		"copy": "Kopiera",
+		"paste": "Klistra in",
 		"selectAll": "Markera alla",
 		"playPause": "Spela/Paus",
 		"stop": "Stoppa",

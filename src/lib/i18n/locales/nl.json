@@ -132,7 +132,10 @@
 		"next": "Volgende",
 		"mute": "Dempen",
 		"unmute": "Dempen opheffen",
-		"noTrackSelected": "Geen track geselecteerd"
+		"noTrackSelected": "Geen track geselecteerd",
+		"volume": "Volume",
+		"tempo": "Tempo",
+		"resetTempo": "Tempo resetten"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks zoeken...",
@@ -485,6 +488,14 @@
 		"rose": "Roze",
 		"emerald": "Smaragd"
 	},
+	"dates": {
+		"today": "Vandaag",
+		"yesterday": "Gisteren",
+		"daysAgo": "{count, plural, =1 {1 dag geleden} other {{count} dagen geleden}}",
+		"weeksAgo": "{count, plural, =1 {1 week geleden} other {{count} weken geleden}}",
+		"monthsAgo": "{count, plural, =1 {1 maand geleden} other {{count} maanden geleden}}",
+		"yearsAgo": "{count, plural, =1 {1 jaar geleden} other {{count} jaren geleden}}"
+	},
 	"crash": {
 		"title": "Er is iets misgegaan",
 		"description": "De applicatie heeft een onverwachte fout ondervonden.",
@@ -513,6 +524,11 @@
 		"newPlaylist": "Nieuwe afspeellijst",
 		"newFolder": "Nieuwe map",
 		"quickExport": "Snelle export...",
+		"undo": "Ongedaan maken",
+		"redo": "Opnieuw doen",
+		"cut": "Knippen",
+		"copy": "Kopiëren",
+		"paste": "Plakken",
 		"selectAll": "Alles selecteren",
 		"playPause": "Afspelen/Pauzeren",
 		"stop": "Stoppen",

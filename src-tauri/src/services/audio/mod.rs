@@ -29,6 +29,7 @@ pub struct PlaybackState {
     pub position_ms: u64,
     pub duration_ms: u64,
     pub volume: f32,
+    pub speed: f32,
     pub current_track_id: Option<String>,
     pub current_track_path: Option<String>,
 }
@@ -40,6 +41,7 @@ impl Default for PlaybackState {
             position_ms: 0,
             duration_ms: 0,
             volume: 1.0,
+            speed: 1.0,
             current_track_id: None,
             current_track_path: None,
         }
@@ -58,6 +60,7 @@ enum AudioCommand {
     Stop,
     Seek(u64),
     SetVolume(f32),
+    SetSpeed(f32),
     SetDevice(Option<String>),
     GetState,
     #[allow(dead_code)]
@@ -222,6 +225,14 @@ impl AudioService {
         }
     }
 
+    pub fn set_speed(&self, speed: f32) -> Result<PlaybackState> {
+        match self.send_command(AudioCommand::SetSpeed(speed))? {
+            AudioResponse::State(state) => Ok(state),
+            AudioResponse::Error(e) => Err(CrateError::Audio(e)),
+            AudioResponse::Ok => Ok(PlaybackState::default()),
+        }
+    }
+
     pub fn get_state(&self) -> Result<PlaybackState> {
         match self.send_command(AudioCommand::GetState)? {
             AudioResponse::State(state) => Ok(state),
@@ -318,6 +329,7 @@ struct AudioPlayer {
     sink: Sink,
     state: PlaybackState,
     fade_state: Arc<AtomicU8>,
+    speed: f32,
     // For tracking playback position
     started_at: Option<Instant>,
     started_position_ms: u64,
@@ -329,7 +341,8 @@ impl AudioPlayer {
         if let Some(started) = self.started_at {
             if !self.sink.is_paused() && !self.sink.empty() {
                 let elapsed = started.elapsed().as_millis() as u64;
-                let position = self.started_position_ms + elapsed;
+                let position =
+                    self.started_position_ms + (elapsed as f64 * self.speed as f64) as u64;
                 // Don't exceed duration
                 return position.min(self.state.duration_ms);
             }
@@ -341,13 +354,19 @@ impl AudioPlayer {
 fn audio_thread(command_rx: Receiver<AudioCommand>, response_tx: Sender<AudioResponse>) {
     let mut player: Option<AudioPlayer> = None;
     let mut current_volume: f32 = 1.0;
+    let mut current_speed: f32 = 1.0;
     let mut selected_device: Option<String> = None;
 
     loop {
         match command_rx.recv() {
             Ok(cmd) => {
-                let response =
-                    handle_command(cmd, &mut player, &mut current_volume, &mut selected_device);
+                let response = handle_command(
+                    cmd,
+                    &mut player,
+                    &mut current_volume,
+                    &mut current_speed,
+                    &mut selected_device,
+                );
 
                 // Check if we should shutdown
                 if matches!(response, AudioResponse::Ok) && player.is_none() {
@@ -403,6 +422,7 @@ fn create_player(
     position_ms: u64,
     is_playing: bool,
     volume: f32,
+    speed: f32,
     selected_device: &Option<String>,
 ) -> std::result::Result<AudioPlayer, String> {
     let stream = create_output_stream(selected_device)?;
@@ -422,6 +442,7 @@ fn create_player(
     }
 
     sink.set_volume(volume);
+    sink.set_speed(speed);
 
     if !is_playing {
         sink.pause();
@@ -432,6 +453,7 @@ fn create_player(
         position_ms,
         duration_ms,
         volume,
+        speed,
         current_track_id: Some(track_id),
         current_track_path: Some(file_path.to_string()),
     };
@@ -441,6 +463,7 @@ fn create_player(
         sink,
         state,
         fade_state,
+        speed,
         started_at: if is_playing {
             Some(Instant::now())
         } else {
@@ -469,6 +492,7 @@ fn handle_command(
     cmd: AudioCommand,
     player: &mut Option<AudioPlayer>,
     current_volume: &mut f32,
+    current_speed: &mut f32,
     selected_device: &mut Option<String>,
 ) -> AudioResponse {
     match cmd {
@@ -486,6 +510,7 @@ fn handle_command(
                 0,
                 true,
                 *current_volume,
+                *current_speed,
                 selected_device,
             ) {
                 Ok(p) => {
@@ -542,6 +567,7 @@ fn handle_command(
                 p.sink.stop();
             }
             *player = None;
+            *current_speed = 1.0;
             AudioResponse::State(PlaybackState {
                 volume: *current_volume,
                 ..Default::default()
@@ -587,6 +613,7 @@ fn handle_command(
                             position_ms,
                             is_playing,
                             *current_volume,
+                            *current_speed,
                             selected_device,
                         ) {
                             Ok(new_player) => {
@@ -622,6 +649,32 @@ fn handle_command(
             }
         }
 
+        AudioCommand::SetSpeed(speed) => {
+            let clamped = speed.clamp(0.9, 1.1);
+            *current_speed = clamped;
+
+            if let Some(ref mut p) = player {
+                // Recalculate position anchor to prevent jump
+                let current_pos = p.get_current_position_ms();
+                p.started_position_ms = current_pos;
+                p.state.position_ms = current_pos;
+                if p.started_at.is_some() {
+                    p.started_at = Some(Instant::now());
+                }
+
+                p.sink.set_speed(clamped);
+                p.speed = clamped;
+                p.state.speed = clamped;
+                AudioResponse::State(p.state.clone())
+            } else {
+                AudioResponse::State(PlaybackState {
+                    speed: clamped,
+                    volume: *current_volume,
+                    ..Default::default()
+                })
+            }
+        }
+
         AudioCommand::SetDevice(device_name) => {
             *selected_device = device_name;
 
@@ -642,6 +695,7 @@ fn handle_command(
                         current_pos,
                         is_playing,
                         *current_volume,
+                        *current_speed,
                         selected_device,
                     ) {
                         Ok(new_player) => {

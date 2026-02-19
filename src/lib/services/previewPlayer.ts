@@ -9,10 +9,13 @@ let _onEnded: (() => void) | null = null
 let _onTimeUpdate: ((positionMs: number) => void) | null = null
 let _onDurationChange: ((durationMs: number) => void) | null = null
 let _onError: ((msg: string) => void) | null = null
+let _onWaiting: (() => void) | null = null
+let _onPlaying: (() => void) | null = null
 
 function getAudio(): HTMLAudioElement {
 	if (!audio) {
 		audio = new Audio()
+		audio.preservesPitch = false
 		audio.addEventListener('ended', () => _onEnded?.())
 		audio.addEventListener('timeupdate', () => {
 			_onTimeUpdate?.(Math.round(audio!.currentTime * 1000))
@@ -26,6 +29,8 @@ function getAudio(): HTMLAudioElement {
 			const msg = audio?.error?.message || 'Preview playback error'
 			_onError?.(msg)
 		})
+		audio.addEventListener('waiting', () => _onWaiting?.())
+		audio.addEventListener('playing', () => _onPlaying?.())
 	}
 	return audio
 }
@@ -68,6 +73,12 @@ export function setVolume(vol: number) {
 	}
 }
 
+export function setPlaybackRate(rate: number) {
+	if (audio) {
+		audio.playbackRate = Math.max(0.9, Math.min(1.1, rate))
+	}
+}
+
 export function setOnEnded(cb: (() => void) | null) {
 	_onEnded = cb
 }
@@ -82,4 +93,12 @@ export function setOnDurationChange(cb: ((durationMs: number) => void) | null) {
 
 export function setOnError(cb: ((msg: string) => void) | null) {
 	_onError = cb
+}
+
+export function setOnWaiting(cb: (() => void) | null) {
+	_onWaiting = cb
+}
+
+export function setOnPlaying(cb: (() => void) | null) {
+	_onPlaying = cb
 }

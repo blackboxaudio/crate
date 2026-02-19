@@ -132,7 +132,10 @@
 		"next": "次へ",
 		"mute": "ミュート",
 		"unmute": "ミュート解除",
-		"noTrackSelected": "トラックが選択されていません"
+		"noTrackSelected": "トラックが選択されていません",
+		"volume": "音量",
+		"tempo": "テンポ",
+		"resetTempo": "テンポをリセット"
 	},
 	"library": {
 		"searchPlaceholder": "トラックを検索...",
@@ -486,6 +489,14 @@
 		"rose": "ローズ",
 		"emerald": "エメラルド"
 	},
+	"dates": {
+		"today": "今日",
+		"yesterday": "昨日",
+		"daysAgo": "{count, plural, =1 {1日前} other {{count}日前}}",
+		"weeksAgo": "{count, plural, =1 {1週間前} other {{count}週間前}}",
+		"monthsAgo": "{count, plural, =1 {1ヶ月前} other {{count}ヶ月前}}",
+		"yearsAgo": "{count, plural, =1 {1年前} other {{count}年前}}"
+	},
 	"crash": {
 		"title": "問題が発生しました",
 		"description": "アプリケーションで予期しないエラーが発生しました。",
@@ -514,6 +525,11 @@
 		"newPlaylist": "新しいプレイリスト",
 		"newFolder": "新しいフォルダ",
 		"quickExport": "クイックエクスポート...",
+		"undo": "元に戻す",
+		"redo": "やり直す",
+		"cut": "カット",
+		"copy": "コピー",
+		"paste": "ペースト",
 		"selectAll": "すべてを選択",
 		"playPause": "再生/一時停止",
 		"stop": "停止",

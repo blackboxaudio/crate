@@ -132,7 +132,10 @@
 		"next": "다음",
 		"mute": "음소거",
 		"unmute": "음소거 해제",
-		"noTrackSelected": "선택된 트랙 없음"
+		"noTrackSelected": "선택된 트랙 없음",
+		"volume": "볼륨",
+		"tempo": "템포",
+		"resetTempo": "템포 재설정"
 	},
 	"library": {
 		"searchPlaceholder": "트랙 검색...",
@@ -485,6 +488,14 @@
 		"rose": "장미",
 		"emerald": "에메랄드"
 	},
+	"dates": {
+		"today": "오늘",
+		"yesterday": "어제",
+		"daysAgo": "{count, plural, =1 {1일 전} other {{count}일 전}}",
+		"weeksAgo": "{count, plural, =1 {1주 전} other {{count}주 전}}",
+		"monthsAgo": "{count, plural, =1 {1개월 전} other {{count}개월 전}}",
+		"yearsAgo": "{count, plural, =1 {1년 전} other {{count}년 전}}"
+	},
 	"crash": {
 		"title": "문제가 발생했습니다",
 		"description": "애플리케이션에서 예기치 않은 오류가 발생했습니다.",
@@ -513,6 +524,11 @@
 		"newPlaylist": "새 재생목록",
 		"newFolder": "새 폴더",
 		"quickExport": "빠른 내보내기...",
+		"undo": "실행 취소",
+		"redo": "다시 실행",
+		"cut": "잘라내기",
+		"copy": "복사",
+		"paste": "붙여넣기",
 		"selectAll": "모두 선택",
 		"playPause": "재생/일시정지",
 		"stop": "정지",

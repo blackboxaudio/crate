@@ -188,7 +188,7 @@
 
 	<!-- Date Added -->
 	<div class="truncate text-text-tertiary">
-		{formatRelativeDate(release.date_added)}
+		{formatRelativeDate(release.date_added, $translate)}
 	</div>
 
 	<!-- Actions -->

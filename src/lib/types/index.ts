@@ -286,6 +286,7 @@ export interface PlaybackState {
 	position_ms: number
 	duration_ms: number
 	volume: number
+	speed: number
 	current_track_id: string | null
 	current_track_path: string | null
 }

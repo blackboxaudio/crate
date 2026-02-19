@@ -132,7 +132,10 @@
 		"next": "Next",
 		"mute": "Mute",
 		"unmute": "Unmute",
-		"noTrackSelected": "No track selected"
+		"noTrackSelected": "No track selected",
+		"volume": "Volume",
+		"tempo": "Tempo",
+		"resetTempo": "Reset tempo"
 	},
 	"library": {
 		"searchPlaceholder": "Search tracks...",
@@ -486,6 +489,14 @@
 		"rose": "Rose",
 		"emerald": "Emerald"
 	},
+	"dates": {
+		"today": "Today",
+		"yesterday": "Yesterday",
+		"daysAgo": "{count, plural, =1 {1 day ago} other {{count} days ago}}",
+		"weeksAgo": "{count, plural, =1 {1 week ago} other {{count} weeks ago}}",
+		"monthsAgo": "{count, plural, =1 {1 month ago} other {{count} months ago}}",
+		"yearsAgo": "{count, plural, =1 {1 year ago} other {{count} years ago}}"
+	},
 	"crash": {
 		"title": "Something went wrong",
 		"description": "The application encountered an unexpected error.",
@@ -514,6 +525,11 @@
 		"newPlaylist": "New Playlist",
 		"newFolder": "New Folder",
 		"quickExport": "Quick Export...",
+		"undo": "Undo",
+		"redo": "Redo",
+		"cut": "Cut",
+		"copy": "Copy",
+		"paste": "Paste",
 		"selectAll": "Select All",
 		"playPause": "Play/Pause",
 		"stop": "Stop",
