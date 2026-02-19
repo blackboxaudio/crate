@@ -15,6 +15,8 @@
 		sortConfig: DiscoverySortConfig
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
+		editorVisible?: boolean
+		hasSelection?: boolean
 		onSelectionChange?: (ids: Set<string>) => void
 		onReleaseOpen?: (release: DiscoveryRelease) => void
 		onReleaseImport?: (release: DiscoveryRelease) => void
@@ -22,6 +24,7 @@
 		onContextMenu?: (e: MouseEvent, release: DiscoveryRelease) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onUrlDrop?: (url: string) => void
+		onToggleEditor?: () => void
 	}
 
 	let {
@@ -31,6 +34,8 @@
 		sortConfig,
 		categoryColors,
 		categorySortOrders,
+		editorVisible = false,
+		hasSelection = false,
 		onSelectionChange,
 		onReleaseOpen,
 		onReleaseImport,
@@ -38,6 +43,7 @@
 		onContextMenu,
 		onEmptySpaceContextMenu,
 		onUrlDrop,
+		onToggleEditor,
 	}: Props = $props()
 
 	let isDragOver = $state(false)
@@ -133,16 +139,23 @@
 				{releaseCount === 1 ? $translate('discovery.release') : $translate('discovery.releases')}
 			</Text>
 		</div>
-		{#if hasExpandableReleases}
-			<div class="flex items-center gap-1">
+		<div class="flex items-center gap-1">
+			{#if hasExpandableReleases}
 				<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 					<IconButton icon="unfold-vertical" size="sm" onclick={expandAll} />
 				</Tooltip>
 				<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
 					<IconButton icon="fold-vertical" size="sm" onclick={collapseAll} />
 				</Tooltip>
-			</div>
-		{/if}
+			{/if}
+			<Tooltip
+				text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
+				position="bottom"
+				delay={250}
+			>
+				<IconButton icon="panel-right" size="sm" disabled={!hasSelection} onclick={onToggleEditor} />
+			</Tooltip>
+		</div>
 	</div>
 
 	<!-- Content -->

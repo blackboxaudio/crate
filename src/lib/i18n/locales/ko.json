@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "내 컬렉션에서도 트랙 삭제",
 			"removeDiscoveryReleasesTitle": "디스커버리에서 삭제",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {이 릴리스를 디스커버리에서 삭제하시겠습니까?} other {{count}개의 릴리스를 디스커버리에서 삭제하시겠습니까?}}",
-			"removeDiscoveryReleasesWarning": "이 작업은 취소할 수 없습니다. 릴리스가 모든 재생목록에서 삭제됩니다."
+			"removeDiscoveryReleasesWarning": "이 작업은 취소할 수 없습니다. 릴리스가 모든 재생목록에서 삭제됩니다.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "재생목록에서 삭제",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {이 릴리스를 재생목록에서 삭제하시겠습니까?} other {{count}개의 릴리스를 재생목록에서 삭제하시겠습니까?}}",
+			"deleteReleasesFromCollection": "내 컬렉션에서도 릴리스 삭제"
 		},
 		"relocate": {
 			"title": "트랙 재배치",
@@ -461,7 +464,9 @@
 		"multipleArtworks": "여러 아트워크",
 		"addArtwork": "아트워크 추가",
 		"replaceArtwork": "아트워크 교체",
-		"reextractFromFile": "파일에서 다시 추출"
+		"reextractFromFile": "파일에서 다시 추출",
+		"showEditor": "편집기 표시",
+		"hideEditor": "편집기 숨기기"
 	},
 	"colors": {
 		"pink": "핑크",

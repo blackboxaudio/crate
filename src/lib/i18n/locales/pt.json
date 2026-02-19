@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "Também excluir faixas da minha coleção",
 			"removeDiscoveryReleasesTitle": "Remover da descoberta",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Remover este lançamento da descoberta?} other {Remover {count} lançamentos da descoberta?}}",
-			"removeDiscoveryReleasesWarning": "Esta ação não pode ser desfeita. Os lançamentos serão removidos de todas as playlists."
+			"removeDiscoveryReleasesWarning": "Esta ação não pode ser desfeita. Os lançamentos serão removidos de todas as playlists.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Remover da playlist",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Remover este lançamento da playlist?} other {Remover {count} lançamentos da playlist?}}",
+			"deleteReleasesFromCollection": "Também excluir lançamentos da minha coleção"
 		},
 		"relocate": {
 			"title": "Realocar faixa",
@@ -461,7 +464,9 @@
 		"multipleArtworks": "Múltiplas capas",
 		"addArtwork": "Adicionar capa",
 		"replaceArtwork": "Substituir capa",
-		"reextractFromFile": "Reextrair do arquivo"
+		"reextractFromFile": "Reextrair do arquivo",
+		"showEditor": "Mostrar editor",
+		"hideEditor": "Ocultar editor"
 	},
 	"colors": {
 		"pink": "Rosa",

@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "Supprimer également les pistes de ma collection",
 			"removeDiscoveryReleasesTitle": "Supprimer de la découverte",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Supprimer cette sortie de la découverte ?} other {Supprimer {count} sorties de la découverte ?}}",
-			"removeDiscoveryReleasesWarning": "Cette action est irréversible. Les sorties seront supprimées de toutes les playlists."
+			"removeDiscoveryReleasesWarning": "Cette action est irréversible. Les sorties seront supprimées de toutes les playlists.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Retirer de la playlist",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Retirer cette sortie de la playlist ?} other {Retirer {count} sorties de la playlist ?}}",
+			"deleteReleasesFromCollection": "Supprimer également les sorties de ma collection"
 		},
 		"relocate": {
 			"title": "Relocaliser la piste",
@@ -461,7 +464,9 @@
 		"multipleArtworks": "Pochettes multiples",
 		"addArtwork": "Ajouter une pochette",
 		"replaceArtwork": "Remplacer la pochette",
-		"reextractFromFile": "Ré-extraire du fichier"
+		"reextractFromFile": "Ré-extraire du fichier",
+		"showEditor": "Afficher l'éditeur",
+		"hideEditor": "Masquer l'éditeur"
 	},
 	"colors": {
 		"pink": "Rose",

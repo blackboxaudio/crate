@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "同时从我的收藏中删除曲目",
 			"removeDiscoveryReleasesTitle": "从发现中移除",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {从发现中移除此发行？} other {从发现中移除 {count} 个发行？}}",
-			"removeDiscoveryReleasesWarning": "此操作无法撤销。发行将从所有播放列表中移除。"
+			"removeDiscoveryReleasesWarning": "此操作无法撤销。发行将从所有播放列表中移除。",
+			"removeDiscoveryReleasesFromPlaylistTitle": "从播放列表移除",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {从播放列表移除此发行？} other {从播放列表移除 {count} 个发行？}}",
+			"deleteReleasesFromCollection": "同时从我的收藏中删除发行"
 		},
 		"relocate": {
 			"title": "重新定位曲目",
@@ -461,7 +464,9 @@
 		"multipleArtworks": "多个封面",
 		"addArtwork": "添加封面",
 		"replaceArtwork": "替换封面",
-		"reextractFromFile": "从文件重新提取"
+		"reextractFromFile": "从文件重新提取",
+		"showEditor": "显示编辑器",
+		"hideEditor": "隐藏编辑器"
 	},
 	"colors": {
 		"pink": "粉色",

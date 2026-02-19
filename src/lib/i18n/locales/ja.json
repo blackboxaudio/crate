@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "コレクションからもトラックを削除",
 			"removeDiscoveryReleasesTitle": "ディスカバリーから削除",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {このリリースをディスカバリーから削除しますか？} other {{count}件のリリースをディスカバリーから削除しますか？}}",
-			"removeDiscoveryReleasesWarning": "この操作は元に戻せません。リリースはすべてのプレイリストから削除されます。"
+			"removeDiscoveryReleasesWarning": "この操作は元に戻せません。リリースはすべてのプレイリストから削除されます。",
+			"removeDiscoveryReleasesFromPlaylistTitle": "プレイリストから削除",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {このリリースをプレイリストから削除しますか？} other {{count}件のリリースをプレイリストから削除しますか？}}",
+			"deleteReleasesFromCollection": "コレクションからもリリースを削除"
 		},
 		"relocate": {
 			"title": "トラックを再配置",
@@ -462,7 +465,9 @@
 		"multipleArtworks": "複数のアートワーク",
 		"addArtwork": "アートワークを追加",
 		"replaceArtwork": "アートワークを置き換え",
-		"reextractFromFile": "ファイルから再抽出"
+		"reextractFromFile": "ファイルから再抽出",
+		"showEditor": "エディターを表示",
+		"hideEditor": "エディターを非表示"
 	},
 	"colors": {
 		"pink": "ピンク",

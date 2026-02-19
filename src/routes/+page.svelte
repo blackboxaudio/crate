@@ -231,6 +231,9 @@
 			getSelectedFolderId: () => selectedFolderId,
 			getSelectedTagIds: () => selectedTagIds,
 			getTagFilterMode: () => $tagFilterMode,
+			onDiscoveryPlaylistSelected: async (playlistId) => {
+				discoveryPlaylistReleases = await playlistsStore.getPlaylistReleases(playlistId)
+			},
 		},
 		{
 			openCreatePlaylistModal: (parentId) => modalOrchestrator.openCreatePlaylistModal(parentId),
@@ -318,21 +321,9 @@
 		}
 	})
 
-	// Load discovery playlist releases when a discovery playlist is selected
-	let prevDiscoveryPlaylistId = $state<string | null>(null)
+	// Clear discovery playlist releases when no playlist is selected
 	$effect(() => {
-		const playlistId = selectedPlaylistId
-		const view = $activeView
-		if (view === 'discovery' && playlistId && playlistId !== prevDiscoveryPlaylistId) {
-			const playlist = playlists.find((p) => p.id === playlistId)
-			if (playlist && playlist.context === 'discovery' && !playlist.is_folder) {
-				prevDiscoveryPlaylistId = playlistId
-				playlistsStore.getPlaylistReleases(playlistId).then((releases) => {
-					discoveryPlaylistReleases = releases
-				})
-			}
-		} else if (!playlistId) {
-			prevDiscoveryPlaylistId = null
+		if (!selectedPlaylistId) {
 			discoveryPlaylistReleases = []
 		}
 	})
@@ -489,7 +480,11 @@
 				if ($activeView === 'discovery') {
 					const releaseIds = $selectedReleaseIds
 					if (releaseIds.size > 0) {
-						modalOrchestrator.openRemoveDiscoveryReleasesModal(Array.from(releaseIds))
+						if (selectedPlaylistId) {
+							modalOrchestrator.openRemoveDiscoveryReleasesFromPlaylistModal(Array.from(releaseIds), selectedPlaylistId)
+						} else {
+							modalOrchestrator.openRemoveDiscoveryReleasesModal(Array.from(releaseIds))
+						}
 						return
 					}
 				}
@@ -1053,12 +1048,15 @@
 									{categoryColors}
 									{categorySortOrders}
 									{breadcrumbItems}
+									editorVisible={$rightSidebarVisible}
+									hasSelection={selectedReleasesArray.length > 0}
 									onSelectionChange={handleReleaseSelectionChange}
 									onContextMenu={(e, item) => {
 										handleReleaseContextMenu(e, item as unknown as DiscoveryRelease)
 									}}
 									onBreadcrumbNavigate={handleBreadcrumbNavigate}
 									onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+									onToggleEditor={() => uiStore.toggleRightSidebar()}
 								/>
 							{:else}
 								<PlaylistView
@@ -1071,6 +1069,8 @@
 									{categoryColors}
 									{categorySortOrders}
 									{breadcrumbItems}
+									editorVisible={$rightSidebarVisible}
+									hasSelection={selectedTracksArray.length > 0}
 									onSelectionChange={trackController.handleSelectionChange}
 									onTrackPlay={trackController.play}
 									onSortChange={handleSortChange}
@@ -1080,6 +1080,7 @@
 									onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 									onTrackColorChange={trackController.setColor}
 									onCancelAnalysis={handleCancelAnalysis}
+									onToggleEditor={() => uiStore.toggleRightSidebar()}
 								/>
 							{/if}
 						{/if}
@@ -1092,6 +1093,8 @@
 							sortConfig={discoverySortConfig}
 							{categoryColors}
 							{categorySortOrders}
+							editorVisible={$rightSidebarVisible}
+							hasSelection={selectedReleasesArray.length > 0}
 							onSelectionChange={handleReleaseSelectionChange}
 							onReleaseOpen={handleReleaseOpen}
 							onReleaseImport={handleDiscoveryReleaseImport}
@@ -1101,6 +1104,7 @@
 							onUrlDrop={async (url) => {
 								await handleAddRelease({ url })
 							}}
+							onToggleEditor={() => uiStore.toggleRightSidebar()}
 						/>
 					{:else}
 						<LibraryView
@@ -1112,6 +1116,8 @@
 							{isDragOver}
 							{categoryColors}
 							{categorySortOrders}
+							editorVisible={$rightSidebarVisible}
+							hasSelection={selectedTracksArray.length > 0}
 							onSelectionChange={trackController.handleSelectionChange}
 							onTrackPlay={trackController.play}
 							onSortChange={handleSortChange}
@@ -1119,6 +1125,7 @@
 							onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openLibraryViewMenu(e)}
 							onTrackColorChange={trackController.setColor}
 							onCancelAnalysis={handleCancelAnalysis}
+							onToggleEditor={() => uiStore.toggleRightSidebar()}
 						/>
 					{/if}
 				</div>
@@ -1199,6 +1206,8 @@
 	onDiscoveryReleaseRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
 	onDiscoveryReleaseImport={handleDiscoveryReleaseImport}
 	onDiscoveryReleaseDelete={(releaseIds) => modalOrchestrator.openRemoveDiscoveryReleasesModal(releaseIds)}
+	onDiscoveryReleaseRemoveFromPlaylist={(playlistId, releaseIds) =>
+		modalOrchestrator.openRemoveDiscoveryReleasesFromPlaylistModal(releaseIds, playlistId)}
 	onDiscoveryReleaseMerge={(releases) => (mergeReleases = releases)}
 	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {
 		const releaseIds = releases.map((r) => r.id)
@@ -1284,15 +1293,28 @@
 		await tagsStore.deleteCategory(id)
 		await libraryStore.loadTracks()
 	}}
-	onRemoveFromPlaylist={async (trackIds, playlistId) => {
+	onRemoveFromPlaylist={async (trackIds, playlistId, deleteFromCollection) => {
 		await playlistsStore.removeTracks(playlistId, trackIds)
-		await libraryStore.loadPlaylistTracks(playlistId)
+		if (deleteFromCollection) {
+			await libraryStore.deleteTracks(trackIds)
+			await playlistsStore.load()
+		} else {
+			await libraryStore.loadPlaylistTracks(playlistId)
+		}
 		uiStore.clearSelection()
 		const count = trackIds.length
 		toastStore.success(count === 1 ? '1 track removed from playlist' : `${count} tracks removed from playlist`)
 	}}
 	onRemoveDiscoveryReleases={async (releaseIds) => {
 		await discoveryStore.deleteReleases(releaseIds)
+		uiStore.clearReleaseSelection()
+	}}
+	onRemoveDiscoveryReleasesFromPlaylist={async (releaseIds, playlistId, deleteFromCollection) => {
+		await playlistsStore.removeReleases(playlistId, releaseIds)
+		discoveryPlaylistReleases = discoveryPlaylistReleases.filter((r) => !releaseIds.includes(r.id))
+		if (deleteFromCollection) {
+			await discoveryStore.deleteReleases(releaseIds)
+		}
 		uiStore.clearReleaseSelection()
 	}}
 	onRemoveFromLibrary={async (trackIds) => {

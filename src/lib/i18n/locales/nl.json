@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "Tracks ook uit mijn collectie verwijderen",
 			"removeDiscoveryReleasesTitle": "Verwijderen uit discovery",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Deze release verwijderen uit discovery?} other {{count} releases verwijderen uit discovery?}}",
-			"removeDiscoveryReleasesWarning": "Deze actie kan niet ongedaan worden gemaakt. Releases worden uit alle afspeellijsten verwijderd."
+			"removeDiscoveryReleasesWarning": "Deze actie kan niet ongedaan worden gemaakt. Releases worden uit alle afspeellijsten verwijderd.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Verwijderen uit afspeellijst",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Deze release verwijderen uit de afspeellijst?} other {{count} releases verwijderen uit de afspeellijst?}}",
+			"deleteReleasesFromCollection": "Releases ook uit mijn collectie verwijderen"
 		},
 		"relocate": {
 			"title": "Track verplaatsen",
@@ -461,7 +464,9 @@
 		"multipleArtworks": "Meerdere artworks",
 		"addArtwork": "Artwork toevoegen",
 		"replaceArtwork": "Artwork vervangen",
-		"reextractFromFile": "Opnieuw uit bestand halen"
+		"reextractFromFile": "Opnieuw uit bestand halen",
+		"showEditor": "Editor tonen",
+		"hideEditor": "Editor verbergen"
 	},
 	"colors": {
 		"pink": "Roze",

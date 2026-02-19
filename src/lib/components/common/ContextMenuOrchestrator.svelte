@@ -107,6 +107,7 @@
 		onDiscoveryReleaseRefreshMetadata: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseImport: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseDelete: (releaseIds: string[]) => void
+		onDiscoveryReleaseRemoveFromPlaylist?: (playlistId: string, releaseIds: string[]) => void
 		onDiscoveryReleaseMerge?: (releases: DiscoveryRelease[]) => void
 		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
@@ -156,6 +157,7 @@
 		onDiscoveryReleaseRefreshMetadata,
 		onDiscoveryReleaseImport,
 		onDiscoveryReleaseDelete,
+		onDiscoveryReleaseRemoveFromPlaylist,
 		onDiscoveryReleaseMerge,
 		onDiscoveryReleaseAddToPlaylist,
 		onClose,
@@ -553,6 +555,14 @@
 		}
 	}
 
+	function handleDiscoveryReleaseRemoveFromPlaylist() {
+		if (activeMenu.type === 'discoveryRelease' && currentPlaylistId) {
+			const releaseIds = activeMenu.releases.map((r) => r.id)
+			closeAll()
+			onDiscoveryReleaseRemoveFromPlaylist?.(currentPlaylistId, releaseIds)
+		}
+	}
+
 	function handleDiscoveryReleaseMerge() {
 		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length >= 2) {
 			const releases = [...activeMenu.releases]
@@ -741,6 +751,7 @@
 		y={visibleMenu.y}
 		selectedReleases={visibleMenu.releases}
 		playlists={discoveryPlaylists}
+		{currentPlaylistId}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
@@ -749,5 +760,6 @@
 		onMerge={handleDiscoveryReleaseMerge}
 		onDelete={handleDiscoveryReleaseDelete}
 		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}
+		onRemoveFromPlaylist={currentPlaylistId ? handleDiscoveryReleaseRemoveFromPlaylist : undefined}
 	/>
 {/if}

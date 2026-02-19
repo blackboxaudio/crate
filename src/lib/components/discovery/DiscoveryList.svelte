@@ -10,7 +10,7 @@
 	type Props = {
 		releases: DiscoveryRelease[]
 		selectedIds: Set<string>
-		expandedIds: Set<string>
+		expandedIds?: Set<string>
 		sortConfig: DiscoverySortConfig
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -27,7 +27,7 @@
 	let {
 		releases,
 		selectedIds,
-		expandedIds,
+		expandedIds = new Set<string>(),
 		sortConfig,
 		categoryColors,
 		categorySortOrders,

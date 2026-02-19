@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "Elimina anche le tracce dalla mia collezione",
 			"removeDiscoveryReleasesTitle": "Rimuovi dalla scoperta",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Rimuovere questa uscita dalla scoperta?} other {Rimuovere {count} uscite dalla scoperta?}}",
-			"removeDiscoveryReleasesWarning": "Questa azione non può essere annullata. Le uscite verranno rimosse da tutte le playlist."
+			"removeDiscoveryReleasesWarning": "Questa azione non può essere annullata. Le uscite verranno rimosse da tutte le playlist.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Rimuovi dalla playlist",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Rimuovere questa uscita dalla playlist?} other {Rimuovere {count} uscite dalla playlist?}}",
+			"deleteReleasesFromCollection": "Elimina anche le uscite dalla mia collezione"
 		},
 		"relocate": {
 			"title": "Sposta traccia",
@@ -461,7 +464,9 @@
 		"multipleArtworks": "Copertine multiple",
 		"addArtwork": "Aggiungi copertina",
 		"replaceArtwork": "Sostituisci copertina",
-		"reextractFromFile": "Riesteri dal file"
+		"reextractFromFile": "Riesteri dal file",
+		"showEditor": "Mostra editor",
+		"hideEditor": "Nascondi editor"
 	},
 	"colors": {
 		"pink": "Rosa",

@@ -10,6 +10,7 @@
 		y: number
 		selectedReleases: DiscoveryRelease[]
 		playlists?: Playlist[]
+		currentPlaylistId?: string | null
 		onClose: () => void
 		onClosed?: () => void
 		onOpenInBrowser: () => void
@@ -18,6 +19,7 @@
 		onMerge?: () => void
 		onDelete: () => void
 		onAddToPlaylist?: (playlistId: string) => void
+		onRemoveFromPlaylist?: () => void
 	}
 
 	let {
@@ -26,6 +28,7 @@
 		y,
 		selectedReleases,
 		playlists = [],
+		currentPlaylistId,
 		onClose,
 		onClosed,
 		onOpenInBrowser,
@@ -34,6 +37,7 @@
 		onMerge,
 		onDelete,
 		onAddToPlaylist,
+		onRemoveFromPlaylist,
 	}: Props = $props()
 
 	// Filter to only non-folder discovery playlists
@@ -92,6 +96,16 @@
 				label: get(translate)('discovery.mergeReleases'),
 				icon: 'copy',
 				action: onMerge,
+			})
+		}
+
+		if (currentPlaylistId && onRemoveFromPlaylist) {
+			items.push({
+				id: 'remove-from-playlist',
+				label: get(translate)('contextMenu.removeFromPlaylist'),
+				icon: 'list-minus',
+				variant: 'danger',
+				action: onRemoveFromPlaylist,
 			})
 		}
 

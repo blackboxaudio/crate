@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "También eliminar pistas de mi colección",
 			"removeDiscoveryReleasesTitle": "Eliminar de descubrimiento",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {¿Eliminar este lanzamiento de descubrimiento?} other {¿Eliminar {count} lanzamientos de descubrimiento?}}",
-			"removeDiscoveryReleasesWarning": "Esta acción no se puede deshacer. Los lanzamientos se eliminarán de todas las listas de reproducción."
+			"removeDiscoveryReleasesWarning": "Esta acción no se puede deshacer. Los lanzamientos se eliminarán de todas las listas de reproducción.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Quitar de la lista de reproducción",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {¿Quitar este lanzamiento de la lista de reproducción?} other {¿Quitar {count} lanzamientos de la lista de reproducción?}}",
+			"deleteReleasesFromCollection": "También eliminar lanzamientos de mi colección"
 		},
 		"relocate": {
 			"title": "Reubicar pista",
@@ -461,7 +464,9 @@
 		"multipleArtworks": "Múltiples carátulas",
 		"addArtwork": "Añadir carátula",
 		"replaceArtwork": "Reemplazar carátula",
-		"reextractFromFile": "Reextraer del archivo"
+		"reextractFromFile": "Reextraer del archivo",
+		"showEditor": "Mostrar editor",
+		"hideEditor": "Ocultar editor"
 	},
 	"colors": {
 		"pink": "Rosa",

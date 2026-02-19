@@ -301,7 +301,10 @@
 			"deleteTracksFromCollection": "Tracks auch aus meiner Sammlung löschen",
 			"removeDiscoveryReleasesTitle": "Aus Entdeckung entfernen",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Dieses Release aus der Entdeckung entfernen?} other {{count} Releases aus der Entdeckung entfernen?}}",
-			"removeDiscoveryReleasesWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Releases werden aus allen Playlists entfernt."
+			"removeDiscoveryReleasesWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Releases werden aus allen Playlists entfernt.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Aus Playlist entfernen",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Dieses Release aus der Playlist entfernen?} other {{count} Releases aus der Playlist entfernen?}}",
+			"deleteReleasesFromCollection": "Releases auch aus meiner Sammlung löschen"
 		},
 		"relocate": {
 			"title": "Track verschieben",
@@ -461,7 +464,9 @@
 		"multipleArtworks": "Mehrere Artworks",
 		"addArtwork": "Artwork hinzufügen",
 		"replaceArtwork": "Artwork ersetzen",
-		"reextractFromFile": "Aus Datei neu extrahieren"
+		"reextractFromFile": "Aus Datei neu extrahieren",
+		"showEditor": "Editor anzeigen",
+		"hideEditor": "Editor ausblenden"
 	},
 	"colors": {
 		"pink": "Pink",
