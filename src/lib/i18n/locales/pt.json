@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "Remover da biblioteca",
 			"removeFromLibraryMessage": "{count, plural, =1 {Remover esta faixa da sua biblioteca?} other {Remover {count} faixas da sua biblioteca?}}",
 			"removeFromLibraryWarning": "Esta ação não pode ser desfeita. As faixas serão removidas de todas as playlists.",
-			"deleteTracksFromCollection": "Também excluir faixas da minha coleção"
+			"deleteTracksFromCollection": "Também excluir faixas da minha coleção",
+			"removeDiscoveryReleasesTitle": "Remover da descoberta",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Remover este lançamento da descoberta?} other {Remover {count} lançamentos da descoberta?}}",
+			"removeDiscoveryReleasesWarning": "Esta ação não pode ser desfeita. Os lançamentos serão removidos de todas as playlists."
 		},
 		"relocate": {
 			"title": "Realocar faixa",

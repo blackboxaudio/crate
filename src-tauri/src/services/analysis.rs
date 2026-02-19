@@ -41,17 +41,6 @@ pub enum AnalysisStatus {
     Cancelled,
 }
 
-/// Progress update during analysis operation (legacy - kept for compatibility)
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AnalysisProgress {
-    pub status: AnalysisStatus,
-    pub current_track_id: Option<String>,
-    pub tracks_analyzed: u32,
-    pub tracks_total: u32,
-    pub result: Option<AnalysisResult>,
-    pub updated_track: Option<Track>,
-}
-
 /// Per-track analysis event for real-time UI updates
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackAnalysisEvent {
@@ -395,7 +384,7 @@ impl AnalysisService {
         loop {
             // Check cancellation every 100 packets
             packet_count += 1;
-            if packet_count % 100 == 0 && cancel_token.is_cancelled() {
+            if packet_count.is_multiple_of(100) && cancel_token.is_cancelled() {
                 return Err(CrateError::Analysis("Cancelled".to_string()));
             }
 

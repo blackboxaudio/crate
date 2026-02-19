@@ -178,7 +178,126 @@ fn parse_bandcamp_tracks(value: &serde_json::Value) -> Vec<FetchedTrack> {
     Vec::new()
 }
 
+fn parse_sc_hydration(html: &str) -> Option<FetchedMetadata> {
+    // Find window.__sc_hydration JSON blob
+    let marker = "window.__sc_hydration = ";
+    let start = html.find(marker)? + marker.len();
+    // The JSON ends with ";</script>" (no newline before the closing tag)
+    let end = start + html[start..].find(";</script>")?;
+    let json_str = &html[start..end];
+
+    let hydration: serde_json::Value = serde_json::from_str(json_str).ok()?;
+    let arr = hydration.as_array()?;
+
+    // Find the "sound" hydratable entry
+    let sound_data = arr.iter().find_map(|entry| {
+        if entry.get("hydratable")?.as_str()? == "sound" {
+            entry.get("data")
+        } else {
+            None
+        }
+    })?;
+
+    let raw_title = sound_data
+        .get("title")
+        .and_then(|t| t.as_str())
+        .unwrap_or_default();
+
+    // Label accounts often use "Artist - Title" in the title field
+    let (title_artist, title) = if let Some(idx) = raw_title.find(" - ") {
+        (
+            Some(raw_title[..idx].to_string()),
+            Some(raw_title[idx + 3..].to_string()),
+        )
+    } else {
+        (None, Some(raw_title.to_string()))
+    };
+
+    let pub_meta = sound_data.get("publisher_metadata");
+
+    let artist = pub_meta
+        .and_then(|pm| pm.get("artist"))
+        .and_then(|a| a.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or(title_artist)
+        .or_else(|| {
+            sound_data
+                .get("user")
+                .and_then(|u| u.get("username"))
+                .and_then(|n| n.as_str())
+                .map(|s| s.to_string())
+        });
+
+    let label = pub_meta
+        .and_then(|pm| pm.get("publisher"))
+        .and_then(|p| p.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            sound_data
+                .get("label_name")
+                .and_then(|l| l.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string())
+        });
+
+    let release_date = sound_data
+        .get("release_date")
+        .and_then(|d| d.as_str())
+        .and_then(|s| s.get(..10))
+        .map(|s| s.to_string());
+
+    let artwork_url = sound_data
+        .get("artwork_url")
+        .and_then(|a| a.as_str())
+        .map(|s| s.replace("-large", "-t500x500"));
+
+    let duration_ms = sound_data
+        .get("duration")
+        .and_then(|d| d.as_i64());
+
+    let tracks = if let Some(name) = title.clone() {
+        vec![FetchedTrack {
+            name,
+            position: 1,
+            duration_ms,
+        }]
+    } else {
+        Vec::new()
+    };
+
+    Some(FetchedMetadata {
+        artist,
+        title,
+        label,
+        release_date,
+        artwork_url,
+        tracks,
+        source_type: String::new(),
+    })
+}
+
 async fn fetch_soundcloud(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
+    // HTML-first strategy: fetch the page and try hydration data
+    let html = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch SoundCloud page: {e}")))?
+        .text()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to read SoundCloud response: {e}")))?;
+
+    if let Some(metadata) = parse_sc_hydration(&html) {
+        return Ok(metadata);
+    }
+
+    log::warn!("SoundCloud hydration parsing failed for {url}, falling back to oEmbed");
+    fetch_soundcloud_oembed(client, url).await
+}
+
+async fn fetch_soundcloud_oembed(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
     let oembed_url = format!("https://soundcloud.com/oembed?url={url}&format=json");
 
     let resp: serde_json::Value = client
@@ -195,18 +314,26 @@ async fn fetch_soundcloud(client: &reqwest::Client, url: &str) -> Result<Fetched
         .and_then(|t| t.as_str())
         .unwrap_or_default();
 
-    // SoundCloud titles are often "Artist - Title"
+    let author_name = resp
+        .get("author_name")
+        .and_then(|a| a.as_str())
+        .unwrap_or_default();
+
+    // SoundCloud titles are often "Artist - Title" or "Title by Artist"
     let (artist, title) = if let Some(idx) = full_title.find(" - ") {
         (
             Some(full_title[..idx].to_string()),
             Some(full_title[idx + 3..].to_string()),
         )
+    } else if !author_name.is_empty() {
+        let by_suffix = format!(" by {author_name}");
+        let cleaned_title = full_title
+            .strip_suffix(&by_suffix)
+            .unwrap_or(full_title)
+            .to_string();
+        (Some(author_name.to_string()), Some(cleaned_title))
     } else {
-        let author = resp
-            .get("author_name")
-            .and_then(|a| a.as_str())
-            .map(|s| s.to_string());
-        (author, Some(full_title.to_string()))
+        (None, Some(full_title.to_string()))
     };
 
     let artwork_url = resp
@@ -362,5 +489,92 @@ mod tests {
             Some("https://example.com/img.jpg".to_string())
         );
         assert_eq!(extract_meta_content(html, "og:description"), None);
+    }
+
+    fn make_sc_hydration_html(hydration_json: &str) -> String {
+        format!(
+            "<html><head></head><body><script>window.__sc_hydration = {hydration_json};</script></body></html>"
+        )
+    }
+
+    #[test]
+    fn test_parse_sc_hydration() {
+        let html = make_sc_hydration_html(
+            r#"[
+                {"hydratable": "user", "data": {}},
+                {"hydratable": "sound", "data": {
+                    "title": "Mind Fog",
+                    "duration": 345000,
+                    "artwork_url": "https://i1.sndcdn.com/artworks-abc-large.jpg",
+                    "release_date": "2025-05-08T00:00:00Z",
+                    "user": {"username": "Apellum"},
+                    "publisher_metadata": {
+                        "artist": "Apellum, Gansi",
+                        "publisher": "Some Label"
+                    }
+                }}
+            ]"#,
+        );
+        let meta = parse_sc_hydration(&html).expect("should parse hydration");
+        assert_eq!(meta.title.as_deref(), Some("Mind Fog"));
+        assert_eq!(meta.artist.as_deref(), Some("Apellum, Gansi"));
+        assert_eq!(meta.label.as_deref(), Some("Some Label"));
+        assert_eq!(meta.release_date.as_deref(), Some("2025-05-08"));
+        assert_eq!(
+            meta.artwork_url.as_deref(),
+            Some("https://i1.sndcdn.com/artworks-abc-t500x500.jpg")
+        );
+        assert_eq!(meta.tracks.len(), 1);
+        assert_eq!(meta.tracks[0].duration_ms, Some(345000));
+    }
+
+    #[test]
+    fn test_parse_sc_hydration_fallback_to_user() {
+        let html = make_sc_hydration_html(
+            r#"[
+                {"hydratable": "sound", "data": {
+                    "title": "Some Track",
+                    "duration": 200000,
+                    "user": {"username": "DJ Test"},
+                    "publisher_metadata": {}
+                }}
+            ]"#,
+        );
+        let meta = parse_sc_hydration(&html).expect("should parse hydration");
+        assert_eq!(meta.artist.as_deref(), Some("DJ Test"));
+        assert_eq!(meta.label, None);
+        assert_eq!(meta.release_date, None);
+    }
+
+    #[test]
+    fn test_parse_sc_hydration_label_upload() {
+        let html = make_sc_hydration_html(
+            r#"[
+                {"hydratable": "sound", "data": {
+                    "title": "Apellum - Sunshower",
+                    "duration": 324046,
+                    "artwork_url": "https://i1.sndcdn.com/artworks-xyz-large.jpg",
+                    "release_date": "2024-06-27T00:00:00Z",
+                    "label_name": "Perfect Dark",
+                    "user": {"username": "Perfect Dark"},
+                    "publisher_metadata": {
+                        "artist": "Apellum"
+                    }
+                }}
+            ]"#,
+        );
+        let meta = parse_sc_hydration(&html).expect("should parse hydration");
+        assert_eq!(meta.title.as_deref(), Some("Sunshower"));
+        assert_eq!(meta.artist.as_deref(), Some("Apellum"));
+        assert_eq!(meta.label.as_deref(), Some("Perfect Dark"));
+        assert_eq!(meta.release_date.as_deref(), Some("2024-06-27"));
+    }
+
+    #[test]
+    fn test_parse_sc_hydration_no_sound() {
+        let html = make_sc_hydration_html(
+            r#"[{"hydratable": "user", "data": {}}]"#,
+        );
+        assert!(parse_sc_hydration(&html).is_none());
     }
 }

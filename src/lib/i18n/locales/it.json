@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "Rimuovi dalla libreria",
 			"removeFromLibraryMessage": "{count, plural, =1 {Rimuovere questa traccia dalla tua libreria?} other {Rimuovere {count} tracce dalla tua libreria?}}",
 			"removeFromLibraryWarning": "Questa azione non può essere annullata. Le tracce verranno rimosse da tutte le playlist.",
-			"deleteTracksFromCollection": "Elimina anche le tracce dalla mia collezione"
+			"deleteTracksFromCollection": "Elimina anche le tracce dalla mia collezione",
+			"removeDiscoveryReleasesTitle": "Rimuovi dalla scoperta",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Rimuovere questa uscita dalla scoperta?} other {Rimuovere {count} uscite dalla scoperta?}}",
+			"removeDiscoveryReleasesWarning": "Questa azione non può essere annullata. Le uscite verranno rimosse da tutte le playlist."
 		},
 		"relocate": {
 			"title": "Sposta traccia",

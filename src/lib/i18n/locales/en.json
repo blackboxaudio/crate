@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "Remove from Library",
 			"removeFromLibraryMessage": "{count, plural, =1 {Remove this track from your library?} other {Remove {count} tracks from your library?}}",
 			"removeFromLibraryWarning": "This action cannot be undone. Tracks will be removed from all playlists.",
-			"deleteTracksFromCollection": "Also delete tracks from my collection"
+			"deleteTracksFromCollection": "Also delete tracks from my collection",
+			"removeDiscoveryReleasesTitle": "Remove from Discovery",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Remove this release from discovery?} other {Remove {count} releases from discovery?}}",
+			"removeDiscoveryReleasesWarning": "This action cannot be undone. Releases will be removed from all playlists."
 		},
 		"relocate": {
 			"title": "Relocate Track",

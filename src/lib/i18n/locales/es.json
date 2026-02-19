@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "Quitar de la biblioteca",
 			"removeFromLibraryMessage": "{count, plural, =1 {¿Quitar esta pista de tu biblioteca?} other {¿Quitar {count} pistas de tu biblioteca?}}",
 			"removeFromLibraryWarning": "Esta acción no se puede deshacer. Las pistas se quitarán de todas las listas de reproducción.",
-			"deleteTracksFromCollection": "También eliminar pistas de mi colección"
+			"deleteTracksFromCollection": "También eliminar pistas de mi colección",
+			"removeDiscoveryReleasesTitle": "Eliminar de descubrimiento",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {¿Eliminar este lanzamiento de descubrimiento?} other {¿Eliminar {count} lanzamientos de descubrimiento?}}",
+			"removeDiscoveryReleasesWarning": "Esta acción no se puede deshacer. Los lanzamientos se eliminarán de todas las listas de reproducción."
 		},
 		"relocate": {
 			"title": "Reubicar pista",

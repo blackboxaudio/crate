@@ -8,7 +8,7 @@
 	import { get } from 'svelte/store'
 	import { isDev } from '$lib/stores/app'
 	import { settingsStore } from '$lib/stores/settings'
-	import { useGlobalErrorHandler } from '$lib/hooks'
+	import { useGlobalErrorHandler, hasAudioDrag } from '$lib/hooks'
 	import { initializeI18n } from '$lib/i18n'
 
 	interface Props {
@@ -31,9 +31,12 @@
 		// Set up global error handlers
 		const cleanupErrorHandler = useGlobalErrorHandler()
 
-		// Prevent browser default drag/drop behavior (which would navigate to dropped files)
+		// Only accept drag when audio files are being dragged (controls the native OS drop cursor).
+		// The drop handler always prevents default as a safety net against browser navigation.
 		const dragoverHandler = (e: DragEvent) => {
-			e.preventDefault()
+			if (hasAudioDrag) {
+				e.preventDefault()
+			}
 			e.stopPropagation()
 		}
 

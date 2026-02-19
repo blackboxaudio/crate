@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "ライブラリから削除",
 			"removeFromLibraryMessage": "{count, plural, =1 {このトラックをライブラリから削除しますか？} other {{count}曲のトラックをライブラリから削除しますか？}}",
 			"removeFromLibraryWarning": "この操作は取り消せません。トラックはすべてのプレイリストから削除されます。",
-			"deleteTracksFromCollection": "コレクションからもトラックを削除"
+			"deleteTracksFromCollection": "コレクションからもトラックを削除",
+			"removeDiscoveryReleasesTitle": "ディスカバリーから削除",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {このリリースをディスカバリーから削除しますか？} other {{count}件のリリースをディスカバリーから削除しますか？}}",
+			"removeDiscoveryReleasesWarning": "この操作は元に戻せません。リリースはすべてのプレイリストから削除されます。"
 		},
 		"relocate": {
 			"title": "トラックを再配置",

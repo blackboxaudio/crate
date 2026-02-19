@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "Aus Bibliothek entfernen",
 			"removeFromLibraryMessage": "{count, plural, =1 {Diesen Track aus Ihrer Bibliothek entfernen?} other {{count} Tracks aus Ihrer Bibliothek entfernen?}}",
 			"removeFromLibraryWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Tracks werden aus allen Playlists entfernt.",
-			"deleteTracksFromCollection": "Tracks auch aus meiner Sammlung löschen"
+			"deleteTracksFromCollection": "Tracks auch aus meiner Sammlung löschen",
+			"removeDiscoveryReleasesTitle": "Aus Entdeckung entfernen",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Dieses Release aus der Entdeckung entfernen?} other {{count} Releases aus der Entdeckung entfernen?}}",
+			"removeDiscoveryReleasesWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Releases werden aus allen Playlists entfernt."
 		},
 		"relocate": {
 			"title": "Track verschieben",

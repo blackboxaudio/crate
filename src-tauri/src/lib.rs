@@ -10,8 +10,8 @@ use std::sync::Arc;
 use db::Database;
 use services::{
     export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
-    DiscoveryService, ExportService, LibraryService, PlaylistService, SettingsService, SyncService,
-    TagService,
+    DiscoveryService, ExportService, LibraryService, MediaControlsService, PlaylistService,
+    SettingsService, SyncService, TagService,
 };
 use tauri::Manager;
 
@@ -135,6 +135,10 @@ pub fn run() {
             commands::discovery::fetch_release_metadata,
             commands::discovery::refresh_release_metadata,
             commands::discovery::purchase_discovery_release,
+            // Media controls commands
+            commands::media_controls::update_now_playing,
+            commands::media_controls::update_playback_state,
+            commands::media_controls::clear_now_playing,
         ])
         .setup(|app| {
             // Get Tauri's app data directory
@@ -197,6 +201,10 @@ pub fn run() {
             let menu = menu::build_menu(app.handle())?;
             app.set_menu(menu)?;
             menu::setup_menu_handlers(app.handle());
+
+            // Initialize media controls (Now Playing / media key integration)
+            let media_controls_service = MediaControlsService::new(app.handle());
+            app.manage(media_controls_service);
 
             Ok(())
         })

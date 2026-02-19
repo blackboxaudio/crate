@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "Verwijderen uit bibliotheek",
 			"removeFromLibraryMessage": "{count, plural, =1 {Deze track verwijderen uit je bibliotheek?} other {{count} tracks verwijderen uit je bibliotheek?}}",
 			"removeFromLibraryWarning": "Deze actie kan niet ongedaan worden gemaakt. Tracks worden uit alle afspeellijsten verwijderd.",
-			"deleteTracksFromCollection": "Tracks ook uit mijn collectie verwijderen"
+			"deleteTracksFromCollection": "Tracks ook uit mijn collectie verwijderen",
+			"removeDiscoveryReleasesTitle": "Verwijderen uit discovery",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Deze release verwijderen uit discovery?} other {{count} releases verwijderen uit discovery?}}",
+			"removeDiscoveryReleasesWarning": "Deze actie kan niet ongedaan worden gemaakt. Releases worden uit alle afspeellijsten verwijderd."
 		},
 		"relocate": {
 			"title": "Track verplaatsen",

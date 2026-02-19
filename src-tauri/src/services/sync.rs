@@ -19,28 +19,6 @@ pub struct SyncResult {
     pub errors: Vec<String>,
 }
 
-/// Progress of a sync operation
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SyncProgress {
-    pub status: SyncStatus,
-    pub device_id: String,
-    pub device_name: String,
-    pub current_file: Option<String>,
-    pub files_synced: u32,
-    pub files_total: u32,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "snake_case")]
-pub enum SyncStatus {
-    Pending,
-    Syncing,
-    GeneratingDatabase,
-    Completed,
-    Failed,
-}
-
 /// Service for handling automatic sync of playlists to USB devices
 pub struct SyncService {
     conn: Arc<Mutex<Connection>>,

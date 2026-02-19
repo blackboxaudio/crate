@@ -1,16 +1,6 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum DiscoverySourceType {
-    Bandcamp,
-    Soundcloud,
-    Youtube,
-    Discogs,
-    Other,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DiscoveryTrack {
     pub id: String,
     pub release_id: String,

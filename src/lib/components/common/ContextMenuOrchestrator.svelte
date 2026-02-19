@@ -19,6 +19,7 @@
 		| { type: 'tagsSidebar'; x: number; y: number }
 		| { type: 'device'; x: number; y: number; device: UsbDevice }
 		| { type: 'discoveryRelease'; x: number; y: number; releases: DiscoveryRelease[] }
+		| { type: 'discoveryView'; x: number; y: number }
 </script>
 
 <script lang="ts">
@@ -98,11 +99,14 @@
 		// Playlist export callback
 		onPlaylistExport: (playlist: Playlist) => void
 
+		// DiscoveryView callbacks
+		onDiscoveryViewAddRelease: () => void
+
 		// Discovery callbacks
 		onDiscoveryReleaseOpenInBrowser: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseRefreshMetadata: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseImport: (release: DiscoveryRelease) => void
-		onDiscoveryReleaseDelete: (releases: DiscoveryRelease[]) => void
+		onDiscoveryReleaseDelete: (releaseIds: string[]) => void
 		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
 		// Close callback
@@ -146,6 +150,7 @@
 		onDeviceExport,
 		onDeviceIgnore,
 		onPlaylistExport,
+		onDiscoveryViewAddRelease,
 		onDiscoveryReleaseOpenInBrowser,
 		onDiscoveryReleaseRefreshMetadata,
 		onDiscoveryReleaseImport,
@@ -238,6 +243,17 @@
 		e.preventDefault()
 		const menu = {
 			type: 'libraryView' as const,
+			x: e.clientX,
+			y: e.clientY,
+		}
+		activeMenu = menu
+		visibleMenu = menu
+	}
+
+	export function openDiscoveryViewMenu(e: MouseEvent) {
+		e.preventDefault()
+		const menu = {
+			type: 'discoveryView' as const,
 			x: e.clientX,
 			y: e.clientY,
 		}
@@ -408,6 +424,12 @@
 		onLibraryViewImport()
 	}
 
+	// DiscoveryView handlers
+	function handleDiscoveryViewAddRelease() {
+		closeAll()
+		onDiscoveryViewAddRelease()
+	}
+
 	// PlaylistView handlers
 	function handlePlaylistViewImport() {
 		if (activeMenu.type === 'playlistView') {
@@ -523,9 +545,9 @@
 
 	function handleDiscoveryReleaseDelete() {
 		if (activeMenu.type === 'discoveryRelease') {
-			const releases = activeMenu.releases
+			const releaseIds = activeMenu.releases.map((r) => r.id)
 			closeAll()
-			onDiscoveryReleaseDelete(releases)
+			onDiscoveryReleaseDelete(releaseIds)
 		}
 	}
 
@@ -617,6 +639,18 @@
 		x={visibleMenu.x}
 		y={visibleMenu.y}
 		items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handleLibraryViewImport }]}
+		onClose={closeAll}
+		onClosed={handleMenuClosed}
+	/>
+{/if}
+
+<!-- Discovery View Context Menu (empty space right-click) -->
+{#if visibleMenu?.type === 'discoveryView'}
+	<ContextMenu
+		open={activeMenu.type === 'discoveryView'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		items={[{ id: 'add-release', label: 'Add release', icon: 'globe', action: handleDiscoveryViewAddRelease }]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>

@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "从曲库移除",
 			"removeFromLibraryMessage": "{count, plural, =1 {从曲库移除此曲目？} other {从曲库移除 {count} 首曲目？}}",
 			"removeFromLibraryWarning": "此操作无法撤销。曲目将从所有播放列表中移除。",
-			"deleteTracksFromCollection": "同时从我的收藏中删除曲目"
+			"deleteTracksFromCollection": "同时从我的收藏中删除曲目",
+			"removeDiscoveryReleasesTitle": "从发现中移除",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {从发现中移除此发行？} other {从发现中移除 {count} 个发行？}}",
+			"removeDiscoveryReleasesWarning": "此操作无法撤销。发行将从所有播放列表中移除。"
 		},
 		"relocate": {
 			"title": "重新定位曲目",

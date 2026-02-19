@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "Retirer de la bibliothèque",
 			"removeFromLibraryMessage": "{count, plural, =0 {Retirer cette piste de votre bibliothèque ?} =1 {Retirer cette piste de votre bibliothèque ?} other {Retirer {count} pistes de votre bibliothèque ?}}",
 			"removeFromLibraryWarning": "Cette action est irréversible. Les pistes seront retirées de toutes les playlists.",
-			"deleteTracksFromCollection": "Supprimer également les pistes de ma collection"
+			"deleteTracksFromCollection": "Supprimer également les pistes de ma collection",
+			"removeDiscoveryReleasesTitle": "Supprimer de la découverte",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Supprimer cette sortie de la découverte ?} other {Supprimer {count} sorties de la découverte ?}}",
+			"removeDiscoveryReleasesWarning": "Cette action est irréversible. Les sorties seront supprimées de toutes les playlists."
 		},
 		"relocate": {
 			"title": "Relocaliser la piste",

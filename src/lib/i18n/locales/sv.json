@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "Ta bort från bibliotek",
 			"removeFromLibraryMessage": "{count, plural, =1 {Ta bort detta spår från ditt bibliotek?} other {Ta bort {count} spår från ditt bibliotek?}}",
 			"removeFromLibraryWarning": "Denna åtgärd kan inte ångras. Spår kommer att tas bort från alla spellistor.",
-			"deleteTracksFromCollection": "Ta även bort spår från min samling"
+			"deleteTracksFromCollection": "Ta även bort spår från min samling",
+			"removeDiscoveryReleasesTitle": "Ta bort från upptäckt",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Ta bort det här släppet från upptäckt?} other {Ta bort {count} släpp från upptäckt?}}",
+			"removeDiscoveryReleasesWarning": "Denna åtgärd kan inte ångras. Släppen kommer att tas bort från alla spellistor."
 		},
 		"relocate": {
 			"title": "Flytta spår",

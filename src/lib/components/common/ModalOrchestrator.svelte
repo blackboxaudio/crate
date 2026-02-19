@@ -30,6 +30,7 @@
 		| { type: 'deleteCategory'; category: TagCategory }
 		| { type: 'removeFromPlaylist'; trackIds: string[]; playlistId: string }
 		| { type: 'removeFromLibrary'; trackIds: string[] }
+		| { type: 'removeDiscoveryReleases'; releaseIds: string[] }
 		// Feature modals
 		| { type: 'tagInput' }
 		| { type: 'deviceInfo'; device: UsbDevice }
@@ -113,6 +114,7 @@
 		onDeleteCategory: (id: string) => Promise<void>
 		onRemoveFromPlaylist: (trackIds: string[], playlistId: string) => Promise<void>
 		onRemoveFromLibrary: (trackIds: string[]) => Promise<void>
+		onRemoveDiscoveryReleases: (releaseIds: string[]) => Promise<void>
 
 		// Move conflict callbacks
 		onMoveConflictOverwrite: (movingItemId: string, targetParentId: string | null) => Promise<boolean>
@@ -153,6 +155,7 @@
 		onDeleteCategory,
 		onRemoveFromPlaylist,
 		onRemoveFromLibrary,
+		onRemoveDiscoveryReleases,
 		onMoveConflictOverwrite,
 		onMoveConflictMerge,
 		onTagInputSubmit,
@@ -243,6 +246,10 @@
 
 	export function openRemoveFromLibraryModal(trackIds: string[]) {
 		activeModal = { type: 'removeFromLibrary', trackIds }
+	}
+
+	export function openRemoveDiscoveryReleasesModal(releaseIds: string[]) {
+		activeModal = { type: 'removeDiscoveryReleases', releaseIds }
 	}
 
 	// Feature modals
@@ -406,6 +413,14 @@
 			const trackIds = activeModal.trackIds
 			closeAll()
 			await onRemoveFromLibrary(trackIds)
+		}
+	}
+
+	async function handleRemoveDiscoveryReleasesConfirm() {
+		if (activeModal.type === 'removeDiscoveryReleases') {
+			const releaseIds = activeModal.releaseIds
+			closeAll()
+			await onRemoveDiscoveryReleases(releaseIds)
 		}
 	}
 
@@ -798,6 +813,22 @@
 		confirmLabel={$translate('common.remove')}
 		destructive={true}
 		onConfirm={handleRemoveFromLibraryConfirm}
+		onCancel={closeAll}
+	/>
+{/if}
+
+<!-- Remove Discovery Releases Confirmation -->
+{#if activeModal.type === 'removeDiscoveryReleases'}
+	<ConfirmModal
+		open={true}
+		title={$translate('modals.confirm.removeDiscoveryReleasesTitle')}
+		message={$translate('modals.confirm.removeDiscoveryReleasesMessage', {
+			values: { count: activeModal.releaseIds.length },
+		})}
+		warnings={[$translate('modals.confirm.removeDiscoveryReleasesWarning')]}
+		confirmLabel={$translate('common.remove')}
+		destructive={true}
+		onConfirm={handleRemoveDiscoveryReleasesConfirm}
 		onCancel={closeAll}
 	/>
 {/if}

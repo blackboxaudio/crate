@@ -57,6 +57,7 @@
 		sortedReleases,
 		releaseCount,
 	} from '$lib/stores'
+	import { isPlaying } from '$lib/stores/player'
 	import { syncStore } from '$lib/stores/sync'
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
@@ -67,7 +68,13 @@
 		createExportController,
 		createPlaylistController,
 	} from '$lib/controllers'
-	import { useAppInitialization, useKeyboardShortcuts, useMenuActions, useDragDropCoordination } from '$lib/hooks'
+	import {
+		useAppInitialization,
+		useKeyboardShortcuts,
+		useMenuActions,
+		useMediaKeys,
+		useDragDropCoordination,
+	} from '$lib/hooks'
 	import { translate } from '$lib/i18n'
 
 	import { Sidebar, Toolbar, RightSidebar } from '$lib/components/layout'
@@ -88,6 +95,7 @@
 	} from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { openDevTools, closeDevTools, setMenuItemEnabled } from '$lib/api/app'
+	import { updateNowPlaying, updatePlaybackState, clearNowPlaying } from '$lib/api/mediaControls'
 	import { exportStore } from '$lib/stores/export'
 	import { SvelteMap } from 'svelte/reactivity'
 
@@ -319,6 +327,33 @@
 	})
 
 	// =============================================================================
+	// Now Playing Sync
+	// =============================================================================
+
+	// Sync current track metadata to OS Now Playing (macOS Control Center, etc.)
+	$effect(() => {
+		const track = $currentTrack
+		if (track) {
+			updateNowPlaying(
+				track.title || null,
+				track.artist || null,
+				track.album || null,
+				track.artwork_path || null,
+				track.duration_ms
+			).catch(() => {})
+		} else {
+			clearNowPlaying().catch(() => {})
+		}
+	})
+
+	// Sync playback state (playing/paused) to OS — separate from metadata to avoid
+	// re-sending metadata on every play/pause toggle
+	$effect(() => {
+		const playing = $isPlaying
+		updatePlaybackState(playing).catch(() => {})
+	})
+
+	// =============================================================================
 	// Drag-Drop Coordination
 	// =============================================================================
 
@@ -443,8 +478,7 @@
 				if ($activeView === 'discovery') {
 					const releaseIds = $selectedReleaseIds
 					if (releaseIds.size > 0) {
-						const releases = $sortedReleases.filter((r) => releaseIds.has(r.id))
-						handleDiscoveryReleaseDelete(releases)
+						modalOrchestrator.openRemoveDiscoveryReleasesModal(Array.from(releaseIds))
 						return
 					}
 				}
@@ -618,6 +652,13 @@
 			onToggleEditor: () => uiStore.toggleRightSidebar(),
 		})
 
+		// Set up media key listeners (OS-level via souvlaki)
+		const cleanupMediaKeys = await useMediaKeys({
+			onPlayPause: () => playerStore.togglePlayPause(),
+			onNextTrack: playNextTrack,
+			onPreviousTrack: playPreviousTrack,
+		})
+
 		// Register track-end callback for continuous playback
 		playerStore.onTrackEnd(() => {
 			if (get(continuousPlayback)) {
@@ -643,6 +684,7 @@
 			cleanupApp()
 			cleanupKeyboard()
 			cleanupMenu()
+			cleanupMediaKeys()
 			playerStore.onTrackEnd(null)
 			exportStore.stopListening()
 		}
@@ -825,12 +867,6 @@
 
 	async function handleDiscoveryReleaseRefreshMetadata(release: DiscoveryRelease) {
 		await discoveryStore.refreshMetadata(release.id)
-	}
-
-	async function handleDiscoveryReleaseDelete(releases: DiscoveryRelease[]) {
-		const ids = releases.map((r) => r.id)
-		await discoveryStore.deleteReleases(ids)
-		uiStore.clearReleaseSelection()
 	}
 
 	function handleBreadcrumbNavigate(item: BreadcrumbItem) {
@@ -1044,6 +1080,7 @@
 							onReleaseImport={handleDiscoveryReleaseImport}
 							onSortChange={handleDiscoverySortChange}
 							onContextMenu={handleReleaseContextMenu}
+							onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openDiscoveryViewMenu(e)}
 							onUrlDrop={async (url) => {
 								await handleAddRelease({ url })
 							}}
@@ -1110,6 +1147,7 @@
 	onPlaylistTreeCreatePlaylist={() => modalOrchestrator.openCreatePlaylistModal(null)}
 	onPlaylistTreeCreateFolder={() => modalOrchestrator.openCreateFolderModal(null)}
 	onLibraryViewImport={trackController.handleImport}
+	onDiscoveryViewAddRelease={() => (showAddReleaseModal = true)}
 	onPlaylistViewImport={playlistController.handlePlaylistViewImport}
 	{tagCategories}
 	onTagAddTag={(categoryId) => modalOrchestrator.openCreateTagModal(categoryId)}
@@ -1143,7 +1181,7 @@
 	onDiscoveryReleaseOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
 	onDiscoveryReleaseRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
 	onDiscoveryReleaseImport={handleDiscoveryReleaseImport}
-	onDiscoveryReleaseDelete={handleDiscoveryReleaseDelete}
+	onDiscoveryReleaseDelete={(releaseIds) => modalOrchestrator.openRemoveDiscoveryReleasesModal(releaseIds)}
 	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {
 		const releaseIds = releases.map((r) => r.id)
 		await playlistsStore.addReleases(playlistId, releaseIds)
@@ -1234,6 +1272,10 @@
 		uiStore.clearSelection()
 		const count = trackIds.length
 		toastStore.success(count === 1 ? '1 track removed from playlist' : `${count} tracks removed from playlist`)
+	}}
+	onRemoveDiscoveryReleases={async (releaseIds) => {
+		await discoveryStore.deleteReleases(releaseIds)
+		uiStore.clearReleaseSelection()
 	}}
 	onRemoveFromLibrary={async (trackIds) => {
 		await libraryStore.deleteTracks(trackIds)

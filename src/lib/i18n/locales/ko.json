@@ -289,7 +289,10 @@
 			"removeFromLibraryTitle": "라이브러리에서 제거",
 			"removeFromLibraryMessage": "{count, plural, =1 {이 트랙을 라이브러리에서 제거하시겠습니까?} other {{count}개의 트랙을 라이브러리에서 제거하시겠습니까?}}",
 			"removeFromLibraryWarning": "이 작업은 취소할 수 없습니다. 트랙이 모든 재생목록에서 제거됩니다.",
-			"deleteTracksFromCollection": "내 컬렉션에서도 트랙 삭제"
+			"deleteTracksFromCollection": "내 컬렉션에서도 트랙 삭제",
+			"removeDiscoveryReleasesTitle": "디스커버리에서 삭제",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {이 릴리스를 디스커버리에서 삭제하시겠습니까?} other {{count}개의 릴리스를 디스커버리에서 삭제하시겠습니까?}}",
+			"removeDiscoveryReleasesWarning": "이 작업은 취소할 수 없습니다. 릴리스가 모든 재생목록에서 삭제됩니다."
 		},
 		"relocate": {
 			"title": "트랙 재배치",
