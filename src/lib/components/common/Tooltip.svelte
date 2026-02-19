@@ -22,9 +22,12 @@
 	let timeoutId: ReturnType<typeof setTimeout> | undefined = $state()
 	let hoverTimeoutId: ReturnType<typeof setTimeout> | undefined = $state()
 
+	const HIDDEN_STYLE = 'position:fixed;visibility:hidden;'
+
 	let wrapperEl: HTMLDivElement | undefined = $state()
 	let tooltipEl: HTMLDivElement | undefined = $state()
-	let fixedStyle = $state('')
+	let fixedStyle = $state(HIDDEN_STYLE)
+	let rafId: number | undefined
 
 	function computePosition() {
 		if (!wrapperEl || !tooltipEl) return
@@ -64,7 +67,17 @@
 
 	$effect(() => {
 		if (visible && tooltipEl && wrapperEl) {
-			computePosition()
+			if (rafId) cancelAnimationFrame(rafId)
+			fixedStyle = HIDDEN_STYLE
+			rafId = requestAnimationFrame(() => {
+				computePosition()
+			})
+		} else {
+			fixedStyle = HIDDEN_STYLE
+		}
+
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId)
 		}
 	})
 
@@ -91,6 +104,13 @@
 		}
 		visible = false
 	}
+
+	// Keep message in sync when text prop changes while tooltip is visible
+	$effect(() => {
+		if (visible && text) {
+			message = text
+		}
+	})
 
 	// Hover handlers for declarative usage with `text` prop
 	function handleMouseEnter() {

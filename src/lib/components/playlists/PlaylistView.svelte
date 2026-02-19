@@ -84,6 +84,16 @@
 		}
 	}
 
+	const hasExpandableReleases = $derived(releases.some((r) => r.tracks.length > 0))
+
+	function expandAll() {
+		expandedIds = new SvelteSet(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
+	}
+
+	function collapseAll() {
+		expandedIds = new SvelteSet()
+	}
+
 	// Provide a default sort config for discovery lists
 	const discoverySortConfig: DiscoverySortConfig = { field: 'date_added', direction: 'desc' }
 </script>
@@ -92,19 +102,29 @@
 	<!-- Breadcrumb Navigation -->
 	<Breadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} onContextMenu={onBreadcrumbContextMenu}>
 		{#snippet actions()}
-			<Tooltip
-				text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
-				position="bottom"
-				delay={250}
-			>
-				<IconButton
-					icon="panel-right"
-					size="sm"
-					active={editorVisible && hasSelection}
-					disabled={!hasSelection}
-					onclick={onToggleEditor}
-				/>
-			</Tooltip>
+			<div class="flex items-center gap-1">
+				{#if isDiscovery && hasExpandableReleases}
+					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
+						<IconButton icon="unfold-vertical" size="sm" onclick={expandAll} />
+					</Tooltip>
+					<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
+						<IconButton icon="fold-vertical" size="sm" onclick={collapseAll} />
+					</Tooltip>
+				{/if}
+				<Tooltip
+					text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
+					position="bottom"
+					delay={250}
+				>
+					<IconButton
+						icon="panel-right"
+						size="sm"
+						active={editorVisible && hasSelection}
+						disabled={!hasSelection}
+						onclick={onToggleEditor}
+					/>
+				</Tooltip>
+			</div>
 		{/snippet}
 	</Breadcrumbs>
 
