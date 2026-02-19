@@ -2,7 +2,7 @@
 	import type { DiscoveryRelease } from '$lib/types'
 	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
-	import { AlbumArt, Icon, IconButton, Text, Tooltip } from '$lib/components/common'
+	import { AlbumArt, IconButton, Text, Tooltip } from '$lib/components/common'
 	import { dateFormat, dragStore, isDraggingTag } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
@@ -100,16 +100,15 @@
 	<!-- Expand toggle -->
 	<div class="flex items-center justify-center">
 		{#if release.tracks.length > 0}
-			<button
-				type="button"
-				class="flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-surface-2"
+			<IconButton
+				icon={expanded ? 'chevron-down' : 'chevron-right'}
+				iconClass="h-3.5 w-3.5 text-text-tertiary"
+				size="sm"
 				onclick={(e) => {
 					e.stopPropagation()
 					onToggleExpand?.()
 				}}
-			>
-				<Icon name={expanded ? 'chevron-down' : 'chevron-right'} class="h-3.5 w-3.5 text-text-tertiary" />
-			</button>
+			/>
 		{/if}
 	</div>
 

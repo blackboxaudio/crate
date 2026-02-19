@@ -42,6 +42,7 @@
 		size
 	]} {className}"
 	{onclick}
+	ondblclick={(e) => e.stopPropagation()}
 >
 	<Icon name={icon} class={iconClass || undefined} {fill} />
 </button>
