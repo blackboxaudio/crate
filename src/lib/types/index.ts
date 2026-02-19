@@ -426,7 +426,7 @@ export type DateFormat = 'locale' | 'iso' | 'us' | 'eu' | 'dot'
 
 export type ExportFormat = 'pdb' | 'device_library_plus'
 
-export type SettingsPage = 'general' | 'library' | 'discovery' | 'appearance' | 'sound' | 'diagnostics' | 'about'
+export type SettingsPage = 'general' | 'appearance' | 'library' | 'discovery' | 'sound' | 'diagnostics' | 'about'
 
 export interface AppSettings {
 	theme: Theme

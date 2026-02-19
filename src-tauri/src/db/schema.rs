@@ -179,6 +179,7 @@ CREATE TABLE discovery_releases (
     artwork_url TEXT,
     artwork_path TEXT,
     notes TEXT,
+    parent_url TEXT,
     date_added TEXT NOT NULL,
     date_modified TEXT NOT NULL
 );
@@ -208,13 +209,8 @@ CREATE TABLE playlist_discovery_releases (
     date_added TEXT,
     PRIMARY KEY (playlist_id, release_id)
 );
-"#,
-        // Migration 2: Add parent_url to discovery_releases
-        r#"
-ALTER TABLE discovery_releases ADD COLUMN parent_url TEXT;
-"#,
-        // Migration 3: Stream cache tables for preview playback
-        r#"
+
+-- Stream cache tables for preview playback
 CREATE TABLE discovery_stream_cache (
     release_id     TEXT    NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
     track_position INTEGER NOT NULL,

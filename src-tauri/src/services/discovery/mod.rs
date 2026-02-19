@@ -493,9 +493,7 @@ impl DiscoveryService {
         // Check 1: If parent_url provided, find releases whose url matches the parent_url
         if let Some(p_url) = parent_url {
             let normalized = normalize_url(p_url);
-            let mut stmt = conn.prepare(
-                "SELECT id FROM discovery_releases WHERE url = ?1",
-            )?;
+            let mut stmt = conn.prepare("SELECT id FROM discovery_releases WHERE url = ?1")?;
             let ids: Vec<String> = stmt
                 .query_map([&normalized], |row| row.get(0))?
                 .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -505,9 +503,8 @@ impl DiscoveryService {
         // Check 2: If parent_url provided, find releases with the same parent_url
         if let Some(p_url) = parent_url {
             let normalized = normalize_url(p_url);
-            let mut stmt = conn.prepare(
-                "SELECT id FROM discovery_releases WHERE parent_url = ?1",
-            )?;
+            let mut stmt =
+                conn.prepare("SELECT id FROM discovery_releases WHERE parent_url = ?1")?;
             let ids: Vec<String> = stmt
                 .query_map([&normalized], |row| row.get(0))?
                 .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -532,10 +529,7 @@ impl DiscoveryService {
         drop(conn);
 
         // Fetch full release objects
-        matched_ids
-            .iter()
-            .map(|id| self.get_release(id))
-            .collect()
+        matched_ids.iter().map(|id| self.get_release(id)).collect()
     }
 
     /// Add tracks to an existing release, deduplicating by name (case-insensitive).
@@ -617,10 +611,8 @@ impl DiscoveryService {
                 .query_map([target_id], |row| Ok((row.get(0)?, row.get(1)?)))?
                 .collect::<std::result::Result<Vec<_>, _>>()?;
 
-            let mut existing_names: Vec<String> =
-                existing.iter().map(|(n, _)| n.clone()).collect();
-            let mut next_position =
-                existing.iter().map(|(_, p)| *p).max().unwrap_or(0) + 1;
+            let mut existing_names: Vec<String> = existing.iter().map(|(n, _)| n.clone()).collect();
+            let mut next_position = existing.iter().map(|(_, p)| *p).max().unwrap_or(0) + 1;
 
             // Get target notes
             let target_notes: Option<String> = conn.query_row(
@@ -661,9 +653,8 @@ impl DiscoveryService {
                 }
 
                 // Union tags from source onto target
-                let mut stmt = conn.prepare(
-                    "SELECT tag_id FROM discovery_release_tags WHERE release_id = ?1",
-                )?;
+                let mut stmt = conn
+                    .prepare("SELECT tag_id FROM discovery_release_tags WHERE release_id = ?1")?;
                 let tag_ids: Vec<String> = stmt
                     .query_map([source_id.as_str()], |row| row.get(0))?
                     .collect::<std::result::Result<Vec<_>, _>>()?;

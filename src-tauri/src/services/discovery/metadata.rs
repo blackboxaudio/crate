@@ -136,9 +136,7 @@ fn extract_schema_type(value: &serde_json::Value) -> Option<&'static str> {
     const RECOGNIZED: &[&str] = &["MusicRelease", "MusicAlbum", "MusicRecording"];
 
     match value.get("@type") {
-        Some(serde_json::Value::String(s)) => {
-            RECOGNIZED.iter().find(|&&r| r == s).copied()
-        }
+        Some(serde_json::Value::String(s)) => RECOGNIZED.iter().find(|&&r| r == s).copied(),
         Some(serde_json::Value::Array(arr)) => arr.iter().find_map(|v| {
             let s = v.as_str()?;
             RECOGNIZED.iter().find(|&&r| r == s).copied()
@@ -681,9 +679,7 @@ async fn fetch_generic(client: &reqwest::Client, url: &str) -> Result<FetchedMet
 /// Parse ISO 8601 duration (e.g., "PT3M45S" or "P00H03M45S") to milliseconds.
 fn parse_iso_duration(s: &str) -> Option<i64> {
     // Try standard "PT..." first, then fall back to "P..." (Bandcamp uses P00H06M12S)
-    let s = s
-        .strip_prefix("PT")
-        .or_else(|| s.strip_prefix("P"))?;
+    let s = s.strip_prefix("PT").or_else(|| s.strip_prefix("P"))?;
     let mut total_ms: i64 = 0;
     let mut num_buf = String::new();
 
@@ -747,18 +743,9 @@ mod tests {
 
     #[test]
     fn test_normalize_date_bandcamp_format() {
-        assert_eq!(
-            normalize_date("19 Jun 2024 00:00:00 GMT"),
-            "2024-06-19"
-        );
-        assert_eq!(
-            normalize_date("01 Jan 2025 00:00:00 GMT"),
-            "2025-01-01"
-        );
-        assert_eq!(
-            normalize_date("31 Dec 2023 00:00:00 GMT"),
-            "2023-12-31"
-        );
+        assert_eq!(normalize_date("19 Jun 2024 00:00:00 GMT"), "2024-06-19");
+        assert_eq!(normalize_date("01 Jan 2025 00:00:00 GMT"), "2025-01-01");
+        assert_eq!(normalize_date("31 Dec 2023 00:00:00 GMT"), "2023-12-31");
     }
 
     #[test]

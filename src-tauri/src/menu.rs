@@ -363,6 +363,13 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
         )?)
         .item(&MenuItem::with_id(
             app,
+            ids::SETTINGS_APPEARANCE,
+            "Appearance",
+            true,
+            None::<&str>,
+        )?)
+        .item(&MenuItem::with_id(
+            app,
             ids::SETTINGS_LIBRARY,
             "Library",
             true,
@@ -372,13 +379,6 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
             app,
             ids::SETTINGS_DISCOVERY,
             "Discovery",
-            true,
-            None::<&str>,
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::SETTINGS_APPEARANCE,
-            "Appearance",
             true,
             None::<&str>,
         )?)
@@ -636,9 +636,9 @@ pub fn update_menu_translations(
         ids::SETTINGS_MENU,
         &[
             (ids::SETTINGS_GENERAL, &translations.settings_general),
+            (ids::SETTINGS_APPEARANCE, &translations.settings_appearance),
             (ids::SETTINGS_LIBRARY, &translations.settings_library),
             (ids::SETTINGS_DISCOVERY, &translations.settings_discovery),
-            (ids::SETTINGS_APPEARANCE, &translations.settings_appearance),
             (ids::SETTINGS_SOUND, &translations.settings_sound),
             (
                 ids::SETTINGS_DIAGNOSTICS,

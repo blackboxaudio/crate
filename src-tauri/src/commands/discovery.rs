@@ -28,9 +28,7 @@ pub async fn create_discovery_release(
         let source_type = release.source_type.clone();
         tokio::spawn(async move {
             let svc = DiscoveryService::new(conn);
-            if let Err(e) =
-                prefetch_streams(&svc, &release_id, &release_url, &source_type).await
-            {
+            if let Err(e) = prefetch_streams(&svc, &release_id, &release_url, &source_type).await {
                 log::warn!("Background stream prefetch failed for {release_id}: {e}");
             }
         });
@@ -50,8 +48,7 @@ async fn prefetch_streams(
         "bandcamp" => streams::extract_bandcamp_streams(url).await?,
         "soundcloud" => {
             let cached_cid = discovery.get_cached_sc_client_id()?;
-            let (infos, new_cid) =
-                streams::extract_soundcloud_streams(url, cached_cid).await?;
+            let (infos, new_cid) = streams::extract_soundcloud_streams(url, cached_cid).await?;
             discovery.cache_sc_client_id(&new_cid)?;
             infos
         }
@@ -184,11 +181,7 @@ pub async fn check_discovery_matches(
     parent_url: Option<String>,
     discovery: State<'_, DiscoveryService>,
 ) -> Result<Vec<DiscoveryRelease>> {
-    discovery.find_matching_releases(
-        artist.as_deref(),
-        title.as_deref(),
-        parent_url.as_deref(),
-    )
+    discovery.find_matching_releases(artist.as_deref(), title.as_deref(), parent_url.as_deref())
 }
 
 #[tauri::command]

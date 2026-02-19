@@ -86,6 +86,14 @@
 		pointerStartPos = null
 		isDragStarted = false
 	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (e.key === 'Enter') ondblclick?.(e as unknown as MouseEvent)
+		else if (e.key === ' ') {
+			e.preventDefault()
+			onclick?.(e as unknown as MouseEvent)
+		}
+	}
 </script>
 
 <div
@@ -99,6 +107,7 @@
 	{onclick}
 	{ondblclick}
 	{oncontextmenu}
+	onkeydown={handleKeyDown}
 	onpointerdown={handlePointerDown}
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}

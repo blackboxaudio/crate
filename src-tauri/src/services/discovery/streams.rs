@@ -91,7 +91,10 @@ pub async fn extract_soundcloud_streams(
             "No tracks found in SoundCloud page".to_string(),
         ));
     }
-    log::debug!("Extracted {} tracks from SoundCloud hydration", track_data.len());
+    log::debug!(
+        "Extracted {} tracks from SoundCloud hydration",
+        track_data.len()
+    );
 
     // Resolve client_id
     let mut client_id = match cached_client_id {
@@ -125,9 +128,7 @@ pub async fn resolve_sc_client_id(client: &reqwest::Client) -> Result<String> {
         .map_err(|e| CrateError::Discovery(format!("Failed to fetch SoundCloud homepage: {e}")))?
         .text()
         .await
-        .map_err(|e| {
-            CrateError::Discovery(format!("Failed to read SoundCloud homepage: {e}"))
-        })?;
+        .map_err(|e| CrateError::Discovery(format!("Failed to read SoundCloud homepage: {e}")))?;
 
     // Find <script crossorigin src="..."> tags pointing to JS bundles
     let script_re = regex::Regex::new(r#"<script[^>]+src="(https://[^"]*\.js)"[^>]*>"#)
@@ -428,9 +429,8 @@ async fn resolve_sc_streams(
         };
 
         let track_auth = track.track_authorization.as_deref().unwrap_or_default();
-        let api_url = format!(
-            "{progressive_url}?client_id={client_id}&track_authorization={track_auth}"
-        );
+        let api_url =
+            format!("{progressive_url}?client_id={client_id}&track_authorization={track_auth}");
 
         let resp = client
             .get(&api_url)
@@ -445,12 +445,9 @@ async fn resolve_sc_streams(
             )));
         }
 
-        let data: serde_json::Value = resp
-            .json()
-            .await
-            .map_err(|e| {
-                CrateError::Discovery(format!("Failed to parse SC stream response: {e}"))
-            })?;
+        let data: serde_json::Value = resp.json().await.map_err(|e| {
+            CrateError::Discovery(format!("Failed to parse SC stream response: {e}"))
+        })?;
 
         if let Some(url) = data.get("url").and_then(|u| u.as_str()) {
             let expires_at = parse_soundcloud_expiry(url);
