@@ -1,9 +1,7 @@
 use std::sync::Mutex;
 use std::time::Duration;
 
-use souvlaki::{
-    MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig,
-};
+use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
 use tauri::{AppHandle, Emitter};
 
 pub struct MediaControlsService {

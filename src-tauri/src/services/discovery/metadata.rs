@@ -273,9 +273,7 @@ fn parse_sc_hydration(html: &str) -> Option<FetchedMetadata> {
         .and_then(|a| a.as_str())
         .map(|s| s.replace("-large", "-t500x500"));
 
-    let duration_ms = sound_data
-        .get("duration")
-        .and_then(|d| d.as_i64());
+    let duration_ms = sound_data.get("duration").and_then(|d| d.as_i64());
 
     let tracks = if let Some(name) = title.clone() {
         vec![FetchedTrack {
@@ -592,9 +590,7 @@ mod tests {
 
     #[test]
     fn test_parse_sc_hydration_no_sound() {
-        let html = make_sc_hydration_html(
-            r#"[{"hydratable": "user", "data": {}}]"#,
-        );
+        let html = make_sc_hydration_html(r#"[{"hydratable": "user", "data": {}}]"#);
         assert!(parse_sc_hydration(&html).is_none());
     }
 }
