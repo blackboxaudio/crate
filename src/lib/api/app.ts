@@ -49,14 +49,24 @@ export interface MenuTranslations {
 	quit: string
 	// File menu items
 	importTracks: string
+	addRelease: string
 	newPlaylist: string
 	newFolder: string
 	quickExport: string
 	// Edit menu items
-	selectAllTracks: string
+	selectAll: string
 	// Playback menu items
 	playPause: string
 	stop: string
+	nextTrack: string
+	previousTrack: string
+	seekForward: string
+	seekBackward: string
+	fineSeekForward: string
+	fineSeekBackward: string
+	volumeUp: string
+	volumeDown: string
+	mute: string
 	jumpToPlaying: string
 	// View menu items
 	toggleView: string

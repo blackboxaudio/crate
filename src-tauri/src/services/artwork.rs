@@ -144,12 +144,41 @@ impl ArtworkService {
         Some(format!("artwork/{filename}"))
     }
 
-    #[allow(dead_code)]
     /// Returns the full filesystem path for an artwork file.
     pub fn get_full_path(&self, relative_path: &str) -> PathBuf {
         self.artwork_dir
             .parent()
             .unwrap_or(&self.artwork_dir)
             .join(relative_path)
+    }
+
+    /// Checks if all artwork files at the given relative paths have identical content.
+    /// Returns `false` if any file can't be read or if fewer than 2 paths are provided.
+    pub fn are_artworks_identical(&self, relative_paths: &[String]) -> bool {
+        if relative_paths.len() < 2 {
+            return false;
+        }
+
+        let mut reference_hash: Option<blake3::Hash> = None;
+
+        for path in relative_paths {
+            let full_path = self.get_full_path(path);
+            let bytes = match fs::read(&full_path) {
+                Ok(b) => b,
+                Err(_) => return false,
+            };
+            let hash = blake3::hash(&bytes);
+
+            match &reference_hash {
+                None => reference_hash = Some(hash),
+                Some(ref_hash) => {
+                    if hash != *ref_hash {
+                        return false;
+                    }
+                }
+            }
+        }
+
+        true
     }
 }

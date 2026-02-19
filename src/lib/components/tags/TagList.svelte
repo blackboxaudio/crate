@@ -141,6 +141,7 @@
 				</Tooltip>
 			</div>
 			<div
+				role="group"
 				class="flex flex-wrap gap-1.5 px-3"
 				oncontextmenu={(e) => {
 					if ((e.target as HTMLElement).closest('[data-tag]')) return

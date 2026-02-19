@@ -24,6 +24,9 @@
 	// Compute bulk info from selected tracks
 	let bulkInfo = $derived(computeBulkTrackInfo(selectedTracks))
 
+	// Resolved artwork path when multiple tracks share identical artwork
+	let resolvedArtworkPath = $state<string | null>(null)
+
 	// Form state - only track changed values
 	let formData = $state<Partial<TrackUpdate>>({})
 	let saving = $state(false)
@@ -35,6 +38,23 @@
 		/* eslint-disable @typescript-eslint/no-unused-expressions */
 		selectedTracks.length
 		formData = {}
+	})
+
+	// Compare artworks when paths are mixed to check if they're actually identical
+	$effect(() => {
+		if (bulkInfo.artworkPath.mixed && selectedTracks.length > 1) {
+			const trackIds = selectedTracks.map((t) => t.id)
+			libraryApi
+				.compareTrackArtworks(trackIds)
+				.then((path) => {
+					resolvedArtworkPath = path
+				})
+				.catch(() => {
+					resolvedArtworkPath = null
+				})
+		} else {
+			resolvedArtworkPath = null
+		}
 	})
 
 	// Check if there are any changes
@@ -178,6 +198,7 @@
 			artworkPath={bulkInfo.artworkPath}
 			artworkSource={bulkInfo.artworkSource}
 			trackCount={selectedTracks.length}
+			{resolvedArtworkPath}
 			onAdd={handleArtworkAdd}
 			onRemove={handleArtworkRemove}
 			onReextract={handleArtworkReextract}

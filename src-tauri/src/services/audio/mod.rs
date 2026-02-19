@@ -372,6 +372,79 @@ fn find_device_by_name(name: &str) -> Option<rodio::cpal::Device> {
         .find(|d| d.name().ok().as_deref() == Some(name))
 }
 
+fn create_output_stream(
+    selected_device: &Option<String>,
+) -> std::result::Result<OutputStream, String> {
+    if let Some(ref device_name) = selected_device {
+        if let Some(device) = find_device_by_name(device_name) {
+            match OutputStreamBuilder::from_device(device).and_then(|b| b.open_stream()) {
+                Ok(s) => return Ok(s),
+                Err(e) => {
+                    log::warn!(
+                        "Failed to use device '{device_name}': {e}, falling back to default"
+                    );
+                }
+            }
+        } else {
+            log::warn!("Device '{device_name}' not found, falling back to default");
+        }
+    }
+
+    OutputStreamBuilder::open_default_stream()
+        .map_err(|e| format!("Failed to create audio output: {e}"))
+}
+
+fn create_player(
+    track_id: String,
+    file_path: &str,
+    duration_ms: u64,
+    position_ms: u64,
+    is_playing: bool,
+    volume: f32,
+    selected_device: &Option<String>,
+) -> std::result::Result<AudioPlayer, String> {
+    let stream = create_output_stream(selected_device)?;
+    let sink = Sink::connect_new(stream.mixer());
+
+    let file = File::open(file_path).map_err(|e| format!("Failed to open file: {e}"))?;
+    let reader = BufReader::new(file);
+    let source = Decoder::new(reader).map_err(|e| format!("Failed to decode audio: {e}"))?;
+
+    let source = FadeOutEnding::new(source, duration_ms);
+    sink.append(source);
+
+    if position_ms > 0 {
+        let _ = sink.try_seek(Duration::from_millis(position_ms));
+    }
+
+    sink.set_volume(volume);
+
+    if !is_playing {
+        sink.pause();
+    }
+
+    let state = PlaybackState {
+        is_playing,
+        position_ms,
+        duration_ms,
+        volume,
+        current_track_id: Some(track_id),
+        current_track_path: Some(file_path.to_string()),
+    };
+
+    Ok(AudioPlayer {
+        _stream: stream,
+        sink,
+        state,
+        started_at: if is_playing {
+            Some(Instant::now())
+        } else {
+            None
+        },
+        started_position_ms: position_ms,
+    })
+}
+
 fn handle_command(
     cmd: AudioCommand,
     player: &mut Option<AudioPlayer>,
@@ -384,87 +457,24 @@ fn handle_command(
             file_path,
             duration_ms,
         } => {
-            // Stop any existing playback
             *player = None;
 
-            // Create audio output using selected device or default
-            let stream = if let Some(ref device_name) = selected_device {
-                if let Some(device) = find_device_by_name(device_name) {
-                    match OutputStreamBuilder::from_device(device).and_then(|b| b.open_stream()) {
-                        Ok(s) => s,
-                        Err(e) => {
-                            log::warn!(
-                                "Failed to use device '{device_name}': {e}, falling back to default"
-                            );
-                            // Fallback to default
-                            match OutputStreamBuilder::open_default_stream() {
-                                Ok(s) => s,
-                                Err(e) => {
-                                    return AudioResponse::Error(format!(
-                                        "Failed to create audio output: {e}"
-                                    ))
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    log::warn!("Device '{device_name}' not found, falling back to default");
-                    // Device not found, fallback to default
-                    match OutputStreamBuilder::open_default_stream() {
-                        Ok(s) => s,
-                        Err(e) => {
-                            return AudioResponse::Error(format!(
-                                "Failed to create audio output: {e}"
-                            ))
-                        }
-                    }
-                }
-            } else {
-                // Use default device
-                match OutputStreamBuilder::open_default_stream() {
-                    Ok(s) => s,
-                    Err(e) => {
-                        return AudioResponse::Error(format!("Failed to create audio output: {e}"))
-                    }
-                }
-            };
-
-            let sink = Sink::connect_new(stream.mixer());
-
-            // Open and decode file
-            let file = match File::open(&file_path) {
-                Ok(f) => f,
-                Err(e) => return AudioResponse::Error(format!("Failed to open file: {e}")),
-            };
-
-            let reader = BufReader::new(file);
-            let source = match Decoder::new(reader) {
-                Ok(s) => s,
-                Err(e) => return AudioResponse::Error(format!("Failed to decode audio: {e}")),
-            };
-
-            let source = FadeOutEnding::new(source, duration_ms);
-            sink.append(source);
-            sink.set_volume(*current_volume);
-
-            let state = PlaybackState {
-                is_playing: true,
-                position_ms: 0,
+            match create_player(
+                track_id,
+                &file_path.to_string_lossy(),
                 duration_ms,
-                volume: *current_volume,
-                current_track_id: Some(track_id),
-                current_track_path: Some(file_path.to_string_lossy().to_string()),
-            };
-
-            *player = Some(AudioPlayer {
-                _stream: stream,
-                sink,
-                state: state.clone(),
-                started_at: Some(Instant::now()),
-                started_position_ms: 0,
-            });
-
-            AudioResponse::State(state)
+                0,
+                true,
+                *current_volume,
+                selected_device,
+            ) {
+                Ok(p) => {
+                    let state = p.state.clone();
+                    *player = Some(p);
+                    AudioResponse::State(state)
+                }
+                Err(e) => AudioResponse::Error(e),
+            }
         }
 
         AudioCommand::Pause => {
@@ -507,14 +517,44 @@ fn handle_command(
 
         AudioCommand::Seek(position_ms) => {
             if let Some(ref mut p) = player {
-                let _ = p.sink.try_seek(Duration::from_millis(position_ms));
-                p.state.position_ms = position_ms;
-                // Reset timer from new position
-                p.started_position_ms = position_ms;
-                if !p.sink.is_paused() {
-                    p.started_at = Some(Instant::now());
+                match p.sink.try_seek(Duration::from_millis(position_ms)) {
+                    Ok(()) => {
+                        p.state.position_ms = position_ms;
+                        p.started_position_ms = position_ms;
+                        if !p.sink.is_paused() {
+                            p.started_at = Some(Instant::now());
+                        }
+                        AudioResponse::State(p.state.clone())
+                    }
+                    Err(e) => {
+                        log::warn!("Seek failed ({e}), rebuilding player at {position_ms}ms");
+
+                        let track_id = p.state.current_track_id.clone().unwrap_or_default();
+                        let file_path = p.state.current_track_path.clone().unwrap_or_default();
+                        let duration_ms = p.state.duration_ms;
+                        let is_playing = !p.sink.is_paused() && !p.sink.empty();
+
+                        match create_player(
+                            track_id,
+                            &file_path,
+                            duration_ms,
+                            position_ms,
+                            is_playing,
+                            *current_volume,
+                            selected_device,
+                        ) {
+                            Ok(new_player) => {
+                                let state = new_player.state.clone();
+                                *player = Some(new_player);
+                                AudioResponse::State(state)
+                            }
+                            Err(rebuild_err) => {
+                                log::error!("Failed to rebuild player after seek: {rebuild_err}");
+                                AudioResponse::Error(rebuild_err)
+                            }
+                        }
+                    }
                 }
-                AudioResponse::State(p.state.clone())
             } else {
                 AudioResponse::State(PlaybackState::default())
             }
@@ -537,9 +577,8 @@ fn handle_command(
         }
 
         AudioCommand::SetDevice(device_name) => {
-            *selected_device = device_name.clone();
+            *selected_device = device_name;
 
-            // If currently playing, restart on the new device
             if let Some(ref p) = player {
                 let is_playing = !p.sink.is_paused() && !p.sink.empty();
                 let current_pos = p.get_current_position_ms();
@@ -548,89 +587,24 @@ fn handle_command(
                 let duration_ms = p.state.duration_ms;
 
                 if let (Some(id), Some(path)) = (track_id, track_path) {
-                    // Stop current playback
                     *player = None;
 
-                    // Create new stream with the new device
-                    let stream = if let Some(ref dev_name) = device_name {
-                        if let Some(device) = find_device_by_name(dev_name) {
-                            match OutputStreamBuilder::from_device(device)
-                                .and_then(|b| b.open_stream())
-                            {
-                                Ok(s) => s,
-                                Err(e) => {
-                                    log::warn!(
-                                        "Failed to switch to device '{dev_name}': {e}, keeping current"
-                                    );
-                                    return AudioResponse::Ok;
-                                }
-                            }
-                        } else {
-                            log::warn!("Device '{dev_name}' not found");
-                            return AudioResponse::Ok;
-                        }
-                    } else {
-                        match OutputStreamBuilder::open_default_stream() {
-                            Ok(s) => s,
-                            Err(e) => {
-                                log::warn!("Failed to switch to default device: {e}");
-                                return AudioResponse::Ok;
-                            }
-                        }
-                    };
-
-                    let sink = Sink::connect_new(stream.mixer());
-
-                    // Open and decode file
-                    let file = match File::open(&path) {
-                        Ok(f) => f,
-                        Err(e) => {
-                            log::warn!("Failed to reopen file: {e}");
-                            return AudioResponse::Ok;
-                        }
-                    };
-
-                    let reader = BufReader::new(file);
-                    let source = match Decoder::new(reader) {
-                        Ok(s) => s,
-                        Err(e) => {
-                            log::warn!("Failed to decode audio: {e}");
-                            return AudioResponse::Ok;
-                        }
-                    };
-
-                    let source = FadeOutEnding::new(source, duration_ms);
-                    sink.append(source);
-                    sink.set_volume(*current_volume);
-
-                    // Seek to the saved position
-                    let _ = sink.try_seek(Duration::from_millis(current_pos));
-
-                    // If it wasn't playing before, pause it
-                    if !is_playing {
-                        sink.pause();
-                    }
-
-                    let state = PlaybackState {
-                        is_playing,
-                        position_ms: current_pos,
+                    match create_player(
+                        id,
+                        &path,
                         duration_ms,
-                        volume: *current_volume,
-                        current_track_id: Some(id),
-                        current_track_path: Some(path),
-                    };
-
-                    *player = Some(AudioPlayer {
-                        _stream: stream,
-                        sink,
-                        state,
-                        started_at: if is_playing {
-                            Some(Instant::now())
-                        } else {
-                            None
-                        },
-                        started_position_ms: current_pos,
-                    });
+                        current_pos,
+                        is_playing,
+                        *current_volume,
+                        selected_device,
+                    ) {
+                        Ok(new_player) => {
+                            *player = Some(new_player);
+                        }
+                        Err(e) => {
+                            log::warn!("Failed to switch device: {e}");
+                        }
+                    }
                 }
             }
 

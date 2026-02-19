@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte'
+	import { onMount, onDestroy, tick } from 'svelte'
 	import { fade } from 'svelte/transition'
 	import { get } from 'svelte/store'
 
@@ -429,10 +429,16 @@
 					uiStore.setSelectedTracks(allIds)
 				}
 			},
-			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator.openSettingsModal(tab),
+			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator?.openSettingsModal(tab),
 			onNewPlaylist: () => playlistController.handleCreatePlaylist(),
 			onNewFolder: () => playlistController.handleCreateFolder(),
-			onImport: () => trackController.handleImport(),
+			onImport: async () => {
+				if ($activeView !== 'library') {
+					handleViewChange('library')
+					await tick()
+				}
+				trackController.handleImport()
+			},
 			onDeleteSelected: () => {
 				if ($activeView === 'discovery') {
 					const releaseIds = $selectedReleaseIds
@@ -548,9 +554,10 @@
 				const next = $activeView === 'library' ? 'discovery' : 'library'
 				handleViewChange(next)
 			},
-			onAddRelease: () => {
+			onAddRelease: async () => {
 				if ($activeView !== 'discovery') {
 					handleViewChange('discovery')
+					await tick()
 				}
 				showAddReleaseModal = true
 			},
@@ -558,16 +565,42 @@
 
 		// Set up menu action listener
 		const cleanupMenu = await useMenuActions({
-			onImport: trackController.handleImport,
+			onImport: async () => {
+				if ($activeView !== 'library') {
+					handleViewChange('library')
+					await tick()
+				}
+				await trackController.handleImport()
+			},
+			onAddRelease: async () => {
+				if ($activeView !== 'discovery') {
+					handleViewChange('discovery')
+					await tick()
+				}
+				showAddReleaseModal = true
+			},
 			onCreatePlaylist: playlistController.handleCreatePlaylist,
 			onCreateFolder: playlistController.handleCreateFolder,
 			onSelectAll: () => {
-				const allIds = new Set($sortedTracks.map((t) => t.id))
-				uiStore.setSelectedTracks(allIds)
+				if ($activeView === 'discovery') {
+					uiStore.setSelectedReleases(new Set($sortedReleases.map((r) => r.id)))
+				} else {
+					const allIds = new Set($sortedTracks.map((t) => t.id))
+					uiStore.setSelectedTracks(allIds)
+				}
 			},
 			onPlayPause: () => playerStore.togglePlayPause(),
 			onStop: () => playerStore.stop(),
-			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator.openSettingsModal(tab),
+			onNextTrack: playNextTrack,
+			onPreviousTrack: playPreviousTrack,
+			onSeekForward: () => playerStore.seekRelative(10000),
+			onSeekBackward: () => playerStore.seekRelative(-10000),
+			onFineSeekForward: () => playerStore.seekRelative(1000),
+			onFineSeekBackward: () => playerStore.seekRelative(-1000),
+			onVolumeUp: () => playerStore.adjustVolume(0.1),
+			onVolumeDown: () => playerStore.adjustVolume(-0.1),
+			onToggleMute: () => playerStore.toggleMute(),
+			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator?.openSettingsModal(tab),
 			onQuickExport: () => {
 				if (devices.length > 0 && modalOrchestrator) modalOrchestrator.openQuickExportModal()
 			},

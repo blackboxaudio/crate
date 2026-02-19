@@ -9,11 +9,21 @@ import type { SettingsPage } from '$lib/types'
 
 export interface MenuActionHandlers {
 	onImport: () => Promise<void>
+	onAddRelease: () => void
 	onCreatePlaylist: () => void
 	onCreateFolder: () => void
 	onSelectAll: () => void
 	onPlayPause: () => void
 	onStop: () => void
+	onNextTrack: () => void
+	onPreviousTrack: () => void
+	onSeekForward: () => void
+	onSeekBackward: () => void
+	onFineSeekForward: () => void
+	onFineSeekBackward: () => void
+	onVolumeUp: () => void
+	onVolumeDown: () => void
+	onToggleMute: () => void
 	onOpenSettings: (tab?: SettingsPage) => void
 	onQuickExport: () => void
 	onJumpToPlayingTrack: () => void
@@ -52,11 +62,21 @@ export interface MenuActionHandlers {
 export async function useMenuActions(handlers: MenuActionHandlers): Promise<() => void> {
 	const {
 		onImport,
+		onAddRelease,
 		onCreatePlaylist,
 		onCreateFolder,
 		onSelectAll,
 		onPlayPause,
 		onStop,
+		onNextTrack,
+		onPreviousTrack,
+		onSeekForward,
+		onSeekBackward,
+		onFineSeekForward,
+		onFineSeekBackward,
+		onVolumeUp,
+		onVolumeDown,
+		onToggleMute,
 		onOpenSettings,
 		onQuickExport,
 		onJumpToPlayingTrack,
@@ -79,6 +99,9 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 			// File menu
 			case 'import_tracks':
 				onImport()
+				break
+			case 'add_release':
+				onAddRelease()
 				break
 			case 'new_playlist':
 				onCreatePlaylist()
@@ -108,6 +131,33 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				break
 			case 'stop':
 				onStop()
+				break
+			case 'next_track':
+				onNextTrack()
+				break
+			case 'previous_track':
+				onPreviousTrack()
+				break
+			case 'seek_forward':
+				onSeekForward()
+				break
+			case 'seek_backward':
+				onSeekBackward()
+				break
+			case 'fine_seek_forward':
+				onFineSeekForward()
+				break
+			case 'fine_seek_backward':
+				onFineSeekBackward()
+				break
+			case 'volume_up':
+				onVolumeUp()
+				break
+			case 'volume_down':
+				onVolumeDown()
+				break
+			case 'mute':
+				onToggleMute()
 				break
 			case 'jump_to_playing':
 				onJumpToPlayingTrack()

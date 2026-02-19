@@ -43,14 +43,24 @@ pub struct MenuTranslations {
     pub quit: String,
     // File menu items
     pub import_tracks: String,
+    pub add_release: String,
     pub new_playlist: String,
     pub new_folder: String,
     pub quick_export: String,
     // Edit menu items
-    pub select_all_tracks: String,
+    pub select_all: String,
     // Playback menu items
     pub play_pause: String,
     pub stop: String,
+    pub next_track: String,
+    pub previous_track: String,
+    pub seek_forward: String,
+    pub seek_backward: String,
+    pub fine_seek_forward: String,
+    pub fine_seek_backward: String,
+    pub volume_up: String,
+    pub volume_down: String,
+    pub mute: String,
     pub jump_to_playing: String,
     // View menu items
     pub toggle_view: String,
@@ -90,6 +100,7 @@ pub mod ids {
 
     // File menu items
     pub const IMPORT_TRACKS: &str = "import_tracks";
+    pub const ADD_RELEASE: &str = "add_release";
     pub const NEW_PLAYLIST: &str = "new_playlist";
     pub const NEW_FOLDER: &str = "new_folder";
     pub const QUICK_EXPORT: &str = "quick_export";
@@ -100,6 +111,15 @@ pub mod ids {
     // Playback menu items
     pub const PLAY_PAUSE: &str = "play_pause";
     pub const STOP: &str = "stop";
+    pub const NEXT_TRACK: &str = "next_track";
+    pub const PREVIOUS_TRACK: &str = "previous_track";
+    pub const SEEK_FORWARD: &str = "seek_forward";
+    pub const SEEK_BACKWARD: &str = "seek_backward";
+    pub const FINE_SEEK_FORWARD: &str = "fine_seek_forward";
+    pub const FINE_SEEK_BACKWARD: &str = "fine_seek_backward";
+    pub const VOLUME_UP: &str = "volume_up";
+    pub const VOLUME_DOWN: &str = "volume_down";
+    pub const MUTE: &str = "mute";
     pub const JUMP_TO_PLAYING: &str = "jump_to_playing";
 
     // View menu items
@@ -186,7 +206,14 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
             ids::IMPORT_TRACKS,
             "Import Tracks...",
             true,
-            Some("CmdOrCtrl+O"),
+            Some("CmdOrCtrl+L"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::ADD_RELEASE,
+            "Add Release...",
+            true,
+            Some("CmdOrCtrl+D"),
         )?)
         .separator()
         .item(&MenuItem::with_id(
@@ -226,7 +253,7 @@ fn build_edit_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
         .item(&MenuItem::with_id(
             app,
             ids::SELECT_ALL,
-            "Select All Tracks",
+            "Select All",
             true,
             Some("CmdOrCtrl+A"),
         )?)
@@ -249,6 +276,66 @@ fn build_playback_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Erro
             true,
             Some("CmdOrCtrl+."),
         )?)
+        .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::NEXT_TRACK,
+            "Next Track",
+            true,
+            Some("Shift+Right"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::PREVIOUS_TRACK,
+            "Previous Track",
+            true,
+            Some("Shift+Left"),
+        )?)
+        .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::SEEK_FORWARD,
+            "Seek Forward",
+            true,
+            Some("Right"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::SEEK_BACKWARD,
+            "Seek Backward",
+            true,
+            Some("Left"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::FINE_SEEK_FORWARD,
+            "Fine Seek Forward",
+            true,
+            Some("CmdOrCtrl+Right"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::FINE_SEEK_BACKWARD,
+            "Fine Seek Backward",
+            true,
+            Some("CmdOrCtrl+Left"),
+        )?)
+        .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::VOLUME_UP,
+            "Volume Up",
+            true,
+            Some("Up"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::VOLUME_DOWN,
+            "Volume Down",
+            true,
+            Some("Down"),
+        )?)
+        .item(&MenuItem::with_id(app, ids::MUTE, "Mute", true, Some("M"))?)
         .separator()
         .item(&MenuItem::with_id(
             app,
@@ -470,16 +557,34 @@ pub fn update_menu_translations(
 
     // Update File menu items
     update_item_text(&menu, ids::IMPORT_TRACKS, &translations.import_tracks)?;
+    update_item_text(&menu, ids::ADD_RELEASE, &translations.add_release)?;
     update_item_text(&menu, ids::NEW_PLAYLIST, &translations.new_playlist)?;
     update_item_text(&menu, ids::NEW_FOLDER, &translations.new_folder)?;
     update_item_text(&menu, ids::QUICK_EXPORT, &translations.quick_export)?;
 
     // Update Edit menu items (undo/redo/cut/copy/paste are PredefinedMenuItems, localized by OS)
-    update_item_text(&menu, ids::SELECT_ALL, &translations.select_all_tracks)?;
+    update_item_text(&menu, ids::SELECT_ALL, &translations.select_all)?;
 
     // Update Playback menu items
     update_item_text(&menu, ids::PLAY_PAUSE, &translations.play_pause)?;
     update_item_text(&menu, ids::STOP, &translations.stop)?;
+    update_item_text(&menu, ids::NEXT_TRACK, &translations.next_track)?;
+    update_item_text(&menu, ids::PREVIOUS_TRACK, &translations.previous_track)?;
+    update_item_text(&menu, ids::SEEK_FORWARD, &translations.seek_forward)?;
+    update_item_text(&menu, ids::SEEK_BACKWARD, &translations.seek_backward)?;
+    update_item_text(
+        &menu,
+        ids::FINE_SEEK_FORWARD,
+        &translations.fine_seek_forward,
+    )?;
+    update_item_text(
+        &menu,
+        ids::FINE_SEEK_BACKWARD,
+        &translations.fine_seek_backward,
+    )?;
+    update_item_text(&menu, ids::VOLUME_UP, &translations.volume_up)?;
+    update_item_text(&menu, ids::VOLUME_DOWN, &translations.volume_down)?;
+    update_item_text(&menu, ids::MUTE, &translations.mute)?;
     update_item_text(&menu, ids::JUMP_TO_PLAYING, &translations.jump_to_playing)?;
 
     // Update View menu items

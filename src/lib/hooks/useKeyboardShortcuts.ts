@@ -48,7 +48,7 @@ export interface KeyboardShortcutHandlers {
  * - Cmd/Ctrl+,: open settings
  * - Cmd/Ctrl+N: new playlist
  * - Cmd/Ctrl+Shift+N: new folder
- * - Cmd/Ctrl+O: import files
+ * - Cmd/Ctrl+L: import files
  * - Delete/Backspace: remove selected tracks
  * - Enter: play selected track
  * - Left Arrow: seek backward 10s
@@ -65,7 +65,7 @@ export interface KeyboardShortcutHandlers {
  * - Cmd/Ctrl+E: quick export
  * - Cmd/Ctrl+J: jump to playing track
  * - Shift+Tab: toggle between Library and Discovery views
- * - Cmd/Ctrl+D: add release (opens add release modal, switches to discovery if needed)
+ * - Cmd/Ctrl+D: add release (handled by native menu)
  *
  * @returns Cleanup function to remove the event listener
  */
@@ -156,8 +156,8 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 			onNewFolder()
 		}
 
-		// Cmd/Ctrl+O: import files
-		if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
+		// Cmd/Ctrl+L: import files
+		if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
 			e.preventDefault()
 			onImport()
 		}
@@ -172,12 +172,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
 			e.preventDefault()
 			onJumpToPlayingTrack()
-		}
-
-		// Cmd/Ctrl+D: add release (discovery)
-		if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
-			e.preventDefault()
-			onAddRelease()
 		}
 
 		// Delete/Backspace: remove selected tracks (when not typing)

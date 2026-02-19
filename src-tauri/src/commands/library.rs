@@ -139,6 +139,14 @@ pub async fn reextract_track_artwork(
 }
 
 #[tauri::command]
+pub async fn compare_track_artworks(
+    track_ids: Vec<String>,
+    library: State<'_, LibraryService>,
+) -> Result<Option<String>> {
+    library.compare_track_artworks(&track_ids)
+}
+
+#[tauri::command]
 pub async fn import_tracks_with_duplicates(
     paths: Vec<String>,
     library: State<'_, LibraryService>,

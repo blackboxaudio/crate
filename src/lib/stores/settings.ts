@@ -171,14 +171,24 @@ function createSettingsStore() {
 			quit: t('menu.quit', { values: { appName } }),
 			// File menu items
 			importTracks: t('menu.importTracks'),
+			addRelease: t('menu.addRelease'),
 			newPlaylist: t('menu.newPlaylist'),
 			newFolder: t('menu.newFolder'),
 			quickExport: t('menu.quickExport'),
 			// Edit menu items
-			selectAllTracks: t('menu.selectAllTracks'),
+			selectAll: t('menu.selectAll'),
 			// Playback menu items
 			playPause: t('menu.playPause'),
 			stop: t('menu.stop'),
+			nextTrack: t('menu.nextTrack'),
+			previousTrack: t('menu.previousTrack'),
+			seekForward: t('menu.seekForward'),
+			seekBackward: t('menu.seekBackward'),
+			fineSeekForward: t('menu.fineSeekForward'),
+			fineSeekBackward: t('menu.fineSeekBackward'),
+			volumeUp: t('menu.volumeUp'),
+			volumeDown: t('menu.volumeDown'),
+			mute: t('menu.mute'),
 			jumpToPlaying: t('menu.jumpToPlaying'),
 			// View menu items
 			toggleView: t('menu.toggleView'),

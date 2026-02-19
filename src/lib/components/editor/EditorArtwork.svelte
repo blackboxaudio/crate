@@ -9,16 +9,25 @@
 		artworkPath: BulkEditValue<string>
 		artworkSource: BulkEditValue<ArtworkSource>
 		trackCount: number
+		resolvedArtworkPath?: string | null
 		onAdd: (filePath: string) => void
 		onRemove: () => void
 		onReextract: () => void
 	}
 
-	let { artworkPath, artworkSource, trackCount, onAdd, onRemove, onReextract }: Props = $props()
+	let {
+		artworkPath,
+		artworkSource,
+		trackCount,
+		resolvedArtworkPath = null,
+		onAdd,
+		onRemove,
+		onReextract,
+	}: Props = $props()
 
 	let hasArtwork = $derived(artworkPath.count > 0)
 	let canReextract = $derived(trackCount === 1 && artworkSource.value === 'user_provided' && !artworkSource.mixed)
-	let displayPath = $derived(artworkPath.mixed ? null : artworkPath.value)
+	let displayPath = $derived(resolvedArtworkPath ?? (artworkPath.mixed ? null : artworkPath.value))
 
 	async function handleAdd() {
 		const selected = await open({
@@ -40,7 +49,7 @@
 <div class="flex w-full flex-col items-center gap-3">
 	<div class="relative w-full">
 		<AlbumArt artworkPath={displayPath} size="lg" class="rounded-lg" />
-		{#if artworkPath.mixed}
+		{#if artworkPath.mixed && !resolvedArtworkPath}
 			<div
 				class="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-0/80 text-sm text-text-secondary"
 			>

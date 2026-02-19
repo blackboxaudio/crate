@@ -6,6 +6,7 @@ export type MenuAction =
 	| 'settings'
 	// File menu
 	| 'import_tracks'
+	| 'add_release'
 	| 'new_playlist'
 	| 'new_folder'
 	| 'quick_export'
@@ -14,6 +15,15 @@ export type MenuAction =
 	// Playback menu
 	| 'play_pause'
 	| 'stop'
+	| 'next_track'
+	| 'previous_track'
+	| 'seek_forward'
+	| 'seek_backward'
+	| 'fine_seek_forward'
+	| 'fine_seek_backward'
+	| 'volume_up'
+	| 'volume_down'
+	| 'mute'
 	| 'jump_to_playing'
 	// View menu
 	| 'toggle_view'
