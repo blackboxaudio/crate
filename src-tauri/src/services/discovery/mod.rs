@@ -7,7 +7,7 @@ use rusqlite::Connection;
 use crate::error::{CrateError, Result};
 use crate::models::{
     DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate,
-    DiscoveryTrack, Tag,
+    DiscoveryTrack, DiscoveryTrackCreate, Tag,
 };
 
 pub struct DiscoveryService {
@@ -27,16 +27,17 @@ impl DiscoveryService {
 
         let now = chrono::Utc::now().to_rfc3339();
         let id = uuid::Uuid::new_v4().to_string();
+        let normalized_url = normalize_url(&create.url);
         let source_type = create
             .source_type
-            .unwrap_or_else(|| detect_source_type(&create.url));
+            .unwrap_or_else(|| detect_source_type(&normalized_url));
 
         conn.execute(
-            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, date_added, date_modified)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, parent_url, date_added, date_modified)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
             rusqlite::params![
                 id,
-                create.url,
+                normalized_url,
                 source_type,
                 create.artist,
                 create.title,
@@ -44,6 +45,7 @@ impl DiscoveryService {
                 create.release_date,
                 create.artwork_url,
                 create.notes,
+                create.parent_url,
                 now,
                 now,
             ],
@@ -70,7 +72,7 @@ impl DiscoveryService {
 
         Ok(DiscoveryRelease {
             id,
-            url: create.url,
+            url: normalized_url,
             source_type,
             artist: create.artist,
             title: create.title,
@@ -79,6 +81,7 @@ impl DiscoveryService {
             artwork_url: create.artwork_url,
             artwork_path: None,
             notes: create.notes,
+            parent_url: create.parent_url,
             date_added: now.clone(),
             date_modified: now,
             tracks,
@@ -93,7 +96,7 @@ impl DiscoveryService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut release = conn.query_row(
-            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, date_added, date_modified
+            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, date_added, date_modified
              FROM discovery_releases WHERE id = ?1",
             [id],
             |row| {
@@ -108,8 +111,9 @@ impl DiscoveryService {
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
-                    date_added: row.get(10)?,
-                    date_modified: row.get(11)?,
+                    parent_url: row.get(10)?,
+                    date_added: row.get(11)?,
+                    date_modified: row.get(12)?,
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -170,7 +174,7 @@ impl DiscoveryService {
 
         // Build query with optional filters
         let mut sql = String::from(
-            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.date_added, dr.date_modified
+            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.parent_url, dr.date_added, dr.date_modified
              FROM discovery_releases dr",
         );
 
@@ -265,8 +269,9 @@ impl DiscoveryService {
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
-                    date_added: row.get(10)?,
-                    date_modified: row.get(11)?,
+                    parent_url: row.get(10)?,
+                    date_added: row.get(11)?,
+                    date_modified: row.get(12)?,
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -464,6 +469,315 @@ impl DiscoveryService {
         }
 
         Ok(())
+    }
+
+    /// Find existing releases that may overlap with the given metadata.
+    /// Checks by parent_url match and artist+title match.
+    pub fn find_matching_releases(
+        &self,
+        artist: Option<&str>,
+        title: Option<&str>,
+        parent_url: Option<&str>,
+    ) -> Result<Vec<DiscoveryRelease>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let mut matched_ids: Vec<String> = Vec::new();
+
+        // Check 1: If parent_url provided, find releases whose url matches the parent_url
+        if let Some(p_url) = parent_url {
+            let normalized = normalize_url(p_url);
+            let mut stmt = conn.prepare(
+                "SELECT id FROM discovery_releases WHERE url = ?1",
+            )?;
+            let ids: Vec<String> = stmt
+                .query_map([&normalized], |row| row.get(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            matched_ids.extend(ids);
+        }
+
+        // Check 2: If parent_url provided, find releases with the same parent_url
+        if let Some(p_url) = parent_url {
+            let normalized = normalize_url(p_url);
+            let mut stmt = conn.prepare(
+                "SELECT id FROM discovery_releases WHERE parent_url = ?1",
+            )?;
+            let ids: Vec<String> = stmt
+                .query_map([&normalized], |row| row.get(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            matched_ids.extend(ids);
+        }
+
+        // Check 3: If artist+title provided, find case-insensitive matches
+        if let (Some(a), Some(t)) = (artist, title) {
+            let mut stmt = conn.prepare(
+                "SELECT id FROM discovery_releases WHERE LOWER(artist) = LOWER(?1) AND LOWER(title) = LOWER(?2)",
+            )?;
+            let ids: Vec<String> = stmt
+                .query_map(rusqlite::params![a, t], |row| row.get(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            matched_ids.extend(ids);
+        }
+
+        // Deduplicate IDs
+        matched_ids.sort();
+        matched_ids.dedup();
+
+        drop(conn);
+
+        // Fetch full release objects
+        matched_ids
+            .iter()
+            .map(|id| self.get_release(id))
+            .collect()
+    }
+
+    /// Add tracks to an existing release, deduplicating by name (case-insensitive).
+    pub fn add_tracks_to_release(
+        &self,
+        release_id: &str,
+        tracks: Vec<DiscoveryTrackCreate>,
+    ) -> Result<DiscoveryRelease> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        {
+            // Get existing track names for deduplication
+            let mut stmt = conn.prepare(
+                "SELECT name, MAX(position) FROM discovery_tracks WHERE release_id = ?1 GROUP BY LOWER(name)",
+            )?;
+
+            let existing: Vec<(String, i32)> = stmt
+                .query_map([release_id], |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, i32>(1)?))
+                })?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+
+            let existing_names: Vec<String> = existing
+                .iter()
+                .map(|(name, _)| name.to_lowercase())
+                .collect();
+            let max_position = existing.iter().map(|(_, pos)| *pos).max().unwrap_or(0);
+
+            let now = chrono::Utc::now().to_rfc3339();
+            let mut next_position = max_position + 1;
+
+            for track in &tracks {
+                if existing_names.contains(&track.name.to_lowercase()) {
+                    continue;
+                }
+                let track_id = uuid::Uuid::new_v4().to_string();
+                conn.execute(
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms) VALUES (?1, ?2, ?3, ?4, ?5)",
+                    rusqlite::params![track_id, release_id, track.name, next_position, track.duration_ms],
+                )?;
+                next_position += 1;
+            }
+
+            // Update date_modified
+            conn.execute(
+                "UPDATE discovery_releases SET date_modified = ?1 WHERE id = ?2",
+                rusqlite::params![now, release_id],
+            )?;
+        }
+
+        drop(conn);
+        self.get_release(release_id)
+    }
+
+    /// Merge source releases into a target release.
+    /// Copies tracks (deduped by name), unions tags, moves playlist memberships,
+    /// concatenates notes, then deletes source releases.
+    pub fn merge_releases(
+        &self,
+        target_id: &str,
+        source_ids: Vec<String>,
+    ) -> Result<DiscoveryRelease> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        {
+            let now = chrono::Utc::now().to_rfc3339();
+
+            // Get existing target track names for dedup
+            let mut stmt = conn.prepare(
+                "SELECT LOWER(name), MAX(position) FROM discovery_tracks WHERE release_id = ?1 GROUP BY LOWER(name)",
+            )?;
+            let existing: Vec<(String, i32)> = stmt
+                .query_map([target_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+
+            let mut existing_names: Vec<String> =
+                existing.iter().map(|(n, _)| n.clone()).collect();
+            let mut next_position =
+                existing.iter().map(|(_, p)| *p).max().unwrap_or(0) + 1;
+
+            // Get target notes
+            let target_notes: Option<String> = conn.query_row(
+                "SELECT notes FROM discovery_releases WHERE id = ?1",
+                [target_id],
+                |row| row.get(0),
+            )?;
+
+            let mut all_notes: Vec<String> = Vec::new();
+            if let Some(ref notes) = target_notes {
+                if !notes.is_empty() {
+                    all_notes.push(notes.clone());
+                }
+            }
+
+            for source_id in &source_ids {
+                // Copy tracks from source, deduplicating
+                let mut stmt = conn.prepare(
+                    "SELECT name, position, duration_ms FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
+                )?;
+                let source_tracks: Vec<(String, i32, Option<i64>)> = stmt
+                    .query_map([source_id.as_str()], |row| {
+                        Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+                    })?
+                    .collect::<std::result::Result<Vec<_>, _>>()?;
+
+                for (name, _, duration_ms) in &source_tracks {
+                    if existing_names.contains(&name.to_lowercase()) {
+                        continue;
+                    }
+                    let track_id = uuid::Uuid::new_v4().to_string();
+                    conn.execute(
+                        "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms) VALUES (?1, ?2, ?3, ?4, ?5)",
+                        rusqlite::params![track_id, target_id, name, next_position, duration_ms],
+                    )?;
+                    existing_names.push(name.to_lowercase());
+                    next_position += 1;
+                }
+
+                // Union tags from source onto target
+                let mut stmt = conn.prepare(
+                    "SELECT tag_id FROM discovery_release_tags WHERE release_id = ?1",
+                )?;
+                let tag_ids: Vec<String> = stmt
+                    .query_map([source_id.as_str()], |row| row.get(0))?
+                    .collect::<std::result::Result<Vec<_>, _>>()?;
+
+                for tag_id in &tag_ids {
+                    conn.execute(
+                        "INSERT OR IGNORE INTO discovery_release_tags (release_id, tag_id) VALUES (?1, ?2)",
+                        rusqlite::params![target_id, tag_id],
+                    )?;
+                }
+
+                // Move playlist memberships from source to target
+                conn.execute(
+                    "UPDATE OR IGNORE playlist_discovery_releases SET release_id = ?1 WHERE release_id = ?2",
+                    rusqlite::params![target_id, source_id],
+                )?;
+                // Delete any remaining (duplicates that couldn't be moved due to PK conflict)
+                conn.execute(
+                    "DELETE FROM playlist_discovery_releases WHERE release_id = ?1",
+                    [source_id.as_str()],
+                )?;
+
+                // Collect notes
+                let source_notes: Option<String> = conn.query_row(
+                    "SELECT notes FROM discovery_releases WHERE id = ?1",
+                    [source_id.as_str()],
+                    |row| row.get(0),
+                )?;
+                if let Some(notes) = source_notes {
+                    if !notes.is_empty() && !all_notes.contains(&notes) {
+                        all_notes.push(notes);
+                    }
+                }
+
+                // Delete source release (cascading deletes handle tracks/tags)
+                conn.execute(
+                    "DELETE FROM discovery_releases WHERE id = ?1",
+                    [source_id.as_str()],
+                )?;
+            }
+
+            // Update target: date_modified and concatenated notes
+            let merged_notes = if all_notes.len() > 1 {
+                Some(all_notes.join("\n\n"))
+            } else {
+                target_notes
+            };
+
+            conn.execute(
+                "UPDATE discovery_releases SET date_modified = ?1, notes = ?2 WHERE id = ?3",
+                rusqlite::params![now, merged_notes, target_id],
+            )?;
+        }
+
+        drop(conn);
+        self.get_release(target_id)
+    }
+}
+
+/// Normalize a URL for consistent storage and deduplication.
+/// - Lowercases the domain (not path)
+/// - Strips trailing slashes
+/// - Removes common tracking query parameters
+pub(crate) fn normalize_url(url: &str) -> String {
+    let url = url.trim();
+
+    // Parse into parts: scheme, domain, path+query
+    let (scheme, rest) = match url.find("://") {
+        Some(i) => (&url[..i], &url[i + 3..]),
+        None => return url.to_string(),
+    };
+
+    let (authority, path_and_query) = match rest.find('/') {
+        Some(i) => (&rest[..i], &rest[i..]),
+        None => (rest, "/"),
+    };
+
+    // Lowercase the authority (domain + optional port)
+    let authority_lower = authority.to_lowercase();
+
+    // Split path from query
+    let (path, query) = match path_and_query.find('?') {
+        Some(i) => (&path_and_query[..i], Some(&path_and_query[i + 1..])),
+        None => (path_and_query, None),
+    };
+
+    // Strip trailing slashes from path (but keep at least "/")
+    let path = path.trim_end_matches('/');
+    let path = if path.is_empty() { "" } else { path };
+
+    // Filter out tracking query params
+    let tracking_params: &[&str] = &[
+        "utm_source",
+        "utm_medium",
+        "utm_campaign",
+        "utm_content",
+        "utm_term",
+        "ref",
+        "fbclid",
+        "si",
+        "feature",
+    ];
+
+    let filtered_query = query
+        .map(|q| {
+            q.split('&')
+                .filter(|param| {
+                    let key = param.split('=').next().unwrap_or("");
+                    !tracking_params.contains(&key)
+                })
+                .collect::<Vec<_>>()
+                .join("&")
+        })
+        .filter(|q| !q.is_empty());
+
+    match filtered_query {
+        Some(q) => format!("{scheme}://{authority_lower}{path}?{q}"),
+        None => format!("{scheme}://{authority_lower}{path}"),
     }
 }
 

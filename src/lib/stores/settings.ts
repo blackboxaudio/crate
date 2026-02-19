@@ -193,6 +193,8 @@ function createSettingsStore() {
 			// View menu items
 			toggleView: t('menu.toggleView'),
 			toggleEditor: t('menu.toggleEditor'),
+			expandAllReleases: t('menu.expandAllReleases'),
+			collapseAllReleases: t('menu.collapseAllReleases'),
 			showDevTools: t('menu.showDevTools'),
 			// Settings submenu
 			settingsSubmenu: t('menu.settingsSubmenu'),

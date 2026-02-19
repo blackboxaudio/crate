@@ -202,7 +202,16 @@
 			"importing": "导入中...",
 			"noFilesSelected": "未选择文件",
 			"filesSelected": "已选择 {count, plural, =1 {1 个文件} other {{count} 个文件}}"
-		}
+		},
+		"addToExisting": "添加到现有",
+		"addAsNew": "添加为新发行",
+		"matchFound": "此曲目是已在发现列表中的 {albumTitle} 的一部分",
+		"similarFound": "类似发行已存在：{artist} 的 {title}",
+		"mergeReleases": "合并发行",
+		"mergeConfirm": "保留元数据来自：",
+		"mergeTrackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}合并",
+		"expandAll": "全部展开",
+		"collapseAll": "全部折叠"
 	},
 	"playlists": {
 		"newPlaylist": "新建播放列表",
@@ -514,6 +523,8 @@
 		"toggleEditor": "切换编辑器",
 		"toggleView": "切换视图",
 		"showDevTools": "显示开发者工具",
+		"expandAllReleases": "全部展开发行",
+		"collapseAllReleases": "全部折叠发行",
 		"minimize": "最小化",
 		"zoom": "缩放",
 		"documentation": "{appName} 文档",

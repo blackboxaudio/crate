@@ -202,7 +202,16 @@
 			"importing": "Importerar...",
 			"noFilesSelected": "Inga filer valda",
 			"filesSelected": "{count, plural, =1 {1 fil} other {{count} filer}} vald(a)"
-		}
+		},
+		"addToExisting": "Lägg till på befintlig",
+		"addAsNew": "Lägg till som ny utgåva",
+		"matchFound": "Det här spåret är en del av {albumTitle} som redan finns i din upptäcktlista",
+		"similarFound": "En liknande utgåva finns redan: {title} av {artist}",
+		"mergeReleases": "Slå samman utgåvor",
+		"mergeConfirm": "Behåll metadata från:",
+		"mergeTrackCount": "{count, plural, =1 {1 spår} other {{count} spår}} kombinerat",
+		"expandAll": "Expandera alla",
+		"collapseAll": "Minimera alla"
 	},
 	"playlists": {
 		"newPlaylist": "Ny spellista",
@@ -514,6 +523,8 @@
 		"toggleEditor": "Visa/Dölj redigerare",
 		"toggleView": "Växla vy",
 		"showDevTools": "Visa DevTools",
+		"expandAllReleases": "Expandera alla utgåvor",
+		"collapseAllReleases": "Minimera alla utgåvor",
 		"minimize": "Minimera",
 		"zoom": "Zooma",
 		"documentation": "{appName} Dokumentation",

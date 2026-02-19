@@ -18,6 +18,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Multi-language support with 11 locales: English, Japanese, Dutch, French, German, Spanish, Italian, Swedish, Korean, Portuguese, and Chinese
 - Automatic system language detection with user preference override in Settings
 - Track BPM and key analysis
+- Discovery release deduplication with overlap detection during add flow
+- Expandable track sub-rows in the discovery list with expand/collapse all
+- Merge releases action for combining duplicate discovery entries
+- SoundCloud set/playlist URL support for fetching all tracks in a set
+- Bandcamp parent album detection for individual track pages
 
 ## [0.1.0] - 2024-12-20
 

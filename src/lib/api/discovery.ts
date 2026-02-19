@@ -3,6 +3,7 @@ import type {
 	DiscoveryRelease,
 	DiscoveryReleaseCreate,
 	DiscoveryReleaseUpdate,
+	DiscoveryTrackCreate,
 	DiscoveryFilter,
 	FetchedMetadata,
 	ImportResultWithDuplicates,
@@ -38,6 +39,26 @@ export async function assignTags(releaseIds: string[], tagIds: string[]): Promis
 
 export async function removeTags(releaseIds: string[], tagIds: string[]): Promise<void> {
 	return invoke<void>('remove_discovery_tags', { releaseIds, tagIds })
+}
+
+export async function checkMatches(
+	artist?: string | null,
+	title?: string | null,
+	parentUrl?: string | null
+): Promise<DiscoveryRelease[]> {
+	return invoke<DiscoveryRelease[]>('check_discovery_matches', {
+		artist: artist ?? null,
+		title: title ?? null,
+		parentUrl: parentUrl ?? null,
+	})
+}
+
+export async function addTracksToRelease(releaseId: string, tracks: DiscoveryTrackCreate[]): Promise<DiscoveryRelease> {
+	return invoke<DiscoveryRelease>('add_tracks_to_discovery_release', { releaseId, tracks })
+}
+
+export async function mergeReleases(targetId: string, sourceIds: string[]): Promise<DiscoveryRelease> {
+	return invoke<DiscoveryRelease>('merge_discovery_releases', { targetId, sourceIds })
 }
 
 export async function fetchMetadata(url: string): Promise<FetchedMetadata> {

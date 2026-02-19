@@ -198,6 +198,23 @@ function createDiscoveryStore() {
 			update((state) => ({ ...state, sort }))
 		},
 
+		async mergeReleases(targetId: string, sourceIds: string[]): Promise<DiscoveryRelease | null> {
+			try {
+				const merged = await discoveryApi.mergeReleases(targetId, sourceIds)
+				const sourceIdSet = new Set(sourceIds)
+				update((state) => ({
+					...state,
+					releases: state.releases.filter((r) => !sourceIdSet.has(r.id)).map((r) => (r.id === targetId ? merged : r)),
+				}))
+				return merged
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to merge releases'
+				)
+				return null
+			}
+		},
+
 		/**
 		 * Update category_id for a tag across all releases
 		 */

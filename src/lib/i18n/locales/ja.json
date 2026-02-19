@@ -202,7 +202,16 @@
 			"importing": "インポート中...",
 			"noFilesSelected": "ファイルが選択されていません",
 			"filesSelected": "{count, plural, =1 {1個のファイル} other {{count}個のファイル}}を選択"
-		}
+		},
+		"addToExisting": "既存に追加",
+		"addAsNew": "新規リリースとして追加",
+		"matchFound": "このトラックはディスカバリーリストに既にある {albumTitle} の一部です",
+		"similarFound": "同様のリリースが既に存在します：{artist} による {title}",
+		"mergeReleases": "リリースをマージ",
+		"mergeConfirm": "メタデータを保持：",
+		"mergeTrackCount": "{count, plural, =1 {1曲} other {{count}曲}}を組み合わせ",
+		"expandAll": "すべて展開",
+		"collapseAll": "すべて折りたたむ"
 	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",
@@ -515,6 +524,8 @@
 		"toggleEditor": "エディターを切り替え",
 		"toggleView": "ビューを切り替え",
 		"showDevTools": "開発者ツールを表示",
+		"expandAllReleases": "すべてのリリースを展開",
+		"collapseAllReleases": "すべてのリリースを折りたたむ",
 		"minimize": "しまう",
 		"zoom": "拡大/縮小",
 		"documentation": "{appName}ドキュメント",

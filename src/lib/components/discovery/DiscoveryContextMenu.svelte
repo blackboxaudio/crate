@@ -15,6 +15,7 @@
 		onOpenInBrowser: () => void
 		onRefreshMetadata?: () => void
 		onImport: () => void
+		onMerge?: () => void
 		onDelete: () => void
 		onAddToPlaylist?: (playlistId: string) => void
 	}
@@ -30,6 +31,7 @@
 		onOpenInBrowser,
 		onRefreshMetadata,
 		onImport,
+		onMerge,
 		onDelete,
 		onAddToPlaylist,
 	}: Props = $props()
@@ -80,6 +82,16 @@
 					label: p.name,
 					action: () => onAddToPlaylist!(p.id),
 				})),
+			})
+		}
+
+		// Merge Releases - when 2+ releases selected
+		if (selectedReleases.length >= 2 && onMerge) {
+			items.push({
+				id: 'merge-releases',
+				label: get(translate)('discovery.mergeReleases'),
+				icon: 'copy',
+				action: onMerge,
 			})
 		}
 

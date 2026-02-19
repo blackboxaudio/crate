@@ -33,6 +33,7 @@
 
 	const columns: Column[] = [
 		{ field: null, labelKey: '', align: 'center' },
+		{ field: null, labelKey: '', align: 'center' },
 		{ field: 'artist', labelKey: 'discovery.columns.artistTitle', align: 'left' },
 		{ field: 'label', labelKey: 'discovery.columns.label', align: 'left' },
 		{ field: 'tags', labelKey: 'discovery.columns.tags', align: 'left' },
@@ -44,7 +45,7 @@
 </script>
 
 <div
-	class="sticky top-0 z-10 grid grid-cols-[40px_1.25fr_0.6fr_1fr_110px_110px_100px_40px] gap-2 border-b border-stroke bg-surface-1/50 px-3 py-2 text-xs font-medium tracking-wider text-text-tertiary uppercase backdrop-blur-sm"
+	class="sticky top-0 z-10 grid grid-cols-[32px_40px_1.25fr_0.6fr_1fr_110px_110px_100px_40px] gap-2 border-b border-stroke bg-surface-1/50 px-3 py-2 text-xs font-medium tracking-wider text-text-tertiary uppercase backdrop-blur-sm"
 >
 	{#each columns as column, index (index)}
 		{#if column.field}

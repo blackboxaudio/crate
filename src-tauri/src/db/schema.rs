@@ -209,5 +209,9 @@ CREATE TABLE playlist_discovery_releases (
     PRIMARY KEY (playlist_id, release_id)
 );
 "#,
+        // Migration 2: Add parent_url to discovery_releases
+        r#"
+ALTER TABLE discovery_releases ADD COLUMN parent_url TEXT;
+"#,
     ]
 }

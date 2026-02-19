@@ -1,9 +1,12 @@
 <script lang="ts">
 	import type { DiscoveryRelease, DiscoverySortConfig } from '$lib/types'
 	import DiscoveryList from './DiscoveryList.svelte'
+	import { IconButton } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
+	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$lib/i18n'
+	import { SvelteSet } from 'svelte/reactivity'
 
 	type Props = {
 		releases: DiscoveryRelease[]
@@ -38,6 +41,26 @@
 	}: Props = $props()
 
 	let isDragOver = $state(false)
+	let expandedIds = $state(new Set<string>())
+
+	const hasExpandableReleases = $derived(releases.some((r) => r.tracks.length > 0))
+
+	function toggleExpand(id: string) {
+		expandedIds = new SvelteSet(expandedIds)
+		if (expandedIds.has(id)) {
+			expandedIds.delete(id)
+		} else {
+			expandedIds.add(id)
+		}
+	}
+
+	export function expandAll() {
+		expandedIds = new SvelteSet(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
+	}
+
+	export function collapseAll() {
+		expandedIds = new SvelteSet()
+	}
 
 	function hasUrlData(e: DragEvent): boolean {
 		if (!e.dataTransfer) return false
@@ -96,7 +119,7 @@
 	ondrop={handleDrop}
 >
 	<!-- Header -->
-	<div class="flex items-center gap-1 border-b border-stroke px-6 py-4">
+	<div class="flex items-center justify-between border-b border-stroke px-4 py-4">
 		<div class="flex items-center gap-2 rounded px-2 py-1 text-sm font-medium text-text-primary">
 			<Icon name="globe" class="h-4 w-4 shrink-0" />
 			<span>{$translate('nav.discovery')}</span>
@@ -105,6 +128,16 @@
 				{releaseCount === 1 ? $translate('discovery.release') : $translate('discovery.releases')}
 			</Text>
 		</div>
+		{#if hasExpandableReleases}
+			<div class="flex items-center gap-1">
+				<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
+					<IconButton icon="unfold-vertical" size="sm" onclick={expandAll} />
+				</Tooltip>
+				<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
+					<IconButton icon="fold-vertical" size="sm" onclick={collapseAll} />
+				</Tooltip>
+			</div>
+		{/if}
 	</div>
 
 	<!-- Content -->
@@ -112,6 +145,7 @@
 		<DiscoveryList
 			{releases}
 			{selectedIds}
+			{expandedIds}
 			{sortConfig}
 			{categoryColors}
 			{categorySortOrders}
@@ -122,6 +156,7 @@
 			{onSortChange}
 			{onContextMenu}
 			{onEmptySpaceContextMenu}
+			onToggleExpand={toggleExpand}
 		/>
 	</div>
 

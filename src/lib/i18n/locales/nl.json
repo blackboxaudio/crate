@@ -202,7 +202,16 @@
 			"importing": "Importeren...",
 			"noFilesSelected": "Geen bestanden geselecteerd",
 			"filesSelected": "{count, plural, =1 {1 bestand} other {{count} bestanden}} geselecteerd"
-		}
+		},
+		"addToExisting": "Toevoegen aan bestaande",
+		"addAsNew": "Toevoegen als nieuwe release",
+		"matchFound": "Dit nummer is onderdeel van {albumTitle} wat al in uw ontdekkingslijst staat",
+		"similarFound": "Een vergelijkbare release bestaat al: {title} van {artist}",
+		"mergeReleases": "Releases samenvoegen",
+		"mergeConfirm": "Metagegevens behouden van:",
+		"mergeTrackCount": "{count, plural, =1 {1 nummer} other {{count} nummers}} gecombineerd",
+		"expandAll": "Alles uitvouwen",
+		"collapseAll": "Alles samenvouwen"
 	},
 	"playlists": {
 		"newPlaylist": "Nieuwe afspeellijst",
@@ -514,6 +523,8 @@
 		"toggleEditor": "Editor wisselen",
 		"toggleView": "Weergave wisselen",
 		"showDevTools": "DevTools tonen",
+		"expandAllReleases": "Alle releases uitvouwen",
+		"collapseAllReleases": "Alle releases samenvouwen",
 		"minimize": "Minimaliseren",
 		"zoom": "Zoomen",
 		"documentation": "{appName} Documentatie",

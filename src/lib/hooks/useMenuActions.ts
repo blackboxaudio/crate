@@ -29,6 +29,8 @@ export interface MenuActionHandlers {
 	onJumpToPlayingTrack: () => void
 	onToggleView: () => void
 	onToggleEditor: () => void
+	onExpandAllReleases: () => void
+	onCollapseAllReleases: () => void
 }
 
 // =============================================================================
@@ -82,6 +84,8 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 		onJumpToPlayingTrack,
 		onToggleView,
 		onToggleEditor,
+		onExpandAllReleases,
+		onCollapseAllReleases,
 	} = handlers
 
 	let unlistenMenu: UnlistenFn | null = null
@@ -169,6 +173,12 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				break
 			case 'toggle_editor':
 				onToggleEditor()
+				break
+			case 'expand_all_releases':
+				onExpandAllReleases()
+				break
+			case 'collapse_all_releases':
+				onCollapseAllReleases()
 				break
 
 			// View > Settings submenu

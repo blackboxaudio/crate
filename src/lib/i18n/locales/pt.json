@@ -202,7 +202,16 @@
 			"importing": "Importando...",
 			"noFilesSelected": "Nenhum arquivo selecionado",
 			"filesSelected": "{count, plural, =1 {1 arquivo} other {{count} arquivos}} selecionado(s)"
-		}
+		},
+		"addToExisting": "Adicionar ao existente",
+		"addAsNew": "Adicionar como novo lançamento",
+		"matchFound": "Esta faixa faz parte de {albumTitle} que já está na sua lista de descobertas",
+		"similarFound": "Um lançamento similar já existe: {title} por {artist}",
+		"mergeReleases": "Mesclar lançamentos",
+		"mergeConfirm": "Manter metadados de:",
+		"mergeTrackCount": "{count, plural, =1 {1 faixa} other {{count} faixas}} combinadas",
+		"expandAll": "Expandir tudo",
+		"collapseAll": "Recolher tudo"
 	},
 	"playlists": {
 		"newPlaylist": "Nova playlist",
@@ -514,6 +523,8 @@
 		"toggleEditor": "Alternar editor",
 		"toggleView": "Alternar visualização",
 		"showDevTools": "Mostrar DevTools",
+		"expandAllReleases": "Expandir todos os lançamentos",
+		"collapseAllReleases": "Recolher todos os lançamentos",
 		"minimize": "Minimizar",
 		"zoom": "Zoom",
 		"documentation": "Documentação do {appName}",

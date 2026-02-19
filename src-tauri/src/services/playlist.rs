@@ -897,7 +897,7 @@ impl PlaylistService {
             SELECT
                 dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label,
                 dr.release_date, dr.artwork_url, dr.artwork_path,
-                dr.notes, dr.date_added, dr.date_modified
+                dr.notes, dr.parent_url, dr.date_added, dr.date_modified
             FROM discovery_releases dr
             JOIN playlist_discovery_releases pdr ON dr.id = pdr.release_id
             WHERE pdr.playlist_id = ?1
@@ -918,8 +918,9 @@ impl PlaylistService {
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
-                    date_added: row.get(10)?,
-                    date_modified: row.get(11)?,
+                    parent_url: row.get(10)?,
+                    date_added: row.get(11)?,
+                    date_modified: row.get(12)?,
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })

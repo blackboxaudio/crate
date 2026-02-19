@@ -13,6 +13,8 @@ pub struct FetchedMetadata {
     pub artwork_url: Option<String>,
     pub tracks: Vec<FetchedTrack>,
     pub source_type: String,
+    pub parent_url: Option<String>,
+    pub parent_album_title: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,6 +71,8 @@ async fn fetch_bandcamp(client: &reqwest::Client, url: &str) -> Result<FetchedMe
         artwork_url: extract_meta_content(&html, "og:image"),
         tracks: Vec::new(),
         source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
     })
 }
 
@@ -139,6 +143,26 @@ fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                     // Parse tracks from albumRelease or track.itemListElement
                     let tracks = parse_bandcamp_tracks(&value);
 
+                    // For MusicRecording (individual track pages), extract parent album info
+                    let (parent_url, parent_album_title) = if schema_type == "MusicRecording" {
+                        let p_url = value
+                            .get("inAlbum")
+                            .and_then(|a| {
+                                a.get("@id")
+                                    .or_else(|| a.get("url"))
+                                    .and_then(|u| u.as_str())
+                            })
+                            .map(|s| s.to_string());
+                        let p_title = value
+                            .get("inAlbum")
+                            .and_then(|a| a.get("name"))
+                            .and_then(|n| n.as_str())
+                            .map(|s| s.to_string());
+                        (p_url, p_title)
+                    } else {
+                        (None, None)
+                    };
+
                     return Some(FetchedMetadata {
                         artist,
                         title,
@@ -147,6 +171,8 @@ fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                         artwork_url,
                         tracks,
                         source_type: String::new(),
+                        parent_url,
+                        parent_album_title,
                     });
                 }
             }
@@ -293,6 +319,119 @@ fn parse_sc_hydration(html: &str) -> Option<FetchedMetadata> {
         artwork_url,
         tracks,
         source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
+    })
+}
+
+/// Check if a SoundCloud URL is a set/playlist URL
+fn is_soundcloud_set(url: &str) -> bool {
+    url.to_lowercase().contains("/sets/")
+}
+
+fn parse_sc_playlist_hydration(html: &str) -> Option<FetchedMetadata> {
+    let marker = "window.__sc_hydration = ";
+    let start = html.find(marker)? + marker.len();
+    let end = start + html[start..].find(";</script>")?;
+    let json_str = &html[start..end];
+
+    let hydration: serde_json::Value = serde_json::from_str(json_str).ok()?;
+    let arr = hydration.as_array()?;
+
+    let playlist_data = arr.iter().find_map(|entry| {
+        if entry.get("hydratable")?.as_str()? == "playlist" {
+            entry.get("data")
+        } else {
+            None
+        }
+    })?;
+
+    let raw_title = playlist_data
+        .get("title")
+        .and_then(|t| t.as_str())
+        .unwrap_or_default();
+
+    // Label accounts often use "Artist - Title" in the title field
+    let (title_artist, title) = if let Some(idx) = raw_title.find(" - ") {
+        (
+            Some(raw_title[..idx].to_string()),
+            Some(raw_title[idx + 3..].to_string()),
+        )
+    } else {
+        (None, Some(raw_title.to_string()))
+    };
+
+    let pub_meta = playlist_data.get("publisher_metadata");
+
+    let artist = pub_meta
+        .and_then(|pm| pm.get("artist"))
+        .and_then(|a| a.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or(title_artist)
+        .or_else(|| {
+            playlist_data
+                .get("user")
+                .and_then(|u| u.get("username"))
+                .and_then(|n| n.as_str())
+                .map(|s| s.to_string())
+        });
+
+    let label = pub_meta
+        .and_then(|pm| pm.get("publisher"))
+        .and_then(|p| p.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            playlist_data
+                .get("label_name")
+                .and_then(|l| l.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string())
+        });
+
+    let release_date = playlist_data
+        .get("release_date")
+        .and_then(|d| d.as_str())
+        .and_then(|s| s.get(..10))
+        .map(|s| s.to_string());
+
+    let artwork_url = playlist_data
+        .get("artwork_url")
+        .and_then(|a| a.as_str())
+        .map(|s| s.replace("-large", "-t500x500"));
+
+    // Extract tracks from the playlist
+    let tracks = playlist_data
+        .get("tracks")
+        .and_then(|t| t.as_array())
+        .map(|track_arr| {
+            track_arr
+                .iter()
+                .enumerate()
+                .filter_map(|(idx, track)| {
+                    let name = track.get("title").and_then(|t| t.as_str())?.to_string();
+                    let duration_ms = track.get("duration").and_then(|d| d.as_i64());
+                    Some(FetchedTrack {
+                        name,
+                        position: (idx + 1) as i32,
+                        duration_ms,
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Some(FetchedMetadata {
+        artist,
+        title,
+        label,
+        release_date,
+        artwork_url,
+        tracks,
+        source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
     })
 }
 
@@ -306,6 +445,13 @@ async fn fetch_soundcloud(client: &reqwest::Client, url: &str) -> Result<Fetched
         .text()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to read SoundCloud response: {e}")))?;
+
+    // Try playlist hydration first for set URLs
+    if is_soundcloud_set(url) {
+        if let Some(metadata) = parse_sc_playlist_hydration(&html) {
+            return Ok(metadata);
+        }
+    }
 
     if let Some(metadata) = parse_sc_hydration(&html) {
         return Ok(metadata);
@@ -367,6 +513,8 @@ async fn fetch_soundcloud_oembed(client: &reqwest::Client, url: &str) -> Result<
         artwork_url,
         tracks: Vec::new(),
         source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
     })
 }
 
@@ -405,6 +553,8 @@ async fn fetch_youtube(client: &reqwest::Client, url: &str) -> Result<FetchedMet
         artwork_url,
         tracks: Vec::new(),
         source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
     })
 }
 
@@ -426,12 +576,17 @@ async fn fetch_generic(client: &reqwest::Client, url: &str) -> Result<FetchedMet
         artwork_url: extract_meta_content(&html, "og:image"),
         tracks: Vec::new(),
         source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
     })
 }
 
-/// Parse ISO 8601 duration (e.g., "PT3M45S") to milliseconds.
+/// Parse ISO 8601 duration (e.g., "PT3M45S" or "P00H03M45S") to milliseconds.
 fn parse_iso_duration(s: &str) -> Option<i64> {
-    let s = s.strip_prefix("PT")?;
+    // Try standard "PT..." first, then fall back to "P..." (Bandcamp uses P00H06M12S)
+    let s = s
+        .strip_prefix("PT")
+        .or_else(|| s.strip_prefix("P"))?;
     let mut total_ms: i64 = 0;
     let mut num_buf = String::new();
 
@@ -493,6 +648,10 @@ mod tests {
         assert_eq!(parse_iso_duration("PT30S"), Some(30_000));
         assert_eq!(parse_iso_duration("PT5M"), Some(300_000));
         assert_eq!(parse_iso_duration("invalid"), None);
+        // Bandcamp format: P prefix without T separator
+        assert_eq!(parse_iso_duration("P00H03M45S"), Some(225_000));
+        assert_eq!(parse_iso_duration("P00H06M12S"), Some(372_000));
+        assert_eq!(parse_iso_duration("P01H02M03S"), Some(3_723_000));
     }
 
     #[test]

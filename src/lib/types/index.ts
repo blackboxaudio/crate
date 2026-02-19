@@ -627,6 +627,7 @@ export interface DiscoveryRelease {
 	artwork_url: string | null
 	artwork_path: string | null
 	notes: string | null
+	parent_url: string | null
 	date_added: string
 	date_modified: string
 	tracks: DiscoveryTrack[]
@@ -642,6 +643,7 @@ export interface DiscoveryReleaseCreate {
 	release_date?: string
 	artwork_url?: string
 	notes?: string
+	parent_url?: string
 	tracks?: DiscoveryTrackCreate[]
 }
 
@@ -659,6 +661,8 @@ export interface FetchedMetadata {
 	artwork_url: string | null
 	tracks: FetchedTrack[]
 	source_type: string
+	parent_url: string | null
+	parent_album_title: string | null
 }
 
 export interface FetchedTrack {

@@ -65,6 +65,8 @@ pub struct MenuTranslations {
     // View menu items
     pub toggle_view: String,
     pub toggle_editor: String,
+    pub expand_all_releases: String,
+    pub collapse_all_releases: String,
     pub show_dev_tools: String,
     // Settings submenu
     pub settings_submenu: String,
@@ -125,6 +127,8 @@ pub mod ids {
     // View menu items
     pub const TOGGLE_VIEW: &str = "toggle_view";
     pub const TOGGLE_EDITOR: &str = "toggle_editor";
+    pub const EXPAND_ALL_RELEASES: &str = "expand_all_releases";
+    pub const COLLAPSE_ALL_RELEASES: &str = "collapse_all_releases";
     pub const SHOW_DEVTOOLS: &str = "show_devtools";
 
     // Settings submenu items
@@ -410,6 +414,21 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
             Some("CmdOrCtrl+I"),
         )?)
         .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::EXPAND_ALL_RELEASES,
+            "Expand All Releases",
+            true,
+            Some("CmdOrCtrl+Shift+E"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::COLLAPSE_ALL_RELEASES,
+            "Collapse All Releases",
+            true,
+            Some("CmdOrCtrl+Shift+W"),
+        )?)
+        .separator()
         .item(&settings_submenu);
 
     if is_dev {
@@ -590,6 +609,16 @@ pub fn update_menu_translations(
     // Update View menu items
     update_item_text(&menu, ids::TOGGLE_VIEW, &translations.toggle_view)?;
     update_item_text(&menu, ids::TOGGLE_EDITOR, &translations.toggle_editor)?;
+    update_item_text(
+        &menu,
+        ids::EXPAND_ALL_RELEASES,
+        &translations.expand_all_releases,
+    )?;
+    update_item_text(
+        &menu,
+        ids::COLLAPSE_ALL_RELEASES,
+        &translations.collapse_all_releases,
+    )?;
     if is_dev {
         update_item_text(&menu, ids::SHOW_DEVTOOLS, &translations.show_dev_tools)?;
     }

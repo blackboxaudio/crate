@@ -28,6 +28,8 @@ export type MenuAction =
 	// View menu
 	| 'toggle_view'
 	| 'toggle_editor'
+	| 'expand_all_releases'
+	| 'collapse_all_releases'
 	// View > Settings submenu
 	| 'settings_general'
 	| 'settings_library'

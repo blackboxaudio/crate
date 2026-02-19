@@ -79,7 +79,13 @@
 
 	import { Sidebar, Toolbar, RightSidebar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
-	import { DiscoveryView, AddReleaseModal, DiscoveryEditor, PurchaseReleaseModal } from '$lib/components/discovery'
+	import {
+		DiscoveryView,
+		AddReleaseModal,
+		DiscoveryEditor,
+		MergeReleasesModal,
+		PurchaseReleaseModal,
+	} from '$lib/components/discovery'
 	import { TrackEditor } from '$lib/components/editor'
 	import { getVersion } from '@tauri-apps/api/app'
 	import { openUrl } from '@tauri-apps/plugin-opener'
@@ -97,6 +103,7 @@
 	import { openDevTools, closeDevTools, setMenuItemEnabled } from '$lib/api/app'
 	import { updateNowPlaying, updatePlaybackState, clearNowPlaying } from '$lib/api/mediaControls'
 	import { exportStore } from '$lib/stores/export'
+	import * as discoveryApi from '$lib/api/discovery'
 	import { SvelteMap } from 'svelte/reactivity'
 
 	// =============================================================================
@@ -112,6 +119,7 @@
 	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'date_added', direction: 'desc' })
 	let showAddReleaseModal = $state(false)
 	let purchaseRelease = $state<DiscoveryRelease | null>(null)
+	let mergeReleases = $state<DiscoveryRelease[] | null>(null)
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
 	let devices = $state<UsbDevice[]>([])
@@ -129,6 +137,9 @@
 
 	// Context menu state for playlist tree hover styling
 	let contextMenuPlaylistId = $state<string | null>(null)
+
+	// Discovery view ref for expand/collapse all
+	let discoveryViewRef: ReturnType<typeof DiscoveryView> | undefined = $state()
 
 	// Cleanup function from onMount
 	let cleanupOnMount: (() => void) | undefined
@@ -650,6 +661,8 @@
 				handleViewChange(next)
 			},
 			onToggleEditor: () => uiStore.toggleRightSidebar(),
+			onExpandAllReleases: () => discoveryViewRef?.expandAll(),
+			onCollapseAllReleases: () => discoveryViewRef?.collapseAll(),
 		})
 
 		// Set up media key listeners (OS-level via souvlaki)
@@ -1069,6 +1082,7 @@
 						{/if}
 					{:else if $activeView === 'discovery'}
 						<DiscoveryView
+							bind:this={discoveryViewRef}
 							releases={$sortedReleases}
 							releaseCount={$releaseCount}
 							selectedIds={$selectedReleaseIds}
@@ -1182,6 +1196,7 @@
 	onDiscoveryReleaseRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
 	onDiscoveryReleaseImport={handleDiscoveryReleaseImport}
 	onDiscoveryReleaseDelete={(releaseIds) => modalOrchestrator.openRemoveDiscoveryReleasesModal(releaseIds)}
+	onDiscoveryReleaseMerge={(releases) => (mergeReleases = releases)}
 	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {
 		const releaseIds = releases.map((r) => r.id)
 		await playlistsStore.addReleases(playlistId, releaseIds)
@@ -1312,7 +1327,35 @@
 
 <!-- Add Release Modal -->
 {#if showAddReleaseModal}
-	<AddReleaseModal open={true} onClose={() => (showAddReleaseModal = false)} onSubmit={handleAddRelease} />
+	<AddReleaseModal
+		open={true}
+		onClose={() => (showAddReleaseModal = false)}
+		onSubmit={handleAddRelease}
+		onAddToExisting={async (releaseId, tracks) => {
+			const release = await discoveryApi.addTracksToRelease(releaseId, tracks)
+			if (release) {
+				discoveryStore.updateRelease(releaseId, {})
+				showAddReleaseModal = false
+				await discoveryStore.loadReleases()
+			}
+		}}
+	/>
+{/if}
+
+<!-- Merge Releases Modal -->
+{#if mergeReleases && mergeReleases.length >= 2}
+	<MergeReleasesModal
+		open={true}
+		releases={mergeReleases}
+		onClose={() => (mergeReleases = null)}
+		onMerge={async (targetId, sourceIds) => {
+			const merged = await discoveryStore.mergeReleases(targetId, sourceIds)
+			if (merged) {
+				uiStore.setSelectedReleases(new Set([merged.id]))
+				mergeReleases = null
+			}
+		}}
+	/>
 {/if}
 
 <!-- Purchase Release Modal -->

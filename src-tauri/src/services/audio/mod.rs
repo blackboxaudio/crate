@@ -22,6 +22,19 @@ use crate::models::AudioDevice;
 
 use fade::FadeOutEnding;
 
+const PAUSE_FADE_MS: u64 = 5;
+const PAUSE_FADE_STEPS: u32 = 10;
+
+fn fade_volume(sink: &Sink, from: f32, to: f32, duration_ms: u64, steps: u32) {
+    let step_duration = Duration::from_micros(duration_ms * 1000 / steps as u64);
+    for i in 1..=steps {
+        let t = i as f32 / steps as f32;
+        let volume = from + (to - from) * t;
+        sink.set_volume(volume);
+        thread::sleep(step_duration);
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlaybackState {
     pub is_playing: bool,
@@ -484,7 +497,11 @@ fn handle_command(
                 p.started_position_ms = p.state.position_ms;
                 p.started_at = None;
 
+                // Fade out to avoid click, then pause and restore volume
+                fade_volume(&p.sink, *current_volume, 0.0, PAUSE_FADE_MS, PAUSE_FADE_STEPS);
                 p.sink.pause();
+                p.sink.set_volume(*current_volume);
+
                 p.state.is_playing = false;
                 AudioResponse::State(p.state.clone())
             } else {
@@ -494,7 +511,11 @@ fn handle_command(
 
         AudioCommand::Resume => {
             if let Some(ref mut p) = player {
+                // Start silent and fade in to avoid click
+                p.sink.set_volume(0.0);
                 p.sink.play();
+                fade_volume(&p.sink, 0.0, *current_volume, PAUSE_FADE_MS, PAUSE_FADE_STEPS);
+
                 p.state.is_playing = true;
                 // Restart the timer from current position
                 p.started_at = Some(Instant::now());

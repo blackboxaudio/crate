@@ -21,6 +21,7 @@ pub struct DiscoveryRelease {
     pub artwork_url: Option<String>,
     pub artwork_path: Option<String>,
     pub notes: Option<String>,
+    pub parent_url: Option<String>,
     pub date_added: String,
     pub date_modified: String,
     #[serde(default)]
@@ -39,6 +40,7 @@ pub struct DiscoveryReleaseCreate {
     pub release_date: Option<String>,
     pub artwork_url: Option<String>,
     pub notes: Option<String>,
+    pub parent_url: Option<String>,
     pub tracks: Option<Vec<DiscoveryTrackCreate>>,
 }
 

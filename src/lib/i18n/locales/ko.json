@@ -202,7 +202,16 @@
 			"importing": "가져오는 중...",
 			"noFilesSelected": "선택된 파일 없음",
 			"filesSelected": "{count, plural, =1 {1개의 파일} other {{count}개의 파일}} 선택됨"
-		}
+		},
+		"addToExisting": "기존에 추가",
+		"addAsNew": "새 릴리스로 추가",
+		"matchFound": "이 트랙은 이미 발견 목록에 있는 {albumTitle}의 일부입니다",
+		"similarFound": "유사한 릴리스가 이미 존재합니다: {artist}의 {title}",
+		"mergeReleases": "릴리스 병합",
+		"mergeConfirm": "메타데이터 보존 위치:",
+		"mergeTrackCount": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}} 결합됨",
+		"expandAll": "모두 확장",
+		"collapseAll": "모두 축소"
 	},
 	"playlists": {
 		"newPlaylist": "새 재생목록",
@@ -514,6 +523,8 @@
 		"toggleEditor": "에디터 전환",
 		"toggleView": "보기 전환",
 		"showDevTools": "개발자 도구 표시",
+		"expandAllReleases": "모든 릴리스 확장",
+		"collapseAllReleases": "모든 릴리스 축소",
 		"minimize": "최소화",
 		"zoom": "확대/축소",
 		"documentation": "{appName} 문서",

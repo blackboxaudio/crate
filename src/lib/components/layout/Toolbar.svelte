@@ -37,7 +37,7 @@
 	}: Props = $props()
 </script>
 
-<div class="flex flex-1 items-center gap-4 rounded-bl-md px-4 py-4">
+<div class="flex flex-1 items-center gap-4 rounded-bl-md py-4 pr-3 pl-4">
 	<!-- Search bar -->
 	<div class="max-w-md flex-1">
 		<SearchBar

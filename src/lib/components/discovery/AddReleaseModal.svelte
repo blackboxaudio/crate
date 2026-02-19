@@ -1,5 +1,11 @@
 <script lang="ts">
-	import type { DiscoveryReleaseCreate, DiscoverySourceType, DiscoveryTrackCreate, FetchedMetadata } from '$lib/types'
+	import type {
+		DiscoveryRelease,
+		DiscoveryReleaseCreate,
+		DiscoverySourceType,
+		DiscoveryTrackCreate,
+		FetchedMetadata,
+	} from '$lib/types'
 	import { Modal, Input, Select, Button, Text, Spinner } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
 	import { autoFetchMetadata } from '$lib/stores/settings'
@@ -9,9 +15,10 @@
 		open: boolean
 		onClose: () => void
 		onSubmit: (create: DiscoveryReleaseCreate) => Promise<void>
+		onAddToExisting?: (releaseId: string, tracks: DiscoveryTrackCreate[]) => Promise<void>
 	}
 
-	let { open, onClose, onSubmit }: Props = $props()
+	let { open, onClose, onSubmit, onAddToExisting }: Props = $props()
 
 	let url = $state('')
 	let sourceType = $state<DiscoverySourceType>('other')
@@ -28,6 +35,10 @@
 	let tracks = $state<DiscoveryTrackCreate[]>([])
 	let fetchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 	let lastFetchedUrl = ''
+
+	// Match detection state
+	let matchedRelease = $state<DiscoveryRelease | null>(null)
+	let matchType = $state<'parent' | 'similar' | null>(null)
 
 	const sourceOptions = [
 		{ value: 'bandcamp', label: 'Bandcamp' },
@@ -54,6 +65,8 @@
 		title = ''
 		label = ''
 		releaseDate = ''
+		matchedRelease = null
+		matchType = null
 	}
 
 	function handleUrlInput() {
@@ -83,6 +96,8 @@
 
 		fetching = true
 		fetchError = ''
+		matchedRelease = null
+		matchType = null
 
 		try {
 			const data = await discoveryApi.fetchMetadata(fetchUrl)
@@ -105,6 +120,29 @@
 			}
 			if (data.source_type && data.source_type !== 'other') {
 				sourceType = data.source_type as DiscoverySourceType
+			}
+
+			// Check for matching releases
+			try {
+				const matches = await discoveryApi.checkMatches(data.artist, data.title, data.parent_url)
+				if (matches.length > 0) {
+					// Prefer parent_url match over artist+title match
+					if (data.parent_url) {
+						const parentMatch = matches.find((m) => m.url === data.parent_url || m.parent_url === data.parent_url)
+						if (parentMatch) {
+							matchedRelease = parentMatch
+							matchType = 'parent'
+						} else {
+							matchedRelease = matches[0]
+							matchType = 'similar'
+						}
+					} else {
+						matchedRelease = matches[0]
+						matchType = 'similar'
+					}
+				}
+			} catch {
+				// Non-blocking: if match check fails, just continue without showing matches
 			}
 		} catch (error) {
 			fetchError = typeof error === 'string' ? error : error instanceof Error ? error.message : 'Fetch failed'
@@ -159,8 +197,15 @@
 		if (releaseDate.trim()) create.release_date = releaseDate.trim()
 		if (artworkPreview) create.artwork_url = artworkPreview
 		if (tracks.length > 0) create.tracks = tracks
+		if (fetchedData?.parent_url) create.parent_url = fetchedData.parent_url
 
 		await onSubmit(create)
+	}
+
+	async function handleAddToExisting() {
+		if (!matchedRelease || !onAddToExisting) return
+		await onAddToExisting(matchedRelease.id, tracks)
+		handleClose()
 	}
 
 	// Reset form when modal opens
@@ -185,6 +230,36 @@
 				<Text size="xs" color="danger" class="mt-2">{$translate('discovery.fetchError')}</Text>
 			{/if}
 		</div>
+
+		<!-- Match detection notice -->
+		{#if matchedRelease && matchType}
+			<div class="rounded-md border border-amber-500/30 bg-amber-500/10 p-3">
+				<Text size="sm" color="secondary">
+					{#if matchType === 'parent' && fetchedData?.parent_album_title}
+						{$translate('discovery.matchFound', {
+							values: { albumTitle: fetchedData.parent_album_title },
+						})}
+					{:else}
+						{$translate('discovery.similarFound', {
+							values: {
+								title: matchedRelease.title ?? '',
+								artist: matchedRelease.artist ?? '',
+							},
+						})}
+					{/if}
+				</Text>
+				<div class="mt-2 flex gap-2">
+					{#if onAddToExisting}
+						<Button variant="ghost" size="sm" onclick={handleAddToExisting}>
+							{$translate('discovery.addToExisting')}
+						</Button>
+					{/if}
+					<Button variant="ghost" size="sm" onclick={handleSubmit}>
+						{$translate('discovery.addAsNew')}
+					</Button>
+				</div>
+			</div>
+		{/if}
 
 		<!-- Artwork preview -->
 		{#if artworkPreview}

@@ -5,7 +5,7 @@ use tauri::State;
 use crate::error::Result;
 use crate::models::{
     DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate,
-    ImportResultWithDuplicates,
+    DiscoveryTrackCreate, ImportResultWithDuplicates,
 };
 use crate::services::discovery::metadata::{self, FetchedMetadata};
 use crate::services::{DiscoveryService, LibraryService, TagService};
@@ -75,6 +75,38 @@ pub async fn remove_discovery_tags(
     discovery: State<'_, DiscoveryService>,
 ) -> Result<()> {
     discovery.remove_tags(release_ids, tag_ids)
+}
+
+#[tauri::command]
+pub async fn check_discovery_matches(
+    artist: Option<String>,
+    title: Option<String>,
+    parent_url: Option<String>,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<Vec<DiscoveryRelease>> {
+    discovery.find_matching_releases(
+        artist.as_deref(),
+        title.as_deref(),
+        parent_url.as_deref(),
+    )
+}
+
+#[tauri::command]
+pub async fn add_tracks_to_discovery_release(
+    release_id: String,
+    tracks: Vec<DiscoveryTrackCreate>,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<DiscoveryRelease> {
+    discovery.add_tracks_to_release(&release_id, tracks)
+}
+
+#[tauri::command]
+pub async fn merge_discovery_releases(
+    target_id: String,
+    source_ids: Vec<String>,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<DiscoveryRelease> {
+    discovery.merge_releases(&target_id, source_ids)
 }
 
 #[tauri::command]

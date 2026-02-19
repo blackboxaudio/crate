@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$lib/types'
-	import { formatDate, formatRelativeDate } from '$lib/utils'
+	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
-	import { AlbumArt, IconButton, Text, Tooltip } from '$lib/components/common'
+	import { AlbumArt, Icon, IconButton, Text, Tooltip } from '$lib/components/common'
 	import { dateFormat, dragStore, isDraggingTag } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
@@ -10,6 +10,7 @@
 	type Props = {
 		release: DiscoveryRelease
 		selected?: boolean
+		expanded?: boolean
 		dragReleaseIds?: string[]
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -17,11 +18,13 @@
 		ondblclick?: (e: MouseEvent) => void
 		oncontextmenu?: (e: MouseEvent) => void
 		onimport?: () => void
+		onToggleExpand?: () => void
 	}
 
 	let {
 		release,
 		selected = false,
+		expanded = false,
 		dragReleaseIds = [],
 		categoryColors,
 		categorySortOrders,
@@ -29,6 +32,7 @@
 		ondblclick,
 		oncontextmenu,
 		onimport,
+		onToggleExpand,
 	}: Props = $props()
 
 	let isTagDragHovered = $state(false)
@@ -79,7 +83,7 @@
 	tabindex="0"
 	data-release-row
 	data-release-id={release.id}
-	class="grid cursor-pointer grid-cols-[40px_1.25fr_0.6fr_1fr_110px_110px_100px_40px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+	class="grid cursor-pointer grid-cols-[32px_40px_1.25fr_0.6fr_1fr_110px_110px_100px_40px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
 	{onclick}
@@ -93,16 +97,39 @@
 	onpointerleave={() => (isTagDragHovered = false)}
 	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
+	<!-- Expand toggle -->
+	<div class="flex items-center justify-center">
+		{#if release.tracks.length > 0}
+			<button
+				type="button"
+				class="flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-surface-2"
+				onclick={(e) => {
+					e.stopPropagation()
+					onToggleExpand?.()
+				}}
+			>
+				<Icon name={expanded ? 'chevron-down' : 'chevron-right'} class="h-3.5 w-3.5 text-text-tertiary" />
+			</button>
+		{/if}
+	</div>
+
 	<!-- Artwork -->
-	<div class="flex justify-center">
+	<div class="flex items-center justify-center">
 		<AlbumArt artworkPath={release.artwork_path} artworkUrl={release.artwork_url} size="xs" />
 	</div>
 
 	<!-- Artist / Title -->
 	<div class="flex flex-col justify-center truncate">
-		<Text as="span" weight="medium" truncate>
-			{release.title || $translate('common.untitled')}
-		</Text>
+		<div class="flex items-center gap-2">
+			<Text as="span" weight="medium" truncate>
+				{release.title || $translate('common.untitled')}
+			</Text>
+			{#if release.tracks.length > 0}
+				<Text as="span" size="xs" color="tertiary" class="shrink-0">
+					{$translate('discovery.trackCount', { values: { count: release.tracks.length } })}
+				</Text>
+			{/if}
+		</div>
 		<Text as="span" variant="caption" truncate>
 			{release.artist || $translate('common.unknownArtist')}
 		</Text>
@@ -159,3 +186,23 @@
 		</Tooltip>
 	</div>
 </div>
+
+<!-- Track sub-rows -->
+{#if expanded && release.tracks.length > 0}
+	<div class="border-b border-stroke-subtle bg-surface-1/30">
+		{#each release.tracks as track (track.id)}
+			<div
+				class="grid grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 {track.position > 1
+					? 'border-t border-stroke-subtle/50'
+					: ''}"
+			>
+				<div></div>
+				<div class="text-center text-xs text-text-tertiary">{track.position}</div>
+				<div class="truncate text-xs text-text-secondary">{track.name}</div>
+				<div class="text-right text-xs text-text-tertiary">
+					{track.duration_ms ? formatDuration(track.duration_ms) : ''}
+				</div>
+			</div>
+		{/each}
+	</div>
+{/if}

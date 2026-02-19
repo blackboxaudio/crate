@@ -202,7 +202,16 @@
 			"importing": "Importing...",
 			"noFilesSelected": "No files selected",
 			"filesSelected": "{count, plural, =1 {1 file} other {{count} files}} selected"
-		}
+		},
+		"addToExisting": "Add to Existing",
+		"addAsNew": "Add as New Release",
+		"matchFound": "This track is part of {albumTitle} which is already in your discovery list",
+		"similarFound": "A similar release already exists: {title} by {artist}",
+		"mergeReleases": "Merge Releases",
+		"mergeConfirm": "Keep metadata from:",
+		"mergeTrackCount": "{count, plural, =1 {1 track} other {{count} tracks}} combined",
+		"expandAll": "Expand All",
+		"collapseAll": "Collapse All"
 	},
 	"playlists": {
 		"newPlaylist": "New Playlist",
@@ -515,6 +524,8 @@
 		"toggleEditor": "Toggle Editor",
 		"toggleView": "Toggle View",
 		"showDevTools": "Show DevTools",
+		"expandAllReleases": "Expand All Releases",
+		"collapseAllReleases": "Collapse All Releases",
 		"minimize": "Minimize",
 		"zoom": "Zoom",
 		"documentation": "{appName} Documentation",

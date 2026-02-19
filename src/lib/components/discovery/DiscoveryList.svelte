@@ -10,6 +10,7 @@
 	type Props = {
 		releases: DiscoveryRelease[]
 		selectedIds: Set<string>
+		expandedIds: Set<string>
 		sortConfig: DiscoverySortConfig
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -20,11 +21,13 @@
 		onSortChange?: (config: DiscoverySortConfig) => void
 		onContextMenu?: (e: MouseEvent, release: DiscoveryRelease) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
+		onToggleExpand?: (id: string) => void
 	}
 
 	let {
 		releases,
 		selectedIds,
+		expandedIds,
 		sortConfig,
 		categoryColors,
 		categorySortOrders,
@@ -35,6 +38,7 @@
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
+		onToggleExpand,
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
@@ -113,6 +117,7 @@
 				<DiscoveryRow
 					{release}
 					selected={selectedIds.has(release.id)}
+					expanded={expandedIds.has(release.id)}
 					dragReleaseIds={Array.from(selectedIds)}
 					{categoryColors}
 					{categorySortOrders}
@@ -120,6 +125,7 @@
 					ondblclick={() => handleReleaseDoubleClick(release)}
 					oncontextmenu={(e) => handleReleaseContextMenu(release, e)}
 					onimport={() => onReleaseImport?.(release)}
+					onToggleExpand={() => onToggleExpand?.(release.id)}
 				/>
 			{/each}
 		{/if}

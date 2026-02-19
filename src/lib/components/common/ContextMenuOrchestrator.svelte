@@ -107,6 +107,7 @@
 		onDiscoveryReleaseRefreshMetadata: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseImport: (release: DiscoveryRelease) => void
 		onDiscoveryReleaseDelete: (releaseIds: string[]) => void
+		onDiscoveryReleaseMerge?: (releases: DiscoveryRelease[]) => void
 		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
 		// Close callback
@@ -155,6 +156,7 @@
 		onDiscoveryReleaseRefreshMetadata,
 		onDiscoveryReleaseImport,
 		onDiscoveryReleaseDelete,
+		onDiscoveryReleaseMerge,
 		onDiscoveryReleaseAddToPlaylist,
 		onClose,
 	}: Props = $props()
@@ -551,6 +553,14 @@
 		}
 	}
 
+	function handleDiscoveryReleaseMerge() {
+		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length >= 2) {
+			const releases = [...activeMenu.releases]
+			closeAll()
+			onDiscoveryReleaseMerge?.(releases)
+		}
+	}
+
 	function handleDiscoveryReleaseAddToPlaylist(playlistId: string) {
 		if (activeMenu.type === 'discoveryRelease') {
 			const releases = activeMenu.releases
@@ -736,6 +746,7 @@
 		onOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
 		onRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
 		onImport={handleDiscoveryReleaseImport}
+		onMerge={handleDiscoveryReleaseMerge}
 		onDelete={handleDiscoveryReleaseDelete}
 		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}
 	/>
