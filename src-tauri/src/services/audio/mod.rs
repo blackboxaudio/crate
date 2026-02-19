@@ -550,6 +550,19 @@ fn handle_command(
 
         AudioCommand::Seek(position_ms) => {
             if let Some(ref mut p) = player {
+                // Fade out before seeking to avoid audio click from sample discontinuity
+                if !p.sink.is_paused() {
+                    p.fade_state
+                        .store(FadeState::FadingOut as u8, Ordering::Relaxed);
+                    if !wait_for_fade_state(
+                        &p.fade_state,
+                        FadeState::Silent,
+                        Duration::from_millis(50),
+                    ) {
+                        log::warn!("Seek fade-out timed out");
+                    }
+                }
+
                 match p.sink.try_seek(Duration::from_millis(position_ms)) {
                     Ok(()) => {
                         p.state.position_ms = position_ms;

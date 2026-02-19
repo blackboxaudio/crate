@@ -235,9 +235,9 @@ where
     fn try_seek(&mut self, pos: Duration) -> Result<(), rodio::source::SeekError> {
         let result = self.inner.try_seek(pos);
         if result.is_ok() {
-            self.amplitude = 1.0;
+            self.amplitude = 0.0;
             self.fade_state
-                .store(FadeState::Playing as u8, Ordering::Relaxed);
+                .store(FadeState::FadingIn as u8, Ordering::Relaxed);
         }
         result
     }

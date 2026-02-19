@@ -176,6 +176,11 @@ function createPlayerStore() {
 		 * Seek to position
 		 */
 		async seek(positionMs: number) {
+			// Optimistic position update to prevent playhead jump-back
+			update((state) => ({
+				...state,
+				playbackState: { ...state.playbackState, position_ms: positionMs },
+			}))
 			try {
 				const playbackState = await playerApi.seek(positionMs)
 				update((state) => ({
