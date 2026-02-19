@@ -3,6 +3,7 @@ mod fade;
 use std::fs::File;
 use std::io::BufReader;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicU8, Ordering};
 use std::sync::mpsc::{self, Receiver, Sender};
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -20,20 +21,7 @@ use symphonia::core::probe::Hint;
 use crate::error::{CrateError, Result};
 use crate::models::AudioDevice;
 
-use fade::FadeOutEnding;
-
-const PAUSE_FADE_MS: u64 = 5;
-const PAUSE_FADE_STEPS: u32 = 10;
-
-fn fade_volume(sink: &Sink, from: f32, to: f32, duration_ms: u64, steps: u32) {
-    let step_duration = Duration::from_micros(duration_ms * 1000 / steps as u64);
-    for i in 1..=steps {
-        let t = i as f32 / steps as f32;
-        let volume = from + (to - from) * t;
-        sink.set_volume(volume);
-        thread::sleep(step_duration);
-    }
-}
+use fade::{FadeOutEnding, FadeState, PauseFade};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlaybackState {
@@ -329,6 +317,7 @@ struct AudioPlayer {
     _stream: OutputStream,
     sink: Sink,
     state: PlaybackState,
+    fade_state: Arc<AtomicU8>,
     // For tracking playback position
     started_at: Option<Instant>,
     started_position_ms: u64,
@@ -423,7 +412,9 @@ fn create_player(
     let reader = BufReader::new(file);
     let source = Decoder::new(reader).map_err(|e| format!("Failed to decode audio: {e}"))?;
 
+    let fade_state = Arc::new(AtomicU8::new(FadeState::Playing as u8));
     let source = FadeOutEnding::new(source, duration_ms);
+    let source = PauseFade::new(source, Arc::clone(&fade_state));
     sink.append(source);
 
     if position_ms > 0 {
@@ -449,6 +440,7 @@ fn create_player(
         _stream: stream,
         sink,
         state,
+        fade_state,
         started_at: if is_playing {
             Some(Instant::now())
         } else {
@@ -456,6 +448,21 @@ fn create_player(
         },
         started_position_ms: position_ms,
     })
+}
+
+/// Polls the atomic fade state at 1ms intervals, returning `true` if the
+/// target state is reached within the timeout.
+fn wait_for_fade_state(fade_state: &AtomicU8, target: FadeState, timeout: Duration) -> bool {
+    let start = Instant::now();
+    loop {
+        if FadeState::from_u8(fade_state.load(Ordering::Relaxed)) == target {
+            return true;
+        }
+        if start.elapsed() >= timeout {
+            return false;
+        }
+        thread::sleep(Duration::from_millis(1));
+    }
 }
 
 fn handle_command(
@@ -497,10 +504,14 @@ fn handle_command(
                 p.started_position_ms = p.state.position_ms;
                 p.started_at = None;
 
-                // Fade out to avoid click, then pause and restore volume
-                fade_volume(&p.sink, *current_volume, 0.0, PAUSE_FADE_MS, PAUSE_FADE_STEPS);
+                // Trigger source-level fade-out and wait for silence
+                p.fade_state
+                    .store(FadeState::FadingOut as u8, Ordering::Relaxed);
+                if !wait_for_fade_state(&p.fade_state, FadeState::Silent, Duration::from_millis(50))
+                {
+                    log::warn!("Pause fade-out timed out, forcing pause");
+                }
                 p.sink.pause();
-                p.sink.set_volume(*current_volume);
 
                 p.state.is_playing = false;
                 AudioResponse::State(p.state.clone())
@@ -511,10 +522,11 @@ fn handle_command(
 
         AudioCommand::Resume => {
             if let Some(ref mut p) = player {
-                // Start silent and fade in to avoid click
-                p.sink.set_volume(0.0);
+                // Trigger source-level fade-in, then unpause — first samples
+                // will be near-silent and ramp up smoothly in the audio callback
+                p.fade_state
+                    .store(FadeState::FadingIn as u8, Ordering::Relaxed);
                 p.sink.play();
-                fade_volume(&p.sink, 0.0, *current_volume, PAUSE_FADE_MS, PAUSE_FADE_STEPS);
 
                 p.state.is_playing = true;
                 // Restart the timer from current position
