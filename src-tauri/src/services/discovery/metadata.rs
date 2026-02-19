@@ -81,12 +81,26 @@ fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
             let json_str = &html[abs_start..abs_start + end];
             if let Ok(value) = serde_json::from_str::<serde_json::Value>(json_str) {
                 let schema_type = value.get("@type").and_then(|v| v.as_str()).unwrap_or("");
-                if schema_type == "MusicRelease" || schema_type == "MusicAlbum" {
+                if schema_type == "MusicRelease"
+                    || schema_type == "MusicAlbum"
+                    || schema_type == "MusicRecording"
+                {
+                    // For MusicRecording (individual track pages), Bandcamp puts the
+                    // page owner in byArtist and the actual track artist in inAlbum.byArtist.
+                    // Prefer inAlbum.byArtist.name, falling back to byArtist.name.
                     let artist = value
-                        .get("byArtist")
+                        .get("inAlbum")
+                        .and_then(|a| a.get("byArtist"))
                         .and_then(|a| a.get("name"))
                         .and_then(|n| n.as_str())
-                        .map(|s| s.to_string());
+                        .map(|s| s.to_string())
+                        .or_else(|| {
+                            value
+                                .get("byArtist")
+                                .and_then(|a| a.get("name"))
+                                .and_then(|n| n.as_str())
+                                .map(|s| s.to_string())
+                        });
 
                     let title = value
                         .get("name")
@@ -111,9 +125,15 @@ fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                         .map(|s| s.to_string())
                         .filter(|label_name| {
                             // Skip if publisher name matches artist (self-released)
-                            artist
-                                .as_ref()
-                                .is_none_or(|a| !a.eq_ignore_ascii_case(label_name))
+                            artist.as_ref().is_none_or(|a| {
+                                if a.eq_ignore_ascii_case(label_name) {
+                                    return false;
+                                }
+                                // Also check if publisher matches any comma-separated
+                                // artist part (e.g. "Apellum, Gansi" with publisher "Apellum")
+                                !a.split(", ")
+                                    .any(|part| part.eq_ignore_ascii_case(label_name))
+                            })
                         });
 
                     // Parse tracks from albumRelease or track.itemListElement
