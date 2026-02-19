@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "无法将文件夹拖放到其子文件夹内",
 		"analysisFailed": "分析失败",
 		"exportInProgress": "导出已在进行中",
-		"tagNameConflict": "目标分类中已存在同名标签"
+		"tagNameConflict": "目标分类中已存在同名标签",
+		"previewStreamFailed": "无法加载预览流"
 	},
 	"devices": {
 		"title": "设备",

@@ -1,4 +1,5 @@
 pub mod metadata;
+pub mod streams;
 
 use std::sync::{Arc, Mutex};
 
@@ -11,6 +12,7 @@ use crate::models::{
 };
 
 use metadata::FetchedTrack;
+use streams::StreamInfo;
 
 pub struct DiscoveryService {
     conn: Arc<Mutex<Connection>>,
@@ -756,6 +758,96 @@ impl DiscoveryService {
                 }
             }
         }
+
+        Ok(())
+    }
+
+    /// Get a clone of the database connection Arc for use in background tasks.
+    pub fn connection(&self) -> Arc<Mutex<Connection>> {
+        self.conn.clone()
+    }
+
+    /// Get a cached stream URL for a specific track position, if it exists and hasn't expired.
+    pub fn get_cached_stream(
+        &self,
+        release_id: &str,
+        track_position: i32,
+    ) -> Result<Option<String>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+        let result = conn.query_row(
+            "SELECT stream_url FROM discovery_stream_cache
+             WHERE release_id = ?1 AND track_position = ?2 AND expires_at > ?3",
+            rusqlite::params![release_id, track_position, now],
+            |row| row.get::<_, String>(0),
+        );
+
+        match result {
+            Ok(url) => Ok(Some(url)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(CrateError::Database(e)),
+        }
+    }
+
+    /// Cache stream URLs for a release, replacing any existing entries.
+    pub fn cache_streams(&self, release_id: &str, streams: &[StreamInfo]) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        for stream in streams {
+            conn.execute(
+                "INSERT OR REPLACE INTO discovery_stream_cache (release_id, track_position, stream_url, expires_at)
+                 VALUES (?1, ?2, ?3, ?4)",
+                rusqlite::params![
+                    release_id,
+                    stream.track_position,
+                    stream.stream_url,
+                    stream.expires_at,
+                ],
+            )?;
+        }
+
+        Ok(())
+    }
+
+    /// Get the cached SoundCloud client_id, if one exists.
+    pub fn get_cached_sc_client_id(&self) -> Result<Option<String>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let result = conn.query_row(
+            "SELECT client_id FROM discovery_sc_client_id_cache WHERE id = 1",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+
+        match result {
+            Ok(cid) => Ok(Some(cid)),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(CrateError::Database(e)),
+        }
+    }
+
+    /// Cache a SoundCloud client_id.
+    pub fn cache_sc_client_id(&self, client_id: &str) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "INSERT OR REPLACE INTO discovery_sc_client_id_cache (id, client_id, fetched_at) VALUES (1, ?1, ?2)",
+            rusqlite::params![client_id, now],
+        )?;
 
         Ok(())
     }

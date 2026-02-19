@@ -1,5 +1,13 @@
 <script lang="ts">
-	import { playerStore, currentTrack, isPlaying, playbackPosition, playbackDuration, volume } from '$lib/stores'
+	import {
+		playerStore,
+		currentTrack,
+		isPlaying,
+		playbackPosition,
+		playbackDuration,
+		volume,
+		previewInfo,
+	} from '$lib/stores'
 	import PlaybackControls from './PlaybackControls.svelte'
 	import SeekBar from './SeekBar.svelte'
 	import VolumeControl from './VolumeControl.svelte'
@@ -11,6 +19,8 @@
 	}
 
 	let { onNext, onPrevious }: Props = $props()
+
+	const hasTrack = $derived($currentTrack !== null || $previewInfo !== null)
 
 	function handlePlayPause() {
 		playerStore.togglePlayPause()
@@ -32,21 +42,21 @@
 <div class="flex items-center gap-4 border-t border-stroke bg-surface-1 px-4 py-3">
 	<!-- Track Info -->
 	<div class="w-64 flex-shrink-0">
-		<TrackInfo track={$currentTrack} />
+		<TrackInfo track={$currentTrack} previewInfo={$previewInfo} />
 	</div>
 
 	<!-- Center Controls -->
 	<div class="mx-auto flex max-w-2xl flex-1 flex-col items-center gap-2">
 		<PlaybackControls
 			isPlaying={$isPlaying}
-			hasTrack={$currentTrack !== null}
+			{hasTrack}
 			onPlayPause={handlePlayPause}
 			onStop={handleStop}
 			{onPrevious}
 			{onNext}
 		/>
 
-		<SeekBar position={$playbackPosition} duration={$playbackDuration} disabled={!$currentTrack} onSeek={handleSeek} />
+		<SeekBar position={$playbackPosition} duration={$playbackDuration} disabled={!hasTrack} onSeek={handleSeek} />
 	</div>
 
 	<!-- Volume -->

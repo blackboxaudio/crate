@@ -382,7 +382,8 @@
 		"cannotDropIntoSubfolder": "フォルダをそのサブフォルダにドロップすることはできません",
 		"analysisFailed": "分析が失敗しました",
 		"exportInProgress": "エクスポートが既に進行中です",
-		"tagNameConflict": "同じ名前のタグが移動先のカテゴリに既に存在します"
+		"tagNameConflict": "同じ名前のタグが移動先のカテゴリに既に存在します",
+		"previewStreamFailed": "プレビューストリームの読み込みに失敗しました"
 	},
 	"devices": {
 		"title": "デバイス",

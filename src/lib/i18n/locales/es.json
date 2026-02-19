@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "No se puede soltar una carpeta dentro de su propia subcarpeta",
 		"analysisFailed": "Error en análisis",
 		"exportInProgress": "La exportación ya está en progreso",
-		"tagNameConflict": "Ya existe una etiqueta con este nombre en la categoría de destino"
+		"tagNameConflict": "Ya existe una etiqueta con este nombre en la categoría de destino",
+		"previewStreamFailed": "Error al cargar el flujo de vista previa"
 	},
 	"devices": {
 		"title": "Dispositivos",

@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "폴더를 자신의 하위 폴더 안에 놓을 수 없습니다",
 		"analysisFailed": "분석 실패",
 		"exportInProgress": "내보내기가 이미 진행 중입니다",
-		"tagNameConflict": "대상 카테고리에 같은 이름의 태그가 이미 존재합니다"
+		"tagNameConflict": "대상 카테고리에 같은 이름의 태그가 이미 존재합니다",
+		"previewStreamFailed": "미리보기 스트림을 로드하지 못했습니다"
 	},
 	"devices": {
 		"title": "장치",

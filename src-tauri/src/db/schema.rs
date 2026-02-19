@@ -213,5 +213,21 @@ CREATE TABLE playlist_discovery_releases (
         r#"
 ALTER TABLE discovery_releases ADD COLUMN parent_url TEXT;
 "#,
+        // Migration 3: Stream cache tables for preview playback
+        r#"
+CREATE TABLE discovery_stream_cache (
+    release_id     TEXT    NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
+    track_position INTEGER NOT NULL,
+    stream_url     TEXT    NOT NULL,
+    expires_at     TEXT    NOT NULL,
+    PRIMARY KEY (release_id, track_position)
+);
+
+CREATE TABLE discovery_sc_client_id_cache (
+    id         INTEGER PRIMARY KEY CHECK (id = 1),
+    client_id  TEXT    NOT NULL,
+    fetched_at TEXT    NOT NULL
+);
+"#,
     ]
 }

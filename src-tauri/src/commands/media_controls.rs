@@ -15,7 +15,13 @@ pub async fn update_now_playing(
     duration_ms: Option<u64>,
     media_controls: State<'_, MediaControlsService>,
 ) -> Result<()> {
-    let cover_url = artwork_path.map(|p| format!("file://{p}"));
+    let cover_url = artwork_path.map(|p| {
+        if p.starts_with("http://") || p.starts_with("https://") {
+            p
+        } else {
+            format!("file://{p}")
+        }
+    });
     let duration = duration_ms.map(Duration::from_millis);
 
     media_controls.set_metadata(

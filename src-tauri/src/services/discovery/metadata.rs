@@ -24,7 +24,7 @@ pub struct FetchedTrack {
     pub duration_ms: Option<i64>,
 }
 
-fn build_client() -> Result<reqwest::Client> {
+pub(super) fn build_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .user_agent("Mozilla/5.0 (compatible; CrateApp/0.1)")

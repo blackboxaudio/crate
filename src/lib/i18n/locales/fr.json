@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "Impossible de déposer un dossier dans son propre sous-dossier",
 		"analysisFailed": "Échec de l'analyse",
 		"exportInProgress": "Exportation déjà en cours",
-		"tagNameConflict": "Un tag portant ce nom existe déjà dans la catégorie cible"
+		"tagNameConflict": "Un tag portant ce nom existe déjà dans la catégorie cible",
+		"previewStreamFailed": "Échec du chargement du flux d'aperçu"
 	},
 	"devices": {
 		"title": "Appareils",

@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "Kan inte släppa en mapp i sin egen undermapp",
 		"analysisFailed": "Analysen misslyckades",
 		"exportInProgress": "Export är redan i gång",
-		"tagNameConflict": "En tagg med detta namn finns redan i målkategorin"
+		"tagNameConflict": "En tagg med detta namn finns redan i målkategorin",
+		"previewStreamFailed": "Misslyckades att ladda förhandsvisningsströmmen"
 	},
 	"devices": {
 		"title": "Enheter",

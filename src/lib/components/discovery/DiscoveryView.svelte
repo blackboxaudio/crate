@@ -20,6 +20,7 @@
 		onSelectionChange?: (ids: Set<string>) => void
 		onReleaseOpen?: (release: DiscoveryRelease) => void
 		onReleaseImport?: (release: DiscoveryRelease) => void
+		onTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onSortChange?: (config: DiscoverySortConfig) => void
 		onContextMenu?: (e: MouseEvent, release: DiscoveryRelease) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
@@ -39,6 +40,7 @@
 		onSelectionChange,
 		onReleaseOpen,
 		onReleaseImport,
+		onTrackPlay,
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
@@ -175,6 +177,7 @@
 			{onContextMenu}
 			{onEmptySpaceContextMenu}
 			onToggleExpand={toggleExpand}
+			{onTrackPlay}
 		/>
 	</div>
 

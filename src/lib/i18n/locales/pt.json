@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "Não é possível soltar uma pasta em sua própria subpasta",
 		"analysisFailed": "Falha na análise",
 		"exportInProgress": "Exportação já em progresso",
-		"tagNameConflict": "Já existe uma tag com este nome na categoria de destino"
+		"tagNameConflict": "Já existe uma tag com este nome na categoria de destino",
+		"previewStreamFailed": "Falha ao carregar o fluxo de visualização"
 	},
 	"devices": {
 		"title": "Dispositivos",

@@ -19,6 +19,7 @@
 		oncontextmenu?: (e: MouseEvent) => void
 		onimport?: () => void
 		onToggleExpand?: () => void
+		onTrackPlay?: (trackIndex: number) => void
 	}
 
 	let {
@@ -33,6 +34,7 @@
 		oncontextmenu,
 		onimport,
 		onToggleExpand,
+		onTrackPlay,
 	}: Props = $props()
 
 	let isTagDragHovered = $state(false)
@@ -189,11 +191,17 @@
 <!-- Track sub-rows -->
 {#if expanded && release.tracks.length > 0}
 	<div class="border-b border-stroke-subtle bg-surface-1/30">
-		{#each release.tracks as track (track.id)}
+		{#each release.tracks as track, idx (track.id)}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class="grid grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 {track.position > 1
+				class="grid cursor-pointer grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 hover:bg-surface-2/50 {track.position >
+				1
 					? 'border-t border-stroke-subtle/50'
 					: ''}"
+				ondblclick={(e) => {
+					e.stopPropagation()
+					onTrackPlay?.(idx)
+				}}
 			>
 				<div></div>
 				<div class="text-center text-xs text-text-tertiary">{track.position}</div>

@@ -687,6 +687,12 @@ export interface DiscoveryFilter {
 	tag_filter_mode?: TagFilterMode
 }
 
+export interface PreviewInfo {
+	releaseId: string
+	release: DiscoveryRelease
+	trackIndex: number
+}
+
 export type DiscoverySortField = 'artist' | 'title' | 'label' | 'release_date' | 'source_type' | 'date_added'
 
 export interface DiscoverySortConfig {

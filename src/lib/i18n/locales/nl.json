@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "Kan een map niet in zijn eigen submap slepen",
 		"analysisFailed": "Analyse mislukt",
 		"exportInProgress": "Exporteren is al bezig",
-		"tagNameConflict": "Een tag met deze naam bestaat al in de doelcategorie"
+		"tagNameConflict": "Een tag met deze naam bestaat al in de doelcategorie",
+		"previewStreamFailed": "Voorbeeldstream kon niet worden geladen"
 	},
 	"devices": {
 		"title": "Apparaten",

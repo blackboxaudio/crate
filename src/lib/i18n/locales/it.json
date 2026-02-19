@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "Impossibile trascinare una cartella nella propria sottocartella",
 		"analysisFailed": "Analisi non riuscita",
 		"exportInProgress": "Esportazione già in corso",
-		"tagNameConflict": "Un tag con questo nome esiste già nella categoria di destinazione"
+		"tagNameConflict": "Un tag con questo nome esiste già nella categoria di destinazione",
+		"previewStreamFailed": "Impossibile caricare il flusso di anteprima"
 	},
 	"devices": {
 		"title": "Dispositivi",

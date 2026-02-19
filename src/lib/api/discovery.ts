@@ -69,6 +69,10 @@ export async function refreshMetadata(id: string): Promise<DiscoveryRelease> {
 	return invoke<DiscoveryRelease>('refresh_release_metadata', { id })
 }
 
+export async function fetchPreviewStream(releaseId: string, trackPosition: number): Promise<string> {
+	return invoke<string>('fetch_preview_stream', { releaseId, trackPosition })
+}
+
 export async function purchaseRelease(
 	releaseId: string,
 	filePaths: string[],

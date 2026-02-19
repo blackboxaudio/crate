@@ -382,7 +382,8 @@
 		"cannotDropIntoSubfolder": "Cannot drop a folder into its own subfolder",
 		"analysisFailed": "Analysis failed",
 		"exportInProgress": "Export already in progress",
-		"tagNameConflict": "A tag with this name already exists in the target category"
+		"tagNameConflict": "A tag with this name already exists in the target category",
+		"previewStreamFailed": "Failed to load preview stream"
 	},
 	"devices": {
 		"title": "Devices",

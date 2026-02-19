@@ -9,6 +9,9 @@ export {
 	playbackDuration,
 	volume,
 	playbackProgress,
+	playbackSource,
+	previewInfo,
+	previewTrackIndex,
 } from './player'
 export { tagsStore, allTags, getTagById, getCategoryById, computeTagStates } from './tags'
 export { playlistsStore, rootPlaylists, getPlaylistChildren, buildPlaylistTree } from './playlists'

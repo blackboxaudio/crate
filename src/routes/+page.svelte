@@ -56,6 +56,7 @@
 		discoveryStore,
 		sortedReleases,
 		releaseCount,
+		previewInfo,
 	} from '$lib/stores'
 	import { isPlaying } from '$lib/stores/player'
 	import { syncStore } from '$lib/stores/sync'
@@ -334,8 +335,18 @@
 
 	// Sync current track metadata to OS Now Playing (macOS Control Center, etc.)
 	$effect(() => {
+		const preview = $previewInfo
 		const track = $currentTrack
-		if (track) {
+		if (preview) {
+			const previewTrack = preview.release.tracks[preview.trackIndex]
+			updateNowPlaying(
+				previewTrack?.name || null,
+				preview.release.artist || null,
+				preview.release.title || null,
+				preview.release.artwork_url || preview.release.artwork_path || null,
+				previewTrack?.duration_ms ?? null
+			).catch(() => {})
+		} else if (track) {
 			updateNowPlaying(
 				track.title || null,
 				track.artist || null,
@@ -410,6 +421,16 @@
 	// =============================================================================
 
 	function playNextTrack() {
+		const preview = $previewInfo
+		if (preview) {
+			const nextIndex = preview.trackIndex + 1
+			if (nextIndex < preview.release.tracks.length) {
+				playerStore.playPreview(preview.release, nextIndex)
+			} else {
+				playerStore.stop()
+			}
+			return
+		}
 		const id = $currentTrack?.id
 		if (!id) return
 		const tracks = $displayedTracks
@@ -418,6 +439,14 @@
 	}
 
 	function playPreviousTrack() {
+		const preview = $previewInfo
+		if (preview) {
+			const prevIndex = preview.trackIndex - 1
+			if (prevIndex >= 0) {
+				playerStore.playPreview(preview.release, prevIndex)
+			}
+			return
+		}
 		const id = $currentTrack?.id
 		if (!id) return
 		const tracks = $displayedTracks
@@ -509,7 +538,7 @@
 					if (releaseIds.size > 0) {
 						const firstId = [...releaseIds][0]
 						const release = $sortedReleases.find((r) => r.id === firstId)
-						if (release) openUrl(release.url)
+						if (release) handleReleaseOpen(release)
 					}
 					return
 				}
@@ -781,8 +810,20 @@
 		discoveryStore.setSort(config)
 	}
 
-	function handleReleaseOpen(release: { url: string }) {
-		openUrl(release.url)
+	function handleReleaseOpen(release: DiscoveryRelease) {
+		if ((release.source_type === 'bandcamp' || release.source_type === 'soundcloud') && release.tracks.length > 0) {
+			playerStore.playPreview(release, 0)
+		} else {
+			openUrl(release.url)
+		}
+	}
+
+	function handleTrackPlayInRelease(release: DiscoveryRelease, trackIndex: number) {
+		if ((release.source_type === 'bandcamp' || release.source_type === 'soundcloud') && release.tracks.length > 0) {
+			playerStore.playPreview(release, trackIndex)
+		} else {
+			openUrl(release.url)
+		}
 	}
 
 	function handleReleaseSelectionChange(ids: Set<string>) {
@@ -1098,6 +1139,7 @@
 							onSelectionChange={handleReleaseSelectionChange}
 							onReleaseOpen={handleReleaseOpen}
 							onReleaseImport={handleDiscoveryReleaseImport}
+							onTrackPlay={handleTrackPlayInRelease}
 							onSortChange={handleDiscoverySortChange}
 							onContextMenu={handleReleaseContextMenu}
 							onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openDiscoveryViewMenu(e)}

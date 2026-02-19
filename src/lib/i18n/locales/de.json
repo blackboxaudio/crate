@@ -381,7 +381,8 @@
 		"cannotDropIntoSubfolder": "Ein Ordner kann nicht in seinen eigenen Unterordner gezogen werden",
 		"analysisFailed": "Analyse fehlgeschlagen",
 		"exportInProgress": "Export läuft bereits",
-		"tagNameConflict": "Ein Tag mit diesem Namen existiert bereits in der Zielkategorie"
+		"tagNameConflict": "Ein Tag mit diesem Namen existiert bereits in der Zielkategorie",
+		"previewStreamFailed": "Fehler beim Laden des Vorschau-Streams"
 	},
 	"devices": {
 		"title": "Geräte",
