@@ -536,9 +536,7 @@
 				if ($activeView === 'discovery') {
 					const releaseIds = $selectedReleaseIds
 					if (releaseIds.size > 0) {
-						const firstId = [...releaseIds][0]
-						const release = $sortedReleases.find((r) => r.id === firstId)
-						if (release) handleReleaseOpen(release)
+						discoveryViewRef?.toggleExpandSelection(releaseIds)
 					}
 					return
 				}
@@ -1138,6 +1136,7 @@
 							hasSelection={selectedReleasesArray.length > 0}
 							onSelectionChange={handleReleaseSelectionChange}
 							onReleaseOpen={handleReleaseOpen}
+							onReleaseOpenUrl={handleDiscoveryReleaseOpenInBrowser}
 							onReleaseImport={handleDiscoveryReleaseImport}
 							onTrackPlay={handleTrackPlayInRelease}
 							onSortChange={handleDiscoverySortChange}

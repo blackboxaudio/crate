@@ -69,6 +69,9 @@ env_logger = "0.11.8"
 walkdir = "2.5.0"
 sysinfo = "0.37.2"
 
+# Encoding
+base64 = "0.22"
+
 # Device Library Plus key deobfuscation
 flate2 = "1.0"
 base85 = "2.0"

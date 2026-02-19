@@ -2,10 +2,12 @@
 	import type { DiscoveryRelease } from '$lib/types'
 	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
-	import { AlbumArt, IconButton, Text, Tooltip } from '$lib/components/common'
+	import { AlbumArt, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
 	import { dateFormat, dragStore, isDraggingTag } from '$lib/stores'
+	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$lib/stores/player'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
+	import { slide } from 'svelte/transition'
 
 	type Props = {
 		release: DiscoveryRelease
@@ -18,6 +20,7 @@
 		ondblclick?: (e: MouseEvent) => void
 		oncontextmenu?: (e: MouseEvent) => void
 		onimport?: () => void
+		onopenurl?: () => void
 		onToggleExpand?: () => void
 		onTrackPlay?: (trackIndex: number) => void
 	}
@@ -33,6 +36,7 @@
 		ondblclick,
 		oncontextmenu,
 		onimport,
+		onopenurl,
 		onToggleExpand,
 		onTrackPlay,
 	}: Props = $props()
@@ -66,6 +70,10 @@
 		}
 	}
 
+	function isTrackPlaying(idx: number): boolean {
+		return $playbackSource === 'preview' && $previewInfo?.releaseId === release.id && $previewInfo?.trackIndex === idx
+	}
+
 	const sourceLabels: Record<string, string> = {
 		bandcamp: 'Bandcamp',
 		soundcloud: 'SoundCloud',
@@ -85,7 +93,7 @@
 	tabindex="0"
 	data-release-row
 	data-release-id={release.id}
-	class="grid cursor-pointer grid-cols-[32px_40px_1.25fr_0.6fr_1fr_110px_110px_100px_40px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+	class="grid cursor-pointer grid-cols-[32px_40px_1.25fr_0.6fr_1fr_110px_110px_100px_64px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
 	{onclick}
@@ -97,14 +105,15 @@
 	onpointercancel={handlePointerUp}
 	onpointerenter={() => $isDraggingTag && (isTagDragHovered = true)}
 	onpointerleave={() => (isTagDragHovered = false)}
-	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
 	<!-- Expand toggle -->
 	<div class="flex items-center justify-center">
-		{#if release.tracks.length > 0}
+		{#if $previewLoadingReleaseId === release.id}
+			<Spinner class="h-3.5 w-3.5" />
+		{:else if release.tracks.length > 0}
 			<IconButton
-				icon={expanded ? 'chevron-down' : 'chevron-right'}
-				iconClass="h-3.5 w-3.5 text-text-tertiary"
+				icon="chevron-right"
+				iconClass="h-3.5 w-3.5 text-text-tertiary transition-transform duration-200 {expanded ? 'rotate-90' : ''}"
 				size="sm"
 				onclick={(e) => {
 					e.stopPropagation()
@@ -173,15 +182,25 @@
 		{formatRelativeDate(release.date_added)}
 	</div>
 
-	<!-- Import -->
-	<div class="flex items-center justify-end pr-1">
+	<!-- Actions -->
+	<div class="flex items-center justify-end gap-1 pr-1">
 		<Tooltip text={$translate('discovery.importToLibrary')} position="left" delay={250}>
 			<IconButton
-				icon="plus"
+				icon="upload"
 				size="sm"
 				onclick={(e) => {
 					e.stopPropagation()
 					onimport?.()
+				}}
+			/>
+		</Tooltip>
+		<Tooltip text={$translate('discovery.openInBrowser')} position="left" delay={250}>
+			<IconButton
+				icon="external-link"
+				size="sm"
+				onclick={(e) => {
+					e.stopPropagation()
+					onopenurl?.()
 				}}
 			/>
 		</Tooltip>
@@ -190,8 +209,9 @@
 
 <!-- Track sub-rows -->
 {#if expanded && release.tracks.length > 0}
-	<div class="border-b border-stroke-subtle bg-surface-1/30">
+	<div class="border-b border-stroke-subtle bg-surface-1/30" transition:slide={{ duration: 200 }}>
 		{#each release.tracks as track, idx (track.id)}
+			{@const playing = isTrackPlaying(idx)}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
 				class="grid cursor-pointer grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 hover:bg-surface-2/50 {track.position >
@@ -204,9 +224,11 @@
 				}}
 			>
 				<div></div>
-				<div class="text-center text-xs text-text-tertiary">{track.position}</div>
-				<div class="truncate text-xs text-text-secondary">{track.name}</div>
-				<div class="mr-1 text-right text-xs text-text-tertiary">
+				<div class="text-center text-xs {playing ? 'text-brand-primary' : 'text-text-tertiary'}">{track.position}</div>
+				<div class="truncate text-xs {playing ? 'font-medium text-brand-primary' : 'text-text-secondary'}">
+					{track.name}
+				</div>
+				<div class="mr-1 text-right text-xs {playing ? 'text-brand-primary' : 'text-text-tertiary'}">
 					{track.duration_ms ? formatDuration(track.duration_ms) : ''}
 				</div>
 			</div>

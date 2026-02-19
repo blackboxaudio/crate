@@ -84,13 +84,14 @@ pub async fn extract_soundcloud_streams(
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to read SoundCloud response: {e}")))?;
 
-    // Extract track IDs from hydration data
-    let track_ids = extract_sc_track_ids(&html)?;
-    if track_ids.is_empty() {
+    // Extract track data (progressive transcoding URLs + auth tokens) from hydration
+    let track_data = extract_sc_track_data(&html)?;
+    if track_data.is_empty() {
         return Err(CrateError::Discovery(
             "No tracks found in SoundCloud page".to_string(),
         ));
     }
+    log::debug!("Extracted {} tracks from SoundCloud hydration", track_data.len());
 
     // Resolve client_id
     let mut client_id = match cached_client_id {
@@ -99,14 +100,14 @@ pub async fn extract_soundcloud_streams(
     };
 
     // Try to resolve streams; on auth failure, re-resolve client_id and retry once
-    match resolve_sc_streams(&client, &track_ids, &client_id).await {
+    match resolve_sc_streams(&client, &track_data, &client_id).await {
         Ok(streams) => Ok((streams, client_id)),
         Err(e) => {
             let err_str = e.to_string();
             if err_str.contains("401") || err_str.contains("403") {
                 log::warn!("SoundCloud client_id rejected, re-resolving...");
                 client_id = resolve_sc_client_id(&client).await?;
-                let streams = resolve_sc_streams(&client, &track_ids, &client_id).await?;
+                let streams = resolve_sc_streams(&client, &track_data, &client_id).await?;
                 Ok((streams, client_id))
             } else {
                 Err(e)
@@ -137,7 +138,7 @@ pub async fn resolve_sc_client_id(client: &reqwest::Client) -> Result<String> {
         .map(|cap| cap[1].to_string())
         .collect();
 
-    let client_id_re = regex::Regex::new(r#"client_id:"([a-zA-Z0-9]{20,})""#)
+    let client_id_re = regex::Regex::new(r#"client_id[=:]["']?([a-zA-Z0-9]{20,})["']?"#)
         .map_err(|e| CrateError::Discovery(format!("Regex error: {e}")))?;
 
     // Check bundles in reverse order (client_id is usually in the last few bundles)
@@ -245,8 +246,20 @@ fn parse_bandcamp_expiry(stream_url: &str) -> String {
     (chrono::Utc::now() + chrono::Duration::hours(6)).to_rfc3339()
 }
 
-/// Extract SoundCloud track IDs from __sc_hydration data.
-fn extract_sc_track_ids(html: &str) -> Result<Vec<(i32, i64)>> {
+/// Track data extracted from SoundCloud's `__sc_hydration`.
+struct ScTrackData {
+    position: i32,
+    /// Progressive transcoding URL from `media.transcodings`.
+    progressive_url: Option<String>,
+    /// Per-track JWT for stream access.
+    track_authorization: Option<String>,
+}
+
+/// Extract SoundCloud track data from `__sc_hydration`.
+///
+/// Parses progressive transcoding URLs and `track_authorization` JWTs
+/// from both single-track ("sound") and playlist ("playlist") pages.
+fn extract_sc_track_data(html: &str) -> Result<Vec<ScTrackData>> {
     let marker = "window.__sc_hydration = ";
     let start = html
         .find(marker)
@@ -273,16 +286,24 @@ fn extract_sc_track_ids(html: &str) -> Result<Vec<(i32, i64)>> {
         }
     }) {
         if let Some(tracks) = playlist_data.get("tracks").and_then(|t| t.as_array()) {
-            let ids: Vec<(i32, i64)> = tracks
+            let data: Vec<ScTrackData> = tracks
                 .iter()
                 .enumerate()
                 .filter_map(|(idx, t)| {
-                    let id = t.get("id")?.as_i64()?;
-                    Some(((idx + 1) as i32, id))
+                    // Skip entries without an id (minimal stubs)
+                    t.get("id")?.as_i64()?;
+                    Some(ScTrackData {
+                        position: (idx + 1) as i32,
+                        progressive_url: extract_progressive_url(t),
+                        track_authorization: t
+                            .get("track_authorization")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
+                    })
                 })
                 .collect();
-            if !ids.is_empty() {
-                return Ok(ids);
+            if !data.is_empty() {
+                return Ok(data);
             }
         }
     }
@@ -295,33 +316,127 @@ fn extract_sc_track_ids(html: &str) -> Result<Vec<(i32, i64)>> {
             None
         }
     }) {
-        if let Some(id) = sound_data.get("id").and_then(|i| i.as_i64()) {
-            return Ok(vec![(1, id)]);
+        if sound_data.get("id").and_then(|i| i.as_i64()).is_some() {
+            return Ok(vec![ScTrackData {
+                position: 1,
+                progressive_url: extract_progressive_url(sound_data),
+                track_authorization: sound_data
+                    .get("track_authorization")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string()),
+            }]);
         }
     }
 
     Ok(vec![])
 }
 
-/// Resolve stream URLs for a list of SoundCloud track IDs.
+/// Find the progressive MP3 transcoding URL from a track's `media.transcodings` array.
+fn extract_progressive_url(track: &serde_json::Value) -> Option<String> {
+    let transcodings = track
+        .get("media")
+        .and_then(|m| m.get("transcodings"))
+        .and_then(|t| t.as_array())?;
+
+    transcodings
+        .iter()
+        .find(|t| {
+            let format = t.get("format");
+            let protocol = format
+                .and_then(|f| f.get("protocol"))
+                .and_then(|p| p.as_str());
+            let mime = format
+                .and_then(|f| f.get("mime_type"))
+                .and_then(|m| m.as_str());
+            protocol == Some("progressive") && mime.is_some_and(|m| m.starts_with("audio/mpeg"))
+        })
+        .and_then(|t| t.get("url"))
+        .and_then(|u| u.as_str())
+        .map(|s| s.to_string())
+}
+
+/// Parse the expiry timestamp from a SoundCloud/CloudFront stream URL's `Policy` parameter.
+/// CloudFront signed URLs contain a base64-encoded JSON policy with the expiry epoch time.
+/// Falls back to now + 1 hour if parsing fails.
+fn parse_soundcloud_expiry(stream_url: &str) -> String {
+    use base64::Engine;
+
+    let result = (|| -> Option<String> {
+        // Extract the Policy query parameter
+        let policy_encoded = stream_url
+            .split('?')
+            .nth(1)?
+            .split('&')
+            .find(|p| p.starts_with("Policy="))?
+            .strip_prefix("Policy=")?;
+
+        // CloudFront uses URL-safe base64 with custom replacements: - → +, _ → /, ~ → =
+        let standard_b64: String = policy_encoded
+            .chars()
+            .map(|c| match c {
+                '-' => '+',
+                '_' => '/',
+                '~' => '=',
+                other => other,
+            })
+            .collect();
+
+        let decoded = base64::engine::general_purpose::STANDARD
+            .decode(&standard_b64)
+            .ok()?;
+        let policy_json: serde_json::Value = serde_json::from_slice(&decoded).ok()?;
+
+        let epoch = policy_json
+            .get("Statement")?
+            .as_array()?
+            .first()?
+            .get("Condition")?
+            .get("DateLessThan")?
+            .get("AWS:EpochTime")?
+            .as_i64()?;
+
+        // Subtract 60s safety buffer
+        let expires_at = epoch - 60;
+        let dt = chrono::DateTime::from_timestamp(expires_at, 0)?;
+        Some(dt.to_rfc3339())
+    })();
+
+    result.unwrap_or_else(|| {
+        log::warn!("Failed to parse CloudFront Policy expiry, falling back to 1 hour");
+        (chrono::Utc::now() + chrono::Duration::hours(1)).to_rfc3339()
+    })
+}
+
+/// Resolve stream URLs by fetching each track's progressive transcoding endpoint.
 async fn resolve_sc_streams(
     client: &reqwest::Client,
-    track_ids: &[(i32, i64)],
+    tracks: &[ScTrackData],
     client_id: &str,
 ) -> Result<Vec<StreamInfo>> {
     let mut streams = Vec::new();
-    let default_expiry = (chrono::Utc::now() + chrono::Duration::hours(6)).to_rfc3339();
 
-    for (position, track_id) in track_ids {
+    for track in tracks {
+        let progressive_url = match &track.progressive_url {
+            Some(url) => url,
+            None => {
+                log::warn!(
+                    "No progressive transcoding for SC track at position {}",
+                    track.position
+                );
+                continue;
+            }
+        };
+
+        let track_auth = track.track_authorization.as_deref().unwrap_or_default();
         let api_url = format!(
-            "https://api-v2.soundcloud.com/tracks/{track_id}/streams?client_id={client_id}"
+            "{progressive_url}?client_id={client_id}&track_authorization={track_auth}"
         );
 
         let resp = client
             .get(&api_url)
             .send()
             .await
-            .map_err(|e| CrateError::Discovery(format!("Failed to fetch SC stream: {e}")))?;
+            .map_err(|e| CrateError::Discovery(format!("Failed to resolve SC stream: {e}")))?;
 
         let status = resp.status();
         if status == reqwest::StatusCode::UNAUTHORIZED || status == reqwest::StatusCode::FORBIDDEN {
@@ -333,14 +448,22 @@ async fn resolve_sc_streams(
         let data: serde_json::Value = resp
             .json()
             .await
-            .map_err(|e| CrateError::Discovery(format!("Failed to parse SC stream response: {e}")))?;
+            .map_err(|e| {
+                CrateError::Discovery(format!("Failed to parse SC stream response: {e}"))
+            })?;
 
-        if let Some(url) = data.get("http_mp3_128_url").and_then(|u| u.as_str()) {
+        if let Some(url) = data.get("url").and_then(|u| u.as_str()) {
+            let expires_at = parse_soundcloud_expiry(url);
             streams.push(StreamInfo {
-                track_position: *position,
+                track_position: track.position,
                 stream_url: url.to_string(),
-                expires_at: default_expiry.clone(),
+                expires_at,
             });
+        } else {
+            log::warn!(
+                "SC transcoding response missing 'url' field for position {}",
+                track.position
+            );
         }
     }
 

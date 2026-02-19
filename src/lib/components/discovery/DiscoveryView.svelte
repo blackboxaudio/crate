@@ -19,6 +19,7 @@
 		hasSelection?: boolean
 		onSelectionChange?: (ids: Set<string>) => void
 		onReleaseOpen?: (release: DiscoveryRelease) => void
+		onReleaseOpenUrl?: (release: DiscoveryRelease) => void
 		onReleaseImport?: (release: DiscoveryRelease) => void
 		onTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onSortChange?: (config: DiscoverySortConfig) => void
@@ -39,6 +40,7 @@
 		hasSelection = false,
 		onSelectionChange,
 		onReleaseOpen,
+		onReleaseOpenUrl,
 		onReleaseImport,
 		onTrackPlay,
 		onSortChange,
@@ -53,7 +55,7 @@
 
 	const hasExpandableReleases = $derived(releases.some((r) => r.tracks.length > 0))
 
-	function toggleExpand(id: string) {
+	export function toggleExpand(id: string) {
 		expandedIds = new SvelteSet(expandedIds)
 		if (expandedIds.has(id)) {
 			expandedIds.delete(id)
@@ -73,6 +75,18 @@
 	export function expandRelease(id: string) {
 		expandedIds = new SvelteSet(expandedIds)
 		expandedIds.add(id)
+	}
+
+	export function toggleExpandSelection(ids: Set<string>) {
+		const expandableIds = releases.filter((r) => ids.has(r.id) && r.tracks.length > 0).map((r) => r.id)
+		if (expandableIds.length === 0) return
+		const allExpanded = expandableIds.every((id) => expandedIds.has(id))
+		expandedIds = new SvelteSet(expandedIds)
+		if (allExpanded) {
+			for (const id of expandableIds) expandedIds.delete(id)
+		} else {
+			for (const id of expandableIds) expandedIds.add(id)
+		}
 	}
 
 	function hasUrlData(e: DragEvent): boolean {
@@ -172,6 +186,7 @@
 			{isDragOver}
 			{onSelectionChange}
 			{onReleaseOpen}
+			{onReleaseOpenUrl}
 			{onReleaseImport}
 			{onSortChange}
 			{onContextMenu}

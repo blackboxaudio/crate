@@ -1,9 +1,11 @@
-import { writable, derived } from 'svelte/store'
+import { writable, derived, get } from 'svelte/store'
 import type { Track, PlaybackState, PreviewInfo, DiscoveryRelease } from '$lib/types'
 import * as playerApi from '$lib/api/player'
 import * as discoveryApi from '$lib/api/discovery'
 import * as previewPlayer from '$lib/services/previewPlayer'
 import { missingTracksStore } from './missingTracks'
+import { toastStore } from './toast'
+import { translate } from '$lib/i18n'
 
 // =============================================================================
 // State
@@ -20,6 +22,7 @@ interface PlayerState {
 	playbackSource: PlaybackSource
 	previewInfo: PreviewInfo | null
 	previewTrackIndex: number
+	previewLoadingReleaseId: string | null
 }
 
 const initialPlaybackState: PlaybackState = {
@@ -40,6 +43,7 @@ const initialState: PlayerState = {
 	playbackSource: 'library',
 	previewInfo: null,
 	previewTrackIndex: 0,
+	previewLoadingReleaseId: null,
 }
 
 // =============================================================================
@@ -51,6 +55,8 @@ function createPlayerStore() {
 
 	let positionInterval: ReturnType<typeof setInterval> | null = null
 	let onTrackEndCallback: (() => void) | null = null
+	let previewRetryAttempted = false
+	let previewRetrying = false
 
 	function getState(): PlayerState {
 		let state: PlayerState = initialState
@@ -122,12 +128,44 @@ function createPlayerStore() {
 			}))
 			onTrackEndCallback?.()
 		})
-		previewPlayer.setOnError((msg: string) => {
-			update((state) => ({
-				...state,
+		previewPlayer.setOnError(async (msg: string) => {
+			// Ignore duplicate error callbacks fired while a retry is in-flight
+			// (HTML5 Audio fires both an 'error' event and a play().catch() for one failure)
+			if (previewRetrying) return
+
+			const state = getState()
+			if (state.playbackSource === 'preview' && state.previewInfo && !previewRetryAttempted) {
+				previewRetryAttempted = true
+				previewRetrying = true
+				const { release, trackIndex } = state.previewInfo
+				const track = release.tracks[trackIndex]
+				if (track) {
+					console.warn(`Preview stream error, retrying: ${msg}`)
+					try {
+						await discoveryApi.invalidatePreviewStreamCache(release.id)
+						const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
+						previewPlayer.play(streamUrl)
+						update((s) => ({
+							...s,
+							error: null,
+							playbackState: { ...s.playbackState, is_playing: true, position_ms: 0 },
+						}))
+						return
+					} catch {
+						// Retry failed, fall through to show error
+					} finally {
+						previewRetrying = false
+					}
+				} else {
+					previewRetrying = false
+				}
+			}
+			update((s) => ({
+				...s,
 				error: msg,
-				playbackState: { ...state.playbackState, is_playing: false },
+				playbackState: { ...s.playbackState, is_playing: false },
 			}))
+			toastStore.error(get(translate)('errors.previewStreamFailed'))
 		})
 	}
 
@@ -178,6 +216,7 @@ function createPlayerStore() {
 		 * Play a preview of a discovery release track.
 		 */
 		async playPreview(release: DiscoveryRelease, trackIndex: number = 0) {
+			previewRetryAttempted = false
 			const state = getState()
 			const track = release.tracks[trackIndex]
 			if (!track) return
@@ -192,6 +231,7 @@ function createPlayerStore() {
 			}
 
 			stopPositionTracking()
+			update((s) => ({ ...s, previewLoadingReleaseId: release.id }))
 
 			try {
 				const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
@@ -218,10 +258,12 @@ function createPlayerStore() {
 					playbackSource: 'preview',
 					previewInfo: { releaseId: release.id, release, trackIndex },
 					previewTrackIndex: trackIndex,
+					previewLoadingReleaseId: null,
 				}))
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
-				update((s) => ({ ...s, error: errorMsg }))
+				update((s) => ({ ...s, error: errorMsg, previewLoadingReleaseId: null }))
+				toastStore.error(get(translate)('errors.previewStreamFailed'))
 			}
 		},
 
@@ -286,6 +328,7 @@ function createPlayerStore() {
 		 */
 		async stop() {
 			const state = getState()
+			previewRetryAttempted = false
 
 			if (state.playbackSource === 'preview') {
 				stopPreviewInternal()
@@ -480,3 +523,5 @@ export const playbackSource = derived(playerStore, ($player) => $player.playback
 export const previewInfo = derived(playerStore, ($player) => $player.previewInfo)
 
 export const previewTrackIndex = derived(playerStore, ($player) => $player.previewTrackIndex)
+
+export const previewLoadingReleaseId = derived(playerStore, ($player) => $player.previewLoadingReleaseId)

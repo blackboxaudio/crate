@@ -51,7 +51,7 @@
 			items.push({
 				id: 'open-in-browser',
 				label: get(translate)('discovery.openInBrowser'),
-				icon: 'globe',
+				icon: 'external-link',
 				action: onOpenInBrowser,
 			})
 			if (onRefreshMetadata) {

@@ -17,6 +17,7 @@
 		isDragOver?: boolean
 		onSelectionChange?: (ids: Set<string>) => void
 		onReleaseOpen?: (release: DiscoveryRelease) => void
+		onReleaseOpenUrl?: (release: DiscoveryRelease) => void
 		onReleaseImport?: (release: DiscoveryRelease) => void
 		onSortChange?: (config: DiscoverySortConfig) => void
 		onContextMenu?: (e: MouseEvent, release: DiscoveryRelease) => void
@@ -35,6 +36,7 @@
 		isDragOver = false,
 		onSelectionChange,
 		onReleaseOpen,
+		onReleaseOpenUrl,
 		onReleaseImport,
 		onSortChange,
 		onContextMenu,
@@ -57,7 +59,7 @@
 	}
 
 	function handleReleaseDoubleClick(release: DiscoveryRelease) {
-		onReleaseOpen?.(release)
+		onToggleExpand?.(release.id)
 	}
 
 	function handleReleaseContextMenu(release: DiscoveryRelease, e: MouseEvent) {
@@ -127,6 +129,7 @@
 					ondblclick={() => handleReleaseDoubleClick(release)}
 					oncontextmenu={(e) => handleReleaseContextMenu(release, e)}
 					onimport={() => onReleaseImport?.(release)}
+					onopenurl={() => onReleaseOpenUrl?.(release)}
 					onToggleExpand={() => onToggleExpand?.(release.id)}
 					onTrackPlay={(idx) => onTrackPlay?.(release, idx)}
 				/>

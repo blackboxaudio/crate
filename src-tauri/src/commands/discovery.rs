@@ -111,6 +111,14 @@ pub async fn fetch_preview_stream(
 }
 
 #[tauri::command]
+pub async fn invalidate_preview_stream_cache(
+    release_id: String,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    discovery.invalidate_stream_cache(&release_id)
+}
+
+#[tauri::command]
 pub async fn get_discovery_release(
     id: String,
     discovery: State<'_, DiscoveryService>,

@@ -139,6 +139,7 @@ pub fn run() {
             commands::discovery::refresh_release_metadata,
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
+            commands::discovery::invalidate_preview_stream_cache,
             // Media controls commands
             commands::media_controls::update_now_playing,
             commands::media_controls::update_playback_state,

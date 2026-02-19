@@ -73,6 +73,10 @@ export async function fetchPreviewStream(releaseId: string, trackPosition: numbe
 	return invoke<string>('fetch_preview_stream', { releaseId, trackPosition })
 }
 
+export async function invalidatePreviewStreamCache(releaseId: string): Promise<void> {
+	return invoke<void>('invalidate_preview_stream_cache', { releaseId })
+}
+
 export async function purchaseRelease(
 	releaseId: string,
 	filePaths: string[],

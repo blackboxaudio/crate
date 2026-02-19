@@ -852,6 +852,7 @@ dependencies = [
 name = "crate-app"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "base85",
  "binrw",
  "blake3",

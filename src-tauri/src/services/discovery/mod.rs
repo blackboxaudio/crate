@@ -816,16 +816,17 @@ impl DiscoveryService {
         Ok(())
     }
 
-    /// Get the cached SoundCloud client_id, if one exists.
+    /// Get the cached SoundCloud client_id, if one exists and was fetched within the last 24 hours.
     pub fn get_cached_sc_client_id(&self) -> Result<Option<String>> {
         let conn = self
             .conn
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24)).to_rfc3339();
         let result = conn.query_row(
-            "SELECT client_id FROM discovery_sc_client_id_cache WHERE id = 1",
-            [],
+            "SELECT client_id FROM discovery_sc_client_id_cache WHERE id = 1 AND fetched_at > ?1",
+            rusqlite::params![cutoff],
             |row| row.get::<_, String>(0),
         );
 
@@ -834,6 +835,21 @@ impl DiscoveryService {
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(CrateError::Database(e)),
         }
+    }
+
+    /// Invalidate cached stream URLs for a release, forcing re-fetch on next play.
+    pub fn invalidate_stream_cache(&self, release_id: &str) -> Result<()> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        conn.execute(
+            "DELETE FROM discovery_stream_cache WHERE release_id = ?1",
+            [release_id],
+        )?;
+
+        Ok(())
     }
 
     /// Cache a SoundCloud client_id.
