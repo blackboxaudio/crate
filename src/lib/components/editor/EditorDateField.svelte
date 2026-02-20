@@ -265,7 +265,7 @@
 
 				<!-- 42-cell calendar grid -->
 				<div class="grid grid-cols-7 gap-y-0.5 px-1">
-					{#each calendarDays as cell (cell.day)}
+					{#each calendarDays as cell, i (i)}
 						{#if cell.isBlank}
 							<div class="h-8 w-8"></div>
 						{:else}
