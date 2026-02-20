@@ -212,7 +212,7 @@ if $DRY_RUN; then
     echo -e "${YELLOW}[DRY RUN] Would run: git commit -m \"chore: release v$NEW_VERSION\"${NC}"
 else
     git add -A
-    git commit -m "chore: release v$NEW_VERSION"
+    git commit -m "chore: release \`v$NEW_VERSION\`"
 fi
 echo ""
 
@@ -221,7 +221,7 @@ echo -e "${BLUE}Step 4: Creating tag...${NC}"
 if $DRY_RUN; then
     echo -e "${YELLOW}[DRY RUN] Would run: git tag v$NEW_VERSION${NC}"
 else
-    git tag -m "Release v$NEW_VERSION" "v$NEW_VERSION"
+    git tag -m "Release \`v$NEW_VERSION\`" "v$NEW_VERSION"
 fi
 echo ""
 
