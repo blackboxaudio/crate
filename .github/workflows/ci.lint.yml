@@ -93,5 +93,15 @@ jobs:
           toolchain: nightly
           components: clippy
 
+      - name: Setup sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          cache-targets: false
+          cache-on-failure: true
+
       - name: Run clippy
         run: cargo +nightly clippy -- -D warnings
