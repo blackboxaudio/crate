@@ -121,7 +121,11 @@
 		"about": {
 			"application": "Application",
 			"version": "Version",
-			"environment": "Environnement"
+			"environment": "Environnement",
+			"updates": "Mises à jour",
+			"checkForUpdates": "Vérifier les mises à jour",
+			"upToDate": "À jour",
+			"updateAvailable": "{version} disponible"
 		}
 	},
 	"player": {
@@ -325,6 +329,15 @@
 			"total": "Total :",
 			"percentUsed": "% utilisé"
 		},
+		"update": {
+			"title": "Mise à jour disponible",
+			"description": "{version} est prêt à être installé.",
+			"releaseNotes": "Quoi de neuf",
+			"installAndRestart": "Installer et redémarrer",
+			"later": "Plus tard",
+			"downloading": "Téléchargement... {progress}%",
+			"installing": "Installation..."
+		},
 		"duplicate": {
 			"title": "Doublon détecté",
 			"progress": "Doublon {current} sur {total}",
@@ -386,7 +399,9 @@
 		"analysisFailed": "Échec de l'analyse",
 		"exportInProgress": "Exportation déjà en cours",
 		"tagNameConflict": "Un tag portant ce nom existe déjà dans la catégorie cible",
-		"previewStreamFailed": "Échec du chargement du flux d'aperçu"
+		"previewStreamFailed": "Échec du chargement du flux d'aperçu",
+		"updateCheckFailed": "Échec de la vérification des mises à jour",
+		"updateInstallFailed": "Échec de l'installation de la mise à jour"
 	},
 	"devices": {
 		"title": "Appareils",

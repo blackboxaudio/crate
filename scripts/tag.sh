@@ -3,12 +3,12 @@
 # Release tagging script for Crate
 #
 # Usage:
-#   ./scripts/tag.sh minor alpha        # Start alpha prerelease
-#   ./scripts/tag.sh prerelease         # Iterate current prerelease
-#   ./scripts/tag.sh stage              # Promote to next channel
-#   ./scripts/tag.sh --test stage       # Test build before pushing
-#   ./scripts/tag.sh --dry-run minor    # Preview without executing
-#   ./scripts/tag.sh --delete v0.2.0    # Delete local and remote tag
+#   ./scripts/tag.sh minor staging        # Start staging prerelease
+#   ./scripts/tag.sh prerelease           # Iterate current prerelease
+#   ./scripts/tag.sh stage                # Promote staging to stable
+#   ./scripts/tag.sh --test stage         # Test build before pushing
+#   ./scripts/tag.sh --dry-run minor      # Preview without executing
+#   ./scripts/tag.sh --delete v0.2.0      # Delete local and remote tag
 
 set -e
 
@@ -80,9 +80,9 @@ if [[ -z "$1" ]]; then
     echo -e "${RED}Error: No bump type specified${NC}"
     echo ""
     echo "Usage:"
-    echo "  ./scripts/tag.sh <major|minor|patch> [alpha|beta]   # Version bump"
-    echo "  ./scripts/tag.sh prerelease                         # Increment prerelease"
-    echo "  ./scripts/tag.sh stage                              # Promote to next channel"
+    echo "  ./scripts/tag.sh <major|minor|patch> staging   # Version bump with staging prerelease"
+    echo "  ./scripts/tag.sh prerelease                     # Increment prerelease"
+    echo "  ./scripts/tag.sh stage                          # Promote staging to stable"
     echo ""
     echo "Flags:"
     echo "  --dry-run              Preview actions without executing"
@@ -93,6 +93,12 @@ fi
 
 BUMP_TYPE="$1"
 CHANNEL="$2"
+
+# Validate channel
+if [[ -n "$CHANNEL" && "$CHANNEL" != "staging" ]]; then
+    echo -e "${RED}Error: Invalid channel '$CHANNEL'. Only 'staging' is supported.${NC}"
+    exit 1
+fi
 
 # Change to root directory
 cd "$ROOT_DIR"
@@ -124,14 +130,11 @@ elif [[ "$BUMP_TYPE" == "prerelease" ]]; then
     NUM=$(echo "$OLD_VERSION" | grep -o '[0-9]*$')
     NEW_VERSION="$BASE.$((NUM + 1))"
 elif [[ "$BUMP_TYPE" == "stage" ]]; then
-    # Determine next stage
-    if [[ "$OLD_VERSION" =~ -alpha\. ]]; then
-        BASE=$(echo "$OLD_VERSION" | sed 's/-alpha\..*//')
-        NEW_VERSION="$BASE-beta.1"
-    elif [[ "$OLD_VERSION" =~ -beta\. ]]; then
-        NEW_VERSION=$(echo "$OLD_VERSION" | sed 's/-beta\..*//')
+    # Promote staging to stable
+    if [[ "$OLD_VERSION" =~ -staging\. ]]; then
+        NEW_VERSION=$(echo "$OLD_VERSION" | sed 's/-staging\..*//')
     else
-        echo -e "${RED}Error: Not on a prerelease version. Use 'minor alpha' to start.${NC}"
+        echo -e "${RED}Error: Not on a staging prerelease version. Use 'minor staging' to start.${NC}"
         exit 1
     fi
 else
@@ -155,7 +158,7 @@ fi
 
 # Determine if this is going to stable
 IS_STABLE=true
-if [[ "$NEW_VERSION" =~ -alpha\. ]] || [[ "$NEW_VERSION" =~ -beta\. ]]; then
+if [[ "$NEW_VERSION" =~ -staging\. ]]; then
     IS_STABLE=false
 fi
 

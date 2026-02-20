@@ -121,7 +121,11 @@
 		"about": {
 			"application": "Program",
 			"version": "Version",
-			"environment": "Miljö"
+			"environment": "Miljö",
+			"updates": "Uppdateringar",
+			"checkForUpdates": "Sök efter uppdateringar",
+			"upToDate": "Uppdaterad",
+			"updateAvailable": "{version} tillgänglig"
 		}
 	},
 	"player": {
@@ -325,6 +329,15 @@
 			"total": "Totalt:",
 			"percentUsed": "% använt"
 		},
+		"update": {
+			"title": "Uppdatering tillgänglig",
+			"description": "{version} är redo att installeras.",
+			"releaseNotes": "Vad är nytt",
+			"installAndRestart": "Installera och starta om",
+			"later": "Senare",
+			"downloading": "Hämtar... {progress}%",
+			"installing": "Installerar..."
+		},
 		"duplicate": {
 			"title": "Dubblettspår upptäckt",
 			"progress": "Dubblett {current} av {total}",
@@ -386,7 +399,9 @@
 		"analysisFailed": "Analysen misslyckades",
 		"exportInProgress": "Export är redan i gång",
 		"tagNameConflict": "En tagg med detta namn finns redan i målkategorin",
-		"previewStreamFailed": "Misslyckades att ladda förhandsvisningsströmmen"
+		"previewStreamFailed": "Misslyckades att ladda förhandsvisningsströmmen",
+		"updateCheckFailed": "Misslyckades att söka efter uppdateringar",
+		"updateInstallFailed": "Misslyckades att installera uppdateringen"
 	},
 	"devices": {
 		"title": "Enheter",

@@ -121,7 +121,11 @@
 		"about": {
 			"application": "Applicazione",
 			"version": "Versione",
-			"environment": "Ambiente"
+			"environment": "Ambiente",
+			"updates": "Aggiornamenti",
+			"checkForUpdates": "Controlla aggiornamenti",
+			"upToDate": "Aggiornato",
+			"updateAvailable": "{version} disponibile"
 		}
 	},
 	"player": {
@@ -325,6 +329,15 @@
 			"total": "Totale:",
 			"percentUsed": "% usato"
 		},
+		"update": {
+			"title": "Aggiornamento disponibile",
+			"description": "{version} è pronto per l'installazione.",
+			"releaseNotes": "Novità",
+			"installAndRestart": "Installa e riavvia",
+			"later": "Più tardi",
+			"downloading": "Download in corso... {progress}%",
+			"installing": "Installazione in corso..."
+		},
 		"duplicate": {
 			"title": "Traccia duplicata rilevata",
 			"progress": "Duplicato {current} di {total}",
@@ -386,7 +399,9 @@
 		"analysisFailed": "Analisi non riuscita",
 		"exportInProgress": "Esportazione già in corso",
 		"tagNameConflict": "Un tag con questo nome esiste già nella categoria di destinazione",
-		"previewStreamFailed": "Impossibile caricare il flusso di anteprima"
+		"previewStreamFailed": "Impossibile caricare il flusso di anteprima",
+		"updateCheckFailed": "Impossibile controllare gli aggiornamenti",
+		"updateInstallFailed": "Impossibile installare l'aggiornamento"
 	},
 	"devices": {
 		"title": "Dispositivi",

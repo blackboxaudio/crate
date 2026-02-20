@@ -121,7 +121,11 @@
 		"about": {
 			"application": "Applicatie",
 			"version": "Versie",
-			"environment": "Omgeving"
+			"environment": "Omgeving",
+			"updates": "Updates",
+			"checkForUpdates": "Op updates controleren",
+			"upToDate": "Up-to-date",
+			"updateAvailable": "{version} beschikbaar"
 		}
 	},
 	"player": {
@@ -325,6 +329,15 @@
 			"total": "Totaal:",
 			"percentUsed": "% gebruikt"
 		},
+		"update": {
+			"title": "Update beschikbaar",
+			"description": "{version} is gereed om te installeren.",
+			"releaseNotes": "Wat is er nieuw",
+			"installAndRestart": "Installeren en herstarten",
+			"later": "Later",
+			"downloading": "Downloaden... {progress}%",
+			"installing": "Installeren..."
+		},
 		"duplicate": {
 			"title": "Dubbele track gedetecteerd",
 			"progress": "Dubbel {current} van {total}",
@@ -386,7 +399,9 @@
 		"analysisFailed": "Analyse mislukt",
 		"exportInProgress": "Exporteren is al bezig",
 		"tagNameConflict": "Een tag met deze naam bestaat al in de doelcategorie",
-		"previewStreamFailed": "Voorbeeldstream kon niet worden geladen"
+		"previewStreamFailed": "Voorbeeldstream kon niet worden geladen",
+		"updateCheckFailed": "Controleren op updates mislukt",
+		"updateInstallFailed": "Update installeren mislukt"
 	},
 	"devices": {
 		"title": "Apparaten",

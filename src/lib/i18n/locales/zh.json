@@ -121,7 +121,11 @@
 		"about": {
 			"application": "应用程序",
 			"version": "版本",
-			"environment": "环境"
+			"environment": "环境",
+			"updates": "更新",
+			"checkForUpdates": "检查更新",
+			"upToDate": "已是最新版本",
+			"updateAvailable": "{version} 可用"
 		}
 	},
 	"player": {
@@ -325,6 +329,15 @@
 			"total": "总计：",
 			"percentUsed": "% 已用"
 		},
+		"update": {
+			"title": "有可用的更新",
+			"description": "{version} 已准备好安装。",
+			"releaseNotes": "新增功能",
+			"installAndRestart": "安装并重启",
+			"later": "稍后",
+			"downloading": "下载中... {progress}%",
+			"installing": "安装中..."
+		},
 		"duplicate": {
 			"title": "检测到重复曲目",
 			"progress": "重复 {current}/{total}",
@@ -386,7 +399,9 @@
 		"analysisFailed": "分析失败",
 		"exportInProgress": "导出已在进行中",
 		"tagNameConflict": "目标分类中已存在同名标签",
-		"previewStreamFailed": "无法加载预览流"
+		"previewStreamFailed": "无法加载预览流",
+		"updateCheckFailed": "检查更新失败",
+		"updateInstallFailed": "安装更新失败"
 	},
 	"devices": {
 		"title": "设备",

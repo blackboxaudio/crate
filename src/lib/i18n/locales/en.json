@@ -121,7 +121,11 @@
 		"about": {
 			"application": "Application",
 			"version": "Version",
-			"environment": "Environment"
+			"environment": "Environment",
+			"updates": "Updates",
+			"checkForUpdates": "Check for Updates",
+			"upToDate": "Up to date",
+			"updateAvailable": "{version} available"
 		}
 	},
 	"player": {
@@ -339,6 +343,15 @@
 			"replaceDescription": "Fresh import from new file. Keeps playlist memberships only. Resets cue points, tags, and play history.",
 			"applyToAll": "Apply to all remaining duplicates ({count})"
 		},
+		"update": {
+			"title": "Update Available",
+			"description": "{version} is ready to install.",
+			"releaseNotes": "What's new",
+			"installAndRestart": "Install and Restart",
+			"later": "Later",
+			"downloading": "Downloading... {progress}%",
+			"installing": "Installing..."
+		},
 		"conflict": {
 			"title": "Name Conflict",
 			"resolving": "Resolving conflict",
@@ -387,7 +400,9 @@
 		"analysisFailed": "Analysis failed",
 		"exportInProgress": "Export already in progress",
 		"tagNameConflict": "A tag with this name already exists in the target category",
-		"previewStreamFailed": "Failed to load preview stream"
+		"previewStreamFailed": "Failed to load preview stream",
+		"updateCheckFailed": "Failed to check for updates",
+		"updateInstallFailed": "Failed to install update"
 	},
 	"devices": {
 		"title": "Devices",

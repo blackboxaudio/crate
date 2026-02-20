@@ -121,7 +121,11 @@
 		"about": {
 			"application": "Anwendung",
 			"version": "Version",
-			"environment": "Umgebung"
+			"environment": "Umgebung",
+			"updates": "Updates",
+			"checkForUpdates": "Auf Updates prüfen",
+			"upToDate": "Aktuell",
+			"updateAvailable": "{version} verfügbar"
 		}
 	},
 	"player": {
@@ -325,6 +329,15 @@
 			"total": "Gesamt:",
 			"percentUsed": "% belegt"
 		},
+		"update": {
+			"title": "Update verfügbar",
+			"description": "{version} ist zum Installieren bereit.",
+			"releaseNotes": "Neuerungen",
+			"installAndRestart": "Installieren und neu starten",
+			"later": "Später",
+			"downloading": "Wird heruntergeladen... {progress}%",
+			"installing": "Wird installiert..."
+		},
 		"duplicate": {
 			"title": "Doppelter Track erkannt",
 			"progress": "Duplikat {current} von {total}",
@@ -386,7 +399,9 @@
 		"analysisFailed": "Analyse fehlgeschlagen",
 		"exportInProgress": "Export läuft bereits",
 		"tagNameConflict": "Ein Tag mit diesem Namen existiert bereits in der Zielkategorie",
-		"previewStreamFailed": "Fehler beim Laden des Vorschau-Streams"
+		"previewStreamFailed": "Fehler beim Laden des Vorschau-Streams",
+		"updateCheckFailed": "Fehler beim Prüfen auf Updates",
+		"updateInstallFailed": "Fehler beim Installieren des Updates"
 	},
 	"devices": {
 		"title": "Geräte",

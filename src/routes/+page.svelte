@@ -57,6 +57,8 @@
 		sortedReleases,
 		releaseCount,
 		previewInfo,
+		updaterStore,
+		updateAvailable,
 	} from '$lib/stores'
 	import { isPlaying } from '$lib/stores/player'
 	import { syncStore } from '$lib/stores/sync'
@@ -99,6 +101,7 @@
 		Icon,
 		Text,
 		SplashScreen,
+		UpdateModal,
 	} from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { openDevTools, closeDevTools, setMenuItemEnabled } from '$lib/api/app'
@@ -728,6 +731,12 @@
 			discoveryStore.loadReleases()
 		}
 
+		// Check for updates (non-dev only, guarded inside store)
+		updaterStore.check(true)
+
+		// Hourly recheck
+		const updateInterval = setInterval(() => updaterStore.check(true), 60 * 60 * 1000)
+
 		// Dismiss splash screen
 		showSplash = false
 
@@ -738,6 +747,7 @@
 			cleanupMediaKeys()
 			playerStore.onTrackEnd(null)
 			exportStore.stopListening()
+			clearInterval(updateInterval)
 		}
 	}
 
@@ -1459,6 +1469,11 @@
 		onClose={() => (purchaseRelease = null)}
 		onComplete={handlePurchaseComplete}
 	/>
+{/if}
+
+<!-- Update Modal -->
+{#if $updateAvailable}
+	<UpdateModal open={true} onClose={() => updaterStore.dismiss()} />
 {/if}
 
 <!-- Drag Preview -->

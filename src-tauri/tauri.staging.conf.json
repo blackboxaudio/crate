@@ -3,5 +3,10 @@
 	"identifier": "com.bbx-audio.crate-staging",
 	"app": {
 		"windows": [{ "title": "Crate [STAGING]" }]
+	},
+	"plugins": {
+		"updater": {
+			"endpoints": ["https://storage.googleapis.com/crate-releases/staging/latest.json"]
+		}
 	}
 }

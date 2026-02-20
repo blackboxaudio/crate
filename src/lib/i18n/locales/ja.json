@@ -121,7 +121,11 @@
 		"about": {
 			"application": "アプリケーション",
 			"version": "バージョン",
-			"environment": "環境"
+			"environment": "環境",
+			"updates": "アップデート",
+			"checkForUpdates": "アップデートを確認",
+			"upToDate": "最新版です",
+			"updateAvailable": "{version} が利用可能"
 		}
 	},
 	"player": {
@@ -325,6 +329,15 @@
 			"total": "合計:",
 			"percentUsed": "% 使用中"
 		},
+		"update": {
+			"title": "アップデートが利用可能",
+			"description": "{version} をインストール準備完了です。",
+			"releaseNotes": "新機能",
+			"installAndRestart": "インストールして再起動",
+			"later": "後で",
+			"downloading": "ダウンロード中... {progress}%",
+			"installing": "インストール中..."
+		},
 		"duplicate": {
 			"title": "重複トラックを検出",
 			"progress": "重複 {current} / {total}",
@@ -387,7 +400,9 @@
 		"analysisFailed": "分析が失敗しました",
 		"exportInProgress": "エクスポートが既に進行中です",
 		"tagNameConflict": "同じ名前のタグが移動先のカテゴリに既に存在します",
-		"previewStreamFailed": "プレビューストリームの読み込みに失敗しました"
+		"previewStreamFailed": "プレビューストリームの読み込みに失敗しました",
+		"updateCheckFailed": "アップデートの確認に失敗しました",
+		"updateInstallFailed": "アップデートのインストールに失敗しました"
 	},
 	"devices": {
 		"title": "デバイス",

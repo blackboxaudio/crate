@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Seamless in-app updates via Tauri updater plugin; checks on launch and hourly, shows update modal with release notes and download progress
 - Continuous playback setting for automatically playing the next track
 - Music discovery feature for tracking releases from Bandcamp, SoundCloud, YouTube, and Discogs
 - Discovery settings tab with auto-fetch metadata, transfer tags on import, and remove release after import preferences
