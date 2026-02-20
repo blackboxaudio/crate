@@ -1,6 +1,6 @@
 {
 	"name": "crate",
-	"version": "0.2.0-staging.4",
+	"version": "0.2.0-staging.5",
 	"description": "",
 	"type": "module",
 	"scripts": {
