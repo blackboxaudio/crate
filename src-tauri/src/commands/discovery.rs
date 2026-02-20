@@ -108,6 +108,25 @@ pub async fn fetch_preview_stream(
         // Fall through to full extraction for pre-migration releases without video_id
     }
 
+    // Discogs: stream via stored YouTube video_id
+    if release.source_type == "discogs" {
+        return match discovery.get_video_id_for_track(&release_id, track_position)? {
+            Some(video_id) => {
+                let stream =
+                    streams::extract_single_youtube_stream(&video_id, track_position).await?;
+                discovery.cache_streams(&release_id, &[stream.clone()])?;
+                let cached = CachedStream {
+                    stream_url: stream.stream_url.clone(),
+                    proxy_ua: stream.proxy_ua.clone(),
+                };
+                Ok(resolve_stream_url(&cached, &release_id, track_position))
+            }
+            None => Err(CrateError::Discovery(
+                "No YouTube video available for this Discogs track".into(),
+            )),
+        };
+    }
+
     let stream_infos = match release.source_type.as_str() {
         "bandcamp" => streams::extract_bandcamp_streams(&release.url).await?,
         "soundcloud" => {

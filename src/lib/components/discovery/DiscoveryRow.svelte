@@ -76,6 +76,11 @@
 		return $playbackSource === 'preview' && $previewInfo?.releaseId === release.id && $previewInfo?.trackIndex === idx
 	}
 
+	function trackCanPlay(trackIndex: number): boolean {
+		if (release.source_type === 'discogs') return release.tracks[trackIndex]?.video_id !== null
+		return isPreviewable
+	}
+
 	const sourceLabels: Record<string, string> = {
 		bandcamp: 'Bandcamp',
 		soundcloud: 'SoundCloud',
@@ -90,8 +95,7 @@
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
-		if (e.key === 'Enter') ondblclick?.(e as unknown as MouseEvent)
-		else if (e.key === ' ') {
+		if (e.key === ' ') {
 			e.preventDefault()
 			onclick?.(e as unknown as MouseEvent)
 		}
@@ -222,13 +226,14 @@
 {#if expanded && release.tracks.length > 0}
 	<div class="border-b border-stroke-subtle bg-surface-1/30" transition:slide={{ duration: 200 }}>
 		{#each release.tracks as track, idx (track.id)}
-			{@const playing = isPreviewable && isTrackPlaying(idx)}
+			{@const canPlay = trackCanPlay(idx)}
+			{@const playing = canPlay && isTrackPlaying(idx)}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class="grid grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 {isPreviewable
+				class="grid grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
 					? 'cursor-pointer hover:bg-surface-2/50'
 					: 'cursor-default'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
-				ondblclick={isPreviewable
+				ondblclick={canPlay
 					? (e) => {
 							e.stopPropagation()
 							onTrackPlay?.(idx)
@@ -239,7 +244,7 @@
 				<div
 					class="text-center text-xs {playing
 						? 'text-brand-primary'
-						: isPreviewable
+						: canPlay
 							? 'text-text-tertiary'
 							: 'text-text-tertiary/50'}"
 				>
@@ -248,7 +253,7 @@
 				<div
 					class="truncate text-xs {playing
 						? 'font-medium text-brand-primary'
-						: isPreviewable
+						: canPlay
 							? 'text-text-secondary'
 							: 'text-text-tertiary'}"
 				>
@@ -257,7 +262,7 @@
 				<div
 					class="mr-1 text-right text-xs {playing
 						? 'text-brand-primary'
-						: isPreviewable
+						: canPlay
 							? 'text-text-tertiary'
 							: 'text-text-tertiary/50'}"
 				>

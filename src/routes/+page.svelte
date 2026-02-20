@@ -826,16 +826,27 @@
 
 	const PREVIEWABLE_SOURCES = new Set(['bandcamp', 'soundcloud', 'youtube'])
 
+	function releaseHasAnyPreviewableTrack(release: DiscoveryRelease): boolean {
+		if (PREVIEWABLE_SOURCES.has(release.source_type)) return release.tracks.length > 0
+		return release.tracks.some((t) => t.video_id !== null)
+	}
+
 	function handleReleaseOpen(release: DiscoveryRelease) {
-		if (PREVIEWABLE_SOURCES.has(release.source_type) && release.tracks.length > 0) {
-			playerStore.playPreview(release, 0)
-		} else {
-			openUrl(release.url)
+		if (releaseHasAnyPreviewableTrack(release)) {
+			const firstPlayable = release.source_type === 'discogs' ? release.tracks.findIndex((t) => t.video_id !== null) : 0
+			if (firstPlayable >= 0) {
+				playerStore.playPreview(release, firstPlayable)
+				return
+			}
 		}
+		openUrl(release.url)
 	}
 
 	function handleTrackPlayInRelease(release: DiscoveryRelease, trackIndex: number) {
-		if (PREVIEWABLE_SOURCES.has(release.source_type) && release.tracks.length > 0) {
+		const track = release.tracks[trackIndex]
+		const canPlay =
+			PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null)
+		if (canPlay && release.tracks.length > 0) {
 			playerStore.playPreview(release, trackIndex)
 		}
 	}

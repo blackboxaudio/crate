@@ -1400,6 +1400,53 @@ async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result<FetchedMet
         }
     }
 
+    // Extract YouTube video IDs from videos[] and assign to tracks
+    if let Some(videos) = resp.get("videos").and_then(|v| v.as_array()) {
+        let yt_videos: Vec<(String, String)> = videos
+            .iter()
+            .filter_map(|v| {
+                let uri = v.get("uri").and_then(|u| u.as_str())?;
+                let title = v.get("title").and_then(|t| t.as_str())?;
+                let video_id = parse_youtube_url(uri).video_id?;
+                Some((video_id, title.to_string()))
+            })
+            .collect();
+
+        if !yt_videos.is_empty() {
+            // Title-based matching: strip "Artist - " prefix from video title before comparing
+            let artist_prefix = artist.as_deref().unwrap_or("");
+            for track in tracks.iter_mut() {
+                if track.video_id.is_some() {
+                    continue;
+                }
+                let track_name_lower = track.name.to_ascii_lowercase();
+                if let Some((vid_id, _)) = yt_videos.iter().find(|(_, vtitle)| {
+                    let vtitle_lower = vtitle.to_ascii_lowercase();
+                    let stripped = if !artist_prefix.is_empty() {
+                        let prefix = format!("{} - ", artist_prefix.to_ascii_lowercase());
+                        vtitle_lower
+                            .strip_prefix(&prefix)
+                            .unwrap_or(&vtitle_lower)
+                            .to_string()
+                    } else {
+                        vtitle_lower.clone()
+                    };
+                    stripped == track_name_lower || stripped.contains(&track_name_lower)
+                }) {
+                    track.video_id = Some(vid_id.clone());
+                }
+            }
+
+            // Positional fallback: if all tracks are unmatched and counts align
+            let all_unmatched = tracks.iter().all(|t| t.video_id.is_none());
+            if all_unmatched && tracks.len() == yt_videos.len() {
+                for (track, (vid_id, _)) in tracks.iter_mut().zip(yt_videos.iter()) {
+                    track.video_id = Some(vid_id.clone());
+                }
+            }
+        }
+    }
+
     Ok(FetchedMetadata {
         artist,
         title,

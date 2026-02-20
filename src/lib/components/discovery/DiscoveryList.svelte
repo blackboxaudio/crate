@@ -7,7 +7,12 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 
-	const PREVIEWABLE_SOURCES: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
+	const BASE_PREVIEWABLE: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
+
+	function isReleasePreviewable(release: DiscoveryRelease): boolean {
+		if (BASE_PREVIEWABLE.has(release.source_type)) return true
+		return release.tracks.some((t) => t.video_id !== null)
+	}
 
 	type Props = {
 		releases: DiscoveryRelease[]
@@ -124,7 +129,7 @@
 					{release}
 					selected={selectedIds.has(release.id)}
 					expanded={expandedIds.has(release.id)}
-					isPreviewable={PREVIEWABLE_SOURCES.has(release.source_type)}
+					isPreviewable={isReleasePreviewable(release)}
 					dragReleaseIds={Array.from(selectedIds)}
 					{categoryColors}
 					{categorySortOrders}
