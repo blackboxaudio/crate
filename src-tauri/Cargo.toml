@@ -1,6 +1,6 @@
 [package]
 name = "crate-app"
-version = "0.2.0-staging.6"
+version = "0.2.0-staging.7"
 description = "DJ audio library management application"
 authors = ["you"]
 edition = "2021"
