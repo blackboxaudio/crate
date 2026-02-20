@@ -150,7 +150,8 @@
 			if (triggerEl) {
 				const r = triggerEl.getBoundingClientRect()
 				const spaceBelow = window.innerHeight - r.bottom - 8
-				panelSide = spaceBelow >= 280 ? 'below' : 'above'
+				const hasFooter = value !== null && !mixed
+				panelSide = spaceBelow >= (hasFooter ? 320 : 280) ? 'below' : 'above'
 			}
 		}
 		open = !open

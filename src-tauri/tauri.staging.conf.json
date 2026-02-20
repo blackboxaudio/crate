@@ -1,4 +1,5 @@
 {
+	"version": "0.2.0-3",
 	"productName": "Crate Staging",
 	"identifier": "com.bbx-audio.crate-staging",
 	"app": {
