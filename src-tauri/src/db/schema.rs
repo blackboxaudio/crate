@@ -229,5 +229,9 @@ CREATE TABLE discovery_sc_client_id_cache (
         r#"
 ALTER TABLE discovery_stream_cache ADD COLUMN proxy_ua TEXT;
 "#,
+        // Migration 3: Add video_id column to discovery_tracks for fast YouTube single-track streaming
+        r#"
+ALTER TABLE discovery_tracks ADD COLUMN video_id TEXT;
+"#,
     ]
 }

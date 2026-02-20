@@ -75,8 +75,8 @@ impl DiscoveryService {
             for tc in track_creates {
                 let track_id = uuid::Uuid::new_v4().to_string();
                 conn.execute(
-                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms) VALUES (?1, ?2, ?3, ?4, ?5)",
-                    rusqlite::params![track_id, id, tc.name, tc.position, tc.duration_ms],
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    rusqlite::params![track_id, id, tc.name, tc.position, tc.duration_ms, tc.video_id],
                 )?;
                 tracks.push(DiscoveryTrack {
                     id: track_id,
@@ -84,6 +84,7 @@ impl DiscoveryService {
                     name: tc.name,
                     position: tc.position,
                     duration_ms: tc.duration_ms,
+                    video_id: tc.video_id,
                 });
             }
         }
@@ -145,7 +146,7 @@ impl DiscoveryService {
 
         // Load tracks
         let mut stmt = conn.prepare(
-            "SELECT id, release_id, name, position, duration_ms FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
+            "SELECT id, release_id, name, position, duration_ms, video_id FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
         )?;
         release.tracks = stmt
             .query_map([id], |row| {
@@ -155,6 +156,7 @@ impl DiscoveryService {
                     name: row.get(2)?,
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
+                    video_id: row.get(5)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -309,7 +311,7 @@ impl DiscoveryService {
             .join(", ");
 
         let mut stmt = conn.prepare(&format!(
-            "SELECT id, release_id, name, position, duration_ms FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
+            "SELECT id, release_id, name, position, duration_ms, video_id FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
         let track_params: Vec<&dyn rusqlite::types::ToSql> = release_ids
             .iter()
@@ -323,6 +325,7 @@ impl DiscoveryService {
                     name: row.get(2)?,
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
+                    video_id: row.get(5)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -623,8 +626,8 @@ impl DiscoveryService {
                 }
                 let track_id = uuid::Uuid::new_v4().to_string();
                 conn.execute(
-                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms) VALUES (?1, ?2, ?3, ?4, ?5)",
-                    rusqlite::params![track_id, release_id, track.name, next_position, track.duration_ms],
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    rusqlite::params![track_id, release_id, track.name, next_position, track.duration_ms, track.video_id],
                 )?;
                 next_position += 1;
             }
@@ -684,22 +687,22 @@ impl DiscoveryService {
             for source_id in &source_ids {
                 // Copy tracks from source, deduplicating
                 let mut stmt = conn.prepare(
-                    "SELECT name, position, duration_ms FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
+                    "SELECT name, position, duration_ms, video_id FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
                 )?;
-                let source_tracks: Vec<(String, i32, Option<i64>)> = stmt
+                let source_tracks: Vec<(String, i32, Option<i64>, Option<String>)> = stmt
                     .query_map([source_id.as_str()], |row| {
-                        Ok((row.get(0)?, row.get(1)?, row.get(2)?))
+                        Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
                     })?
                     .collect::<std::result::Result<Vec<_>, _>>()?;
 
-                for (name, _, duration_ms) in &source_tracks {
+                for (name, _, duration_ms, video_id) in &source_tracks {
                     if existing_names.contains(&name.to_lowercase()) {
                         continue;
                     }
                     let track_id = uuid::Uuid::new_v4().to_string();
                     conn.execute(
-                        "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms) VALUES (?1, ?2, ?3, ?4, ?5)",
-                        rusqlite::params![track_id, target_id, name, next_position, duration_ms],
+                        "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                        rusqlite::params![track_id, target_id, name, next_position, duration_ms, video_id],
                     )?;
                     existing_names.push(name.to_lowercase());
                     next_position += 1;
@@ -798,6 +801,69 @@ impl DiscoveryService {
                     conn.execute(
                         "UPDATE discovery_tracks SET duration_ms = ?1 WHERE id = ?2",
                         rusqlite::params![duration_ms, track_id],
+                    )?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Get the stored `video_id` for a specific track by release ID and position.
+    pub fn get_video_id_for_track(
+        &self,
+        release_id: &str,
+        track_position: i32,
+    ) -> Result<Option<String>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let result = conn.query_row(
+            "SELECT video_id FROM discovery_tracks WHERE release_id = ?1 AND position = ?2",
+            rusqlite::params![release_id, track_position],
+            |row| row.get::<_, Option<String>>(0),
+        );
+
+        match result {
+            Ok(video_id) => Ok(video_id),
+            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+            Err(e) => Err(CrateError::Database(e)),
+        }
+    }
+
+    /// Backfill NULL `video_id` values from fetched metadata, matching by position.
+    pub fn update_track_video_ids(
+        &self,
+        release_id: &str,
+        fetched_tracks: &[FetchedTrack],
+    ) -> Result<()> {
+        if fetched_tracks.is_empty() {
+            return Ok(());
+        }
+
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let mut stmt = conn.prepare(
+            "SELECT id, position FROM discovery_tracks WHERE release_id = ?1 AND video_id IS NULL",
+        )?;
+        let null_tracks: Vec<(String, i32)> = stmt
+            .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        for (track_id, position) in &null_tracks {
+            if let Some(fetched) = fetched_tracks
+                .iter()
+                .find(|ft| ft.position == *position)
+            {
+                if let Some(ref vid) = fetched.video_id {
+                    conn.execute(
+                        "UPDATE discovery_tracks SET video_id = ?1 WHERE id = ?2",
+                        rusqlite::params![vid, track_id],
                     )?;
                 }
             }

@@ -22,6 +22,7 @@ pub struct FetchedTrack {
     pub name: String,
     pub position: i32,
     pub duration_ms: Option<i64>,
+    pub video_id: Option<String>,
 }
 
 pub(super) fn build_client() -> Result<reqwest::Client> {
@@ -228,6 +229,7 @@ fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                                 name,
                                 position: 1,
                                 duration_ms,
+                                video_id: None,
                             });
                         }
                     }
@@ -305,6 +307,7 @@ fn parse_bandcamp_tracks(value: &serde_json::Value) -> Vec<FetchedTrack> {
                     name,
                     position,
                     duration_ms,
+                    video_id: None,
                 })
             })
             .collect();
@@ -395,6 +398,7 @@ fn parse_sc_hydration(html: &str) -> Option<FetchedMetadata> {
             name,
             position: 1,
             duration_ms,
+            video_id: None,
         }]
     } else {
         Vec::new()
@@ -512,6 +516,7 @@ fn parse_sc_playlist_hydration(html: &str) -> Option<FetchedMetadata> {
                         name,
                         position: (idx + 1) as i32,
                         duration_ms,
+                        video_id: None,
                     })
                 })
                 .collect::<Vec<_>>()
@@ -953,6 +958,7 @@ async fn fetch_youtube_playlist(
                 (idx + 1) as i32
             },
             duration_ms: v.duration_ms,
+            video_id: Some(v.video_id),
         })
         .collect();
 
@@ -993,7 +999,9 @@ fn strip_youtube_track_artist_prefix(
             .iter()
             .map(|t| FetchedTrack {
                 name: t.name.strip_prefix(&prefix).map(|s| s.to_string()).unwrap_or_else(|| t.name.clone()),
-                ..*t
+                position: t.position,
+                duration_ms: t.duration_ms,
+                video_id: t.video_id.clone(),
             })
             .collect();
         let stripped_count = stripped.iter().zip(tracks.iter()).filter(|(s, o)| s.name != o.name).count();
@@ -1092,6 +1100,7 @@ async fn fetch_youtube_single(
             name,
             position: 1,
             duration_ms,
+            video_id: Some(video_id.to_string()),
         }]
     } else {
         Vec::new()
@@ -1359,6 +1368,7 @@ async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result<FetchedMet
                         name,
                         position: (idx + 1) as i32,
                         duration_ms,
+                        video_id: None,
                     })
                 })
                 .collect::<Vec<_>>()

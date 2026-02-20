@@ -615,6 +615,7 @@ export interface DiscoveryTrack {
 	name: string
 	position: number
 	duration_ms: number | null
+	video_id: string | null
 }
 
 export interface DiscoveryRelease {
@@ -652,6 +653,7 @@ export interface DiscoveryTrackCreate {
 	name: string
 	position: number
 	duration_ms?: number
+	video_id?: string
 }
 
 export interface FetchedMetadata {
@@ -670,6 +672,7 @@ export interface FetchedTrack {
 	name: string
 	position: number
 	duration_ms: number | null
+	video_id: string | null
 }
 
 export interface DiscoveryReleaseUpdate {

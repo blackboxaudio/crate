@@ -7,6 +7,7 @@ pub struct DiscoveryTrack {
     pub name: String,
     pub position: i32,
     pub duration_ms: Option<i64>,
+    pub video_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -49,6 +50,7 @@ pub struct DiscoveryTrackCreate {
     pub name: String,
     pub position: i32,
     pub duration_ms: Option<i64>,
+    pub video_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

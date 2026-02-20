@@ -79,6 +79,35 @@ pub async fn fetch_preview_stream(
     // Get release to determine source type and URL
     let release = discovery.get_release(&release_id)?;
 
+    // YouTube fast path: use stored video_id for single-track fetch (~500ms vs ~8s)
+    if release.source_type == "youtube" {
+        if let Some(video_id) = discovery.get_video_id_for_track(&release_id, track_position)? {
+            let stream = streams::extract_single_youtube_stream(&video_id, track_position).await?;
+            discovery.cache_streams(&release_id, &[stream.clone()])?;
+
+            let cached = CachedStream {
+                stream_url: stream.stream_url.clone(),
+                proxy_ua: stream.proxy_ua.clone(),
+            };
+            let result = resolve_stream_url(&cached, &release_id, track_position);
+
+            // Background re-prefetch all tracks
+            let conn = discovery.connection();
+            let app_data_dir = discovery.app_data_dir();
+            let url = release.url.clone();
+            let rid = release_id.clone();
+            tokio::spawn(async move {
+                let svc = DiscoveryService::new(conn, app_data_dir);
+                if let Err(e) = prefetch_streams(&svc, &rid, &url, "youtube").await {
+                    log::warn!("Background YouTube re-prefetch failed for {rid}: {e}");
+                }
+            });
+
+            return Ok(result);
+        }
+        // Fall through to full extraction for pre-migration releases without video_id
+    }
+
     let stream_infos = match release.source_type.as_str() {
         "bandcamp" => streams::extract_bandcamp_streams(&release.url).await?,
         "soundcloud" => {
@@ -233,8 +262,9 @@ pub async fn refresh_release_metadata(
     let release = discovery.get_release(&id)?;
     let fetched = metadata::fetch_metadata(&release.url).await?;
 
-    // Backfill any missing track durations from fetched data
+    // Backfill any missing track durations and video_ids from fetched data
     discovery.update_track_durations(&id, &fetched.tracks)?;
+    discovery.update_track_video_ids(&id, &fetched.tracks)?;
 
     let mut update = DiscoveryReleaseUpdate::default();
     if let Some(artist) = fetched.artist {

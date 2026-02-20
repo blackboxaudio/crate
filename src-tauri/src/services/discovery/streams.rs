@@ -566,7 +566,7 @@ pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
 ///
 /// Tries each YouTube client configuration in [`metadata::YT_CLIENTS`] until one
 /// returns a playable response with audio streams.
-async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Result<StreamInfo> {
+pub async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Result<StreamInfo> {
     let mut last_error = CrateError::Discovery(format!(
         "All YouTube clients failed for video {video_id}"
     ));

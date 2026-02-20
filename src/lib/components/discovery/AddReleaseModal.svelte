@@ -116,6 +116,7 @@
 					name: t.name,
 					position: t.position,
 					duration_ms: t.duration_ms ?? undefined,
+					video_id: t.video_id ?? undefined,
 				}))
 			}
 			if (data.source_type && data.source_type !== 'other') {
