@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.validate.outputs.version }}
+      bundle_version: ${{ steps.validate.outputs.bundle_version }}
       tag: ${{ steps.validate.outputs.tag }}
       prerelease: ${{ steps.validate.outputs.prerelease }}
       channel: ${{ steps.validate.outputs.channel }}
@@ -87,6 +88,14 @@ jobs:
             echo "channel=production" >> $GITHUB_OUTPUT
             echo "prerelease=$INPUT_PRERELEASE" >> $GITHUB_OUTPUT
           fi
+
+          # Compute MSI-compatible bundle version (strip channel name, keep numeric prerelease)
+          if [[ "$VERSION" =~ ^([0-9]+\.[0-9]+\.[0-9]+)-[a-zA-Z]+\.([0-9]+)$ ]]; then
+            BUNDLE_VERSION="${BASH_REMATCH[1]}-${BASH_REMATCH[2]}"
+          else
+            BUNDLE_VERSION="$VERSION"
+          fi
+          echo "bundle_version=$BUNDLE_VERSION" >> $GITHUB_OUTPUT
 
       - name: Extract release notes from CHANGELOG
         env:
@@ -237,6 +246,7 @@ jobs:
       - name: Upload artifacts to GCS and generate latest.json
         env:
           VERSION: ${{ needs.validate.outputs.version }}
+          BUNDLE_VERSION: ${{ needs.validate.outputs.bundle_version }}
           CHANNEL: ${{ needs.validate.outputs.channel }}
         run: |
           BUCKET="crate-releases"
@@ -283,7 +293,7 @@ jobs:
 
           cat > latest.json << EOF
           {
-            "version": "${VERSION}",
+            "version": "${BUNDLE_VERSION}",
             "notes": "",
             "pub_date": "$(date -u +%Y-%m-%dT%H:%M:%SZ)",
             "platforms": {
