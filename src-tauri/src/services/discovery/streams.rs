@@ -7,6 +7,9 @@ pub struct StreamInfo {
     pub track_position: i32,
     pub stream_url: String,
     pub expires_at: String,
+    /// When set, the stream URL requires this user-agent to avoid 403 from YouTube's CDN.
+    /// The command layer uses this to return a `crate-stream://` proxy URL instead.
+    pub proxy_ua: Option<String>,
 }
 
 /// Extract stream URLs from a Bandcamp release page.
@@ -54,6 +57,7 @@ pub async fn extract_bandcamp_streams(url: &str) -> Result<Vec<StreamInfo>> {
                 track_position: position,
                 stream_url: url.to_string(),
                 expires_at,
+                proxy_ua: None,
             });
         }
     }
@@ -455,6 +459,7 @@ async fn resolve_sc_streams(
                 track_position: track.position,
                 stream_url: url.to_string(),
                 expires_at,
+                proxy_ua: None,
             });
         } else {
             log::warn!(
@@ -484,7 +489,6 @@ async fn resolve_sc_streams(
 /// compatibility, falls back to other audio-only formats.
 pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
     let parsed = metadata::parse_youtube_url(url);
-    let yt_client = metadata::build_yt_client()?;
 
     // Build list of (video_id, position) pairs
     let video_list = if let Some(ref playlist_id) = parsed.playlist_id {
@@ -541,7 +545,7 @@ pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
             tokio::time::sleep(std::time::Duration::from_millis(200)).await;
         }
 
-        match extract_single_youtube_stream(&yt_client, video_id, *position).await {
+        match extract_single_youtube_stream(video_id, *position).await {
             Ok(stream) => streams.push(stream),
             Err(e) => {
                 log::warn!("Failed to extract stream for YouTube video {video_id}: {e}");
@@ -559,78 +563,149 @@ pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
 }
 
 /// Extract a single video's audio stream URL via the youtubei player API.
-async fn extract_single_youtube_stream(
-    client: &reqwest::Client,
-    video_id: &str,
-    position: i32,
-) -> Result<StreamInfo> {
-    let player = metadata::fetch_yt_player_response(client, video_id).await?;
+///
+/// Tries each YouTube client configuration in [`metadata::YT_CLIENTS`] until one
+/// returns a playable response with audio streams.
+async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Result<StreamInfo> {
+    let mut last_error = CrateError::Discovery(format!(
+        "All YouTube clients failed for video {video_id}"
+    ));
 
-    // Check playability
-    let status = player
-        .get("playabilityStatus")
-        .and_then(|ps| ps.get("status"))
-        .and_then(|s| s.as_str())
-        .unwrap_or("UNKNOWN");
+    for config in metadata::YT_CLIENTS {
+        let client = match metadata::build_yt_client_with_config(config) {
+            Ok(c) => c,
+            Err(e) => {
+                log::warn!(
+                    "YouTube {} client build failed: {e}",
+                    config.client_name,
+                );
+                last_error = e;
+                continue;
+            }
+        };
 
-    if status != "OK" {
-        if let Some(ps) = player.get("playabilityStatus") {
-            log::warn!("YouTube video {video_id} playabilityStatus: {ps}");
-        }
-        let reason = player
+        let player = match metadata::fetch_yt_player_response_with_config(
+            &client, video_id, config,
+        )
+        .await
+        {
+            Ok(p) => p,
+            Err(e) => {
+                log::warn!(
+                    "YouTube {} client fetch failed for {video_id}: {e}",
+                    config.client_name,
+                );
+                last_error = e;
+                continue;
+            }
+        };
+
+        // Check playability
+        let status = player
             .get("playabilityStatus")
-            .and_then(|ps| ps.get("reason"))
-            .and_then(|r| r.as_str())
-            .unwrap_or("Unknown reason");
-        return Err(CrateError::Discovery(format!(
-            "YouTube video {video_id} not playable: {reason}"
-        )));
+            .and_then(|ps| ps.get("status"))
+            .and_then(|s| s.as_str())
+            .unwrap_or("UNKNOWN");
+
+        if status != "OK" {
+            let reason = player
+                .get("playabilityStatus")
+                .and_then(|ps| ps.get("reason"))
+                .and_then(|r| r.as_str())
+                .unwrap_or("Unknown reason");
+            log::warn!(
+                "YouTube {} client returned {status} for {video_id}: {reason}",
+                config.client_name,
+            );
+            last_error = CrateError::Discovery(format!(
+                "YouTube video {video_id} not playable: {reason}"
+            ));
+            continue;
+        }
+
+        // Extract audio stream
+        let adaptive_formats = match player
+            .get("streamingData")
+            .and_then(|sd| sd.get("adaptiveFormats"))
+            .and_then(|af| af.as_array())
+        {
+            Some(af) => af,
+            None => {
+                log::warn!(
+                    "YouTube {} client returned OK but no adaptive formats for {video_id}",
+                    config.client_name,
+                );
+                last_error = CrateError::Discovery(format!(
+                    "No adaptive formats found for YouTube video {video_id}"
+                ));
+                continue;
+            }
+        };
+
+        // Prefer itag 140 (audio/mp4 AAC 128kbps), fall back to any audio format with direct URL
+        let stream = adaptive_formats
+            .iter()
+            .find(|f| {
+                f.get("itag").and_then(|i| i.as_u64()) == Some(140) && f.get("url").is_some()
+            })
+            .or_else(|| {
+                adaptive_formats.iter().find(|f| {
+                    f.get("mimeType")
+                        .and_then(|m| m.as_str())
+                        .is_some_and(|m| m.starts_with("audio/"))
+                        && f.get("url").is_some()
+                })
+            });
+
+        let stream = match stream {
+            Some(s) => s,
+            None => {
+                log::warn!(
+                    "YouTube {} client returned no audio streams for {video_id}",
+                    config.client_name,
+                );
+                last_error = CrateError::Discovery(format!(
+                    "No audio stream found for YouTube video {video_id}"
+                ));
+                continue;
+            }
+        };
+
+        let stream_url = match stream.get("url").and_then(|u| u.as_str()) {
+            Some(url) => url,
+            None => {
+                log::warn!(
+                    "YouTube {} client stream requires signature deciphering for {video_id}",
+                    config.client_name,
+                );
+                last_error = CrateError::Discovery(format!(
+                    "YouTube video {video_id} requires signature deciphering (not supported)"
+                ));
+                continue;
+            }
+        };
+
+        log::info!(
+            "YouTube {} client succeeded for {video_id}",
+            config.client_name,
+        );
+
+        let expires_at = parse_youtube_expiry(stream_url);
+        let proxy_ua = if config.browser_compatible {
+            None
+        } else {
+            Some(config.user_agent.to_string())
+        };
+
+        return Ok(StreamInfo {
+            track_position: position,
+            stream_url: stream_url.to_string(),
+            expires_at,
+            proxy_ua,
+        });
     }
 
-    let adaptive_formats = player
-        .get("streamingData")
-        .and_then(|sd| sd.get("adaptiveFormats"))
-        .and_then(|af| af.as_array())
-        .ok_or_else(|| {
-            CrateError::Discovery(format!(
-                "No adaptive formats found for YouTube video {video_id}"
-            ))
-        })?;
-
-    // Prefer itag 140 (audio/mp4 AAC 128kbps), fall back to any audio format with direct URL
-    let stream = adaptive_formats
-        .iter()
-        .find(|f| {
-            f.get("itag").and_then(|i| i.as_u64()) == Some(140) && f.get("url").is_some()
-        })
-        .or_else(|| {
-            adaptive_formats.iter().find(|f| {
-                f.get("mimeType")
-                    .and_then(|m| m.as_str())
-                    .is_some_and(|m| m.starts_with("audio/"))
-                    && f.get("url").is_some()
-            })
-        })
-        .ok_or_else(|| {
-            CrateError::Discovery(format!(
-                "No audio stream found for YouTube video {video_id}"
-            ))
-        })?;
-
-    // Skip streams that require signature deciphering (no direct URL)
-    let stream_url = stream.get("url").and_then(|u| u.as_str()).ok_or_else(|| {
-        CrateError::Discovery(format!(
-            "YouTube video {video_id} requires signature deciphering (not supported)"
-        ))
-    })?;
-
-    let expires_at = parse_youtube_expiry(stream_url);
-
-    Ok(StreamInfo {
-        track_position: position,
-        stream_url: stream_url.to_string(),
-        expires_at,
-    })
+    Err(last_error)
 }
 
 /// Parse expiry from a YouTube stream URL's `expire=` query parameter.

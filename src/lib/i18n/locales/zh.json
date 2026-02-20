@@ -522,6 +522,7 @@
 		"quit": "退出 {appName}",
 		"importTracks": "导入曲目...",
 		"addRelease": "添加发行...",
+		"refreshMetadata": "刷新元数据",
 		"newPlaylist": "新建播放列表",
 		"newFolder": "新建文件夹",
 		"quickExport": "快速导出...",

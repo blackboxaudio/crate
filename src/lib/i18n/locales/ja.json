@@ -523,6 +523,7 @@
 		"quit": "{appName}を終了",
 		"importTracks": "トラックをインポート...",
 		"addRelease": "リリースを追加...",
+		"refreshMetadata": "メタデータを更新",
 		"newPlaylist": "新しいプレイリスト",
 		"newFolder": "新しいフォルダ",
 		"quickExport": "クイックエクスポート...",

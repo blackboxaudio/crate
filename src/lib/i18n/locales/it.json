@@ -522,6 +522,7 @@
 		"quit": "Esci da {appName}",
 		"importTracks": "Importa tracce...",
 		"addRelease": "Aggiungi release...",
+		"refreshMetadata": "Aggiorna metadati",
 		"newPlaylist": "Nuova playlist",
 		"newFolder": "Nuova cartella",
 		"quickExport": "Esportazione rapida...",

@@ -522,6 +522,7 @@
 		"quit": "{appName} afsluiten",
 		"importTracks": "Tracks importeren...",
 		"addRelease": "Release toevoegen...",
+		"refreshMetadata": "Metagegevens vernieuwen",
 		"newPlaylist": "Nieuwe afspeellijst",
 		"newFolder": "Nieuwe map",
 		"quickExport": "Snelle export...",

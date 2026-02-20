@@ -522,6 +522,7 @@
 		"quit": "{appName} 종료",
 		"importTracks": "트랙 가져오기...",
 		"addRelease": "릴리스 추가...",
+		"refreshMetadata": "메타데이터 새로 고침",
 		"newPlaylist": "새 재생목록",
 		"newFolder": "새 폴더",
 		"quickExport": "빠른 내보내기...",

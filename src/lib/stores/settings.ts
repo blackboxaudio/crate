@@ -172,6 +172,7 @@ function createSettingsStore() {
 			// File menu items
 			importTracks: t('menu.importTracks'),
 			addRelease: t('menu.addRelease'),
+			refreshMetadata: t('menu.refreshMetadata'),
 			newPlaylist: t('menu.newPlaylist'),
 			newFolder: t('menu.newFolder'),
 			quickExport: t('menu.quickExport'),

@@ -30,6 +30,7 @@ export interface KeyboardShortcutHandlers {
 	onJumpToPlayingTrack: () => void
 	onToggleView: () => void
 	onAddRelease: () => void
+	onRefreshMetadata: () => void
 	isModalOpen?: () => boolean
 }
 
@@ -66,6 +67,7 @@ export interface KeyboardShortcutHandlers {
  * - Cmd/Ctrl+J: jump to playing track
  * - Shift+Tab: toggle between Library and Discovery views
  * - Cmd/Ctrl+D: add release (handled by native menu)
+ * - Cmd/Ctrl+R: refresh metadata for selected discovery releases
  *
  * @returns Cleanup function to remove the event listener
  */
@@ -96,6 +98,7 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		onJumpToPlayingTrack,
 		onToggleView,
 		onAddRelease,
+		onRefreshMetadata,
 		isModalOpen,
 	} = handlers
 
@@ -172,6 +175,12 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
 			e.preventDefault()
 			onJumpToPlayingTrack()
+		}
+
+		// Cmd/Ctrl+R: refresh metadata for selected discovery releases
+		if ((e.metaKey || e.ctrlKey) && e.key === 'r' && !inputFocused) {
+			e.preventDefault()
+			onRefreshMetadata()
 		}
 
 		// Delete/Backspace: remove selected tracks (when not typing)

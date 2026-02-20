@@ -225,5 +225,9 @@ CREATE TABLE discovery_sc_client_id_cache (
     fetched_at TEXT    NOT NULL
 );
 "#,
+        // Migration 2: Add proxy_ua column to stream cache for YouTube UA-proxied streams
+        r#"
+ALTER TABLE discovery_stream_cache ADD COLUMN proxy_ua TEXT;
+"#,
     ]
 }

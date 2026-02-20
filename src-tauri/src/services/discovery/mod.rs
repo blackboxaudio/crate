@@ -1,6 +1,7 @@
 pub mod metadata;
 pub mod streams;
 
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
@@ -10,17 +11,30 @@ use crate::models::{
     DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate,
     DiscoveryTrack, DiscoveryTrackCreate, Tag,
 };
+use crate::services::ArtworkService;
 
 use metadata::FetchedTrack;
 use streams::StreamInfo;
 
+pub struct CachedStream {
+    pub stream_url: String,
+    pub proxy_ua: Option<String>,
+}
+
 pub struct DiscoveryService {
     conn: Arc<Mutex<Connection>>,
+    artwork_service: ArtworkService,
+    app_data_dir: PathBuf,
 }
 
 impl DiscoveryService {
-    pub fn new(conn: Arc<Mutex<Connection>>) -> Self {
-        Self { conn }
+    pub fn new(conn: Arc<Mutex<Connection>>, app_data_dir: PathBuf) -> Self {
+        let artwork_service = ArtworkService::new(app_data_dir.clone());
+        Self { conn, artwork_service, app_data_dir }
+    }
+
+    pub fn app_data_dir(&self) -> PathBuf {
+        self.app_data_dir.clone()
     }
 
     pub fn create_release(&self, create: DiscoveryReleaseCreate) -> Result<DiscoveryRelease> {
@@ -412,6 +426,45 @@ impl DiscoveryService {
         self.get_release(id)
     }
 
+    pub fn set_release_artwork(&self, id: &str, file_path: &std::path::Path) -> Result<DiscoveryRelease> {
+        let relative_path = self
+            .artwork_service
+            .save_from_file(file_path, id)
+            .ok_or_else(|| CrateError::Artwork("Failed to save artwork".to_string()))?;
+
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE discovery_releases SET artwork_path = ?1, date_modified = ?2 WHERE id = ?3",
+            rusqlite::params![relative_path, now, id],
+        )?;
+
+        drop(conn);
+        self.get_release(id)
+    }
+
+    pub fn delete_release_artwork(&self, id: &str) -> Result<DiscoveryRelease> {
+        self.artwork_service.delete(id);
+
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE discovery_releases SET artwork_path = NULL, date_modified = ?1 WHERE id = ?2",
+            rusqlite::params![now, id],
+        )?;
+
+        drop(conn);
+        self.get_release(id)
+    }
+
     pub fn delete_release(&self, id: &str) -> Result<()> {
         let conn = self
             .conn
@@ -758,12 +811,12 @@ impl DiscoveryService {
         self.conn.clone()
     }
 
-    /// Get a cached stream URL for a specific track position, if it exists and hasn't expired.
+    /// Get a cached stream for a specific track position, if it exists and hasn't expired.
     pub fn get_cached_stream(
         &self,
         release_id: &str,
         track_position: i32,
-    ) -> Result<Option<String>> {
+    ) -> Result<Option<CachedStream>> {
         let conn = self
             .conn
             .lock()
@@ -771,14 +824,19 @@ impl DiscoveryService {
 
         let now = chrono::Utc::now().to_rfc3339();
         let result = conn.query_row(
-            "SELECT stream_url FROM discovery_stream_cache
+            "SELECT stream_url, proxy_ua FROM discovery_stream_cache
              WHERE release_id = ?1 AND track_position = ?2 AND expires_at > ?3",
             rusqlite::params![release_id, track_position, now],
-            |row| row.get::<_, String>(0),
+            |row| {
+                Ok(CachedStream {
+                    stream_url: row.get(0)?,
+                    proxy_ua: row.get(1)?,
+                })
+            },
         );
 
         match result {
-            Ok(url) => Ok(Some(url)),
+            Ok(cached) => Ok(Some(cached)),
             Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
             Err(e) => Err(CrateError::Database(e)),
         }
@@ -793,13 +851,14 @@ impl DiscoveryService {
 
         for stream in streams {
             conn.execute(
-                "INSERT OR REPLACE INTO discovery_stream_cache (release_id, track_position, stream_url, expires_at)
-                 VALUES (?1, ?2, ?3, ?4)",
+                "INSERT OR REPLACE INTO discovery_stream_cache (release_id, track_position, stream_url, expires_at, proxy_ua)
+                 VALUES (?1, ?2, ?3, ?4, ?5)",
                 rusqlite::params![
                     release_id,
                     stream.track_position,
                     stream.stream_url,
                     stream.expires_at,
+                    stream.proxy_ua,
                 ],
             )?;
         }

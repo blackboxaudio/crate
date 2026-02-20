@@ -3,7 +3,7 @@
 	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import { AlbumArt, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
-	import { dateFormat, dragStore, isDraggingTag } from '$lib/stores'
+	import { dateFormat, dragStore, isDraggingTag, refreshingReleaseIds } from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$lib/stores/player'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
@@ -119,7 +119,7 @@
 >
 	<!-- Expand toggle -->
 	<div class="flex items-center justify-center">
-		{#if $previewLoadingReleaseId === release.id}
+		{#if $previewLoadingReleaseId === release.id || $refreshingReleaseIds.has(release.id)}
 			<Spinner class="h-3.5 w-3.5" />
 		{:else if release.tracks.length > 0}
 			<IconButton

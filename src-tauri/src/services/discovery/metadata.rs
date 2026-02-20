@@ -662,19 +662,67 @@ pub(super) fn parse_youtube_url(url: &str) -> YouTubeUrl {
     }
 }
 
-/// Build a reqwest client with YouTube TV user-agent.
-pub(super) fn build_yt_client() -> Result<reqwest::Client> {
+/// YouTube innertube client configuration for the player API.
+pub(super) struct YtClientConfig {
+    pub client_name: &'static str,
+    pub client_id: &'static str,
+    pub client_version: &'static str,
+    pub user_agent: &'static str,
+    /// Whether stream URLs from this client work in a browser/WebView Audio element
+    /// without requiring the matching user-agent on the CDN request.
+    pub browser_compatible: bool,
+}
+
+/// Fallback chain of YouTube innertube clients, ordered by preference.
+///
+/// WEB_EMBEDDED first because its stream URLs contain `&c=WEB_EMBEDDED` and work
+/// directly in a browser/WebView Audio element (standard Chrome UA matches).
+/// Non-browser-compatible clients (IOS, TVHTML5) require proxying via `crate-stream://`
+/// because YouTube's CDN validates the user-agent against the client type in the signed URL.
+pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
+    YtClientConfig {
+        client_name: "WEB_EMBEDDED",
+        client_id: "56",
+        client_version: "1.20250120.00.00",
+        user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        browser_compatible: true,
+    },
+    YtClientConfig {
+        client_name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
+        client_id: "85",
+        client_version: "2.0",
+        user_agent: "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version",
+        browser_compatible: false,
+    },
+    YtClientConfig {
+        client_name: "IOS",
+        client_id: "5",
+        client_version: "19.45.4",
+        user_agent:
+            "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
+        browser_compatible: false,
+    },
+];
+
+/// Build a reqwest client with a specific YouTube client config's user-agent.
+pub(super) fn build_yt_client_with_config(config: &YtClientConfig) -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
-        .user_agent("Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version")
+        .user_agent(config.user_agent)
         .build()
         .map_err(|e| CrateError::Discovery(format!("Failed to create YouTube client: {e}")))
 }
 
-/// Call YouTube's internal player API to get video data.
-pub(super) async fn fetch_yt_player_response(
+/// Build a reqwest client using the primary YouTube client config.
+pub(super) fn build_yt_client() -> Result<reqwest::Client> {
+    build_yt_client_with_config(&YT_CLIENTS[0])
+}
+
+/// Call YouTube's internal player API with a specific client configuration.
+pub(super) async fn fetch_yt_player_response_with_config(
     client: &reqwest::Client,
     video_id: &str,
+    config: &YtClientConfig,
 ) -> Result<serde_json::Value> {
     let body = serde_json::json!({
         "videoId": video_id,
@@ -682,8 +730,8 @@ pub(super) async fn fetch_yt_player_response(
         "racyCheckOk": true,
         "context": {
             "client": {
-                "clientName": "TVHTML5",
-                "clientVersion": "7.20250120.10.00"
+                "clientName": config.client_name,
+                "clientVersion": config.client_version,
             }
         }
     });
@@ -691,8 +739,8 @@ pub(super) async fn fetch_yt_player_response(
     client
         .post("https://www.youtube.com/youtubei/v1/player")
         .header("Origin", "https://www.youtube.com")
-        .header("X-YouTube-Client-Name", "7")
-        .header("X-YouTube-Client-Version", "7.20250120.10.00")
+        .header("X-YouTube-Client-Name", config.client_id)
+        .header("X-YouTube-Client-Version", config.client_version)
         .json(&body)
         .send()
         .await
@@ -702,6 +750,14 @@ pub(super) async fn fetch_yt_player_response(
         .map_err(|e| {
             CrateError::Discovery(format!("Failed to parse YouTube player response: {e}"))
         })
+}
+
+/// Call YouTube's internal player API using the primary client config.
+pub(super) async fn fetch_yt_player_response(
+    client: &reqwest::Client,
+    video_id: &str,
+) -> Result<serde_json::Value> {
+    fetch_yt_player_response_with_config(client, video_id, &YT_CLIENTS[0]).await
 }
 
 /// Extract `var ytInitialData = {...}` from YouTube page HTML.
@@ -884,7 +940,7 @@ async fn fetch_youtube_playlist(
     // Use first video's thumbnail as artwork
     let artwork_url = videos
         .first()
-        .map(|v| format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", v.video_id));
+        .map(|v| format!("https://i.ytimg.com/vi/{}/mqdefault.jpg", v.video_id));
 
     let raw_tracks: Vec<FetchedTrack> = videos
         .into_iter()
@@ -998,10 +1054,7 @@ async fn fetch_youtube_single(
         .and_then(|a| a.as_str())
         .map(|s| s.to_string());
 
-    let artwork_url = resp
-        .get("thumbnail_url")
-        .and_then(|t| t.as_str())
-        .map(|s| s.to_string());
+    let artwork_url = Some(format!("https://i.ytimg.com/vi/{video_id}/mqdefault.jpg"));
 
     // Get duration from youtubei player API
     let duration_ms = match build_yt_client() {

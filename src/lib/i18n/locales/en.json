@@ -523,6 +523,7 @@
 		"quit": "Quit {appName}",
 		"importTracks": "Import Tracks...",
 		"addRelease": "Add Release...",
+		"refreshMetadata": "Refresh Metadata",
 		"newPlaylist": "New Playlist",
 		"newFolder": "New Folder",
 		"quickExport": "Quick Export...",

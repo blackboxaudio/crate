@@ -9,6 +9,7 @@ use crate::models::{
 };
 use crate::services::discovery::metadata::{self, FetchedMetadata};
 use crate::services::discovery::streams;
+use crate::services::discovery::CachedStream;
 use crate::services::{DiscoveryService, LibraryService, TagService};
 
 #[tauri::command]
@@ -23,11 +24,12 @@ pub async fn create_discovery_release(
         && !release.tracks.is_empty()
     {
         let conn = discovery.connection();
+        let app_data_dir = discovery.app_data_dir();
         let release_id = release.id.clone();
         let release_url = release.url.clone();
         let source_type = release.source_type.clone();
         tokio::spawn(async move {
-            let svc = DiscoveryService::new(conn);
+            let svc = DiscoveryService::new(conn, app_data_dir);
             if let Err(e) = prefetch_streams(&svc, &release_id, &release_url, &source_type).await {
                 log::warn!("Background stream prefetch failed for {release_id}: {e}");
             }
@@ -70,8 +72,8 @@ pub async fn fetch_preview_stream(
     discovery: State<'_, DiscoveryService>,
 ) -> Result<String> {
     // Check cache first
-    if let Some(url) = discovery.get_cached_stream(&release_id, track_position)? {
-        return Ok(url);
+    if let Some(cached) = discovery.get_cached_stream(&release_id, track_position)? {
+        return Ok(resolve_stream_url(&cached, &release_id, track_position));
     }
 
     // Get release to determine source type and URL
@@ -97,16 +99,30 @@ pub async fn fetch_preview_stream(
     // Cache all extracted streams
     discovery.cache_streams(&release_id, &stream_infos)?;
 
-    // Return the requested track's URL
-    stream_infos
+    // Return the requested track's URL (direct or proxied)
+    let stream = stream_infos
         .iter()
         .find(|s| s.track_position == track_position)
-        .map(|s| s.stream_url.clone())
         .ok_or_else(|| {
             CrateError::Discovery(format!(
                 "No stream found for track position {track_position}"
             ))
-        })
+        })?;
+
+    let cached = CachedStream {
+        stream_url: stream.stream_url.clone(),
+        proxy_ua: stream.proxy_ua.clone(),
+    };
+    Ok(resolve_stream_url(&cached, &release_id, track_position))
+}
+
+/// Return a `crate-stream://` proxy URL when the stream requires a specific user-agent,
+/// or the raw stream URL when it can be played directly by the HTML5 Audio element.
+fn resolve_stream_url(cached: &CachedStream, release_id: &str, track_position: i32) -> String {
+    match &cached.proxy_ua {
+        Some(_) => format!("crate-stream://localhost/{release_id}/{track_position}"),
+        None => cached.stream_url.clone(),
+    }
 }
 
 #[tauri::command]
@@ -238,6 +254,23 @@ pub async fn refresh_release_metadata(
     }
 
     discovery.update_release(&id, update)
+}
+
+#[tauri::command]
+pub async fn set_discovery_release_artwork(
+    release_id: String,
+    file_path: String,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<DiscoveryRelease> {
+    discovery.set_release_artwork(&release_id, &PathBuf::from(file_path))
+}
+
+#[tauri::command]
+pub async fn delete_discovery_release_artwork(
+    release_id: String,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<DiscoveryRelease> {
+    discovery.delete_release_artwork(&release_id)
 }
 
 #[tauri::command]

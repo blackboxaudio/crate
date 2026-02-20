@@ -50,6 +50,7 @@ export interface MenuTranslations {
 	// File menu items
 	importTracks: string
 	addRelease: string
+	refreshMetadata: string
 	newPlaylist: string
 	newFolder: string
 	quickExport: string

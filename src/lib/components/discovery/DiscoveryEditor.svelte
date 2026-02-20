@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { discoveryStore } from '$lib/stores/discovery'
+	import { discoveryStore, refreshingReleaseIds } from '$lib/stores/discovery'
 	import { dateFormat } from '$lib/stores/settings'
 	import { uiStore } from '$lib/stores/ui'
 	import { toastStore } from '$lib/stores/toast'
@@ -7,11 +7,10 @@
 	import type { DiscoveryRelease, DiscoveryReleaseUpdate } from '$lib/types'
 	import Button from '$lib/components/common/Button.svelte'
 	import IconButton from '$lib/components/common/IconButton.svelte'
-	import Spinner from '$lib/components/common/Spinner.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import EditorField from '$lib/components/editor/EditorField.svelte'
-	import { EditorTextArea } from '$lib/components/editor'
+	import { EditorTextArea, EditorArtwork } from '$lib/components/editor'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
 
@@ -29,16 +28,11 @@
 	let formData = $state<Partial<DiscoveryReleaseUpdate>>({})
 	let saving = $state(false)
 	let pendingSave = $state(false)
-	let refreshing = $state(false)
+	let refreshing = $derived(selectedReleases.length === 1 && $refreshingReleaseIds.has(selectedReleases[0].id))
 
 	async function handleRefreshMetadata() {
 		if (refreshing || selectedReleases.length !== 1) return
-		refreshing = true
-		try {
-			await discoveryStore.refreshMetadata(selectedReleases[0].id)
-		} finally {
-			refreshing = false
-		}
+		await discoveryStore.refreshMetadata(selectedReleases[0].id)
 	}
 
 	// Reset form when selection changes
@@ -105,19 +99,36 @@
 		uiStore.setRightSidebarVisible(false)
 	}
 
+	async function handleArtworkAdd(filePath: string) {
+		for (const release of selectedReleases) {
+			await discoveryStore.setArtwork(release.id, filePath)
+		}
+	}
+
+	async function handleArtworkRemove() {
+		for (const release of selectedReleases) {
+			await discoveryStore.deleteArtwork(release.id)
+		}
+	}
+
 	// Helper to compute bulk release info
 	function computeBulkReleaseInfo(releases: DiscoveryRelease[]) {
 		function computeValue<T>(getter: (r: DiscoveryRelease) => T | null): {
 			value: T | null
 			mixed: boolean
+			count: number
 		} {
 			const values = releases.map(getter)
 			const nonNull = values.filter((v): v is T => v !== null)
-			if (nonNull.length === 0) return { value: null, mixed: false }
+			if (nonNull.length === 0) return { value: null, mixed: false, count: 0 }
 			const first = nonNull[0]
 			const allSame = nonNull.every((v) => v === first)
-			if (allSame && nonNull.length === releases.length) return { value: first, mixed: false }
-			return { value: allSame ? first : null, mixed: !allSame || nonNull.length !== releases.length }
+			if (allSame && nonNull.length === releases.length) return { value: first, mixed: false, count: nonNull.length }
+			return {
+				value: allSame ? first : null,
+				mixed: !allSame || nonNull.length !== releases.length,
+				count: nonNull.length,
+			}
 		}
 
 		return {
@@ -127,6 +138,7 @@
 			releaseDate: computeValue((r) => r.release_date),
 			notes: computeValue((r) => r.notes),
 			artworkUrl: computeValue((r) => r.artwork_url),
+			artworkPath: computeValue((r) => r.artwork_path),
 		}
 	}
 </script>
@@ -141,13 +153,14 @@
 		</Text>
 		<div class="flex items-center gap-1">
 			{#if selectedReleases.length === 1}
-				{#if refreshing}
-					<Spinner class="mx-1.5 h-3.5 w-3.5" />
-				{:else}
-					<Tooltip text={$translate('discovery.refreshMetadata')} position="bottom" delay={250}>
-						<IconButton icon="refresh" size="sm" onclick={handleRefreshMetadata} />
-					</Tooltip>
-				{/if}
+				<Tooltip text={$translate('discovery.refreshMetadata')} position="bottom" delay={250}>
+					<IconButton
+						icon="refresh"
+						size="sm"
+						iconClass={refreshing ? 'animate-spin h-4 w-4' : ''}
+						onclick={handleRefreshMetadata}
+					/>
+				</Tooltip>
 			{/if}
 			<Tooltip text={$translate('common.close')} position="bottom" delay={250}>
 				<IconButton icon="x" size="sm" onclick={handleClose} />
@@ -157,12 +170,16 @@
 
 	<!-- Scrollable content -->
 	<div class="flex-1 space-y-6 overflow-y-auto p-4">
-		<!-- Artwork (read-only, from URL) -->
-		{#if selectedReleases.length === 1 && bulkInfo.artworkUrl.value}
-			<div class="flex justify-center">
-				<img src={bulkInfo.artworkUrl.value} alt="Release artwork" class="h-48 w-48 rounded-md object-cover" />
-			</div>
-		{/if}
+		<!-- Artwork -->
+		<EditorArtwork
+			artworkPath={bulkInfo.artworkPath}
+			artworkSource={{ value: null, mixed: false, count: 0 }}
+			trackCount={selectedReleases.length}
+			artworkUrl={bulkInfo.artworkUrl.mixed ? null : bulkInfo.artworkUrl.value}
+			onAdd={handleArtworkAdd}
+			onRemove={handleArtworkRemove}
+			onReextract={() => {}}
+		/>
 
 		<!-- Divider -->
 		<div class="border-t border-stroke"></div>

@@ -77,6 +77,14 @@ export async function invalidatePreviewStreamCache(releaseId: string): Promise<v
 	return invoke<void>('invalidate_preview_stream_cache', { releaseId })
 }
 
+export async function setDiscoveryReleaseArtwork(id: string, filePath: string): Promise<DiscoveryRelease> {
+	return invoke<DiscoveryRelease>('set_discovery_release_artwork', { releaseId: id, filePath })
+}
+
+export async function deleteDiscoveryReleaseArtwork(id: string): Promise<DiscoveryRelease> {
+	return invoke<DiscoveryRelease>('delete_discovery_release_artwork', { releaseId: id })
+}
+
 export async function purchaseRelease(
 	releaseId: string,
 	filePaths: string[],

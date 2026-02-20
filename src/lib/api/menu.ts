@@ -7,6 +7,7 @@ export type MenuAction =
 	// File menu
 	| 'import_tracks'
 	| 'add_release'
+	| 'refresh_metadata'
 	| 'new_playlist'
 	| 'new_folder'
 	| 'quick_export'

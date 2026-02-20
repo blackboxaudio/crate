@@ -42,6 +42,7 @@ pub struct MenuTranslations {
     // File menu items
     pub import_tracks: String,
     pub add_release: String,
+    pub refresh_metadata: String,
     pub new_playlist: String,
     pub new_folder: String,
     pub quick_export: String,
@@ -108,6 +109,7 @@ pub mod ids {
     // File menu items
     pub const IMPORT_TRACKS: &str = "import_tracks";
     pub const ADD_RELEASE: &str = "add_release";
+    pub const REFRESH_METADATA: &str = "refresh_metadata";
     pub const NEW_PLAYLIST: &str = "new_playlist";
     pub const NEW_FOLDER: &str = "new_folder";
     pub const QUICK_EXPORT: &str = "quick_export";
@@ -220,6 +222,13 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
             "Add Release...",
             true,
             Some("CmdOrCtrl+D"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::REFRESH_METADATA,
+            "Refresh Metadata",
+            false,
+            Some("CmdOrCtrl+R"),
         )?)
         .separator()
         .item(&MenuItem::with_id(
@@ -575,6 +584,7 @@ pub fn update_menu_translations(
     // Update File menu items
     update_item_text(&menu, ids::IMPORT_TRACKS, &translations.import_tracks)?;
     update_item_text(&menu, ids::ADD_RELEASE, &translations.add_release)?;
+    update_item_text(&menu, ids::REFRESH_METADATA, &translations.refresh_metadata)?;
     update_item_text(&menu, ids::NEW_PLAYLIST, &translations.new_playlist)?;
     update_item_text(&menu, ids::NEW_FOLDER, &translations.new_folder)?;
     update_item_text(&menu, ids::QUICK_EXPORT, &translations.quick_export)?;

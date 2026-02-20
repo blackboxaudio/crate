@@ -329,6 +329,11 @@
 		}
 	})
 
+	// Enable/disable Refresh Metadata menu item based on view and selection
+	$effect(() => {
+		setMenuItemEnabled('refresh_metadata', $activeView === 'discovery' && $selectedReleaseIds.size > 0)
+	})
+
 	// =============================================================================
 	// Now Playing Sync
 	// =============================================================================
@@ -628,6 +633,12 @@
 				}
 				showAddReleaseModal = true
 			},
+			onRefreshMetadata: async () => {
+				if ($activeView !== 'discovery') return
+				const ids = [...$selectedReleaseIds]
+				if (ids.length === 0) return
+				await Promise.all(ids.map((id) => discoveryStore.refreshMetadata(id)))
+			},
 		})
 
 		// Set up menu action listener
@@ -685,6 +696,11 @@
 			onToggleEditor: () => uiStore.toggleRightSidebar(),
 			onExpandAllReleases: () => discoveryViewRef?.expandAll(),
 			onCollapseAllReleases: () => discoveryViewRef?.collapseAll(),
+			onRefreshMetadata: async () => {
+				const ids = [...$selectedReleaseIds]
+				if (ids.length === 0) return
+				await Promise.all(ids.map((id) => discoveryStore.refreshMetadata(id)))
+			},
 		})
 
 		// Set up media key listeners (OS-level via souvlaki)

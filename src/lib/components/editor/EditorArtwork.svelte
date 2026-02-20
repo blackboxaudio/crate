@@ -10,6 +10,7 @@
 		artworkSource: BulkEditValue<ArtworkSource>
 		trackCount: number
 		resolvedArtworkPath?: string | null
+		artworkUrl?: string | null
 		onAdd: (filePath: string) => void
 		onRemove: () => void
 		onReextract: () => void
@@ -20,6 +21,7 @@
 		artworkSource,
 		trackCount,
 		resolvedArtworkPath = null,
+		artworkUrl = null,
 		onAdd,
 		onRemove,
 		onReextract,
@@ -48,7 +50,7 @@
 
 <div class="flex w-full flex-col items-center gap-3">
 	<div class="relative w-full">
-		<AlbumArt artworkPath={displayPath} size="lg" class="rounded-lg" />
+		<AlbumArt artworkPath={displayPath} artworkUrl={artworkUrl ?? undefined} size="lg" class="rounded-lg" />
 		{#if artworkPath.mixed && !resolvedArtworkPath}
 			<div
 				class="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-0/80 text-sm text-text-secondary"

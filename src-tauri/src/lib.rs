@@ -8,6 +8,7 @@ mod services;
 use std::sync::Arc;
 
 use db::Database;
+use error::CrateError;
 use services::{
     export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
     DiscoveryService, ExportService, LibraryService, MediaControlsService, PlaylistService,
@@ -25,6 +26,13 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .register_asynchronous_uri_scheme_protocol("crate-stream", |ctx, request, responder| {
+            let app_handle = ctx.app_handle().clone();
+            tauri::async_runtime::spawn(async move {
+                let response = handle_crate_stream_proxy(&app_handle, &request).await;
+                responder.respond(response);
+            });
+        })
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
@@ -141,6 +149,8 @@ pub fn run() {
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
             commands::discovery::invalidate_preview_stream_cache,
+            commands::discovery::set_discovery_release_artwork,
+            commands::discovery::delete_discovery_release_artwork,
             // Media controls commands
             commands::media_controls::update_now_playing,
             commands::media_controls::update_playback_state,
@@ -174,7 +184,7 @@ pub fn run() {
             let device_service = DeviceService::new();
             let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
             let analysis_service = AnalysisService::new(conn.clone());
-            let discovery_service = DiscoveryService::new(conn.clone());
+            let discovery_service = DiscoveryService::new(conn.clone(), app_data_dir.clone());
 
             // Load saved audio device setting
             if let Ok(settings) = settings_service.get_settings() {
@@ -216,4 +226,117 @@ pub fn run() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+/// Proxy handler for `crate-stream://` custom protocol.
+///
+/// YouTube stream URLs signed for non-browser clients (IOS, TVHTML5) contain a client
+/// identifier that YouTube's CDN validates against the requesting user-agent. The HTML5
+/// Audio element sends a browser UA, causing a 403. This handler fetches the stream
+/// server-side with the correct UA and forwards the bytes to the WebView.
+async fn handle_crate_stream_proxy(
+    app_handle: &tauri::AppHandle,
+    request: &tauri::http::Request<Vec<u8>>,
+) -> tauri::http::Response<Vec<u8>> {
+    match handle_crate_stream_proxy_inner(app_handle, request).await {
+        Ok(response) => response,
+        Err(e) => {
+            log::error!("crate-stream proxy error: {e}");
+            tauri::http::Response::builder()
+                .status(502)
+                .header("Content-Type", "text/plain")
+                .body(format!("Stream proxy error: {e}").into_bytes())
+                .unwrap()
+        }
+    }
+}
+
+async fn handle_crate_stream_proxy_inner(
+    app_handle: &tauri::AppHandle,
+    request: &tauri::http::Request<Vec<u8>>,
+) -> error::Result<tauri::http::Response<Vec<u8>>> {
+    // Parse path: /{release_id}/{track_position}
+    let path = request.uri().path();
+    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+    if segments.len() != 2 {
+        return Ok(tauri::http::Response::builder()
+            .status(400)
+            .header("Content-Type", "text/plain")
+            .body(b"Expected path: /{release_id}/{track_position}".to_vec())
+            .unwrap());
+    }
+
+    let release_id = segments[0];
+    let track_position: i32 = segments[1].parse().map_err(|_| {
+        CrateError::Discovery("Invalid track position in proxy URL".into())
+    })?;
+
+    // Look up cached stream (must exist — the command layer only returns crate-stream:// URLs
+    // when it has just cached the stream with a proxy_ua)
+    let discovery = app_handle.state::<DiscoveryService>();
+    let cached = discovery
+        .get_cached_stream(release_id, track_position)?
+        .ok_or_else(|| CrateError::Discovery("No cached stream for proxy request".into()))?;
+
+    let proxy_ua = cached.proxy_ua.ok_or_else(|| {
+        CrateError::Discovery("Cached stream has no proxy_ua — should use direct URL".into())
+    })?;
+
+    // Fetch the YouTube stream with the correct user-agent
+    let client = reqwest::Client::builder()
+        .user_agent(&proxy_ua)
+        .timeout(std::time::Duration::from_secs(60))
+        .build()
+        .map_err(|e| CrateError::Discovery(format!("Failed to build proxy client: {e}")))?;
+
+    let mut yt_request = client.get(&cached.stream_url);
+
+    // Forward Range header to support seeking in the Audio element
+    if let Some(range) = request.headers().get("Range") {
+        yt_request = yt_request.header("Range", range.to_str().unwrap_or(""));
+    }
+
+    let yt_response = yt_request
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube stream: {e}")))?;
+
+    if !yt_response.status().is_success() && yt_response.status().as_u16() != 206 {
+        return Ok(tauri::http::Response::builder()
+            .status(502)
+            .header("Content-Type", "text/plain")
+            .body(format!("YouTube CDN returned {}", yt_response.status()).into_bytes())
+            .unwrap());
+    }
+
+    let status = yt_response.status().as_u16();
+    let content_type = yt_response
+        .headers()
+        .get("Content-Type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("audio/mp4")
+        .to_string();
+    let content_range = yt_response
+        .headers()
+        .get("Content-Range")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
+
+    let bytes = yt_response
+        .bytes()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to read YouTube stream bytes: {e}")))?;
+
+    let mut builder = tauri::http::Response::builder()
+        .status(status)
+        .header("Content-Type", content_type)
+        .header("Access-Control-Allow-Origin", "*")
+        .header("Content-Length", bytes.len().to_string());
+
+    if let Some(cr) = content_range {
+        builder = builder.header("Content-Range", cr);
+    }
+
+    Ok(builder.body(bytes.to_vec()).unwrap())
 }

@@ -1,4 +1,4 @@
-import { writable, derived } from 'svelte/store'
+import { writable, derived, get } from 'svelte/store'
 import type {
 	DiscoveryRelease,
 	DiscoveryReleaseCreate,
@@ -9,6 +9,7 @@ import type {
 } from '$lib/types'
 import * as discoveryApi from '$lib/api/discovery'
 import { toastStore } from './toast'
+import { translate } from '$lib/i18n'
 
 // =============================================================================
 // State
@@ -20,6 +21,7 @@ interface DiscoveryState {
 	error: string | null
 	filter: DiscoveryFilter
 	sort: DiscoverySortConfig
+	refreshingIds: Set<string>
 }
 
 const initialState: DiscoveryState = {
@@ -31,6 +33,7 @@ const initialState: DiscoveryState = {
 		field: 'date_added',
 		direction: 'desc',
 	},
+	refreshingIds: new Set(),
 }
 
 // =============================================================================
@@ -134,6 +137,7 @@ function createDiscoveryStore() {
 		},
 
 		async refreshMetadata(id: string): Promise<DiscoveryRelease | null> {
+			update((state) => ({ ...state, refreshingIds: new Set([...state.refreshingIds, id]) }))
 			try {
 				const release = await discoveryApi.refreshMetadata(id)
 				update((state) => ({
@@ -146,6 +150,12 @@ function createDiscoveryStore() {
 					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to refresh metadata'
 				)
 				return null
+			} finally {
+				update((state) => {
+					const next = new Set(state.refreshingIds)
+					next.delete(id)
+					return { ...state, refreshingIds: next }
+				})
 			}
 		},
 
@@ -180,6 +190,30 @@ function createDiscoveryStore() {
 					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to import release'
 				)
 				return null
+			}
+		},
+
+		async setArtwork(id: string, filePath: string) {
+			try {
+				const release = await discoveryApi.setDiscoveryReleaseArtwork(id, filePath)
+				update((state) => ({
+					...state,
+					releases: state.releases.map((r) => (r.id === id ? release : r)),
+				}))
+			} catch (error) {
+				toastStore.error(get(translate)('toast.failedToSetArtwork'))
+			}
+		},
+
+		async deleteArtwork(id: string) {
+			try {
+				const release = await discoveryApi.deleteDiscoveryReleaseArtwork(id)
+				update((state) => ({
+					...state,
+					releases: state.releases.map((r) => (r.id === id ? release : r)),
+				}))
+			} catch (error) {
+				toastStore.error(get(translate)('toast.failedToRemoveArtwork'))
 			}
 		},
 
@@ -285,3 +319,5 @@ export const sortedReleases = derived(discoveryStore, ($discovery) => {
 export const releaseCount = derived(sortedReleases, ($releases) => $releases.length)
 
 export const isDiscoveryLoading = derived(discoveryStore, ($discovery) => $discovery.loading)
+
+export const refreshingReleaseIds = derived(discoveryStore, ($s) => $s.refreshingIds)

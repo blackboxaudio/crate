@@ -31,6 +31,7 @@ export interface MenuActionHandlers {
 	onToggleEditor: () => void
 	onExpandAllReleases: () => void
 	onCollapseAllReleases: () => void
+	onRefreshMetadata: () => void
 }
 
 // =============================================================================
@@ -86,6 +87,7 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 		onToggleEditor,
 		onExpandAllReleases,
 		onCollapseAllReleases,
+		onRefreshMetadata,
 	} = handlers
 
 	let unlistenMenu: UnlistenFn | null = null
@@ -106,6 +108,9 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				break
 			case 'add_release':
 				onAddRelease()
+				break
+			case 'refresh_metadata':
+				onRefreshMetadata()
 				break
 			case 'new_playlist':
 				onCreatePlaylist()
