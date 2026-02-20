@@ -44,6 +44,11 @@ pub async fn set_volume(volume: f32, audio: State<'_, AudioService>) -> Result<P
 }
 
 #[tauri::command]
+pub async fn set_speed(speed: f32, audio: State<'_, AudioService>) -> Result<PlaybackState> {
+    audio.set_speed(speed)
+}
+
+#[tauri::command]
 pub async fn get_playback_state(audio: State<'_, AudioService>) -> Result<PlaybackState> {
     audio.get_state()
 }

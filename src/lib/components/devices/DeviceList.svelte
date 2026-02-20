@@ -21,7 +21,7 @@
 <div class="p-2 pt-0">
 	<div class="flex items-center px-3 pb-1.5">
 		<Text variant="header-4">{$translate('devices.title')}</Text>
-		<Text variant="caption" class="ml-auto">{devices.length}</Text>
+		<Text variant="caption" class="mr-1 ml-auto">{devices.length}</Text>
 	</div>
 	<div class="space-y-0.5">
 		{#each devices as device (device.id)}

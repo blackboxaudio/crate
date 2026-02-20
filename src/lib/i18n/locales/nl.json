@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "Bibliotheek",
+		"discovery": "Ontdekkingen",
 		"playlists": "Afspeellijsten",
 		"tags": "Tags"
 	},
@@ -30,6 +31,7 @@
 		"tabs": {
 			"general": "Algemeen",
 			"library": "Bibliotheek",
+			"discovery": "Ontdekkingen",
 			"appearance": "Uiterlijk",
 			"sound": "Geluid",
 			"diagnostics": "Diagnostiek",
@@ -37,7 +39,14 @@
 		},
 		"general": {
 			"language": "Taal",
-			"languageDescription": "Kies de weergavetaal voor de applicatie."
+			"languageDescription": "Kies de weergavetaal voor de applicatie.",
+			"dateFormat": "Datumformaat",
+			"dateFormatDescription": "Kies hoe datums in de applicatie worden weergegeven.",
+			"dateFormatLocale": "Systeemstandaard",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "Europees (DD/MM/YYYY)",
+			"dateFormatDot": "Punt (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Analyse",
@@ -64,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "Voor OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metagegevens",
+			"autoFetchMetadata": "Metagegevens automatisch ophalen",
+			"autoFetchMetadataDescription": "Haalt automatisch release-metagegevens op wanneer een URL wordt toegevoegd.",
+			"import": "Importeren",
+			"transferTagsOnImport": "Tags bij import overdragen",
+			"transferTagsOnImportDescription": "Overdraag release-tags standaard naar geïmporteerde nummers.",
+			"removeReleaseAfterImport": "Release na import verwijderen",
+			"removeReleaseAfterImportDescription": "Verwijder automatisch releases uit ontdekkingen na het importeren van bestanden."
+		},
 		"appearance": {
 			"font": "Lettertype",
 			"fontDescription": "Kies het lettertype dat in de applicatie wordt gebruikt.",
@@ -78,7 +97,9 @@
 			"outputDeviceDescription": "Selecteer het audio-uitvoerapparaat voor afspelen.",
 			"systemDefault": "Systeemstandaard",
 			"system": "Systeem",
-			"external": "Extern"
+			"external": "Extern",
+			"continuousPlayback": "Doorlopend afspelen",
+			"continuousPlaybackDescription": "Speel automatisch het volgende nummer af wanneer het huidige eindigt."
 		},
 		"diagnostics": {
 			"systemInfo": "Systeeminformatie",
@@ -100,7 +121,11 @@
 		"about": {
 			"application": "Applicatie",
 			"version": "Versie",
-			"environment": "Omgeving"
+			"environment": "Omgeving",
+			"updates": "Updates",
+			"checkForUpdates": "Op updates controleren",
+			"upToDate": "Up-to-date",
+			"updateAvailable": "{version} beschikbaar"
 		}
 	},
 	"player": {
@@ -111,7 +136,10 @@
 		"next": "Volgende",
 		"mute": "Dempen",
 		"unmute": "Dempen opheffen",
-		"noTrackSelected": "Geen track geselecteerd"
+		"noTrackSelected": "Geen track geselecteerd",
+		"volume": "Volume",
+		"tempo": "Tempo",
+		"resetTempo": "Tempo resetten"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks zoeken...",
@@ -135,6 +163,64 @@
 		"item": "item",
 		"items": "items"
 	},
+	"discovery": {
+		"addRelease": "Release toevoegen",
+		"url": "URL",
+		"source": "Bron",
+		"release": "release",
+		"releases": "releases",
+		"noReleasesYet": "Nog geen releases",
+		"addReleaseHint": "Druk {shortcut} of sleep een URL hiernaartoe om releases van Bandcamp, SoundCloud, Discogs en meer toe te voegen",
+		"dropHint": "URL hier neerleggen om release toe te voegen",
+		"previewNotAvailable": "Voorbeeld niet beschikbaar voor deze bron",
+		"columns": {
+			"artistTitle": "Artiest / Titel",
+			"label": "Label",
+			"tags": "Tags",
+			"dateAdded": "Toegevoegd op",
+			"released": "Uitgebracht",
+			"added": "Toegevoegd"
+		},
+		"fetchingMetadata": "Metagegevens ophalen...",
+		"refreshMetadata": "Metagegevens vernieuwen",
+		"fetchError": "Kan metagegevens niet ophalen van deze URL",
+		"tracks": "Tracks",
+		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
+		"openInBrowser": "In browser openen",
+		"importToLibrary": "Importeren naar bibliotheek",
+		"deleteRelease": "Release verwijderen",
+		"deleteReleases": "Releases verwijderen",
+		"editor": {
+			"releaseInfo": "Release-info",
+			"releasesCount": "{count, plural, =1 {1 release} other {{count} releases}}",
+			"artist": "Artiest",
+			"title": "Titel",
+			"label": "Label",
+			"releaseDate": "Releasedatum",
+			"notes": "Opmerkingen"
+		},
+		"import": {
+			"title": "Importeren naar bibliotheek",
+			"selectFiles": "Bestanden selecteren",
+			"matched": "Gekoppeld",
+			"unmatched": "Niet gekoppeld",
+			"importAllFiles": "Alle bestanden importeren",
+			"transferTags": "Tags overdragen",
+			"transferTagsCount": "Tags overdragen ({count})",
+			"importing": "Importeren...",
+			"noFilesSelected": "Geen bestanden geselecteerd",
+			"filesSelected": "{count, plural, =1 {1 bestand} other {{count} bestanden}} geselecteerd"
+		},
+		"addToExisting": "Toevoegen aan bestaande",
+		"addAsNew": "Toevoegen als nieuwe release",
+		"matchFound": "Dit nummer is onderdeel van {albumTitle} wat al in uw ontdekkingslijst staat",
+		"similarFound": "Een vergelijkbare release bestaat al: {title} van {artist}",
+		"mergeReleases": "Releases samenvoegen",
+		"mergeConfirm": "Metagegevens behouden van:",
+		"mergeTrackCount": "{count, plural, =1 {1 nummer} other {{count} nummers}} gecombineerd",
+		"expandAll": "Alles uitvouwen",
+		"collapseAll": "Alles samenvouwen"
+	},
 	"playlists": {
 		"newPlaylist": "Nieuwe afspeellijst",
 		"newFolder": "Nieuwe map",
@@ -155,6 +241,7 @@
 		"deleteCategory": "Categorie verwijderen",
 		"addCategory": "Categorie toevoegen",
 		"addTag": "Tag toevoegen",
+		"moveToCategory": "Verplaatsen naar categorie",
 		"noTags": "Geen tags",
 		"noTagCategoriesYet": "Nog geen tagcategorieën"
 	},
@@ -219,7 +306,13 @@
 			"removeFromLibraryTitle": "Verwijderen uit bibliotheek",
 			"removeFromLibraryMessage": "{count, plural, =1 {Deze track verwijderen uit je bibliotheek?} other {{count} tracks verwijderen uit je bibliotheek?}}",
 			"removeFromLibraryWarning": "Deze actie kan niet ongedaan worden gemaakt. Tracks worden uit alle afspeellijsten verwijderd.",
-			"deleteTracksFromCollection": "Tracks ook uit mijn collectie verwijderen"
+			"deleteTracksFromCollection": "Tracks ook uit mijn collectie verwijderen",
+			"removeDiscoveryReleasesTitle": "Verwijderen uit discovery",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Deze release verwijderen uit discovery?} other {{count} releases verwijderen uit discovery?}}",
+			"removeDiscoveryReleasesWarning": "Deze actie kan niet ongedaan worden gemaakt. Releases worden uit alle afspeellijsten verwijderd.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Verwijderen uit afspeellijst",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Deze release verwijderen uit de afspeellijst?} other {{count} releases verwijderen uit de afspeellijst?}}",
+			"deleteReleasesFromCollection": "Releases ook uit mijn collectie verwijderen"
 		},
 		"relocate": {
 			"title": "Track verplaatsen",
@@ -235,6 +328,15 @@
 			"available": "Beschikbaar:",
 			"total": "Totaal:",
 			"percentUsed": "% gebruikt"
+		},
+		"update": {
+			"title": "Update beschikbaar",
+			"description": "{version} is gereed om te installeren.",
+			"releaseNotes": "Wat is er nieuw",
+			"installAndRestart": "Installeren en herstarten",
+			"later": "Later",
+			"downloading": "Downloaden... {progress}%",
+			"installing": "Installeren..."
 		},
 		"duplicate": {
 			"title": "Dubbele track gedetecteerd",
@@ -295,7 +397,11 @@
 		"cannotDropIntoSelf": "Kan een map niet in zichzelf slepen",
 		"cannotDropIntoSubfolder": "Kan een map niet in zijn eigen submap slepen",
 		"analysisFailed": "Analyse mislukt",
-		"exportInProgress": "Exporteren is al bezig"
+		"exportInProgress": "Exporteren is al bezig",
+		"tagNameConflict": "Een tag met deze naam bestaat al in de doelcategorie",
+		"previewStreamFailed": "Voorbeeldstream kon niet worden geladen",
+		"updateCheckFailed": "Controleren op updates mislukt",
+		"updateInstallFailed": "Update installeren mislukt"
 	},
 	"devices": {
 		"title": "Apparaten",
@@ -375,12 +481,12 @@
 		"label": "Label",
 		"bpm": "BPM",
 		"key": "Toonsoort",
-		"saving": "Opslaan...",
-		"saveChanges": "Wijzigingen opslaan",
 		"multipleArtworks": "Meerdere artworks",
 		"addArtwork": "Artwork toevoegen",
 		"replaceArtwork": "Artwork vervangen",
-		"reextractFromFile": "Opnieuw uit bestand halen"
+		"reextractFromFile": "Opnieuw uit bestand halen",
+		"showEditor": "Editor tonen",
+		"hideEditor": "Editor verbergen"
 	},
 	"colors": {
 		"pink": "Roze",
@@ -397,6 +503,14 @@
 		"violet": "Violet",
 		"rose": "Roze",
 		"emerald": "Smaragd"
+	},
+	"dates": {
+		"today": "Vandaag",
+		"yesterday": "Gisteren",
+		"daysAgo": "{count, plural, =1 {1 dag geleden} other {{count} dagen geleden}}",
+		"weeksAgo": "{count, plural, =1 {1 week geleden} other {{count} weken geleden}}",
+		"monthsAgo": "{count, plural, =1 {1 maand geleden} other {{count} maanden geleden}}",
+		"yearsAgo": "{count, plural, =1 {1 jaar geleden} other {{count} jaren geleden}}"
 	},
 	"crash": {
 		"title": "Er is iets misgegaan",
@@ -416,25 +530,41 @@
 		"settingsSubmenu": "Instellingen",
 		"settingsGeneral": "Algemeen",
 		"settingsLibrary": "Bibliotheek",
+		"settingsDiscovery": "Ontdekkingen",
 		"settingsAppearance": "Uiterlijk",
 		"settingsSound": "Geluid",
 		"settingsDiagnostics": "Diagnostiek",
 		"quit": "{appName} afsluiten",
 		"importTracks": "Tracks importeren...",
+		"addRelease": "Release toevoegen...",
+		"refreshMetadata": "Metagegevens vernieuwen",
 		"newPlaylist": "Nieuwe afspeellijst",
 		"newFolder": "Nieuwe map",
 		"quickExport": "Snelle export...",
 		"undo": "Ongedaan maken",
-		"redo": "Opnieuw",
+		"redo": "Opnieuw doen",
 		"cut": "Knippen",
 		"copy": "Kopiëren",
 		"paste": "Plakken",
-		"selectAllTracks": "Alle tracks selecteren",
+		"selectAll": "Alles selecteren",
 		"playPause": "Afspelen/Pauzeren",
 		"stop": "Stoppen",
+		"nextTrack": "Volgende track",
+		"previousTrack": "Vorige track",
+		"seekForward": "Vooruitspolen",
+		"seekBackward": "Terugspolen",
+		"fineSeekForward": "Fijne vooruitspoel",
+		"fineSeekBackward": "Fijne terugspoel",
+		"volumeUp": "Volume omhoog",
+		"volumeDown": "Volume omlaag",
+		"mute": "Dempen",
 		"jumpToPlaying": "Naar huidig afgespeelde track",
-		"toggleSidebar": "Zijbalk wisselen",
+		"toggleEditor": "Editor wisselen",
+		"toggleView": "Weergave wisselen",
 		"showDevTools": "DevTools tonen",
+		"enterFullScreen": "Vollscherm activeren",
+		"expandAllReleases": "Alle releases uitvouwen",
+		"collapseAllReleases": "Alle releases samenvouwen",
 		"minimize": "Minimaliseren",
 		"zoom": "Zoomen",
 		"documentation": "{appName} Documentatie",

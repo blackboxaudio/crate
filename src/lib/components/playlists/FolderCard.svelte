@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import { translate } from '$lib/i18n'
 	import { dragStore } from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
@@ -66,16 +67,16 @@
 	</div>
 
 	<!-- Name -->
-	<span class="w-full truncate text-sm font-medium text-text-primary">
+	<Text as="span" variant="body-2" truncate class="w-full">
 		{playlist.name}
-	</span>
+	</Text>
 
 	<!-- Count -->
-	<span class="text-xs text-text-tertiary">
+	<Text variant="caption">
 		{#if playlist.is_folder}
 			{childCount} {childCount === 1 ? $translate('library.item') : $translate('library.items')}
 		{:else}
 			{playlist.track_count} {playlist.track_count === 1 ? $translate('library.track') : $translate('library.tracks')}
 		{/if}
-	</span>
+	</Text>
 </button>

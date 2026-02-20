@@ -96,7 +96,7 @@
 	<div class="mx-0 border-t border-stroke px-2 pt-6">
 		<div class="-mx-0 flex items-center px-3 py-1.5">
 			<Text variant="header-4">{$translate('nav.library')}</Text>
-			<Text variant="caption" class="ml-auto">{trackCount}</Text>
+			<Text variant="caption" class="mr-1 ml-auto">{trackCount}</Text>
 		</div>
 	</div>
 
@@ -192,7 +192,13 @@
 				{$translate('playlists.newFolder')}
 			</Button>
 		{:else}
-			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateCategory}>
+			<Button
+				variant="ghost"
+				size="sm"
+				class="w-full justify-start"
+				onclick={onCreateCategory}
+				disabled={tagCategories.length >= 4}
+			>
 				<Icon name="plus" class="mr-2 h-4 w-4" />
 				{$translate('tags.newCategory')}
 			</Button>

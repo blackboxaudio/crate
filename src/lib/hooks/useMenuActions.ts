@@ -9,14 +9,29 @@ import type { SettingsPage } from '$lib/types'
 
 export interface MenuActionHandlers {
 	onImport: () => Promise<void>
+	onAddRelease: () => void
 	onCreatePlaylist: () => void
 	onCreateFolder: () => void
 	onSelectAll: () => void
 	onPlayPause: () => void
 	onStop: () => void
+	onNextTrack: () => void
+	onPreviousTrack: () => void
+	onSeekForward: () => void
+	onSeekBackward: () => void
+	onFineSeekForward: () => void
+	onFineSeekBackward: () => void
+	onVolumeUp: () => void
+	onVolumeDown: () => void
+	onToggleMute: () => void
 	onOpenSettings: (tab?: SettingsPage) => void
 	onQuickExport: () => void
 	onJumpToPlayingTrack: () => void
+	onToggleView: () => void
+	onToggleEditor: () => void
+	onExpandAllReleases: () => void
+	onCollapseAllReleases: () => void
+	onRefreshMetadata: () => void
 }
 
 // =============================================================================
@@ -32,13 +47,13 @@ export interface MenuActionHandlers {
  * - import_tracks: Import audio files
  * - new_playlist: Create new playlist
  * - new_folder: Create new folder
- * - undo/redo/cut/copy/paste: Text editing commands
  * - select_all: Select all (text in input, or tracks)
  * - play_pause: Toggle playback (when not typing)
  * - stop: Stop playback
  * - quick_export: Open quick export modal
  * - jump_to_playing: Jump to currently playing track
- * - toggle_sidebar, documentation, report_issue: TODOs
+ * - toggle_editor: Toggle right sidebar editor
+ * - documentation, report_issue: TODOs
  *
  * Menu actions handled by backend:
  * - quit: Exit application
@@ -50,14 +65,29 @@ export interface MenuActionHandlers {
 export async function useMenuActions(handlers: MenuActionHandlers): Promise<() => void> {
 	const {
 		onImport,
+		onAddRelease,
 		onCreatePlaylist,
 		onCreateFolder,
 		onSelectAll,
 		onPlayPause,
 		onStop,
+		onNextTrack,
+		onPreviousTrack,
+		onSeekForward,
+		onSeekBackward,
+		onFineSeekForward,
+		onFineSeekBackward,
+		onVolumeUp,
+		onVolumeDown,
+		onToggleMute,
 		onOpenSettings,
 		onQuickExport,
 		onJumpToPlayingTrack,
+		onToggleView,
+		onToggleEditor,
+		onExpandAllReleases,
+		onCollapseAllReleases,
+		onRefreshMetadata,
 	} = handlers
 
 	let unlistenMenu: UnlistenFn | null = null
@@ -76,6 +106,12 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 			case 'import_tracks':
 				onImport()
 				break
+			case 'add_release':
+				onAddRelease()
+				break
+			case 'refresh_metadata':
+				onRefreshMetadata()
+				break
 			case 'new_playlist':
 				onCreatePlaylist()
 				break
@@ -86,22 +122,7 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				onQuickExport()
 				break
 
-			// Edit menu - text editing commands
-			case 'undo':
-				document.execCommand('undo')
-				break
-			case 'redo':
-				document.execCommand('redo')
-				break
-			case 'cut':
-				document.execCommand('cut')
-				break
-			case 'copy':
-				document.execCommand('copy')
-				break
-			case 'paste':
-				document.execCommand('paste')
-				break
+			// Edit menu
 			case 'select_all':
 				if (isInputFocused()) {
 					const input = document.activeElement as HTMLInputElement | HTMLTextAreaElement
@@ -120,24 +141,63 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 			case 'stop':
 				onStop()
 				break
+			case 'next_track':
+				onNextTrack()
+				break
+			case 'previous_track':
+				onPreviousTrack()
+				break
+			case 'seek_forward':
+				onSeekForward()
+				break
+			case 'seek_backward':
+				onSeekBackward()
+				break
+			case 'fine_seek_forward':
+				onFineSeekForward()
+				break
+			case 'fine_seek_backward':
+				onFineSeekBackward()
+				break
+			case 'volume_up':
+				onVolumeUp()
+				break
+			case 'volume_down':
+				onVolumeDown()
+				break
+			case 'mute':
+				onToggleMute()
+				break
 			case 'jump_to_playing':
 				onJumpToPlayingTrack()
 				break
 
 			// View menu
-			case 'toggle_sidebar':
-				// TODO: Implement sidebar toggle
+			case 'toggle_view':
+				onToggleView()
+				break
+			case 'toggle_editor':
+				onToggleEditor()
+				break
+			case 'expand_all_releases':
+				onExpandAllReleases()
+				break
+			case 'collapse_all_releases':
+				onCollapseAllReleases()
 				break
 
 			// View > Settings submenu
 			case 'settings_general':
 				onOpenSettings('general')
 				break
+			case 'settings_appearance':
+				onOpenSettings('appearance')
+				break
 			case 'settings_library':
 				onOpenSettings('library')
 				break
-			case 'settings_appearance':
-				onOpenSettings('appearance')
+			case 'settings_discovery':
+				onOpenSettings('discovery')
 				break
 			case 'settings_sound':
 				onOpenSettings('sound')

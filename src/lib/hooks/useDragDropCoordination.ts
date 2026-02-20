@@ -12,8 +12,12 @@ export interface DragDropCoordinationConfig {
 	getPlaylists: () => Playlist[]
 	getDevices: () => UsbDevice[]
 	onTracksDropOnPlaylist: (playlistId: string, trackIds: string[]) => Promise<void>
+	onReleasesDropOnPlaylist: (playlistId: string, releaseIds: string[]) => Promise<void>
 	onPlaylistMove: (playlistId: string, targetFolderId: string | null) => Promise<void>
 	onPlaylistExportToDevice: (playlistId: string, isFolder: boolean, deviceId: string) => Promise<void>
+	onTagDropOnCategory?: (tagId: string, sourceCategoryId: string, targetCategoryId: string) => Promise<void>
+	onTagDropOnTrack?: (tagId: string, trackId: string) => Promise<void>
+	onTagDropOnRelease?: (tagId: string, releaseId: string) => Promise<void>
 }
 
 // =============================================================================
@@ -31,7 +35,16 @@ export interface DragDropCoordinationConfig {
  * @returns Cleanup function to remove event listeners
  */
 export function useDragDropCoordination(config: DragDropCoordinationConfig): () => void {
-	const { getPlaylists, onTracksDropOnPlaylist, onPlaylistMove, onPlaylistExportToDevice } = config
+	const {
+		getPlaylists,
+		onTracksDropOnPlaylist,
+		onReleasesDropOnPlaylist,
+		onPlaylistMove,
+		onPlaylistExportToDevice,
+		onTagDropOnCategory,
+		onTagDropOnTrack,
+		onTagDropOnRelease,
+	} = config
 
 	let dropTargets: DropTarget[] = []
 	let rafId: number | null = null
@@ -96,6 +109,9 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 			if (data.type === 'tracks' && target.type === 'playlist') {
 				// Dropping tracks on a playlist
 				onTracksDropOnPlaylist(target.id, data.trackIds)
+			} else if (data.type === 'releases' && target.type === 'playlist') {
+				// Dropping releases on a discovery playlist
+				onReleasesDropOnPlaylist(target.id, data.releaseIds)
 			} else if (data.type === 'playlist' && target.type === 'folder') {
 				// Validate: prevent dropping on self
 				if (data.playlistId === target.id) {
@@ -116,6 +132,27 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 			} else if (data.type === 'playlist' && target.type === 'device') {
 				// Dropping a playlist/folder on a device - export immediately
 				onPlaylistExportToDevice(data.playlistId, data.isFolder, target.id)
+			} else if (data.type === 'tag' && target.type === 'category') {
+				// Dropping a tag on a category - move it
+				if (data.sourceCategoryId !== target.id) {
+					onTagDropOnCategory?.(data.tagId, data.sourceCategoryId, target.id)
+				}
+			} else if (data.type === 'tag' && target.type === 'tracklist') {
+				// Dropping a tag on a track list - find the track row under the pointer
+				const el = document.elementFromPoint(e.clientX, e.clientY)
+				const row = el?.closest<HTMLElement>('[data-track-id]')
+				const trackId = row?.dataset.trackId
+				if (trackId) {
+					onTagDropOnTrack?.(data.tagId, trackId)
+				}
+			} else if (data.type === 'tag' && target.type === 'releaselist') {
+				// Dropping a tag on a release list - find the release row under the pointer
+				const el = document.elementFromPoint(e.clientX, e.clientY)
+				const row = el?.closest<HTMLElement>('[data-release-id]')
+				const releaseId = row?.dataset.releaseId
+				if (releaseId) {
+					onTagDropOnRelease?.(data.tagId, releaseId)
+				}
 			}
 		}
 

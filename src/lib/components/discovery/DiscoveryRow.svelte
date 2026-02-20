@@ -1,0 +1,280 @@
+<script lang="ts">
+	import type { DiscoveryRelease } from '$lib/types'
+	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
+	import { TagChip } from '$lib/components/tags'
+	import { AlbumArt, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
+	import { dateFormat, dragStore, isDraggingTag, refreshingReleaseIds } from '$lib/stores'
+	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$lib/stores/player'
+	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
+	import { translate } from '$lib/i18n'
+	import { slide } from 'svelte/transition'
+	import * as discoveryApi from '$lib/api/discovery'
+
+	type Props = {
+		release: DiscoveryRelease
+		selected?: boolean
+		expanded?: boolean
+		isPreviewable?: boolean
+		dragReleaseIds?: string[]
+		categoryColors?: Map<string, string | null>
+		categorySortOrders?: Map<string, number>
+		onclick?: (e: MouseEvent) => void
+		ondblclick?: (e: MouseEvent) => void
+		oncontextmenu?: (e: MouseEvent) => void
+		onimport?: () => void
+		onopenurl?: () => void
+		onToggleExpand?: () => void
+		onTrackPlay?: (trackIndex: number) => void
+	}
+
+	let {
+		release,
+		selected = false,
+		expanded = false,
+		isPreviewable = true,
+		dragReleaseIds = [],
+		categoryColors,
+		categorySortOrders,
+		onclick,
+		ondblclick,
+		oncontextmenu,
+		onimport,
+		onopenurl,
+		onToggleExpand,
+		onTrackPlay,
+	}: Props = $props()
+
+	let isTagDragHovered = $state(false)
+
+	// Clear hover when tag drag ends
+	$effect(() => {
+		if (!$isDraggingTag) isTagDragHovered = false
+	})
+
+	// Track pointer state for drag detection
+	let pointerStartPos: { x: number; y: number } | null = null
+	let isDragStarted = false
+
+	function handlePointerDown(e: PointerEvent) {
+		if (e.button !== 0) return
+		const target = e.target as HTMLElement
+		if (target.closest('button, [role="button"]')) return
+		pointerStartPos = { x: e.clientX, y: e.clientY }
+		isDragStarted = false
+	}
+
+	function handlePointerMove(e: PointerEvent) {
+		if (!pointerStartPos) return
+		const distance = getDistance(pointerStartPos.x, pointerStartPos.y, e.clientX, e.clientY)
+		if (!isDragStarted && distance >= DRAG_THRESHOLD) {
+			isDragStarted = true
+			const releaseIds = selected && dragReleaseIds.length > 0 ? dragReleaseIds : [release.id]
+			dragStore.startReleaseDrag(releaseIds, e.clientX, e.clientY)
+		}
+	}
+
+	function isTrackPlaying(idx: number): boolean {
+		return $playbackSource === 'preview' && $previewInfo?.releaseId === release.id && $previewInfo?.trackIndex === idx
+	}
+
+	function trackCanPlay(trackIndex: number): boolean {
+		if (release.source_type === 'discogs') return release.tracks[trackIndex]?.video_id !== null
+		return isPreviewable
+	}
+
+	const sourceLabels: Record<string, string> = {
+		bandcamp: 'Bandcamp',
+		soundcloud: 'SoundCloud',
+		youtube: 'YouTube',
+		discogs: 'Discogs',
+		other: 'Other',
+	}
+
+	function handlePointerUp() {
+		pointerStartPos = null
+		isDragStarted = false
+	}
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (e.key === ' ') {
+			e.preventDefault()
+			onclick?.(e as unknown as MouseEvent)
+		}
+	}
+</script>
+
+<div
+	role="row"
+	tabindex="0"
+	data-release-row
+	data-release-id={release.id}
+	class="grid cursor-pointer grid-cols-[32px_40px_1.25fr_0.6fr_1fr_110px_110px_100px_64px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+		? 'bg-brand-muted'
+		: 'hover:bg-surface-2/50'} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
+	{onclick}
+	{ondblclick}
+	{oncontextmenu}
+	onkeydown={handleKeyDown}
+	onpointerdown={handlePointerDown}
+	onpointermove={handlePointerMove}
+	onpointerup={handlePointerUp}
+	onpointercancel={handlePointerUp}
+	onpointerenter={() => $isDraggingTag && (isTagDragHovered = true)}
+	onpointerleave={() => (isTagDragHovered = false)}
+>
+	<!-- Expand toggle -->
+	<div class="flex items-center justify-center">
+		{#if $previewLoadingReleaseId === release.id || $refreshingReleaseIds.has(release.id)}
+			<Spinner class="h-3.5 w-3.5" />
+		{:else if release.tracks.length > 0}
+			<IconButton
+				icon="chevron-right"
+				iconClass="h-3.5 w-3.5 text-text-tertiary transition-transform duration-200 {expanded ? 'rotate-90' : ''}"
+				size="sm"
+				onclick={(e) => {
+					e.stopPropagation()
+					onToggleExpand?.()
+				}}
+			/>
+		{/if}
+	</div>
+
+	<!-- Artwork -->
+	<div class="flex items-center justify-center">
+		<AlbumArt artworkPath={release.artwork_path} artworkUrl={release.artwork_url} size="xs" />
+	</div>
+
+	<!-- Artist / Title -->
+	<div class="flex flex-col justify-center truncate">
+		<div class="flex items-center gap-2">
+			<Text as="span" weight="medium" truncate>
+				{release.title || $translate('common.untitled')}
+			</Text>
+			{#if release.tracks.length > 0}
+				<Text as="span" size="xs" color="tertiary" class="shrink-0">
+					{$translate('discovery.trackCount', { values: { count: release.tracks.length } })}
+				</Text>
+			{/if}
+		</div>
+		<Text as="span" variant="caption" truncate>
+			{release.artist || $translate('common.unknownArtist')}
+		</Text>
+	</div>
+
+	<!-- Label -->
+	<div class="truncate text-text-secondary">
+		{release.label || ''}
+	</div>
+
+	<!-- Tags -->
+	<div class="flex h-6 items-center gap-1 overflow-hidden">
+		{#each release.tags
+			.toSorted((a, b) => {
+				const orderA = categorySortOrders?.get(a.category_id) ?? 0
+				const orderB = categorySortOrders?.get(b.category_id) ?? 0
+				if (orderA !== orderB) return orderA - orderB
+				return a.name.localeCompare(b.name)
+			})
+			.slice(0, 3) as tag (tag.id)}
+			<TagChip {tag} size="sm" color={categoryColors?.get(tag.category_id)} />
+		{/each}
+		{#if release.tags.length > 3}
+			<Text variant="caption">+{release.tags.length - 3}</Text>
+		{/if}
+	</div>
+
+	<!-- Source -->
+	<div class="truncate text-text-tertiary">
+		{sourceLabels[release.source_type] ?? release.source_type}
+	</div>
+
+	<!-- Release Date -->
+	<div class="truncate text-text-tertiary">
+		{release.release_date ? formatDate(release.release_date, $dateFormat) : ''}
+	</div>
+
+	<!-- Date Added -->
+	<div class="truncate text-text-tertiary">
+		{formatRelativeDate(release.date_added, $translate)}
+	</div>
+
+	<!-- Actions -->
+	<div class="flex items-center justify-end gap-1 pr-1">
+		<Tooltip text={$translate('discovery.importToLibrary')} position="left" delay={250}>
+			<IconButton
+				icon="upload"
+				size="sm"
+				onclick={(e) => {
+					e.stopPropagation()
+					onimport?.()
+				}}
+			/>
+		</Tooltip>
+		<Tooltip text={$translate('discovery.openInBrowser')} position="left" delay={250}>
+			<IconButton
+				icon="external-link"
+				size="sm"
+				onclick={(e) => {
+					e.stopPropagation()
+					onopenurl?.()
+				}}
+			/>
+		</Tooltip>
+	</div>
+</div>
+
+<!-- Track sub-rows -->
+{#if expanded && release.tracks.length > 0}
+	<div class="border-b border-stroke-subtle bg-surface-1/30" transition:slide={{ duration: 200 }}>
+		{#each release.tracks as track, idx (track.id)}
+			{@const canPlay = trackCanPlay(idx)}
+			{@const playing = canPlay && isTrackPlaying(idx)}
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="grid grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
+					? 'cursor-pointer hover:bg-surface-2/50'
+					: 'cursor-default'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
+				ondblclick={canPlay
+					? (e) => {
+							e.stopPropagation()
+							onTrackPlay?.(idx)
+						}
+					: undefined}
+				onmouseenter={canPlay
+					? () => {
+							discoveryApi.fetchPreviewStream(release.id, track.position).catch(() => {})
+						}
+					: undefined}
+			>
+				<div></div>
+				<div
+					class="text-center text-xs {playing
+						? 'text-brand-primary'
+						: canPlay
+							? 'text-text-tertiary'
+							: 'text-text-tertiary/50'}"
+				>
+					{track.position}
+				</div>
+				<div
+					class="truncate text-xs {playing
+						? 'font-medium text-brand-primary'
+						: canPlay
+							? 'text-text-secondary'
+							: 'text-text-tertiary'}"
+				>
+					{track.name}
+				</div>
+				<div
+					class="mr-1 text-right text-xs {playing
+						? 'text-brand-primary'
+						: canPlay
+							? 'text-text-tertiary'
+							: 'text-text-tertiary/50'}"
+				>
+					{track.duration_ms ? formatDuration(track.duration_ms) : ''}
+				</div>
+			</div>
+		{/each}
+	</div>
+{/if}

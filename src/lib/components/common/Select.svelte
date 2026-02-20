@@ -53,36 +53,19 @@
 	// Position the dropdown
 	let dropdownStyle = $state('')
 
-	function calculateDropdownPosition() {
-		if (triggerEl && menuEl) {
+	$effect(() => {
+		if (open && triggerEl && menuEl) {
 			const triggerRect = triggerEl.getBoundingClientRect()
 			const menuHeight = menuEl.offsetHeight
 			const viewportHeight = window.innerHeight
-
-			// Check if dropdown fits below
 			const spaceBelow = viewportHeight - triggerRect.bottom
 			const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
 
 			if (openUpward) {
-				dropdownStyle = `bottom: 100%; margin-bottom: 4px; transform-origin: bottom;`
+				dropdownStyle = 'bottom: 100%; margin-bottom: 4px;'
 			} else {
-				dropdownStyle = `top: 100%; margin-top: 4px; transform-origin: top;`
+				dropdownStyle = 'top: 100%; margin-top: 4px;'
 			}
-		}
-	}
-
-	$effect(() => {
-		if (open && triggerEl && menuEl) {
-			calculateDropdownPosition()
-		}
-	})
-
-	// Recalculate position on window resize
-	$effect(() => {
-		if (open) {
-			const handleResize = () => calculateDropdownPosition()
-			window.addEventListener('resize', handleResize)
-			return () => window.removeEventListener('resize', handleResize)
 		}
 	})
 

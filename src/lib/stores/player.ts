@@ -1,11 +1,17 @@
-import { writable, derived } from 'svelte/store'
-import type { Track, PlaybackState } from '$lib/types'
+import { writable, derived, get } from 'svelte/store'
+import type { Track, PlaybackState, PreviewInfo, DiscoveryRelease } from '$lib/types'
 import * as playerApi from '$lib/api/player'
+import * as discoveryApi from '$lib/api/discovery'
+import * as previewPlayer from '$lib/services/previewPlayer'
 import { missingTracksStore } from './missingTracks'
+import { toastStore } from './toast'
+import { translate } from '$lib/i18n'
 
 // =============================================================================
 // State
 // =============================================================================
+
+type PlaybackSource = 'library' | 'preview'
 
 interface PlayerState {
 	currentTrack: Track | null
@@ -13,6 +19,10 @@ interface PlayerState {
 	error: string | null
 	isMuted: boolean
 	volumeBeforeMute: number
+	playbackSource: PlaybackSource
+	previewInfo: PreviewInfo | null
+	previewTrackIndex: number
+	previewLoadingReleaseId: string | null
 }
 
 const initialPlaybackState: PlaybackState = {
@@ -20,6 +30,7 @@ const initialPlaybackState: PlaybackState = {
 	position_ms: 0,
 	duration_ms: 0,
 	volume: 1.0,
+	speed: 1.0,
 	current_track_id: null,
 	current_track_path: null,
 }
@@ -30,6 +41,10 @@ const initialState: PlayerState = {
 	error: null,
 	isMuted: false,
 	volumeBeforeMute: 1.0,
+	playbackSource: 'library',
+	previewInfo: null,
+	previewTrackIndex: 0,
+	previewLoadingReleaseId: null,
 }
 
 // =============================================================================
@@ -40,18 +55,46 @@ function createPlayerStore() {
 	const { subscribe, set, update } = writable<PlayerState>(initialState)
 
 	let positionInterval: ReturnType<typeof setInterval> | null = null
+	let onTrackEndCallback: (() => void) | null = null
+	let previewRetryAttempted = false
+	let previewRetrying = false
+	let previewSpeedCommitTimeout: ReturnType<typeof setTimeout> | null = null
+
+	function getState(): PlayerState {
+		let state: PlayerState = initialState
+		const unsub = subscribe((s) => (state = s))
+		unsub()
+		return state
+	}
 
 	function startPositionTracking() {
 		stopPositionTracking()
 		positionInterval = setInterval(() => {
 			update((state) => {
 				if (state.playbackState.is_playing) {
+					const speed = state.playbackState.speed ?? 1.0
+					const newPosition = Math.min(
+						state.playbackState.position_ms + Math.round(100 * speed),
+						state.playbackState.duration_ms
+					)
+					if (newPosition >= state.playbackState.duration_ms && state.playbackState.duration_ms > 0) {
+						// Track ended — defer callback to avoid store update conflicts
+						setTimeout(() => {
+							stopPositionTracking()
+							onTrackEndCallback?.()
+						}, 0)
+						return {
+							...state,
+							playbackState: {
+								...state.playbackState,
+								position_ms: state.playbackState.duration_ms,
+								is_playing: false,
+							},
+						}
+					}
 					return {
 						...state,
-						playbackState: {
-							...state.playbackState,
-							position_ms: Math.min(state.playbackState.position_ms + 100, state.playbackState.duration_ms),
-						},
+						playbackState: { ...state.playbackState, position_ms: newPosition },
 					}
 				}
 				return state
@@ -66,147 +109,411 @@ function createPlayerStore() {
 		}
 	}
 
+	function stopPreviewInternal() {
+		previewPlayer.stop()
+		stopPositionTracking()
+	}
+
+	function wirePreviewEvents() {
+		previewPlayer.setOnTimeUpdate((positionMs: number) => {
+			update((state) => ({
+				...state,
+				playbackState: { ...state.playbackState, position_ms: positionMs },
+			}))
+		})
+		previewPlayer.setOnDurationChange((durationMs: number) => {
+			update((state) => ({
+				...state,
+				playbackState: { ...state.playbackState, duration_ms: durationMs },
+			}))
+		})
+		previewPlayer.setOnEnded(() => {
+			update((state) => ({
+				...state,
+				playbackState: { ...state.playbackState, is_playing: false },
+			}))
+			onTrackEndCallback?.()
+		})
+		previewPlayer.setOnWaiting(() => {
+			const state = getState()
+			if (state.playbackSource === 'preview' && state.previewInfo) {
+				update((s) => ({ ...s, previewLoadingReleaseId: state.previewInfo!.releaseId }))
+			}
+		})
+		previewPlayer.setOnPlaying(() => {
+			if (previewSpeedCommitTimeout) {
+				clearTimeout(previewSpeedCommitTimeout)
+				previewSpeedCommitTimeout = null
+			}
+			update((s) => ({ ...s, previewLoadingReleaseId: null }))
+		})
+		previewPlayer.setOnError(async (msg: string) => {
+			// Ignore duplicate error callbacks fired while a retry is in-flight
+			// (HTML5 Audio fires both an 'error' event and a play().catch() for one failure)
+			if (previewRetrying) return
+
+			const state = getState()
+			if (state.playbackSource === 'preview' && state.previewInfo && !previewRetryAttempted) {
+				previewRetryAttempted = true
+				previewRetrying = true
+				const { release, trackIndex } = state.previewInfo
+				const track = release.tracks[trackIndex]
+				if (track) {
+					console.warn(`Preview stream error, retrying: ${msg}`)
+					try {
+						await discoveryApi.invalidatePreviewStreamCache(release.id)
+						const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
+						previewPlayer.play(streamUrl)
+						update((s) => ({
+							...s,
+							error: null,
+							playbackState: { ...s.playbackState, is_playing: true, position_ms: 0 },
+						}))
+						return
+					} catch {
+						// Retry failed, fall through to show error
+					} finally {
+						previewRetrying = false
+					}
+				} else {
+					previewRetrying = false
+				}
+			}
+			update((s) => ({
+				...s,
+				error: msg,
+				playbackState: { ...s.playbackState, is_playing: false },
+			}))
+			toastStore.error(get(translate)('errors.previewStreamFailed'))
+		})
+	}
+
+	function clearPreviewEvents() {
+		previewPlayer.setOnTimeUpdate(null)
+		previewPlayer.setOnDurationChange(null)
+		previewPlayer.setOnEnded(null)
+		previewPlayer.setOnError(null)
+		previewPlayer.setOnWaiting(null)
+		previewPlayer.setOnPlaying(null)
+	}
+
 	return {
 		subscribe,
 
 		/**
-		 * Play a track
+		 * Play a library track. If preview is active, stop it first.
 		 */
 		async play(track: Track) {
+			const state = getState()
+
+			// Stop preview if active
+			if (state.playbackSource === 'preview') {
+				stopPreviewInternal()
+				clearPreviewEvents()
+			}
+
 			try {
 				const playbackState = await playerApi.playTrack(track.id)
-				update((state) => ({
-					...state,
+				update((s) => ({
+					...s,
 					currentTrack: track,
-					playbackState,
+					playbackState: { ...playbackState, speed: 1.0 },
 					error: null,
+					playbackSource: 'library',
+					previewInfo: null,
+					previewTrackIndex: 0,
 				}))
 				startPositionTracking()
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to play track'
-
-				// Check if this is a file-not-found error
 				if (errorMsg.toLowerCase().includes('file not found') || errorMsg.toLowerCase().includes('filenotfound')) {
 					missingTracksStore.markMissing(track.id)
 				}
-
-				update((state) => ({
-					...state,
-					error: errorMsg,
-				}))
+				update((s) => ({ ...s, error: errorMsg }))
 			}
 		},
 
 		/**
-		 * Pause playback
+		 * Play a preview of a discovery release track.
+		 */
+		async playPreview(release: DiscoveryRelease, trackIndex: number = 0) {
+			previewRetryAttempted = false
+			const state = getState()
+			const track = release.tracks[trackIndex]
+			if (!track) return
+
+			// Stop library audio if playing
+			if (state.playbackSource === 'library' && state.playbackState.is_playing) {
+				try {
+					await playerApi.stop()
+				} catch {
+					// Best effort
+				}
+			}
+
+			stopPositionTracking()
+			update((s) => ({ ...s, previewLoadingReleaseId: release.id }))
+
+			try {
+				const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
+
+				wirePreviewEvents()
+
+				// Sync volume and reset speed for preview player
+				const currentVolume = state.isMuted ? 0 : state.playbackState.volume
+				previewPlayer.setVolume(currentVolume)
+				previewPlayer.setPlaybackRate(1.0)
+				previewPlayer.play(streamUrl)
+
+				update((s) => ({
+					...s,
+					currentTrack: null,
+					playbackState: {
+						...s.playbackState,
+						is_playing: true,
+						position_ms: 0,
+						duration_ms: track.duration_ms || 0,
+						speed: 1.0,
+						current_track_id: null,
+						current_track_path: null,
+					},
+					error: null,
+					playbackSource: 'preview',
+					previewInfo: { releaseId: release.id, release, trackIndex },
+					previewTrackIndex: trackIndex,
+					previewLoadingReleaseId: null,
+				}))
+			} catch (error) {
+				const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
+				update((s) => ({ ...s, error: errorMsg, previewLoadingReleaseId: null }))
+				toastStore.error(get(translate)('errors.previewStreamFailed'))
+			}
+		},
+
+		/**
+		 * Pause playback (source-aware)
 		 */
 		async pause() {
-			try {
-				const playbackState = await playerApi.pause()
-				update((state) => ({
-					...state,
-					playbackState,
+			const state = getState()
+
+			if (state.playbackSource === 'preview') {
+				previewPlayer.pause()
+				update((s) => ({
+					...s,
+					playbackState: { ...s.playbackState, is_playing: false },
 					error: null,
 				}))
+				return
+			}
+
+			try {
+				const playbackState = await playerApi.pause()
+				update((s) => ({ ...s, playbackState, error: null }))
 				stopPositionTracking()
 			} catch (error) {
-				update((state) => ({
-					...state,
+				update((s) => ({
+					...s,
 					error: error instanceof Error ? error.message : 'Failed to pause',
 				}))
 			}
 		},
 
 		/**
-		 * Resume playback
+		 * Resume playback (source-aware)
 		 */
 		async resume() {
-			try {
-				const playbackState = await playerApi.resume()
-				update((state) => ({
-					...state,
-					playbackState,
+			const state = getState()
+
+			if (state.playbackSource === 'preview') {
+				// Sync playback rate in case speed was changed while paused
+				previewPlayer.setPlaybackRate(state.playbackState.speed)
+				previewPlayer.resume()
+				update((s) => ({
+					...s,
+					playbackState: { ...s.playbackState, is_playing: true },
 					error: null,
 				}))
+				return
+			}
+
+			try {
+				const playbackState = await playerApi.resume()
+				update((s) => ({ ...s, playbackState, error: null }))
 				startPositionTracking()
 			} catch (error) {
-				update((state) => ({
-					...state,
+				update((s) => ({
+					...s,
 					error: error instanceof Error ? error.message : 'Failed to resume',
 				}))
 			}
 		},
 
 		/**
-		 * Stop playback
+		 * Stop playback (source-aware). Preview mode resets to library source.
 		 */
 		async stop() {
+			const state = getState()
+			previewRetryAttempted = false
+
+			if (state.playbackSource === 'preview') {
+				stopPreviewInternal()
+				clearPreviewEvents()
+				update((s) => ({
+					...s,
+					currentTrack: null,
+					playbackState: { ...initialPlaybackState, volume: s.playbackState.volume },
+					error: null,
+					playbackSource: 'library',
+					previewInfo: null,
+					previewTrackIndex: 0,
+				}))
+				return
+			}
+
 			try {
 				const playbackState = await playerApi.stop()
-				update((state) => ({
-					...state,
+				update((s) => ({
+					...s,
 					currentTrack: null,
 					playbackState,
 					error: null,
 				}))
 				stopPositionTracking()
 			} catch (error) {
-				update((state) => ({
-					...state,
+				update((s) => ({
+					...s,
 					error: error instanceof Error ? error.message : 'Failed to stop',
 				}))
 			}
 		},
 
 		/**
-		 * Seek to position
+		 * Seek to position (source-aware)
 		 */
 		async seek(positionMs: number) {
+			const state = getState()
+
+			if (state.playbackSource === 'preview') {
+				previewPlayer.seek(positionMs)
+				update((s) => ({
+					...s,
+					playbackState: { ...s.playbackState, position_ms: positionMs },
+				}))
+				return
+			}
+
+			// Optimistic position update to prevent playhead jump-back
+			update((s) => ({
+				...s,
+				playbackState: { ...s.playbackState, position_ms: positionMs },
+			}))
 			try {
 				const playbackState = await playerApi.seek(positionMs)
-				update((state) => ({
-					...state,
-					playbackState,
-					error: null,
-				}))
+				update((s) => ({ ...s, playbackState, error: null }))
 			} catch (error) {
-				update((state) => ({
-					...state,
+				update((s) => ({
+					...s,
 					error: error instanceof Error ? error.message : 'Failed to seek',
 				}))
 			}
 		},
 
 		/**
-		 * Set volume
+		 * Set volume (source-aware)
 		 */
 		async setVolume(volume: number) {
-			try {
-				const playbackState = await playerApi.setVolume(volume)
-				update((state) => ({
-					...state,
-					playbackState,
+			const state = getState()
+
+			if (state.playbackSource === 'preview') {
+				previewPlayer.setVolume(volume)
+				update((s) => ({
+					...s,
+					playbackState: { ...s.playbackState, volume },
 					error: null,
 				}))
+				return
+			}
+
+			try {
+				const playbackState = await playerApi.setVolume(volume)
+				update((s) => ({ ...s, playbackState, error: null }))
 			} catch (error) {
-				update((state) => ({
-					...state,
+				update((s) => ({
+					...s,
 					error: error instanceof Error ? error.message : 'Failed to set volume',
 				}))
 			}
 		},
 
 		/**
-		 * Toggle play/pause
+		 * Set playback speed (source-aware)
+		 */
+		async setSpeed(speed: number) {
+			const state = getState()
+
+			if (state.playbackSource === 'preview') {
+				update((s) => ({
+					...s,
+					playbackState: { ...s.playbackState, speed },
+					error: null,
+				}))
+				return
+			}
+
+			// Optimistic update for immediate UI response
+			update((s) => ({
+				...s,
+				playbackState: { ...s.playbackState, speed },
+			}))
+			try {
+				const playbackState = await playerApi.setSpeed(speed)
+				update((s) => ({ ...s, playbackState, error: null }))
+			} catch (error) {
+				update((s) => ({
+					...s,
+					error: error instanceof Error ? error.message : 'Failed to set speed',
+				}))
+			}
+		},
+
+		/**
+		 * Commit a preview speed change: apply the rate to the audio element,
+		 * show the loading spinner, and force a pause/resume to guarantee the
+		 * 'playing' event fires when audio actually resumes.
+		 */
+		commitPreviewSpeed() {
+			const state = getState()
+			if (state.playbackSource !== 'preview' || !state.previewInfo) return
+			if (!state.playbackState.is_playing) return
+
+			// Clear any pending safety timeout from a previous commit
+			if (previewSpeedCommitTimeout) {
+				clearTimeout(previewSpeedCommitTimeout)
+				previewSpeedCommitTimeout = null
+			}
+
+			// Apply rate change and show spinner
+			previewPlayer.setPlaybackRate(state.playbackState.speed)
+			update((s) => ({ ...s, previewLoadingReleaseId: s.previewInfo?.releaseId ?? null }))
+
+			// Force pause+resume so the 'playing' event fires when audio resumes
+			previewPlayer.pause()
+			previewPlayer.resume()
+
+			// Safety timeout: clear spinner if 'playing' never fires
+			previewSpeedCommitTimeout = setTimeout(() => {
+				previewSpeedCommitTimeout = null
+				update((s) => ({ ...s, previewLoadingReleaseId: null }))
+			}, 5000)
+		},
+
+		/**
+		 * Toggle play/pause (source-aware)
 		 */
 		async togglePlayPause() {
-			let isPlaying = false
-			const unsubscribe = subscribe((state) => {
-				isPlaying = state.playbackState.is_playing
-			})
-			unsubscribe()
+			const state = getState()
 
-			if (isPlaying) {
+			if (state.playbackState.is_playing) {
 				await this.pause()
 			} else {
 				await this.resume()
@@ -217,16 +524,9 @@ function createPlayerStore() {
 		 * Seek relative to current position
 		 */
 		async seekRelative(offsetMs: number) {
-			let currentPosition = 0
-			let duration = 0
-			const unsubscribe = subscribe((state) => {
-				currentPosition = state.playbackState.position_ms
-				duration = state.playbackState.duration_ms
-			})
-			unsubscribe()
-
-			// Clamp to valid range
-			const newPosition = Math.max(0, Math.min(duration, currentPosition + offsetMs))
+			const state = getState()
+			const { position_ms, duration_ms } = state.playbackState
+			const newPosition = Math.max(0, Math.min(duration_ms, position_ms + offsetMs))
 			await this.seek(newPosition)
 		},
 
@@ -234,21 +534,15 @@ function createPlayerStore() {
 		 * Adjust volume by a relative amount
 		 */
 		async adjustVolume(delta: number) {
-			let currentVolume = 1.0
-			let isMuted = false
-			const unsubscribe = subscribe((state) => {
-				currentVolume = state.playbackState.volume
-				isMuted = state.isMuted
-			})
-			unsubscribe()
+			const state = getState()
 
 			// If muted and trying to increase volume, unmute first
-			if (isMuted && delta > 0) {
-				update((state) => ({ ...state, isMuted: false }))
+			if (state.isMuted && delta > 0) {
+				update((s) => ({ ...s, isMuted: false }))
 			}
 
 			// Clamp to valid range (0.0 - 1.0)
-			const newVolume = Math.max(0, Math.min(1, currentVolume + delta))
+			const newVolume = Math.max(0, Math.min(1, state.playbackState.volume + delta))
 			await this.setVolume(newVolume)
 		},
 
@@ -256,32 +550,32 @@ function createPlayerStore() {
 		 * Toggle mute/unmute
 		 */
 		async toggleMute() {
-			let currentVolume = 1.0
-			let isMuted = false
-			let volumeBeforeMute = 1.0
-			const unsubscribe = subscribe((state) => {
-				currentVolume = state.playbackState.volume
-				isMuted = state.isMuted
-				volumeBeforeMute = state.volumeBeforeMute
-			})
-			unsubscribe()
+			const state = getState()
 
-			if (isMuted) {
-				// Unmute: restore previous volume
-				update((state) => ({ ...state, isMuted: false }))
-				await this.setVolume(volumeBeforeMute)
+			if (state.isMuted) {
+				update((s) => ({ ...s, isMuted: false }))
+				await this.setVolume(state.volumeBeforeMute)
 			} else {
-				// Mute: save current volume and set to 0
-				update((state) => ({ ...state, isMuted: true, volumeBeforeMute: currentVolume }))
+				update((s) => ({ ...s, isMuted: true, volumeBeforeMute: state.playbackState.volume }))
 				await this.setVolume(0)
 			}
+		},
+
+		/**
+		 * Register a callback for when a track finishes playing
+		 */
+		onTrackEnd(callback: (() => void) | null) {
+			onTrackEndCallback = callback
 		},
 
 		/**
 		 * Reset store to initial state
 		 */
 		reset() {
+			stopPreviewInternal()
+			clearPreviewEvents()
 			stopPositionTracking()
+			onTrackEndCallback = null
 			set(initialState)
 		},
 	}
@@ -310,3 +604,13 @@ export const playbackProgress = derived(playerStore, ($player) => {
 })
 
 export const isMuted = derived(playerStore, ($player) => $player.isMuted)
+
+export const playbackSource = derived(playerStore, ($player) => $player.playbackSource)
+
+export const previewInfo = derived(playerStore, ($player) => $player.previewInfo)
+
+export const previewTrackIndex = derived(playerStore, ($player) => $player.previewTrackIndex)
+
+export const previewLoadingReleaseId = derived(playerStore, ($player) => $player.previewLoadingReleaseId)
+
+export const playbackSpeed = derived(playerStore, ($player) => $player.playbackState.speed)

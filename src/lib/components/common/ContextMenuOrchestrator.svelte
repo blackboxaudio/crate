@@ -1,5 +1,5 @@
 <script lang="ts" module>
-	import type { Track, Playlist, Tag, TagCategory, UsbDevice, TrackColor } from '$lib/types'
+	import type { Track, Playlist, Tag, TagCategory, UsbDevice, TrackColor, DiscoveryRelease } from '$lib/types'
 
 	// Tag context target discriminated union
 	export type TagContextTarget =
@@ -18,6 +18,8 @@
 		| { type: 'tag'; x: number; y: number; target: TagContextTarget }
 		| { type: 'tagsSidebar'; x: number; y: number }
 		| { type: 'device'; x: number; y: number; device: UsbDevice }
+		| { type: 'discoveryRelease'; x: number; y: number; releases: DiscoveryRelease[] }
+		| { type: 'discoveryView'; x: number; y: number }
 </script>
 
 <script lang="ts">
@@ -26,6 +28,7 @@
 	import TagContextMenu from '$lib/components/tags/TagContextMenu.svelte'
 	import TagsSidebarContextMenu from '$lib/components/tags/TagsSidebarContextMenu.svelte'
 	import DeviceContextMenu from '$lib/components/devices/DeviceContextMenu.svelte'
+	import DiscoveryContextMenu from '$lib/components/discovery/DiscoveryContextMenu.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { devices, reformattingDeviceId } from '$lib/stores/devices'
 	import { activeDeviceId } from '$lib/stores/export'
@@ -71,15 +74,19 @@
 		onPlaylistViewImport: (playlist: Playlist) => void
 
 		// Tag callbacks
+		onTagAddTag: (categoryId: string) => void
 		onTagRename: (tag: Tag) => void
 		onTagDelete: (tag: Tag) => void
+		onTagMove?: (tag: Tag, targetCategoryId: string) => void
 		onCategoryRename: (category: TagCategory) => void
 		onCategoryDelete: (category: TagCategory) => void
 		onCategoryChangeColor: (category: TagCategory, color: string | null) => void
 
+		// Tag categories for move submenu
+		tagCategories?: TagCategory[]
+
 		// TagsSidebar callbacks
 		onTagsSidebarAddCategory: () => void
-		onTagsSidebarAddTag: () => void
 
 		// Device callbacks
 		onDeviceViewInfo: (device: UsbDevice) => void
@@ -91,6 +98,18 @@
 
 		// Playlist export callback
 		onPlaylistExport: (playlist: Playlist) => void
+
+		// DiscoveryView callbacks
+		onDiscoveryViewAddRelease: () => void
+
+		// Discovery callbacks
+		onDiscoveryReleaseOpenInBrowser: (release: DiscoveryRelease) => void
+		onDiscoveryReleaseRefreshMetadata: (release: DiscoveryRelease) => void
+		onDiscoveryReleaseImport: (release: DiscoveryRelease) => void
+		onDiscoveryReleaseDelete: (releaseIds: string[]) => void
+		onDiscoveryReleaseRemoveFromPlaylist?: (playlistId: string, releaseIds: string[]) => void
+		onDiscoveryReleaseMerge?: (releases: DiscoveryRelease[]) => void
+		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
 		// Close callback
 		onClose?: () => void
@@ -117,13 +136,15 @@
 		onPlaylistTreeCreateFolder,
 		onLibraryViewImport,
 		onPlaylistViewImport,
+		onTagAddTag,
 		onTagRename,
 		onTagDelete,
+		onTagMove,
 		onCategoryRename,
 		onCategoryDelete,
 		onCategoryChangeColor,
+		tagCategories = [],
 		onTagsSidebarAddCategory,
-		onTagsSidebarAddTag,
 		onDeviceViewInfo,
 		onDeviceRevealInFinder,
 		onDeviceReformat,
@@ -131,6 +152,14 @@
 		onDeviceExport,
 		onDeviceIgnore,
 		onPlaylistExport,
+		onDiscoveryViewAddRelease,
+		onDiscoveryReleaseOpenInBrowser,
+		onDiscoveryReleaseRefreshMetadata,
+		onDiscoveryReleaseImport,
+		onDiscoveryReleaseDelete,
+		onDiscoveryReleaseRemoveFromPlaylist,
+		onDiscoveryReleaseMerge,
+		onDiscoveryReleaseAddToPlaylist,
 		onClose,
 	}: Props = $props()
 
@@ -225,6 +254,17 @@
 		visibleMenu = menu
 	}
 
+	export function openDiscoveryViewMenu(e: MouseEvent) {
+		e.preventDefault()
+		const menu = {
+			type: 'discoveryView' as const,
+			x: e.clientX,
+			y: e.clientY,
+		}
+		activeMenu = menu
+		visibleMenu = menu
+	}
+
 	export function openPlaylistViewMenu(e: MouseEvent, playlist: Playlist) {
 		e.preventDefault()
 		const menu = {
@@ -267,6 +307,18 @@
 			x: e.clientX,
 			y: e.clientY,
 			device,
+		}
+		activeMenu = menu
+		visibleMenu = menu
+	}
+
+	export function openDiscoveryReleaseMenu(e: MouseEvent, releases: DiscoveryRelease[]) {
+		e.preventDefault()
+		const menu = {
+			type: 'discoveryRelease' as const,
+			x: e.clientX,
+			y: e.clientY,
+			releases,
 		}
 		activeMenu = menu
 		visibleMenu = menu
@@ -376,6 +428,12 @@
 		onLibraryViewImport()
 	}
 
+	// DiscoveryView handlers
+	function handleDiscoveryViewAddRelease() {
+		closeAll()
+		onDiscoveryViewAddRelease()
+	}
+
 	// PlaylistView handlers
 	function handlePlaylistViewImport() {
 		if (activeMenu.type === 'playlistView') {
@@ -386,6 +444,11 @@
 	}
 
 	// Tag handlers
+	function handleTagAddTag(categoryId: string) {
+		closeAll()
+		onTagAddTag(categoryId)
+	}
+
 	function handleTagRename(tag: Tag) {
 		closeAll()
 		onTagRename(tag)
@@ -394,6 +457,11 @@
 	function handleTagDelete(tag: Tag) {
 		closeAll()
 		onTagDelete(tag)
+	}
+
+	function handleTagMove(tag: Tag, targetCategoryId: string) {
+		closeAll()
+		onTagMove?.(tag, targetCategoryId)
 	}
 
 	function handleCategoryRename(category: TagCategory) {
@@ -415,11 +483,6 @@
 	function handleTagsSidebarAddCategory() {
 		closeAll()
 		onTagsSidebarAddCategory()
-	}
-
-	function handleTagsSidebarAddTag() {
-		closeAll()
-		onTagsSidebarAddTag()
 	}
 
 	// Device handlers
@@ -458,6 +521,66 @@
 		closeAll()
 		onPlaylistExport(playlist)
 	}
+
+	// Discovery handlers
+	function handleDiscoveryReleaseOpenInBrowser() {
+		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length === 1) {
+			const release = activeMenu.releases[0]
+			closeAll()
+			onDiscoveryReleaseOpenInBrowser(release)
+		}
+	}
+
+	function handleDiscoveryReleaseRefreshMetadata() {
+		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length === 1) {
+			const release = activeMenu.releases[0]
+			closeAll()
+			onDiscoveryReleaseRefreshMetadata(release)
+		}
+	}
+
+	function handleDiscoveryReleaseImport() {
+		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length === 1) {
+			const release = activeMenu.releases[0]
+			closeAll()
+			onDiscoveryReleaseImport(release)
+		}
+	}
+
+	function handleDiscoveryReleaseDelete() {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releaseIds = activeMenu.releases.map((r) => r.id)
+			closeAll()
+			onDiscoveryReleaseDelete(releaseIds)
+		}
+	}
+
+	function handleDiscoveryReleaseRemoveFromPlaylist() {
+		if (activeMenu.type === 'discoveryRelease' && currentPlaylistId) {
+			const releaseIds = activeMenu.releases.map((r) => r.id)
+			closeAll()
+			onDiscoveryReleaseRemoveFromPlaylist?.(currentPlaylistId, releaseIds)
+		}
+	}
+
+	function handleDiscoveryReleaseMerge() {
+		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length >= 2) {
+			const releases = [...activeMenu.releases]
+			closeAll()
+			onDiscoveryReleaseMerge?.(releases)
+		}
+	}
+
+	function handleDiscoveryReleaseAddToPlaylist(playlistId: string) {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releases = activeMenu.releases
+			closeAll()
+			onDiscoveryReleaseAddToPlaylist?.(playlistId, releases)
+		}
+	}
+
+	// Discovery playlists for the context menu submenu
+	const discoveryPlaylists = $derived(playlists.filter((p) => p.context === 'discovery'))
 </script>
 
 <!-- Track Context Menu -->
@@ -541,6 +664,18 @@
 	/>
 {/if}
 
+<!-- Discovery View Context Menu (empty space right-click) -->
+{#if visibleMenu?.type === 'discoveryView'}
+	<ContextMenu
+		open={activeMenu.type === 'discoveryView'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		items={[{ id: 'add-release', label: 'Add release', icon: 'globe', action: handleDiscoveryViewAddRelease }]}
+		onClose={closeAll}
+		onClosed={handleMenuClosed}
+	/>
+{/if}
+
 <!-- Playlist View Context Menu (empty space right-click) -->
 {#if visibleMenu?.type === 'playlistView'}
 	<ContextMenu
@@ -560,10 +695,15 @@
 		x={visibleMenu.x}
 		y={visibleMenu.y}
 		target={visibleMenu.target}
+		categories={tagCategories}
+		{categoryCount}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
+		onAddCategory={handleTagsSidebarAddCategory}
+		onAddTag={handleTagAddTag}
 		onRenameTag={handleTagRename}
 		onDeleteTag={handleTagDelete}
+		onMoveTag={handleTagMove}
 		onRenameCategory={handleCategoryRename}
 		onDeleteCategory={handleCategoryDelete}
 		onChangeColor={handleCategoryChangeColor}
@@ -580,7 +720,6 @@
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onAddCategory={handleTagsSidebarAddCategory}
-		onAddTag={handleTagsSidebarAddTag}
 	/>
 {/if}
 
@@ -601,5 +740,26 @@
 		onReformat={handleDeviceReformat}
 		onEject={handleDeviceEject}
 		onIgnore={handleDeviceIgnore}
+	/>
+{/if}
+
+<!-- Discovery Release Context Menu -->
+{#if visibleMenu?.type === 'discoveryRelease'}
+	<DiscoveryContextMenu
+		open={activeMenu.type === 'discoveryRelease'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		selectedReleases={visibleMenu.releases}
+		playlists={discoveryPlaylists}
+		{currentPlaylistId}
+		onClose={closeAll}
+		onClosed={handleMenuClosed}
+		onOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
+		onRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
+		onImport={handleDiscoveryReleaseImport}
+		onMerge={handleDiscoveryReleaseMerge}
+		onDelete={handleDiscoveryReleaseDelete}
+		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}
+		onRemoveFromPlaylist={currentPlaylistId ? handleDiscoveryReleaseRemoveFromPlaylist : undefined}
 	/>
 {/if}

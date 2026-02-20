@@ -1,19 +1,27 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte'
+	import { onMount, onDestroy, tick } from 'svelte'
 	import { fade } from 'svelte/transition'
 	import { get } from 'svelte/store'
 
 	import type {
+		ActiveView,
 		Track,
 		SortConfig,
+		DiscoverySortConfig,
+		DiscoveryReleaseCreate,
+		DiscoveryFilter,
+		DiscoveryRelease,
+		ImportResultWithDuplicates,
 		Playlist,
 		TagCategory,
 		Tag,
 		TagSelectionState,
+		TrackFilter,
 		UsbDevice,
 		BreadcrumbItem,
 		SettingsPage,
 	} from '$lib/types'
+	import { pickTagCategoryColor } from '$lib/types'
 	import {
 		appStore,
 		libraryStore,
@@ -25,10 +33,13 @@
 		tagsStore,
 		playlistsStore,
 		uiStore,
+		activeView,
 		selectedTrackIds,
+		selectedReleaseIds,
 		recentlyToggledMixedTags,
 		tagFilterMode,
 		settingsStore,
+		continuousPlayback,
 		devicesStore,
 		visibleDevices,
 		computeTagStates,
@@ -42,7 +53,14 @@
 		devToolsOpen,
 		isDev,
 		analysisStore,
+		discoveryStore,
+		sortedReleases,
+		releaseCount,
+		previewInfo,
+		updaterStore,
+		updateAvailable,
 	} from '$lib/stores'
+	import { isPlaying } from '$lib/stores/player'
 	import { syncStore } from '$lib/stores/sync'
 	import { toastStore } from '$lib/stores/toast'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
@@ -53,11 +71,27 @@
 		createExportController,
 		createPlaylistController,
 	} from '$lib/controllers'
-	import { useAppInitialization, useKeyboardShortcuts, useMenuActions, useDragDropCoordination } from '$lib/hooks'
+	import {
+		useAppInitialization,
+		useKeyboardShortcuts,
+		useMenuActions,
+		useMediaKeys,
+		useDragDropCoordination,
+	} from '$lib/hooks'
 	import { translate } from '$lib/i18n'
 
 	import { Sidebar, Toolbar, RightSidebar } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
+	import {
+		DiscoveryView,
+		AddReleaseModal,
+		DiscoveryEditor,
+		MergeReleasesModal,
+		PurchaseReleaseModal,
+	} from '$lib/components/discovery'
+	import { TrackEditor } from '$lib/components/editor'
+	import { getVersion } from '@tauri-apps/api/app'
+	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { Player } from '$lib/components/player'
 	import {
 		ResizeHandle,
@@ -67,10 +101,14 @@
 		Icon,
 		Text,
 		SplashScreen,
+		UpdateModal,
 	} from '$lib/components/common'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
-	import { openDevTools, closeDevTools } from '$lib/api/app'
+	import { openDevTools, closeDevTools, setMenuItemEnabled } from '$lib/api/app'
+	import { updateNowPlaying, updatePlaybackState, clearNowPlaying } from '$lib/api/mediaControls'
 	import { exportStore } from '$lib/stores/export'
+	import * as discoveryApi from '$lib/api/discovery'
+	import { SvelteMap } from 'svelte/reactivity'
 
 	// =============================================================================
 	// State
@@ -82,6 +120,10 @@
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
+	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'date_added', direction: 'desc' })
+	let showAddReleaseModal = $state(false)
+	let purchaseRelease = $state<DiscoveryRelease | null>(null)
+	let mergeReleases = $state<DiscoveryRelease[] | null>(null)
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
 	let devices = $state<UsbDevice[]>([])
@@ -99,6 +141,9 @@
 
 	// Context menu state for playlist tree hover styling
 	let contextMenuPlaylistId = $state<string | null>(null)
+
+	// Discovery view ref for expand/collapse all
+	let discoveryViewRef: ReturnType<typeof DiscoveryView> | undefined = $state()
 
 	// Cleanup function from onMount
 	let cleanupOnMount: (() => void) | undefined
@@ -118,12 +163,15 @@
 	const tagController = createTagController({
 		tagsStore,
 		libraryStore,
+		discoveryStore,
 		uiStore,
 		getSelectedTagIds: () => selectedTagIds,
 		getSelectedPlaylistId: () => selectedPlaylistId,
 		getTagFilterMode: () => $tagFilterMode,
 		getSelectedTrackIds: () => $selectedTrackIds,
+		getSelectedReleaseIds: () => $selectedReleaseIds,
 		getRecentlyToggledMixedTags: () => $recentlyToggledMixedTags,
+		getActiveView: () => $activeView,
 	})
 
 	// Track controller
@@ -187,6 +235,9 @@
 			getSelectedFolderId: () => selectedFolderId,
 			getSelectedTagIds: () => selectedTagIds,
 			getTagFilterMode: () => $tagFilterMode,
+			onDiscoveryPlaylistSelected: async (playlistId) => {
+				discoveryPlaylistReleases = await playlistsStore.getPlaylistReleases(playlistId)
+			},
 		},
 		{
 			openCreatePlaylistModal: (parentId) => modalOrchestrator.openCreatePlaylistModal(parentId),
@@ -228,21 +279,99 @@
 		}
 	})
 
-	// Compute tag states when selection or tracks change
+	// Compute tag states when selection or tracks/releases change
 	$effect(() => {
-		const result = computeTagStates(tagCategories, $displayedTracks, $selectedTrackIds)
-		tagStates = result.states
-		tagCounts = result.counts
+		if ($activeView === 'discovery') {
+			// Compute tag states from selected releases
+			const states = new SvelteMap<string, TagSelectionState>()
+			const counts = new SvelteMap<string, number>()
+			const selectedIds = $selectedReleaseIds
+			if (selectedIds.size > 0) {
+				const selectedReleases = $sortedReleases.filter((r) => selectedIds.has(r.id))
+				const totalSelected = selectedReleases.length
+				if (totalSelected > 0) {
+					const tagCountMap = new SvelteMap<string, number>()
+					for (const release of selectedReleases) {
+						for (const tag of release.tags) {
+							tagCountMap.set(tag.id, (tagCountMap.get(tag.id) || 0) + 1)
+						}
+					}
+					const allTags = tagCategories.flatMap((c) => c.tags)
+					for (const tag of allTags) {
+						const count = tagCountMap.get(tag.id) || 0
+						counts.set(tag.id, count)
+						if (count === 0) states.set(tag.id, 'inactive')
+						else if (count === totalSelected) states.set(tag.id, 'active')
+						else states.set(tag.id, 'mixed')
+					}
+				}
+			}
+			tagStates = states
+			tagCounts = counts
+		} else {
+			const result = computeTagStates(tagCategories, $displayedTracks, $selectedTrackIds)
+			tagStates = result.states
+			tagCounts = result.counts
+		}
 	})
 
 	// Clear recently toggled tags when selection changes
 	let previousSelectedIds = $state<Set<string>>(new Set())
 	$effect(() => {
-		const currentIds = $selectedTrackIds
+		const currentIds = $activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds
 		if (currentIds.size !== previousSelectedIds.size || ![...currentIds].every((id) => previousSelectedIds.has(id))) {
 			uiStore.clearAllRecentlyToggledTags()
 			previousSelectedIds = new Set(currentIds)
 		}
+	})
+
+	// Clear discovery playlist releases when no playlist is selected
+	$effect(() => {
+		if (!selectedPlaylistId) {
+			discoveryPlaylistReleases = []
+		}
+	})
+
+	// Enable/disable Refresh Metadata menu item based on view and selection
+	$effect(() => {
+		setMenuItemEnabled('refresh_metadata', $activeView === 'discovery' && $selectedReleaseIds.size > 0)
+	})
+
+	// =============================================================================
+	// Now Playing Sync
+	// =============================================================================
+
+	// Sync current track metadata to OS Now Playing (macOS Control Center, etc.)
+	$effect(() => {
+		const preview = $previewInfo
+		const track = $currentTrack
+		if (preview) {
+			const previewTrack = preview.release.tracks[preview.trackIndex]
+			updateNowPlaying(
+				previewTrack?.name || null,
+				preview.release.artist || null,
+				preview.release.title || null,
+				preview.release.artwork_url || preview.release.artwork_path || null,
+				previewTrack?.duration_ms ?? null
+			).catch(() => {})
+		} else if (track) {
+			updateNowPlaying(
+				track.title || null,
+				track.artist || null,
+				track.album || null,
+				track.artwork_path || null,
+				track.duration_ms
+			).catch(() => {})
+		} else {
+			clearNowPlaying().catch(() => {})
+		}
+	})
+
+	// Sync playback state (playing/paused) to OS — separate from metadata to avoid
+	// re-sending metadata on every play/pause toggle
+	$effect(() => {
+		const playing = $isPlaying
+		updatePlaybackState(playing).catch(() => {})
 	})
 
 	// =============================================================================
@@ -256,8 +385,38 @@
 			getPlaylists: () => playlists,
 			getDevices: () => devices,
 			onTracksDropOnPlaylist: trackController.handleTracksDropOnPlaylist,
+			onReleasesDropOnPlaylist: async (playlistId: string, releaseIds: string[]) => {
+				await playlistsStore.addReleases(playlistId, releaseIds)
+			},
 			onPlaylistMove: playlistController.handlePlaylistDragMove,
 			onPlaylistExportToDevice: exportController.handlePlaylistDropOnDevice,
+			onTagDropOnTrack: async (tagId: string, trackId: string) => {
+				const trackIds = $selectedTrackIds.has(trackId) ? Array.from($selectedTrackIds) : [trackId]
+				await tagsStore.assignTags(trackIds, [tagId])
+				if (selectedPlaylistId) {
+					await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+				} else {
+					await libraryStore.loadTracks()
+				}
+			},
+			onTagDropOnRelease: async (tagId: string, releaseId: string) => {
+				const releaseIds = $selectedReleaseIds.has(releaseId) ? Array.from($selectedReleaseIds) : [releaseId]
+				await discoveryStore.assignTags(releaseIds, [tagId])
+			},
+			onTagDropOnCategory: async (tagId: string, _sourceCategoryId: string, targetCategoryId: string) => {
+				try {
+					await tagsStore.moveTag(tagId, targetCategoryId)
+					libraryStore.updateTagCategory(tagId, targetCategoryId)
+					discoveryStore.updateTagCategory(tagId, targetCategoryId)
+					discoveryPlaylistReleases = discoveryPlaylistReleases.map((r) => ({
+						...r,
+						tags: r.tags.map((tag) => (tag.id === tagId ? { ...tag, category_id: targetCategoryId } : tag)),
+					}))
+				} catch (error) {
+					const message = error instanceof Error ? error.message : get(translate)('errors.tagNameConflict')
+					toastStore.error(message)
+				}
+			},
 		})
 
 		return () => {
@@ -266,12 +425,53 @@
 	})
 
 	// =============================================================================
+	// Track Navigation
+	// =============================================================================
+
+	function playNextTrack() {
+		const preview = $previewInfo
+		if (preview) {
+			const nextIndex = preview.trackIndex + 1
+			if (nextIndex < preview.release.tracks.length) {
+				playerStore.playPreview(preview.release, nextIndex)
+			} else {
+				playerStore.stop()
+			}
+			return
+		}
+		const id = $currentTrack?.id
+		if (!id) return
+		const tracks = $displayedTracks
+		const idx = tracks.findIndex((t) => t.id === id)
+		if (idx >= 0 && idx < tracks.length - 1) trackController.play(tracks[idx + 1])
+	}
+
+	function playPreviousTrack() {
+		const preview = $previewInfo
+		if (preview) {
+			const prevIndex = preview.trackIndex - 1
+			if (prevIndex >= 0) {
+				playerStore.playPreview(preview.release, prevIndex)
+			}
+			return
+		}
+		const id = $currentTrack?.id
+		if (!id) return
+		const tracks = $displayedTracks
+		const idx = tracks.findIndex((t) => t.id === id)
+		if (idx > 0) trackController.play(tracks[idx - 1])
+	}
+
+	// =============================================================================
 	// Initialization
 	// =============================================================================
 
 	async function onMountHelper(): Promise<() => void> {
 		const splashStartTime = Date.now()
 		const minDisplayTime = 700
+
+		// Load version immediately (fast config read, no backend dependency)
+		splashVersion = await getVersion()
 
 		// Initialize export store event listening
 		await exportStore.startListening()
@@ -286,11 +486,9 @@
 			},
 		})
 
-		// Get version after stores load
-		splashVersion = get(appStore).info?.version ?? '0.0.0'
-
 		// Set up keyboard shortcuts
 		const cleanupKeyboard = useKeyboardShortcuts({
+			isModalOpen: () => modalOrchestrator?.isModalOpen() ?? false,
 			onPlayPause: () => playerStore.togglePlayPause(),
 			onFocusSearch: () => {
 				const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement
@@ -298,15 +496,35 @@
 			},
 			onClearSelection: () => uiStore.clearSelection(),
 			onSelectAll: () => {
-				const allIds = new Set($sortedTracks.map((t) => t.id))
-				uiStore.setSelectedTracks(allIds)
+				if ($activeView === 'discovery') {
+					uiStore.setSelectedReleases(new Set($sortedReleases.map((r) => r.id)))
+				} else {
+					const allIds = new Set($sortedTracks.map((t) => t.id))
+					uiStore.setSelectedTracks(allIds)
+				}
 			},
-			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator.openSettingsModal(tab),
-			onToggleInspector: () => uiStore.toggleRightSidebar(),
+			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator?.openSettingsModal(tab),
 			onNewPlaylist: () => playlistController.handleCreatePlaylist(),
 			onNewFolder: () => playlistController.handleCreateFolder(),
-			onImport: () => trackController.handleImport(),
+			onImport: async () => {
+				if ($activeView !== 'library') {
+					handleViewChange('library')
+					await tick()
+				}
+				trackController.handleImport()
+			},
 			onDeleteSelected: () => {
+				if ($activeView === 'discovery') {
+					const releaseIds = $selectedReleaseIds
+					if (releaseIds.size > 0) {
+						if (selectedPlaylistId) {
+							modalOrchestrator.openRemoveDiscoveryReleasesFromPlaylistModal(Array.from(releaseIds), selectedPlaylistId)
+						} else {
+							modalOrchestrator.openRemoveDiscoveryReleasesModal(Array.from(releaseIds))
+						}
+						return
+					}
+				}
 				const ids = [...$selectedTrackIds]
 				if (ids.length > 0) {
 					if (selectedPlaylistId) {
@@ -323,6 +541,13 @@
 				}
 			},
 			onPlaySelected: () => {
+				if ($activeView === 'discovery') {
+					const releaseIds = $selectedReleaseIds
+					if (releaseIds.size > 0) {
+						discoveryViewRef?.toggleExpandSelection(releaseIds)
+					}
+					return
+				}
 				const selectedIds = $selectedTrackIds
 				if (selectedIds.size > 0) {
 					const firstSelectedId = [...selectedIds][0]
@@ -330,26 +555,29 @@
 					if (track) trackController.play(track)
 				}
 			},
-			onSeekBackward: () => playerStore.seekRelative(-5000),
-			onSeekForward: () => playerStore.seekRelative(5000),
-			onPreviousTrack: () => {
-				const currentTrackId = $currentTrack?.id
-				if (!currentTrackId) return
-				const tracks = $displayedTracks
-				const currentIndex = tracks.findIndex((t) => t.id === currentTrackId)
-				if (currentIndex > 0) trackController.play(tracks[currentIndex - 1])
-			},
-			onNextTrack: () => {
-				const currentTrackId = $currentTrack?.id
-				if (!currentTrackId) return
-				const tracks = $displayedTracks
-				const currentIndex = tracks.findIndex((t) => t.id === currentTrackId)
-				if (currentIndex >= 0 && currentIndex < tracks.length - 1) trackController.play(tracks[currentIndex + 1])
-			},
+			onSeekBackward: () => playerStore.seekRelative(-10000),
+			onSeekForward: () => playerStore.seekRelative(10000),
+			onFineSeekBackward: () => playerStore.seekRelative(-1000),
+			onFineSeekForward: () => playerStore.seekRelative(1000),
+			onPreviousTrack: playPreviousTrack,
+			onNextTrack: playNextTrack,
 			onVolumeUp: () => playerStore.adjustVolume(0.1),
 			onVolumeDown: () => playerStore.adjustVolume(-0.1),
 			onToggleMute: () => playerStore.toggleMute(),
 			onSelectPreviousTrack: () => {
+				if ($activeView === 'discovery') {
+					const releases = $sortedReleases
+					if (releases.length === 0) return
+					const selectedIds = $selectedReleaseIds
+					if (selectedIds.size === 0) {
+						uiStore.selectRelease(releases[releases.length - 1].id)
+					} else {
+						const firstSelectedId = [...selectedIds][0]
+						const currentIndex = releases.findIndex((r) => r.id === firstSelectedId)
+						if (currentIndex > 0) uiStore.selectRelease(releases[currentIndex - 1].id)
+					}
+					return
+				}
 				const tracks = $displayedTracks
 				if (tracks.length === 0) return
 				const selectedIds = $selectedTrackIds
@@ -362,6 +590,20 @@
 				}
 			},
 			onSelectNextTrack: () => {
+				if ($activeView === 'discovery') {
+					const releases = $sortedReleases
+					if (releases.length === 0) return
+					const selectedIds = $selectedReleaseIds
+					if (selectedIds.size === 0) {
+						uiStore.selectRelease(releases[0].id)
+					} else {
+						const lastSelectedId = [...selectedIds].pop()
+						const currentIndex = releases.findIndex((r) => r.id === lastSelectedId)
+						if (currentIndex >= 0 && currentIndex < releases.length - 1)
+							uiStore.selectRelease(releases[currentIndex + 1].id)
+					}
+					return
+				}
 				const tracks = $displayedTracks
 				if (tracks.length === 0) return
 				const selectedIds = $selectedTrackIds
@@ -382,20 +624,64 @@
 				if (selectedPlaylistId) playlistController.handleLibraryClick()
 				uiStore.selectTrack(track.id)
 			},
+			onToggleView: () => {
+				if (modalOrchestrator?.isModalOpen()) return
+				const next = $activeView === 'library' ? 'discovery' : 'library'
+				handleViewChange(next)
+			},
+			onAddRelease: async () => {
+				if ($activeView !== 'discovery') {
+					handleViewChange('discovery')
+					await tick()
+				}
+				showAddReleaseModal = true
+			},
+			onRefreshMetadata: async () => {
+				if ($activeView !== 'discovery') return
+				const ids = [...$selectedReleaseIds]
+				if (ids.length === 0) return
+				await Promise.all(ids.map((id) => discoveryStore.refreshMetadata(id)))
+			},
 		})
 
 		// Set up menu action listener
 		const cleanupMenu = await useMenuActions({
-			onImport: trackController.handleImport,
+			onImport: async () => {
+				if ($activeView !== 'library') {
+					handleViewChange('library')
+					await tick()
+				}
+				await trackController.handleImport()
+			},
+			onAddRelease: async () => {
+				if ($activeView !== 'discovery') {
+					handleViewChange('discovery')
+					await tick()
+				}
+				showAddReleaseModal = true
+			},
 			onCreatePlaylist: playlistController.handleCreatePlaylist,
 			onCreateFolder: playlistController.handleCreateFolder,
 			onSelectAll: () => {
-				const allIds = new Set($sortedTracks.map((t) => t.id))
-				uiStore.setSelectedTracks(allIds)
+				if ($activeView === 'discovery') {
+					uiStore.setSelectedReleases(new Set($sortedReleases.map((r) => r.id)))
+				} else {
+					const allIds = new Set($sortedTracks.map((t) => t.id))
+					uiStore.setSelectedTracks(allIds)
+				}
 			},
 			onPlayPause: () => playerStore.togglePlayPause(),
 			onStop: () => playerStore.stop(),
-			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator.openSettingsModal(tab),
+			onNextTrack: playNextTrack,
+			onPreviousTrack: playPreviousTrack,
+			onSeekForward: () => playerStore.seekRelative(10000),
+			onSeekBackward: () => playerStore.seekRelative(-10000),
+			onFineSeekForward: () => playerStore.seekRelative(1000),
+			onFineSeekBackward: () => playerStore.seekRelative(-1000),
+			onVolumeUp: () => playerStore.adjustVolume(0.1),
+			onVolumeDown: () => playerStore.adjustVolume(-0.1),
+			onToggleMute: () => playerStore.toggleMute(),
+			onOpenSettings: (tab?: SettingsPage) => modalOrchestrator?.openSettingsModal(tab),
 			onQuickExport: () => {
 				if (devices.length > 0 && modalOrchestrator) modalOrchestrator.openQuickExportModal()
 			},
@@ -405,6 +691,33 @@
 				if (selectedPlaylistId) playlistController.handleLibraryClick()
 				uiStore.selectTrack(track.id)
 			},
+			onToggleView: () => {
+				if (modalOrchestrator?.isModalOpen()) return
+				const next = $activeView === 'library' ? 'discovery' : 'library'
+				handleViewChange(next)
+			},
+			onToggleEditor: () => uiStore.toggleRightSidebar(),
+			onExpandAllReleases: () => discoveryViewRef?.expandAll(),
+			onCollapseAllReleases: () => discoveryViewRef?.collapseAll(),
+			onRefreshMetadata: async () => {
+				const ids = [...$selectedReleaseIds]
+				if (ids.length === 0) return
+				await Promise.all(ids.map((id) => discoveryStore.refreshMetadata(id)))
+			},
+		})
+
+		// Set up media key listeners (OS-level via souvlaki)
+		const cleanupMediaKeys = await useMediaKeys({
+			onPlayPause: () => playerStore.togglePlayPause(),
+			onNextTrack: playNextTrack,
+			onPreviousTrack: playPreviousTrack,
+		})
+
+		// Register track-end callback for continuous playback
+		playerStore.onTrackEnd(() => {
+			if (get(continuousPlayback)) {
+				playNextTrack()
+			}
 		})
 
 		// Ensure minimum display time for splash screen
@@ -413,6 +726,17 @@
 			await new Promise((r) => setTimeout(r, minDisplayTime - elapsed))
 		}
 
+		// Load discovery releases if that's the persisted view
+		if (get(activeView) === 'discovery') {
+			discoveryStore.loadReleases()
+		}
+
+		// Check for updates (non-dev only, guarded inside store)
+		updaterStore.check(true)
+
+		// Hourly recheck
+		const updateInterval = setInterval(() => updaterStore.check(true), 60 * 60 * 1000)
+
 		// Dismiss splash screen
 		showSplash = false
 
@@ -420,7 +744,10 @@
 			cleanupApp()
 			cleanupKeyboard()
 			cleanupMenu()
+			cleanupMediaKeys()
+			playerStore.onTrackEnd(null)
 			exportStore.stopListening()
+			clearInterval(updateInterval)
 		}
 	}
 
@@ -474,6 +801,80 @@
 		await analysisStore.cancelTrackAnalysis(trackId)
 	}
 
+	// =============================================================================
+	// Discovery Handlers
+	// =============================================================================
+
+	function handleViewChange(view: ActiveView) {
+		// Clear playlist/folder selection when switching views
+		uiStore.selectPlaylist(null)
+		uiStore.selectFolder(null)
+		discoveryPlaylistReleases = []
+
+		uiStore.setActiveView(view)
+		if (view === 'discovery') {
+			const filter: DiscoveryFilter = {}
+			if (selectedTagIds.length > 0) {
+				filter.tag_ids = selectedTagIds
+				filter.tag_filter_mode = $tagFilterMode
+			}
+			discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
+		} else {
+			const filter: TrackFilter = {}
+			if (selectedTagIds.length > 0) {
+				filter.tag_ids = selectedTagIds
+				filter.tag_filter_mode = $tagFilterMode
+			}
+			libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
+		}
+	}
+
+	function handleDiscoverySortChange(config: DiscoverySortConfig) {
+		discoverySortConfig = config
+		discoveryStore.setSort(config)
+	}
+
+	const PREVIEWABLE_SOURCES = new Set(['bandcamp', 'soundcloud', 'youtube'])
+
+	function releaseHasAnyPreviewableTrack(release: DiscoveryRelease): boolean {
+		if (PREVIEWABLE_SOURCES.has(release.source_type)) return release.tracks.length > 0
+		return release.tracks.some((t) => t.video_id !== null)
+	}
+
+	function handleReleaseOpen(release: DiscoveryRelease) {
+		if (releaseHasAnyPreviewableTrack(release)) {
+			const firstPlayable = release.source_type === 'discogs' ? release.tracks.findIndex((t) => t.video_id !== null) : 0
+			if (firstPlayable >= 0) {
+				playerStore.playPreview(release, firstPlayable)
+				return
+			}
+		}
+		openUrl(release.url)
+	}
+
+	function handleTrackPlayInRelease(release: DiscoveryRelease, trackIndex: number) {
+		const track = release.tracks[trackIndex]
+		const canPlay =
+			PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null)
+		if (canPlay && release.tracks.length > 0) {
+			playerStore.playPreview(release, trackIndex)
+		}
+	}
+
+	function handleReleaseSelectionChange(ids: Set<string>) {
+		uiStore.setSelectedReleases(ids)
+	}
+
+	async function handleAddRelease(create: DiscoveryReleaseCreate) {
+		const release = await discoveryStore.createRelease(create)
+		if (release) {
+			showAddReleaseModal = false
+			if (release.tracks.length > 0) {
+				discoveryViewRef?.expandRelease(release.id)
+			}
+		}
+	}
+
 	function handleRelocateComplete(updatedTrack: Track) {
 		libraryStore.loadTracks()
 		toastStore.success(`Relocated "${updatedTrack.title || 'track'}"`)
@@ -511,6 +912,50 @@
 		contextMenuOrchestrator.openTagMenu(e, { type: 'category', category })
 	}
 
+	function handleReleaseContextMenu(e: MouseEvent, release: DiscoveryRelease) {
+		const currentSelection = $selectedReleaseIds
+		let releases: DiscoveryRelease[]
+		if (currentSelection.has(release.id)) {
+			releases = $sortedReleases.filter((r) => currentSelection.has(r.id))
+		} else {
+			releases = [release]
+		}
+		contextMenuOrchestrator.openDiscoveryReleaseMenu(e, releases)
+	}
+
+	function handleDiscoveryReleaseOpenInBrowser(release: DiscoveryRelease) {
+		openUrl(release.url)
+	}
+
+	function handleDiscoveryReleaseImport(release: DiscoveryRelease) {
+		purchaseRelease = release
+	}
+
+	async function handlePurchaseComplete(result: ImportResultWithDuplicates) {
+		purchaseRelease = null
+		uiStore.clearReleaseSelection()
+
+		if (result.tracks.length > 0) {
+			libraryStore.addTracksToState(result.tracks)
+
+			if (get(settingsStore).autoAnalyzeOnImport) {
+				analysisStore
+					.analyzeTracks(result.tracks.map((t) => t.id))
+					.catch((error) => console.error('Auto-analysis failed:', error))
+			}
+		}
+
+		if (result.duplicates.length > 0) {
+			modalOrchestrator.openDuplicateTrackModal(result.duplicates, () => {
+				libraryStore.loadTracks()
+			})
+		}
+	}
+
+	async function handleDiscoveryReleaseRefreshMetadata(release: DiscoveryRelease) {
+		await discoveryStore.refreshMetadata(release.id)
+	}
+
 	function handleBreadcrumbNavigate(item: BreadcrumbItem) {
 		if (item.id === null) {
 			playlistController.handleLibraryClick()
@@ -531,7 +976,9 @@
 	// =============================================================================
 
 	let selectedTracksArray = $derived($displayedTracks.filter((t) => $selectedTrackIds.has(t.id)))
-	const playlistFolders = $derived(playlists.filter((p) => p.is_folder))
+	let selectedReleasesArray = $derived($sortedReleases.filter((r) => $selectedReleaseIds.has(r.id)))
+	const contextPlaylists = $derived(playlists.filter((p) => p.context === $activeView))
+	const playlistFolders = $derived(contextPlaylists.filter((p) => p.is_folder))
 	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 	const categorySortOrders = $derived(new Map(tagCategories.map((c) => [c.id, c.sort_order])))
 
@@ -549,16 +996,33 @@
 	const tagColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 
 	const currentFolderChildCount = $derived(
-		selectedFolderId ? getPlaylistChildren(playlists, selectedFolderId).length : 0
+		selectedFolderId ? getPlaylistChildren(contextPlaylists, selectedFolderId).length : 0
 	)
+
+	// Discovery playlist releases (loaded when a discovery playlist is selected)
+	let discoveryPlaylistReleases = $state<DiscoveryRelease[]>([])
+
+	// Combine all available releases for drag preview lookups
+	const allAvailableReleases = $derived.by(() => {
+		const sorted = $sortedReleases
+		if (discoveryPlaylistReleases.length === 0) return sorted
+		const idSet = new Set(sorted.map((r) => r.id))
+		const extra = discoveryPlaylistReleases.filter((r) => !idSet.has(r.id))
+		return extra.length > 0 ? [...sorted, ...extra] : sorted
+	})
 
 	const breadcrumbItems = $derived(
 		buildBreadcrumbItems(
-			playlists,
+			contextPlaylists,
 			selectedFolderId,
 			selectedPlaylistId,
-			selectedPlaylistId ? $displayedTracks.length : undefined,
-			currentFolderChildCount
+			selectedPlaylistId
+				? $activeView === 'discovery'
+					? discoveryPlaylistReleases.length
+					: $displayedTracks.length
+				: undefined,
+			currentFolderChildCount,
+			$activeView
 		)
 	)
 </script>
@@ -579,13 +1043,16 @@
 				{/if}
 			</div>
 			<Toolbar
+				activeView={$activeView}
 				{activeFilterTags}
 				{tagColors}
 				tagFilterMode={$tagFilterMode}
+				onViewChange={handleViewChange}
 				onRemoveTagFilter={tagController.removeTagFilter}
 				onClearAllTagFilters={tagController.clearTagFilters}
 				onToggleTagFilterMode={tagController.toggleTagFilterMode}
-				onImport={trackController.handleImport}
+				onImport={$activeView === 'library' ? trackController.handleImport : undefined}
+				onAddRelease={$activeView === 'discovery' ? () => (showAddReleaseModal = true) : undefined}
 				onSettings={() => modalOrchestrator.openSettingsModal()}
 				onDevTools={handleToggleDevTools}
 			/>
@@ -595,17 +1062,17 @@
 			<!-- Left: Sidebar -->
 			<div class="flex-shrink-0" style="width: {sidebarWidth}px">
 				<Sidebar
-					{playlists}
+					playlists={contextPlaylists}
 					{tagCategories}
 					{devices}
 					{selectedPlaylistId}
 					{selectedFolderId}
 					{contextMenuPlaylistId}
 					{selectedTagIds}
-					selectedTrackIds={$selectedTrackIds}
+					selectedTrackIds={$activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds}
 					{tagStates}
 					{tagCounts}
-					trackCount={$trackCount}
+					trackCount={$activeView === 'discovery' ? $releaseCount : $trackCount}
 					showHeader={false}
 					onLibraryClick={playlistController.handleLibraryClick}
 					onPlaylistSelect={playlistController.handlePlaylistSelect}
@@ -635,7 +1102,7 @@
 					{#if selectedFolderId}
 						<FolderView
 							folderId={selectedFolderId}
-							{playlists}
+							playlists={contextPlaylists}
 							onSelect={playlistController.handlePlaylistSelect}
 							{breadcrumbItems}
 							onBreadcrumbNavigate={handleBreadcrumbNavigate}
@@ -644,29 +1111,79 @@
 							onCardContextMenu={(e, playlist) => contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'folder')}
 						/>
 					{:else if selectedPlaylistId}
-						{@const playlist = playlists.find((p) => p.id === selectedPlaylistId)}
+						{@const playlist = contextPlaylists.find((p) => p.id === selectedPlaylistId)}
 						{#if playlist}
-							<PlaylistView
-								{playlist}
-								tracks={$displayedTracks}
-								selectedIds={$selectedTrackIds}
-								playingTrackId={$currentTrack?.id ?? null}
-								{sortConfig}
-								{isDragOver}
-								{categoryColors}
-								{categorySortOrders}
-								{breadcrumbItems}
-								onSelectionChange={trackController.handleSelectionChange}
-								onTrackPlay={trackController.play}
-								onSortChange={handleSortChange}
-								onContextMenu={handleTrackContextMenu}
-								onEmptySpaceContextMenu={(e, pl) => contextMenuOrchestrator.openPlaylistViewMenu(e, pl)}
-								onBreadcrumbNavigate={handleBreadcrumbNavigate}
-								onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-								onTrackColorChange={trackController.setColor}
-								onCancelAnalysis={handleCancelAnalysis}
-							/>
+							{#if playlist.context === 'discovery'}
+								<PlaylistView
+									{playlist}
+									isDiscovery
+									releases={discoveryPlaylistReleases}
+									tracks={[]}
+									selectedIds={$selectedReleaseIds}
+									{sortConfig}
+									{categoryColors}
+									{categorySortOrders}
+									{breadcrumbItems}
+									editorVisible={$rightSidebarVisible}
+									hasSelection={selectedReleasesArray.length > 0}
+									onSelectionChange={handleReleaseSelectionChange}
+									onContextMenu={(e, item) => {
+										handleReleaseContextMenu(e, item as unknown as DiscoveryRelease)
+									}}
+									onBreadcrumbNavigate={handleBreadcrumbNavigate}
+									onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+									onToggleEditor={() => uiStore.toggleRightSidebar()}
+								/>
+							{:else}
+								<PlaylistView
+									{playlist}
+									tracks={$displayedTracks}
+									selectedIds={$selectedTrackIds}
+									playingTrackId={$currentTrack?.id ?? null}
+									{sortConfig}
+									{isDragOver}
+									{categoryColors}
+									{categorySortOrders}
+									{breadcrumbItems}
+									editorVisible={$rightSidebarVisible}
+									hasSelection={selectedTracksArray.length > 0}
+									onSelectionChange={trackController.handleSelectionChange}
+									onTrackPlay={trackController.play}
+									onSortChange={handleSortChange}
+									onContextMenu={handleTrackContextMenu}
+									onEmptySpaceContextMenu={(e, pl) => contextMenuOrchestrator.openPlaylistViewMenu(e, pl)}
+									onBreadcrumbNavigate={handleBreadcrumbNavigate}
+									onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+									onTrackColorChange={trackController.setColor}
+									onCancelAnalysis={handleCancelAnalysis}
+									onToggleEditor={() => uiStore.toggleRightSidebar()}
+								/>
+							{/if}
 						{/if}
+					{:else if $activeView === 'discovery'}
+						<DiscoveryView
+							bind:this={discoveryViewRef}
+							releases={$sortedReleases}
+							releaseCount={$releaseCount}
+							selectedIds={$selectedReleaseIds}
+							sortConfig={discoverySortConfig}
+							{categoryColors}
+							{categorySortOrders}
+							editorVisible={$rightSidebarVisible}
+							hasSelection={selectedReleasesArray.length > 0}
+							onSelectionChange={handleReleaseSelectionChange}
+							onReleaseOpen={handleReleaseOpen}
+							onReleaseOpenUrl={handleDiscoveryReleaseOpenInBrowser}
+							onReleaseImport={handleDiscoveryReleaseImport}
+							onTrackPlay={handleTrackPlayInRelease}
+							onSortChange={handleDiscoverySortChange}
+							onContextMenu={handleReleaseContextMenu}
+							onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openDiscoveryViewMenu(e)}
+							onUrlDrop={async (url) => {
+								await handleAddRelease({ url })
+							}}
+							onToggleEditor={() => uiStore.toggleRightSidebar()}
+						/>
 					{:else}
 						<LibraryView
 							tracks={$displayedTracks}
@@ -677,6 +1194,8 @@
 							{isDragOver}
 							{categoryColors}
 							{categorySortOrders}
+							editorVisible={$rightSidebarVisible}
+							hasSelection={selectedTracksArray.length > 0}
 							onSelectionChange={trackController.handleSelectionChange}
 							onTrackPlay={trackController.play}
 							onSortChange={handleSortChange}
@@ -684,20 +1203,27 @@
 							onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openLibraryViewMenu(e)}
 							onTrackColorChange={trackController.setColor}
 							onCancelAnalysis={handleCancelAnalysis}
+							onToggleEditor={() => uiStore.toggleRightSidebar()}
 						/>
 					{/if}
 				</div>
 
 				<RightSidebar
-					selectedTracks={selectedTracksArray}
+					hasContent={$activeView === 'discovery' ? selectedReleasesArray.length > 0 : selectedTracksArray.length > 0}
 					isVisible={$rightSidebarVisible}
 					width={$rightSidebarWidth}
 					onResize={handleRightSidebarResize}
-				/>
+				>
+					{#if $activeView === 'discovery'}
+						<DiscoveryEditor selectedReleases={selectedReleasesArray} onImport={handleDiscoveryReleaseImport} />
+					{:else}
+						<TrackEditor selectedTracks={selectedTracksArray} />
+					{/if}
+				</RightSidebar>
 			</div>
 		</div>
 
-		<Player />
+		<Player onNext={playNextTrack} onPrevious={playPreviousTrack} />
 	</div>
 {/if}
 
@@ -723,14 +1249,30 @@
 	onPlaylistTreeCreatePlaylist={() => modalOrchestrator.openCreatePlaylistModal(null)}
 	onPlaylistTreeCreateFolder={() => modalOrchestrator.openCreateFolderModal(null)}
 	onLibraryViewImport={trackController.handleImport}
+	onDiscoveryViewAddRelease={() => (showAddReleaseModal = true)}
 	onPlaylistViewImport={playlistController.handlePlaylistViewImport}
+	{tagCategories}
+	onTagAddTag={(categoryId) => modalOrchestrator.openCreateTagModal(categoryId)}
 	onTagRename={(tag) => modalOrchestrator.openRenameTagModal(tag)}
 	onTagDelete={(tag) => modalOrchestrator.openDeleteTagModal(tag)}
+	onTagMove={async (tag, targetCategoryId) => {
+		try {
+			await tagsStore.moveTag(tag.id, targetCategoryId)
+			libraryStore.updateTagCategory(tag.id, targetCategoryId)
+			discoveryStore.updateTagCategory(tag.id, targetCategoryId)
+			discoveryPlaylistReleases = discoveryPlaylistReleases.map((r) => ({
+				...r,
+				tags: r.tags.map((t) => (t.id === tag.id ? { ...t, category_id: targetCategoryId } : t)),
+			}))
+		} catch (error) {
+			const message = error instanceof Error ? error.message : get(translate)('errors.tagNameConflict')
+			toastStore.error(message)
+		}
+	}}
 	onCategoryRename={(category) => modalOrchestrator.openRenameCategoryModal(category)}
 	onCategoryDelete={(category) => modalOrchestrator.openDeleteCategoryModal(category)}
 	onCategoryChangeColor={tagController.changeCategoryColor}
 	onTagsSidebarAddCategory={() => modalOrchestrator.openCreateCategoryModal()}
-	onTagsSidebarAddTag={() => modalOrchestrator.openTagInputModal()}
 	onDeviceViewInfo={deviceController.handleViewDeviceInfo}
 	onDeviceRevealInFinder={deviceController.handleDeviceRevealInFinder}
 	onDeviceReformat={deviceController.handleDeviceReformat}
@@ -738,6 +1280,17 @@
 	onDeviceExport={exportController.handleDeviceExport}
 	onDeviceIgnore={deviceController.handleDeviceIgnore}
 	onPlaylistExport={exportController.handlePlaylistExport}
+	onDiscoveryReleaseOpenInBrowser={handleDiscoveryReleaseOpenInBrowser}
+	onDiscoveryReleaseRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
+	onDiscoveryReleaseImport={handleDiscoveryReleaseImport}
+	onDiscoveryReleaseDelete={(releaseIds) => modalOrchestrator.openRemoveDiscoveryReleasesModal(releaseIds)}
+	onDiscoveryReleaseRemoveFromPlaylist={(playlistId, releaseIds) =>
+		modalOrchestrator.openRemoveDiscoveryReleasesFromPlaylistModal(releaseIds, playlistId)}
+	onDiscoveryReleaseMerge={(releases) => (mergeReleases = releases)}
+	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {
+		const releaseIds = releases.map((r) => r.id)
+		await playlistsStore.addReleases(playlistId, releaseIds)
+	}}
 	onClose={() => (contextMenuPlaylistId = null)}
 />
 
@@ -746,23 +1299,33 @@
 	bind:this={modalOrchestrator}
 	{playlists}
 	{tagCategories}
+	onModalOpenChange={(isOpen) => {
+		setMenuItemEnabled('toggle_view', !isOpen)
+	}}
 	onCreatePlaylist={async (name, parentId) => {
-		const playlist = await playlistsStore.createPlaylist(name, parentId ?? undefined)
+		const context = $activeView
+		const playlist = await playlistsStore.createPlaylist(name, parentId ?? undefined, context)
 		if (playlist) {
 			uiStore.selectPlaylist(playlist.id)
-			await libraryStore.loadPlaylistTracks(playlist.id)
+			if (context === 'library') {
+				await libraryStore.loadPlaylistTracks(playlist.id)
+			}
 		}
 		return playlist
 	}}
 	onCreateFolder={async (name, parentId) => {
-		const folder = await playlistsStore.createFolder(name, parentId ?? undefined)
+		const context = $activeView
+		const folder = await playlistsStore.createFolder(name, parentId ?? undefined, context)
 		if (folder) {
 			uiStore.selectFolder(folder.id)
 		}
 		return folder
 	}}
 	onCreateCategory={async (name) => {
-		await tagsStore.createCategory(name)
+		const categories = get(tagsStore).categories
+		const accent = get(settingsStore).accentColor
+		const color = pickTagCategoryColor(categories, accent)
+		await tagsStore.createCategory(name, color)
 	}}
 	onCreateTag={async (categoryId, name) => {
 		await tagsStore.createTag(categoryId, name)
@@ -776,10 +1339,19 @@
 	onRenameCategory={async (id, name) => {
 		await tagsStore.updateCategory(id, name)
 	}}
-	onDeletePlaylist={async (id, _deleteTracksToo) => {
+	onDeletePlaylist={async (id, deleteTracksToo) => {
 		const playlist = playlists.find((p) => p.id === id)
 		const parentId = playlist?.parent_id ?? null
-		await playlistsStore.delete(id)
+		const context = playlist?.context
+		await playlistsStore.delete(id, deleteTracksToo)
+		if (deleteTracksToo) {
+			if (context === 'discovery') {
+				await discoveryStore.loadReleases()
+			} else {
+				await libraryStore.loadTracks()
+			}
+			await playlistsStore.load()
+		}
 		if (parentId) {
 			const parentFolder = playlists.find((p) => p.id === parentId)
 			if (parentFolder) {
@@ -799,12 +1371,29 @@
 		await tagsStore.deleteCategory(id)
 		await libraryStore.loadTracks()
 	}}
-	onRemoveFromPlaylist={async (trackIds, playlistId) => {
+	onRemoveFromPlaylist={async (trackIds, playlistId, deleteFromCollection) => {
 		await playlistsStore.removeTracks(playlistId, trackIds)
-		await libraryStore.loadPlaylistTracks(playlistId)
+		if (deleteFromCollection) {
+			await libraryStore.deleteTracks(trackIds)
+			await playlistsStore.load()
+		} else {
+			await libraryStore.loadPlaylistTracks(playlistId)
+		}
 		uiStore.clearSelection()
 		const count = trackIds.length
 		toastStore.success(count === 1 ? '1 track removed from playlist' : `${count} tracks removed from playlist`)
+	}}
+	onRemoveDiscoveryReleases={async (releaseIds) => {
+		await discoveryStore.deleteReleases(releaseIds)
+		uiStore.clearReleaseSelection()
+	}}
+	onRemoveDiscoveryReleasesFromPlaylist={async (releaseIds, playlistId, deleteFromCollection) => {
+		await playlistsStore.removeReleases(playlistId, releaseIds)
+		discoveryPlaylistReleases = discoveryPlaylistReleases.filter((r) => !releaseIds.includes(r.id))
+		if (deleteFromCollection) {
+			await discoveryStore.deleteReleases(releaseIds)
+		}
+		uiStore.clearReleaseSelection()
 	}}
 	onRemoveFromLibrary={async (trackIds) => {
 		await libraryStore.deleteTracks(trackIds)
@@ -839,7 +1428,63 @@
 	onReformatDevice={deviceController.handleReformatDevice}
 />
 
+<!-- Add Release Modal -->
+{#if showAddReleaseModal}
+	<AddReleaseModal
+		open={true}
+		onClose={() => (showAddReleaseModal = false)}
+		onSubmit={handleAddRelease}
+		onAddToExisting={async (releaseId, tracks) => {
+			const release = await discoveryApi.addTracksToRelease(releaseId, tracks)
+			if (release) {
+				discoveryStore.updateRelease(releaseId, {})
+				showAddReleaseModal = false
+				await discoveryStore.loadReleases()
+			}
+		}}
+	/>
+{/if}
+
+<!-- Merge Releases Modal -->
+{#if mergeReleases && mergeReleases.length >= 2}
+	<MergeReleasesModal
+		open={true}
+		releases={mergeReleases}
+		onClose={() => (mergeReleases = null)}
+		onMerge={async (targetId, sourceIds) => {
+			const merged = await discoveryStore.mergeReleases(targetId, sourceIds)
+			if (merged) {
+				uiStore.setSelectedReleases(new Set([merged.id]))
+				mergeReleases = null
+			}
+		}}
+	/>
+{/if}
+
+<!-- Purchase Release Modal -->
+{#if purchaseRelease}
+	<PurchaseReleaseModal
+		open={true}
+		release={purchaseRelease}
+		onClose={() => (purchaseRelease = null)}
+		onComplete={handlePurchaseComplete}
+	/>
+{/if}
+
+<!-- Update Modal -->
+{#if $updateAvailable}
+	<UpdateModal open={true} onClose={() => updaterStore.dismiss()} />
+{/if}
+
 <!-- Drag Preview -->
 {#if $isDragging && $dragPosition}
-	<DragPreview data={$dragData} tracks={$libraryStore.tracks} {playlists} x={$dragPosition.x} y={$dragPosition.y} />
+	<DragPreview
+		data={$dragData}
+		tracks={$libraryStore.tracks}
+		releases={allAvailableReleases}
+		{playlists}
+		{tagCategories}
+		x={$dragPosition.x}
+		y={$dragPosition.y}
+	/>
 {/if}

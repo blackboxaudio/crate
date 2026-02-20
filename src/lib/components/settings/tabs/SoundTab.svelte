@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { Select, Text } from '$lib/components/common'
-	import { settingsStore, audioDevice, audioDevices } from '$lib/stores/settings'
+	import { Checkbox, Select, Text } from '$lib/components/common'
+	import { settingsStore, audioDevice, audioDevices, continuousPlayback } from '$lib/stores/settings'
 	import { translate } from '$lib/i18n'
 
 	type SelectOption = { value: string; label: string }
@@ -37,6 +37,10 @@
 	function handleAudioDeviceChange(value: string) {
 		settingsStore.setAudioDevice(value === '' ? null : value)
 	}
+
+	function handleContinuousPlaybackChange(checked: boolean) {
+		settingsStore.setContinuousPlayback(checked)
+	}
 </script>
 
 <div class="space-y-8">
@@ -52,5 +56,16 @@
 				onchange={handleAudioDeviceChange}
 			/>
 		</div>
+	</section>
+
+	<!-- Playback Section -->
+	<section>
+		<Text variant="header-3" class="mb-2">{$translate('settings.sound.continuousPlayback')}</Text>
+		<Text variant="caption" as="p" class="mb-2">{$translate('settings.sound.continuousPlaybackDescription')}</Text>
+		<Checkbox
+			checked={$continuousPlayback}
+			onchange={handleContinuousPlaybackChange}
+			label={$translate('settings.sound.continuousPlayback')}
+		/>
 	</section>
 </div>

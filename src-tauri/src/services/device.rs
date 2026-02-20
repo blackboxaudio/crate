@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+#[cfg(target_os = "macos")]
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -25,6 +26,7 @@ fn get_volume_uuid(mount_point: &str) -> Option<String> {
     #[cfg(target_os = "windows")]
     {
         // Windows UUID retrieval not yet implemented
+        let _ = mount_point;
         None
     }
 

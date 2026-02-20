@@ -183,24 +183,24 @@
    ============================================================================= */
 
 :root,
-[data-font='ibm-plex-mono'] {
-	--font-family: 'IBM Plex Mono', monospace;
-}
-
-[data-font='jetbrains-mono'] {
-	--font-family: 'JetBrains Mono', monospace;
-}
-
-[data-font='fira-code'] {
-	--font-family: 'Fira Code', monospace;
+[data-font='open-sans'] {
+	--font-family: 'Open Sans', sans-serif;
 }
 
 [data-font='inter'] {
 	--font-family: 'Inter', sans-serif;
 }
 
-[data-font='open-sans'] {
-	--font-family: 'Open Sans', sans-serif;
+[data-font='fira-code'] {
+	--font-family: 'Fira Code', monospace;
+}
+
+[data-font='jetbrains-mono'] {
+	--font-family: 'JetBrains Mono', monospace;
+}
+
+[data-font='ibm-plex-mono'] {
+	--font-family: 'IBM Plex Mono', monospace;
 }
 
 /* =============================================================================
@@ -253,6 +253,7 @@ body {
 	background-color: var(--surface-0);
 	color: var(--text-primary);
 	font-family: var(--font-family);
+	cursor: default;
 	-webkit-user-select: none;
 	user-select: none;
 }

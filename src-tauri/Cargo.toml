@@ -1,6 +1,6 @@
 [package]
 name = "crate-app"
-version = "0.1.0"
+version = "0.2.0-staging.7"
 description = "DJ audio library management application"
 authors = ["you"]
 edition = "2021"
@@ -19,15 +19,18 @@ tauri-build = { version = "2.5.3", features = [] }
 
 [dependencies]
 # Tauri
-tauri = { version = "2.9.5", features = ["protocol-asset"] }
-tauri-plugin-opener = "2.5.2"
-tauri-plugin-dialog = "2.4.2"
-tauri-plugin-fs = "2.4.4"
+tauri = { version = "2.10.2", features = ["protocol-asset"] }
+tauri-plugin-opener = "2.5.3"
+tauri-plugin-dialog = "2.6.0"
+tauri-plugin-fs = "2.4.5"
 tauri-plugin-clipboard-manager = "2.3.2"
 tauri-plugin-window-state = "2.4.1"
+tauri-plugin-updater = "2.10.0"
+tauri-plugin-process = "2.3.1"
+souvlaki = "0.8"
 
 # Database
-rusqlite = { version = "0.38.0", features = ["bundled-sqlcipher"] }
+rusqlite = { version = "0.38.0", features = ["bundled-sqlcipher-vendored-openssl"] }
 
 # Audio
 rodio = "0.21.1"
@@ -53,6 +56,13 @@ image = { version = "0.25.9", default-features = false, features = ["png", "jpeg
 # Hashing
 blake3 = "1.8.2"
 
+# HTTP client + proxy server
+reqwest = { version = "0.12", features = ["json", "stream"] }
+axum = "0.7"
+
+# Regex
+regex = "1"
+
 # Utilities
 uuid = { version = "1.19.0", features = ["v4", "serde"] }
 chrono = { version = "0.4.42", features = ["serde"] }
@@ -61,6 +71,9 @@ log = "0.4.29"
 env_logger = "0.11.8"
 walkdir = "2.5.0"
 sysinfo = "0.37.2"
+
+# Encoding
+base64 = "0.22"
 
 # Device Library Plus key deobfuscation
 flate2 = "1.0"

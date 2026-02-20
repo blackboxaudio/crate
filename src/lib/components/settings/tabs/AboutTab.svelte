@@ -1,7 +1,23 @@
 <script lang="ts">
-	import { Text } from '$lib/components/common'
+	import { Button, Text } from '$lib/components/common'
 	import { appInfo } from '$lib/stores/app'
+	import { updaterStore } from '$lib/stores/updater'
 	import { translate } from '$lib/i18n'
+
+	const statusLabel = $derived.by(() => {
+		switch ($updaterStore.status) {
+			case 'checking':
+				return $translate('common.loading')
+			case 'upToDate':
+				return $translate('settings.about.upToDate')
+			case 'available':
+				return $translate('settings.about.updateAvailable', { values: { version: $updaterStore.version ?? '' } })
+			case 'error':
+				return $translate('errors.updateCheckFailed')
+			default:
+				return ''
+		}
+	})
 </script>
 
 <div class="space-y-8">
@@ -23,6 +39,22 @@
 					{$appInfo?.dataDir ?? $translate('common.unknown')}
 				</Text>
 			</div>
+		</div>
+	</section>
+
+	<!-- Updates Section -->
+	<section>
+		<Text variant="header-3" class="mb-4">{$translate('settings.about.updates')}</Text>
+		<div class="flex items-center justify-between">
+			<Text size="sm" color="secondary" as="span">{statusLabel}</Text>
+			<Button
+				size="sm"
+				variant="secondary"
+				disabled={$updaterStore.status === 'checking'}
+				onclick={() => updaterStore.check(false)}
+			>
+				{$translate('settings.about.checkForUpdates')}
+			</Button>
 		</div>
 	</section>
 </div>

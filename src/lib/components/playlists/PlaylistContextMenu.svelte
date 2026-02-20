@@ -66,13 +66,15 @@
 				})
 			}
 
-			// Export to device (only for non-folders)
-			items.push({
-				id: 'export',
-				label: get(translate)('playlists.exportToDevice'),
-				icon: 'arrow-up-from-bracket',
-				action: () => onExport(playlist),
-			})
+			// Export to device (only for non-folders, library context only)
+			if (playlist.context === 'library') {
+				items.push({
+					id: 'export',
+					label: get(translate)('playlists.exportToDevice'),
+					icon: 'arrow-up-from-bracket',
+					action: () => onExport(playlist),
+				})
+			}
 		}
 
 		items.push({ id: 'divider-1', label: '', divider: true })

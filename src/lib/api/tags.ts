@@ -52,6 +52,13 @@ export async function updateTag(id: string, name?: string, color?: string): Prom
 }
 
 /**
+ * Move a tag to a different category
+ */
+export async function moveTag(tagId: string, targetCategoryId: string): Promise<Tag> {
+	return invoke<Tag>('move_tag', { tagId, targetCategoryId })
+}
+
+/**
  * Delete a tag
  */
 export async function deleteTag(id: string): Promise<void> {

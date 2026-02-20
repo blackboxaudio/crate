@@ -3,12 +3,12 @@
 # Release tagging script for Crate
 #
 # Usage:
-#   ./scripts/tag.sh minor alpha        # Start alpha prerelease
-#   ./scripts/tag.sh prerelease         # Iterate current prerelease
-#   ./scripts/tag.sh stage              # Promote to next channel
-#   ./scripts/tag.sh --test stage       # Test build before pushing
-#   ./scripts/tag.sh --dry-run minor    # Preview without executing
-#   ./scripts/tag.sh --delete v0.2.0    # Delete local and remote tag
+#   ./scripts/tag.sh minor staging        # Start staging prerelease
+#   ./scripts/tag.sh prerelease           # Iterate current prerelease
+#   ./scripts/tag.sh stage                # Promote staging to stable
+#   ./scripts/tag.sh --test stage         # Test build before pushing
+#   ./scripts/tag.sh --dry-run minor      # Preview without executing
+#   ./scripts/tag.sh --delete v0.2.0      # Delete local and remote tag
 
 set -e
 
@@ -80,9 +80,9 @@ if [[ -z "$1" ]]; then
     echo -e "${RED}Error: No bump type specified${NC}"
     echo ""
     echo "Usage:"
-    echo "  ./scripts/tag.sh <major|minor|patch> [alpha|beta]   # Version bump"
-    echo "  ./scripts/tag.sh prerelease                         # Increment prerelease"
-    echo "  ./scripts/tag.sh stage                              # Promote to next channel"
+    echo "  ./scripts/tag.sh <major|minor|patch> staging   # Version bump with staging prerelease"
+    echo "  ./scripts/tag.sh prerelease                     # Increment prerelease"
+    echo "  ./scripts/tag.sh stage                          # Promote staging to stable"
     echo ""
     echo "Flags:"
     echo "  --dry-run              Preview actions without executing"
@@ -94,6 +94,12 @@ fi
 BUMP_TYPE="$1"
 CHANNEL="$2"
 
+# Validate channel
+if [[ -n "$CHANNEL" && "$CHANNEL" != "staging" ]]; then
+    echo -e "${RED}Error: Invalid channel '$CHANNEL'. Only 'staging' is supported.${NC}"
+    exit 1
+fi
+
 # Change to root directory
 cd "$ROOT_DIR"
 
@@ -101,61 +107,16 @@ cd "$ROOT_DIR"
 OLD_VERSION=$(node -p "require('./package.json').version")
 echo -e "${BLUE}Current version: $OLD_VERSION${NC}"
 
-# Determine new version (dry run of bump)
+# Determine new version using the canonical version.js script
 if [[ -n "$CHANNEL" ]]; then
-    # Simulate bump with channel
-    case "$BUMP_TYPE" in
-        major)
-            BASE=$(echo "$OLD_VERSION" | sed 's/-.*//' | awk -F. '{print $1+1".0.0"}')
-            NEW_VERSION="$BASE-$CHANNEL.1"
-            ;;
-        minor)
-            BASE=$(echo "$OLD_VERSION" | sed 's/-.*//' | awk -F. '{print $1"."$2+1".0"}')
-            NEW_VERSION="$BASE-$CHANNEL.1"
-            ;;
-        patch)
-            BASE=$(echo "$OLD_VERSION" | sed 's/-.*//' | awk -F. '{print $1"."$2"."$3+1}')
-            NEW_VERSION="$BASE-$CHANNEL.1"
-            ;;
-    esac
-elif [[ "$BUMP_TYPE" == "prerelease" ]]; then
-    # Increment prerelease number
-    BASE=$(echo "$OLD_VERSION" | sed 's/\.[0-9]*$//')
-    NUM=$(echo "$OLD_VERSION" | grep -o '[0-9]*$')
-    NEW_VERSION="$BASE.$((NUM + 1))"
-elif [[ "$BUMP_TYPE" == "stage" ]]; then
-    # Determine next stage
-    if [[ "$OLD_VERSION" =~ -alpha\. ]]; then
-        BASE=$(echo "$OLD_VERSION" | sed 's/-alpha\..*//')
-        NEW_VERSION="$BASE-beta.1"
-    elif [[ "$OLD_VERSION" =~ -beta\. ]]; then
-        NEW_VERSION=$(echo "$OLD_VERSION" | sed 's/-beta\..*//')
-    else
-        echo -e "${RED}Error: Not on a prerelease version. Use 'minor alpha' to start.${NC}"
-        exit 1
-    fi
+    NEW_VERSION=$(node scripts/version.js --print "$BUMP_TYPE" "$CHANNEL")
 else
-    # Standard bump
-    case "$BUMP_TYPE" in
-        major)
-            NEW_VERSION=$(echo "$OLD_VERSION" | awk -F. '{print $1+1".0.0"}')
-            ;;
-        minor)
-            NEW_VERSION=$(echo "$OLD_VERSION" | awk -F. '{print $1"."$2+1".0"}')
-            ;;
-        patch)
-            NEW_VERSION=$(echo "$OLD_VERSION" | awk -F. '{print $1"."$2"."$3+1}')
-            ;;
-        *)
-            echo -e "${RED}Error: Invalid bump type: $BUMP_TYPE${NC}"
-            exit 1
-            ;;
-    esac
+    NEW_VERSION=$(node scripts/version.js --print "$BUMP_TYPE")
 fi
 
 # Determine if this is going to stable
 IS_STABLE=true
-if [[ "$NEW_VERSION" =~ -alpha\. ]] || [[ "$NEW_VERSION" =~ -beta\. ]]; then
+if [[ "$NEW_VERSION" =~ -staging\. ]]; then
     IS_STABLE=false
 fi
 
@@ -182,7 +143,10 @@ echo ""
 
 # Step 2: Prepare/graduate changelog
 echo -e "${BLUE}Step 2: Updating changelog...${NC}"
-if $IS_STABLE && [[ "$BUMP_TYPE" == "stage" ]]; then
+if [[ "$BUMP_TYPE" == "prerelease" ]]; then
+    # Prerelease increment — no new changelog entry needed
+    echo -e "${YELLOW}Skipping changelog (prerelease increment)${NC}"
+elif $IS_STABLE && [[ "$BUMP_TYPE" == "stage" ]]; then
     # Graduating to stable - consolidate prerelease entries
     if $DRY_RUN; then
         echo -e "${YELLOW}[DRY RUN] Would run: yarn changelog:graduate $NEW_VERSION${NC}"
@@ -202,11 +166,13 @@ echo ""
 # Step 3: Commit changes
 echo -e "${BLUE}Step 3: Committing changes...${NC}"
 if $DRY_RUN; then
-    echo -e "${YELLOW}[DRY RUN] Would run: git add -A${NC}"
+    echo -e "${YELLOW}[DRY RUN] Would stage: package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json src-tauri/tauri.staging.conf.json CHANGELOG.md${NC}"
     echo -e "${YELLOW}[DRY RUN] Would run: git commit -m \"chore: release v$NEW_VERSION\"${NC}"
 else
-    git add -A
-    git commit -m "chore: release v$NEW_VERSION"
+    git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock \
+        src-tauri/tauri.conf.json src-tauri/tauri.staging.conf.json \
+        CHANGELOG.md
+    git commit -m "chore: release \`v$NEW_VERSION\`"
 fi
 echo ""
 
@@ -215,7 +181,7 @@ echo -e "${BLUE}Step 4: Creating tag...${NC}"
 if $DRY_RUN; then
     echo -e "${YELLOW}[DRY RUN] Would run: git tag v$NEW_VERSION${NC}"
 else
-    git tag "v$NEW_VERSION"
+    git tag -m "Release \`v$NEW_VERSION\`" "v$NEW_VERSION"
 fi
 echo ""
 

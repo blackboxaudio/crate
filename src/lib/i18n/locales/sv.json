@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "Bibliotek",
+		"discovery": "Upptäckter",
 		"playlists": "Spellistor",
 		"tags": "Taggar"
 	},
@@ -30,6 +31,7 @@
 		"tabs": {
 			"general": "Allmänt",
 			"library": "Bibliotek",
+			"discovery": "Upptäckter",
 			"appearance": "Utseende",
 			"sound": "Ljud",
 			"diagnostics": "Diagnostik",
@@ -37,7 +39,14 @@
 		},
 		"general": {
 			"language": "Språk",
-			"languageDescription": "Välj visningsspråk för programmet."
+			"languageDescription": "Välj visningsspråk för programmet.",
+			"dateFormat": "Datumformat",
+			"dateFormatDescription": "Välj hur datum visas i programmet.",
+			"dateFormatLocale": "Systemstandard",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "Europeisk (DD/MM/YYYY)",
+			"dateFormatDot": "Punkt (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Analys",
@@ -64,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "För OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metadata",
+			"autoFetchMetadata": "Hämta metadata automatiskt",
+			"autoFetchMetadataDescription": "Hämta utgåvmetadata automatiskt när en URL läggs till.",
+			"import": "Importera",
+			"transferTagsOnImport": "Överför taggar vid import",
+			"transferTagsOnImportDescription": "Överför utgåvtaggar till importerade spår som standard.",
+			"removeReleaseAfterImport": "Ta bort utgåva efter import",
+			"removeReleaseAfterImportDescription": "Ta automatiskt bort utgåvor från upptäckterna efter att ha importerat filer."
+		},
 		"appearance": {
 			"font": "Typsnitt",
 			"fontDescription": "Välj typsnitt som används i programmet.",
@@ -78,7 +97,9 @@
 			"outputDeviceDescription": "Välj ljudutgångsenhet för uppspelning.",
 			"systemDefault": "Systemstandard",
 			"system": "System",
-			"external": "Extern"
+			"external": "Extern",
+			"continuousPlayback": "Kontinuerlig uppspelning",
+			"continuousPlaybackDescription": "Spela automatiskt nästa spår när det aktuella spåret slutar."
 		},
 		"diagnostics": {
 			"systemInfo": "Systeminformation",
@@ -100,7 +121,11 @@
 		"about": {
 			"application": "Program",
 			"version": "Version",
-			"environment": "Miljö"
+			"environment": "Miljö",
+			"updates": "Uppdateringar",
+			"checkForUpdates": "Sök efter uppdateringar",
+			"upToDate": "Uppdaterad",
+			"updateAvailable": "{version} tillgänglig"
 		}
 	},
 	"player": {
@@ -111,7 +136,10 @@
 		"next": "Nästa",
 		"mute": "Tyst",
 		"unmute": "Ljud på",
-		"noTrackSelected": "Inget spår valt"
+		"noTrackSelected": "Inget spår valt",
+		"volume": "Volym",
+		"tempo": "Tempo",
+		"resetTempo": "Återställ tempo"
 	},
 	"library": {
 		"searchPlaceholder": "Sök spår...",
@@ -135,6 +163,64 @@
 		"item": "objekt",
 		"items": "objekt"
 	},
+	"discovery": {
+		"addRelease": "Lägg till utgåva",
+		"url": "URL",
+		"source": "Källa",
+		"release": "utgåva",
+		"releases": "utgåvor",
+		"noReleasesYet": "Inga utgåvor än",
+		"addReleaseHint": "Tryck {shortcut} eller dra en URL hit för att lägga till utgåvor från Bandcamp, SoundCloud, Discogs och mer",
+		"dropHint": "Släpp URL för att lägga till utgåva",
+		"previewNotAvailable": "Förhandsvisning inte tillgänglig för denna källa",
+		"columns": {
+			"artistTitle": "Artist / Titel",
+			"label": "Skivbolag",
+			"tags": "Taggar",
+			"dateAdded": "Tillagd",
+			"released": "Lanserad",
+			"added": "Tillagd"
+		},
+		"fetchingMetadata": "Hämtar metadata...",
+		"refreshMetadata": "Uppdatera metadata",
+		"fetchError": "Kunde inte hämta metadata från denna URL",
+		"tracks": "Spår",
+		"trackCount": "{count, plural, =1 {1 spår} other {{count} spår}}",
+		"openInBrowser": "Öppna i webbläsare",
+		"importToLibrary": "Importera till bibliotek",
+		"deleteRelease": "Ta bort utgåva",
+		"deleteReleases": "Ta bort utgåvor",
+		"editor": {
+			"releaseInfo": "Utgåvainformation",
+			"releasesCount": "{count, plural, =1 {1 utgåva} other {{count} utgåvor}}",
+			"artist": "Artist",
+			"title": "Titel",
+			"label": "Skivbolag",
+			"releaseDate": "Releasedatum",
+			"notes": "Anteckningar"
+		},
+		"import": {
+			"title": "Importera till bibliotek",
+			"selectFiles": "Välj filer",
+			"matched": "Matchad",
+			"unmatched": "Omatchad",
+			"importAllFiles": "Importera alla filer",
+			"transferTags": "Överför taggar",
+			"transferTagsCount": "Överför taggar ({count})",
+			"importing": "Importerar...",
+			"noFilesSelected": "Inga filer valda",
+			"filesSelected": "{count, plural, =1 {1 fil} other {{count} filer}} vald(a)"
+		},
+		"addToExisting": "Lägg till på befintlig",
+		"addAsNew": "Lägg till som ny utgåva",
+		"matchFound": "Det här spåret är en del av {albumTitle} som redan finns i din upptäcktlista",
+		"similarFound": "En liknande utgåva finns redan: {title} av {artist}",
+		"mergeReleases": "Slå samman utgåvor",
+		"mergeConfirm": "Behåll metadata från:",
+		"mergeTrackCount": "{count, plural, =1 {1 spår} other {{count} spår}} kombinerat",
+		"expandAll": "Expandera alla",
+		"collapseAll": "Minimera alla"
+	},
 	"playlists": {
 		"newPlaylist": "Ny spellista",
 		"newFolder": "Ny mapp",
@@ -155,6 +241,7 @@
 		"deleteCategory": "Ta bort kategori",
 		"addCategory": "Lägg till kategori",
 		"addTag": "Lägg till tagg",
+		"moveToCategory": "Flytta till kategori",
 		"noTags": "Inga taggar",
 		"noTagCategoriesYet": "Inga taggkategorier än"
 	},
@@ -219,7 +306,13 @@
 			"removeFromLibraryTitle": "Ta bort från bibliotek",
 			"removeFromLibraryMessage": "{count, plural, =1 {Ta bort detta spår från ditt bibliotek?} other {Ta bort {count} spår från ditt bibliotek?}}",
 			"removeFromLibraryWarning": "Denna åtgärd kan inte ångras. Spår kommer att tas bort från alla spellistor.",
-			"deleteTracksFromCollection": "Ta även bort spår från min samling"
+			"deleteTracksFromCollection": "Ta även bort spår från min samling",
+			"removeDiscoveryReleasesTitle": "Ta bort från upptäckt",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Ta bort det här släppet från upptäckt?} other {Ta bort {count} släpp från upptäckt?}}",
+			"removeDiscoveryReleasesWarning": "Denna åtgärd kan inte ångras. Släppen kommer att tas bort från alla spellistor.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Ta bort från spellista",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Ta bort det här släppet från spellistan?} other {Ta bort {count} släpp från spellistan?}}",
+			"deleteReleasesFromCollection": "Ta även bort släpp från min samling"
 		},
 		"relocate": {
 			"title": "Flytta spår",
@@ -235,6 +328,15 @@
 			"available": "Tillgängligt:",
 			"total": "Totalt:",
 			"percentUsed": "% använt"
+		},
+		"update": {
+			"title": "Uppdatering tillgänglig",
+			"description": "{version} är redo att installeras.",
+			"releaseNotes": "Vad är nytt",
+			"installAndRestart": "Installera och starta om",
+			"later": "Senare",
+			"downloading": "Hämtar... {progress}%",
+			"installing": "Installerar..."
 		},
 		"duplicate": {
 			"title": "Dubblettspår upptäckt",
@@ -295,7 +397,11 @@
 		"cannotDropIntoSelf": "Kan inte släppa en mapp i sig själv",
 		"cannotDropIntoSubfolder": "Kan inte släppa en mapp i sin egen undermapp",
 		"analysisFailed": "Analysen misslyckades",
-		"exportInProgress": "Export är redan i gång"
+		"exportInProgress": "Export är redan i gång",
+		"tagNameConflict": "En tagg med detta namn finns redan i målkategorin",
+		"previewStreamFailed": "Misslyckades att ladda förhandsvisningsströmmen",
+		"updateCheckFailed": "Misslyckades att söka efter uppdateringar",
+		"updateInstallFailed": "Misslyckades att installera uppdateringen"
 	},
 	"devices": {
 		"title": "Enheter",
@@ -375,12 +481,12 @@
 		"label": "Skivbolag",
 		"bpm": "BPM",
 		"key": "Tonart",
-		"saving": "Sparar...",
-		"saveChanges": "Spara ändringar",
 		"multipleArtworks": "Flera omslag",
 		"addArtwork": "Lägg till omslag",
 		"replaceArtwork": "Ersätt omslag",
-		"reextractFromFile": "Extrahera om från fil"
+		"reextractFromFile": "Extrahera om från fil",
+		"showEditor": "Visa redigerare",
+		"hideEditor": "Dölj redigerare"
 	},
 	"colors": {
 		"pink": "Rosa",
@@ -397,6 +503,14 @@
 		"violet": "Violett",
 		"rose": "Ros",
 		"emerald": "Smaragd"
+	},
+	"dates": {
+		"today": "Idag",
+		"yesterday": "Igår",
+		"daysAgo": "{count, plural, =1 {för 1 dag sedan} other {för {count} dagar sedan}}",
+		"weeksAgo": "{count, plural, =1 {för 1 vecka sedan} other {för {count} veckor sedan}}",
+		"monthsAgo": "{count, plural, =1 {för 1 månad sedan} other {för {count} månader sedan}}",
+		"yearsAgo": "{count, plural, =1 {för 1 år sedan} other {för {count} år sedan}}"
 	},
 	"crash": {
 		"title": "Något gick fel",
@@ -416,11 +530,14 @@
 		"settingsSubmenu": "Inställningar",
 		"settingsGeneral": "Allmänt",
 		"settingsLibrary": "Bibliotek",
+		"settingsDiscovery": "Upptäckter",
 		"settingsAppearance": "Utseende",
 		"settingsSound": "Ljud",
 		"settingsDiagnostics": "Diagnostik",
 		"quit": "Avsluta {appName}",
 		"importTracks": "Importera spår...",
+		"addRelease": "Lägg till release...",
+		"refreshMetadata": "Uppdatera metadata",
 		"newPlaylist": "Ny spellista",
 		"newFolder": "Ny mapp",
 		"quickExport": "Snabbexport...",
@@ -429,12 +546,25 @@
 		"cut": "Klipp ut",
 		"copy": "Kopiera",
 		"paste": "Klistra in",
-		"selectAllTracks": "Markera alla spår",
+		"selectAll": "Markera alla",
 		"playPause": "Spela/Paus",
 		"stop": "Stoppa",
+		"nextTrack": "Nästa spår",
+		"previousTrack": "Föregående spår",
+		"seekForward": "Spola fram",
+		"seekBackward": "Spola bakåt",
+		"fineSeekForward": "Fin framspole",
+		"fineSeekBackward": "Fin bakåtspole",
+		"volumeUp": "Öka volym",
+		"volumeDown": "Minska volym",
+		"mute": "Tyst",
 		"jumpToPlaying": "Gå till spår som spelas upp",
-		"toggleSidebar": "Visa/Dölj sidofält",
+		"toggleEditor": "Visa/Dölj redigerare",
+		"toggleView": "Växla vy",
 		"showDevTools": "Visa DevTools",
+		"enterFullScreen": "Gå till helskärm",
+		"expandAllReleases": "Expandera alla utgåvor",
+		"collapseAllReleases": "Minimera alla utgåvor",
 		"minimize": "Minimera",
 		"zoom": "Zooma",
 		"documentation": "{appName} Dokumentation",

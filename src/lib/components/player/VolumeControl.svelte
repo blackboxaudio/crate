@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { IconButton, Slider } from '$lib/components/common'
+	import { IconButton, Slider, Text, Tooltip } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
 
 	type Props = {
@@ -27,16 +27,20 @@
 	}
 </script>
 
-<div class="flex items-center gap-2">
-	<IconButton
-		title={isMuted ? $translate('player.unmute') : $translate('player.mute')}
-		size="sm"
-		icon={isMuted ? 'volume-muted' : volume < 0.5 ? 'volume-low' : 'volume-full'}
-		fill
-		onclick={toggleMute}
-	/>
+<div class="flex flex-col gap-1">
+	<Text variant="header-4">{$translate('player.volume')}</Text>
+	<div class="flex items-center gap-2">
+		<div class="flex h-6 w-24 items-center">
+			<Slider value={volume} min={0} max={1} step={0.01} oninput={handleVolumeChange} />
+		</div>
 
-	<div class="flex h-6 w-24 items-center">
-		<Slider value={volume} min={0} max={1} step={0.01} oninput={handleVolumeChange} />
+		<Tooltip text={isMuted ? $translate('player.unmute') : $translate('player.mute')} position="top" delay={250}>
+			<IconButton
+				size="sm"
+				icon={isMuted ? 'volume-muted' : volume < 0.5 ? 'volume-low' : 'volume-full'}
+				fill
+				onclick={toggleMute}
+			/>
+		</Tooltip>
 	</div>
 </div>

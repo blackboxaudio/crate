@@ -36,20 +36,13 @@
 		}
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
-			e.preventDefault()
-			handleSubmit()
-		}
-	}
-
 	function handleClose() {
 		volumeName = ''
 		onClose()
 	}
 </script>
 
-<Modal {open} title={$translate('devices.reformat.title')} onClose={handleClose}>
+<Modal {open} title={$translate('devices.reformat.title')} onClose={handleClose} onSubmit={handleSubmit}>
 	{#if device}
 		<div class="space-y-4">
 			<!-- Data Loss Warning -->
@@ -69,9 +62,9 @@
 
 			<!-- Volume Name Input -->
 			<div class="space-y-2">
-				<label for="volume-name" class="block text-sm font-medium text-text-primary">
+				<Text as="label" for="volume-name" weight="medium" class="block">
 					{$translate('devices.reformat.volumeName')}
-				</label>
+				</Text>
 				<input
 					id="volume-name"
 					type="text"
@@ -79,7 +72,6 @@
 					bind:value={volumeName}
 					placeholder={$translate('devices.reformat.volumeNamePlaceholder')}
 					maxlength={maxLength}
-					onkeydown={handleKeydown}
 					class="w-full rounded-md border border-stroke bg-surface-2 px-3 py-2 text-text-primary placeholder-text-tertiary focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none"
 				/>
 				<div class="flex justify-between text-xs text-text-tertiary">

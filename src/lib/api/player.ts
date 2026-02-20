@@ -44,6 +44,13 @@ export async function setVolume(volume: number): Promise<PlaybackState> {
 }
 
 /**
+ * Set playback speed (0.9 to 1.1)
+ */
+export async function setSpeed(speed: number): Promise<PlaybackState> {
+	return invoke<PlaybackState>('set_speed', { speed })
+}
+
+/**
  * Get current playback state
  */
 export async function getPlaybackState(): Promise<PlaybackState> {

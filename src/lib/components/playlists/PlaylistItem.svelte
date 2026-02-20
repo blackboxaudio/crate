@@ -1,6 +1,13 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
-	import { dragStore, hoveredDropTarget, isDragging, isDraggingTracks, isDraggingPlaylist } from '$lib/stores'
+	import {
+		dragStore,
+		hoveredDropTarget,
+		isDragging,
+		isDraggingTracks,
+		isDraggingReleases,
+		isDraggingPlaylist,
+	} from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { Text, Checkbox } from '$lib/components/common'
@@ -57,6 +64,8 @@
 	const isValidDropTarget = $derived.by(() => {
 		// Playlists accept track drops
 		if ($isDraggingTracks && !playlist.is_folder) return true
+		// Discovery playlists accept release drops
+		if ($isDraggingReleases && !playlist.is_folder && playlist.context === 'discovery') return true
 		// Folders accept playlist drops
 		if ($isDraggingPlaylist && playlist.is_folder) return true
 		return false

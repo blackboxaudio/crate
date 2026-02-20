@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { MIXED_PLACEHOLDER } from '$lib/utils'
+	import Text from '$lib/components/common/Text.svelte'
 
 	type Props = {
 		label: string
@@ -10,6 +11,7 @@
 		disabled?: boolean
 		onchange?: (value: string | number | null) => void
 		onsubmit?: () => void
+		onblur?: () => void
 	}
 
 	let {
@@ -21,6 +23,7 @@
 		disabled = false,
 		onchange,
 		onsubmit,
+		onblur,
 	}: Props = $props()
 
 	// Local state for the input - shows placeholder when mixed
@@ -61,7 +64,7 @@
 </script>
 
 <label class="block space-y-1">
-	<span class="block text-xs font-medium text-text-secondary">{label}</span>
+	<Text as="span" size="xs" weight="medium" color="secondary" class="block">{label}</Text>
 	<input
 		{type}
 		value={inputValue}
@@ -69,6 +72,7 @@
 		{disabled}
 		oninput={handleInput}
 		onkeydown={handleKeydown}
+		onblur={() => onblur?.()}
 		class="w-full rounded-md border border-stroke bg-surface-2 px-3 py-1.5 text-sm text-text-primary placeholder-text-tertiary focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
 	/>
 </label>

@@ -1,30 +1,29 @@
 <script lang="ts">
-	import type { Track } from '$lib/types'
+	import type { Snippet } from 'svelte'
 	import { ResizeHandle } from '$lib/components/common'
-	import { TrackEditor } from '$lib/components/editor'
 
 	type Props = {
-		selectedTracks: Track[]
+		hasContent: boolean
 		isVisible: boolean
 		width: number
 		onResize: (delta: number) => void
+		children: Snippet
 	}
 
-	let { selectedTracks, isVisible, width, onResize }: Props = $props()
+	let { hasContent, isVisible, width, onResize, children }: Props = $props()
 
 	// Resize state for disabling transitions during resize
 	let isResizing = $state(false)
 
-	// Snapshot of selected tracks that persists during close transition
-	let editorTracks = $state<Track[]>([])
+	// Whether sidebar should be open (visible and has content)
+	let sidebarOpen = $derived(isVisible && hasContent)
 
-	// Whether sidebar should be open (visible and has tracks)
-	let sidebarOpen = $derived(isVisible && selectedTracks.length > 0)
+	// Track whether content should be rendered (persists during close transition)
+	let showContent = $state(false)
 
-	// Sync editor tracks with selection when sidebar is open
 	$effect(() => {
-		if (sidebarOpen && selectedTracks.length > 0) {
-			editorTracks = selectedTracks
+		if (sidebarOpen) {
+			showContent = true
 		}
 	})
 </script>
@@ -37,7 +36,7 @@
 	style="width: {sidebarOpen ? width : 0}px"
 	ontransitionend={(e) => {
 		if (e.propertyName === 'width' && !sidebarOpen) {
-			editorTracks = []
+			showContent = false
 		}
 	}}
 >
@@ -47,6 +46,8 @@
 		onResizeEnd={() => (isResizing = false)}
 	/>
 	<div style="width: {width}px">
-		<TrackEditor selectedTracks={editorTracks} />
+		{#if showContent}
+			{@render children()}
+		{/if}
 	</div>
 </div>

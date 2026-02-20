@@ -2,6 +2,7 @@
 	import Modal from './Modal.svelte'
 	import Button from './Button.svelte'
 	import Icon from './Icon.svelte'
+	import Text from './Text.svelte'
 	import { translate } from '$lib/i18n'
 	import type { DuplicateTrack, DuplicateResolutionAction } from '$lib/types'
 
@@ -45,24 +46,24 @@
 		{/if}
 
 		<div class="space-y-2">
-			<p class="text-sm text-text-secondary">{$translate('modals.duplicate.message')}</p>
+			<Text color="secondary">{$translate('modals.duplicate.message')}</Text>
 
 			{#if duplicate}
 				<div class="space-y-1 rounded-md bg-surface-2 p-3">
-					<p class="text-sm font-medium text-text-primary">
+					<Text variant="body-2">
 						{duplicate.existing_track.title || $translate('common.untitled')}
-					</p>
-					<p class="text-xs text-text-secondary">
+					</Text>
+					<Text variant="caption" color="secondary">
 						{duplicate.existing_track.artist || $translate('common.unknownArtist')}
-					</p>
-					<p class="truncate font-mono text-xs text-text-tertiary">
+					</Text>
+					<Text variant="caption" mono truncate>
 						{$translate('modals.duplicate.current')}
 						{formatPath(duplicate.existing_track.file_path)}
-					</p>
-					<p class="truncate font-mono text-xs text-text-tertiary">
+					</Text>
+					<Text variant="caption" mono truncate>
 						{$translate('modals.duplicate.new')}
 						{formatPath(duplicate.new_file_path)}
-					</p>
+					</Text>
 				</div>
 			{/if}
 		</div>
@@ -79,8 +80,10 @@
 						<Icon name="x" class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">{$translate('modals.duplicate.skip')}</p>
-						<p class="mt-0.5 text-xs text-text-secondary">{$translate('modals.duplicate.skipDescription')}</p>
+						<Text variant="body-2">{$translate('modals.duplicate.skip')}</Text>
+						<Text variant="caption" color="secondary" class="mt-0.5"
+							>{$translate('modals.duplicate.skipDescription')}</Text
+						>
 					</div>
 				</div>
 			</button>
@@ -96,10 +99,10 @@
 						<Icon name="folder-arrow" class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">{$translate('modals.duplicate.updatePath')}</p>
-						<p class="mt-0.5 text-xs text-text-secondary">
+						<Text variant="body-2">{$translate('modals.duplicate.updatePath')}</Text>
+						<Text variant="caption" color="secondary" class="mt-0.5">
 							{$translate('modals.duplicate.updatePathDescription')}
-						</p>
+						</Text>
 					</div>
 				</div>
 			</button>
@@ -115,10 +118,10 @@
 						<Icon name="refresh" class="h-4 w-4" />
 					</div>
 					<div class="flex-1">
-						<p class="text-sm font-medium text-text-primary">{$translate('modals.duplicate.replace')}</p>
-						<p class="mt-0.5 text-xs text-text-secondary">
+						<Text variant="body-2">{$translate('modals.duplicate.replace')}</Text>
+						<Text variant="caption" color="secondary" class="mt-0.5">
 							{$translate('modals.duplicate.replaceDescription')}
-						</p>
+						</Text>
 					</div>
 				</div>
 			</button>
@@ -131,9 +134,9 @@
 					bind:checked={applyToAllChecked}
 					class="h-4 w-4 rounded border-stroke bg-surface-2 text-brand-primary focus:ring-0"
 				/>
-				<span class="text-sm text-text-secondary">
+				<Text as="span" color="secondary">
 					{$translate('modals.duplicate.applyToAll', { values: { count: totalCount - currentIndex - 1 } })}
-				</span>
+				</Text>
 			</label>
 		{/if}
 	</div>

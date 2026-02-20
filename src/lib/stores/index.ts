@@ -9,15 +9,22 @@ export {
 	playbackDuration,
 	volume,
 	playbackProgress,
+	playbackSource,
+	playbackSpeed,
+	previewInfo,
+	previewTrackIndex,
 } from './player'
 export { tagsStore, allTags, getTagById, getCategoryById, computeTagStates } from './tags'
 export { playlistsStore, rootPlaylists, getPlaylistChildren, buildPlaylistTree } from './playlists'
 export type { PlaylistTreeNode } from './playlists'
 export {
 	uiStore,
+	activeView,
 	selectedTrackIds,
 	selectedTrackCount,
 	hasSelection,
+	selectedReleaseIds,
+	selectedReleaseCount,
 	searchQuery,
 	isSearchActive,
 	recentlyToggledMixedTags,
@@ -28,7 +35,16 @@ export {
 } from './ui'
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'
-export { settingsStore, theme, accentColor, resolvedTheme, settingsLoading, keyNotationFormat } from './settings'
+export {
+	settingsStore,
+	theme,
+	accentColor,
+	resolvedTheme,
+	settingsLoading,
+	keyNotationFormat,
+	dateFormat,
+	continuousPlayback,
+} from './settings'
 export {
 	devicesStore,
 	devices,
@@ -48,10 +64,14 @@ export {
 	dragPosition,
 	hoveredDropTarget,
 	isDraggingTracks,
+	isDraggingReleases,
 	isDraggingPlaylist,
+	isDraggingTag,
 	needsDropTargetRefresh,
 } from './drag'
 export type { DragData } from './drag'
 export { crashStore, hasCrashed, crashError } from './crash'
 export type { CrashInfo } from './crash'
 export { analysisStore, analyzingTrackIds, isAnalyzing } from './analysis'
+export { discoveryStore, sortedReleases, releaseCount, isDiscoveryLoading, refreshingReleaseIds } from './discovery'
+export { updaterStore, updateStatus, updateAvailable } from './updater'

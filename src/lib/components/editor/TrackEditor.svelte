@@ -6,8 +6,10 @@
 	import { computeBulkTrackInfo } from '$lib/utils'
 	import * as libraryApi from '$lib/api/library'
 	import type { Track, TrackUpdate } from '$lib/types'
-	import Button from '$lib/components/common/Button.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import IconButton from '$lib/components/common/IconButton.svelte'
+	import Text from '$lib/components/common/Text.svelte'
+	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import EditorField from './EditorField.svelte'
 	import EditorArtwork from './EditorArtwork.svelte'
 	import { translate } from '$lib/i18n'
@@ -22,9 +24,13 @@
 	// Compute bulk info from selected tracks
 	let bulkInfo = $derived(computeBulkTrackInfo(selectedTracks))
 
+	// Resolved artwork path when multiple tracks share identical artwork
+	let resolvedArtworkPath = $state<string | null>(null)
+
 	// Form state - only track changed values
 	let formData = $state<Partial<TrackUpdate>>({})
 	let saving = $state(false)
+	let pendingSave = $state(false)
 
 	// Reset form when selection changes
 	$effect(() => {
@@ -32,6 +38,23 @@
 		/* eslint-disable @typescript-eslint/no-unused-expressions */
 		selectedTracks.length
 		formData = {}
+	})
+
+	// Compare artworks when paths are mixed to check if they're actually identical
+	$effect(() => {
+		if (bulkInfo.artworkPath.mixed && selectedTracks.length > 1) {
+			const trackIds = selectedTracks.map((t) => t.id)
+			libraryApi
+				.compareTrackArtworks(trackIds)
+				.then((path) => {
+					resolvedArtworkPath = path
+				})
+				.catch(() => {
+					resolvedArtworkPath = null
+				})
+		} else {
+			resolvedArtworkPath = null
+		}
 	})
 
 	// Check if there are any changes
@@ -49,15 +72,20 @@
 	}
 
 	async function handleSave() {
-		if (!hasChanges || saving) return
+		if (!hasChanges) return
+		if (saving) {
+			pendingSave = true
+			return
+		}
 
 		saving = true
+		const snapshot = { ...formData }
 		try {
 			const ids = selectedTracks.map((t) => t.id)
 			const update: TrackUpdate = {}
 
 			// Only include fields that have actual values
-			for (const [key, value] of Object.entries(formData)) {
+			for (const [key, value] of Object.entries(snapshot)) {
 				if (value !== undefined) {
 					;(update as Record<string, unknown>)[key] = value === '' ? null : value
 				}
@@ -71,12 +99,23 @@
 			// Notify sync store about track changes (for auto-sync)
 			syncStore.notifyTrackChanges(ids)
 
-			formData = {}
+			// Only clear snapshotted keys (preserve any new edits made during save)
+			const updated = { ...formData }
+			for (const key of Object.keys(snapshot)) {
+				if (updated[key as keyof TrackUpdate] === snapshot[key as keyof TrackUpdate]) {
+					delete updated[key as keyof TrackUpdate]
+				}
+			}
+			formData = updated
 		} catch (error) {
 			console.error('Failed to update tracks:', error)
 			toastStore.error(get(translate)('toast.failedToUpdateTracks'))
 		} finally {
 			saving = false
+			if (pendingSave) {
+				pendingSave = false
+				handleSave()
+			}
 		}
 	}
 
@@ -142,17 +181,14 @@
 <div class="flex h-full flex-col border-l border-stroke bg-surface-1">
 	<!-- Header -->
 	<div class="flex items-center justify-between px-4 py-4.5">
-		<h2 class="text-sm font-semibold text-text-primary">
+		<Text variant="header-2" as="h2">
 			{selectedTracks.length === 1
 				? $translate('editor.trackInfo')
 				: $translate('editor.tracksCount', { values: { count: selectedTracks.length } })}
-		</h2>
-		<button
-			class="rounded p-1 text-text-secondary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-primary"
-			onclick={handleClose}
-		>
-			<Icon name="x" class="h-4 w-4" />
-		</button>
+		</Text>
+		<Tooltip text={$translate('common.close')} position="bottom" delay={250}>
+			<IconButton icon="x" size="sm" onclick={handleClose} />
+		</Tooltip>
 	</div>
 
 	<!-- Scrollable content -->
@@ -162,6 +198,7 @@
 			artworkPath={bulkInfo.artworkPath}
 			artworkSource={bulkInfo.artworkSource}
 			trackCount={selectedTracks.length}
+			{resolvedArtworkPath}
 			onAdd={handleArtworkAdd}
 			onRemove={handleArtworkRemove}
 			onReextract={handleArtworkReextract}
@@ -178,6 +215,7 @@
 				mixed={bulkInfo.title.mixed && formData.title === undefined}
 				onchange={handleFieldChange('title')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 			<EditorField
 				label={$translate('editor.artist')}
@@ -185,6 +223,7 @@
 				mixed={bulkInfo.artist.mixed && formData.artist === undefined}
 				onchange={handleFieldChange('artist')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 			<EditorField
 				label={$translate('editor.album')}
@@ -192,6 +231,7 @@
 				mixed={bulkInfo.album.mixed && formData.album === undefined}
 				onchange={handleFieldChange('album')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 
 			<div class="grid grid-cols-2 gap-3">
@@ -202,6 +242,7 @@
 					mixed={bulkInfo.year.mixed && formData.year === undefined}
 					onchange={handleFieldChange('year')}
 					onsubmit={handleSave}
+					onblur={handleSave}
 				/>
 				<EditorField
 					label={$translate('editor.genre')}
@@ -209,6 +250,7 @@
 					mixed={bulkInfo.genre.mixed && formData.genre === undefined}
 					onchange={handleFieldChange('genre')}
 					onsubmit={handleSave}
+					onblur={handleSave}
 				/>
 			</div>
 
@@ -218,6 +260,7 @@
 				mixed={bulkInfo.label.mixed && formData.label === undefined}
 				onchange={handleFieldChange('label')}
 				onsubmit={handleSave}
+				onblur={handleSave}
 			/>
 
 			<div class="grid grid-cols-2 gap-3">
@@ -228,6 +271,7 @@
 					mixed={bulkInfo.bpm.mixed && formData.bpm === undefined}
 					onchange={handleFieldChange('bpm')}
 					onsubmit={handleSave}
+					onblur={handleSave}
 				/>
 				<EditorField
 					label={$translate('editor.key')}
@@ -235,15 +279,9 @@
 					mixed={bulkInfo.key.mixed && formData.key === undefined}
 					onchange={handleFieldChange('key')}
 					onsubmit={handleSave}
+					onblur={handleSave}
 				/>
 			</div>
 		</div>
-	</div>
-
-	<!-- Footer with save button -->
-	<div class="p-4">
-		<Button variant="primary" class="w-full" onclick={handleSave} disabled={!hasChanges || saving}>
-			{saving ? $translate('editor.saving') : $translate('editor.saveChanges')}
-		</Button>
 	</div>
 </div>

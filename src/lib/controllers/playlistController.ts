@@ -20,6 +20,7 @@ export interface PlaylistControllerDeps {
 	getSelectedFolderId: () => string | null
 	getSelectedTagIds: () => string[]
 	getTagFilterMode: () => 'and' | 'or'
+	onDiscoveryPlaylistSelected?: (playlistId: string) => Promise<void>
 }
 
 export interface PlaylistControllerModalActions {
@@ -60,6 +61,7 @@ export function createPlaylistController(
 		getSelectedFolderId,
 		getSelectedTagIds,
 		getTagFilterMode,
+		onDiscoveryPlaylistSelected,
 	} = deps
 
 	/**
@@ -88,6 +90,9 @@ export function createPlaylistController(
 
 		if (playlist.is_folder) {
 			uiStore.selectFolder(playlist.id)
+		} else if (playlist.context === 'discovery') {
+			uiStore.selectPlaylist(playlist.id)
+			await onDiscoveryPlaylistSelected?.(playlist.id)
 		} else {
 			uiStore.selectPlaylist(playlist.id)
 			// Apply existing tag filters to the playlist (if any)

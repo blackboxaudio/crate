@@ -30,7 +30,7 @@
 	/>
 
 	<!-- Stop -->
-	<IconButton title={$translate('player.stop')} disabled={!hasTrack} icon="stop" fill onclick={onStop} />
+	<!--	<IconButton title={$translate('player.stop')} disabled={!hasTrack} icon="stop" fill onclick={onStop} />-->
 
 	<!-- Next -->
 	<IconButton title={$translate('player.next')} disabled={!hasTrack} icon="skip-forward" fill onclick={onNext} />

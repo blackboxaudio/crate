@@ -2,6 +2,7 @@
 	import type { Playlist } from '$lib/types'
 	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
 	import PlaylistItem from './PlaylistItem.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import { SvelteSet } from 'svelte/reactivity'
 
 	type Props = {
@@ -68,6 +69,6 @@
 	{/each}
 
 	{#if playlists.length === 0}
-		<p class="py-4 text-center text-xs text-text-tertiary">No playlists available</p>
+		<Text variant="caption" class="py-4 text-center">No playlists available</Text>
 	{/if}
 </div>

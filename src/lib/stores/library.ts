@@ -266,6 +266,23 @@ function createLibraryStore() {
 		},
 
 		/**
+		 * Update category_id for a tag across all tracks and playlist tracks
+		 */
+		updateTagCategory(tagId: string, newCategoryId: string) {
+			update((state) => ({
+				...state,
+				tracks: state.tracks.map((t) => ({
+					...t,
+					tags: t.tags.map((tag) => (tag.id === tagId ? { ...tag, category_id: newCategoryId } : tag)),
+				})),
+				playlistTracks: state.playlistTracks.map((t) => ({
+					...t,
+					tags: t.tags.map((tag) => (tag.id === tagId ? { ...tag, category_id: newCategoryId } : tag)),
+				})),
+			}))
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {

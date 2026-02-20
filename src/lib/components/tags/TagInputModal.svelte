@@ -44,13 +44,6 @@
 		}
 	}
 
-	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Enter') {
-			e.preventDefault()
-			handleSubmit()
-		}
-	}
-
 	function handleCancel() {
 		selectedCategoryId = ''
 		tagName = ''
@@ -58,7 +51,7 @@
 	}
 </script>
 
-<Modal {open} title="Add Tag" onClose={handleCancel}>
+<Modal {open} title="Add Tag" onClose={handleCancel} onSubmit={handleSubmit}>
 	<div class="space-y-4">
 		<div>
 			<Text as="label" variant="body-2" color="secondary" class="mb-1.5 block" for="tag-category">Category</Text>
@@ -66,7 +59,7 @@
 		</div>
 		<div>
 			<Text as="label" variant="body-2" color="secondary" class="mb-1.5 block" for="tag-name">Tag name</Text>
-			<Input bind:value={tagName} placeholder="Enter tag name" onkeydown={handleKeydown} />
+			<Input bind:value={tagName} placeholder="Enter tag name" autofocus />
 		</div>
 	</div>
 

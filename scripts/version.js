@@ -1,13 +1,17 @@
 #!/usr/bin/env node
 /**
  * Version bump script for Crate
- * Synchronizes version across package.json, Cargo.toml, and tauri.conf.json
+ * Synchronizes version across package.json, Cargo.toml, tauri.conf.json, and tauri.staging.conf.json
+ *
+ * Tauri configs get MSI-compatible versions (numeric-only prerelease identifiers)
+ * to satisfy Windows MSI bundling requirements.
  *
  * Usage:
  *   node scripts/version.js <major|minor|patch>              # Standard version bump
- *   node scripts/version.js <major|minor|patch> <alpha|beta> # Start prerelease
+ *   node scripts/version.js <major|minor|patch> staging       # Start staging prerelease
  *   node scripts/version.js prerelease                       # Increment prerelease number
- *   node scripts/version.js stage                            # Promote to next channel
+ *   node scripts/version.js stage                            # Promote staging to stable
+ *   node scripts/version.js --print <bump_type> [channel]    # Print new version without writing
  */
 
 import { readFileSync, writeFileSync } from 'fs'
@@ -18,7 +22,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 
 const STANDARD_BUMPS = ['major', 'minor', 'patch']
-const PRERELEASE_CHANNELS = ['alpha', 'beta']
+const PRERELEASE_CHANNELS = ['staging']
 
 function parseVersion(version) {
 	const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z]+)\.(\d+))?$/)
@@ -42,6 +46,14 @@ function formatVersion({ major, minor, patch, channel, prerelease }) {
 	return base
 }
 
+function formatBundleVersion({ major, minor, patch, prerelease }) {
+	const base = `${major}.${minor}.${patch}`
+	if (prerelease !== null) {
+		return `${base}-${prerelease}`
+	}
+	return base
+}
+
 function bumpBase(parsed, type) {
 	switch (type) {
 		case 'major':
@@ -61,9 +73,7 @@ function bumpVersion(version, bumpType, channel = null) {
 	// Standard bumps (major, minor, patch)
 	if (STANDARD_BUMPS.includes(bumpType)) {
 		if (parsed.channel) {
-			throw new Error(
-				`Cannot use '${bumpType}' on prerelease version ${version}. Use 'stage' to promote to next channel.`
-			)
+			throw new Error(`Cannot use '${bumpType}' on prerelease version ${version}. Use 'stage' to promote to stable.`)
 		}
 
 		// If channel specified, start a prerelease
@@ -83,27 +93,17 @@ function bumpVersion(version, bumpType, channel = null) {
 	// Prerelease increment
 	if (bumpType === 'prerelease') {
 		if (!parsed.channel) {
-			throw new Error(`Not on prerelease. Use 'minor alpha' or 'minor beta' to start a prerelease.`)
+			throw new Error(`Not on prerelease. Use 'minor staging' to start a prerelease.`)
 		}
 		return formatVersion({ ...parsed, prerelease: parsed.prerelease + 1 })
 	}
 
-	// Stage: auto-promote to next channel
+	// Stage: promote staging to stable
 	if (bumpType === 'stage') {
 		if (!parsed.channel) {
-			throw new Error(`Not on prerelease. Use 'minor alpha' or 'minor beta' to start a prerelease.`)
+			throw new Error(`Not on prerelease. Use 'minor staging' to start a prerelease.`)
 		}
-
-		const currentIndex = PRERELEASE_CHANNELS.indexOf(parsed.channel)
-
-		// If on last channel (beta), promote to stable
-		if (currentIndex === PRERELEASE_CHANNELS.length - 1) {
-			return formatVersion({ ...parsed, channel: null, prerelease: null })
-		}
-
-		// Promote to next channel
-		const nextChannel = PRERELEASE_CHANNELS[currentIndex + 1]
-		return formatVersion({ ...parsed, channel: nextChannel, prerelease: 1 })
+		return formatVersion({ ...parsed, channel: null, prerelease: null })
 	}
 
 	throw new Error(`Invalid bump type: ${bumpType}`)
@@ -136,12 +136,30 @@ function updateVersion(bumpType, channel = null) {
 	writeFileSync(cargoTomlPath, cargoToml)
 	console.log(`Updated src-tauri/Cargo.toml: ${oldVersion} -> ${newVersion}`)
 
-	// Update tauri.conf.json
+	// Compute MSI-compatible bundle version (numeric-only prerelease)
+	const parsed = parseVersion(newVersion)
+	const baseVersion = formatBundleVersion({ ...parsed, prerelease: null })
+	const bundleVersion = formatBundleVersion(parsed)
+
+	// Update tauri.conf.json with base version only (no prerelease)
 	const tauriConfPath = join(ROOT, 'src-tauri', 'tauri.conf.json')
 	const tauriConf = JSON.parse(readFileSync(tauriConfPath, 'utf-8'))
-	tauriConf.version = newVersion
+	tauriConf.version = baseVersion
 	writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, '  ') + '\n')
-	console.log(`Updated src-tauri/tauri.conf.json: ${oldVersion} -> ${newVersion}`)
+	console.log(`Updated src-tauri/tauri.conf.json: -> ${baseVersion}`)
+
+	// Update tauri.staging.conf.json with numeric-only prerelease
+	const stagingConfPath = join(ROOT, 'src-tauri', 'tauri.staging.conf.json')
+	const stagingConf = JSON.parse(readFileSync(stagingConfPath, 'utf-8'))
+	if (parsed.prerelease !== null) {
+		stagingConf.version = bundleVersion
+	} else {
+		delete stagingConf.version
+	}
+	writeFileSync(stagingConfPath, JSON.stringify(stagingConf, null, '\t') + '\n')
+	console.log(
+		`Updated src-tauri/tauri.staging.conf.json: -> ${parsed.prerelease !== null ? bundleVersion : '(inherited)'}`
+	)
 
 	console.log(`\nVersion bumped from ${oldVersion} to ${newVersion}`)
 }
@@ -149,31 +167,51 @@ function updateVersion(bumpType, channel = null) {
 function printUsage() {
 	console.error(`
 Usage:
-  yarn bump <major|minor|patch>              # Standard version bump
-  yarn bump <major|minor|patch> <alpha|beta> # Start prerelease
-  yarn bump prerelease                       # Increment prerelease number
-  yarn bump stage                            # Promote to next channel (alpha -> beta -> stable)
+  yarn bump <major|minor|patch>            # Standard version bump
+  yarn bump <major|minor|patch> staging    # Start staging prerelease
+  yarn bump prerelease                     # Increment prerelease number
+  yarn bump stage                          # Promote staging to stable
 
 Examples:
   yarn bump minor                # 0.1.0 -> 0.2.0
-  yarn bump minor alpha          # 0.1.0 -> 0.2.0-alpha.1
-  yarn bump prerelease           # 0.2.0-alpha.1 -> 0.2.0-alpha.2
-  yarn bump stage                # 0.2.0-alpha.2 -> 0.2.0-beta.1
-  yarn bump stage                # 0.2.0-beta.1 -> 0.2.0
+  yarn bump minor staging        # 0.1.0 -> 0.2.0-staging.1
+  yarn bump prerelease           # 0.2.0-staging.1 -> 0.2.0-staging.2
+  yarn bump stage                # 0.2.0-staging.2 -> 0.2.0
 `)
 }
 
-const bumpType = process.argv[2]
-const channel = process.argv[3]
+// --print mode: compute and print the new version without writing files
+if (process.argv[2] === '--print') {
+	const bumpType = process.argv[3]
+	const channel = process.argv[4] || null
 
-if (!bumpType) {
-	printUsage()
-	process.exit(1)
-}
+	if (!bumpType) {
+		console.error('Usage: node scripts/version.js --print <bump_type> [channel]')
+		process.exit(1)
+	}
 
-try {
-	updateVersion(bumpType, channel)
-} catch (error) {
-	console.error(`Error: ${error.message}`)
-	process.exit(1)
+	try {
+		const packageJsonPath = join(ROOT, 'package.json')
+		const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+		const newVersion = bumpVersion(packageJson.version, bumpType, channel)
+		console.log(newVersion)
+	} catch (error) {
+		console.error(`Error: ${error.message}`)
+		process.exit(1)
+	}
+} else {
+	const bumpType = process.argv[2]
+	const channel = process.argv[3]
+
+	if (!bumpType) {
+		printUsage()
+		process.exit(1)
+	}
+
+	try {
+		updateVersion(bumpType, channel)
+	} catch (error) {
+		console.error(`Error: ${error.message}`)
+		process.exit(1)
+	}
 }

@@ -6,7 +6,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { scale } from 'svelte/transition'
 	import { translate } from '$lib/i18n'
-	import { GeneralTab, LibraryTab, AppearanceTab, SoundTab, DiagnosticsTab, AboutTab } from './tabs'
+	import { GeneralTab, LibraryTab, DiscoveryTab, AppearanceTab, SoundTab, DiagnosticsTab, AboutTab } from './tabs'
 
 	type Props = {
 		open: boolean
@@ -57,6 +57,7 @@
 	})
 
 	function handleKeydown(e: KeyboardEvent) {
+		e.stopPropagation()
 		if (e.key === 'Escape') {
 			e.preventDefault()
 			onClose()
@@ -102,6 +103,17 @@
 						<button
 							type="button"
 							class="flex w-full items-center gap-2 rounded-md px-3 py-2
+							text-sm font-medium hover:cursor-pointer {activePage === 'appearance'
+								? 'bg-brand-muted text-brand-primary'
+								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+							onclick={() => (activePage = 'appearance')}
+						>
+							<Icon name="palette" class="h-4 w-4" />
+							{$translate('settings.tabs.appearance')}
+						</button>
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 rounded-md px-3 py-2
 							text-sm font-medium hover:cursor-pointer {activePage === 'library'
 								? 'bg-brand-muted text-brand-primary'
 								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
@@ -113,13 +125,13 @@
 						<button
 							type="button"
 							class="flex w-full items-center gap-2 rounded-md px-3 py-2
-							text-sm font-medium hover:cursor-pointer {activePage === 'appearance'
+							text-sm font-medium hover:cursor-pointer {activePage === 'discovery'
 								? 'bg-brand-muted text-brand-primary'
 								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
-							onclick={() => (activePage = 'appearance')}
+							onclick={() => (activePage = 'discovery')}
 						>
-							<Icon name="palette" class="h-4 w-4" />
-							{$translate('settings.tabs.appearance')}
+							<Icon name="search" class="h-4 w-4" />
+							{$translate('settings.tabs.discovery')}
 						</button>
 						<button
 							type="button"
@@ -161,10 +173,12 @@
 				<div class="flex-1 overflow-auto p-6">
 					{#if activePage === 'general'}
 						<GeneralTab />
-					{:else if activePage === 'library'}
-						<LibraryTab />
 					{:else if activePage === 'appearance'}
 						<AppearanceTab />
+					{:else if activePage === 'library'}
+						<LibraryTab />
+					{:else if activePage === 'discovery'}
+						<DiscoveryTab />
 					{:else if activePage === 'sound'}
 						<SoundTab />
 					{:else if activePage === 'diagnostics'}

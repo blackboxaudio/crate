@@ -12,6 +12,9 @@
 		children: Snippet
 	}
 
+	const GAP = 8
+	const VIEWPORT_PADDING = 8
+
 	let { text, position = 'top', delay = 0, class: className = '', children }: Props = $props()
 
 	let visible = $state(false)
@@ -19,12 +22,64 @@
 	let timeoutId: ReturnType<typeof setTimeout> | undefined = $state()
 	let hoverTimeoutId: ReturnType<typeof setTimeout> | undefined = $state()
 
-	const positionStyles: Record<TooltipPosition, string> = {
-		top: 'bottom-full left-1/2 -translate-x-1/2 mb-2',
-		bottom: 'top-full left-1/2 -translate-x-1/2 mt-2',
-		left: 'right-full top-1/2 -translate-y-1/2 mr-2',
-		right: 'left-full top-1/2 -translate-y-1/2 ml-2',
+	const HIDDEN_STYLE = 'position:fixed;visibility:hidden;'
+
+	let wrapperEl: HTMLDivElement | undefined = $state()
+	let tooltipEl: HTMLDivElement | undefined = $state()
+	let fixedStyle = $state(HIDDEN_STYLE)
+	let rafId: number | undefined
+
+	function computePosition() {
+		if (!wrapperEl || !tooltipEl) return
+
+		const wr = wrapperEl.getBoundingClientRect()
+		const tw = tooltipEl.offsetWidth
+		const th = tooltipEl.offsetHeight
+
+		let top: number
+		let left: number
+
+		switch (position) {
+			case 'top':
+				top = wr.top - th - GAP
+				left = wr.left + wr.width / 2 - tw / 2
+				break
+			case 'bottom':
+				top = wr.bottom + GAP
+				left = wr.left + wr.width / 2 - tw / 2
+				break
+			case 'left':
+				top = wr.top + wr.height / 2 - th / 2
+				left = wr.left - tw - GAP
+				break
+			case 'right':
+				top = wr.top + wr.height / 2 - th / 2
+				left = wr.right + GAP
+				break
+		}
+
+		// Clamp to viewport
+		left = Math.max(VIEWPORT_PADDING, Math.min(left, window.innerWidth - tw - VIEWPORT_PADDING))
+		top = Math.max(VIEWPORT_PADDING, Math.min(top, window.innerHeight - th - VIEWPORT_PADDING))
+
+		fixedStyle = `position:fixed;top:${top}px;left:${left}px;`
 	}
+
+	$effect(() => {
+		if (visible && tooltipEl && wrapperEl) {
+			if (rafId) cancelAnimationFrame(rafId)
+			fixedStyle = HIDDEN_STYLE
+			rafId = requestAnimationFrame(() => {
+				computePosition()
+			})
+		} else {
+			fixedStyle = HIDDEN_STYLE
+		}
+
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId)
+		}
+	})
 
 	// Programmatic API
 	export function show(text: string, duration: number = 2000): void {
@@ -49,6 +104,13 @@
 		}
 		visible = false
 	}
+
+	// Keep message in sync when text prop changes while tooltip is visible
+	$effect(() => {
+		if (visible && text) {
+			message = text
+		}
+	})
 
 	// Hover handlers for declarative usage with `text` prop
 	function handleMouseEnter() {
@@ -76,14 +138,20 @@
 	}
 </script>
 
-<div class="relative inline-flex" role="group" onmouseenter={handleMouseEnter} onmouseleave={handleMouseLeave}>
+<div
+	bind:this={wrapperEl}
+	class="relative inline-flex"
+	role="group"
+	onmouseenter={handleMouseEnter}
+	onmouseleave={handleMouseLeave}
+>
 	{@render children()}
 
 	{#if visible}
 		<div
-			class="pointer-events-none absolute z-50 rounded border border-stroke bg-surface-1 px-2 py-1 text-xs font-medium whitespace-nowrap text-text-primary shadow-lg {positionStyles[
-				position
-			]} {className}"
+			bind:this={tooltipEl}
+			class="pointer-events-none z-50 rounded border border-stroke bg-surface-1 px-2 py-1 text-xs font-medium whitespace-nowrap text-text-primary shadow-lg {className}"
+			style={fixedStyle}
 			role="tooltip"
 			transition:fade={{ duration: 200 }}
 		>

@@ -133,6 +133,14 @@ export async function reextractTrackArtwork(trackId: string): Promise<Track> {
 }
 
 /**
+ * Compare artwork files for multiple tracks to check if they are identical.
+ * Returns the shared artwork path if all tracks have identical artwork, or null otherwise.
+ */
+export async function compareTrackArtworks(trackIds: string[]): Promise<string | null> {
+	return invoke<string | null>('compare_track_artworks', { trackIds })
+}
+
+/**
  * Import tracks with duplicate detection based on content hash
  */
 export async function importTracksWithDuplicates(paths: string[]): Promise<ImportResultWithDuplicates> {

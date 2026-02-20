@@ -2,6 +2,7 @@
 	import Modal from '$lib/components/common/Modal.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import Checkbox from '$lib/components/common/Checkbox.svelte'
+	import Text from '$lib/components/common/Text.svelte'
 	import { SelectablePlaylistTree } from '$lib/components/playlists'
 	import { translate } from '$lib/i18n'
 	import { formatBytes } from '$lib/utils'
@@ -181,24 +182,24 @@
 	<div class="export-content">
 		{#if mode === 'selectPlaylists'}
 			<!-- Playlist selection mode -->
-			<p class="description">{$translate('export.selectPlaylists')}</p>
+			<Text color="secondary">{$translate('export.selectPlaylists')}</Text>
 
 			<div class="playlist-tree-container">
 				<SelectablePlaylistTree {playlists} selectedIds={selectedPlaylistIds} onToggle={togglePlaylist} />
 			</div>
 		{:else}
 			<!-- Device selection mode -->
-			<p class="description">{$translate('export.selectDevice')}</p>
+			<Text color="secondary">{$translate('export.selectDevice')}</Text>
 
 			<div class="device-list">
 				{#each devices as d (d.id)}
 					<button class="device-item" class:selected={selectedDeviceId === d.id} onclick={() => selectDevice(d.id)}>
 						<div class="device-info">
-							<span class="device-name">{d.name}</span>
-							<span class="device-space">
+							<Text as="span" variant="body-2">{d.name}</Text>
+							<Text as="span" variant="caption" color="secondary">
 								{formatBytes(d.available_space_bytes)}
 								{$translate('devices.available')}
-							</span>
+							</Text>
 						</div>
 						<div class="device-capacity">
 							<div class="capacity-bar">
@@ -210,7 +211,7 @@
 						</div>
 					</button>
 				{:else}
-					<p class="no-devices">{$translate('devices.noDevices')}</p>
+					<Text color="tertiary" class="py-6 text-center">{$translate('devices.noDevices')}</Text>
 				{/each}
 			</div>
 		{/if}
@@ -218,20 +219,20 @@
 		{#if selectedDevice}
 			<div class="export-summary">
 				<div class="summary-row">
-					<span>{$translate('export.destination')}:</span>
-					<span class="summary-value">{selectedDevice.name}</span>
+					<Text as="span" variant="caption" color="secondary">{$translate('export.destination')}:</Text>
+					<Text as="span" variant="caption" weight="medium">{selectedDevice.name}</Text>
 				</div>
 				<div class="summary-row">
-					<span>{$translate('export.playlistsToExport')}:</span>
-					<span class="summary-value">{selectedPlaylistCount()}</span>
+					<Text as="span" variant="caption" color="secondary">{$translate('export.playlistsToExport')}:</Text>
+					<Text as="span" variant="caption" weight="medium">{selectedPlaylistCount()}</Text>
 				</div>
 				<div class="summary-row">
-					<span>{$translate('export.tracksToExport')}:</span>
-					<span class="summary-value">{totalTrackCount()}</span>
+					<Text as="span" variant="caption" color="secondary">{$translate('export.tracksToExport')}:</Text>
+					<Text as="span" variant="caption" weight="medium">{totalTrackCount()}</Text>
 				</div>
 				<div class="summary-row">
-					<span>{$translate('devices.available')}:</span>
-					<span class="summary-value">{formatBytes(selectedDevice.available_space_bytes)}</span>
+					<Text as="span" variant="caption" color="secondary">{$translate('devices.available')}:</Text>
+					<Text as="span" variant="caption" weight="medium">{formatBytes(selectedDevice.available_space_bytes)}</Text>
 				</div>
 			</div>
 		{/if}
@@ -254,12 +255,6 @@
 		display: flex;
 		flex-direction: column;
 		gap: 16px;
-	}
-
-	.description {
-		color: var(--text-secondary);
-		font-size: 14px;
-		margin: 0;
 	}
 
 	.playlist-tree-container {
@@ -304,15 +299,6 @@
 		align-items: center;
 	}
 
-	.device-name {
-		font-weight: 500;
-	}
-
-	.device-space {
-		color: var(--text-secondary);
-		font-size: 12px;
-	}
-
 	.device-capacity {
 		width: 100%;
 	}
@@ -330,12 +316,6 @@
 		border-radius: 2px;
 	}
 
-	.no-devices {
-		color: var(--text-tertiary);
-		text-align: center;
-		padding: 24px;
-	}
-
 	.export-summary {
 		background: var(--bg-secondary);
 		border-radius: 8px;
@@ -347,10 +327,6 @@
 		justify-content: space-between;
 		font-size: 13px;
 		padding: 4px 0;
-	}
-
-	.summary-value {
-		font-weight: 500;
 	}
 
 	.sync-option {

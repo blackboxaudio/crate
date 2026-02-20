@@ -1130,6 +1130,44 @@ impl LibraryService {
         ))
     }
 
+    /// Compare artwork files for multiple tracks to check if they are identical.
+    /// Returns the shared artwork path if all tracks have identical artwork, or None otherwise.
+    pub fn compare_track_artworks(&self, track_ids: &[String]) -> Result<Option<String>> {
+        if track_ids.len() < 2 {
+            return Ok(None);
+        }
+
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let mut artwork_paths: Vec<String> = Vec::new();
+
+        for id in track_ids {
+            let path: Option<String> = conn
+                .query_row(
+                    "SELECT artwork_path FROM tracks WHERE id = ?1",
+                    [id],
+                    |row| row.get(0),
+                )
+                .map_err(CrateError::Database)?;
+
+            match path {
+                Some(p) => artwork_paths.push(p),
+                None => return Ok(None),
+            }
+        }
+
+        drop(conn);
+
+        if self.artwork_service.are_artworks_identical(&artwork_paths) {
+            Ok(Some(artwork_paths.into_iter().next().unwrap()))
+        } else {
+            Ok(None)
+        }
+    }
+
     /// Update multiple tracks with the same update data (bulk operation)
     pub fn update_tracks(&self, ids: Vec<String>, update: TrackUpdate) -> Result<Vec<Track>> {
         if ids.is_empty() {

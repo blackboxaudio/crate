@@ -56,6 +56,31 @@ export const TAG_CATEGORY_COLORS: { id: TagCategoryColor; label: string; hex: st
 	{ id: 'rose', label: 'Rose', hex: '#f43f5e' },
 ]
 
+export const ACCENT_TO_TAG_COLOR_HEX: Record<AccentColor, string> = {
+	blue: '#3b82f6',
+	indigo: '#6366f1',
+	violet: '#8b5cf6',
+	purple: '#8b5cf6',
+	pink: '#ec4899',
+	rose: '#f43f5e',
+	orange: '#f97316',
+	amber: '#f59e0b',
+	emerald: '#22c55e',
+	teal: '#14b8a6',
+}
+
+export function pickTagCategoryColor(existingCategories: TagCategory[], accentColor: AccentColor): string {
+	if (existingCategories.length === 0) {
+		return ACCENT_TO_TAG_COLOR_HEX[accentColor]
+	}
+
+	const usedColors = new Set(existingCategories.map((c) => c.color).filter(Boolean))
+	const available = TAG_CATEGORY_COLORS.filter((c) => !usedColors.has(c.hex))
+
+	const pool = available.length > 0 ? available : TAG_CATEGORY_COLORS
+	return pool[Math.floor(Math.random() * pool.length)].hex
+}
+
 // =============================================================================
 // Artwork Types
 // =============================================================================
@@ -237,6 +262,7 @@ export interface Playlist {
 	date_created: string
 	date_modified: string
 	track_count: number
+	context: ActiveView
 }
 
 export type MoveConflictResolution = 'overwrite' | 'merge'
@@ -260,6 +286,7 @@ export interface PlaybackState {
 	position_ms: number
 	duration_ms: number
 	volume: number
+	speed: number
 	current_track_id: string | null
 	current_track_path: string | null
 }
@@ -344,6 +371,8 @@ export interface BreadcrumbItem {
 // Sidebar View Types
 // =============================================================================
 
+export type ActiveView = 'library' | 'discovery'
+
 export type SidebarView = 'library' | 'playlist' | 'tag' | 'folder'
 
 export interface SidebarState {
@@ -388,15 +417,17 @@ export type AccentColor =
 	| 'emerald'
 	| 'teal'
 
-export type Font = 'ibm-plex-mono' | 'jetbrains-mono' | 'fira-code' | 'inter' | 'open-sans'
+export type Font = 'open-sans' | 'inter' | 'fira-code' | 'jetbrains-mono' | 'ibm-plex-mono'
 
 export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | 'ko' | 'pt' | 'zh'
 
 export type KeyNotationFormat = 'standard' | 'camelot'
 
+export type DateFormat = 'locale' | 'iso' | 'us' | 'eu' | 'dot'
+
 export type ExportFormat = 'pdb' | 'device_library_plus'
 
-export type SettingsPage = 'general' | 'library' | 'appearance' | 'sound' | 'diagnostics' | 'about'
+export type SettingsPage = 'general' | 'appearance' | 'library' | 'discovery' | 'sound' | 'diagnostics' | 'about'
 
 export interface AppSettings {
 	theme: Theme
@@ -405,10 +436,15 @@ export interface AppSettings {
 	audioDevice: string | null
 	language: Language
 	keyNotationFormat: KeyNotationFormat
+	dateFormat: DateFormat
 	exportFormat: ExportFormat
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
 	autoSyncOnChange: boolean
+	continuousPlayback: boolean
+	autoFetchMetadata: boolean
+	transferTagsOnImport: boolean
+	removeReleaseAfterImport: boolean
 	ignoredDeviceIds: string[]
 }
 
@@ -565,4 +601,105 @@ export interface TrackAnalysisEvent {
 	result: AnalysisResult | null
 	updated_track: Track | null
 	error: string | null
+}
+
+// =============================================================================
+// Discovery Types
+// =============================================================================
+
+export type DiscoverySourceType = 'bandcamp' | 'soundcloud' | 'youtube' | 'discogs' | 'other'
+
+export interface DiscoveryTrack {
+	id: string
+	release_id: string
+	name: string
+	position: number
+	duration_ms: number | null
+	video_id: string | null
+}
+
+export interface DiscoveryRelease {
+	id: string
+	url: string
+	source_type: DiscoverySourceType
+	artist: string | null
+	title: string | null
+	label: string | null
+	release_date: string | null
+	artwork_url: string | null
+	artwork_path: string | null
+	notes: string | null
+	parent_url: string | null
+	date_added: string
+	date_modified: string
+	tracks: DiscoveryTrack[]
+	tags: Tag[]
+}
+
+export interface DiscoveryReleaseCreate {
+	url: string
+	source_type?: DiscoverySourceType
+	artist?: string
+	title?: string
+	label?: string
+	release_date?: string
+	artwork_url?: string
+	notes?: string
+	parent_url?: string
+	tracks?: DiscoveryTrackCreate[]
+}
+
+export interface DiscoveryTrackCreate {
+	name: string
+	position: number
+	duration_ms?: number
+	video_id?: string
+}
+
+export interface FetchedMetadata {
+	artist: string | null
+	title: string | null
+	label: string | null
+	release_date: string | null
+	artwork_url: string | null
+	tracks: FetchedTrack[]
+	source_type: string
+	parent_url: string | null
+	parent_album_title: string | null
+}
+
+export interface FetchedTrack {
+	name: string
+	position: number
+	duration_ms: number | null
+	video_id: string | null
+}
+
+export interface DiscoveryReleaseUpdate {
+	artist?: string
+	title?: string
+	label?: string
+	release_date?: string
+	artwork_url?: string
+	artwork_path?: string
+	notes?: string
+}
+
+export interface DiscoveryFilter {
+	search?: string
+	tag_ids?: string[]
+	tag_filter_mode?: TagFilterMode
+}
+
+export interface PreviewInfo {
+	releaseId: string
+	release: DiscoveryRelease
+	trackIndex: number
+}
+
+export type DiscoverySortField = 'artist' | 'title' | 'label' | 'release_date' | 'source_type' | 'date_added'
+
+export interface DiscoverySortConfig {
+	field: DiscoverySortField
+	direction: SortDirection
 }

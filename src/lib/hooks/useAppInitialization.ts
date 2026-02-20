@@ -35,6 +35,9 @@ export interface AppInitConfig {
 
 const AUDIO_EXTENSIONS = ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac']
 
+/** Whether the current native drag contains audio files. Used by the layout's dragover handler to control the OS drop cursor. */
+export let hasAudioDrag = false
+
 // =============================================================================
 // Hook
 // =============================================================================
@@ -71,10 +74,19 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 			const { type } = event.payload
 
 			if (type === 'enter') {
-				onDragStateChange(true)
+				const paths = event.payload.paths
+				hasAudioDrag = !!paths?.some((p) => {
+					const ext = p.split('.').pop()?.toLowerCase()
+					return ext && AUDIO_EXTENSIONS.includes(ext)
+				})
+				if (hasAudioDrag) {
+					onDragStateChange(true)
+				}
 			} else if (type === 'leave') {
+				hasAudioDrag = false
 				onDragStateChange(false)
 			} else if (type === 'drop') {
+				hasAudioDrag = false
 				onDragStateChange(false)
 
 				// File paths are provided directly by Tauri

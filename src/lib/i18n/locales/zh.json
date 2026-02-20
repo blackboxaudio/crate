@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "曲库",
+		"discovery": "发现",
 		"playlists": "播放列表",
 		"tags": "标签"
 	},
@@ -30,6 +31,7 @@
 		"tabs": {
 			"general": "常规",
 			"library": "曲库",
+			"discovery": "发现",
 			"appearance": "外观",
 			"sound": "声音",
 			"diagnostics": "诊断",
@@ -37,7 +39,14 @@
 		},
 		"general": {
 			"language": "语言",
-			"languageDescription": "选择应用程序的显示语言。"
+			"languageDescription": "选择应用程序的显示语言。",
+			"dateFormat": "日期格式",
+			"dateFormatDescription": "选择应用程序中日期的显示方式。",
+			"dateFormatLocale": "系统默认",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "欧洲 (DD/MM/YYYY)",
+			"dateFormatDot": "点 (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "分析",
@@ -64,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "适用于 OPUS-QUAD、OMNIS-DUO、XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "元数据",
+			"autoFetchMetadata": "自动获取元数据",
+			"autoFetchMetadataDescription": "添加 URL 时自动获取发行元数据。",
+			"import": "导入",
+			"transferTagsOnImport": "导入时转移标签",
+			"transferTagsOnImportDescription": "默认将发行标签转移到导入的曲目。",
+			"removeReleaseAfterImport": "导入后删除发行",
+			"removeReleaseAfterImportDescription": "导入文件后自动从发现中删除发行。"
+		},
 		"appearance": {
 			"font": "字体",
 			"fontDescription": "选择应用程序中使用的字体。",
@@ -78,7 +97,9 @@
 			"outputDeviceDescription": "选择用于播放的音频输出设备。",
 			"systemDefault": "系统默认",
 			"system": "系统",
-			"external": "外部"
+			"external": "外部",
+			"continuousPlayback": "连续播放",
+			"continuousPlaybackDescription": "当前曲目播放结束时自动播放下一首曲目。"
 		},
 		"diagnostics": {
 			"systemInfo": "系统信息",
@@ -100,7 +121,11 @@
 		"about": {
 			"application": "应用程序",
 			"version": "版本",
-			"environment": "环境"
+			"environment": "环境",
+			"updates": "更新",
+			"checkForUpdates": "检查更新",
+			"upToDate": "已是最新版本",
+			"updateAvailable": "{version} 可用"
 		}
 	},
 	"player": {
@@ -111,7 +136,10 @@
 		"next": "下一首",
 		"mute": "静音",
 		"unmute": "取消静音",
-		"noTrackSelected": "未选择曲目"
+		"noTrackSelected": "未选择曲目",
+		"volume": "音量",
+		"tempo": "速度",
+		"resetTempo": "重置速度"
 	},
 	"library": {
 		"searchPlaceholder": "搜索曲目...",
@@ -135,6 +163,64 @@
 		"item": "项目",
 		"items": "项目"
 	},
+	"discovery": {
+		"addRelease": "添加发行",
+		"url": "URL",
+		"source": "来源",
+		"release": "发行",
+		"releases": "发行",
+		"noReleasesYet": "暂无发行",
+		"addReleaseHint": "按下 {shortcut} 或将 URL 拖放到此处，从 Bandcamp、SoundCloud、Discogs 等添加发行",
+		"dropHint": "拖放 URL 以添加发行",
+		"previewNotAvailable": "此来源不支持预览",
+		"columns": {
+			"artistTitle": "艺术家 / 标题",
+			"label": "厂牌",
+			"tags": "标签",
+			"dateAdded": "添加日期",
+			"released": "发行日期",
+			"added": "已添加"
+		},
+		"fetchingMetadata": "正在获取元数据...",
+		"refreshMetadata": "刷新元数据",
+		"fetchError": "无法从此URL获取元数据",
+		"tracks": "曲目",
+		"trackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}",
+		"openInBrowser": "在浏览器中打开",
+		"importToLibrary": "导入到音乐库",
+		"deleteRelease": "删除发行",
+		"deleteReleases": "删除发行",
+		"editor": {
+			"releaseInfo": "发行信息",
+			"releasesCount": "{count, plural, =1 {1 个发行} other {{count} 个发行}}",
+			"artist": "艺术家",
+			"title": "标题",
+			"label": "厂牌",
+			"releaseDate": "发行日期",
+			"notes": "备注"
+		},
+		"import": {
+			"title": "导入到音乐库",
+			"selectFiles": "选择文件",
+			"matched": "已匹配",
+			"unmatched": "未匹配",
+			"importAllFiles": "导入所有文件",
+			"transferTags": "转移标签",
+			"transferTagsCount": "转移标签 ({count})",
+			"importing": "导入中...",
+			"noFilesSelected": "未选择文件",
+			"filesSelected": "已选择 {count, plural, =1 {1 个文件} other {{count} 个文件}}"
+		},
+		"addToExisting": "添加到现有",
+		"addAsNew": "添加为新发行",
+		"matchFound": "此曲目是已在发现列表中的 {albumTitle} 的一部分",
+		"similarFound": "类似发行已存在：{artist} 的 {title}",
+		"mergeReleases": "合并发行",
+		"mergeConfirm": "保留元数据来自：",
+		"mergeTrackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}合并",
+		"expandAll": "全部展开",
+		"collapseAll": "全部折叠"
+	},
 	"playlists": {
 		"newPlaylist": "新建播放列表",
 		"newFolder": "新建文件夹",
@@ -155,6 +241,7 @@
 		"deleteCategory": "删除分类",
 		"addCategory": "添加分类",
 		"addTag": "添加标签",
+		"moveToCategory": "移动到分类",
 		"noTags": "暂无标签",
 		"noTagCategoriesYet": "暂无标签分类"
 	},
@@ -219,7 +306,13 @@
 			"removeFromLibraryTitle": "从曲库移除",
 			"removeFromLibraryMessage": "{count, plural, =1 {从曲库移除此曲目？} other {从曲库移除 {count} 首曲目？}}",
 			"removeFromLibraryWarning": "此操作无法撤销。曲目将从所有播放列表中移除。",
-			"deleteTracksFromCollection": "同时从我的收藏中删除曲目"
+			"deleteTracksFromCollection": "同时从我的收藏中删除曲目",
+			"removeDiscoveryReleasesTitle": "从发现中移除",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {从发现中移除此发行？} other {从发现中移除 {count} 个发行？}}",
+			"removeDiscoveryReleasesWarning": "此操作无法撤销。发行将从所有播放列表中移除。",
+			"removeDiscoveryReleasesFromPlaylistTitle": "从播放列表移除",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {从播放列表移除此发行？} other {从播放列表移除 {count} 个发行？}}",
+			"deleteReleasesFromCollection": "同时从我的收藏中删除发行"
 		},
 		"relocate": {
 			"title": "重新定位曲目",
@@ -235,6 +328,15 @@
 			"available": "可用：",
 			"total": "总计：",
 			"percentUsed": "% 已用"
+		},
+		"update": {
+			"title": "有可用的更新",
+			"description": "{version} 已准备好安装。",
+			"releaseNotes": "新增功能",
+			"installAndRestart": "安装并重启",
+			"later": "稍后",
+			"downloading": "下载中... {progress}%",
+			"installing": "安装中..."
 		},
 		"duplicate": {
 			"title": "检测到重复曲目",
@@ -295,7 +397,11 @@
 		"cannotDropIntoSelf": "无法将文件夹拖放到自身内部",
 		"cannotDropIntoSubfolder": "无法将文件夹拖放到其子文件夹内",
 		"analysisFailed": "分析失败",
-		"exportInProgress": "导出已在进行中"
+		"exportInProgress": "导出已在进行中",
+		"tagNameConflict": "目标分类中已存在同名标签",
+		"previewStreamFailed": "无法加载预览流",
+		"updateCheckFailed": "检查更新失败",
+		"updateInstallFailed": "安装更新失败"
 	},
 	"devices": {
 		"title": "设备",
@@ -375,12 +481,12 @@
 		"label": "厂牌",
 		"bpm": "BPM",
 		"key": "调性",
-		"saving": "保存中...",
-		"saveChanges": "保存更改",
 		"multipleArtworks": "多个封面",
 		"addArtwork": "添加封面",
 		"replaceArtwork": "替换封面",
-		"reextractFromFile": "从文件重新提取"
+		"reextractFromFile": "从文件重新提取",
+		"showEditor": "显示编辑器",
+		"hideEditor": "隐藏编辑器"
 	},
 	"colors": {
 		"pink": "粉色",
@@ -397,6 +503,14 @@
 		"violet": "紫罗兰色",
 		"rose": "玫瑰色",
 		"emerald": "翠绿色"
+	},
+	"dates": {
+		"today": "今天",
+		"yesterday": "昨天",
+		"daysAgo": "{count, plural, =1 {1 天前} other {{count} 天前}}",
+		"weeksAgo": "{count, plural, =1 {1 周前} other {{count} 周前}}",
+		"monthsAgo": "{count, plural, =1 {1 个月前} other {{count} 个月前}}",
+		"yearsAgo": "{count, plural, =1 {1 年前} other {{count} 年前}}"
 	},
 	"crash": {
 		"title": "出现问题",
@@ -416,11 +530,14 @@
 		"settingsSubmenu": "设置",
 		"settingsGeneral": "常规",
 		"settingsLibrary": "曲库",
+		"settingsDiscovery": "发现",
 		"settingsAppearance": "外观",
 		"settingsSound": "声音",
 		"settingsDiagnostics": "诊断",
 		"quit": "退出 {appName}",
 		"importTracks": "导入曲目...",
+		"addRelease": "添加发行...",
+		"refreshMetadata": "刷新元数据",
 		"newPlaylist": "新建播放列表",
 		"newFolder": "新建文件夹",
 		"quickExport": "快速导出...",
@@ -429,12 +546,25 @@
 		"cut": "剪切",
 		"copy": "复制",
 		"paste": "粘贴",
-		"selectAllTracks": "全选曲目",
+		"selectAll": "全选",
 		"playPause": "播放/暂停",
 		"stop": "停止",
+		"nextTrack": "下一曲目",
+		"previousTrack": "上一曲目",
+		"seekForward": "快进",
+		"seekBackward": "快退",
+		"fineSeekForward": "精细快进",
+		"fineSeekBackward": "精细快退",
+		"volumeUp": "增加音量",
+		"volumeDown": "降低音量",
+		"mute": "静音",
 		"jumpToPlaying": "跳转到正在播放的曲目",
-		"toggleSidebar": "切换侧边栏",
+		"toggleEditor": "切换编辑器",
+		"toggleView": "切换视图",
 		"showDevTools": "显示开发者工具",
+		"enterFullScreen": "进入全屏",
+		"expandAllReleases": "全部展开发行",
+		"collapseAllReleases": "全部折叠发行",
 		"minimize": "最小化",
 		"zoom": "缩放",
 		"documentation": "{appName} 文档",

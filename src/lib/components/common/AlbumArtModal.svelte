@@ -7,16 +7,17 @@
 	type Props = {
 		open: boolean
 		artworkPath: string | null
+		artworkUrl?: string | null
 		trackTitle?: string
 		onClose: () => void
 	}
 
-	let { open, artworkPath, trackTitle, onClose }: Props = $props()
+	let { open, artworkPath, artworkUrl = null, trackTitle, onClose }: Props = $props()
 </script>
 
 <Modal {open} title={trackTitle || $translate('modals.albumArt')} {onClose}>
 	<div class="flex justify-center">
-		<AlbumArt {artworkPath} size="lg" />
+		<AlbumArt {artworkPath} {artworkUrl} size="lg" />
 	</div>
 
 	{#snippet footer()}

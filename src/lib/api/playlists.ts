@@ -1,30 +1,32 @@
 import { invoke } from '@tauri-apps/api/core'
-import type { MoveConflictResolution, MovePlaylistResult, Playlist, Track } from '$lib/types'
+import type { DiscoveryRelease, MoveConflictResolution, MovePlaylistResult, Playlist, Track } from '$lib/types'
 
 /**
- * Get all playlists
+ * Get all playlists for a given context
  */
-export async function getPlaylists(): Promise<Playlist[]> {
-	return invoke<Playlist[]>('get_playlists')
+export async function getPlaylists(context: string = 'library'): Promise<Playlist[]> {
+	return invoke<Playlist[]>('get_playlists', { context })
 }
 
 /**
  * Create a new playlist
  */
-export async function createPlaylist(name: string, parentId?: string): Promise<Playlist> {
+export async function createPlaylist(name: string, parentId?: string, context: string = 'library'): Promise<Playlist> {
 	return invoke<Playlist>('create_playlist', {
 		name,
 		parentId: parentId ?? null,
+		context,
 	})
 }
 
 /**
  * Create a new playlist folder
  */
-export async function createFolder(name: string, parentId?: string): Promise<Playlist> {
+export async function createFolder(name: string, parentId?: string, context: string = 'library'): Promise<Playlist> {
 	return invoke<Playlist>('create_folder', {
 		name,
 		parentId: parentId ?? null,
+		context,
 	})
 }
 
@@ -38,8 +40,8 @@ export async function renamePlaylist(id: string, name: string): Promise<Playlist
 /**
  * Delete a playlist or folder
  */
-export async function deletePlaylist(id: string): Promise<void> {
-	return invoke<void>('delete_playlist', { id })
+export async function deletePlaylist(id: string, deleteTracksFromCollection: boolean = false): Promise<void> {
+	return invoke<void>('delete_playlist', { id, deleteTracksFromCollection })
 }
 
 /**
@@ -79,4 +81,25 @@ export async function removeFromPlaylist(playlistId: string, trackIds: string[])
  */
 export async function reorderPlaylist(playlistId: string, trackIds: string[]): Promise<void> {
 	return invoke<void>('reorder_playlist', { playlistId, trackIds })
+}
+
+/**
+ * Add discovery releases to a playlist
+ */
+export async function addReleasesToPlaylist(playlistId: string, releaseIds: string[]): Promise<Playlist> {
+	return invoke<Playlist>('add_releases_to_playlist', { playlistId, releaseIds })
+}
+
+/**
+ * Remove discovery releases from a playlist
+ */
+export async function removeReleasesFromPlaylist(playlistId: string, releaseIds: string[]): Promise<Playlist> {
+	return invoke<Playlist>('remove_releases_from_playlist', { playlistId, releaseIds })
+}
+
+/**
+ * Get discovery releases in a playlist
+ */
+export async function getPlaylistReleases(playlistId: string): Promise<DiscoveryRelease[]> {
+	return invoke<DiscoveryRelease[]>('get_playlist_releases', { playlistId })
 }

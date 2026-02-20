@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "Library",
+		"discovery": "Discovery",
 		"playlists": "Playlists",
 		"tags": "Tags"
 	},
@@ -30,6 +31,7 @@
 		"tabs": {
 			"general": "General",
 			"library": "Library",
+			"discovery": "Discovery",
 			"appearance": "Appearance",
 			"sound": "Sound",
 			"diagnostics": "Diagnostics",
@@ -37,7 +39,14 @@
 		},
 		"general": {
 			"language": "Language",
-			"languageDescription": "Choose the display language for the application."
+			"languageDescription": "Choose the display language for the application.",
+			"dateFormat": "Date Format",
+			"dateFormatDescription": "Choose how dates are displayed throughout the application.",
+			"dateFormatLocale": "System Default",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "European (DD/MM/YYYY)",
+			"dateFormatDot": "Dot (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Analysis",
@@ -64,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "For OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Metadata",
+			"autoFetchMetadata": "Auto-fetch metadata",
+			"autoFetchMetadataDescription": "Automatically fetch release metadata when adding a URL.",
+			"import": "Import",
+			"transferTagsOnImport": "Transfer tags on import",
+			"transferTagsOnImportDescription": "Transfer release tags to imported tracks by default.",
+			"removeReleaseAfterImport": "Remove release after import",
+			"removeReleaseAfterImportDescription": "Automatically remove releases from discovery after importing files."
+		},
 		"appearance": {
 			"font": "Font",
 			"fontDescription": "Choose the font used throughout the application.",
@@ -78,7 +97,9 @@
 			"outputDeviceDescription": "Select the audio output device for playback.",
 			"systemDefault": "System Default",
 			"system": "System",
-			"external": "External"
+			"external": "External",
+			"continuousPlayback": "Continuous playback",
+			"continuousPlaybackDescription": "Automatically play the next track when the current one ends."
 		},
 		"diagnostics": {
 			"systemInfo": "System Information",
@@ -100,7 +121,11 @@
 		"about": {
 			"application": "Application",
 			"version": "Version",
-			"environment": "Environment"
+			"environment": "Environment",
+			"updates": "Updates",
+			"checkForUpdates": "Check for Updates",
+			"upToDate": "Up to date",
+			"updateAvailable": "{version} available"
 		}
 	},
 	"player": {
@@ -111,7 +136,10 @@
 		"next": "Next",
 		"mute": "Mute",
 		"unmute": "Unmute",
-		"noTrackSelected": "No track selected"
+		"noTrackSelected": "No track selected",
+		"volume": "Volume",
+		"tempo": "Tempo",
+		"resetTempo": "Reset tempo"
 	},
 	"library": {
 		"searchPlaceholder": "Search tracks...",
@@ -135,6 +163,64 @@
 		"item": "item",
 		"items": "items"
 	},
+	"discovery": {
+		"addRelease": "Add Release",
+		"url": "URL",
+		"source": "Source",
+		"release": "release",
+		"releases": "releases",
+		"noReleasesYet": "No releases yet",
+		"addReleaseHint": "Press {shortcut} or drag a URL here to add releases from Bandcamp, SoundCloud, Discogs, and more",
+		"dropHint": "Drop URL to add release",
+		"previewNotAvailable": "Preview not available for this source",
+		"columns": {
+			"artistTitle": "Artist / Title",
+			"label": "Label",
+			"tags": "Tags",
+			"dateAdded": "Date Added",
+			"released": "Released",
+			"added": "Added"
+		},
+		"fetchingMetadata": "Fetching metadata...",
+		"refreshMetadata": "Refresh Metadata",
+		"fetchError": "Could not fetch metadata from this URL",
+		"tracks": "Tracks",
+		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
+		"openInBrowser": "Open in Browser",
+		"importToLibrary": "Import to Library",
+		"deleteRelease": "Delete Release",
+		"deleteReleases": "Delete Releases",
+		"editor": {
+			"releaseInfo": "Release Info",
+			"releasesCount": "{count, plural, =1 {1 release} other {{count} releases}}",
+			"artist": "Artist",
+			"title": "Title",
+			"label": "Label",
+			"releaseDate": "Release Date",
+			"notes": "Notes"
+		},
+		"import": {
+			"title": "Import to Library",
+			"selectFiles": "Select Files",
+			"matched": "Matched",
+			"unmatched": "Unmatched",
+			"importAllFiles": "Import all files",
+			"transferTags": "Transfer tags",
+			"transferTagsCount": "Transfer tags ({count})",
+			"importing": "Importing...",
+			"noFilesSelected": "No files selected",
+			"filesSelected": "{count, plural, =1 {1 file} other {{count} files}} selected"
+		},
+		"addToExisting": "Add to Existing",
+		"addAsNew": "Add as New Release",
+		"matchFound": "This track is part of {albumTitle} which is already in your discovery list",
+		"similarFound": "A similar release already exists: {title} by {artist}",
+		"mergeReleases": "Merge Releases",
+		"mergeConfirm": "Keep metadata from:",
+		"mergeTrackCount": "{count, plural, =1 {1 track} other {{count} tracks}} combined",
+		"expandAll": "Expand All",
+		"collapseAll": "Collapse All"
+	},
 	"playlists": {
 		"newPlaylist": "New Playlist",
 		"newFolder": "New Folder",
@@ -155,6 +241,7 @@
 		"deleteCategory": "Delete Category",
 		"addCategory": "Add Category",
 		"addTag": "Add Tag",
+		"moveToCategory": "Move to Category",
 		"noTags": "No tags",
 		"noTagCategoriesYet": "No tag categories yet"
 	},
@@ -219,7 +306,13 @@
 			"removeFromLibraryTitle": "Remove from Library",
 			"removeFromLibraryMessage": "{count, plural, =1 {Remove this track from your library?} other {Remove {count} tracks from your library?}}",
 			"removeFromLibraryWarning": "This action cannot be undone. Tracks will be removed from all playlists.",
-			"deleteTracksFromCollection": "Also delete tracks from my collection"
+			"deleteTracksFromCollection": "Also delete tracks from my collection",
+			"removeDiscoveryReleasesTitle": "Remove from Discovery",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Remove this release from discovery?} other {Remove {count} releases from discovery?}}",
+			"removeDiscoveryReleasesWarning": "This action cannot be undone. Releases will be removed from all playlists.",
+		"removeDiscoveryReleasesFromPlaylistTitle": "Remove from Playlist",
+		"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Remove this release from the playlist?} other {Remove {count} releases from the playlist?}}",
+		"deleteReleasesFromCollection": "Also delete releases from my collection"
 		},
 		"relocate": {
 			"title": "Relocate Track",
@@ -249,6 +342,15 @@
 			"replace": "Replace",
 			"replaceDescription": "Fresh import from new file. Keeps playlist memberships only. Resets cue points, tags, and play history.",
 			"applyToAll": "Apply to all remaining duplicates ({count})"
+		},
+		"update": {
+			"title": "Update Available",
+			"description": "{version} is ready to install.",
+			"releaseNotes": "What's new",
+			"installAndRestart": "Install and Restart",
+			"later": "Later",
+			"downloading": "Downloading... {progress}%",
+			"installing": "Installing..."
 		},
 		"conflict": {
 			"title": "Name Conflict",
@@ -296,7 +398,11 @@
 		"cannotDropIntoSelf": "Cannot drop a folder into itself",
 		"cannotDropIntoSubfolder": "Cannot drop a folder into its own subfolder",
 		"analysisFailed": "Analysis failed",
-		"exportInProgress": "Export already in progress"
+		"exportInProgress": "Export already in progress",
+		"tagNameConflict": "A tag with this name already exists in the target category",
+		"previewStreamFailed": "Failed to load preview stream",
+		"updateCheckFailed": "Failed to check for updates",
+		"updateInstallFailed": "Failed to install update"
 	},
 	"devices": {
 		"title": "Devices",
@@ -376,12 +482,12 @@
 		"label": "Label",
 		"bpm": "BPM",
 		"key": "Key",
-		"saving": "Saving...",
-		"saveChanges": "Save Changes",
 		"multipleArtworks": "Multiple artworks",
 		"addArtwork": "Add Artwork",
 		"replaceArtwork": "Replace Artwork",
-		"reextractFromFile": "Re-extract from file"
+		"reextractFromFile": "Re-extract from file",
+		"showEditor": "Show Editor",
+		"hideEditor": "Hide Editor"
 	},
 	"colors": {
 		"pink": "Pink",
@@ -398,6 +504,14 @@
 		"violet": "Violet",
 		"rose": "Rose",
 		"emerald": "Emerald"
+	},
+	"dates": {
+		"today": "Today",
+		"yesterday": "Yesterday",
+		"daysAgo": "{count, plural, =1 {1 day ago} other {{count} days ago}}",
+		"weeksAgo": "{count, plural, =1 {1 week ago} other {{count} weeks ago}}",
+		"monthsAgo": "{count, plural, =1 {1 month ago} other {{count} months ago}}",
+		"yearsAgo": "{count, plural, =1 {1 year ago} other {{count} years ago}}"
 	},
 	"crash": {
 		"title": "Something went wrong",
@@ -417,11 +531,14 @@
 		"settingsSubmenu": "Settings",
 		"settingsGeneral": "General",
 		"settingsLibrary": "Library",
+		"settingsDiscovery": "Discovery",
 		"settingsAppearance": "Appearance",
 		"settingsSound": "Sound",
 		"settingsDiagnostics": "Diagnostics",
 		"quit": "Quit {appName}",
 		"importTracks": "Import Tracks...",
+		"addRelease": "Add Release...",
+		"refreshMetadata": "Refresh Metadata",
 		"newPlaylist": "New Playlist",
 		"newFolder": "New Folder",
 		"quickExport": "Quick Export...",
@@ -430,12 +547,25 @@
 		"cut": "Cut",
 		"copy": "Copy",
 		"paste": "Paste",
-		"selectAllTracks": "Select All Tracks",
+		"selectAll": "Select All",
 		"playPause": "Play/Pause",
 		"stop": "Stop",
+		"nextTrack": "Next Track",
+		"previousTrack": "Previous Track",
+		"seekForward": "Seek Forward",
+		"seekBackward": "Seek Backward",
+		"fineSeekForward": "Fine Seek Forward",
+		"fineSeekBackward": "Fine Seek Backward",
+		"volumeUp": "Volume Up",
+		"volumeDown": "Volume Down",
+		"mute": "Mute",
 		"jumpToPlaying": "Jump to Playing Track",
-		"toggleSidebar": "Toggle Sidebar",
+		"toggleEditor": "Toggle Editor",
+		"toggleView": "Toggle View",
 		"showDevTools": "Show DevTools",
+		"enterFullScreen": "Enter Full Screen",
+		"expandAllReleases": "Expand All Releases",
+		"collapseAllReleases": "Collapse All Releases",
 		"minimize": "Minimize",
 		"zoom": "Zoom",
 		"documentation": "{appName} Documentation",

@@ -112,28 +112,53 @@ export function formatBytes(bytes: number | null | undefined): string {
 }
 
 /**
- * Format date string to localized display
+ * Format date string to localized display based on format preference.
+ * Uses UTC getters for date-only strings (YYYY-MM-DD) to avoid timezone day-shift.
  */
-export function formatDate(dateStr: string): string {
+export function formatDate(dateStr: string, format: 'locale' | 'iso' | 'us' | 'eu' | 'dot' = 'locale'): string {
 	const date = new Date(dateStr)
-	return date.toLocaleDateString()
+	const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
+	const y = isDateOnly ? date.getUTCFullYear() : date.getFullYear()
+	const m = isDateOnly ? date.getUTCMonth() : date.getMonth()
+	const d = isDateOnly ? date.getUTCDate() : date.getDate()
+	const mm = String(m + 1).padStart(2, '0')
+	const dd = String(d).padStart(2, '0')
+
+	switch (format) {
+		case 'iso':
+			return `${y}-${mm}-${dd}`
+		case 'us':
+			return `${mm}/${dd}/${y}`
+		case 'eu':
+			return `${dd}/${mm}/${y}`
+		case 'dot':
+			return `${dd}.${mm}.${y}`
+		case 'locale':
+		default:
+			return isDateOnly ? new Date(Date.UTC(y, m, d)).toLocaleDateString() : date.toLocaleDateString()
+	}
 }
 
 /**
  * Format date string to relative time (e.g., "2 days ago")
  */
-export function formatRelativeDate(dateStr: string): string {
+type TranslateFn = (key: string, opts?: { values?: Record<string, unknown> }) => string
+
+export function formatRelativeDate(dateStr: string, t: TranslateFn): string {
 	const date = new Date(dateStr)
 	const now = new Date()
 	const diffMs = now.getTime() - date.getTime()
 	const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
 
-	if (diffDays === 0) return 'Today'
-	if (diffDays === 1) return 'Yesterday'
-	if (diffDays < 7) return `${diffDays} days ago`
-	if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`
-	if (diffDays < 365) return `${Math.floor(diffDays / 30)} months ago`
-	return `${Math.floor(diffDays / 365)} years ago`
+	if (diffDays === 0) return t('dates.today')
+	if (diffDays === 1) return t('dates.yesterday')
+	if (diffDays < 7) return t('dates.daysAgo', { values: { count: diffDays } })
+	const weeks = Math.floor(diffDays / 7)
+	if (diffDays < 30) return t('dates.weeksAgo', { values: { count: weeks } })
+	const months = Math.floor(diffDays / 30)
+	if (diffDays < 365) return t('dates.monthsAgo', { values: { count: months } })
+	const years = Math.floor(diffDays / 365)
+	return t('dates.yearsAgo', { values: { count: years } })
 }
 
 /**

@@ -6,12 +6,13 @@
 
 	type Props = {
 		artworkPath: string | null
+		artworkUrl?: string | null
 		size?: Size
 		class?: string
 		onclick?: () => void
 	}
 
-	let { artworkPath, size = 'md', class: className = '', onclick }: Props = $props()
+	let { artworkPath, artworkUrl = null, size = 'md', class: className = '', onclick }: Props = $props()
 
 	const sizeClasses: Record<Size, string> = {
 		xs: 'h-6 w-6',
@@ -27,11 +28,33 @@
 		lg: 'h-16 w-16',
 	}
 
-	let artworkUrl = $derived(getArtworkUrl(artworkPath))
-	let hasError = $state(false)
+	let localUrl = $derived(getArtworkUrl(artworkPath))
+	let localError = $state(false)
+	let externalError = $state(false)
+
+	let displayUrl = $derived.by(() => {
+		if (localUrl && !localError) return localUrl
+		if (artworkUrl && !externalError) return artworkUrl
+		return null
+	})
+
+	$effect(() => {
+		// Reset error states when props change
+		void artworkPath
+		localError = false
+	})
+
+	$effect(() => {
+		void artworkUrl
+		externalError = false
+	})
 
 	function handleError() {
-		hasError = true
+		if (localUrl && !localError) {
+			localError = true
+		} else {
+			externalError = true
+		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
@@ -52,8 +75,8 @@
 	{onclick}
 	onkeydown={onclick ? handleKeydown : undefined}
 >
-	{#if artworkUrl && !hasError}
-		<img src={artworkUrl} alt="Album artwork" class="h-full w-full object-cover" onerror={handleError} />
+	{#if displayUrl}
+		<img src={displayUrl} alt="Album artwork" class="h-full w-full object-cover" onerror={handleError} />
 	{:else}
 		<Icon name="music-note" class="{iconSizes[size]} text-text-tertiary" />
 	{/if}

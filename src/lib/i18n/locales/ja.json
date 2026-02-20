@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "ライブラリ",
+		"discovery": "ディスカバリー",
 		"playlists": "プレイリスト",
 		"tags": "タグ"
 	},
@@ -30,6 +31,7 @@
 		"tabs": {
 			"general": "一般",
 			"library": "ライブラリ",
+			"discovery": "ディスカバリー",
 			"appearance": "外観",
 			"sound": "サウンド",
 			"diagnostics": "診断",
@@ -37,7 +39,14 @@
 		},
 		"general": {
 			"language": "言語",
-			"languageDescription": "アプリケーションの表示言語を選択します。"
+			"languageDescription": "アプリケーションの表示言語を選択します。",
+			"dateFormat": "日付形式",
+			"dateFormatDescription": "アプリケーション全体で日付がどのように表示されるかを選択します。",
+			"dateFormatLocale": "システムデフォルト",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "ヨーロッパ (DD/MM/YYYY)",
+			"dateFormatDot": "ドット (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "解析",
@@ -64,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "OPUS-QUAD、OMNIS-DUO、XDJ-AZ向け"
 		},
+		"discovery": {
+			"metadata": "メタデータ",
+			"autoFetchMetadata": "メタデータの自動取得",
+			"autoFetchMetadataDescription": "URLを追加する際にリリースメタデータを自動的に取得します。",
+			"import": "インポート",
+			"transferTagsOnImport": "インポート時にタグを転送",
+			"transferTagsOnImportDescription": "デフォルトでリリースタグをインポートされたトラックに転送します。",
+			"removeReleaseAfterImport": "インポート後にリリースを削除",
+			"removeReleaseAfterImportDescription": "ファイルをインポートした後、自動的にディスカバリーからリリースを削除します。"
+		},
 		"appearance": {
 			"font": "フォント",
 			"fontDescription": "アプリケーション全体で使用するフォントを選択します。",
@@ -78,7 +97,9 @@
 			"outputDeviceDescription": "再生に使用するオーディオ出力デバイスを選択します。",
 			"systemDefault": "システムデフォルト",
 			"system": "システム",
-			"external": "外部"
+			"external": "外部",
+			"continuousPlayback": "連続再生",
+			"continuousPlaybackDescription": "現在のトラックが終了したら、自動的に次のトラックを再生します。"
 		},
 		"diagnostics": {
 			"systemInfo": "システム情報",
@@ -100,7 +121,11 @@
 		"about": {
 			"application": "アプリケーション",
 			"version": "バージョン",
-			"environment": "環境"
+			"environment": "環境",
+			"updates": "アップデート",
+			"checkForUpdates": "アップデートを確認",
+			"upToDate": "最新版です",
+			"updateAvailable": "{version} が利用可能"
 		}
 	},
 	"player": {
@@ -111,7 +136,10 @@
 		"next": "次へ",
 		"mute": "ミュート",
 		"unmute": "ミュート解除",
-		"noTrackSelected": "トラックが選択されていません"
+		"noTrackSelected": "トラックが選択されていません",
+		"volume": "音量",
+		"tempo": "テンポ",
+		"resetTempo": "テンポをリセット"
 	},
 	"library": {
 		"searchPlaceholder": "トラックを検索...",
@@ -135,6 +163,64 @@
 		"item": "項目",
 		"items": "項目"
 	},
+	"discovery": {
+		"addRelease": "リリースを追加",
+		"url": "URL",
+		"source": "ソース",
+		"release": "リリース",
+		"releases": "リリース",
+		"noReleasesYet": "まだリリースがありません",
+		"addReleaseHint": "{shortcut} を押すか、URLをここにドラッグして Bandcamp、SoundCloud、Discogs など からリリースを追加してください",
+		"dropHint": "URL をドロップしてリリースを追加",
+		"previewNotAvailable": "このソースではプレビューを利用できません",
+		"columns": {
+			"artistTitle": "アーティスト / タイトル",
+			"label": "レーベル",
+			"tags": "タグ",
+			"dateAdded": "追加日時",
+			"released": "リリース日",
+			"added": "追加"
+		},
+		"fetchingMetadata": "メタデータを取得中...",
+		"refreshMetadata": "メタデータを更新",
+		"fetchError": "このURLからメタデータを取得できませんでした",
+		"tracks": "トラック",
+		"trackCount": "{count, plural, =1 {1曲} other {{count}曲}}",
+		"openInBrowser": "ブラウザで開く",
+		"importToLibrary": "ライブラリにインポート",
+		"deleteRelease": "リリースを削除",
+		"deleteReleases": "リリースを削除",
+		"editor": {
+			"releaseInfo": "リリース情報",
+			"releasesCount": "{count, plural, =1 {1つのリリース} other {{count}つのリリース}}",
+			"artist": "アーティスト",
+			"title": "タイトル",
+			"label": "レーベル",
+			"releaseDate": "リリース日",
+			"notes": "メモ"
+		},
+		"import": {
+			"title": "ライブラリにインポート",
+			"selectFiles": "ファイルを選択",
+			"matched": "一致しました",
+			"unmatched": "一致しなかった",
+			"importAllFiles": "すべてのファイルをインポート",
+			"transferTags": "タグを転送",
+			"transferTagsCount": "タグを転送（{count}）",
+			"importing": "インポート中...",
+			"noFilesSelected": "ファイルが選択されていません",
+			"filesSelected": "{count, plural, =1 {1個のファイル} other {{count}個のファイル}}を選択"
+		},
+		"addToExisting": "既存に追加",
+		"addAsNew": "新規リリースとして追加",
+		"matchFound": "このトラックはディスカバリーリストに既にある {albumTitle} の一部です",
+		"similarFound": "同様のリリースが既に存在します：{artist} による {title}",
+		"mergeReleases": "リリースをマージ",
+		"mergeConfirm": "メタデータを保持：",
+		"mergeTrackCount": "{count, plural, =1 {1曲} other {{count}曲}}を組み合わせ",
+		"expandAll": "すべて展開",
+		"collapseAll": "すべて折りたたむ"
+	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",
 		"newFolder": "新しいフォルダ",
@@ -155,6 +241,7 @@
 		"deleteCategory": "カテゴリを削除",
 		"addCategory": "カテゴリを追加",
 		"addTag": "タグを追加",
+		"moveToCategory": "カテゴリに移動",
 		"noTags": "タグなし",
 		"noTagCategoriesYet": "まだタグカテゴリがありません"
 	},
@@ -219,7 +306,13 @@
 			"removeFromLibraryTitle": "ライブラリから削除",
 			"removeFromLibraryMessage": "{count, plural, =1 {このトラックをライブラリから削除しますか？} other {{count}曲のトラックをライブラリから削除しますか？}}",
 			"removeFromLibraryWarning": "この操作は取り消せません。トラックはすべてのプレイリストから削除されます。",
-			"deleteTracksFromCollection": "コレクションからもトラックを削除"
+			"deleteTracksFromCollection": "コレクションからもトラックを削除",
+			"removeDiscoveryReleasesTitle": "ディスカバリーから削除",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {このリリースをディスカバリーから削除しますか？} other {{count}件のリリースをディスカバリーから削除しますか？}}",
+			"removeDiscoveryReleasesWarning": "この操作は元に戻せません。リリースはすべてのプレイリストから削除されます。",
+			"removeDiscoveryReleasesFromPlaylistTitle": "プレイリストから削除",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {このリリースをプレイリストから削除しますか？} other {{count}件のリリースをプレイリストから削除しますか？}}",
+			"deleteReleasesFromCollection": "コレクションからもリリースを削除"
 		},
 		"relocate": {
 			"title": "トラックを再配置",
@@ -235,6 +328,15 @@
 			"available": "空き容量:",
 			"total": "合計:",
 			"percentUsed": "% 使用中"
+		},
+		"update": {
+			"title": "アップデートが利用可能",
+			"description": "{version} をインストール準備完了です。",
+			"releaseNotes": "新機能",
+			"installAndRestart": "インストールして再起動",
+			"later": "後で",
+			"downloading": "ダウンロード中... {progress}%",
+			"installing": "インストール中..."
 		},
 		"duplicate": {
 			"title": "重複トラックを検出",
@@ -296,7 +398,11 @@
 		"cannotDropIntoSelf": "フォルダを自分自身にドロップすることはできません",
 		"cannotDropIntoSubfolder": "フォルダをそのサブフォルダにドロップすることはできません",
 		"analysisFailed": "分析が失敗しました",
-		"exportInProgress": "エクスポートが既に進行中です"
+		"exportInProgress": "エクスポートが既に進行中です",
+		"tagNameConflict": "同じ名前のタグが移動先のカテゴリに既に存在します",
+		"previewStreamFailed": "プレビューストリームの読み込みに失敗しました",
+		"updateCheckFailed": "アップデートの確認に失敗しました",
+		"updateInstallFailed": "アップデートのインストールに失敗しました"
 	},
 	"devices": {
 		"title": "デバイス",
@@ -376,12 +482,12 @@
 		"label": "レーベル",
 		"bpm": "BPM",
 		"key": "キー",
-		"saving": "保存中...",
-		"saveChanges": "変更を保存",
 		"multipleArtworks": "複数のアートワーク",
 		"addArtwork": "アートワークを追加",
 		"replaceArtwork": "アートワークを置き換え",
-		"reextractFromFile": "ファイルから再抽出"
+		"reextractFromFile": "ファイルから再抽出",
+		"showEditor": "エディターを表示",
+		"hideEditor": "エディターを非表示"
 	},
 	"colors": {
 		"pink": "ピンク",
@@ -398,6 +504,14 @@
 		"violet": "バイオレット",
 		"rose": "ローズ",
 		"emerald": "エメラルド"
+	},
+	"dates": {
+		"today": "今日",
+		"yesterday": "昨日",
+		"daysAgo": "{count, plural, =1 {1日前} other {{count}日前}}",
+		"weeksAgo": "{count, plural, =1 {1週間前} other {{count}週間前}}",
+		"monthsAgo": "{count, plural, =1 {1ヶ月前} other {{count}ヶ月前}}",
+		"yearsAgo": "{count, plural, =1 {1年前} other {{count}年前}}"
 	},
 	"crash": {
 		"title": "問題が発生しました",
@@ -417,25 +531,41 @@
 		"settingsSubmenu": "設定",
 		"settingsGeneral": "一般",
 		"settingsLibrary": "ライブラリ",
+		"settingsDiscovery": "ディスカバリー",
 		"settingsAppearance": "外観",
 		"settingsSound": "サウンド",
 		"settingsDiagnostics": "診断",
 		"quit": "{appName}を終了",
 		"importTracks": "トラックをインポート...",
+		"addRelease": "リリースを追加...",
+		"refreshMetadata": "メタデータを更新",
 		"newPlaylist": "新しいプレイリスト",
 		"newFolder": "新しいフォルダ",
 		"quickExport": "クイックエクスポート...",
-		"undo": "取り消す",
+		"undo": "元に戻す",
 		"redo": "やり直す",
 		"cut": "カット",
 		"copy": "コピー",
 		"paste": "ペースト",
-		"selectAllTracks": "すべてのトラックを選択",
+		"selectAll": "すべてを選択",
 		"playPause": "再生/一時停止",
 		"stop": "停止",
+		"nextTrack": "次のトラック",
+		"previousTrack": "前のトラック",
+		"seekForward": "早送り",
+		"seekBackward": "巻き戻し",
+		"fineSeekForward": "微調整早送り",
+		"fineSeekBackward": "微調整巻き戻し",
+		"volumeUp": "音量アップ",
+		"volumeDown": "音量ダウン",
+		"mute": "ミュート",
 		"jumpToPlaying": "再生中のトラックへジャンプ",
-		"toggleSidebar": "サイドバーを切り替え",
+		"toggleEditor": "エディターを切り替え",
+		"toggleView": "ビューを切り替え",
 		"showDevTools": "開発者ツールを表示",
+		"enterFullScreen": "フルスクリーンに入る",
+		"expandAllReleases": "すべてのリリースを展開",
+		"collapseAllReleases": "すべてのリリースを折りたたむ",
 		"minimize": "しまう",
 		"zoom": "拡大/縮小",
 		"documentation": "{appName}ドキュメント",

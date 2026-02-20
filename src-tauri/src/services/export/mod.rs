@@ -233,6 +233,7 @@ impl ExportService {
                         date_created: row.get(7)?,
                         date_modified: row.get(8)?,
                         track_count: row.get(9)?,
+                        context: "library".to_string(),
                     })
                 },
             )?;
@@ -261,6 +262,7 @@ impl ExportService {
                                 date_created: row.get(7)?,
                                 date_modified: row.get(8)?,
                                 track_count: row.get(9)?,
+                                context: "library".to_string(),
                             })
                         },
                     )?;

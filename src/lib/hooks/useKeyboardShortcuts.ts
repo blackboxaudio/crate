@@ -10,8 +10,6 @@ export interface KeyboardShortcutHandlers {
 	onClearSelection: () => void
 	onSelectAll: () => void
 	onOpenSettings: () => void
-	onToggleInspector: () => void
-	// New shortcuts
 	onNewPlaylist: () => void
 	onNewFolder: () => void
 	onImport: () => void
@@ -19,6 +17,8 @@ export interface KeyboardShortcutHandlers {
 	onPlaySelected: () => void
 	onSeekBackward: () => void
 	onSeekForward: () => void
+	onFineSeekBackward: () => void
+	onFineSeekForward: () => void
 	onPreviousTrack: () => void
 	onNextTrack: () => void
 	onVolumeUp: () => void
@@ -28,6 +28,10 @@ export interface KeyboardShortcutHandlers {
 	onSelectNextTrack: () => void
 	onQuickExport: () => void
 	onJumpToPlayingTrack: () => void
+	onToggleView: () => void
+	onAddRelease: () => void
+	onRefreshMetadata: () => void
+	isModalOpen?: () => boolean
 }
 
 // =============================================================================
@@ -43,14 +47,15 @@ export interface KeyboardShortcutHandlers {
  * - Escape: clear selection
  * - Cmd/Ctrl+A: select all (text in input, or tracks)
  * - Cmd/Ctrl+,: open settings
- * - Cmd/Ctrl+I: toggle track inspector
  * - Cmd/Ctrl+N: new playlist
  * - Cmd/Ctrl+Shift+N: new folder
- * - Cmd/Ctrl+O: import files
+ * - Cmd/Ctrl+L: import files
  * - Delete/Backspace: remove selected tracks
  * - Enter: play selected track
- * - Left Arrow: seek backward 5s
- * - Right Arrow: seek forward 5s
+ * - Left Arrow: seek backward 10s
+ * - Right Arrow: seek forward 10s
+ * - Cmd/Ctrl+Left Arrow: fine seek backward 1s
+ * - Cmd/Ctrl+Right Arrow: fine seek forward 1s
  * - Shift+Left Arrow: previous track
  * - Shift+Right Arrow: next track
  * - Up Arrow: volume up 10%
@@ -60,6 +65,9 @@ export interface KeyboardShortcutHandlers {
  * - Cmd/Ctrl+Down Arrow: select next track
  * - Cmd/Ctrl+E: quick export
  * - Cmd/Ctrl+J: jump to playing track
+ * - Shift+Tab: toggle between Library and Discovery views
+ * - Cmd/Ctrl+D: add release (handled by native menu)
+ * - Cmd/Ctrl+R: refresh metadata for selected discovery releases
  *
  * @returns Cleanup function to remove the event listener
  */
@@ -70,7 +78,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		onClearSelection,
 		onSelectAll,
 		onOpenSettings,
-		onToggleInspector,
 		onNewPlaylist,
 		onNewFolder,
 		onImport,
@@ -78,6 +85,8 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		onPlaySelected,
 		onSeekBackward,
 		onSeekForward,
+		onFineSeekBackward,
+		onFineSeekForward,
 		onPreviousTrack,
 		onNextTrack,
 		onVolumeUp,
@@ -87,10 +96,22 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		onSelectNextTrack,
 		onQuickExport,
 		onJumpToPlayingTrack,
+		onToggleView,
+		onAddRelease,
+		onRefreshMetadata,
+		isModalOpen,
 	} = handlers
 
 	function handleKeydown(e: KeyboardEvent): void {
+		if (isModalOpen?.()) return
 		const inputFocused = isInputFocused()
+
+		// Shift+Tab: toggle between Library and Discovery views
+		if (e.key === 'Tab' && e.shiftKey && !inputFocused) {
+			e.preventDefault()
+			onToggleView()
+			return
+		}
 
 		// Space: toggle play/pause
 		if (e.code === 'Space' && !inputFocused) {
@@ -126,12 +147,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 			onOpenSettings()
 		}
 
-		// Cmd/Ctrl+I: toggle track inspector
-		if ((e.metaKey || e.ctrlKey) && e.key === 'i') {
-			e.preventDefault()
-			onToggleInspector()
-		}
-
 		// Cmd/Ctrl+N: new playlist
 		if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key === 'n') {
 			e.preventDefault()
@@ -144,8 +159,8 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 			onNewFolder()
 		}
 
-		// Cmd/Ctrl+O: import files
-		if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
+		// Cmd/Ctrl+L: import files
+		if ((e.metaKey || e.ctrlKey) && e.key === 'l') {
 			e.preventDefault()
 			onImport()
 		}
@@ -160,6 +175,12 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 		if ((e.metaKey || e.ctrlKey) && e.key === 'j') {
 			e.preventDefault()
 			onJumpToPlayingTrack()
+		}
+
+		// Cmd/Ctrl+R: refresh metadata for selected discovery releases
+		if ((e.metaKey || e.ctrlKey) && e.key === 'r' && !inputFocused) {
+			e.preventDefault()
+			onRefreshMetadata()
 		}
 
 		// Delete/Backspace: remove selected tracks (when not typing)
@@ -190,6 +211,20 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 				return
 			}
 
+			// Cmd/Ctrl+Left: fine seek backward 1s
+			if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowLeft') {
+				e.preventDefault()
+				onFineSeekBackward()
+				return
+			}
+
+			// Cmd/Ctrl+Right: fine seek forward 1s
+			if ((e.metaKey || e.ctrlKey) && e.key === 'ArrowRight') {
+				e.preventDefault()
+				onFineSeekForward()
+				return
+			}
+
 			// Shift+Left: previous track
 			if (e.shiftKey && e.key === 'ArrowLeft') {
 				e.preventDefault()
@@ -204,13 +239,13 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 				return
 			}
 
-			// Left Arrow: seek backward 5s
+			// Left Arrow: seek backward 10s
 			if (e.key === 'ArrowLeft') {
 				e.preventDefault()
 				onSeekBackward()
 			}
 
-			// Right Arrow: seek forward 5s
+			// Right Arrow: seek forward 10s
 			if (e.key === 'ArrowRight') {
 				e.preventDefault()
 				onSeekForward()

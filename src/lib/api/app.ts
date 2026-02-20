@@ -28,6 +28,13 @@ export async function closeDevTools(): Promise<void> {
 	return invoke('close_dev_tools')
 }
 
+/**
+ * Set the enabled state of a native menu item by its ID
+ */
+export async function setMenuItemEnabled(id: string, enabled: boolean): Promise<void> {
+	return invoke('set_menu_item_enabled', { id, enabled })
+}
+
 export interface MenuTranslations {
 	// Menu titles
 	file: string
@@ -42,6 +49,8 @@ export interface MenuTranslations {
 	quit: string
 	// File menu items
 	importTracks: string
+	addRelease: string
+	refreshMetadata: string
 	newPlaylist: string
 	newFolder: string
 	quickExport: string
@@ -51,18 +60,32 @@ export interface MenuTranslations {
 	cut: string
 	copy: string
 	paste: string
-	selectAllTracks: string
+	selectAll: string
 	// Playback menu items
 	playPause: string
 	stop: string
+	nextTrack: string
+	previousTrack: string
+	seekForward: string
+	seekBackward: string
+	fineSeekForward: string
+	fineSeekBackward: string
+	volumeUp: string
+	volumeDown: string
+	mute: string
 	jumpToPlaying: string
 	// View menu items
-	toggleSidebar: string
+	toggleView: string
+	toggleEditor: string
+	expandAllReleases: string
+	collapseAllReleases: string
 	showDevTools: string
+	enterFullScreen: string
 	// Settings submenu
 	settingsSubmenu: string
 	settingsGeneral: string
 	settingsLibrary: string
+	settingsDiscovery: string
 	settingsAppearance: string
 	settingsSound: string
 	settingsDiagnostics: string

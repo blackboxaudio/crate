@@ -22,6 +22,7 @@
 	},
 	"nav": {
 		"library": "Bibliothèque",
+		"discovery": "Découvertes",
 		"playlists": "Playlists",
 		"tags": "Tags"
 	},
@@ -30,6 +31,7 @@
 		"tabs": {
 			"general": "Général",
 			"library": "Bibliothèque",
+			"discovery": "Découvertes",
 			"appearance": "Apparence",
 			"sound": "Son",
 			"diagnostics": "Diagnostics",
@@ -37,7 +39,14 @@
 		},
 		"general": {
 			"language": "Langue",
-			"languageDescription": "Choisissez la langue d'affichage de l'application."
+			"languageDescription": "Choisissez la langue d'affichage de l'application.",
+			"dateFormat": "Format de date",
+			"dateFormatDescription": "Choisissez comment les dates sont affichées dans l'application.",
+			"dateFormatLocale": "Paramètre système par défaut",
+			"dateFormatIso": "ISO (YYYY-MM-DD)",
+			"dateFormatUs": "US (MM/DD/YYYY)",
+			"dateFormatEu": "Européen (DD/MM/YYYY)",
+			"dateFormatDot": "Point (DD.MM.YYYY)"
 		},
 		"library": {
 			"analysis": "Analyse",
@@ -64,6 +73,16 @@
 			"exportFormatDeviceLibraryPlus": "Device Library Plus",
 			"exportFormatDeviceLibraryPlusDescription": "Pour OPUS-QUAD, OMNIS-DUO, XDJ-AZ"
 		},
+		"discovery": {
+			"metadata": "Métadonnées",
+			"autoFetchMetadata": "Récupération automatique des métadonnées",
+			"autoFetchMetadataDescription": "Récupère automatiquement les métadonnées de sortie lors de l'ajout d'une URL.",
+			"import": "Importer",
+			"transferTagsOnImport": "Transférer les tags lors de l'import",
+			"transferTagsOnImportDescription": "Transférez les tags de sortie aux pistes importées par défaut.",
+			"removeReleaseAfterImport": "Supprimer la sortie après l'import",
+			"removeReleaseAfterImportDescription": "Supprimez automatiquement les sorties des découvertes après avoir importé les fichiers."
+		},
 		"appearance": {
 			"font": "Police",
 			"fontDescription": "Choisissez la police utilisée dans l'application.",
@@ -78,7 +97,9 @@
 			"outputDeviceDescription": "Sélectionnez le périphérique de sortie audio pour la lecture.",
 			"systemDefault": "Par défaut du système",
 			"system": "Système",
-			"external": "Externe"
+			"external": "Externe",
+			"continuousPlayback": "Lecture continue",
+			"continuousPlaybackDescription": "Lire automatiquement la piste suivante à la fin de la piste actuelle."
 		},
 		"diagnostics": {
 			"systemInfo": "Informations système",
@@ -100,7 +121,11 @@
 		"about": {
 			"application": "Application",
 			"version": "Version",
-			"environment": "Environnement"
+			"environment": "Environnement",
+			"updates": "Mises à jour",
+			"checkForUpdates": "Vérifier les mises à jour",
+			"upToDate": "À jour",
+			"updateAvailable": "{version} disponible"
 		}
 	},
 	"player": {
@@ -111,7 +136,10 @@
 		"next": "Suivant",
 		"mute": "Muet",
 		"unmute": "Rétablir le son",
-		"noTrackSelected": "Aucune piste sélectionnée"
+		"noTrackSelected": "Aucune piste sélectionnée",
+		"volume": "Volume",
+		"tempo": "Tempo",
+		"resetTempo": "Réinitialiser le tempo"
 	},
 	"library": {
 		"searchPlaceholder": "Rechercher des pistes...",
@@ -135,6 +163,64 @@
 		"item": "élément",
 		"items": "éléments"
 	},
+	"discovery": {
+		"addRelease": "Ajouter une sortie",
+		"url": "URL",
+		"source": "Source",
+		"release": "sortie",
+		"releases": "sorties",
+		"noReleasesYet": "Aucune sortie pour le moment",
+		"addReleaseHint": "Appuyez sur {shortcut} ou glissez-déposez une URL ici pour ajouter des sorties de Bandcamp, SoundCloud, Discogs et plus",
+		"dropHint": "Déposer l'URL pour ajouter une sortie",
+		"previewNotAvailable": "Aperçu non disponible pour cette source",
+		"columns": {
+			"artistTitle": "Artiste / Titre",
+			"label": "Label",
+			"tags": "Tags",
+			"dateAdded": "Date d'ajout",
+			"released": "Date de sortie",
+			"added": "Ajouté"
+		},
+		"fetchingMetadata": "Récupération des métadonnées...",
+		"refreshMetadata": "Actualiser les métadonnées",
+		"fetchError": "Impossible de récupérer les métadonnées à partir de cette URL",
+		"tracks": "Pistes",
+		"trackCount": "{count, plural, =1 {1 piste} other {{count} pistes}}",
+		"openInBrowser": "Ouvrir dans le navigateur",
+		"importToLibrary": "Importer dans la bibliothèque",
+		"deleteRelease": "Supprimer la sortie",
+		"deleteReleases": "Supprimer les sorties",
+		"editor": {
+			"releaseInfo": "Infos de la sortie",
+			"releasesCount": "{count, plural, =1 {1 sortie} other {{count} sorties}}",
+			"artist": "Artiste",
+			"title": "Titre",
+			"label": "Label",
+			"releaseDate": "Date de sortie",
+			"notes": "Notes"
+		},
+		"import": {
+			"title": "Importer dans la bibliothèque",
+			"selectFiles": "Sélectionner les fichiers",
+			"matched": "Correspondant",
+			"unmatched": "Non correspondant",
+			"importAllFiles": "Importer tous les fichiers",
+			"transferTags": "Transférer les tags",
+			"transferTagsCount": "Transférer les tags ({count})",
+			"importing": "Importation...",
+			"noFilesSelected": "Aucun fichier sélectionné",
+			"filesSelected": "{count, plural, =1 {1 fichier} other {{count} fichiers}} sélectionné(s)"
+		},
+		"addToExisting": "Ajouter à existant",
+		"addAsNew": "Ajouter comme nouvelle sortie",
+		"matchFound": "Cette piste fait partie de {albumTitle} qui est déjà dans votre liste de découvertes",
+		"similarFound": "Une sortie similaire existe déjà : {title} par {artist}",
+		"mergeReleases": "Fusionner les sorties",
+		"mergeConfirm": "Garder les métadonnées de :",
+		"mergeTrackCount": "{count, plural, =1 {1 piste} other {{count} pistes}} combinées",
+		"expandAll": "Développer tout",
+		"collapseAll": "Réduire tout"
+	},
 	"playlists": {
 		"newPlaylist": "Nouvelle playlist",
 		"newFolder": "Nouveau dossier",
@@ -155,6 +241,7 @@
 		"deleteCategory": "Supprimer la catégorie",
 		"addCategory": "Ajouter une catégorie",
 		"addTag": "Ajouter un tag",
+		"moveToCategory": "Déplacer vers la catégorie",
 		"noTags": "Aucun tag",
 		"noTagCategoriesYet": "Aucune catégorie de tag pour le moment"
 	},
@@ -219,7 +306,13 @@
 			"removeFromLibraryTitle": "Retirer de la bibliothèque",
 			"removeFromLibraryMessage": "{count, plural, =0 {Retirer cette piste de votre bibliothèque ?} =1 {Retirer cette piste de votre bibliothèque ?} other {Retirer {count} pistes de votre bibliothèque ?}}",
 			"removeFromLibraryWarning": "Cette action est irréversible. Les pistes seront retirées de toutes les playlists.",
-			"deleteTracksFromCollection": "Supprimer également les pistes de ma collection"
+			"deleteTracksFromCollection": "Supprimer également les pistes de ma collection",
+			"removeDiscoveryReleasesTitle": "Supprimer de la découverte",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Supprimer cette sortie de la découverte ?} other {Supprimer {count} sorties de la découverte ?}}",
+			"removeDiscoveryReleasesWarning": "Cette action est irréversible. Les sorties seront supprimées de toutes les playlists.",
+			"removeDiscoveryReleasesFromPlaylistTitle": "Retirer de la playlist",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Retirer cette sortie de la playlist ?} other {Retirer {count} sorties de la playlist ?}}",
+			"deleteReleasesFromCollection": "Supprimer également les sorties de ma collection"
 		},
 		"relocate": {
 			"title": "Relocaliser la piste",
@@ -235,6 +328,15 @@
 			"available": "Disponible :",
 			"total": "Total :",
 			"percentUsed": "% utilisé"
+		},
+		"update": {
+			"title": "Mise à jour disponible",
+			"description": "{version} est prêt à être installé.",
+			"releaseNotes": "Quoi de neuf",
+			"installAndRestart": "Installer et redémarrer",
+			"later": "Plus tard",
+			"downloading": "Téléchargement... {progress}%",
+			"installing": "Installation..."
 		},
 		"duplicate": {
 			"title": "Doublon détecté",
@@ -295,7 +397,11 @@
 		"cannotDropIntoSelf": "Impossible de déposer un dossier dans lui-même",
 		"cannotDropIntoSubfolder": "Impossible de déposer un dossier dans son propre sous-dossier",
 		"analysisFailed": "Échec de l'analyse",
-		"exportInProgress": "Exportation déjà en cours"
+		"exportInProgress": "Exportation déjà en cours",
+		"tagNameConflict": "Un tag portant ce nom existe déjà dans la catégorie cible",
+		"previewStreamFailed": "Échec du chargement du flux d'aperçu",
+		"updateCheckFailed": "Échec de la vérification des mises à jour",
+		"updateInstallFailed": "Échec de l'installation de la mise à jour"
 	},
 	"devices": {
 		"title": "Appareils",
@@ -375,12 +481,12 @@
 		"label": "Label",
 		"bpm": "BPM",
 		"key": "Tonalité",
-		"saving": "Enregistrement...",
-		"saveChanges": "Enregistrer les modifications",
 		"multipleArtworks": "Pochettes multiples",
 		"addArtwork": "Ajouter une pochette",
 		"replaceArtwork": "Remplacer la pochette",
-		"reextractFromFile": "Ré-extraire du fichier"
+		"reextractFromFile": "Ré-extraire du fichier",
+		"showEditor": "Afficher l'éditeur",
+		"hideEditor": "Masquer l'éditeur"
 	},
 	"colors": {
 		"pink": "Rose",
@@ -397,6 +503,14 @@
 		"violet": "Violet",
 		"rose": "Rose",
 		"emerald": "Émeraude"
+	},
+	"dates": {
+		"today": "Aujourd'hui",
+		"yesterday": "Hier",
+		"daysAgo": "{count, plural, =1 {il y a 1 jour} other {il y a {count} jours}}",
+		"weeksAgo": "{count, plural, =1 {il y a 1 semaine} other {il y a {count} semaines}}",
+		"monthsAgo": "{count, plural, =1 {il y a 1 mois} other {il y a {count} mois}}",
+		"yearsAgo": "{count, plural, =1 {il y a 1 an} other {il y a {count} ans}}"
 	},
 	"crash": {
 		"title": "Une erreur s'est produite",
@@ -416,11 +530,14 @@
 		"settingsSubmenu": "Paramètres",
 		"settingsGeneral": "Général",
 		"settingsLibrary": "Bibliothèque",
+		"settingsDiscovery": "Découvertes",
 		"settingsAppearance": "Apparence",
 		"settingsSound": "Son",
 		"settingsDiagnostics": "Diagnostics",
 		"quit": "Quitter {appName}",
 		"importTracks": "Importer des pistes...",
+		"addRelease": "Ajouter une sortie...",
+		"refreshMetadata": "Actualiser les métadonnées",
 		"newPlaylist": "Nouvelle playlist",
 		"newFolder": "Nouveau dossier",
 		"quickExport": "Export rapide...",
@@ -429,12 +546,25 @@
 		"cut": "Couper",
 		"copy": "Copier",
 		"paste": "Coller",
-		"selectAllTracks": "Tout sélectionner",
+		"selectAll": "Tout sélectionner",
 		"playPause": "Lecture/Pause",
 		"stop": "Arrêt",
+		"nextTrack": "Piste suivante",
+		"previousTrack": "Piste précédente",
+		"seekForward": "Avance rapide",
+		"seekBackward": "Retour rapide",
+		"fineSeekForward": "Avance précise",
+		"fineSeekBackward": "Retour précis",
+		"volumeUp": "Augmenter volume",
+		"volumeDown": "Diminuer volume",
+		"mute": "Muet",
 		"jumpToPlaying": "Aller à la piste en cours de lecture",
-		"toggleSidebar": "Afficher/Masquer la barre latérale",
+		"toggleEditor": "Afficher/Masquer l'éditeur",
+		"toggleView": "Basculer la vue",
 		"showDevTools": "Afficher les outils de développement",
+		"enterFullScreen": "Passer en plein écran",
+		"expandAllReleases": "Développer toutes les sorties",
+		"collapseAllReleases": "Réduire toutes les sorties",
 		"minimize": "Réduire",
 		"zoom": "Zoom",
 		"documentation": "Documentation {appName}",

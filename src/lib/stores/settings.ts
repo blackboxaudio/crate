@@ -1,6 +1,15 @@
 import { tick } from 'svelte'
 import { writable, derived, get } from 'svelte/store'
-import type { Theme, AccentColor, Font, AudioDevice, Language, KeyNotationFormat, ExportFormat } from '$lib/types'
+import type {
+	Theme,
+	AccentColor,
+	Font,
+	AudioDevice,
+	Language,
+	KeyNotationFormat,
+	DateFormat,
+	ExportFormat,
+} from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
 import { setLanguage as setI18nLanguage, translate } from '$lib/i18n'
@@ -19,10 +28,15 @@ interface SettingsState {
 	audioDevices: AudioDevice[]
 	language: Language
 	keyNotationFormat: KeyNotationFormat
+	dateFormat: DateFormat
 	exportFormat: ExportFormat
 	autoAnalyzeOnImport: boolean
 	autoSyncOnConnect: boolean
 	autoSyncOnChange: boolean
+	continuousPlayback: boolean
+	autoFetchMetadata: boolean
+	transferTagsOnImport: boolean
+	removeReleaseAfterImport: boolean
 	ignoredDeviceIds: string[]
 	loading: boolean
 	error: string | null
@@ -31,16 +45,21 @@ interface SettingsState {
 const initialState: SettingsState = {
 	theme: 'system',
 	accentColor: 'blue',
-	font: 'ibm-plex-mono',
+	font: 'open-sans',
 	resolvedTheme: 'dark',
 	audioDevice: null,
 	audioDevices: [],
 	language: 'en',
 	keyNotationFormat: 'camelot',
+	dateFormat: 'locale',
 	exportFormat: 'pdb',
 	autoAnalyzeOnImport: true,
 	autoSyncOnConnect: false,
 	autoSyncOnChange: false,
+	continuousPlayback: true,
+	autoFetchMetadata: true,
+	transferTagsOnImport: true,
+	removeReleaseAfterImport: true,
 	ignoredDeviceIds: [],
 	loading: false,
 	error: null,
@@ -152,6 +171,8 @@ function createSettingsStore() {
 			quit: t('menu.quit', { values: { appName } }),
 			// File menu items
 			importTracks: t('menu.importTracks'),
+			addRelease: t('menu.addRelease'),
+			refreshMetadata: t('menu.refreshMetadata'),
 			newPlaylist: t('menu.newPlaylist'),
 			newFolder: t('menu.newFolder'),
 			quickExport: t('menu.quickExport'),
@@ -161,18 +182,32 @@ function createSettingsStore() {
 			cut: t('menu.cut'),
 			copy: t('menu.copy'),
 			paste: t('menu.paste'),
-			selectAllTracks: t('menu.selectAllTracks'),
+			selectAll: t('menu.selectAll'),
 			// Playback menu items
 			playPause: t('menu.playPause'),
 			stop: t('menu.stop'),
+			nextTrack: t('menu.nextTrack'),
+			previousTrack: t('menu.previousTrack'),
+			seekForward: t('menu.seekForward'),
+			seekBackward: t('menu.seekBackward'),
+			fineSeekForward: t('menu.fineSeekForward'),
+			fineSeekBackward: t('menu.fineSeekBackward'),
+			volumeUp: t('menu.volumeUp'),
+			volumeDown: t('menu.volumeDown'),
+			mute: t('menu.mute'),
 			jumpToPlaying: t('menu.jumpToPlaying'),
 			// View menu items
-			toggleSidebar: t('menu.toggleSidebar'),
+			toggleView: t('menu.toggleView'),
+			toggleEditor: t('menu.toggleEditor'),
+			expandAllReleases: t('menu.expandAllReleases'),
+			collapseAllReleases: t('menu.collapseAllReleases'),
 			showDevTools: t('menu.showDevTools'),
+			enterFullScreen: t('menu.enterFullScreen'),
 			// Settings submenu
 			settingsSubmenu: t('menu.settingsSubmenu'),
 			settingsGeneral: t('menu.settingsGeneral'),
 			settingsLibrary: t('menu.settingsLibrary'),
+			settingsDiscovery: t('menu.settingsDiscovery'),
 			settingsAppearance: t('menu.settingsAppearance'),
 			settingsSound: t('menu.settingsSound'),
 			settingsDiagnostics: t('menu.settingsDiagnostics'),
@@ -215,10 +250,15 @@ function createSettingsStore() {
 					audioDevices,
 					language: settings.language,
 					keyNotationFormat: settings.keyNotationFormat,
+					dateFormat: settings.dateFormat ?? 'locale',
 					exportFormat: settings.exportFormat ?? 'pdb',
 					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
 					autoSyncOnConnect: settings.autoSyncOnConnect,
 					autoSyncOnChange: settings.autoSyncOnChange,
+					continuousPlayback: settings.continuousPlayback,
+					autoFetchMetadata: settings.autoFetchMetadata,
+					transferTagsOnImport: settings.transferTagsOnImport,
+					removeReleaseAfterImport: settings.removeReleaseAfterImport,
 					ignoredDeviceIds: settings.ignoredDeviceIds,
 					resolvedTheme,
 					loading: false,
@@ -345,6 +385,19 @@ function createSettingsStore() {
 		},
 
 		/**
+		 * Set date format
+		 */
+		async setDateFormat(format: DateFormat) {
+			update((s) => ({ ...s, dateFormat: format }))
+
+			try {
+				await settingsApi.setSetting('date_format', format)
+			} catch (error) {
+				console.error('Failed to save date format setting:', error)
+			}
+		},
+
+		/**
 		 * Set export format (pdb or device_library_plus)
 		 */
 		async setExportFormat(format: ExportFormat) {
@@ -393,6 +446,45 @@ function createSettingsStore() {
 				await settingsApi.setSetting('auto_sync_on_change', enabled ? 'true' : 'false')
 			} catch (error) {
 				console.error('Failed to save auto sync on change setting:', error)
+			}
+		},
+
+		/**
+		 * Set continuous playback
+		 */
+		async setContinuousPlayback(enabled: boolean) {
+			update((s) => ({ ...s, continuousPlayback: enabled }))
+			try {
+				await settingsApi.setSetting('continuous_playback', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save continuous playback setting:', error)
+			}
+		},
+
+		async setAutoFetchMetadata(enabled: boolean) {
+			update((s) => ({ ...s, autoFetchMetadata: enabled }))
+			try {
+				await settingsApi.setSetting('auto_fetch_metadata', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto fetch metadata setting:', error)
+			}
+		},
+
+		async setTransferTagsOnImport(enabled: boolean) {
+			update((s) => ({ ...s, transferTagsOnImport: enabled }))
+			try {
+				await settingsApi.setSetting('transfer_tags_on_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save transfer tags on import setting:', error)
+			}
+		},
+
+		async setRemoveReleaseAfterImport(enabled: boolean) {
+			update((s) => ({ ...s, removeReleaseAfterImport: enabled }))
+			try {
+				await settingsApi.setSetting('remove_release_after_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save remove release after import setting:', error)
 			}
 		},
 
@@ -471,6 +563,8 @@ export const language = derived(settingsStore, ($s) => $s.language)
 
 export const keyNotationFormat = derived(settingsStore, ($s) => $s.keyNotationFormat)
 
+export const dateFormat = derived(settingsStore, ($s) => $s.dateFormat)
+
 export const exportFormat = derived(settingsStore, ($s) => $s.exportFormat)
 
 export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyzeOnImport)
@@ -478,6 +572,14 @@ export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyze
 export const autoSyncOnConnect = derived(settingsStore, ($s) => $s.autoSyncOnConnect)
 
 export const autoSyncOnChange = derived(settingsStore, ($s) => $s.autoSyncOnChange)
+
+export const continuousPlayback = derived(settingsStore, ($s) => $s.continuousPlayback)
+
+export const autoFetchMetadata = derived(settingsStore, ($s) => $s.autoFetchMetadata)
+
+export const transferTagsOnImport = derived(settingsStore, ($s) => $s.transferTagsOnImport)
+
+export const removeReleaseAfterImport = derived(settingsStore, ($s) => $s.removeReleaseAfterImport)
 
 export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceIds)
 

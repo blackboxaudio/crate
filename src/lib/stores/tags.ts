@@ -157,6 +157,26 @@ function createTagsStore() {
 		},
 
 		/**
+		 * Move a tag to a different category
+		 */
+		async moveTag(tagId: string, targetCategoryId: string) {
+			const tag = await tagsApi.moveTag(tagId, targetCategoryId)
+			update((state) => ({
+				...state,
+				categories: state.categories.map((c) => {
+					if (c.id === targetCategoryId) {
+						// Add tag to target category (if not already there)
+						const exists = c.tags.some((t) => t.id === tag.id)
+						return exists ? c : { ...c, tags: [...c.tags, tag] }
+					}
+					// Remove tag from other categories
+					return { ...c, tags: c.tags.filter((t) => t.id !== tag.id) }
+				}),
+			}))
+			return tag
+		},
+
+		/**
 		 * Delete a tag
 		 */
 		async deleteTag(id: string) {

@@ -30,6 +30,8 @@
 		| { type: 'deleteCategory'; category: TagCategory }
 		| { type: 'removeFromPlaylist'; trackIds: string[]; playlistId: string }
 		| { type: 'removeFromLibrary'; trackIds: string[] }
+		| { type: 'removeDiscoveryReleases'; releaseIds: string[] }
+		| { type: 'removeDiscoveryReleasesFromPlaylist'; releaseIds: string[]; playlistId: string }
 		// Feature modals
 		| { type: 'tagInput' }
 		| { type: 'deviceInfo'; device: UsbDevice }
@@ -111,8 +113,14 @@
 		onDeletePlaylist: (id: string, deleteTracksFromCollection: boolean) => Promise<void>
 		onDeleteTag: (id: string) => Promise<void>
 		onDeleteCategory: (id: string) => Promise<void>
-		onRemoveFromPlaylist: (trackIds: string[], playlistId: string) => Promise<void>
+		onRemoveFromPlaylist: (trackIds: string[], playlistId: string, deleteFromCollection: boolean) => Promise<void>
 		onRemoveFromLibrary: (trackIds: string[]) => Promise<void>
+		onRemoveDiscoveryReleases: (releaseIds: string[]) => Promise<void>
+		onRemoveDiscoveryReleasesFromPlaylist: (
+			releaseIds: string[],
+			playlistId: string,
+			deleteFromCollection: boolean
+		) => Promise<void>
 
 		// Move conflict callbacks
 		onMoveConflictOverwrite: (movingItemId: string, targetParentId: string | null) => Promise<boolean>
@@ -132,6 +140,9 @@
 
 		// Device callbacks
 		onReformatDevice: (device: UsbDevice, volumeName: string) => Promise<void>
+
+		// Modal state change callback
+		onModalOpenChange?: (isOpen: boolean) => void
 	}
 
 	let {
@@ -150,6 +161,8 @@
 		onDeleteCategory,
 		onRemoveFromPlaylist,
 		onRemoveFromLibrary,
+		onRemoveDiscoveryReleases,
+		onRemoveDiscoveryReleasesFromPlaylist,
 		onMoveConflictOverwrite,
 		onMoveConflictMerge,
 		onTagInputSubmit,
@@ -159,6 +172,7 @@
 		onExportFailureKeep,
 		onExportFailureCleanup,
 		onReformatDevice,
+		onModalOpenChange,
 	}: Props = $props()
 
 	// =========================================================================
@@ -167,6 +181,18 @@
 	let activeModal = $state<ActiveModal>({ type: 'none' })
 	let pendingMergeConflicts = $state<MoveConflict[]>([])
 	let deleteTracksFromCollection = $state(false)
+
+	// =========================================================================
+	// Modal open state tracking
+	// =========================================================================
+
+	export function isModalOpen(): boolean {
+		return activeModal.type !== 'none'
+	}
+
+	$effect(() => {
+		onModalOpenChange?.(activeModal.type !== 'none')
+	})
 
 	// =========================================================================
 	// Exported Functions - API for parent component
@@ -222,11 +248,21 @@
 	}
 
 	export function openRemoveFromPlaylistModal(trackIds: string[], playlistId: string) {
+		deleteTracksFromCollection = false
 		activeModal = { type: 'removeFromPlaylist', trackIds, playlistId }
+	}
+
+	export function openRemoveDiscoveryReleasesFromPlaylistModal(releaseIds: string[], playlistId: string) {
+		deleteTracksFromCollection = false
+		activeModal = { type: 'removeDiscoveryReleasesFromPlaylist', releaseIds, playlistId }
 	}
 
 	export function openRemoveFromLibraryModal(trackIds: string[]) {
 		activeModal = { type: 'removeFromLibrary', trackIds }
+	}
+
+	export function openRemoveDiscoveryReleasesModal(releaseIds: string[]) {
+		activeModal = { type: 'removeDiscoveryReleases', releaseIds }
 	}
 
 	// Feature modals
@@ -377,11 +413,11 @@
 		}
 	}
 
-	async function handleRemoveFromPlaylistConfirm() {
+	async function handleRemoveFromPlaylistConfirm(deleteTracksToo: boolean) {
 		if (activeModal.type === 'removeFromPlaylist') {
 			const { trackIds, playlistId } = activeModal
 			closeAll()
-			await onRemoveFromPlaylist(trackIds, playlistId)
+			await onRemoveFromPlaylist(trackIds, playlistId, deleteTracksToo)
 		}
 	}
 
@@ -390,6 +426,22 @@
 			const trackIds = activeModal.trackIds
 			closeAll()
 			await onRemoveFromLibrary(trackIds)
+		}
+	}
+
+	async function handleRemoveDiscoveryReleasesConfirm() {
+		if (activeModal.type === 'removeDiscoveryReleases') {
+			const releaseIds = activeModal.releaseIds
+			closeAll()
+			await onRemoveDiscoveryReleases(releaseIds)
+		}
+	}
+
+	async function handleRemoveDiscoveryReleasesFromPlaylistConfirm(deleteReleasesToo: boolean) {
+		if (activeModal.type === 'removeDiscoveryReleasesFromPlaylist') {
+			const { releaseIds, playlistId } = activeModal
+			closeAll()
+			await onRemoveDiscoveryReleasesFromPlaylist(releaseIds, playlistId, deleteReleasesToo)
 		}
 	}
 
@@ -765,6 +817,8 @@
 		open={true}
 		title={$translate('modals.confirm.removeFromPlaylistTitle')}
 		message={$translate('modals.confirm.removeFromPlaylistMessage', { values: { count: activeModal.trackIds.length } })}
+		checkboxLabel={$translate('modals.confirm.deleteTracksFromCollection')}
+		bind:checkboxChecked={deleteTracksFromCollection}
 		confirmLabel={$translate('common.remove')}
 		destructive={true}
 		onConfirm={handleRemoveFromPlaylistConfirm}
@@ -782,6 +836,39 @@
 		confirmLabel={$translate('common.remove')}
 		destructive={true}
 		onConfirm={handleRemoveFromLibraryConfirm}
+		onCancel={closeAll}
+	/>
+{/if}
+
+<!-- Remove Discovery Releases Confirmation -->
+{#if activeModal.type === 'removeDiscoveryReleases'}
+	<ConfirmModal
+		open={true}
+		title={$translate('modals.confirm.removeDiscoveryReleasesTitle')}
+		message={$translate('modals.confirm.removeDiscoveryReleasesMessage', {
+			values: { count: activeModal.releaseIds.length },
+		})}
+		warnings={[$translate('modals.confirm.removeDiscoveryReleasesWarning')]}
+		confirmLabel={$translate('common.remove')}
+		destructive={true}
+		onConfirm={handleRemoveDiscoveryReleasesConfirm}
+		onCancel={closeAll}
+	/>
+{/if}
+
+<!-- Remove Discovery Releases from Playlist Confirmation -->
+{#if activeModal.type === 'removeDiscoveryReleasesFromPlaylist'}
+	<ConfirmModal
+		open={true}
+		title={$translate('modals.confirm.removeDiscoveryReleasesFromPlaylistTitle')}
+		message={$translate('modals.confirm.removeDiscoveryReleasesFromPlaylistMessage', {
+			values: { count: activeModal.releaseIds.length },
+		})}
+		checkboxLabel={$translate('modals.confirm.deleteReleasesFromCollection')}
+		bind:checkboxChecked={deleteTracksFromCollection}
+		confirmLabel={$translate('common.remove')}
+		destructive={true}
+		onConfirm={handleRemoveDiscoveryReleasesFromPlaylistConfirm}
 		onCancel={closeAll}
 	/>
 {/if}

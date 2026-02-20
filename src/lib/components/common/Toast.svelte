@@ -2,6 +2,8 @@
 	import type { Toast, ToastType } from '$lib/stores/toast'
 	import { fly } from 'svelte/transition'
 	import Icon from './Icon.svelte'
+	import IconButton from './IconButton.svelte'
+	import Text from './Text.svelte'
 
 	type Props = {
 		toast: Toast
@@ -33,16 +35,9 @@
 		<Icon name={iconNames[toast.type]} class="h-5 w-5 flex-shrink-0" />
 
 		<!-- Message -->
-		<span class="flex-1 text-sm">{toast.message}</span>
+		<Text as="span" class="flex-1">{toast.message}</Text>
 
 		<!-- Close button -->
-		<button
-			type="button"
-			class="flex-shrink-0 rounded p-1 opacity-70 transition-opacity hover:cursor-pointer hover:opacity-100 focus:ring-2 focus:ring-white/20 focus:outline-none"
-			onclick={onDismiss}
-			aria-label="Dismiss"
-		>
-			<Icon name="x" />
-		</button>
+		<IconButton icon="x" size="sm" class="flex-shrink-0 opacity-70 hover:opacity-100" onclick={onDismiss} />
 	</div>
 </div>

@@ -5,7 +5,7 @@
 	import { TagChip } from '$lib/components/tags'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { AlbumArt, AlbumArtModal, Spinner, Text, Tooltip } from '$lib/components/common'
-	import { missingTrackIds, dragStore, keyNotationFormat } from '$lib/stores'
+	import { missingTrackIds, dragStore, isDraggingTag, keyNotationFormat } from '$lib/stores'
 	import { translate } from '$lib/i18n'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import TrackColorCell from './TrackColorCell.svelte'
@@ -42,6 +42,12 @@
 
 	let showArtworkModal = $state(false)
 	let isHoveringColorCell = $state(false)
+	let isTagDragHovered = $state(false)
+
+	// Clear hover when tag drag ends
+	$effect(() => {
+		if (!$isDraggingTag) isTagDragHovered = false
+	})
 
 	// Track pointer state for drag detection
 	let pointerStartPos: { x: number; y: number } | null = null
@@ -94,11 +100,12 @@
 	role="row"
 	tabindex="0"
 	data-track-row
+	data-track-id={track.id}
 	class="relative grid cursor-pointer grid-cols-[24px_40px_1fr_1fr_80px_60px_80px_1fr] items-center gap-2 border-b border-stroke-subtle px-3 py-1 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {playing ? 'text-brand-primary' : 'text-text-secondary'} {isMissing
 		? 'bg-red-500/5'
-		: ''}"
+		: ''} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
 	{onclick}
 	{ondblclick}
 	{oncontextmenu}
@@ -106,6 +113,8 @@
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}
 	onpointercancel={handlePointerUp}
+	onpointerenter={() => $isDraggingTag && (isTagDragHovered = true)}
+	onpointerleave={() => (isTagDragHovered = false)}
 	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
 >
 	<!-- Missing file indicator -->

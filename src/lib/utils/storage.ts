@@ -46,6 +46,29 @@ export function setStoredNumber(key: string, value: number): void {
 	}
 }
 
+export function getStoredString<T extends string>(key: string, defaultValue: T, validValues?: T[]): T {
+	try {
+		const stored = localStorage.getItem(STORAGE_PREFIX + key)
+		if (stored !== null) {
+			if (validValues && !validValues.includes(stored as T)) {
+				return defaultValue
+			}
+			return stored as T
+		}
+	} catch {
+		// Ignore parse errors
+	}
+	return defaultValue
+}
+
+export function setStoredString(key: string, value: string): void {
+	try {
+		localStorage.setItem(STORAGE_PREFIX + key, value)
+	} catch {
+		// Ignore storage errors (e.g., quota exceeded)
+	}
+}
+
 export function getStoredBoolean(key: string, defaultValue: boolean): boolean {
 	try {
 		const stored = localStorage.getItem(STORAGE_PREFIX + key)

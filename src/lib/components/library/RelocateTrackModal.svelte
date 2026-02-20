@@ -120,7 +120,7 @@
 		<!-- Warning Banner -->
 		<div class="flex gap-2 rounded-md border border-warning/20 bg-warning/10 p-3">
 			<Icon name="warning" class="h-5 w-5 flex-shrink-0 text-warning" />
-			<p class="text-sm text-warning">The file for this track could not be found at its original location.</p>
+			<Text color="warning">The file for this track could not be found at its original location.</Text>
 		</div>
 
 		<!-- File Picker -->
@@ -147,21 +147,23 @@
 			{#if !validationResult.format_valid}
 				<div class="flex gap-2 rounded-md border border-red-500/20 bg-red-500/10 p-3">
 					<Icon name="close" class="h-5 w-5 flex-shrink-0 text-red-500" />
-					<p class="text-sm text-red-500">Unsupported audio format.</p>
+					<Text color="danger">Unsupported audio format.</Text>
 				</div>
 			{:else if validationResult.matches}
 				<div class="flex gap-2 rounded-md border border-green-500/20 bg-green-500/10 p-3">
 					<Icon name="check" class="h-5 w-5 flex-shrink-0 text-green-500" />
-					<p class="text-sm text-green-500">File content matches! Hash verified.</p>
+					<Text color="success">File content matches! Hash verified.</Text>
 				</div>
 			{:else}
 				<div class="space-y-3">
 					<div class="flex gap-2 rounded-md border border-amber-500/20 bg-amber-500/10 p-3">
 						<Icon name="warning" class="h-5 w-5 flex-shrink-0 text-amber-500" />
-						<div class="text-sm text-amber-500">
-							<p class="font-medium">File content does not match the original.</p>
+						<div>
+							<Text weight="medium" color="warning">File content does not match the original.</Text>
 							{#if !validationResult.original_hash}
-								<p class="mt-1 text-xs">No original hash available for comparison. The file may still be correct.</p>
+								<Text size="xs" color="warning" class="mt-1"
+									>No original hash available for comparison. The file may still be correct.</Text
+								>
 							{/if}
 						</div>
 					</div>
@@ -182,7 +184,7 @@
 		{#if error}
 			<div class="flex gap-2 rounded-md border border-red-500/20 bg-red-500/10 p-3">
 				<Icon name="close" class="h-5 w-5 flex-shrink-0 text-red-500" />
-				<p class="text-sm text-red-500">{error}</p>
+				<Text color="danger">{error}</Text>
 			</div>
 		{/if}
 	</div>

@@ -71,7 +71,7 @@
 
 		<!-- Thumb -->
 		<div
-			class="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full bg-white opacity-0 transition-opacity group-hover:opacity-100"
+			class="absolute top-1/2 h-3 w-3 -translate-y-1/2 rounded-full border border-stroke bg-white opacity-0 transition-opacity group-hover:opacity-100"
 			style="left: calc({progress}% - 6px)"
 		></div>
 	</div>

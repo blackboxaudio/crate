@@ -1,16 +1,18 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 	import { scale } from 'svelte/transition'
+	import Text from './Text.svelte'
 
 	type Props = {
 		open: boolean
 		title?: string
 		onClose: () => void
+		onSubmit?: () => void
 		children: Snippet
 		footer?: Snippet
 	}
 
-	let { open, title, onClose, children, footer }: Props = $props()
+	let { open, title, onClose, onSubmit, children, footer }: Props = $props()
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
 	let visible = $state(false)
@@ -32,8 +34,16 @@
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
+			e.stopPropagation()
 			e.preventDefault()
 			onClose()
+		} else if (e.key === 'Enter' && onSubmit) {
+			const target = e.target as HTMLElement
+			if (target.tagName !== 'TEXTAREA' && target.tagName !== 'BUTTON') {
+				e.stopPropagation()
+				e.preventDefault()
+				onSubmit()
+			}
 		}
 	}
 
@@ -59,11 +69,11 @@
 		>
 			{#if title}
 				<div class="border-b border-stroke-subtle px-4 py-3">
-					<h2 class="text-lg font-medium">{title}</h2>
+					<Text variant="header-1" weight="medium">{title}</Text>
 				</div>
 			{/if}
 
-			<div class="px-4 py-4">
+			<div class="min-h-0 overflow-y-auto px-4 py-4">
 				{@render children()}
 			</div>
 

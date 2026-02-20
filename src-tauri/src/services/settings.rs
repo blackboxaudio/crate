@@ -48,6 +48,11 @@ impl SettingsService {
             .and_then(|v| v.parse().ok())
             .unwrap_or_default();
 
+        let date_format = self
+            .get_setting_value(&conn, "date_format")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
         // Default to true if not set (enabled by default)
         let auto_analyze_on_import = self
             .get_setting_value(&conn, "auto_analyze_on_import")?
@@ -65,6 +70,26 @@ impl SettingsService {
             .map(|v| v == "true")
             .unwrap_or(false);
 
+        let continuous_playback = self
+            .get_setting_value(&conn, "continuous_playback")?
+            .map(|v| v == "true")
+            .unwrap_or(true);
+
+        let auto_fetch_metadata = self
+            .get_setting_value(&conn, "auto_fetch_metadata")?
+            .map(|v| v != "false")
+            .unwrap_or(true);
+
+        let transfer_tags_on_import = self
+            .get_setting_value(&conn, "transfer_tags_on_import")?
+            .map(|v| v != "false")
+            .unwrap_or(true);
+
+        let remove_release_after_import = self
+            .get_setting_value(&conn, "remove_release_after_import")?
+            .map(|v| v != "false")
+            .unwrap_or(true);
+
         // Parse ignored device IDs from JSON array, default to empty
         let ignored_device_ids = self
             .get_setting_value(&conn, "ignored_device_ids")?
@@ -78,9 +103,14 @@ impl SettingsService {
             audio_device,
             language,
             key_notation_format,
+            date_format,
             auto_analyze_on_import,
             auto_sync_on_connect,
             auto_sync_on_change,
+            continuous_playback,
+            auto_fetch_metadata,
+            transfer_tags_on_import,
+            remove_release_after_import,
             ignored_device_ids,
         })
     }

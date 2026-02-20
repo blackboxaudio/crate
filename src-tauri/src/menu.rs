@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use tauri::{
-    menu::{Menu, MenuBuilder, MenuItem, MenuItemKind, Submenu, SubmenuBuilder},
+    menu::{
+        Menu, MenuBuilder, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder,
+    },
     AppHandle, Emitter, Manager, Wry,
 };
 
@@ -41,6 +43,8 @@ pub struct MenuTranslations {
     pub quit: String,
     // File menu items
     pub import_tracks: String,
+    pub add_release: String,
+    pub refresh_metadata: String,
     pub new_playlist: String,
     pub new_folder: String,
     pub quick_export: String,
@@ -50,21 +54,36 @@ pub struct MenuTranslations {
     pub cut: String,
     pub copy: String,
     pub paste: String,
-    pub select_all_tracks: String,
+    pub select_all: String,
     // Playback menu items
     pub play_pause: String,
     pub stop: String,
+    pub next_track: String,
+    pub previous_track: String,
+    pub seek_forward: String,
+    pub seek_backward: String,
+    pub fine_seek_forward: String,
+    pub fine_seek_backward: String,
+    pub volume_up: String,
+    pub volume_down: String,
+    pub mute: String,
     pub jump_to_playing: String,
     // View menu items
-    pub toggle_sidebar: String,
+    pub toggle_view: String,
+    pub toggle_editor: String,
+    pub expand_all_releases: String,
+    pub collapse_all_releases: String,
     pub show_dev_tools: String,
     // Settings submenu
     pub settings_submenu: String,
     pub settings_general: String,
     pub settings_library: String,
+    pub settings_discovery: String,
     pub settings_appearance: String,
     pub settings_sound: String,
     pub settings_diagnostics: String,
+    // View menu items (predefined)
+    pub enter_full_screen: String,
     // Window menu items
     pub minimize: String,
     pub zoom: String,
@@ -91,31 +110,38 @@ pub mod ids {
 
     // File menu items
     pub const IMPORT_TRACKS: &str = "import_tracks";
+    pub const ADD_RELEASE: &str = "add_release";
+    pub const REFRESH_METADATA: &str = "refresh_metadata";
     pub const NEW_PLAYLIST: &str = "new_playlist";
     pub const NEW_FOLDER: &str = "new_folder";
     pub const QUICK_EXPORT: &str = "quick_export";
 
-    // Edit menu items
-    pub const UNDO: &str = "undo";
-    pub const REDO: &str = "redo";
-    pub const CUT: &str = "cut";
-    pub const COPY: &str = "copy";
-    pub const PASTE: &str = "paste";
-    pub const SELECT_ALL: &str = "select_all";
-
     // Playback menu items
     pub const PLAY_PAUSE: &str = "play_pause";
     pub const STOP: &str = "stop";
+    pub const NEXT_TRACK: &str = "next_track";
+    pub const PREVIOUS_TRACK: &str = "previous_track";
+    pub const SEEK_FORWARD: &str = "seek_forward";
+    pub const SEEK_BACKWARD: &str = "seek_backward";
+    pub const FINE_SEEK_FORWARD: &str = "fine_seek_forward";
+    pub const FINE_SEEK_BACKWARD: &str = "fine_seek_backward";
+    pub const VOLUME_UP: &str = "volume_up";
+    pub const VOLUME_DOWN: &str = "volume_down";
+    pub const MUTE: &str = "mute";
     pub const JUMP_TO_PLAYING: &str = "jump_to_playing";
 
     // View menu items
-    pub const TOGGLE_SIDEBAR: &str = "toggle_sidebar";
+    pub const TOGGLE_VIEW: &str = "toggle_view";
+    pub const TOGGLE_EDITOR: &str = "toggle_editor";
+    pub const EXPAND_ALL_RELEASES: &str = "expand_all_releases";
+    pub const COLLAPSE_ALL_RELEASES: &str = "collapse_all_releases";
     pub const SHOW_DEVTOOLS: &str = "show_devtools";
 
     // Settings submenu items
     pub const SETTINGS_MENU: &str = "settings_menu";
     pub const SETTINGS_GENERAL: &str = "settings_general";
     pub const SETTINGS_LIBRARY: &str = "settings_library";
+    pub const SETTINGS_DISCOVERY: &str = "settings_discovery";
     pub const SETTINGS_APPEARANCE: &str = "settings_appearance";
     pub const SETTINGS_SOUND: &str = "settings_sound";
     pub const SETTINGS_DIAGNOSTICS: &str = "settings_diagnostics";
@@ -190,7 +216,21 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
             ids::IMPORT_TRACKS,
             "Import Tracks...",
             true,
-            Some("CmdOrCtrl+O"),
+            Some("CmdOrCtrl+L"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::ADD_RELEASE,
+            "Add Release...",
+            true,
+            Some("CmdOrCtrl+D"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::REFRESH_METADATA,
+            "Refresh Metadata",
+            false,
+            Some("CmdOrCtrl+R"),
         )?)
         .separator()
         .item(&MenuItem::with_id(
@@ -220,50 +260,14 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
 
 fn build_edit_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     SubmenuBuilder::with_id(app, ids::EDIT_MENU, "Edit")
-        .item(&MenuItem::with_id(
-            app,
-            ids::UNDO,
-            "Undo",
-            true,
-            Some("CmdOrCtrl+Z"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::REDO,
-            "Redo",
-            true,
-            Some("CmdOrCtrl+Shift+Z"),
-        )?)
+        .item(&PredefinedMenuItem::undo(app, Some("Undo"))?)
+        .item(&PredefinedMenuItem::redo(app, Some("Redo"))?)
         .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::CUT,
-            "Cut",
-            true,
-            Some("CmdOrCtrl+X"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::COPY,
-            "Copy",
-            true,
-            Some("CmdOrCtrl+C"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::PASTE,
-            "Paste",
-            true,
-            Some("CmdOrCtrl+V"),
-        )?)
+        .item(&PredefinedMenuItem::cut(app, Some("Cut"))?)
+        .item(&PredefinedMenuItem::copy(app, Some("Copy"))?)
+        .item(&PredefinedMenuItem::paste(app, Some("Paste"))?)
         .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::SELECT_ALL,
-            "Select All Tracks",
-            true,
-            Some("CmdOrCtrl+A"),
-        )?)
+        .item(&PredefinedMenuItem::select_all(app, Some("Select All"))?)
         .build()
 }
 
@@ -283,6 +287,66 @@ fn build_playback_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Erro
             true,
             Some("CmdOrCtrl+."),
         )?)
+        .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::NEXT_TRACK,
+            "Next Track",
+            true,
+            Some("Shift+Right"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::PREVIOUS_TRACK,
+            "Previous Track",
+            true,
+            Some("Shift+Left"),
+        )?)
+        .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::SEEK_FORWARD,
+            "Seek Forward",
+            true,
+            Some("Right"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::SEEK_BACKWARD,
+            "Seek Backward",
+            true,
+            Some("Left"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::FINE_SEEK_FORWARD,
+            "Fine Seek Forward",
+            true,
+            Some("CmdOrCtrl+Right"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::FINE_SEEK_BACKWARD,
+            "Fine Seek Backward",
+            true,
+            Some("CmdOrCtrl+Left"),
+        )?)
+        .separator()
+        .item(&MenuItem::with_id(
+            app,
+            ids::VOLUME_UP,
+            "Volume Up",
+            true,
+            Some("Up"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::VOLUME_DOWN,
+            "Volume Down",
+            true,
+            Some("Down"),
+        )?)
+        .item(&MenuItem::with_id(app, ids::MUTE, "Mute", true, Some("M"))?)
         .separator()
         .item(&MenuItem::with_id(
             app,
@@ -306,6 +370,13 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
         )?)
         .item(&MenuItem::with_id(
             app,
+            ids::SETTINGS_APPEARANCE,
+            "Appearance",
+            true,
+            None::<&str>,
+        )?)
+        .item(&MenuItem::with_id(
+            app,
             ids::SETTINGS_LIBRARY,
             "Library",
             true,
@@ -313,8 +384,8 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
         )?)
         .item(&MenuItem::with_id(
             app,
-            ids::SETTINGS_APPEARANCE,
-            "Appearance",
+            ids::SETTINGS_DISCOVERY,
+            "Discovery",
             true,
             None::<&str>,
         )?)
@@ -337,13 +408,40 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
     let mut builder = SubmenuBuilder::with_id(app, ids::VIEW_MENU, "View")
         .item(&MenuItem::with_id(
             app,
-            ids::TOGGLE_SIDEBAR,
-            "Toggle Sidebar",
+            ids::TOGGLE_VIEW,
+            "Toggle View",
             true,
-            Some("CmdOrCtrl+\\"),
+            Some("Shift+Tab"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::TOGGLE_EDITOR,
+            "Toggle Editor",
+            true,
+            Some("CmdOrCtrl+I"),
         )?)
         .separator()
-        .item(&settings_submenu);
+        .item(&MenuItem::with_id(
+            app,
+            ids::EXPAND_ALL_RELEASES,
+            "Expand All Releases",
+            true,
+            Some("CmdOrCtrl+Shift+E"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::COLLAPSE_ALL_RELEASES,
+            "Collapse All Releases",
+            true,
+            Some("CmdOrCtrl+Shift+W"),
+        )?)
+        .separator()
+        .item(&settings_submenu)
+        .separator()
+        .item(&PredefinedMenuItem::fullscreen(
+            app,
+            Some("Enter Full Screen"),
+        )?);
 
     if is_dev {
         builder = builder.separator().item(&MenuItem::with_id(
@@ -442,6 +540,27 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
     });
 }
 
+/// Set the enabled state of a menu item by its ID
+pub fn set_menu_item_enabled(
+    app: &AppHandle<Wry>,
+    id: &str,
+    enabled: bool,
+) -> Result<(), tauri::Error> {
+    if let Some(menu) = app.menu() {
+        if let Ok(items) = menu.items() {
+            for item in items {
+                if let MenuItemKind::Submenu(submenu) = item {
+                    if let Some(MenuItemKind::MenuItem(menu_item)) = submenu.get(id) {
+                        menu_item.set_enabled(enabled)?;
+                        return Ok(());
+                    }
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
 /// Update existing menu items with translated text in-place
 /// This is preferred over rebuilding the entire menu as it works better on macOS
 pub fn update_menu_translations(
@@ -469,25 +588,76 @@ pub fn update_menu_translations(
 
     // Update File menu items
     update_item_text(&menu, ids::IMPORT_TRACKS, &translations.import_tracks)?;
+    update_item_text(&menu, ids::ADD_RELEASE, &translations.add_release)?;
+    update_item_text(&menu, ids::REFRESH_METADATA, &translations.refresh_metadata)?;
     update_item_text(&menu, ids::NEW_PLAYLIST, &translations.new_playlist)?;
     update_item_text(&menu, ids::NEW_FOLDER, &translations.new_folder)?;
     update_item_text(&menu, ids::QUICK_EXPORT, &translations.quick_export)?;
 
-    // Update Edit menu items
-    update_item_text(&menu, ids::UNDO, &translations.undo)?;
-    update_item_text(&menu, ids::REDO, &translations.redo)?;
-    update_item_text(&menu, ids::CUT, &translations.cut)?;
-    update_item_text(&menu, ids::COPY, &translations.copy)?;
-    update_item_text(&menu, ids::PASTE, &translations.paste)?;
-    update_item_text(&menu, ids::SELECT_ALL, &translations.select_all_tracks)?;
+    // Update Edit menu items (PredefinedMenuItems by position)
+    if let Some(MenuItemKind::Submenu(edit_submenu)) = menu.get(ids::EDIT_MENU) {
+        let edit_texts: [&str; 6] = [
+            &translations.undo,
+            &translations.redo,
+            &translations.cut,
+            &translations.copy,
+            &translations.paste,
+            &translations.select_all,
+        ];
+        let predefined: Vec<_> = edit_submenu
+            .items()?
+            .into_iter()
+            .filter_map(|item| match item {
+                MenuItemKind::Predefined(p) => {
+                    // Skip separators (they have empty text)
+                    if p.text().unwrap_or_default().is_empty() {
+                        return None;
+                    }
+                    Some(p)
+                }
+                _ => None,
+            })
+            .collect();
+        for (item, text) in predefined.iter().zip(edit_texts.iter()) {
+            item.set_text(*text)?;
+        }
+    }
 
     // Update Playback menu items
     update_item_text(&menu, ids::PLAY_PAUSE, &translations.play_pause)?;
     update_item_text(&menu, ids::STOP, &translations.stop)?;
+    update_item_text(&menu, ids::NEXT_TRACK, &translations.next_track)?;
+    update_item_text(&menu, ids::PREVIOUS_TRACK, &translations.previous_track)?;
+    update_item_text(&menu, ids::SEEK_FORWARD, &translations.seek_forward)?;
+    update_item_text(&menu, ids::SEEK_BACKWARD, &translations.seek_backward)?;
+    update_item_text(
+        &menu,
+        ids::FINE_SEEK_FORWARD,
+        &translations.fine_seek_forward,
+    )?;
+    update_item_text(
+        &menu,
+        ids::FINE_SEEK_BACKWARD,
+        &translations.fine_seek_backward,
+    )?;
+    update_item_text(&menu, ids::VOLUME_UP, &translations.volume_up)?;
+    update_item_text(&menu, ids::VOLUME_DOWN, &translations.volume_down)?;
+    update_item_text(&menu, ids::MUTE, &translations.mute)?;
     update_item_text(&menu, ids::JUMP_TO_PLAYING, &translations.jump_to_playing)?;
 
     // Update View menu items
-    update_item_text(&menu, ids::TOGGLE_SIDEBAR, &translations.toggle_sidebar)?;
+    update_item_text(&menu, ids::TOGGLE_VIEW, &translations.toggle_view)?;
+    update_item_text(&menu, ids::TOGGLE_EDITOR, &translations.toggle_editor)?;
+    update_item_text(
+        &menu,
+        ids::EXPAND_ALL_RELEASES,
+        &translations.expand_all_releases,
+    )?;
+    update_item_text(
+        &menu,
+        ids::COLLAPSE_ALL_RELEASES,
+        &translations.collapse_all_releases,
+    )?;
     if is_dev {
         update_item_text(&menu, ids::SHOW_DEVTOOLS, &translations.show_dev_tools)?;
     }
@@ -505,8 +675,9 @@ pub fn update_menu_translations(
         ids::SETTINGS_MENU,
         &[
             (ids::SETTINGS_GENERAL, &translations.settings_general),
-            (ids::SETTINGS_LIBRARY, &translations.settings_library),
             (ids::SETTINGS_APPEARANCE, &translations.settings_appearance),
+            (ids::SETTINGS_LIBRARY, &translations.settings_library),
+            (ids::SETTINGS_DISCOVERY, &translations.settings_discovery),
             (ids::SETTINGS_SOUND, &translations.settings_sound),
             (
                 ids::SETTINGS_DIAGNOSTICS,
@@ -514,6 +685,26 @@ pub fn update_menu_translations(
             ),
         ],
     )?;
+
+    // Update View menu PredefinedMenuItems (fullscreen)
+    if let Some(MenuItemKind::Submenu(view_submenu)) = menu.get(ids::VIEW_MENU) {
+        let predefined: Vec<_> = view_submenu
+            .items()?
+            .into_iter()
+            .filter_map(|item| match item {
+                MenuItemKind::Predefined(p) => {
+                    if p.text().unwrap_or_default().is_empty() {
+                        return None;
+                    }
+                    Some(p)
+                }
+                _ => None,
+            })
+            .collect();
+        if let Some(fullscreen) = predefined.first() {
+            fullscreen.set_text(&translations.enter_full_screen)?;
+        }
+    }
 
     // Update Window menu items
     update_item_text(&menu, ids::MINIMIZE, &translations.minimize)?;
