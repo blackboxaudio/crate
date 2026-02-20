@@ -194,9 +194,9 @@ jobs:
           name: release-${{ matrix.artifact_name }}
           path: |
             src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/msi/*.msi.zip
-            src-tauri/target/release/bundle/msi/*.msi.zip.sig
+            src-tauri/target/release/bundle/msi/*.msi.sig
             src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.exe.sig
 
   release:
     name: Create Release
@@ -229,9 +229,9 @@ jobs:
             artifacts/release-macos/**/*.app.tar.gz
             artifacts/release-macos/**/*.app.tar.gz.sig
             artifacts/release-windows/**/*.msi
-            artifacts/release-windows/**/*.msi.zip
-            artifacts/release-windows/**/*.msi.zip.sig
+            artifacts/release-windows/**/*.msi.sig
             artifacts/release-windows/**/*.exe
+            artifacts/release-windows/**/*.exe.sig
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -262,11 +262,11 @@ jobs:
             [ -f "$f" ] && gcloud storage cp "$f" "gs://${BUCKET}/${PREFIX}/macos/$(basename "$f")"
           done
 
-          # Upload Windows updater artifacts
-          for f in artifacts/release-windows/**/*.msi.zip; do
+          # Upload Windows updater artifacts (v2 format: .msi + .msi.sig directly)
+          for f in artifacts/release-windows/**/*.msi; do
             [ -f "$f" ] && gcloud storage cp "$f" "gs://${BUCKET}/${PREFIX}/windows/$(basename "$f")"
           done
-          for f in artifacts/release-windows/**/*.msi.zip.sig; do
+          for f in artifacts/release-windows/**/*.msi.sig; do
             [ -f "$f" ] && gcloud storage cp "$f" "gs://${BUCKET}/${PREFIX}/windows/$(basename "$f")"
           done
 
@@ -279,7 +279,7 @@ jobs:
           for f in artifacts/release-macos/**/*.app.tar.gz.sig; do
             [ -f "$f" ] && MACOS_SIG=$(cat "$f")
           done
-          for f in artifacts/release-windows/**/*.msi.zip.sig; do
+          for f in artifacts/release-windows/**/*.msi.sig; do
             [ -f "$f" ] && WINDOWS_SIG=$(cat "$f")
           done
 
@@ -289,7 +289,7 @@ jobs:
           for f in artifacts/release-macos/**/*.app.tar.gz; do
             [ -f "$f" ] && MACOS_FILE=$(basename "$f")
           done
-          for f in artifacts/release-windows/**/*.msi.zip; do
+          for f in artifacts/release-windows/**/*.msi; do
             [ -f "$f" ] && WINDOWS_FILE=$(basename "$f")
           done
 

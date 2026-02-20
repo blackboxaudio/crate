@@ -1,7 +1,7 @@
 {
 	"name": "crate",
 	"version": "0.2.0-staging.7",
-	"description": "",
+	"description": "Cross-platform DJ library manager with music discovery, track analysis, and USB export 📦",
 	"type": "module",
 	"scripts": {
 		"dev": "cross-env CRATE_ENV=development tauri dev --config src-tauri/tauri.dev.conf.json -- --release --features devtools",
