@@ -34,6 +34,7 @@
 	let viewMonth = $state(new Date().getMonth())
 	let triggerEl: HTMLButtonElement | undefined = $state()
 	let panelEl: HTMLDivElement | undefined = $state()
+	let panelSide: 'above' | 'below' = $state('below')
 	let panelStyle = $state('position:fixed;visibility:hidden;top:0;left:0;z-index:50;')
 
 	const parsedValue = $derived.by(() => {
@@ -146,6 +147,11 @@
 				viewYear = now.getFullYear()
 				viewMonth = now.getMonth()
 			}
+			if (triggerEl) {
+				const r = triggerEl.getBoundingClientRect()
+				const spaceBelow = window.innerHeight - r.bottom - 8
+				panelSide = spaceBelow >= 280 ? 'below' : 'above'
+			}
 		}
 		open = !open
 	}
@@ -187,7 +193,7 @@
 
 	function selectYear(year: number) {
 		viewYear = year
-		pickerMode = 'months'
+		pickerMode = 'days'
 	}
 
 	function handleClickOutside(e: MouseEvent) {
@@ -210,8 +216,7 @@
 		if (open && triggerEl && panelEl) {
 			const r = triggerEl.getBoundingClientRect()
 			const panelH = panelEl.offsetHeight
-			const spaceBelow = window.innerHeight - r.bottom - 8
-			const top = spaceBelow >= panelH ? r.bottom + 4 : r.top - panelH - 4
+			const top = panelSide === 'below' ? r.bottom + 4 : r.top - panelH - 4
 			const left = Math.max(8, Math.min(r.left, window.innerWidth - 232))
 			panelStyle = `position:fixed;top:${top}px;left:${left}px;z-index:50;`
 		}
@@ -262,6 +267,9 @@
 				onclick={(e) => {
 					e.stopPropagation()
 					e.preventDefault()
+					if (!(e.target as HTMLElement).closest('button')) {
+						pickerMode = 'days'
+					}
 				}}
 				onkeydown={handlePanelKeydown}
 				transition:scale={{ start: 0.95, duration: 200 }}
