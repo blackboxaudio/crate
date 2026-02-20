@@ -808,7 +808,7 @@
 		discoveryStore.setSort(config)
 	}
 
-	const PREVIEWABLE_SOURCES = new Set(['bandcamp', 'soundcloud'])
+	const PREVIEWABLE_SOURCES = new Set(['bandcamp', 'soundcloud', 'youtube'])
 
 	function handleReleaseOpen(release: DiscoveryRelease) {
 		if (PREVIEWABLE_SOURCES.has(release.source_type) && release.tracks.length > 0) {

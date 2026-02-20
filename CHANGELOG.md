@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Merge releases action for combining duplicate discovery entries
 - SoundCloud set/playlist URL support for fetching all tracks in a set
 - Bandcamp parent album detection for individual track pages
+- YouTube preview playback support for single videos and playlists in discovery
 
 ## [0.1.0] - 2024-12-20
 

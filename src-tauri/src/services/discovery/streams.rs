@@ -1,6 +1,6 @@
 use crate::error::{CrateError, Result};
 
-use super::metadata::build_client;
+use super::metadata::{self, build_client};
 
 #[derive(Debug, Clone)]
 pub struct StreamInfo {
@@ -471,4 +471,180 @@ async fn resolve_sc_streams(
     }
 
     Ok(streams)
+}
+
+// =============================================================================
+// YouTube
+// =============================================================================
+
+/// Extract audio stream URLs from YouTube video(s).
+///
+/// For playlists, extracts streams for all videos. For single videos, extracts
+/// a single stream. Prefers itag 140 (audio/mp4 AAC 128kbps) for best HTML5 Audio
+/// compatibility, falls back to other audio-only formats.
+pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
+    let parsed = metadata::parse_youtube_url(url);
+    let yt_client = metadata::build_yt_client()?;
+
+    // Build list of (video_id, position) pairs
+    let video_list = if let Some(ref playlist_id) = parsed.playlist_id {
+        let client = build_client()?;
+        let playlist_url = format!("https://www.youtube.com/playlist?list={playlist_id}");
+        let html = client
+            .get(&playlist_url)
+            .send()
+            .await
+            .map_err(|e| {
+                CrateError::Discovery(format!("Failed to fetch YouTube playlist: {e}"))
+            })?
+            .text()
+            .await
+            .map_err(|e| {
+                CrateError::Discovery(format!("Failed to read YouTube playlist: {e}"))
+            })?;
+
+        let yt_data = metadata::parse_yt_initial_data(&html).ok_or_else(|| {
+            CrateError::Discovery("Could not find ytInitialData on playlist page".into())
+        })?;
+
+        let videos = metadata::extract_playlist_videos(&yt_data);
+        if videos.is_empty() {
+            return Err(CrateError::Discovery(
+                "No videos found in YouTube playlist".into(),
+            ));
+        }
+
+        videos
+            .into_iter()
+            .enumerate()
+            .map(|(idx, v)| {
+                let pos = if v.position > 0 {
+                    v.position
+                } else {
+                    (idx + 1) as i32
+                };
+                (v.video_id, pos)
+            })
+            .collect::<Vec<_>>()
+    } else if let Some(video_id) = parsed.video_id {
+        vec![(video_id, 1)]
+    } else {
+        return Err(CrateError::Discovery(
+            "Could not parse YouTube URL: no video or playlist ID found".into(),
+        ));
+    };
+
+    let mut streams = Vec::new();
+    for (idx, (video_id, position)) in video_list.iter().enumerate() {
+        // Small delay between requests for playlists to avoid rate limiting
+        if idx > 0 {
+            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+        }
+
+        match extract_single_youtube_stream(&yt_client, video_id, *position).await {
+            Ok(stream) => streams.push(stream),
+            Err(e) => {
+                log::warn!("Failed to extract stream for YouTube video {video_id}: {e}");
+            }
+        }
+    }
+
+    if streams.is_empty() {
+        return Err(CrateError::Discovery(
+            "No streamable YouTube videos found".into(),
+        ));
+    }
+
+    Ok(streams)
+}
+
+/// Extract a single video's audio stream URL via the youtubei player API.
+async fn extract_single_youtube_stream(
+    client: &reqwest::Client,
+    video_id: &str,
+    position: i32,
+) -> Result<StreamInfo> {
+    let player = metadata::fetch_yt_player_response(client, video_id).await?;
+
+    // Check playability
+    let status = player
+        .get("playabilityStatus")
+        .and_then(|ps| ps.get("status"))
+        .and_then(|s| s.as_str())
+        .unwrap_or("UNKNOWN");
+
+    if status != "OK" {
+        if let Some(ps) = player.get("playabilityStatus") {
+            log::warn!("YouTube video {video_id} playabilityStatus: {ps}");
+        }
+        let reason = player
+            .get("playabilityStatus")
+            .and_then(|ps| ps.get("reason"))
+            .and_then(|r| r.as_str())
+            .unwrap_or("Unknown reason");
+        return Err(CrateError::Discovery(format!(
+            "YouTube video {video_id} not playable: {reason}"
+        )));
+    }
+
+    let adaptive_formats = player
+        .get("streamingData")
+        .and_then(|sd| sd.get("adaptiveFormats"))
+        .and_then(|af| af.as_array())
+        .ok_or_else(|| {
+            CrateError::Discovery(format!(
+                "No adaptive formats found for YouTube video {video_id}"
+            ))
+        })?;
+
+    // Prefer itag 140 (audio/mp4 AAC 128kbps), fall back to any audio format with direct URL
+    let stream = adaptive_formats
+        .iter()
+        .find(|f| {
+            f.get("itag").and_then(|i| i.as_u64()) == Some(140) && f.get("url").is_some()
+        })
+        .or_else(|| {
+            adaptive_formats.iter().find(|f| {
+                f.get("mimeType")
+                    .and_then(|m| m.as_str())
+                    .is_some_and(|m| m.starts_with("audio/"))
+                    && f.get("url").is_some()
+            })
+        })
+        .ok_or_else(|| {
+            CrateError::Discovery(format!(
+                "No audio stream found for YouTube video {video_id}"
+            ))
+        })?;
+
+    // Skip streams that require signature deciphering (no direct URL)
+    let stream_url = stream.get("url").and_then(|u| u.as_str()).ok_or_else(|| {
+        CrateError::Discovery(format!(
+            "YouTube video {video_id} requires signature deciphering (not supported)"
+        ))
+    })?;
+
+    let expires_at = parse_youtube_expiry(stream_url);
+
+    Ok(StreamInfo {
+        track_position: position,
+        stream_url: stream_url.to_string(),
+        expires_at,
+    })
+}
+
+/// Parse expiry from a YouTube stream URL's `expire=` query parameter.
+/// Falls back to 5 hours from now (YouTube streams typically last ~6 hours).
+fn parse_youtube_expiry(stream_url: &str) -> String {
+    if let Some(expire_str) = metadata::extract_query_param(stream_url, "expire") {
+        if let Ok(ts) = expire_str.parse::<i64>() {
+            // Subtract 60s safety buffer
+            if let Some(dt) = chrono::DateTime::from_timestamp(ts - 60, 0) {
+                return dt.to_rfc3339();
+            }
+        }
+    }
+
+    // Fallback: 5 hours from now
+    (chrono::Utc::now() + chrono::Duration::hours(5)).to_rfc3339()
 }

@@ -7,7 +7,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 
-	const PREVIEWABLE_SOURCES: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud'])
+	const PREVIEWABLE_SOURCES: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
 
 	type Props = {
 		releases: DiscoveryRelease[]

@@ -19,7 +19,7 @@ pub async fn create_discovery_release(
     let release = discovery.create_release(create)?;
 
     // Spawn background prefetch of stream URLs for streamable sources
-    if matches!(release.source_type.as_str(), "bandcamp" | "soundcloud")
+    if matches!(release.source_type.as_str(), "bandcamp" | "soundcloud" | "youtube")
         && !release.tracks.is_empty()
     {
         let conn = discovery.connection();
@@ -52,6 +52,7 @@ async fn prefetch_streams(
             discovery.cache_sc_client_id(&new_cid)?;
             infos
         }
+        "youtube" => streams::extract_youtube_streams(url).await?,
         _ => return Ok(()),
     };
     discovery.cache_streams(release_id, &stream_infos)?;
@@ -85,6 +86,7 @@ pub async fn fetch_preview_stream(
             discovery.cache_sc_client_id(&new_cid)?;
             infos
         }
+        "youtube" => streams::extract_youtube_streams(&release.url).await?,
         other => {
             return Err(CrateError::Discovery(format!(
                 "Preview not supported for source type: {other}"

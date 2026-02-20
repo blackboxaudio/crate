@@ -614,7 +614,369 @@ async fn fetch_soundcloud_oembed(client: &reqwest::Client, url: &str) -> Result<
     })
 }
 
+// =============================================================================
+// YouTube
+// =============================================================================
+
+#[derive(Debug)]
+pub(super) struct YouTubeUrl {
+    pub video_id: Option<String>,
+    pub playlist_id: Option<String>,
+}
+
+pub(super) fn extract_query_param(url: &str, key: &str) -> Option<String> {
+    let query = url.split('?').nth(1)?;
+    let prefix = format!("{key}=");
+    for param in query.split('&') {
+        if let Some(value) = param.strip_prefix(&prefix) {
+            let value = value.split('#').next().unwrap_or(value);
+            if !value.is_empty() {
+                return Some(value.to_string());
+            }
+        }
+    }
+    None
+}
+
+pub(super) fn parse_youtube_url(url: &str) -> YouTubeUrl {
+    let video_id = extract_query_param(url, "v");
+    let playlist_id = extract_query_param(url, "list");
+
+    // Handle youtu.be short URLs: youtu.be/VIDEO_ID
+    let video_id = video_id.or_else(|| {
+        let rest = url
+            .strip_prefix("https://youtu.be/")
+            .or_else(|| url.strip_prefix("http://youtu.be/"))?;
+        let path = rest.split('?').next().unwrap_or(rest);
+        let path = path.split('/').next().unwrap_or(path);
+        if path.is_empty() {
+            None
+        } else {
+            Some(path.to_string())
+        }
+    });
+
+    YouTubeUrl {
+        video_id,
+        playlist_id,
+    }
+}
+
+/// Build a reqwest client with YouTube TV user-agent.
+pub(super) fn build_yt_client() -> Result<reqwest::Client> {
+    reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .user_agent("Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version")
+        .build()
+        .map_err(|e| CrateError::Discovery(format!("Failed to create YouTube client: {e}")))
+}
+
+/// Call YouTube's internal player API to get video data.
+pub(super) async fn fetch_yt_player_response(
+    client: &reqwest::Client,
+    video_id: &str,
+) -> Result<serde_json::Value> {
+    let body = serde_json::json!({
+        "videoId": video_id,
+        "contentCheckOk": true,
+        "racyCheckOk": true,
+        "context": {
+            "client": {
+                "clientName": "TVHTML5",
+                "clientVersion": "7.20250120.10.00"
+            }
+        }
+    });
+
+    client
+        .post("https://www.youtube.com/youtubei/v1/player")
+        .header("Origin", "https://www.youtube.com")
+        .header("X-YouTube-Client-Name", "7")
+        .header("X-YouTube-Client-Version", "7.20250120.10.00")
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube player data: {e}")))?
+        .json()
+        .await
+        .map_err(|e| {
+            CrateError::Discovery(format!("Failed to parse YouTube player response: {e}"))
+        })
+}
+
+/// Extract `var ytInitialData = {...}` from YouTube page HTML.
+pub(super) fn parse_yt_initial_data(html: &str) -> Option<serde_json::Value> {
+    let marker = "var ytInitialData = ";
+    let start = html.find(marker)? + marker.len();
+    let rest = &html[start..];
+
+    // Find matching closing brace by counting nesting depth
+    let mut depth = 0;
+    let mut in_string = false;
+    let mut escape_next = false;
+    for (i, ch) in rest.char_indices() {
+        if escape_next {
+            escape_next = false;
+            continue;
+        }
+        if ch == '\\' && in_string {
+            escape_next = true;
+            continue;
+        }
+        if ch == '"' {
+            in_string = !in_string;
+            continue;
+        }
+        if in_string {
+            continue;
+        }
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                depth -= 1;
+                if depth == 0 {
+                    let json_str = &rest[..=i];
+                    return serde_json::from_str(json_str).ok();
+                }
+            }
+            _ => {}
+        }
+    }
+
+    None
+}
+
+#[derive(Debug, Clone)]
+pub(super) struct YouTubeVideo {
+    pub video_id: String,
+    pub title: String,
+    pub position: i32,
+    pub duration_ms: Option<i64>,
+}
+
+/// Extract video entries from ytInitialData's playlistVideoListRenderer.
+pub(super) fn extract_playlist_videos(yt_data: &serde_json::Value) -> Vec<YouTubeVideo> {
+    let videos = yt_data
+        .get("contents")
+        .and_then(|c| c.get("twoColumnBrowseResultsRenderer"))
+        .and_then(|r| r.get("tabs"))
+        .and_then(|t| t.as_array())
+        .and_then(|tabs| tabs.first())
+        .and_then(|tab| tab.get("tabRenderer"))
+        .and_then(|tr| tr.get("content"))
+        .and_then(|c| c.get("sectionListRenderer"))
+        .and_then(|slr| slr.get("contents"))
+        .and_then(|c| c.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|s| s.get("itemSectionRenderer"))
+        .and_then(|isr| isr.get("contents"))
+        .and_then(|c| c.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|p| p.get("playlistVideoListRenderer"))
+        .and_then(|pvlr| pvlr.get("contents"))
+        .and_then(|c| c.as_array());
+
+    let Some(video_items) = videos else {
+        return Vec::new();
+    };
+
+    video_items
+        .iter()
+        .filter_map(|item| {
+            let renderer = item.get("playlistVideoRenderer")?;
+            let video_id = renderer
+                .get("videoId")
+                .and_then(|v| v.as_str())?
+                .to_string();
+            let title = renderer
+                .get("title")
+                .and_then(|t| t.get("runs"))
+                .and_then(|r| r.as_array())
+                .and_then(|arr| arr.first())
+                .and_then(|r| r.get("text"))
+                .and_then(|t| t.as_str())
+                .unwrap_or("Untitled")
+                .to_string();
+            let position = renderer
+                .get("index")
+                .and_then(|i| i.get("simpleText"))
+                .and_then(|s| s.as_str())
+                .and_then(|s| s.parse::<i32>().ok())
+                .unwrap_or(0);
+            let duration_ms = renderer
+                .get("lengthSeconds")
+                .and_then(|l| l.as_str())
+                .and_then(|s| s.parse::<i64>().ok())
+                .map(|s| s * 1000);
+
+            Some(YouTubeVideo {
+                video_id,
+                title,
+                position,
+                duration_ms,
+            })
+        })
+        .collect()
+}
+
 async fn fetch_youtube(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
+    let parsed = parse_youtube_url(url);
+
+    // Playlist path (including video+playlist URLs — treat as playlist)
+    if let Some(ref playlist_id) = parsed.playlist_id {
+        return fetch_youtube_playlist(client, playlist_id).await;
+    }
+
+    // Single video path
+    if let Some(ref video_id) = parsed.video_id {
+        return fetch_youtube_single(client, url, video_id).await;
+    }
+
+    Err(CrateError::Discovery(
+        "Could not parse YouTube URL: no video or playlist ID found".into(),
+    ))
+}
+
+async fn fetch_youtube_playlist(
+    client: &reqwest::Client,
+    playlist_id: &str,
+) -> Result<FetchedMetadata> {
+    let playlist_url = format!("https://www.youtube.com/playlist?list={playlist_id}");
+    let html = client
+        .get(&playlist_url)
+        .send()
+        .await
+        .map_err(|e| {
+            CrateError::Discovery(format!("Failed to fetch YouTube playlist page: {e}"))
+        })?
+        .text()
+        .await
+        .map_err(|e| {
+            CrateError::Discovery(format!("Failed to read YouTube playlist page: {e}"))
+        })?;
+
+    let yt_data = parse_yt_initial_data(&html).ok_or_else(|| {
+        CrateError::Discovery("Could not find ytInitialData on playlist page".into())
+    })?;
+
+    // Extract playlist metadata from header
+    let header = yt_data
+        .get("header")
+        .and_then(|h| h.get("playlistHeaderRenderer"));
+
+    let title = header
+        .and_then(|h| h.get("title"))
+        .and_then(|t| t.get("simpleText"))
+        .and_then(|s| s.as_str())
+        .map(|s| s.to_string());
+
+    let artist = header
+        .and_then(|h| h.get("ownerText"))
+        .and_then(|o| o.get("runs"))
+        .and_then(|r| r.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|r| r.get("text"))
+        .and_then(|t| t.as_str())
+        .map(|s| s.to_string());
+
+    let videos = extract_playlist_videos(&yt_data);
+
+    // Use first video's thumbnail as artwork
+    let artwork_url = videos
+        .first()
+        .map(|v| format!("https://i.ytimg.com/vi/{}/hqdefault.jpg", v.video_id));
+
+    let raw_tracks: Vec<FetchedTrack> = videos
+        .into_iter()
+        .enumerate()
+        .map(|(idx, v)| FetchedTrack {
+            name: v.title,
+            position: if v.position > 0 {
+                v.position
+            } else {
+                (idx + 1) as i32
+            },
+            duration_ms: v.duration_ms,
+        })
+        .collect();
+
+    let (tracks, inferred_artist) = strip_youtube_track_artist_prefix(raw_tracks, &artist);
+    let artist = artist.or(inferred_artist);
+
+    Ok(FetchedMetadata {
+        artist,
+        title,
+        label: None,
+        release_date: None,
+        artwork_url,
+        tracks,
+        source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
+    })
+}
+
+/// Strip a consistent "Artist - " prefix from YouTube track names.
+///
+/// First tries to match the existing release artist (mirrors SoundCloud playlist logic).
+/// If that doesn't produce a majority match, detects the most common prefix across all
+/// tracks and uses that instead. Returns the stripped tracks and an inferred artist name
+/// (only set when a new dominant prefix was found that differs from the existing artist).
+fn strip_youtube_track_artist_prefix(
+    tracks: Vec<FetchedTrack>,
+    existing_artist: &Option<String>,
+) -> (Vec<FetchedTrack>, Option<String>) {
+    if tracks.is_empty() {
+        return (tracks, None);
+    }
+
+    // First try: strip the existing playlist artist prefix (mirrors SoundCloud playlist logic)
+    if let Some(ref a) = existing_artist {
+        let prefix = format!("{a} - ");
+        let stripped: Vec<FetchedTrack> = tracks
+            .iter()
+            .map(|t| FetchedTrack {
+                name: t.name.strip_prefix(&prefix).map(|s| s.to_string()).unwrap_or_else(|| t.name.clone()),
+                ..*t
+            })
+            .collect();
+        let stripped_count = stripped.iter().zip(tracks.iter()).filter(|(s, o)| s.name != o.name).count();
+        if stripped_count * 2 >= tracks.len() {
+            return (stripped, None);
+        }
+    }
+
+    // Second try: detect a dominant "Artist - " prefix across all tracks
+    let mut prefix_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    for track in &tracks {
+        if let Some(idx) = track.name.find(" - ") {
+            *prefix_counts.entry(track.name[..idx].to_string()).or_insert(0) += 1;
+        }
+    }
+
+    if let Some((dominant, count)) = prefix_counts.into_iter().max_by_key(|(_, c)| *c) {
+        if count * 2 >= tracks.len() {
+            let prefix = format!("{dominant} - ");
+            let stripped = tracks
+                .into_iter()
+                .map(|t| FetchedTrack {
+                    name: t.name.strip_prefix(&prefix).map(|s| s.to_string()).unwrap_or(t.name),
+                    ..t
+                })
+                .collect();
+            return (stripped, Some(dominant));
+        }
+    }
+
+    (tracks, None)
+}
+
+async fn fetch_youtube_single(
+    client: &reqwest::Client,
+    url: &str,
+    video_id: &str,
+) -> Result<FetchedMetadata> {
+    // Use oEmbed for basic metadata
     let oembed_url = format!("https://www.youtube.com/oembed?url={url}&format=json");
 
     let resp: serde_json::Value = client
@@ -641,13 +1003,54 @@ async fn fetch_youtube(client: &reqwest::Client, url: &str) -> Result<FetchedMet
         .and_then(|t| t.as_str())
         .map(|s| s.to_string());
 
+    // Get duration from youtubei player API
+    let duration_ms = match build_yt_client() {
+        Ok(yt_client) => match fetch_yt_player_response(&yt_client, video_id).await {
+            Ok(player) => player
+                .get("videoDetails")
+                .and_then(|vd| vd.get("lengthSeconds"))
+                .and_then(|l| l.as_str())
+                .and_then(|s| s.parse::<i64>().ok())
+                .map(|s| s * 1000),
+            Err(e) => {
+                log::warn!("Failed to get YouTube video duration: {e}");
+                None
+            }
+        },
+        Err(e) => {
+            log::warn!("Failed to build YouTube client for duration: {e}");
+            None
+        }
+    };
+
+    // Parse "Artist - Title" from the video title (mirrors SoundCloud single handling).
+    // When found, the parsed artist takes precedence over the channel name.
+    let (artist, track_name, title) = match title.as_deref().and_then(|t| t.find(" - ").map(|i| (t, i))) {
+        Some((t, idx)) => (
+            Some(t[..idx].to_string()),
+            Some(t[idx + 3..].to_string()),
+            Some(t[idx + 3..].to_string()),
+        ),
+        None => (artist, title.clone(), title),
+    };
+
+    let tracks = if let Some(name) = track_name {
+        vec![FetchedTrack {
+            name,
+            position: 1,
+            duration_ms,
+        }]
+    } else {
+        Vec::new()
+    };
+
     Ok(FetchedMetadata {
         artist,
         title,
         label: None,
         release_date: None,
         artwork_url,
-        tracks: Vec::new(),
+        tracks,
         source_type: String::new(),
         parent_url: None,
         parent_album_title: None,
@@ -1318,5 +1721,145 @@ mod tests {
         // Empty
         let empty: Vec<serde_json::Value> = vec![];
         assert_eq!(join_discogs_artists(&empty), None);
+    }
+
+    // =========================================================================
+    // YouTube helpers
+    // =========================================================================
+
+    #[test]
+    fn test_parse_youtube_url_standard() {
+        let parsed = parse_youtube_url("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+        assert_eq!(parsed.video_id.as_deref(), Some("dQw4w9WgXcQ"));
+        assert_eq!(parsed.playlist_id, None);
+    }
+
+    #[test]
+    fn test_parse_youtube_url_with_playlist() {
+        let parsed = parse_youtube_url("https://www.youtube.com/watch?v=abc123&list=PLxyz789");
+        assert_eq!(parsed.video_id.as_deref(), Some("abc123"));
+        assert_eq!(parsed.playlist_id.as_deref(), Some("PLxyz789"));
+    }
+
+    #[test]
+    fn test_parse_youtube_url_playlist_only() {
+        let parsed = parse_youtube_url("https://www.youtube.com/playlist?list=PLxyz789");
+        assert_eq!(parsed.video_id, None);
+        assert_eq!(parsed.playlist_id.as_deref(), Some("PLxyz789"));
+    }
+
+    #[test]
+    fn test_parse_youtube_url_short() {
+        let parsed = parse_youtube_url("https://youtu.be/dQw4w9WgXcQ");
+        assert_eq!(parsed.video_id.as_deref(), Some("dQw4w9WgXcQ"));
+        assert_eq!(parsed.playlist_id, None);
+    }
+
+    #[test]
+    fn test_parse_youtube_url_short_with_playlist() {
+        let parsed = parse_youtube_url("https://youtu.be/dQw4w9WgXcQ?list=PLxyz789");
+        assert_eq!(parsed.video_id.as_deref(), Some("dQw4w9WgXcQ"));
+        assert_eq!(parsed.playlist_id.as_deref(), Some("PLxyz789"));
+    }
+
+    #[test]
+    fn test_parse_youtube_url_music() {
+        let parsed =
+            parse_youtube_url("https://music.youtube.com/watch?v=abc123&list=OLAK5uy_test");
+        assert_eq!(parsed.video_id.as_deref(), Some("abc123"));
+        assert_eq!(parsed.playlist_id.as_deref(), Some("OLAK5uy_test"));
+    }
+
+    #[test]
+    fn test_extract_query_param() {
+        assert_eq!(
+            extract_query_param("https://example.com?foo=bar&baz=qux", "foo"),
+            Some("bar".to_string())
+        );
+        assert_eq!(
+            extract_query_param("https://example.com?foo=bar&baz=qux", "baz"),
+            Some("qux".to_string())
+        );
+        assert_eq!(
+            extract_query_param("https://example.com?foo=bar", "missing"),
+            None
+        );
+        assert_eq!(extract_query_param("https://example.com", "foo"), None);
+    }
+
+    #[test]
+    fn test_parse_yt_initial_data() {
+        let html =
+            r#"<script>var ytInitialData = {"key": "value", "nested": {"a": 1}};</script>"#;
+        let data = parse_yt_initial_data(html).expect("should parse");
+        assert_eq!(data.get("key").and_then(|v| v.as_str()), Some("value"));
+    }
+
+    #[test]
+    fn test_parse_yt_initial_data_missing() {
+        let html = r#"<script>var ytOtherData = {};</script>"#;
+        assert!(parse_yt_initial_data(html).is_none());
+    }
+
+    #[test]
+    fn test_extract_playlist_videos() {
+        let yt_data = serde_json::json!({
+            "contents": {
+                "twoColumnBrowseResultsRenderer": {
+                    "tabs": [{
+                        "tabRenderer": {
+                            "content": {
+                                "sectionListRenderer": {
+                                    "contents": [{
+                                        "itemSectionRenderer": {
+                                            "contents": [{
+                                                "playlistVideoListRenderer": {
+                                                    "contents": [
+                                                        {
+                                                            "playlistVideoRenderer": {
+                                                                "videoId": "abc123",
+                                                                "title": {"runs": [{"text": "Track One"}]},
+                                                                "index": {"simpleText": "1"},
+                                                                "lengthSeconds": "240"
+                                                            }
+                                                        },
+                                                        {
+                                                            "playlistVideoRenderer": {
+                                                                "videoId": "def456",
+                                                                "title": {"runs": [{"text": "Track Two"}]},
+                                                                "index": {"simpleText": "2"},
+                                                                "lengthSeconds": "180"
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            }]
+                                        }
+                                    }]
+                                }
+                            }
+                        }
+                    }]
+                }
+            }
+        });
+
+        let videos = extract_playlist_videos(&yt_data);
+        assert_eq!(videos.len(), 2);
+        assert_eq!(videos[0].video_id, "abc123");
+        assert_eq!(videos[0].title, "Track One");
+        assert_eq!(videos[0].position, 1);
+        assert_eq!(videos[0].duration_ms, Some(240_000));
+        assert_eq!(videos[1].video_id, "def456");
+        assert_eq!(videos[1].title, "Track Two");
+        assert_eq!(videos[1].position, 2);
+        assert_eq!(videos[1].duration_ms, Some(180_000));
+    }
+
+    #[test]
+    fn test_extract_playlist_videos_empty() {
+        let yt_data = serde_json::json!({"contents": {}});
+        let videos = extract_playlist_videos(&yt_data);
+        assert!(videos.is_empty());
     }
 }
