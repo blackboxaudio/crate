@@ -1,13 +1,19 @@
 {
-	"version": "0.2.0-5",
+	"version": "0.2.0-6",
 	"productName": "Crate Staging",
 	"identifier": "com.bbx-audio.crate-staging",
 	"app": {
-		"windows": [{ "title": "Crate [STAGING]" }]
+		"windows": [
+			{
+				"title": "Crate [STAGING]"
+			}
+		]
 	},
 	"plugins": {
 		"updater": {
-			"endpoints": ["https://storage.googleapis.com/crate-releases/staging/latest.json"]
+			"endpoints": [
+				"https://storage.googleapis.com/crate-releases/staging/latest.json"
+			]
 		}
 	}
 }
