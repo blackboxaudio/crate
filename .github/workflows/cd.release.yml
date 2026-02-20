@@ -59,11 +59,18 @@ jobs:
             fi
           fi
 
-          # Verify version exists in CHANGELOG.md
+          # Verify version (or its base prerelease) exists in CHANGELOG.md
+          # For prerelease increments (e.g. 0.2.0-staging.2), the changelog entry
+          # lives under the first prerelease (0.2.0-staging.1)
+          BASE_VERSION="${VERSION%%-*}"
           if ! grep -q "## \[$VERSION\]" CHANGELOG.md; then
-            echo "Error: Version $VERSION not found in CHANGELOG.md"
-            echo "Please add a changelog entry before releasing."
-            exit 1
+            if [[ "$VERSION" =~ -staging\. ]] && grep -q "## \[${BASE_VERSION}-staging\." CHANGELOG.md; then
+              echo "Changelog entry found for earlier staging prerelease of $BASE_VERSION"
+            else
+              echo "Error: Version $VERSION not found in CHANGELOG.md"
+              echo "Please add a changelog entry before releasing."
+              exit 1
+            fi
           fi
 
           echo "version=$VERSION" >> $GITHUB_OUTPUT

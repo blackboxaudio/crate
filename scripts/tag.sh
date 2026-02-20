@@ -185,7 +185,10 @@ echo ""
 
 # Step 2: Prepare/graduate changelog
 echo -e "${BLUE}Step 2: Updating changelog...${NC}"
-if $IS_STABLE && [[ "$BUMP_TYPE" == "stage" ]]; then
+if [[ "$BUMP_TYPE" == "prerelease" ]]; then
+    # Prerelease increment — no new changelog entry needed
+    echo -e "${YELLOW}Skipping changelog (prerelease increment)${NC}"
+elif $IS_STABLE && [[ "$BUMP_TYPE" == "stage" ]]; then
     # Graduating to stable - consolidate prerelease entries
     if $DRY_RUN; then
         echo -e "${YELLOW}[DRY RUN] Would run: yarn changelog:graduate $NEW_VERSION${NC}"
@@ -218,7 +221,7 @@ echo -e "${BLUE}Step 4: Creating tag...${NC}"
 if $DRY_RUN; then
     echo -e "${YELLOW}[DRY RUN] Would run: git tag v$NEW_VERSION${NC}"
 else
-    git tag "v$NEW_VERSION"
+    git tag -m "Release v$NEW_VERSION" "v$NEW_VERSION"
 fi
 echo ""
 

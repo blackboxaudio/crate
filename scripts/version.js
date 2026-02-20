@@ -61,9 +61,7 @@ function bumpVersion(version, bumpType, channel = null) {
 	// Standard bumps (major, minor, patch)
 	if (STANDARD_BUMPS.includes(bumpType)) {
 		if (parsed.channel) {
-			throw new Error(
-				`Cannot use '${bumpType}' on prerelease version ${version}. Use 'stage' to promote to next channel.`
-			)
+			throw new Error(`Cannot use '${bumpType}' on prerelease version ${version}. Use 'stage' to promote to stable.`)
 		}
 
 		// If channel specified, start a prerelease
