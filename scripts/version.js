@@ -11,6 +11,7 @@
  *   node scripts/version.js <major|minor|patch> staging       # Start staging prerelease
  *   node scripts/version.js prerelease                       # Increment prerelease number
  *   node scripts/version.js stage                            # Promote staging to stable
+ *   node scripts/version.js --print <bump_type> [channel]    # Print new version without writing
  */
 
 import { readFileSync, writeFileSync } from 'fs'
@@ -179,17 +180,38 @@ Examples:
 `)
 }
 
-const bumpType = process.argv[2]
-const channel = process.argv[3]
+// --print mode: compute and print the new version without writing files
+if (process.argv[2] === '--print') {
+	const bumpType = process.argv[3]
+	const channel = process.argv[4] || null
 
-if (!bumpType) {
-	printUsage()
-	process.exit(1)
-}
+	if (!bumpType) {
+		console.error('Usage: node scripts/version.js --print <bump_type> [channel]')
+		process.exit(1)
+	}
 
-try {
-	updateVersion(bumpType, channel)
-} catch (error) {
-	console.error(`Error: ${error.message}`)
-	process.exit(1)
+	try {
+		const packageJsonPath = join(ROOT, 'package.json')
+		const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf-8'))
+		const newVersion = bumpVersion(packageJson.version, bumpType, channel)
+		console.log(newVersion)
+	} catch (error) {
+		console.error(`Error: ${error.message}`)
+		process.exit(1)
+	}
+} else {
+	const bumpType = process.argv[2]
+	const channel = process.argv[3]
+
+	if (!bumpType) {
+		printUsage()
+		process.exit(1)
+	}
+
+	try {
+		updateVersion(bumpType, channel)
+	} catch (error) {
+		console.error(`Error: ${error.message}`)
+		process.exit(1)
+	}
 }

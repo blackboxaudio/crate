@@ -249,6 +249,8 @@ jobs:
           BUNDLE_VERSION: ${{ needs.validate.outputs.bundle_version }}
           CHANNEL: ${{ needs.validate.outputs.channel }}
         run: |
+          shopt -s globstar
+
           BUCKET="crate-releases"
           PREFIX="${CHANNEL}/${VERSION}"
 

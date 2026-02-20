@@ -107,53 +107,11 @@ cd "$ROOT_DIR"
 OLD_VERSION=$(node -p "require('./package.json').version")
 echo -e "${BLUE}Current version: $OLD_VERSION${NC}"
 
-# Determine new version (dry run of bump)
+# Determine new version using the canonical version.js script
 if [[ -n "$CHANNEL" ]]; then
-    # Simulate bump with channel
-    case "$BUMP_TYPE" in
-        major)
-            BASE=$(echo "$OLD_VERSION" | sed 's/-.*//' | awk -F. '{print $1+1".0.0"}')
-            NEW_VERSION="$BASE-$CHANNEL.1"
-            ;;
-        minor)
-            BASE=$(echo "$OLD_VERSION" | sed 's/-.*//' | awk -F. '{print $1"."$2+1".0"}')
-            NEW_VERSION="$BASE-$CHANNEL.1"
-            ;;
-        patch)
-            BASE=$(echo "$OLD_VERSION" | sed 's/-.*//' | awk -F. '{print $1"."$2"."$3+1}')
-            NEW_VERSION="$BASE-$CHANNEL.1"
-            ;;
-    esac
-elif [[ "$BUMP_TYPE" == "prerelease" ]]; then
-    # Increment prerelease number
-    BASE=$(echo "$OLD_VERSION" | sed 's/\.[0-9]*$//')
-    NUM=$(echo "$OLD_VERSION" | grep -o '[0-9]*$')
-    NEW_VERSION="$BASE.$((NUM + 1))"
-elif [[ "$BUMP_TYPE" == "stage" ]]; then
-    # Promote staging to stable
-    if [[ "$OLD_VERSION" =~ -staging\. ]]; then
-        NEW_VERSION=$(echo "$OLD_VERSION" | sed 's/-staging\..*//')
-    else
-        echo -e "${RED}Error: Not on a staging prerelease version. Use 'minor staging' to start.${NC}"
-        exit 1
-    fi
+    NEW_VERSION=$(node scripts/version.js --print "$BUMP_TYPE" "$CHANNEL")
 else
-    # Standard bump
-    case "$BUMP_TYPE" in
-        major)
-            NEW_VERSION=$(echo "$OLD_VERSION" | awk -F. '{print $1+1".0.0"}')
-            ;;
-        minor)
-            NEW_VERSION=$(echo "$OLD_VERSION" | awk -F. '{print $1"."$2+1".0"}')
-            ;;
-        patch)
-            NEW_VERSION=$(echo "$OLD_VERSION" | awk -F. '{print $1"."$2"."$3+1}')
-            ;;
-        *)
-            echo -e "${RED}Error: Invalid bump type: $BUMP_TYPE${NC}"
-            exit 1
-            ;;
-    esac
+    NEW_VERSION=$(node scripts/version.js --print "$BUMP_TYPE")
 fi
 
 # Determine if this is going to stable
@@ -208,10 +166,12 @@ echo ""
 # Step 3: Commit changes
 echo -e "${BLUE}Step 3: Committing changes...${NC}"
 if $DRY_RUN; then
-    echo -e "${YELLOW}[DRY RUN] Would run: git add -A${NC}"
+    echo -e "${YELLOW}[DRY RUN] Would stage: package.json src-tauri/Cargo.toml src-tauri/Cargo.lock src-tauri/tauri.conf.json src-tauri/tauri.staging.conf.json CHANGELOG.md${NC}"
     echo -e "${YELLOW}[DRY RUN] Would run: git commit -m \"chore: release v$NEW_VERSION\"${NC}"
 else
-    git add -A
+    git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock \
+        src-tauri/tauri.conf.json src-tauri/tauri.staging.conf.json \
+        CHANGELOG.md
     git commit -m "chore: release \`v$NEW_VERSION\`"
 fi
 echo ""

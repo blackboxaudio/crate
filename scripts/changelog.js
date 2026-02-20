@@ -271,9 +271,8 @@ Usage:
   yarn changelog:graduate <version>  # Consolidate prereleases to stable version
 
 Examples:
-  yarn changelog:prepare 0.2.0-alpha.1   # Create alpha release entry
-  yarn changelog:prepare 0.2.0-beta.1    # Create beta release entry
-  yarn changelog:graduate 0.2.0          # Consolidate all 0.2.0-* entries to 0.2.0
+  yarn changelog:prepare 0.2.0-staging.1   # Create staging release entry
+  yarn changelog:graduate 0.2.0            # Consolidate all 0.2.0-staging.* entries to 0.2.0
 `)
 }
 
