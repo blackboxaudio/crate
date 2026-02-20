@@ -158,12 +158,16 @@
 					/>
 				</span>
 			{:else}
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<span class="flex h-6 cursor-pointer items-center" onclick={handleClick} ondblclick={handleDblClick}>
+				<button
+					type="button"
+					class="flex h-6 cursor-pointer items-center border-none bg-transparent p-0"
+					onclick={handleClick}
+					ondblclick={handleDblClick}
+				>
 					<Text variant="caption" color="secondary" tabular class="w-8 text-right">
 						{formattedPercent}
 					</Text>
-				</span>
+				</button>
 			{/if}
 		</Tooltip>
 	</div>
