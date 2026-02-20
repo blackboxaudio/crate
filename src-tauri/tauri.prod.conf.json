@@ -1,6 +1,9 @@
 {
 	"productName": "Crate",
 	"identifier": "com.bbx-audio.crate",
+	"bundle": {
+		"createUpdaterArtifacts": true
+	},
 	"app": {
 		"windows": [{ "title": "Crate" }]
 	},
