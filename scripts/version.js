@@ -5,9 +5,9 @@
  *
  * Usage:
  *   node scripts/version.js <major|minor|patch>              # Standard version bump
- *   node scripts/version.js <major|minor|patch> <alpha|beta> # Start prerelease
+ *   node scripts/version.js <major|minor|patch> staging       # Start staging prerelease
  *   node scripts/version.js prerelease                       # Increment prerelease number
- *   node scripts/version.js stage                            # Promote to next channel
+ *   node scripts/version.js stage                            # Promote staging to stable
  */
 
 import { readFileSync, writeFileSync } from 'fs'
@@ -18,7 +18,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const ROOT = join(__dirname, '..')
 
 const STANDARD_BUMPS = ['major', 'minor', 'patch']
-const PRERELEASE_CHANNELS = ['alpha', 'beta']
+const PRERELEASE_CHANNELS = ['staging']
 
 function parseVersion(version) {
 	const match = version.match(/^(\d+)\.(\d+)\.(\d+)(?:-([a-zA-Z]+)\.(\d+))?$/)
@@ -83,27 +83,17 @@ function bumpVersion(version, bumpType, channel = null) {
 	// Prerelease increment
 	if (bumpType === 'prerelease') {
 		if (!parsed.channel) {
-			throw new Error(`Not on prerelease. Use 'minor alpha' or 'minor beta' to start a prerelease.`)
+			throw new Error(`Not on prerelease. Use 'minor staging' to start a prerelease.`)
 		}
 		return formatVersion({ ...parsed, prerelease: parsed.prerelease + 1 })
 	}
 
-	// Stage: auto-promote to next channel
+	// Stage: promote staging to stable
 	if (bumpType === 'stage') {
 		if (!parsed.channel) {
-			throw new Error(`Not on prerelease. Use 'minor alpha' or 'minor beta' to start a prerelease.`)
+			throw new Error(`Not on prerelease. Use 'minor staging' to start a prerelease.`)
 		}
-
-		const currentIndex = PRERELEASE_CHANNELS.indexOf(parsed.channel)
-
-		// If on last channel (beta), promote to stable
-		if (currentIndex === PRERELEASE_CHANNELS.length - 1) {
-			return formatVersion({ ...parsed, channel: null, prerelease: null })
-		}
-
-		// Promote to next channel
-		const nextChannel = PRERELEASE_CHANNELS[currentIndex + 1]
-		return formatVersion({ ...parsed, channel: nextChannel, prerelease: 1 })
+		return formatVersion({ ...parsed, channel: null, prerelease: null })
 	}
 
 	throw new Error(`Invalid bump type: ${bumpType}`)
@@ -149,17 +139,16 @@ function updateVersion(bumpType, channel = null) {
 function printUsage() {
 	console.error(`
 Usage:
-  yarn bump <major|minor|patch>              # Standard version bump
-  yarn bump <major|minor|patch> <alpha|beta> # Start prerelease
-  yarn bump prerelease                       # Increment prerelease number
-  yarn bump stage                            # Promote to next channel (alpha -> beta -> stable)
+  yarn bump <major|minor|patch>            # Standard version bump
+  yarn bump <major|minor|patch> staging    # Start staging prerelease
+  yarn bump prerelease                     # Increment prerelease number
+  yarn bump stage                          # Promote staging to stable
 
 Examples:
   yarn bump minor                # 0.1.0 -> 0.2.0
-  yarn bump minor alpha          # 0.1.0 -> 0.2.0-alpha.1
-  yarn bump prerelease           # 0.2.0-alpha.1 -> 0.2.0-alpha.2
-  yarn bump stage                # 0.2.0-alpha.2 -> 0.2.0-beta.1
-  yarn bump stage                # 0.2.0-beta.1 -> 0.2.0
+  yarn bump minor staging        # 0.1.0 -> 0.2.0-staging.1
+  yarn bump prerelease           # 0.2.0-staging.1 -> 0.2.0-staging.2
+  yarn bump stage                # 0.2.0-staging.2 -> 0.2.0
 `)
 }
 

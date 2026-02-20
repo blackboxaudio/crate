@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.0-staging.1] - 2026-02-20
+
 ### Added
 
 - Seamless in-app updates via Tauri updater plugin; checks on launch and hourly, shows update modal with release notes and download progress
@@ -28,8 +30,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [0.1.0] - 2024-12-20
 
-Initial release.
-
 ### Added
 
 - Library management with automatic metadata extraction
@@ -40,5 +40,6 @@ Initial release.
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.0-staging.1...HEAD
+[0.2.0-staging.1]: https://github.com/blackboxaudio/crate/compare/v0.1.0...v0.2.0-staging.1
 [0.1.0]: https://github.com/blackboxaudio/crate/releases/tag/v0.1.0

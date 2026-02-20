@@ -29,6 +29,7 @@
 	let { label, value = $bindable(), mixed = false, disabled = false, onchange, onblur }: Props = $props()
 
 	let open = $state(false)
+	let pickerMode: 'days' | 'months' | 'years' = $state('days')
 	let viewYear = $state(new Date().getFullYear())
 	let viewMonth = $state(new Date().getMonth())
 	let triggerEl: HTMLButtonElement | undefined = $state()
@@ -52,9 +53,16 @@
 		return formatDate(value, $dateFormat)
 	})
 
-	const monthName = $derived(
-		new Intl.DateTimeFormat(undefined, { month: 'long', year: 'numeric' }).format(new Date(viewYear, viewMonth))
+	const viewMonthLabel = $derived(
+		new Intl.DateTimeFormat(undefined, { month: 'long' }).format(new Date(viewYear, viewMonth))
 	)
+
+	const monthLabels = Array.from({ length: 12 }, (_, i) =>
+		new Intl.DateTimeFormat(undefined, { month: 'short' }).format(new Date(2024, i))
+	)
+
+	const yearRangeStart = $derived(viewYear - (viewYear % 12))
+	const yearRange = $derived(Array.from({ length: 12 }, (_, i) => yearRangeStart + i))
 
 	// Jan 1 2023 is a Sunday — used to generate locale-aware weekday labels
 	const weekDayLabels = Array.from({ length: 7 }, (_, i) =>
@@ -128,6 +136,7 @@
 	function handleTriggerClick() {
 		if (disabled) return
 		if (!open) {
+			pickerMode = 'days'
 			const pv = parsedValue
 			if (pv) {
 				viewYear = pv.year
@@ -141,22 +150,44 @@
 		open = !open
 	}
 
-	function prevMonth() {
-		if (viewMonth === 0) {
-			viewMonth = 11
+	function navigatePrev() {
+		if (pickerMode === 'days') {
+			if (viewMonth === 0) {
+				viewMonth = 11
+				viewYear--
+			} else {
+				viewMonth--
+			}
+		} else if (pickerMode === 'months') {
 			viewYear--
 		} else {
-			viewMonth--
+			viewYear = yearRangeStart - 12
 		}
 	}
 
-	function nextMonth() {
-		if (viewMonth === 11) {
-			viewMonth = 0
+	function navigateNext() {
+		if (pickerMode === 'days') {
+			if (viewMonth === 11) {
+				viewMonth = 0
+				viewYear++
+			} else {
+				viewMonth++
+			}
+		} else if (pickerMode === 'months') {
 			viewYear++
 		} else {
-			viewMonth++
+			viewYear = yearRangeStart + 12
 		}
+	}
+
+	function selectMonth(month: number) {
+		viewMonth = month
+		pickerMode = 'days'
+	}
+
+	function selectYear(year: number) {
+		viewYear = year
+		pickerMode = 'months'
 	}
 
 	function handleClickOutside(e: MouseEvent) {
@@ -174,6 +205,8 @@
 	}
 
 	$effect(() => {
+		// Re-run when pickerMode changes since panel height differs per mode
+		void pickerMode
 		if (open && triggerEl && panelEl) {
 			const r = triggerEl.getBoundingClientRect()
 			const panelH = panelEl.offsetHeight
@@ -235,57 +268,128 @@
 				role="dialog"
 				tabindex="-1"
 			>
-				<!-- Month nav header -->
+				<!-- Nav header -->
 				<div class="flex items-center justify-between px-2 pt-2 pb-1">
 					<button
 						type="button"
-						onclick={prevMonth}
+						onclick={navigatePrev}
 						class="cursor-pointer rounded p-1 text-text-tertiary transition-colors hover:bg-surface-2 hover:text-text-primary"
 					>
 						<Icon name="chevron-right" class="h-4 w-4 rotate-180" />
 					</button>
-					<span class="text-xs font-medium text-text-primary">{monthName}</span>
+					<div class="flex items-center gap-1">
+						{#if pickerMode === 'days'}
+							<button
+								type="button"
+								onclick={() => (pickerMode = 'months')}
+								class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-2"
+							>
+								{viewMonthLabel}
+							</button>
+							<button
+								type="button"
+								onclick={() => (pickerMode = 'years')}
+								class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-2"
+							>
+								{viewYear}
+							</button>
+						{:else if pickerMode === 'months'}
+							<button
+								type="button"
+								onclick={() => (pickerMode = 'years')}
+								class="cursor-pointer rounded px-1 py-0.5 text-xs font-medium text-text-primary transition-colors hover:bg-surface-2"
+							>
+								{viewYear}
+							</button>
+						{:else}
+							<span class="text-xs font-medium text-text-primary">
+								{yearRangeStart} – {yearRangeStart + 11}
+							</span>
+						{/if}
+					</div>
 					<button
 						type="button"
-						onclick={nextMonth}
+						onclick={navigateNext}
 						class="cursor-pointer rounded p-1 text-text-tertiary transition-colors hover:bg-surface-2 hover:text-text-primary"
 					>
 						<Icon name="chevron-right" class="h-4 w-4" />
 					</button>
 				</div>
 
-				<!-- Day-of-week headers -->
-				<div class="mb-1 grid grid-cols-7 px-1">
-					{#each weekDayLabels as dayLabel (dayLabel)}
-						<div class="flex h-7 items-center justify-center text-[10px] font-medium text-text-tertiary">
-							{dayLabel}
-						</div>
-					{/each}
-				</div>
+				{#if pickerMode === 'days'}
+					<!-- Day-of-week headers -->
+					<div class="mb-1 grid grid-cols-7 px-1">
+						{#each weekDayLabels as dayLabel (dayLabel)}
+							<div class="flex h-7 items-center justify-center text-[10px] font-medium text-text-tertiary">
+								{dayLabel}
+							</div>
+						{/each}
+					</div>
 
-				<!-- 42-cell calendar grid -->
-				<div class="grid grid-cols-7 gap-y-0.5 px-1">
-					{#each calendarDays as cell, i (i)}
-						{#if cell.isBlank}
-							<div class="h-8 w-8"></div>
-						{:else}
+					<!-- 42-cell calendar grid -->
+					<div class="grid grid-cols-7 gap-y-0.5 px-1">
+						{#each calendarDays as cell, i (i)}
+							{#if cell.isBlank}
+								<div class="h-8 w-8"></div>
+							{:else}
+								<button
+									type="button"
+									onclick={() => selectDay(cell)}
+									class="flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors
+									{!cell.isCurrentMonth
+										? 'pointer-events-none text-text-tertiary opacity-30'
+										: cell.isSelected
+											? 'cursor-pointer bg-brand-primary text-white'
+											: cell.isToday
+												? 'cursor-pointer text-text-primary ring-1 ring-brand-primary hover:bg-surface-2'
+												: 'cursor-pointer text-text-primary hover:bg-surface-2'}"
+								>
+									{cell.day}
+								</button>
+							{/if}
+						{/each}
+					</div>
+				{:else if pickerMode === 'months'}
+					<!-- Month grid -->
+					<div class="grid grid-cols-3 gap-1 px-2 py-1">
+						{#each monthLabels as monthLabel, i (i)}
+							{@const isSelected = i === viewMonth}
+							{@const isCurrentMonth = i === new Date().getMonth() && viewYear === new Date().getFullYear()}
 							<button
 								type="button"
-								onclick={() => selectDay(cell)}
-								class="flex h-8 w-8 items-center justify-center rounded-md text-xs transition-colors
-									{!cell.isCurrentMonth
-									? 'pointer-events-none text-text-tertiary opacity-30'
-									: cell.isSelected
-										? 'cursor-pointer bg-brand-primary text-white'
-										: cell.isToday
-											? 'cursor-pointer text-text-primary ring-1 ring-brand-primary hover:bg-surface-2'
-											: 'cursor-pointer text-text-primary hover:bg-surface-2'}"
+								onclick={() => selectMonth(i)}
+								class="flex h-8 items-center justify-center rounded-md text-xs transition-colors
+								{isSelected
+									? 'cursor-pointer bg-brand-primary text-white'
+									: isCurrentMonth
+										? 'cursor-pointer text-text-primary ring-1 ring-brand-primary hover:bg-surface-2'
+										: 'cursor-pointer text-text-primary hover:bg-surface-2'}"
 							>
-								{cell.day}
+								{monthLabel}
 							</button>
-						{/if}
-					{/each}
-				</div>
+						{/each}
+					</div>
+				{:else}
+					<!-- Year grid -->
+					<div class="grid grid-cols-3 gap-1 px-2 py-1">
+						{#each yearRange as year (year)}
+							{@const isSelected = year === viewYear}
+							{@const isCurrentYear = year === new Date().getFullYear()}
+							<button
+								type="button"
+								onclick={() => selectYear(year)}
+								class="flex h-8 items-center justify-center rounded-md text-xs transition-colors
+								{isSelected
+									? 'cursor-pointer bg-brand-primary text-white'
+									: isCurrentYear
+										? 'cursor-pointer text-text-primary ring-1 ring-brand-primary hover:bg-surface-2'
+										: 'cursor-pointer text-text-primary hover:bg-surface-2'}"
+							>
+								{year}
+							</button>
+						{/each}
+					</div>
+				{/if}
 
 				<!-- Clear footer -->
 				{#if value !== null && !mixed}
