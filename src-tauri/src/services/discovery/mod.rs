@@ -30,7 +30,11 @@ pub struct DiscoveryService {
 impl DiscoveryService {
     pub fn new(conn: Arc<Mutex<Connection>>, app_data_dir: PathBuf) -> Self {
         let artwork_service = ArtworkService::new(app_data_dir.clone());
-        Self { conn, artwork_service, app_data_dir }
+        Self {
+            conn,
+            artwork_service,
+            app_data_dir,
+        }
     }
 
     pub fn app_data_dir(&self) -> PathBuf {
@@ -385,33 +389,42 @@ impl DiscoveryService {
         let mut set_clauses = vec!["date_modified = ?".to_string()];
         let mut params: Vec<Box<dyn rusqlite::types::ToSql>> = vec![Box::new(now)];
 
+        // Empty string from the frontend means "clear this field" → bind SQL NULL
+        let str_or_null = |s: &str| -> Option<String> {
+            if s.is_empty() {
+                None
+            } else {
+                Some(s.to_owned())
+            }
+        };
+
         if let Some(ref artist) = update.artist {
             set_clauses.push("artist = ?".to_string());
-            params.push(Box::new(artist.clone()));
+            params.push(Box::new(str_or_null(artist)));
         }
         if let Some(ref title) = update.title {
             set_clauses.push("title = ?".to_string());
-            params.push(Box::new(title.clone()));
+            params.push(Box::new(str_or_null(title)));
         }
         if let Some(ref label) = update.label {
             set_clauses.push("label = ?".to_string());
-            params.push(Box::new(label.clone()));
+            params.push(Box::new(str_or_null(label)));
         }
         if let Some(ref release_date) = update.release_date {
             set_clauses.push("release_date = ?".to_string());
-            params.push(Box::new(release_date.clone()));
+            params.push(Box::new(str_or_null(release_date)));
         }
         if let Some(ref artwork_url) = update.artwork_url {
             set_clauses.push("artwork_url = ?".to_string());
-            params.push(Box::new(artwork_url.clone()));
+            params.push(Box::new(str_or_null(artwork_url)));
         }
         if let Some(ref artwork_path) = update.artwork_path {
             set_clauses.push("artwork_path = ?".to_string());
-            params.push(Box::new(artwork_path.clone()));
+            params.push(Box::new(str_or_null(artwork_path)));
         }
         if let Some(ref notes) = update.notes {
             set_clauses.push("notes = ?".to_string());
-            params.push(Box::new(notes.clone()));
+            params.push(Box::new(str_or_null(notes)));
         }
 
         params.push(Box::new(id.to_string()));
@@ -429,7 +442,11 @@ impl DiscoveryService {
         self.get_release(id)
     }
 
-    pub fn set_release_artwork(&self, id: &str, file_path: &std::path::Path) -> Result<DiscoveryRelease> {
+    pub fn set_release_artwork(
+        &self,
+        id: &str,
+        file_path: &std::path::Path,
+    ) -> Result<DiscoveryRelease> {
         let relative_path = self
             .artwork_service
             .save_from_file(file_path, id)
@@ -872,10 +889,7 @@ impl DiscoveryService {
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
         for (track_id, position) in &null_tracks {
-            if let Some(fetched) = fetched_tracks
-                .iter()
-                .find(|ft| ft.position == *position)
-            {
+            if let Some(fetched) = fetched_tracks.iter().find(|ft| ft.position == *position) {
                 if let Some(ref vid) = fetched.video_id {
                     conn.execute(
                         "UPDATE discovery_tracks SET video_id = ?1 WHERE id = ?2",

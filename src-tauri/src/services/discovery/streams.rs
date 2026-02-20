@@ -8,7 +8,7 @@ pub struct StreamInfo {
     pub stream_url: String,
     pub expires_at: String,
     /// When set, the stream URL requires this user-agent to avoid 403 from YouTube's CDN.
-    /// The command layer uses this to return a `crate-stream://` proxy URL instead.
+    /// The command layer uses this to return a localhost proxy URL instead of the raw stream URL.
     pub proxy_ua: Option<String>,
 }
 
@@ -498,14 +498,10 @@ pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
             .get(&playlist_url)
             .send()
             .await
-            .map_err(|e| {
-                CrateError::Discovery(format!("Failed to fetch YouTube playlist: {e}"))
-            })?
+            .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube playlist: {e}")))?
             .text()
             .await
-            .map_err(|e| {
-                CrateError::Discovery(format!("Failed to read YouTube playlist: {e}"))
-            })?;
+            .map_err(|e| CrateError::Discovery(format!("Failed to read YouTube playlist: {e}")))?;
 
         let yt_data = metadata::parse_yt_initial_data(&html).ok_or_else(|| {
             CrateError::Discovery("Could not find ytInitialData on playlist page".into())
@@ -567,38 +563,31 @@ pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
 /// Tries each YouTube client configuration in [`metadata::YT_CLIENTS`] until one
 /// returns a playable response with audio streams.
 pub async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Result<StreamInfo> {
-    let mut last_error = CrateError::Discovery(format!(
-        "All YouTube clients failed for video {video_id}"
-    ));
+    let mut last_error =
+        CrateError::Discovery(format!("All YouTube clients failed for video {video_id}"));
 
     for config in metadata::YT_CLIENTS {
         let client = match metadata::build_yt_client_with_config(config) {
             Ok(c) => c,
             Err(e) => {
-                log::warn!(
-                    "YouTube {} client build failed: {e}",
-                    config.client_name,
-                );
+                log::warn!("YouTube {} client build failed: {e}", config.client_name,);
                 last_error = e;
                 continue;
             }
         };
 
-        let player = match metadata::fetch_yt_player_response_with_config(
-            &client, video_id, config,
-        )
-        .await
-        {
-            Ok(p) => p,
-            Err(e) => {
-                log::warn!(
-                    "YouTube {} client fetch failed for {video_id}: {e}",
-                    config.client_name,
-                );
-                last_error = e;
-                continue;
-            }
-        };
+        let player =
+            match metadata::fetch_yt_player_response_with_config(&client, video_id, config).await {
+                Ok(p) => p,
+                Err(e) => {
+                    log::warn!(
+                        "YouTube {} client fetch failed for {video_id}: {e}",
+                        config.client_name,
+                    );
+                    last_error = e;
+                    continue;
+                }
+            };
 
         // Check playability
         let status = player
@@ -617,9 +606,8 @@ pub async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Res
                 "YouTube {} client returned {status} for {video_id}: {reason}",
                 config.client_name,
             );
-            last_error = CrateError::Discovery(format!(
-                "YouTube video {video_id} not playable: {reason}"
-            ));
+            last_error =
+                CrateError::Discovery(format!("YouTube video {video_id} not playable: {reason}"));
             continue;
         }
 
@@ -645,9 +633,7 @@ pub async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Res
         // Prefer itag 140 (audio/mp4 AAC 128kbps), fall back to any audio format with direct URL
         let stream = adaptive_formats
             .iter()
-            .find(|f| {
-                f.get("itag").and_then(|i| i.as_u64()) == Some(140) && f.get("url").is_some()
-            })
+            .find(|f| f.get("itag").and_then(|i| i.as_u64()) == Some(140) && f.get("url").is_some())
             .or_else(|| {
                 adaptive_formats.iter().find(|f| {
                     f.get("mimeType")

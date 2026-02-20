@@ -96,7 +96,7 @@
 	<div class="mx-0 border-t border-stroke px-2 pt-6">
 		<div class="-mx-0 flex items-center px-3 py-1.5">
 			<Text variant="header-4">{$translate('nav.library')}</Text>
-			<Text variant="caption" class="ml-auto">{trackCount}</Text>
+			<Text variant="caption" class="mr-1 ml-auto">{trackCount}</Text>
 		</div>
 	</div>
 

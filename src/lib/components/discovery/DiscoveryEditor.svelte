@@ -45,7 +45,7 @@
 	function handleFieldChange(field: keyof DiscoveryReleaseUpdate) {
 		return (value: string | number | null) => {
 			if (value === null || value === '') {
-				formData = { ...formData, [field]: value === null ? undefined : '' }
+				formData = { ...formData, [field]: '' }
 			} else {
 				formData = { ...formData, [field]: value }
 			}
@@ -65,7 +65,7 @@
 			const update: DiscoveryReleaseUpdate = {}
 			for (const [key, value] of Object.entries(snapshot)) {
 				if (value !== undefined) {
-					;(update as Record<string, unknown>)[key] = value === '' ? null : value
+					;(update as Record<string, unknown>)[key] = value
 				}
 			}
 

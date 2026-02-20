@@ -683,9 +683,9 @@ pub(super) struct YtClientConfig {
 /// IOS first because it reliably succeeds for embedded-restricted videos where WEB_EMBEDDED
 /// returns UNKNOWN and TVHTML5 returns ERROR, avoiding 2 wasted sequential HTTP round trips.
 /// WEB_EMBEDDED is the first fallback — its stream URLs are browser-compatible (`&c=WEB_EMBEDDED`)
-/// and can be played directly by the HTML5 Audio element without the `crate-stream://` proxy.
+/// and can be played directly by the HTML5 Audio element without the localhost proxy.
 /// TVHTML5 stays last as it rarely succeeds where the others fail.
-/// Non-browser-compatible clients (IOS, TVHTML5) require proxying via `crate-stream://`
+/// Non-browser-compatible clients (IOS, TVHTML5) require proxying via the localhost HTTP server
 /// because YouTube's CDN validates the user-agent against the client type in the signed URL.
 pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
     YtClientConfig {
@@ -755,9 +755,7 @@ pub(super) async fn fetch_yt_player_response_with_config(
         .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube player data: {e}")))?
         .json()
         .await
-        .map_err(|e| {
-            CrateError::Discovery(format!("Failed to parse YouTube player response: {e}"))
-        })
+        .map_err(|e| CrateError::Discovery(format!("Failed to parse YouTube player response: {e}")))
 }
 
 /// Call YouTube's internal player API using the primary client config.
@@ -910,14 +908,10 @@ async fn fetch_youtube_playlist(
         .get(&playlist_url)
         .send()
         .await
-        .map_err(|e| {
-            CrateError::Discovery(format!("Failed to fetch YouTube playlist page: {e}"))
-        })?
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube playlist page: {e}")))?
         .text()
         .await
-        .map_err(|e| {
-            CrateError::Discovery(format!("Failed to read YouTube playlist page: {e}"))
-        })?;
+        .map_err(|e| CrateError::Discovery(format!("Failed to read YouTube playlist page: {e}")))?;
 
     let yt_data = parse_yt_initial_data(&html).ok_or_else(|| {
         CrateError::Discovery("Could not find ytInitialData on playlist page".into())
@@ -1001,23 +995,34 @@ fn strip_youtube_track_artist_prefix(
         let stripped: Vec<FetchedTrack> = tracks
             .iter()
             .map(|t| FetchedTrack {
-                name: t.name.strip_prefix(&prefix).map(|s| s.to_string()).unwrap_or_else(|| t.name.clone()),
+                name: t
+                    .name
+                    .strip_prefix(&prefix)
+                    .map(|s| s.to_string())
+                    .unwrap_or_else(|| t.name.clone()),
                 position: t.position,
                 duration_ms: t.duration_ms,
                 video_id: t.video_id.clone(),
             })
             .collect();
-        let stripped_count = stripped.iter().zip(tracks.iter()).filter(|(s, o)| s.name != o.name).count();
+        let stripped_count = stripped
+            .iter()
+            .zip(tracks.iter())
+            .filter(|(s, o)| s.name != o.name)
+            .count();
         if stripped_count * 2 >= tracks.len() {
             return (stripped, None);
         }
     }
 
     // Second try: detect a dominant "Artist - " prefix across all tracks
-    let mut prefix_counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
+    let mut prefix_counts: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
     for track in &tracks {
         if let Some(idx) = track.name.find(" - ") {
-            *prefix_counts.entry(track.name[..idx].to_string()).or_insert(0) += 1;
+            *prefix_counts
+                .entry(track.name[..idx].to_string())
+                .or_insert(0) += 1;
         }
     }
 
@@ -1027,7 +1032,11 @@ fn strip_youtube_track_artist_prefix(
             let stripped = tracks
                 .into_iter()
                 .map(|t| FetchedTrack {
-                    name: t.name.strip_prefix(&prefix).map(|s| s.to_string()).unwrap_or(t.name),
+                    name: t
+                        .name
+                        .strip_prefix(&prefix)
+                        .map(|s| s.to_string())
+                        .unwrap_or(t.name),
                     ..t
                 })
                 .collect();
@@ -1089,14 +1098,15 @@ async fn fetch_youtube_single(
 
     // Parse "Artist - Title" from the video title (mirrors SoundCloud single handling).
     // When found, the parsed artist takes precedence over the channel name.
-    let (artist, track_name, title) = match title.as_deref().and_then(|t| t.find(" - ").map(|i| (t, i))) {
-        Some((t, idx)) => (
-            Some(t[..idx].to_string()),
-            Some(t[idx + 3..].to_string()),
-            Some(t[idx + 3..].to_string()),
-        ),
-        None => (artist, title.clone(), title),
-    };
+    let (artist, track_name, title) =
+        match title.as_deref().and_then(|t| t.find(" - ").map(|i| (t, i))) {
+            Some((t, idx)) => (
+                Some(t[..idx].to_string()),
+                Some(t[idx + 3..].to_string()),
+                Some(t[idx + 3..].to_string()),
+            ),
+            None => (artist, title.clone(), title),
+        };
 
     let tracks = if let Some(name) = track_name {
         vec![FetchedTrack {
@@ -1229,10 +1239,7 @@ fn join_discogs_artists(artists: &[serde_json::Value]) -> Option<String> {
         result.push_str(cleaned);
 
         if i < artists.len() - 1 {
-            let join = artist
-                .get("join")
-                .and_then(|j| j.as_str())
-                .unwrap_or(", ");
+            let join = artist.get("join").and_then(|j| j.as_str()).unwrap_or(", ");
             // Ensure spacing around join separators
             if !join.starts_with(' ') {
                 result.push(' ');
@@ -1265,9 +1272,7 @@ async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result<FetchedMet
                 .header("User-Agent", "CrateApp/0.1")
                 .send()
                 .await
-                .map_err(|e| {
-                    CrateError::Discovery(format!("Failed to fetch Discogs master: {e}"))
-                })?
+                .map_err(|e| CrateError::Discovery(format!("Failed to fetch Discogs master: {e}")))?
                 .json()
                 .await
                 .map_err(|e| {
@@ -1280,9 +1285,7 @@ async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result<FetchedMet
 
             resp.get("main_release")
                 .and_then(|v| v.as_u64())
-                .ok_or_else(|| {
-                    CrateError::Discovery("Discogs master has no main_release".into())
-                })?
+                .ok_or_else(|| CrateError::Discovery("Discogs master has no main_release".into()))?
         }
     };
 
@@ -1351,12 +1354,7 @@ async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result<FetchedMet
         .map(|tracklist| {
             tracklist
                 .iter()
-                .filter(|t| {
-                    t.get("type_")
-                        .and_then(|ty| ty.as_str())
-                        .unwrap_or("track")
-                        == "track"
-                })
+                .filter(|t| t.get("type_").and_then(|ty| ty.as_str()).unwrap_or("track") == "track")
                 .enumerate()
                 .filter_map(|(idx, track)| {
                     let name = track
@@ -1826,10 +1824,7 @@ mod tests {
 
         // Strips disambiguation suffixes
         let disambig = vec![serde_json::json!({"name": "Artist (2)"})];
-        assert_eq!(
-            join_discogs_artists(&disambig),
-            Some("Artist".to_string())
-        );
+        assert_eq!(join_discogs_artists(&disambig), Some("Artist".to_string()));
 
         // Empty
         let empty: Vec<serde_json::Value> = vec![];
@@ -1902,8 +1897,7 @@ mod tests {
 
     #[test]
     fn test_parse_yt_initial_data() {
-        let html =
-            r#"<script>var ytInitialData = {"key": "value", "nested": {"a": 1}};</script>"#;
+        let html = r#"<script>var ytInitialData = {"key": "value", "nested": {"a": 1}};</script>"#;
         let data = parse_yt_initial_data(html).expect("should parse");
         assert_eq!(data.get("key").and_then(|v| v.as_str()), Some("value"));
     }

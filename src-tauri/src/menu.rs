@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use tauri::{
-    menu::{Menu, MenuBuilder, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder},
+    menu::{
+        Menu, MenuBuilder, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder,
+    },
     AppHandle, Emitter, Manager, Wry,
 };
 
@@ -436,7 +438,10 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
         .separator()
         .item(&settings_submenu)
         .separator()
-        .item(&PredefinedMenuItem::fullscreen(app, Some("Enter Full Screen"))?);
+        .item(&PredefinedMenuItem::fullscreen(
+            app,
+            Some("Enter Full Screen"),
+        )?);
 
     if is_dev {
         builder = builder.separator().item(&MenuItem::with_id(

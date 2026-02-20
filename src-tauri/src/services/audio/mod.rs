@@ -415,6 +415,7 @@ fn create_output_stream(
         .map_err(|e| format!("Failed to create audio output: {e}"))
 }
 
+#[allow(clippy::too_many_arguments)]
 fn create_player(
     track_id: String,
     file_path: &str,

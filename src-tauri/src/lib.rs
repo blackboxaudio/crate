@@ -10,14 +10,13 @@ use std::sync::Arc;
 use db::Database;
 use error::CrateError;
 
-/// Shared HTTP client for the `crate-stream://` proxy. Re-using one client means the underlying
-/// TCP connection pool is reused across range requests, avoiding the ~50-200 ms reconnect penalty
-/// that would otherwise occur on every chunk or seek request.
-pub(crate) struct ProxyClient(pub reqwest::Client);
+/// Port of the localhost stream proxy HTTP server. Managed as Tauri state so that
+/// `fetch_preview_stream` can embed it in the URL it returns to the frontend.
+pub(crate) struct ProxyServerPort(pub u16);
 
-/// Maximum bytes returned per `crate-stream://` proxy response (~1 MB). Clamping the range means
-/// the proxy only buffers this many bytes per request instead of the entire audio file (5-30 MB).
-/// WKWebView will issue follow-up range requests automatically once it consumes each chunk.
+/// Maximum bytes returned per proxy response (~1 MB). Clamping the range means the proxy only
+/// buffers this many bytes per request instead of the entire audio file (5-30 MB). The media
+/// element issues follow-up range requests automatically once it consumes each chunk.
 const MAX_PROXY_CHUNK: u64 = 1_048_576;
 
 /// Parse a `bytes=start-[end]` Range header value and return `(start, optional_end)`.
@@ -30,6 +29,13 @@ fn parse_bytes_range(header: Option<&str>) -> (u64, Option<u64>) {
     let start = parts.next().and_then(|v| v.parse().ok()).unwrap_or(0);
     let end = parts.next().and_then(|v| v.parse().ok());
     (start, end)
+}
+
+/// Shared state threaded into every axum proxy request handler.
+#[derive(Clone)]
+struct ProxyServerState {
+    app_handle: tauri::AppHandle,
+    client: reqwest::Client,
 }
 
 use services::{
@@ -49,13 +55,6 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
-        .register_asynchronous_uri_scheme_protocol("crate-stream", |ctx, request, responder| {
-            let app_handle = ctx.app_handle().clone();
-            tauri::async_runtime::spawn(async move {
-                let response = handle_crate_stream_proxy(&app_handle, &request).await;
-                responder.respond(response);
-            });
-        })
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
@@ -218,13 +217,6 @@ pub fn run() {
                 }
             }
 
-            // Build shared HTTP client for the crate-stream:// proxy
-            let proxy_client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(60))
-                .build()
-                .expect("Failed to build proxy HTTP client");
-            app.manage(ProxyClient(proxy_client));
-
             // Register services with Tauri
             app.manage(library_service);
             app.manage(tag_service);
@@ -252,59 +244,92 @@ pub fn run() {
             let media_controls_service = MediaControlsService::new(app.handle());
             app.manage(media_controls_service);
 
+            // Bind a stream proxy HTTP server on a random OS-assigned port. Real HTTP is required
+            // for WKWebView's AVFoundation media layer to correctly handle Range requests during
+            // seeking; WKWebView's custom URI scheme handler (WKURLSchemeHandler) does not reliably
+            // support the multi-request, cancellation-heavy lifecycle that AVFoundation uses.
+            let std_listener = std::net::TcpListener::bind("127.0.0.1:0")
+                .expect("Failed to bind stream proxy HTTP server");
+            let proxy_port = std_listener
+                .local_addr()
+                .expect("Failed to get proxy server address")
+                .port();
+            log::info!("Stream proxy HTTP server bound to 127.0.0.1:{proxy_port}");
+            app.manage(ProxyServerPort(proxy_port));
+
+            let proxy_state = ProxyServerState {
+                app_handle: app.handle().clone(),
+                // Force HTTP/1.1 with no idle connection pooling. HTTP/2 multiplexes all requests
+                // over one TCP connection; when AVFoundation drops a body mid-stream (seek), hyper
+                // sends RST_STREAM and transitions the connection back to idle — but if the next
+                // Range request arrives before that cleanup completes, hyper tries to reuse the
+                // half-torn-down connection and fails with "error sending request". HTTP/1.1 +
+                // pool_max_idle_per_host(0) guarantees a fresh TCP+TLS connection per request,
+                // which is safe because each 1 MB chunk holds ~60 s of audio.
+                client: reqwest::Client::builder()
+                    .timeout(std::time::Duration::from_secs(60))
+                    .pool_max_idle_per_host(0)
+                    .http1_only()
+                    .build()
+                    .expect("Failed to build proxy HTTP client"),
+            };
+
+            tauri::async_runtime::spawn(async move {
+                std_listener
+                    .set_nonblocking(true)
+                    .expect("Failed to set proxy listener non-blocking");
+                let listener = tokio::net::TcpListener::from_std(std_listener)
+                    .expect("Failed to convert proxy listener to tokio");
+
+                let router = axum::Router::new()
+                    .route(
+                        "/:release_id/:track_position",
+                        axum::routing::get(proxy_http_handler),
+                    )
+                    .with_state(proxy_state);
+
+                if let Err(e) = axum::serve(listener, router).await {
+                    log::error!("Stream proxy HTTP server error: {e}");
+                }
+            });
+
             Ok(())
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
-/// Proxy handler for `crate-stream://` custom protocol.
+/// Top-level axum handler for `GET /{release_id}/{track_position}`.
 ///
-/// YouTube stream URLs signed for non-browser clients (IOS, TVHTML5) contain a client
-/// identifier that YouTube's CDN validates against the requesting user-agent. The HTML5
-/// Audio element sends a browser UA, causing a 403. This handler fetches the stream
-/// server-side with the correct UA and forwards the bytes to the WebView.
-async fn handle_crate_stream_proxy(
-    app_handle: &tauri::AppHandle,
-    request: &tauri::http::Request<Vec<u8>>,
-) -> tauri::http::Response<Vec<u8>> {
-    match handle_crate_stream_proxy_inner(app_handle, request).await {
-        Ok(response) => response,
+/// YouTube stream URLs are signed for non-browser user-agents. The HTML5 Audio element sends a
+/// browser UA, causing a 403. This server fetches the stream with the correct UA server-side and
+/// proxies the bytes back to the media element. Using a real HTTP server (rather than a custom URI
+/// scheme) ensures WKWebView's AVFoundation media layer can seek correctly via Range requests.
+async fn proxy_http_handler(
+    axum::extract::Path((release_id, track_position)): axum::extract::Path<(String, i32)>,
+    req_headers: axum::http::HeaderMap,
+    axum::extract::State(state): axum::extract::State<ProxyServerState>,
+) -> axum::http::Response<axum::body::Body> {
+    match proxy_http_handler_inner(&release_id, track_position, &req_headers, &state).await {
+        Ok(r) => r,
         Err(e) => {
-            log::error!("crate-stream proxy error: {e}");
-            tauri::http::Response::builder()
+            log::error!("Stream proxy error: {e}");
+            axum::http::Response::builder()
                 .status(502)
                 .header("Content-Type", "text/plain")
-                .body(format!("Stream proxy error: {e}").into_bytes())
+                .body(axum::body::Body::from(format!("Stream proxy error: {e}")))
                 .unwrap()
         }
     }
 }
 
-async fn handle_crate_stream_proxy_inner(
-    app_handle: &tauri::AppHandle,
-    request: &tauri::http::Request<Vec<u8>>,
-) -> error::Result<tauri::http::Response<Vec<u8>>> {
-    // Parse path: /{release_id}/{track_position}
-    let path = request.uri().path();
-    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
-
-    if segments.len() != 2 {
-        return Ok(tauri::http::Response::builder()
-            .status(400)
-            .header("Content-Type", "text/plain")
-            .body(b"Expected path: /{release_id}/{track_position}".to_vec())
-            .unwrap());
-    }
-
-    let release_id = segments[0];
-    let track_position: i32 = segments[1].parse().map_err(|_| {
-        CrateError::Discovery("Invalid track position in proxy URL".into())
-    })?;
-
-    // Look up cached stream (must exist — the command layer only returns crate-stream:// URLs
-    // when it has just cached the stream with a proxy_ua)
-    let discovery = app_handle.state::<DiscoveryService>();
+async fn proxy_http_handler_inner(
+    release_id: &str,
+    track_position: i32,
+    req_headers: &axum::http::HeaderMap,
+    state: &ProxyServerState,
+) -> error::Result<axum::http::Response<axum::body::Body>> {
+    let discovery = state.app_handle.state::<DiscoveryService>();
     let cached = discovery
         .get_cached_stream(release_id, track_position)?
         .ok_or_else(|| CrateError::Discovery("No cached stream for proxy request".into()))?;
@@ -313,16 +338,14 @@ async fn handle_crate_stream_proxy_inner(
         CrateError::Discovery("Cached stream has no proxy_ua — should use direct URL".into())
     })?;
 
-    // Fetch the YouTube stream with the correct user-agent, re-using the shared client so the
-    // underlying TCP connection pool survives across range requests.
-    let proxy_client = app_handle.state::<ProxyClient>();
-    let mut yt_request = proxy_client.0.get(&cached.stream_url).header("User-Agent", &proxy_ua);
+    let mut yt_request = state
+        .client
+        .get(&cached.stream_url)
+        .header("User-Agent", &proxy_ua);
 
-    // Clamp the incoming range to MAX_PROXY_CHUNK bytes. WKWebView's initial media request is
-    // typically unbounded (`bytes=0-` or no Range header), which would cause the proxy to buffer
-    // the entire audio file before returning a single byte. By clamping we return quickly and let
-    // the WebView issue follow-up range requests for subsequent chunks.
-    let incoming_range = request.headers().get("Range").and_then(|v| v.to_str().ok());
+    // Clamp the incoming range to MAX_PROXY_CHUNK bytes so the proxy never buffers the entire
+    // audio file. The media element issues follow-up range requests for subsequent chunks.
+    let incoming_range = req_headers.get("Range").and_then(|v| v.to_str().ok());
     let (start, end_opt) = parse_bytes_range(incoming_range);
     let clamped_end = match end_opt {
         Some(e) => e.min(start.saturating_add(MAX_PROXY_CHUNK - 1)),
@@ -333,13 +356,15 @@ async fn handle_crate_stream_proxy_inner(
     let yt_response = yt_request
         .send()
         .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube stream: {e}")))?;
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube stream: {e:#}")))?;
 
     if !yt_response.status().is_success() && yt_response.status().as_u16() != 206 {
-        return Ok(tauri::http::Response::builder()
+        return Ok(axum::http::Response::builder()
             .status(502)
-            .header("Content-Type", "text/plain")
-            .body(format!("YouTube CDN returned {}", yt_response.status()).into_bytes())
+            .body(axum::body::Body::from(format!(
+                "YouTube CDN returned {}",
+                yt_response.status()
+            )))
             .unwrap());
     }
 
@@ -355,22 +380,32 @@ async fn handle_crate_stream_proxy_inner(
         .get("Content-Range")
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
+    let content_length = yt_response
+        .headers()
+        .get("Content-Length")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string());
 
-    let bytes = yt_response
-        .bytes()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to read YouTube stream bytes: {e}")))?;
+    // Stream bytes as they arrive from YouTube — do NOT buffer the full chunk first.
+    // AVFoundation's seek timeout fires if it waits too long for the first byte;
+    // streaming sends response headers within ~100 ms (CDN latency only) so the
+    // seek begins before the full chunk has downloaded.
+    // We forward Content-Length from YouTube (size of the requested range) so
+    // AVFoundation knows when the range response is complete and doesn't hang.
+    let stream = yt_response.bytes_stream();
 
-    let mut builder = tauri::http::Response::builder()
+    let mut builder = axum::http::Response::builder()
         .status(status)
         .header("Content-Type", content_type)
         .header("Access-Control-Allow-Origin", "*")
-        .header("Accept-Ranges", "bytes")
-        .header("Content-Length", bytes.len().to_string());
+        .header("Accept-Ranges", "bytes");
 
     if let Some(cr) = content_range {
         builder = builder.header("Content-Range", cr);
     }
+    if let Some(cl) = content_length {
+        builder = builder.header("Content-Length", cl);
+    }
 
-    Ok(builder.body(bytes.to_vec()).unwrap())
+    Ok(builder.body(axum::body::Body::from_stream(stream)).unwrap())
 }

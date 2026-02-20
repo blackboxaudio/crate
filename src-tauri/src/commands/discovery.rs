@@ -11,6 +11,7 @@ use crate::services::discovery::metadata::{self, FetchedMetadata};
 use crate::services::discovery::streams;
 use crate::services::discovery::CachedStream;
 use crate::services::{DiscoveryService, LibraryService, TagService};
+use crate::ProxyServerPort;
 
 #[tauri::command]
 pub async fn create_discovery_release(
@@ -20,8 +21,10 @@ pub async fn create_discovery_release(
     let release = discovery.create_release(create)?;
 
     // Spawn background prefetch of stream URLs for streamable sources
-    if matches!(release.source_type.as_str(), "bandcamp" | "soundcloud" | "youtube")
-        && !release.tracks.is_empty()
+    if matches!(
+        release.source_type.as_str(),
+        "bandcamp" | "soundcloud" | "youtube"
+    ) && !release.tracks.is_empty()
     {
         let conn = discovery.connection();
         let app_data_dir = discovery.app_data_dir();
@@ -113,10 +116,18 @@ pub async fn fetch_preview_stream(
     release_id: String,
     track_position: i32,
     discovery: State<'_, DiscoveryService>,
+    proxy_port: State<'_, ProxyServerPort>,
 ) -> Result<String> {
+    let port = proxy_port.0;
+
     // Check cache first
     if let Some(cached) = discovery.get_cached_stream(&release_id, track_position)? {
-        return Ok(resolve_stream_url(&cached, &release_id, track_position));
+        return Ok(resolve_stream_url(
+            &cached,
+            &release_id,
+            track_position,
+            port,
+        ));
     }
 
     // Get release to determine source type and URL
@@ -126,13 +137,13 @@ pub async fn fetch_preview_stream(
     if release.source_type == "youtube" {
         if let Some(video_id) = discovery.get_video_id_for_track(&release_id, track_position)? {
             let stream = streams::extract_single_youtube_stream(&video_id, track_position).await?;
-            discovery.cache_streams(&release_id, &[stream.clone()])?;
+            discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
 
             let cached = CachedStream {
                 stream_url: stream.stream_url.clone(),
                 proxy_ua: stream.proxy_ua.clone(),
             };
-            let result = resolve_stream_url(&cached, &release_id, track_position);
+            let result = resolve_stream_url(&cached, &release_id, track_position, port);
 
             // Background re-prefetch all tracks
             let conn = discovery.connection();
@@ -157,12 +168,17 @@ pub async fn fetch_preview_stream(
             Some(video_id) => {
                 let stream =
                     streams::extract_single_youtube_stream(&video_id, track_position).await?;
-                discovery.cache_streams(&release_id, &[stream.clone()])?;
+                discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
                 let cached = CachedStream {
                     stream_url: stream.stream_url.clone(),
                     proxy_ua: stream.proxy_ua.clone(),
                 };
-                Ok(resolve_stream_url(&cached, &release_id, track_position))
+                Ok(resolve_stream_url(
+                    &cached,
+                    &release_id,
+                    track_position,
+                    port,
+                ))
             }
             None => Err(CrateError::Discovery(
                 "No YouTube video available for this Discogs track".into(),
@@ -204,14 +220,24 @@ pub async fn fetch_preview_stream(
         stream_url: stream.stream_url.clone(),
         proxy_ua: stream.proxy_ua.clone(),
     };
-    Ok(resolve_stream_url(&cached, &release_id, track_position))
+    Ok(resolve_stream_url(
+        &cached,
+        &release_id,
+        track_position,
+        port,
+    ))
 }
 
-/// Return a `crate-stream://` proxy URL when the stream requires a specific user-agent,
-/// or the raw stream URL when it can be played directly by the HTML5 Audio element.
-fn resolve_stream_url(cached: &CachedStream, release_id: &str, track_position: i32) -> String {
+/// Return a `http://127.0.0.1:{proxy_port}` proxy URL when the stream requires a specific
+/// user-agent, or the raw stream URL when it can be played directly by the HTML5 Audio element.
+fn resolve_stream_url(
+    cached: &CachedStream,
+    release_id: &str,
+    track_position: i32,
+    proxy_port: u16,
+) -> String {
     match &cached.proxy_ua {
-        Some(_) => format!("crate-stream://localhost/{release_id}/{track_position}"),
+        Some(_) => format!("http://127.0.0.1:{proxy_port}/{release_id}/{track_position}"),
         None => cached.stream_url.clone(),
     }
 }

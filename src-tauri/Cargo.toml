@@ -54,8 +54,9 @@ image = { version = "0.25.9", default-features = false, features = ["png", "jpeg
 # Hashing
 blake3 = "1.8.2"
 
-# HTTP client
-reqwest = { version = "0.12", features = ["json"] }
+# HTTP client + proxy server
+reqwest = { version = "0.12", features = ["json", "stream"] }
+axum = "0.7"
 
 # Regex
 regex = "1"
