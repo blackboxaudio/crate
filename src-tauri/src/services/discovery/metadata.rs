@@ -680,11 +680,22 @@ pub(super) struct YtClientConfig {
 
 /// Fallback chain of YouTube innertube clients, ordered by preference.
 ///
-/// WEB_EMBEDDED first because its stream URLs contain `&c=WEB_EMBEDDED` and work
-/// directly in a browser/WebView Audio element (standard Chrome UA matches).
+/// IOS first because it reliably succeeds for embedded-restricted videos where WEB_EMBEDDED
+/// returns UNKNOWN and TVHTML5 returns ERROR, avoiding 2 wasted sequential HTTP round trips.
+/// WEB_EMBEDDED is the first fallback — its stream URLs are browser-compatible (`&c=WEB_EMBEDDED`)
+/// and can be played directly by the HTML5 Audio element without the `crate-stream://` proxy.
+/// TVHTML5 stays last as it rarely succeeds where the others fail.
 /// Non-browser-compatible clients (IOS, TVHTML5) require proxying via `crate-stream://`
 /// because YouTube's CDN validates the user-agent against the client type in the signed URL.
 pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
+    YtClientConfig {
+        client_name: "IOS",
+        client_id: "5",
+        client_version: "19.45.4",
+        user_agent:
+            "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
+        browser_compatible: false,
+    },
     YtClientConfig {
         client_name: "WEB_EMBEDDED",
         client_id: "56",
@@ -697,14 +708,6 @@ pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
         client_id: "85",
         client_version: "2.0",
         user_agent: "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version",
-        browser_compatible: false,
-    },
-    YtClientConfig {
-        client_name: "IOS",
-        client_id: "5",
-        client_version: "19.45.4",
-        user_agent:
-            "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
         browser_compatible: false,
     },
 ];

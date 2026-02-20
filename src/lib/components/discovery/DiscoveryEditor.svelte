@@ -1,16 +1,14 @@
 <script lang="ts">
 	import { discoveryStore, refreshingReleaseIds } from '$lib/stores/discovery'
-	import { dateFormat } from '$lib/stores/settings'
 	import { uiStore } from '$lib/stores/ui'
 	import { toastStore } from '$lib/stores/toast'
-	import { formatDate } from '$lib/utils'
 	import type { DiscoveryRelease, DiscoveryReleaseUpdate } from '$lib/types'
 	import Button from '$lib/components/common/Button.svelte'
 	import IconButton from '$lib/components/common/IconButton.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import EditorField from '$lib/components/editor/EditorField.svelte'
-	import { EditorTextArea, EditorArtwork } from '$lib/components/editor'
+	import { EditorDateField, EditorTextArea, EditorArtwork } from '$lib/components/editor'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
 
@@ -210,14 +208,12 @@
 				onsubmit={handleSave}
 				onblur={handleSave}
 			/>
-			<EditorField
+			<EditorDateField
 				label={$translate('discovery.editor.releaseDate')}
-				value={(() => {
-					const raw = formData.release_date ?? bulkInfo.releaseDate.value
-					return raw ? formatDate(raw, $dateFormat) : null
-				})()}
+				value={formData.release_date ?? bulkInfo.releaseDate.value}
 				mixed={bulkInfo.releaseDate.mixed && formData.release_date === undefined}
-				disabled={true}
+				onchange={handleFieldChange('release_date')}
+				onblur={handleSave}
 			/>
 			<EditorTextArea
 				label={$translate('discovery.editor.notes')}

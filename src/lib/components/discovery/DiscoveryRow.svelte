@@ -8,6 +8,7 @@
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
 	import { slide } from 'svelte/transition'
+	import * as discoveryApi from '$lib/api/discovery'
 
 	type Props = {
 		release: DiscoveryRelease
@@ -237,6 +238,11 @@
 					? (e) => {
 							e.stopPropagation()
 							onTrackPlay?.(idx)
+						}
+					: undefined}
+				onmouseenter={canPlay
+					? () => {
+							discoveryApi.fetchPreviewStream(release.id, track.position).catch(() => {})
 						}
 					: undefined}
 			>

@@ -36,6 +36,19 @@ pub async fn create_discovery_release(
         });
     }
 
+    // Spawn incremental background prefetch for Discogs (per-track, skips cached entries)
+    if release.source_type == "discogs" && !release.tracks.is_empty() {
+        let conn = discovery.connection();
+        let app_data_dir = discovery.app_data_dir();
+        let release_id = release.id.clone();
+        tokio::spawn(async move {
+            let svc = DiscoveryService::new(conn, app_data_dir);
+            if let Err(e) = prefetch_discogs_streams(&svc, &release_id).await {
+                log::warn!("Background Discogs stream prefetch failed for {release_id}: {e}");
+            }
+        });
+    }
+
     Ok(release)
 }
 
@@ -62,6 +75,36 @@ async fn prefetch_streams(
         "Prefetched {} stream URLs for release {release_id}",
         stream_infos.len()
     );
+    Ok(())
+}
+
+/// Incrementally prefetch and cache stream URLs for a Discogs release.
+///
+/// Each track is fetched and cached individually so that tracks become playable
+/// as soon as their stream is resolved — without waiting for all tracks to complete.
+/// Tracks already cached (e.g. fetched on-demand by a user click) are skipped.
+async fn prefetch_discogs_streams(discovery: &DiscoveryService, release_id: &str) -> Result<()> {
+    let tracks = discovery.get_all_video_ids_for_release(release_id)?;
+    for (position, video_id) in tracks {
+        // Skip tracks already cached (e.g. fetched on-demand by a prior user click)
+        if discovery.get_cached_stream(release_id, position)?.is_some() {
+            continue;
+        }
+        match streams::extract_single_youtube_stream(&video_id, position).await {
+            Ok(stream) => {
+                if let Err(e) = discovery.cache_streams(release_id, &[stream]) {
+                    log::warn!(
+                        "Failed to cache Discogs stream for position {position} on {release_id}: {e}"
+                    );
+                } else {
+                    log::info!("Prefetched Discogs stream for position {position} on {release_id}");
+                }
+            }
+            Err(e) => log::warn!(
+                "Failed to prefetch Discogs stream for position {position} on {release_id}: {e}"
+            ),
+        }
+    }
     Ok(())
 }
 

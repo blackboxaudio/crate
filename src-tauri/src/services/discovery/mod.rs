@@ -833,6 +833,22 @@ impl DiscoveryService {
         }
     }
 
+    /// Get all stored `(position, video_id)` pairs for a release, ordered by position.
+    pub fn get_all_video_ids_for_release(&self, release_id: &str) -> Result<Vec<(i32, String)>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+        let mut stmt = conn.prepare(
+            "SELECT position, video_id FROM discovery_tracks
+             WHERE release_id = ?1 AND video_id IS NOT NULL ORDER BY position",
+        )?;
+        let rows = stmt
+            .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        Ok(rows)
+    }
+
     /// Backfill NULL `video_id` values from fetched metadata, matching by position.
     pub fn update_track_video_ids(
         &self,

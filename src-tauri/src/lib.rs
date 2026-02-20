@@ -9,6 +9,29 @@ use std::sync::Arc;
 
 use db::Database;
 use error::CrateError;
+
+/// Shared HTTP client for the `crate-stream://` proxy. Re-using one client means the underlying
+/// TCP connection pool is reused across range requests, avoiding the ~50-200 ms reconnect penalty
+/// that would otherwise occur on every chunk or seek request.
+pub(crate) struct ProxyClient(pub reqwest::Client);
+
+/// Maximum bytes returned per `crate-stream://` proxy response (~1 MB). Clamping the range means
+/// the proxy only buffers this many bytes per request instead of the entire audio file (5-30 MB).
+/// WKWebView will issue follow-up range requests automatically once it consumes each chunk.
+const MAX_PROXY_CHUNK: u64 = 1_048_576;
+
+/// Parse a `bytes=start-[end]` Range header value and return `(start, optional_end)`.
+fn parse_bytes_range(header: Option<&str>) -> (u64, Option<u64>) {
+    let s = match header {
+        Some(h) => h.trim_start_matches("bytes="),
+        None => return (0, None),
+    };
+    let mut parts = s.splitn(2, '-');
+    let start = parts.next().and_then(|v| v.parse().ok()).unwrap_or(0);
+    let end = parts.next().and_then(|v| v.parse().ok());
+    (start, end)
+}
+
 use services::{
     export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
     DiscoveryService, ExportService, LibraryService, MediaControlsService, PlaylistService,
@@ -195,6 +218,13 @@ pub fn run() {
                 }
             }
 
+            // Build shared HTTP client for the crate-stream:// proxy
+            let proxy_client = reqwest::Client::builder()
+                .timeout(std::time::Duration::from_secs(60))
+                .build()
+                .expect("Failed to build proxy HTTP client");
+            app.manage(ProxyClient(proxy_client));
+
             // Register services with Tauri
             app.manage(library_service);
             app.manage(tag_service);
@@ -283,19 +313,22 @@ async fn handle_crate_stream_proxy_inner(
         CrateError::Discovery("Cached stream has no proxy_ua — should use direct URL".into())
     })?;
 
-    // Fetch the YouTube stream with the correct user-agent
-    let client = reqwest::Client::builder()
-        .user_agent(&proxy_ua)
-        .timeout(std::time::Duration::from_secs(60))
-        .build()
-        .map_err(|e| CrateError::Discovery(format!("Failed to build proxy client: {e}")))?;
+    // Fetch the YouTube stream with the correct user-agent, re-using the shared client so the
+    // underlying TCP connection pool survives across range requests.
+    let proxy_client = app_handle.state::<ProxyClient>();
+    let mut yt_request = proxy_client.0.get(&cached.stream_url).header("User-Agent", &proxy_ua);
 
-    let mut yt_request = client.get(&cached.stream_url);
-
-    // Forward Range header to support seeking in the Audio element
-    if let Some(range) = request.headers().get("Range") {
-        yt_request = yt_request.header("Range", range.to_str().unwrap_or(""));
-    }
+    // Clamp the incoming range to MAX_PROXY_CHUNK bytes. WKWebView's initial media request is
+    // typically unbounded (`bytes=0-` or no Range header), which would cause the proxy to buffer
+    // the entire audio file before returning a single byte. By clamping we return quickly and let
+    // the WebView issue follow-up range requests for subsequent chunks.
+    let incoming_range = request.headers().get("Range").and_then(|v| v.to_str().ok());
+    let (start, end_opt) = parse_bytes_range(incoming_range);
+    let clamped_end = match end_opt {
+        Some(e) => e.min(start.saturating_add(MAX_PROXY_CHUNK - 1)),
+        None => start.saturating_add(MAX_PROXY_CHUNK - 1),
+    };
+    yt_request = yt_request.header("Range", format!("bytes={start}-{clamped_end}"));
 
     let yt_response = yt_request
         .send()
@@ -332,6 +365,7 @@ async fn handle_crate_stream_proxy_inner(
         .status(status)
         .header("Content-Type", content_type)
         .header("Access-Control-Allow-Origin", "*")
+        .header("Accept-Ranges", "bytes")
         .header("Content-Length", bytes.len().to_string());
 
     if let Some(cr) = content_range {
