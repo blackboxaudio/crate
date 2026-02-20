@@ -166,8 +166,9 @@
 		"release": "release",
 		"releases": "releases",
 		"noReleasesYet": "Nog geen releases",
-		"addReleaseHint": "Druk {shortcut} of sleep een URL hiernaartoe om releases van Bandcamp, SoundCloud en meer toe te voegen",
+		"addReleaseHint": "Druk {shortcut} of sleep een URL hiernaartoe om releases van Bandcamp, SoundCloud, Discogs en meer toe te voegen",
 		"dropHint": "URL hier neerleggen om release toe te voegen",
+		"previewNotAvailable": "Voorbeeld niet beschikbaar voor deze bron",
 		"columns": {
 			"artistTitle": "Artiest / Titel",
 			"label": "Label",
@@ -545,6 +546,7 @@
 		"toggleEditor": "Editor wisselen",
 		"toggleView": "Weergave wisselen",
 		"showDevTools": "DevTools tonen",
+		"enterFullScreen": "Vollscherm activeren",
 		"expandAllReleases": "Alle releases uitvouwen",
 		"collapseAllReleases": "Alle releases samenvouwen",
 		"minimize": "Minimaliseren",

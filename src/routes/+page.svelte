@@ -808,8 +808,10 @@
 		discoveryStore.setSort(config)
 	}
 
+	const PREVIEWABLE_SOURCES = new Set(['bandcamp', 'soundcloud'])
+
 	function handleReleaseOpen(release: DiscoveryRelease) {
-		if ((release.source_type === 'bandcamp' || release.source_type === 'soundcloud') && release.tracks.length > 0) {
+		if (PREVIEWABLE_SOURCES.has(release.source_type) && release.tracks.length > 0) {
 			playerStore.playPreview(release, 0)
 		} else {
 			openUrl(release.url)
@@ -817,10 +819,8 @@
 	}
 
 	function handleTrackPlayInRelease(release: DiscoveryRelease, trackIndex: number) {
-		if ((release.source_type === 'bandcamp' || release.source_type === 'soundcloud') && release.tracks.length > 0) {
+		if (PREVIEWABLE_SOURCES.has(release.source_type) && release.tracks.length > 0) {
 			playerStore.playPreview(release, trackIndex)
-		} else {
-			openUrl(release.url)
 		}
 	}
 

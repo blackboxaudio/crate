@@ -1,11 +1,13 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoverySortConfig } from '$lib/types'
+	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySourceType } from '$lib/types'
 	import { handleSelection } from '$lib/utils'
 	import { translate } from '$lib/i18n'
 	import DiscoveryListHeader from './DiscoveryListHeader.svelte'
 	import DiscoveryRow from './DiscoveryRow.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
+
+	const PREVIEWABLE_SOURCES: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud'])
 
 	type Props = {
 		releases: DiscoveryRelease[]
@@ -122,6 +124,7 @@
 					{release}
 					selected={selectedIds.has(release.id)}
 					expanded={expandedIds.has(release.id)}
+					isPreviewable={PREVIEWABLE_SOURCES.has(release.source_type)}
 					dragReleaseIds={Array.from(selectedIds)}
 					{categoryColors}
 					{categorySortOrders}

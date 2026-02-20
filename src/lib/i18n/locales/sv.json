@@ -166,8 +166,9 @@
 		"release": "utgåva",
 		"releases": "utgåvor",
 		"noReleasesYet": "Inga utgåvor än",
-		"addReleaseHint": "Tryck {shortcut} eller dra en URL hit för att lägga till utgåvor från Bandcamp, SoundCloud och mer",
+		"addReleaseHint": "Tryck {shortcut} eller dra en URL hit för att lägga till utgåvor från Bandcamp, SoundCloud, Discogs och mer",
 		"dropHint": "Släpp URL för att lägga till utgåva",
+		"previewNotAvailable": "Förhandsvisning inte tillgänglig för denna källa",
 		"columns": {
 			"artistTitle": "Artist / Titel",
 			"label": "Skivbolag",
@@ -545,6 +546,7 @@
 		"toggleEditor": "Visa/Dölj redigerare",
 		"toggleView": "Växla vy",
 		"showDevTools": "Visa DevTools",
+		"enterFullScreen": "Gå till helskärm",
 		"expandAllReleases": "Expandera alla utgåvor",
 		"collapseAllReleases": "Minimera alla utgåvor",
 		"minimize": "Minimera",

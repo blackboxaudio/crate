@@ -43,6 +43,10 @@
 	function handleSpeedChange(speed: number) {
 		playerStore.setSpeed(speed)
 	}
+
+	function handleSpeedCommit() {
+		playerStore.commitPreviewSpeed()
+	}
 </script>
 
 <div class="flex items-center gap-4 border-t border-stroke bg-surface-1 px-4 py-3">
@@ -66,7 +70,12 @@
 	</div>
 
 	<!-- Tempo -->
-	<TempoControl speed={$playbackSpeed} onSpeedChange={handleSpeedChange} disabled={!hasTrack} />
+	<TempoControl
+		speed={$playbackSpeed}
+		onSpeedChange={handleSpeedChange}
+		onSpeedCommit={handleSpeedCommit}
+		disabled={!hasTrack}
+	/>
 
 	<!-- Volume -->
 	<div class="flex w-40 flex-shrink-0 justify-end">

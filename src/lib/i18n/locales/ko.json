@@ -166,8 +166,9 @@
 		"release": "릴리스",
 		"releases": "릴리스",
 		"noReleasesYet": "아직 릴리스가 없습니다",
-		"addReleaseHint": "{shortcut} 를 누르거나 URL을 여기로 드래그하여 Bandcamp, SoundCloud 등에서 릴리스를 추가하세요",
+		"addReleaseHint": "{shortcut} 를 누르거나 URL을 여기로 드래그하여 Bandcamp, SoundCloud, Discogs 등에서 릴리스를 추가하세요",
 		"dropHint": "릴리스를 추가하려면 URL을 놓으세요",
+		"previewNotAvailable": "이 소스에서는 미리듣기를 사용할 수 없습니다",
 		"columns": {
 			"artistTitle": "아티스트 / 제목",
 			"label": "레이블",
@@ -545,6 +546,7 @@
 		"toggleEditor": "에디터 전환",
 		"toggleView": "보기 전환",
 		"showDevTools": "개발자 도구 표시",
+		"enterFullScreen": "전체 화면 진입",
 		"expandAllReleases": "모든 릴리스 확장",
 		"collapseAllReleases": "모든 릴리스 축소",
 		"minimize": "최소화",

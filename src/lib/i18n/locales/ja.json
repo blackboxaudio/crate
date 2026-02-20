@@ -166,8 +166,9 @@
 		"release": "リリース",
 		"releases": "リリース",
 		"noReleasesYet": "まだリリースがありません",
-		"addReleaseHint": "{shortcut} を押すか、URLをここにドラッグして Bandcamp、SoundCloud など からリリースを追加してください",
+		"addReleaseHint": "{shortcut} を押すか、URLをここにドラッグして Bandcamp、SoundCloud、Discogs など からリリースを追加してください",
 		"dropHint": "URL をドロップしてリリースを追加",
+		"previewNotAvailable": "このソースではプレビューを利用できません",
 		"columns": {
 			"artistTitle": "アーティスト / タイトル",
 			"label": "レーベル",
@@ -546,6 +547,7 @@
 		"toggleEditor": "エディターを切り替え",
 		"toggleView": "ビューを切り替え",
 		"showDevTools": "開発者ツールを表示",
+		"enterFullScreen": "フルスクリーンに入る",
 		"expandAllReleases": "すべてのリリースを展開",
 		"collapseAllReleases": "すべてのリリースを折りたたむ",
 		"minimize": "しまう",

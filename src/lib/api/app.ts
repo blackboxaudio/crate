@@ -79,6 +79,7 @@ export interface MenuTranslations {
 	expandAllReleases: string
 	collapseAllReleases: string
 	showDevTools: string
+	enterFullScreen: string
 	// Settings submenu
 	settingsSubmenu: string
 	settingsGeneral: string

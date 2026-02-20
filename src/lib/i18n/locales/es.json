@@ -166,8 +166,9 @@
 		"release": "lanzamiento",
 		"releases": "lanzamientos",
 		"noReleasesYet": "Sin lanzamientos aún",
-		"addReleaseHint": "Presiona {shortcut} o arrastra una URL aquí para añadir lanzamientos de Bandcamp, SoundCloud y más",
+		"addReleaseHint": "Presiona {shortcut} o arrastra una URL aquí para añadir lanzamientos de Bandcamp, SoundCloud, Discogs y más",
 		"dropHint": "Suelta URL para añadir lanzamiento",
+		"previewNotAvailable": "Vista previa no disponible para esta fuente",
 		"columns": {
 			"artistTitle": "Artista / Título",
 			"label": "Sello",
@@ -545,6 +546,7 @@
 		"toggleEditor": "Alternar editor",
 		"toggleView": "Alternar vista",
 		"showDevTools": "Mostrar DevTools",
+		"enterFullScreen": "Pantalla completa",
 		"expandAllReleases": "Expandir todos los lanzamientos",
 		"collapseAllReleases": "Contraer todos los lanzamientos",
 		"minimize": "Minimizar",

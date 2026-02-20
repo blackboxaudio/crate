@@ -166,8 +166,9 @@
 		"release": "release",
 		"releases": "releases",
 		"noReleasesYet": "No releases yet",
-		"addReleaseHint": "Press {shortcut} or drag a URL here to add releases from Bandcamp, SoundCloud, and more",
+		"addReleaseHint": "Press {shortcut} or drag a URL here to add releases from Bandcamp, SoundCloud, Discogs, and more",
 		"dropHint": "Drop URL to add release",
+		"previewNotAvailable": "Preview not available for this source",
 		"columns": {
 			"artistTitle": "Artist / Title",
 			"label": "Label",
@@ -546,6 +547,7 @@
 		"toggleEditor": "Toggle Editor",
 		"toggleView": "Toggle View",
 		"showDevTools": "Show DevTools",
+		"enterFullScreen": "Enter Full Screen",
 		"expandAllReleases": "Expand All Releases",
 		"collapseAllReleases": "Collapse All Releases",
 		"minimize": "Minimize",

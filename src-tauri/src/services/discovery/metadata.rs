@@ -40,6 +40,7 @@ pub async fn fetch_metadata(url: &str) -> Result<FetchedMetadata> {
         "bandcamp" => fetch_bandcamp(&client, url).await,
         "soundcloud" => fetch_soundcloud(&client, url).await,
         "youtube" => fetch_youtube(&client, url).await,
+        "discogs" => fetch_discogs(&client, url).await,
         _ => fetch_generic(&client, url).await,
     }?;
 
@@ -653,6 +654,299 @@ async fn fetch_youtube(client: &reqwest::Client, url: &str) -> Result<FetchedMet
     })
 }
 
+// =============================================================================
+// Discogs
+// =============================================================================
+
+#[derive(Debug, PartialEq)]
+enum DiscogsUrlKind {
+    Release(u64),
+    Master(u64),
+}
+
+/// Parse a Discogs URL into a typed identifier.
+///
+/// Handles formats:
+/// - `/release/12345`, `/release/12345-Slug`
+/// - `/master/67890`, `/master/67890-Slug`
+/// - `/{artist-slug}/release/12345` (older format)
+fn parse_discogs_url(url: &str) -> Option<DiscogsUrlKind> {
+    let url_without_query = url.split('?').next().unwrap_or(url);
+    let path = url_without_query
+        .strip_prefix("https://")
+        .or_else(|| url_without_query.strip_prefix("http://"))
+        .and_then(|s| s.find('/').map(|i| &s[i..]))
+        .unwrap_or(url_without_query);
+
+    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+
+    for (i, seg) in segments.iter().enumerate() {
+        let kind = match seg.to_lowercase().as_str() {
+            "release" => Some("release"),
+            "master" => Some("master"),
+            _ => None,
+        };
+        if let Some(kind_str) = kind {
+            if let Some(id_seg) = segments.get(i + 1) {
+                // ID may be "12345" or "12345-Some-Slug"
+                let id_part = id_seg.split('-').next().unwrap_or(id_seg);
+                if let Ok(id) = id_part.parse::<u64>() {
+                    return match kind_str {
+                        "release" => Some(DiscogsUrlKind::Release(id)),
+                        "master" => Some(DiscogsUrlKind::Master(id)),
+                        _ => None,
+                    };
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Parse a Discogs duration string (e.g. `"4:30"`, `"1:02:15"`) to milliseconds.
+fn parse_discogs_duration(s: &str) -> Option<i64> {
+    let s = s.trim();
+    if s.is_empty() {
+        return None;
+    }
+
+    let parts: Vec<&str> = s.split(':').collect();
+    let total_secs = match parts.len() {
+        2 => {
+            let mins: u64 = parts[0].parse().ok()?;
+            let secs: u64 = parts[1].parse().ok()?;
+            mins * 60 + secs
+        }
+        3 => {
+            let hours: u64 = parts[0].parse().ok()?;
+            let mins: u64 = parts[1].parse().ok()?;
+            let secs: u64 = parts[2].parse().ok()?;
+            hours * 3600 + mins * 60 + secs
+        }
+        _ => return None,
+    };
+
+    if total_secs > 0 {
+        Some(total_secs as i64 * 1000)
+    } else {
+        None
+    }
+}
+
+/// Strip Discogs disambiguation suffixes like `" (2)"` from artist names.
+/// Preserves non-numeric suffixes like `" (UK)"`.
+fn strip_discogs_suffix(name: &str) -> &str {
+    if let Some(open) = name.rfind(" (") {
+        if name.ends_with(')') {
+            let inner = &name[open + 2..name.len() - 1];
+            if inner.chars().all(|c| c.is_ascii_digit()) {
+                return &name[..open];
+            }
+        }
+    }
+    name
+}
+
+/// Join a Discogs `artists` array, respecting the `join` field between entries.
+fn join_discogs_artists(artists: &[serde_json::Value]) -> Option<String> {
+    if artists.is_empty() {
+        return None;
+    }
+
+    let mut result = String::new();
+    for (i, artist) in artists.iter().enumerate() {
+        let name = artist.get("name").and_then(|n| n.as_str()).unwrap_or("");
+        let cleaned = strip_discogs_suffix(name);
+        result.push_str(cleaned);
+
+        if i < artists.len() - 1 {
+            let join = artist
+                .get("join")
+                .and_then(|j| j.as_str())
+                .unwrap_or(", ");
+            // Ensure spacing around join separators
+            if !join.starts_with(' ') {
+                result.push(' ');
+            }
+            result.push_str(join);
+            if !join.ends_with(' ') {
+                result.push(' ');
+            }
+        }
+    }
+
+    if result.is_empty() {
+        None
+    } else {
+        Some(result)
+    }
+}
+
+async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
+    let kind = parse_discogs_url(url)
+        .ok_or_else(|| CrateError::Discovery("Could not parse Discogs URL".into()))?;
+
+    // For master releases, resolve to the main release first
+    let release_id = match kind {
+        DiscogsUrlKind::Release(id) => id,
+        DiscogsUrlKind::Master(id) => {
+            let master_url = format!("https://api.discogs.com/masters/{id}");
+            let resp: serde_json::Value = client
+                .get(&master_url)
+                .header("User-Agent", "CrateApp/0.1")
+                .send()
+                .await
+                .map_err(|e| {
+                    CrateError::Discovery(format!("Failed to fetch Discogs master: {e}"))
+                })?
+                .json()
+                .await
+                .map_err(|e| {
+                    CrateError::Discovery(format!("Failed to parse Discogs master: {e}"))
+                })?;
+
+            if let Some(msg) = resp.get("message").and_then(|m| m.as_str()) {
+                return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
+            }
+
+            resp.get("main_release")
+                .and_then(|v| v.as_u64())
+                .ok_or_else(|| {
+                    CrateError::Discovery("Discogs master has no main_release".into())
+                })?
+        }
+    };
+
+    let release_url = format!("https://api.discogs.com/releases/{release_id}");
+    let resp: serde_json::Value = client
+        .get(&release_url)
+        .header("User-Agent", "CrateApp/0.1")
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Discogs release: {e}")))?
+        .json()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to parse Discogs release: {e}")))?;
+
+    if let Some(msg) = resp.get("message").and_then(|m| m.as_str()) {
+        return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
+    }
+
+    let artist = resp
+        .get("artists")
+        .and_then(|a| a.as_array())
+        .and_then(|arr| join_discogs_artists(arr));
+
+    let title = resp
+        .get("title")
+        .and_then(|t| t.as_str())
+        .map(|s| s.to_string());
+
+    let label = resp
+        .get("labels")
+        .and_then(|l| l.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|l| l.get("name"))
+        .and_then(|n| n.as_str())
+        .map(|s| s.to_string());
+
+    // Prefer full `released` date, fallback to `year`
+    let release_date = resp
+        .get("released")
+        .and_then(|d| d.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            resp.get("year")
+                .and_then(|y| y.as_u64())
+                .map(|y| format!("{y}"))
+        });
+
+    // Prefer primary image, fallback to first image
+    let artwork_url = resp
+        .get("images")
+        .and_then(|i| i.as_array())
+        .and_then(|images| {
+            images
+                .iter()
+                .find(|img| img.get("type").and_then(|t| t.as_str()) == Some("primary"))
+                .or_else(|| images.first())
+        })
+        .and_then(|img| img.get("uri").and_then(|u| u.as_str()))
+        .map(|s| s.to_string());
+
+    // Extract tracks from tracklist, filtering to actual tracks (skip headings)
+    let mut tracks = resp
+        .get("tracklist")
+        .and_then(|t| t.as_array())
+        .map(|tracklist| {
+            tracklist
+                .iter()
+                .filter(|t| {
+                    t.get("type_")
+                        .and_then(|ty| ty.as_str())
+                        .unwrap_or("track")
+                        == "track"
+                })
+                .enumerate()
+                .filter_map(|(idx, track)| {
+                    let name = track
+                        .get("title")
+                        .and_then(|t| t.as_str())
+                        .map(|s| s.to_string())?;
+                    let duration_ms = track
+                        .get("duration")
+                        .and_then(|d| d.as_str())
+                        .and_then(parse_discogs_duration);
+                    Some(FetchedTrack {
+                        name,
+                        position: (idx + 1) as i32,
+                        duration_ms,
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    // Fallback: fill missing track durations from video metadata
+    if let Some(videos) = resp.get("videos").and_then(|v| v.as_array()) {
+        for track in tracks.iter_mut().filter(|t| t.duration_ms.is_none()) {
+            let track_name_lower = track.name.to_ascii_lowercase();
+
+            if let Some(video_duration) = videos.iter().find_map(|video| {
+                let video_title = video.get("title").and_then(|t| t.as_str())?;
+                let video_title_lower = video_title.to_ascii_lowercase();
+
+                if video_title_lower == track_name_lower
+                    || video_title_lower.contains(&track_name_lower)
+                {
+                    video
+                        .get("duration")
+                        .and_then(|d| d.as_u64())
+                        .filter(|&d| d > 0)
+                } else {
+                    None
+                }
+            }) {
+                track.duration_ms = Some(video_duration as i64 * 1000);
+            }
+        }
+    }
+
+    Ok(FetchedMetadata {
+        artist,
+        title,
+        label,
+        release_date,
+        artwork_url,
+        tracks,
+        source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
+    })
+}
+
 async fn fetch_generic(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
     let html = client
         .get(url)
@@ -925,5 +1219,104 @@ mod tests {
         assert_eq!(meta.tracks.len(), 1);
         assert_eq!(meta.tracks[0].name, "Track One");
         assert_eq!(meta.tracks[0].duration_ms, Some(180_000));
+    }
+
+    // =========================================================================
+    // Discogs helpers
+    // =========================================================================
+
+    #[test]
+    fn test_parse_discogs_url() {
+        assert_eq!(
+            parse_discogs_url("https://www.discogs.com/release/12345-Some-Slug"),
+            Some(DiscogsUrlKind::Release(12345))
+        );
+        assert_eq!(
+            parse_discogs_url("https://www.discogs.com/master/67890-Some-Slug"),
+            Some(DiscogsUrlKind::Master(67890))
+        );
+        // Old format with artist prefix
+        assert_eq!(
+            parse_discogs_url("https://www.discogs.com/Artist-Name/release/99999"),
+            Some(DiscogsUrlKind::Release(99999))
+        );
+        // No slug
+        assert_eq!(
+            parse_discogs_url("https://www.discogs.com/release/42"),
+            Some(DiscogsUrlKind::Release(42))
+        );
+        // With query params
+        assert_eq!(
+            parse_discogs_url("https://www.discogs.com/release/123?anv=foo"),
+            Some(DiscogsUrlKind::Release(123))
+        );
+        // Invalid
+        assert_eq!(
+            parse_discogs_url("https://www.discogs.com/artist/12345"),
+            None
+        );
+        assert_eq!(parse_discogs_url("https://example.com/release/abc"), None);
+    }
+
+    #[test]
+    fn test_parse_discogs_duration() {
+        assert_eq!(parse_discogs_duration("4:30"), Some(270_000));
+        assert_eq!(parse_discogs_duration("0:45"), Some(45_000));
+        assert_eq!(parse_discogs_duration("1:02:15"), Some(3_735_000));
+        assert_eq!(parse_discogs_duration(""), None);
+        assert_eq!(parse_discogs_duration("  "), None);
+        assert_eq!(parse_discogs_duration("invalid"), None);
+        assert_eq!(parse_discogs_duration("0:00"), None);
+    }
+
+    #[test]
+    fn test_strip_discogs_suffix() {
+        assert_eq!(strip_discogs_suffix("Artist (2)"), "Artist");
+        assert_eq!(strip_discogs_suffix("Artist (15)"), "Artist");
+        // Non-numeric suffixes are preserved
+        assert_eq!(strip_discogs_suffix("Artist (UK)"), "Artist (UK)");
+        // No suffix
+        assert_eq!(strip_discogs_suffix("Regular Artist"), "Regular Artist");
+    }
+
+    #[test]
+    fn test_join_discogs_artists() {
+        // Single artist
+        let single = vec![serde_json::json!({"name": "Aphex Twin"})];
+        assert_eq!(
+            join_discogs_artists(&single),
+            Some("Aphex Twin".to_string())
+        );
+
+        // Multi with comma join
+        let multi = vec![
+            serde_json::json!({"name": "Artist A", "join": ","}),
+            serde_json::json!({"name": "Artist B"}),
+        ];
+        assert_eq!(
+            join_discogs_artists(&multi),
+            Some("Artist A, Artist B".to_string())
+        );
+
+        // Multi with ampersand join
+        let ampersand = vec![
+            serde_json::json!({"name": "Artist A", "join": "&"}),
+            serde_json::json!({"name": "Artist B"}),
+        ];
+        assert_eq!(
+            join_discogs_artists(&ampersand),
+            Some("Artist A & Artist B".to_string())
+        );
+
+        // Strips disambiguation suffixes
+        let disambig = vec![serde_json::json!({"name": "Artist (2)"})];
+        assert_eq!(
+            join_discogs_artists(&disambig),
+            Some("Artist".to_string())
+        );
+
+        // Empty
+        let empty: Vec<serde_json::Value> = vec![];
+        assert_eq!(join_discogs_artists(&empty), None);
     }
 }

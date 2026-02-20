@@ -5,10 +5,11 @@
 	type Props = {
 		speed: number
 		onSpeedChange?: (speed: number) => void
+		onSpeedCommit?: (speed: number) => void
 		disabled?: boolean
 	}
 
-	let { speed, onSpeedChange, disabled = false }: Props = $props()
+	let { speed, onSpeedChange, onSpeedCommit, disabled = false }: Props = $props()
 
 	let editing = $state(false)
 	let editValue = $state('')
@@ -24,6 +25,12 @@
 		onSpeedChange?.(1.0 + pct / 100)
 	}
 
+	function handleChange(e: Event) {
+		const target = e.target as HTMLInputElement
+		const pct = parseFloat(target.value)
+		onSpeedCommit?.(1.0 + pct / 100)
+	}
+
 	let clickTimer: ReturnType<typeof setTimeout> | null = null
 
 	function handleClick() {
@@ -32,6 +39,7 @@
 		clickTimer = setTimeout(() => {
 			clickTimer = null
 			onSpeedChange?.(1.0)
+			onSpeedCommit?.(1.0)
 		}, 200)
 	}
 
@@ -53,7 +61,9 @@
 		if (!isNaN(parsed)) {
 			const clamped = Math.max(-10, Math.min(10, parsed))
 			const rounded = Math.round(clamped * 10) / 10
-			onSpeedChange?.(1.0 + rounded / 100)
+			const newSpeed = 1.0 + rounded / 100
+			onSpeedChange?.(newSpeed)
+			onSpeedCommit?.(newSpeed)
 		}
 	}
 
@@ -130,6 +140,7 @@
 				snapToCenter={0.5}
 				{disabled}
 				oninput={handleInput}
+				onchange={handleChange}
 			/>
 		</div>
 		<Tooltip text={$translate('player.resetTempo')} position="top" delay={250}>

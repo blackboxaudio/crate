@@ -166,8 +166,9 @@
 		"release": "rilascio",
 		"releases": "rilasci",
 		"noReleasesYet": "Nessun rilascio per ora",
-		"addReleaseHint": "Premi {shortcut} o trascina un URL qui per aggiungere rilasci da Bandcamp, SoundCloud e altri",
+		"addReleaseHint": "Premi {shortcut} o trascina un URL qui per aggiungere rilasci da Bandcamp, SoundCloud, Discogs e altri",
 		"dropHint": "Rilascia URL per aggiungere rilascio",
+		"previewNotAvailable": "Anteprima non disponibile per questa fonte",
 		"columns": {
 			"artistTitle": "Artista / Titolo",
 			"label": "Etichetta",
@@ -545,6 +546,7 @@
 		"toggleEditor": "Mostra/Nascondi editor",
 		"toggleView": "Cambia vista",
 		"showDevTools": "Mostra DevTools",
+		"enterFullScreen": "Attiva schermo intero",
 		"expandAllReleases": "Espandi tutti i rilasci",
 		"collapseAllReleases": "Comprimi tutti i rilasci",
 		"minimize": "Riduci a icona",

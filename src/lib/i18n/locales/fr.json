@@ -166,8 +166,9 @@
 		"release": "sortie",
 		"releases": "sorties",
 		"noReleasesYet": "Aucune sortie pour le moment",
-		"addReleaseHint": "Appuyez sur {shortcut} ou glissez-déposez une URL ici pour ajouter des sorties de Bandcamp, SoundCloud et plus",
+		"addReleaseHint": "Appuyez sur {shortcut} ou glissez-déposez une URL ici pour ajouter des sorties de Bandcamp, SoundCloud, Discogs et plus",
 		"dropHint": "Déposer l'URL pour ajouter une sortie",
+		"previewNotAvailable": "Aperçu non disponible pour cette source",
 		"columns": {
 			"artistTitle": "Artiste / Titre",
 			"label": "Label",
@@ -545,6 +546,7 @@
 		"toggleEditor": "Afficher/Masquer l'éditeur",
 		"toggleView": "Basculer la vue",
 		"showDevTools": "Afficher les outils de développement",
+		"enterFullScreen": "Passer en plein écran",
 		"expandAllReleases": "Développer toutes les sorties",
 		"collapseAllReleases": "Réduire toutes les sorties",
 		"minimize": "Réduire",

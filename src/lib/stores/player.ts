@@ -58,6 +58,7 @@ function createPlayerStore() {
 	let onTrackEndCallback: (() => void) | null = null
 	let previewRetryAttempted = false
 	let previewRetrying = false
+	let previewSpeedCommitTimeout: ReturnType<typeof setTimeout> | null = null
 
 	function getState(): PlayerState {
 		let state: PlayerState = initialState
@@ -118,8 +119,6 @@ function createPlayerStore() {
 			update((state) => ({
 				...state,
 				playbackState: { ...state.playbackState, position_ms: positionMs },
-				// Clear loading spinner once audio is flowing at the new rate
-				previewLoadingReleaseId: null,
 			}))
 		})
 		previewPlayer.setOnDurationChange((durationMs: number) => {
@@ -142,6 +141,10 @@ function createPlayerStore() {
 			}
 		})
 		previewPlayer.setOnPlaying(() => {
+			if (previewSpeedCommitTimeout) {
+				clearTimeout(previewSpeedCommitTimeout)
+				previewSpeedCommitTimeout = null
+			}
 			update((s) => ({ ...s, previewLoadingReleaseId: null }))
 		})
 		previewPlayer.setOnError(async (msg: string) => {
@@ -322,6 +325,8 @@ function createPlayerStore() {
 			const state = getState()
 
 			if (state.playbackSource === 'preview') {
+				// Sync playback rate in case speed was changed while paused
+				previewPlayer.setPlaybackRate(state.playbackState.speed)
 				previewPlayer.resume()
 				update((s) => ({
 					...s,
@@ -447,11 +452,9 @@ function createPlayerStore() {
 			const state = getState()
 
 			if (state.playbackSource === 'preview') {
-				previewPlayer.setPlaybackRate(speed)
 				update((s) => ({
 					...s,
 					playbackState: { ...s.playbackState, speed },
-					previewLoadingReleaseId: s.previewInfo?.releaseId ?? null,
 					error: null,
 				}))
 				return
@@ -471,6 +474,37 @@ function createPlayerStore() {
 					error: error instanceof Error ? error.message : 'Failed to set speed',
 				}))
 			}
+		},
+
+		/**
+		 * Commit a preview speed change: apply the rate to the audio element,
+		 * show the loading spinner, and force a pause/resume to guarantee the
+		 * 'playing' event fires when audio actually resumes.
+		 */
+		commitPreviewSpeed() {
+			const state = getState()
+			if (state.playbackSource !== 'preview' || !state.previewInfo) return
+			if (!state.playbackState.is_playing) return
+
+			// Clear any pending safety timeout from a previous commit
+			if (previewSpeedCommitTimeout) {
+				clearTimeout(previewSpeedCommitTimeout)
+				previewSpeedCommitTimeout = null
+			}
+
+			// Apply rate change and show spinner
+			previewPlayer.setPlaybackRate(state.playbackState.speed)
+			update((s) => ({ ...s, previewLoadingReleaseId: s.previewInfo?.releaseId ?? null }))
+
+			// Force pause+resume so the 'playing' event fires when audio resumes
+			previewPlayer.pause()
+			previewPlayer.resume()
+
+			// Safety timeout: clear spinner if 'playing' never fires
+			previewSpeedCommitTimeout = setTimeout(() => {
+				previewSpeedCommitTimeout = null
+				update((s) => ({ ...s, previewLoadingReleaseId: null }))
+			}, 5000)
 		},
 
 		/**

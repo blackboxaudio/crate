@@ -166,8 +166,9 @@
 		"release": "lançamento",
 		"releases": "lançamentos",
 		"noReleasesYet": "Nenhum lançamento ainda",
-		"addReleaseHint": "Pressione {shortcut} ou arraste uma URL aqui para adicionar lançamentos do Bandcamp, SoundCloud e muito mais",
+		"addReleaseHint": "Pressione {shortcut} ou arraste uma URL aqui para adicionar lançamentos do Bandcamp, SoundCloud, Discogs e muito mais",
 		"dropHint": "Solte URL para adicionar lançamento",
+		"previewNotAvailable": "Pré-visualização não disponível para esta fonte",
 		"columns": {
 			"artistTitle": "Artista / Título",
 			"label": "Gravadora",
@@ -545,6 +546,7 @@
 		"toggleEditor": "Alternar editor",
 		"toggleView": "Alternar visualização",
 		"showDevTools": "Mostrar DevTools",
+		"enterFullScreen": "Entrar em tela cheia",
 		"expandAllReleases": "Expandir todos os lançamentos",
 		"collapseAllReleases": "Recolher todos os lançamentos",
 		"minimize": "Minimizar",

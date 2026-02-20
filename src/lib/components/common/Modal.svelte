@@ -33,13 +33,14 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		e.stopPropagation()
 		if (e.key === 'Escape') {
+			e.stopPropagation()
 			e.preventDefault()
 			onClose()
 		} else if (e.key === 'Enter' && onSubmit) {
 			const target = e.target as HTMLElement
 			if (target.tagName !== 'TEXTAREA' && target.tagName !== 'BUTTON') {
+				e.stopPropagation()
 				e.preventDefault()
 				onSubmit()
 			}

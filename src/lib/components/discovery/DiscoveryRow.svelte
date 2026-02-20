@@ -13,6 +13,7 @@
 		release: DiscoveryRelease
 		selected?: boolean
 		expanded?: boolean
+		isPreviewable?: boolean
 		dragReleaseIds?: string[]
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -29,6 +30,7 @@
 		release,
 		selected = false,
 		expanded = false,
+		isPreviewable = true,
 		dragReleaseIds = [],
 		categoryColors,
 		categorySortOrders,
@@ -220,24 +222,45 @@
 {#if expanded && release.tracks.length > 0}
 	<div class="border-b border-stroke-subtle bg-surface-1/30" transition:slide={{ duration: 200 }}>
 		{#each release.tracks as track, idx (track.id)}
-			{@const playing = isTrackPlaying(idx)}
+			{@const playing = isPreviewable && isTrackPlaying(idx)}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class="grid cursor-pointer grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 hover:bg-surface-2/50 {track.position >
-				1
-					? 'border-t border-stroke-subtle/50'
-					: ''}"
-				ondblclick={(e) => {
-					e.stopPropagation()
-					onTrackPlay?.(idx)
-				}}
+				class="grid grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 {isPreviewable
+					? 'cursor-pointer hover:bg-surface-2/50'
+					: 'cursor-default'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
+				ondblclick={isPreviewable
+					? (e) => {
+							e.stopPropagation()
+							onTrackPlay?.(idx)
+						}
+					: undefined}
 			>
 				<div></div>
-				<div class="text-center text-xs {playing ? 'text-brand-primary' : 'text-text-tertiary'}">{track.position}</div>
-				<div class="truncate text-xs {playing ? 'font-medium text-brand-primary' : 'text-text-secondary'}">
+				<div
+					class="text-center text-xs {playing
+						? 'text-brand-primary'
+						: isPreviewable
+							? 'text-text-tertiary'
+							: 'text-text-tertiary/50'}"
+				>
+					{track.position}
+				</div>
+				<div
+					class="truncate text-xs {playing
+						? 'font-medium text-brand-primary'
+						: isPreviewable
+							? 'text-text-secondary'
+							: 'text-text-tertiary'}"
+				>
 					{track.name}
 				</div>
-				<div class="mr-1 text-right text-xs {playing ? 'text-brand-primary' : 'text-text-tertiary'}">
+				<div
+					class="mr-1 text-right text-xs {playing
+						? 'text-brand-primary'
+						: isPreviewable
+							? 'text-text-tertiary'
+							: 'text-text-tertiary/50'}"
+				>
 					{track.duration_ms ? formatDuration(track.duration_ms) : ''}
 				</div>
 			</div>

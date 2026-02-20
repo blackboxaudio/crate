@@ -166,8 +166,9 @@
 		"release": "发行",
 		"releases": "发行",
 		"noReleasesYet": "暂无发行",
-		"addReleaseHint": "按下 {shortcut} 或将 URL 拖放到此处，从 Bandcamp、SoundCloud 等添加发行",
+		"addReleaseHint": "按下 {shortcut} 或将 URL 拖放到此处，从 Bandcamp、SoundCloud、Discogs 等添加发行",
 		"dropHint": "拖放 URL 以添加发行",
+		"previewNotAvailable": "此来源不支持预览",
 		"columns": {
 			"artistTitle": "艺术家 / 标题",
 			"label": "厂牌",
@@ -545,6 +546,7 @@
 		"toggleEditor": "切换编辑器",
 		"toggleView": "切换视图",
 		"showDevTools": "显示开发者工具",
+		"enterFullScreen": "进入全屏",
 		"expandAllReleases": "全部展开发行",
 		"collapseAllReleases": "全部折叠发行",
 		"minimize": "最小化",

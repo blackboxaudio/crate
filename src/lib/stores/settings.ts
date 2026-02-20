@@ -201,6 +201,7 @@ function createSettingsStore() {
 			expandAllReleases: t('menu.expandAllReleases'),
 			collapseAllReleases: t('menu.collapseAllReleases'),
 			showDevTools: t('menu.showDevTools'),
+			enterFullScreen: t('menu.enterFullScreen'),
 			// Settings submenu
 			settingsSubmenu: t('menu.settingsSubmenu'),
 			settingsGeneral: t('menu.settingsGeneral'),

@@ -1,6 +1,6 @@
 use serde::Deserialize;
 use tauri::{
-    menu::{Menu, MenuBuilder, MenuItem, MenuItemKind, Submenu, SubmenuBuilder},
+    menu::{Menu, MenuBuilder, MenuItem, MenuItemKind, PredefinedMenuItem, Submenu, SubmenuBuilder},
     AppHandle, Emitter, Manager, Wry,
 };
 
@@ -79,6 +79,8 @@ pub struct MenuTranslations {
     pub settings_appearance: String,
     pub settings_sound: String,
     pub settings_diagnostics: String,
+    // View menu items (predefined)
+    pub enter_full_screen: String,
     // Window menu items
     pub minimize: String,
     pub zoom: String,
@@ -109,14 +111,6 @@ pub mod ids {
     pub const NEW_PLAYLIST: &str = "new_playlist";
     pub const NEW_FOLDER: &str = "new_folder";
     pub const QUICK_EXPORT: &str = "quick_export";
-
-    // Edit menu items
-    pub const UNDO: &str = "undo";
-    pub const REDO: &str = "redo";
-    pub const CUT: &str = "cut";
-    pub const COPY: &str = "copy";
-    pub const PASTE: &str = "paste";
-    pub const SELECT_ALL: &str = "select_all";
 
     // Playback menu items
     pub const PLAY_PAUSE: &str = "play_pause";
@@ -255,50 +249,14 @@ fn build_file_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
 
 fn build_edit_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     SubmenuBuilder::with_id(app, ids::EDIT_MENU, "Edit")
-        .item(&MenuItem::with_id(
-            app,
-            ids::UNDO,
-            "Undo",
-            true,
-            Some("CmdOrCtrl+Z"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::REDO,
-            "Redo",
-            true,
-            Some("CmdOrCtrl+Shift+Z"),
-        )?)
+        .item(&PredefinedMenuItem::undo(app, Some("Undo"))?)
+        .item(&PredefinedMenuItem::redo(app, Some("Redo"))?)
         .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::CUT,
-            "Cut",
-            true,
-            Some("CmdOrCtrl+X"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::COPY,
-            "Copy",
-            true,
-            Some("CmdOrCtrl+C"),
-        )?)
-        .item(&MenuItem::with_id(
-            app,
-            ids::PASTE,
-            "Paste",
-            true,
-            Some("CmdOrCtrl+V"),
-        )?)
+        .item(&PredefinedMenuItem::cut(app, Some("Cut"))?)
+        .item(&PredefinedMenuItem::copy(app, Some("Copy"))?)
+        .item(&PredefinedMenuItem::paste(app, Some("Paste"))?)
         .separator()
-        .item(&MenuItem::with_id(
-            app,
-            ids::SELECT_ALL,
-            "Select All",
-            true,
-            Some("CmdOrCtrl+A"),
-        )?)
+        .item(&PredefinedMenuItem::select_all(app, Some("Select All"))?)
         .build()
 }
 
@@ -467,7 +425,9 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
             Some("CmdOrCtrl+Shift+W"),
         )?)
         .separator()
-        .item(&settings_submenu);
+        .item(&settings_submenu)
+        .separator()
+        .item(&PredefinedMenuItem::fullscreen(app, Some("Enter Full Screen"))?);
 
     if is_dev {
         builder = builder.separator().item(&MenuItem::with_id(
@@ -528,23 +488,6 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
 
         // Handle backend-only actions
         match id {
-            // Forward edit commands to the webview as native editing operations
-            ids::UNDO | ids::REDO | ids::CUT | ids::COPY | ids::PASTE => {
-                if let Some(window) = app.get_webview_window("main") {
-                    let command = match id {
-                        ids::UNDO => "undo",
-                        ids::REDO => "redo",
-                        ids::CUT => "cut",
-                        ids::COPY => "copy",
-                        ids::PASTE => "paste",
-                        _ => return,
-                    };
-                    // Use document.execCommand to forward native edit actions to the webview
-                    let js = format!("document.execCommand('{command}')");
-                    let _ = window.eval(&js);
-                }
-                return;
-            }
             ids::QUIT => {
                 app.exit(0);
                 return;
@@ -636,13 +579,34 @@ pub fn update_menu_translations(
     update_item_text(&menu, ids::NEW_FOLDER, &translations.new_folder)?;
     update_item_text(&menu, ids::QUICK_EXPORT, &translations.quick_export)?;
 
-    // Update Edit menu items
-    update_item_text(&menu, ids::UNDO, &translations.undo)?;
-    update_item_text(&menu, ids::REDO, &translations.redo)?;
-    update_item_text(&menu, ids::CUT, &translations.cut)?;
-    update_item_text(&menu, ids::COPY, &translations.copy)?;
-    update_item_text(&menu, ids::PASTE, &translations.paste)?;
-    update_item_text(&menu, ids::SELECT_ALL, &translations.select_all)?;
+    // Update Edit menu items (PredefinedMenuItems by position)
+    if let Some(MenuItemKind::Submenu(edit_submenu)) = menu.get(ids::EDIT_MENU) {
+        let edit_texts: [&str; 6] = [
+            &translations.undo,
+            &translations.redo,
+            &translations.cut,
+            &translations.copy,
+            &translations.paste,
+            &translations.select_all,
+        ];
+        let predefined: Vec<_> = edit_submenu
+            .items()?
+            .into_iter()
+            .filter_map(|item| match item {
+                MenuItemKind::Predefined(p) => {
+                    // Skip separators (they have empty text)
+                    if p.text().unwrap_or_default().is_empty() {
+                        return None;
+                    }
+                    Some(p)
+                }
+                _ => None,
+            })
+            .collect();
+        for (item, text) in predefined.iter().zip(edit_texts.iter()) {
+            item.set_text(*text)?;
+        }
+    }
 
     // Update Playback menu items
     update_item_text(&menu, ids::PLAY_PAUSE, &translations.play_pause)?;
@@ -706,6 +670,26 @@ pub fn update_menu_translations(
             ),
         ],
     )?;
+
+    // Update View menu PredefinedMenuItems (fullscreen)
+    if let Some(MenuItemKind::Submenu(view_submenu)) = menu.get(ids::VIEW_MENU) {
+        let predefined: Vec<_> = view_submenu
+            .items()?
+            .into_iter()
+            .filter_map(|item| match item {
+                MenuItemKind::Predefined(p) => {
+                    if p.text().unwrap_or_default().is_empty() {
+                        return None;
+                    }
+                    Some(p)
+                }
+                _ => None,
+            })
+            .collect();
+        if let Some(fullscreen) = predefined.first() {
+            fullscreen.set_text(&translations.enter_full_screen)?;
+        }
+    }
 
     // Update Window menu items
     update_item_text(&menu, ids::MINIMIZE, &translations.minimize)?;
