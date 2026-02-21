@@ -401,7 +401,7 @@ export interface ContextMenuItem {
 // Breadcrumb Types
 // =============================================================================
 
-export type BreadcrumbType = 'library' | 'folder' | 'playlist'
+export type BreadcrumbType = 'library' | 'folder' | 'playlist' | 'smart_playlist'
 
 export interface BreadcrumbItem {
 	id: string | null // null for Library root

@@ -500,7 +500,7 @@ export function buildBreadcrumbItems(
 		const item: BreadcrumbItem = {
 			id: playlist.id,
 			name: playlist.name,
-			type: playlist.is_folder ? 'folder' : 'playlist',
+			type: playlist.is_folder ? 'folder' : playlist.is_smart ? 'smart_playlist' : 'playlist',
 			playlist,
 		}
 

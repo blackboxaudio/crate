@@ -60,7 +60,7 @@
 		{#if playlist.is_folder}
 			<Icon name="folder" class="h-6 w-6 text-text-secondary" />
 		{:else if playlist.is_smart}
-			<Icon name="bolt" class="h-6 w-6 text-yellow-400" />
+			<Icon name="bolt" class="h-6 w-6 text-text-secondary" />
 		{:else}
 			<Icon name="music-note" class="h-6 w-6 text-text-secondary" />
 		{/if}

@@ -17,9 +17,10 @@
 
 	type Props = {
 		selectedTracks: Track[]
+		onSave?: () => void
 	}
 
-	let { selectedTracks }: Props = $props()
+	let { selectedTracks, onSave }: Props = $props()
 
 	// Compute bulk info from selected tracks
 	let bulkInfo = $derived(computeBulkTrackInfo(selectedTracks))
@@ -98,6 +99,8 @@
 
 			// Notify sync store about track changes (for auto-sync)
 			syncStore.notifyTrackChanges(ids)
+
+			onSave?.()
 
 			// Only clear snapshotted keys (preserve any new edits made during save)
 			const updated = { ...formData }

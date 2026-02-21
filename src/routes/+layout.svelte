@@ -4,10 +4,13 @@
 	import type { Language } from '$lib/types'
 	import ToastContainer from '$lib/components/common/ToastContainer.svelte'
 	import CrashScreen from '$lib/components/common/CrashScreen.svelte'
+	import SplashScreen from '$lib/components/common/SplashScreen.svelte'
 	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
+	import { getVersion } from '@tauri-apps/api/app'
 	import { isDev } from '$lib/stores/app'
 	import { settingsStore } from '$lib/stores/settings'
+	import { splashVisible } from '$lib/stores/splash'
 	import { useGlobalErrorHandler, hasAudioDrag } from '$lib/hooks'
 	import { initializeI18n } from '$lib/i18n'
 
@@ -17,8 +20,12 @@
 
 	let { children }: Props = $props()
 	let i18nReady = $state(false)
+	let splashVersion = $state('0.0.0')
 
 	onMount(() => {
+		// Load version immediately (fast config read, no backend dependency)
+		getVersion().then((v) => (splashVersion = v))
+
 		// Start async initialization
 		async function init() {
 			// Initialize i18n with cached language from localStorage (or system language)
@@ -68,6 +75,8 @@
 		}
 	})
 </script>
+
+<SplashScreen show={$splashVisible} version={splashVersion} />
 
 <div class="flex h-screen w-screen flex-col overflow-hidden bg-surface-0 text-text-primary">
 	{#if i18nReady}

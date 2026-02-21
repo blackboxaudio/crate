@@ -84,6 +84,7 @@ const DISCOVERY_FIELDS: FieldDefinition[] = [
 			{ value: 'bandcamp', labelKey: 'Bandcamp' },
 			{ value: 'soundcloud', labelKey: 'SoundCloud' },
 			{ value: 'youtube', labelKey: 'YouTube' },
+			{ value: 'discogs', labelKey: 'Discogs' },
 			{ value: 'other', labelKey: 'Other' },
 		],
 	},

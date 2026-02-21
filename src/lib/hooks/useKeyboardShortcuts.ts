@@ -13,7 +13,7 @@ export interface KeyboardShortcutHandlers {
 	onNewPlaylist: () => void
 	onNewFolder: () => void
 	onImport: () => void
-	onDeleteSelected: () => void
+	onDeleteSelected: () => boolean
 	onPlaySelected: () => void
 	onSeekBackward: () => void
 	onSeekForward: () => void
@@ -186,8 +186,9 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 
 		// Delete/Backspace: remove selected tracks (when not typing)
 		if ((e.key === 'Delete' || e.key === 'Backspace') && !inputFocused) {
-			e.preventDefault()
-			onDeleteSelected()
+			if (onDeleteSelected()) {
+				e.preventDefault()
+			}
 		}
 
 		// Enter: play selected track (when not typing)
