@@ -31,19 +31,18 @@
 		'list-minus':
 			'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6',
 		palette:
-			'M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01',
+			'<path d="M12 22a1 1 0 0 1 0-20 10 9 0 0 1 10 9 5 5 0 0 1-5 5h-2.25a1.75 1.75 0 0 0-1.4 2.8l.3.4a1.75 1.75 0 0 1-1.4 2.8z" /><circle cx="13.5" cy="6.5" r=".5" fill="currentColor" /><circle cx="17.5" cy="10.5" r=".5" fill="currentColor" /><circle cx="6.5" cy="12.5" r=".5" fill="currentColor" /><circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />',
 		eject: 'M5 12l7-7 7 7M5 12h14M5 17h14',
 		refresh:
 			'M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15',
 		// Breadcrumb icons
-		library:
-			'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+		library: '<path d="m16 6 4 14" /><path d="M12 6v14" /><path d="M8 8v12" /><path d="M4 4v16" />',
 		folder: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
 		playlist:
 			'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3',
 		'chevron-right': 'M9 5l7 7-7 7',
 		// Additional stroke icons
-		usb: 'M15 3h-6a1 1 0 00-1 1v3H6a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V9a2 2 0 00-2-2h-2V4a1 1 0 00-1-1zM9 3v4m6-4v4',
+		usb: '<path fill="currentColor" stroke="none" d="M18 12H6C5.45 12 5 12.45 5 13V19C5 19.55 5.45 20 6 20H18C18.55 20 19 19.55 19 19V13C19 12.45 18.55 12 18 12ZM5 10V4C5 2.9 5.9 2 7 2H17C18.1 2 19 2.9 19 4V10C20.1 10 21 10.9 21 12V20C21 21.1 20.1 22 19 22H5C3.9 22 3 21.1 3 20V12C3 10.9 3.9 10 5 10ZM8 10H16C16.55 10 17 9.55 17 9V5C17 4.45 16.55 4 16 4H8C7.45 4 7 4.45 7 5V9C7 9.55 7.45 10 8 10ZM9 6H11V8H9V6ZM13 6H15V8H13V6Z" />',
 		check: 'M5 13l4 4L19 7',
 		x: 'M6 18L18 6M6 6l12 12',
 		warning:
@@ -54,6 +53,8 @@
 		search: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
 		settings:
 			'M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z',
+		'sliders-horizontal':
+			'<path d="M10 5H3" /><path d="M12 19H3" /><path d="M14 3v4" /><path d="M16 17v4" /><path d="M21 12h-9" /><path d="M21 19h-5" /><path d="M21 5h-7" /><path d="M8 10v4" /><path d="M8 12H3" />',
 		plus: 'M12 4v16m8-8H4',
 		grid: 'M4 6h16M4 10h16M4 14h16M4 18h16',
 		terminal: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
@@ -104,7 +105,20 @@
 		<path d={fillIcons[name]} />
 	</svg>
 {:else if strokeIcons[name]}
-	<svg class="{className} shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d={strokeIcons[name]} />
+	<svg
+		class="{className} shrink-0"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		viewBox="0 0 24 24"
+	>
+		{#if strokeIcons[name].startsWith('<')}
+			<!-- eslint-disable svelte/no-at-html-tags -->
+			{@html strokeIcons[name]}
+		{:else}
+			<path d={strokeIcons[name]} />
+		{/if}
 	</svg>
 {/if}

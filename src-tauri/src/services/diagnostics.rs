@@ -105,9 +105,9 @@ impl DiagnosticsService {
     }
 
     /// Generate a full diagnostics report
-    pub fn generate_report(&self) -> DiagnosticsReport {
+    pub fn generate_report(&self, app_version: String) -> DiagnosticsReport {
         DiagnosticsReport {
-            app_version: env!("CARGO_PKG_VERSION").to_string(),
+            app_version,
             environment: option_env!("CRATE_ENV")
                 .unwrap_or("development")
                 .to_string(),

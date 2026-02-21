@@ -25,7 +25,7 @@ pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
         .to_string();
 
     Ok(AppInfo {
-        version: env!("CARGO_PKG_VERSION").to_string(),
+        version: app.package_info().version.to_string(),
         environment,
         is_dev,
         data_dir,

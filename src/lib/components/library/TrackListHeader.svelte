@@ -2,6 +2,7 @@
 	import type { SortConfig, TrackSortField } from '$lib/types'
 	import { getNextSortConfig } from '$lib/utils'
 	import { translate } from '$lib/i18n'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		sortConfig: SortConfig
@@ -15,11 +16,6 @@
 			const newConfig = getNextSortConfig(sortConfig, field)
 			onSort?.(newConfig)
 		}
-	}
-
-	function getSortIndicator(field: ExtendedTrackSortField): string {
-		if (field === 'tags' || sortConfig.field !== field) return ''
-		return sortConfig.direction === 'asc' ? ' ↑' : ' ↓'
 	}
 
 	type ExtendedTrackSortField = TrackSortField | 'tags'
@@ -52,7 +48,15 @@
 				class="text-{column.align} transition-colors hover:text-text-secondary"
 				onclick={() => column.field && handleSort(column.field)}
 			>
-				{column.labelKey ? $translate(column.labelKey) : ''}{getSortIndicator(column.field)}
+				{column.labelKey ? $translate(column.labelKey) : ''}
+				{#if column.field && column.field !== 'tags' && sortConfig.field === column.field}
+					<Icon
+						name="chevron-down"
+						class="ml-1 inline-block h-3 w-3 align-middle transition-transform {sortConfig.direction === 'asc'
+							? 'rotate-180'
+							: ''}"
+					/>
+				{/if}
 			</button>
 		{:else}
 			<div class="text-{column.align}">

@@ -20,9 +20,11 @@ pub async fn get_system_info(
 
 #[tauri::command]
 pub async fn get_diagnostics_report(
+    app: tauri::AppHandle,
     diagnostics_service: State<'_, DiagnosticsService>,
 ) -> Result<DiagnosticsReport> {
-    Ok(diagnostics_service.generate_report())
+    let version = app.package_info().version.to_string();
+    Ok(diagnostics_service.generate_report(version))
 }
 
 #[tauri::command]

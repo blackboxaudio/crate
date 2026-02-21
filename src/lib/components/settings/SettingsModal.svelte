@@ -97,7 +97,7 @@
 								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 							onclick={() => (activePage = 'general')}
 						>
-							<Icon name="globe" class="h-4 w-4" />
+							<Icon name="sliders-horizontal" class="h-4 w-4" />
 							{$translate('settings.tabs.general')}
 						</button>
 						<button
@@ -119,7 +119,7 @@
 								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 							onclick={() => (activePage = 'library')}
 						>
-							<Icon name="music-note" class="h-4 w-4" />
+							<Icon name="library" class="h-4 w-4" />
 							{$translate('settings.tabs.library')}
 						</button>
 						<button

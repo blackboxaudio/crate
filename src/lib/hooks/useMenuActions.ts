@@ -96,7 +96,7 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 		switch (action) {
 			// App menu
 			case 'about':
-				onOpenSettings()
+				onOpenSettings('about')
 				break
 			case 'settings':
 				onOpenSettings()

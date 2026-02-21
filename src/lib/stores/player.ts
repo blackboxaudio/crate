@@ -179,6 +179,8 @@ function createPlayerStore() {
 					previewRetrying = false
 				}
 			}
+			clearPreviewEvents()
+			stopPreviewInternal()
 			update((s) => ({
 				...s,
 				error: msg,

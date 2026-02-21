@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DiscoverySortConfig, DiscoverySortField } from '$lib/types'
 	import { translate } from '$lib/i18n'
+	import Icon from '$lib/components/common/Icon.svelte'
 
 	type Props = {
 		sortConfig: DiscoverySortConfig
@@ -18,11 +19,6 @@
 				? { field, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' }
 				: { field, direction: 'asc' }
 		onSort?.(newConfig)
-	}
-
-	function getSortIndicator(field: ExtendedField): string {
-		if (field === 'tags' || sortConfig.field !== field) return ''
-		return sortConfig.direction === 'asc' ? ' \u2191' : ' \u2193'
 	}
 
 	type Column = {
@@ -51,10 +47,16 @@
 		{#if column.field}
 			<button
 				type="button"
-				class="text-{column.align} transition-colors hover:text-text-secondary"
+				class="text-{column.align} flex items-center gap-1 transition-colors hover:text-text-secondary"
 				onclick={() => column.field && handleSort(column.field)}
 			>
-				{column.labelKey ? $translate(column.labelKey) : ''}{getSortIndicator(column.field)}
+				{column.labelKey ? $translate(column.labelKey) : ''}
+				{#if column.field && column.field !== 'tags' && sortConfig.field === column.field}
+					<Icon
+						name="chevron-down"
+						class="ml-1 inline-block h-3 w-3 transition-transform {sortConfig.direction === 'asc' ? 'rotate-180' : ''}"
+					/>
+				{/if}
 			</button>
 		{:else}
 			<div class="text-{column.align}">

@@ -3,8 +3,8 @@
  * Version bump script for Crate
  * Synchronizes version across package.json, Cargo.toml, tauri.conf.json, and tauri.staging.conf.json
  *
- * Tauri configs get MSI-compatible versions (numeric-only prerelease identifiers)
- * to satisfy Windows MSI bundling requirements.
+ * Production tauri.conf.json gets base version only (no prerelease).
+ * Staging tauri.staging.conf.json gets the full semver version.
  *
  * Usage:
  *   node scripts/version.js <major|minor|patch>              # Standard version bump
@@ -42,14 +42,6 @@ function formatVersion({ major, minor, patch, channel, prerelease }) {
 	const base = `${major}.${minor}.${patch}`
 	if (channel && prerelease !== null) {
 		return `${base}-${channel}.${prerelease}`
-	}
-	return base
-}
-
-function formatBundleVersion({ major, minor, patch, prerelease }) {
-	const base = `${major}.${minor}.${patch}`
-	if (prerelease !== null) {
-		return `${base}-${prerelease}`
 	}
 	return base
 }
@@ -136,10 +128,9 @@ function updateVersion(bumpType, channel = null) {
 	writeFileSync(cargoTomlPath, cargoToml)
 	console.log(`Updated src-tauri/Cargo.toml: ${oldVersion} -> ${newVersion}`)
 
-	// Compute MSI-compatible bundle version (numeric-only prerelease)
+	// Compute base version (no prerelease) for production tauri.conf.json
 	const parsed = parseVersion(newVersion)
-	const baseVersion = formatBundleVersion({ ...parsed, prerelease: null })
-	const bundleVersion = formatBundleVersion(parsed)
+	const baseVersion = formatVersion({ ...parsed, channel: null, prerelease: null })
 
 	// Update tauri.conf.json with base version only (no prerelease)
 	const tauriConfPath = join(ROOT, 'src-tauri', 'tauri.conf.json')
@@ -148,18 +139,26 @@ function updateVersion(bumpType, channel = null) {
 	writeFileSync(tauriConfPath, JSON.stringify(tauriConf, null, '  ') + '\n')
 	console.log(`Updated src-tauri/tauri.conf.json: -> ${baseVersion}`)
 
-	// Update tauri.staging.conf.json with numeric-only prerelease
+	// Update tauri.staging.conf.json with full version
 	const stagingConfPath = join(ROOT, 'src-tauri', 'tauri.staging.conf.json')
 	const stagingConf = JSON.parse(readFileSync(stagingConfPath, 'utf-8'))
 	if (parsed.prerelease !== null) {
-		stagingConf.version = bundleVersion
+		stagingConf.version = newVersion
 	} else {
 		delete stagingConf.version
 	}
 	writeFileSync(stagingConfPath, JSON.stringify(stagingConf, null, '\t') + '\n')
 	console.log(
-		`Updated src-tauri/tauri.staging.conf.json: -> ${parsed.prerelease !== null ? bundleVersion : '(inherited)'}`
+		`Updated src-tauri/tauri.staging.conf.json: -> ${parsed.prerelease !== null ? newVersion : '(inherited)'}`
 	)
+
+	// Update tauri.dev.conf.json with dev version
+	const devConfPath = join(ROOT, 'src-tauri', 'tauri.dev.conf.json')
+	const devConf = JSON.parse(readFileSync(devConfPath, 'utf-8'))
+	const devVersion = `${baseVersion}-dev`
+	devConf.version = devVersion
+	writeFileSync(devConfPath, JSON.stringify(devConf, null, '\t') + '\n')
+	console.log(`Updated src-tauri/tauri.dev.conf.json: -> ${devVersion}`)
 
 	console.log(`\nVersion bumped from ${oldVersion} to ${newVersion}`)
 }
