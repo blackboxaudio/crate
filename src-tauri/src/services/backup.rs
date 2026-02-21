@@ -618,11 +618,11 @@ pub async fn create_backup(
         },
     );
 
-    let artwork_dir = app_handle
+    // artwork_path values in the DB are relative to app_data_dir (e.g. "artwork/abc.webp")
+    let data_dir = app_handle
         .path()
         .app_data_dir()
-        .map_err(|e| CrateError::Backup(format!("Failed to resolve app data dir: {e}")))?
-        .join("artwork");
+        .map_err(|e| CrateError::Backup(format!("Failed to resolve app data dir: {e}")))?;
 
     // Gather unique artwork paths from tracks and discovery releases
     let mut artwork_paths: HashSet<String> = HashSet::new();
@@ -638,12 +638,12 @@ pub async fn create_backup(
     }
 
     if !artwork_paths.is_empty() {
-        let artwork_dir = artwork_dir.clone();
+        let data_dir = data_dir.clone();
         let artwork_map = tokio::task::spawn_blocking(move || -> HashMap<String, String> {
             let engine = base64::engine::general_purpose::STANDARD;
             let mut map = HashMap::new();
             for rel_path in artwork_paths {
-                let full_path = artwork_dir.join(&rel_path);
+                let full_path = data_dir.join(&rel_path);
                 if let Ok(bytes) = std::fs::read(&full_path) {
                     map.insert(rel_path, engine.encode(&bytes));
                 }
@@ -792,14 +792,16 @@ pub async fn restore_from_backup(
         },
     );
 
-    let artwork_dir = app_handle
+    // artwork_path values are relative to app_data_dir (e.g. "artwork/abc.webp")
+    let data_dir = app_handle
         .path()
         .app_data_dir()
-        .map_err(|e| CrateError::Backup(format!("Failed to resolve app data dir: {e}")))?
-        .join("artwork");
+        .map_err(|e| CrateError::Backup(format!("Failed to resolve app data dir: {e}")))?;
+    let artwork_dir = data_dir.join("artwork");
 
     if let Some(files) = artwork_files {
         // Backup contains artwork — clear existing artwork dir and write all files
+        let data_dir_clone = data_dir.clone();
         let artwork_dir_clone = artwork_dir.clone();
         tokio::task::spawn_blocking(move || -> Result<()> {
             let engine = base64::engine::general_purpose::STANDARD;
@@ -812,7 +814,7 @@ pub async fn restore_from_backup(
                 .map_err(|e| CrateError::Backup(format!("Failed to create artwork dir: {e}")))?;
 
             for (rel_path, b64_data) in &files {
-                let full_path = artwork_dir_clone.join(rel_path);
+                let full_path = data_dir_clone.join(rel_path);
                 if let Some(parent) = full_path.parent() {
                     let _ = std::fs::create_dir_all(parent);
                 }
@@ -829,7 +831,7 @@ pub async fn restore_from_backup(
     // Clean up stale artwork_path references (files that don't exist on disk)
     {
         let conn = conn.clone();
-        let artwork_dir = artwork_dir.clone();
+        let data_dir = data_dir.clone();
         tokio::task::spawn_blocking(move || -> Result<()> {
             let conn = conn
                 .lock()
@@ -845,7 +847,7 @@ pub async fn restore_from_backup(
                     Ok((id, path))
                 })?
                 .filter_map(|r| r.ok())
-                .filter(|(_, path)| !artwork_dir.join(path).exists())
+                .filter(|(_, path)| !data_dir.join(path).exists())
                 .map(|(id, _)| id)
                 .collect();
             drop(stmt);
@@ -868,7 +870,7 @@ pub async fn restore_from_backup(
                     Ok((id, path))
                 })?
                 .filter_map(|r| r.ok())
-                .filter(|(_, path)| !artwork_dir.join(path).exists())
+                .filter(|(_, path)| !data_dir.join(path).exists())
                 .map(|(id, _)| id)
                 .collect();
             drop(stmt);
