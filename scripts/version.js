@@ -148,7 +148,7 @@ function updateVersion(bumpType, channel = null) {
 		if (!stagingConf.bundle) stagingConf.bundle = {}
 		if (!stagingConf.bundle.windows) stagingConf.bundle.windows = {}
 		if (!stagingConf.bundle.windows.wix) stagingConf.bundle.windows.wix = {}
-		stagingConf.bundle.windows.wix.version = `${baseVersion}-${parsed.prerelease}`
+		stagingConf.bundle.windows.wix.version = `${baseVersion}.${parsed.prerelease}`
 	} else {
 		// Stable: remove staging version + clean up WiX override
 		delete stagingConf.version
