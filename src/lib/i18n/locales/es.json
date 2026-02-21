@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "Europeo (DD/MM/YYYY)",
-			"dateFormatDot": "Punto (DD.MM.YYYY)"
+			"dateFormatDot": "Punto (DD.MM.YYYY)",
+			"backup": {
+				"title": "Copia de seguridad y restauración",
+				"description": "Crea una copia de seguridad de tu biblioteca o restaura desde una copia de seguridad anterior.",
+				"createBackup": "Crear copia de seguridad",
+				"createBackupDescription": "Guarda todas las pistas, listas de reproducción, etiquetas y lanzamientos de descubrimiento en un archivo de copia de seguridad.",
+				"restoreFromBackup": "Restaurar desde copia de seguridad",
+				"restoreFromBackupDescription": "Reemplaza tu biblioteca actual con datos de un archivo de copia de seguridad.",
+				"restoreWarning": "Esto reemplazará todos los datos de la biblioteca actual, incluidas pistas, listas de reproducción, etiquetas y lanzamientos de descubrimiento. Esta acción no se puede deshacer.",
+				"creatingBackup": "Creando copia de seguridad...",
+				"restoringBackup": "Restaurando desde copia de seguridad...",
+				"readingData": "Leyendo datos de biblioteca...",
+				"writingFile": "Escribiendo archivo de copia de seguridad...",
+				"restoringData": "Restaurando datos de biblioteca...",
+				"backupComplete": "Copia de seguridad creada correctamente.",
+				"restoreComplete": "Biblioteca restaurada correctamente.",
+				"lastBackupAt": "Última copia de seguridad el {date}",
+				"noBackups": "Sin copias de seguridad aún."
+			}
 		},
 		"library": {
 			"analysis": "Análisis",

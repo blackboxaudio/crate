@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "Europeisk (DD/MM/YYYY)",
-			"dateFormatDot": "Punkt (DD.MM.YYYY)"
+			"dateFormatDot": "Punkt (DD.MM.YYYY)",
+			"backup": {
+				"title": "Säkerhetskopiering och återställning",
+				"description": "Skapa en säkerhetskopia av ditt bibliotek eller återställ från en tidigare säkerhetskopia.",
+				"createBackup": "Skapa säkerhetskopia",
+				"createBackupDescription": "Spara alla spår, spellistor, taggar och upptäcktsutgåvor i en säkerhetskopia.",
+				"restoreFromBackup": "Återställ från säkerhetskopia",
+				"restoreFromBackupDescription": "Ersätt ditt aktuella bibliotek med data från en säkerhetskopia.",
+				"restoreWarning": "Detta kommer att ersätta all aktuell biblioteksdata inklusive spår, spellistor, taggar och upptäcktsutgåvor. Denna åtgärd kan inte ångras.",
+				"creatingBackup": "Skapar säkerhetskopia...",
+				"restoringBackup": "Återställer från säkerhetskopia...",
+				"readingData": "Läser biblioteksdata...",
+				"writingFile": "Skriver säkerhetskopieringsfil...",
+				"restoringData": "Återställer biblioteksdata...",
+				"backupComplete": "Säkerhetskopia skapad framgångsrikt.",
+				"restoreComplete": "Bibliotek återställt framgångsrikt.",
+				"lastBackupAt": "Senast säkerhetskopierad {date}",
+				"noBackups": "Ingen säkerhetskopia ännu."
+			}
 		},
 		"library": {
 			"analysis": "Analys",

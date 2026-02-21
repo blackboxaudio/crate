@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "ヨーロッパ (DD/MM/YYYY)",
-			"dateFormatDot": "ドット (DD.MM.YYYY)"
+			"dateFormatDot": "ドット (DD.MM.YYYY)",
+			"backup": {
+				"title": "バックアップと復元",
+				"description": "ライブラリのバックアップを作成するか、以前のバックアップから復元します。",
+				"createBackup": "バックアップを作成",
+				"createBackupDescription": "すべてのトラック、プレイリスト、タグ、ディスカバリーリリースをバックアップファイルに保存します。",
+				"restoreFromBackup": "バックアップから復元",
+				"restoreFromBackupDescription": "現在のライブラリをバックアップファイルのデータに置き換えます。",
+				"restoreWarning": "これにより、トラック、プレイリスト、タグ、ディスカバリーリリースを含む現在のすべてのライブラリデータが置き換わります。この操作は元に戻せません。",
+				"creatingBackup": "バックアップを作成中...",
+				"restoringBackup": "バックアップから復元中...",
+				"readingData": "ライブラリデータを読み込み中...",
+				"writingFile": "バックアップファイルを書き込み中...",
+				"restoringData": "ライブラリデータを復元中...",
+				"backupComplete": "バックアップが正常に作成されました。",
+				"restoreComplete": "ライブラリが正常に復元されました。",
+				"lastBackupAt": "最後にバックアップされたのは {date}",
+				"noBackups": "バックアップはまだありません。"
+			}
 		},
 		"library": {
 			"analysis": "解析",

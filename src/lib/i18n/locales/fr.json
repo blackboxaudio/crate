@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "Européen (DD/MM/YYYY)",
-			"dateFormatDot": "Point (DD.MM.YYYY)"
+			"dateFormatDot": "Point (DD.MM.YYYY)",
+			"backup": {
+				"title": "Sauvegarde et restauration",
+				"description": "Créez une sauvegarde de votre bibliothèque ou restaurez-la à partir d'une sauvegarde antérieure.",
+				"createBackup": "Créer une sauvegarde",
+				"createBackupDescription": "Enregistrez toutes les pistes, playlists, tags et sorties découvertes dans un fichier de sauvegarde.",
+				"restoreFromBackup": "Restaurer à partir de la sauvegarde",
+				"restoreFromBackupDescription": "Remplacez votre bibliothèque actuelle par les données d'un fichier de sauvegarde.",
+				"restoreWarning": "Cela remplacera toutes les données de bibliothèque actuelles, y compris les pistes, les playlists, les tags et les sorties découvertes. Cette action ne peut pas être annulée.",
+				"creatingBackup": "Création de la sauvegarde...",
+				"restoringBackup": "Restauration à partir de la sauvegarde...",
+				"readingData": "Lecture des données de la bibliothèque...",
+				"writingFile": "Écriture du fichier de sauvegarde...",
+				"restoringData": "Restauration des données de la bibliothèque...",
+				"backupComplete": "Sauvegarde créée avec succès.",
+				"restoreComplete": "Bibliothèque restaurée avec succès.",
+				"lastBackupAt": "Dernière sauvegarde le {date}",
+				"noBackups": "Aucune sauvegarde pour le moment."
+			}
 		},
 		"library": {
 			"analysis": "Analyse",

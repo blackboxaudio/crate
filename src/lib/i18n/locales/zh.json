@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "欧洲 (DD/MM/YYYY)",
-			"dateFormatDot": "点 (DD.MM.YYYY)"
+			"dateFormatDot": "点 (DD.MM.YYYY)",
+			"backup": {
+				"title": "备份和还原",
+				"description": "创建您曲库的备份或从之前的备份还原。",
+				"createBackup": "创建备份",
+				"createBackupDescription": "将所有曲目、播放列表、标签和发现版本保存到备份文件。",
+				"restoreFromBackup": "从备份还原",
+				"restoreFromBackupDescription": "用备份文件中的数据替换您当前的曲库。",
+				"restoreWarning": "这将替换所有当前曲库数据，包括曲目、播放列表、标签和发现版本。此操作无法撤销。",
+				"creatingBackup": "正在创建备份...",
+				"restoringBackup": "正在从备份还原...",
+				"readingData": "正在读取曲库数据...",
+				"writingFile": "正在写入备份文件...",
+				"restoringData": "正在还原曲库数据...",
+				"backupComplete": "备份创建成功。",
+				"restoreComplete": "曲库还原成功。",
+				"lastBackupAt": "最后备份于 {date}",
+				"noBackups": "尚无备份。"
+			}
 		},
 		"library": {
 			"analysis": "分析",

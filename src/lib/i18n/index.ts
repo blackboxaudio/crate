@@ -53,7 +53,7 @@ function getSystemLanguage(): Language {
 export async function initializeI18n(savedLanguage?: Language | null): Promise<void> {
 	const language = savedLanguage || getSystemLanguage()
 	locale.set(language)
-	await waitLocale()
+	await waitLocale(language)
 }
 
 /**
@@ -61,7 +61,7 @@ export async function initializeI18n(savedLanguage?: Language | null): Promise<v
  */
 export async function setLanguage(language: Language): Promise<void> {
 	locale.set(language)
-	await waitLocale()
+	await waitLocale(language)
 }
 
 /**

@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "Europäisch (DD/MM/YYYY)",
-			"dateFormatDot": "Punkt (DD.MM.YYYY)"
+			"dateFormatDot": "Punkt (DD.MM.YYYY)",
+			"backup": {
+				"title": "Sicherung und Wiederherstellung",
+				"description": "Erstellen Sie eine Sicherung Ihrer Bibliothek oder stellen Sie eine frühere Sicherung wieder her.",
+				"createBackup": "Sicherung erstellen",
+				"createBackupDescription": "Speichern Sie alle Tracks, Playlists, Tags und Discovery-Releases in einer Sicherungsdatei.",
+				"restoreFromBackup": "Aus Sicherung wiederherstellen",
+				"restoreFromBackupDescription": "Ersetzen Sie Ihre aktuelle Bibliothek durch Daten aus einer Sicherungsdatei.",
+				"restoreWarning": "Dies ersetzt alle aktuellen Bibliotheksdaten einschließlich Tracks, Playlists, Tags und Discovery-Releases. Diese Aktion kann nicht rückgängig gemacht werden.",
+				"creatingBackup": "Sicherung wird erstellt...",
+				"restoringBackup": "Wiederherstellung aus Sicherung...",
+				"readingData": "Bibliotheksdaten werden gelesen...",
+				"writingFile": "Sicherungsdatei wird geschrieben...",
+				"restoringData": "Bibliotheksdaten werden wiederhergestellt...",
+				"backupComplete": "Sicherung erfolgreich erstellt.",
+				"restoreComplete": "Bibliothek erfolgreich wiederhergestellt.",
+				"lastBackupAt": "Zuletzt gesichert am {date}",
+				"noBackups": "Noch keine Sicherungen."
+			}
 		},
 		"library": {
 			"analysis": "Analyse",

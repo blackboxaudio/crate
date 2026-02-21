@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "European (DD/MM/YYYY)",
-			"dateFormatDot": "Dot (DD.MM.YYYY)"
+			"dateFormatDot": "Dot (DD.MM.YYYY)",
+			"backup": {
+				"title": "Backup & Restore",
+				"description": "Create a backup of your library or restore from a previous backup.",
+				"createBackup": "Create Backup",
+				"createBackupDescription": "Save all tracks, playlists, tags, and discovery releases to a backup file.",
+				"restoreFromBackup": "Restore from Backup",
+				"restoreFromBackupDescription": "Replace your current library with data from a backup file.",
+				"restoreWarning": "This will replace all current library data including tracks, playlists, tags, and discovery releases. This action cannot be undone.",
+				"creatingBackup": "Creating backup...",
+				"restoringBackup": "Restoring from backup...",
+				"readingData": "Reading library data...",
+				"writingFile": "Writing backup file...",
+				"restoringData": "Restoring library data...",
+				"backupComplete": "Backup created successfully.",
+				"restoreComplete": "Library restored successfully.",
+				"lastBackupAt": "Last backed up {date}",
+				"noBackups": "No backups yet."
+			}
 		},
 		"library": {
 			"analysis": "Analysis",

@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "Europees (DD/MM/YYYY)",
-			"dateFormatDot": "Punt (DD.MM.YYYY)"
+			"dateFormatDot": "Punt (DD.MM.YYYY)",
+			"backup": {
+				"title": "Back-up en herstellen",
+				"description": "Maak een back-up van uw bibliotheek of herstel vanuit een eerdere back-up.",
+				"createBackup": "Back-up maken",
+				"createBackupDescription": "Sla alle tracks, afspeellijsten, tags en ontdekkingsreleases op in een back-upbestand.",
+				"restoreFromBackup": "Herstellen uit back-up",
+				"restoreFromBackupDescription": "Vervang uw huidige bibliotheek door gegevens uit een back-upbestand.",
+				"restoreWarning": "Dit vervangt alle huidige bibliotheekgegevens, inclusief tracks, afspeellijsten, tags en ontdekkingsreleases. Deze actie kan niet ongedaan worden gemaakt.",
+				"creatingBackup": "Back-up wordt gemaakt...",
+				"restoringBackup": "Wordt hersteld vanuit back-up...",
+				"readingData": "Bibliotheekgegevens lezen...",
+				"writingFile": "Back-upbestand schrijven...",
+				"restoringData": "Bibliotheekgegevens herstellen...",
+				"backupComplete": "Back-up succesvol gemaakt.",
+				"restoreComplete": "Bibliotheek succesvol hersteld.",
+				"lastBackupAt": "Laatst een back-up gemaakt op {date}",
+				"noBackups": "Nog geen back-ups."
+			}
 		},
 		"library": {
 			"analysis": "Analyse",

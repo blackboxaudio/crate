@@ -38,6 +38,7 @@ interface SettingsState {
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
 	ignoredDeviceIds: string[]
+	lastBackupAt: string | null
 	loading: boolean
 	error: string | null
 }
@@ -61,6 +62,7 @@ const initialState: SettingsState = {
 	transferTagsOnImport: true,
 	removeReleaseAfterImport: true,
 	ignoredDeviceIds: [],
+	lastBackupAt: null,
 	loading: false,
 	error: null,
 }
@@ -260,6 +262,7 @@ function createSettingsStore() {
 					transferTagsOnImport: settings.transferTagsOnImport,
 					removeReleaseAfterImport: settings.removeReleaseAfterImport,
 					ignoredDeviceIds: settings.ignoredDeviceIds,
+					lastBackupAt: settings.lastBackupAt ?? null,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -582,5 +585,7 @@ export const transferTagsOnImport = derived(settingsStore, ($s) => $s.transferTa
 export const removeReleaseAfterImport = derived(settingsStore, ($s) => $s.removeReleaseAfterImport)
 
 export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceIds)
+
+export const lastBackupAt = derived(settingsStore, ($s) => $s.lastBackupAt)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

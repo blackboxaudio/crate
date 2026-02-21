@@ -43,6 +43,9 @@ pub enum CrateError {
     #[error("Discovery error: {0}")]
     Discovery(String),
 
+    #[error("Backup error: {0}")]
+    Backup(String),
+
     #[error("Key storage error: {0}")]
     KeyStorage(String),
 

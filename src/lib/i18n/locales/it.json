@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "Europeo (DD/MM/YYYY)",
-			"dateFormatDot": "Punto (DD.MM.YYYY)"
+			"dateFormatDot": "Punto (DD.MM.YYYY)",
+			"backup": {
+				"title": "Backup e ripristino",
+				"description": "Crea un backup della tua libreria o ripristina da un backup precedente.",
+				"createBackup": "Crea backup",
+				"createBackupDescription": "Salva tutte le tracce, le playlist, i tag e i rilasci di scoperta in un file di backup.",
+				"restoreFromBackup": "Ripristina dal backup",
+				"restoreFromBackupDescription": "Sostituisci la tua libreria attuale con i dati da un file di backup.",
+				"restoreWarning": "Questo sostituirà tutti i dati della libreria attuale, incluse tracce, playlist, tag e rilasci di scoperta. Questa azione non può essere annullata.",
+				"creatingBackup": "Creazione del backup in corso...",
+				"restoringBackup": "Ripristino dal backup in corso...",
+				"readingData": "Lettura dei dati della libreria in corso...",
+				"writingFile": "Scrittura del file di backup in corso...",
+				"restoringData": "Ripristino dei dati della libreria in corso...",
+				"backupComplete": "Backup creato con successo.",
+				"restoreComplete": "Libreria ripristinata con successo.",
+				"lastBackupAt": "Ultimo backup eseguito il {date}",
+				"noBackups": "Nessun backup per il momento."
+			}
 		},
 		"library": {
 			"analysis": "Analisi",

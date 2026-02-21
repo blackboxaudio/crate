@@ -46,7 +46,25 @@
 			"dateFormatIso": "ISO (YYYY-MM-DD)",
 			"dateFormatUs": "US (MM/DD/YYYY)",
 			"dateFormatEu": "Europeu (DD/MM/YYYY)",
-			"dateFormatDot": "Ponto (DD.MM.YYYY)"
+			"dateFormatDot": "Ponto (DD.MM.YYYY)",
+			"backup": {
+				"title": "Backup e restauração",
+				"description": "Crie um backup da sua biblioteca ou restaure a partir de um backup anterior.",
+				"createBackup": "Criar backup",
+				"createBackupDescription": "Salve todas as faixas, playlists, tags e lançamentos de descoberta em um arquivo de backup.",
+				"restoreFromBackup": "Restaurar do backup",
+				"restoreFromBackupDescription": "Substitua sua biblioteca atual pelos dados de um arquivo de backup.",
+				"restoreWarning": "Isso substituirá todos os dados da biblioteca atual, incluindo faixas, playlists, tags e lançamentos de descoberta. Esta ação não pode ser desfeita.",
+				"creatingBackup": "Criando backup...",
+				"restoringBackup": "Restaurando do backup...",
+				"readingData": "Lendo dados da biblioteca...",
+				"writingFile": "Escrevendo arquivo de backup...",
+				"restoringData": "Restaurando dados da biblioteca...",
+				"backupComplete": "Backup criado com sucesso.",
+				"restoreComplete": "Biblioteca restaurada com sucesso.",
+				"lastBackupAt": "Último backup em {date}",
+				"noBackups": "Nenhum backup ainda."
+			}
 		},
 		"library": {
 			"analysis": "Análise",

@@ -446,6 +446,7 @@ export interface AppSettings {
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
 	ignoredDeviceIds: string[]
+	lastBackupAt: string | null
 }
 
 export interface AudioDevice {
@@ -695,6 +696,19 @@ export interface PreviewInfo {
 	releaseId: string
 	release: DiscoveryRelease
 	trackIndex: number
+}
+
+// =============================================================================
+// Backup Types
+// =============================================================================
+
+export type BackupStatus = 'pending' | 'reading_data' | 'writing_file' | 'restoring_data' | 'completed' | 'failed'
+
+export interface BackupProgress {
+	status: BackupStatus
+	message: string | null
+	items_processed: number
+	items_total: number
 }
 
 export type DiscoverySortField = 'artist' | 'title' | 'label' | 'release_date' | 'source_type' | 'date_added'

@@ -15,9 +15,9 @@ use db::Database;
 pub(crate) struct ProxyServerPort(pub u16);
 
 use services::{
-    export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
-    DiscoveryService, ExportService, LibraryService, MediaControlsService, PlaylistService,
-    SettingsService, SyncService, TagService,
+    export::CheckpointService, AnalysisService, AudioService, BackupService, DeviceService,
+    DiagnosticsService, DiscoveryService, ExportService, LibraryService, MediaControlsService,
+    PlaylistService, SettingsService, SyncService, TagService,
 };
 use tauri::Manager;
 
@@ -151,6 +151,9 @@ pub fn run() {
             commands::discovery::invalidate_preview_stream_cache,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
+            // Backup commands
+            commands::backup::create_backup,
+            commands::backup::restore_from_backup,
             // Media controls commands
             commands::media_controls::update_now_playing,
             commands::media_controls::update_playback_state,
@@ -185,6 +188,7 @@ pub fn run() {
             let device_service = DeviceService::new();
             let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
             let analysis_service = AnalysisService::new(conn.clone());
+            let backup_service = BackupService::new(conn.clone());
             let discovery_service = DiscoveryService::new(conn.clone(), app_data_dir.clone());
 
             // Load saved audio device setting
@@ -197,6 +201,7 @@ pub fn run() {
             }
 
             // Register services with Tauri
+            app.manage(backup_service);
             app.manage(library_service);
             app.manage(tag_service);
             app.manage(playlist_service);

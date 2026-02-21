@@ -264,6 +264,7 @@ pub struct AppSettings {
     pub transfer_tags_on_import: bool,
     pub remove_release_after_import: bool,
     pub ignored_device_ids: Vec<String>,
+    pub last_backup_at: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -284,6 +285,7 @@ impl Default for AppSettings {
             transfer_tags_on_import: true,
             remove_release_after_import: true,
             ignored_device_ids: Vec::new(),
+            last_backup_at: None,
         }
     }
 }
