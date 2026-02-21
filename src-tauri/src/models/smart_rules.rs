@@ -50,6 +50,7 @@ pub enum EnumOperator {
     IsNotEmpty,
 }
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TagOperator {

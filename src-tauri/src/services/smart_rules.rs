@@ -227,10 +227,7 @@ fn build_enum_condition(
         EnumOperator::NotEquals => {
             let val = value.as_deref().unwrap_or("");
             params.push(Value::Text(val.to_string()));
-            format!(
-                "({column} IS NULL OR {column} != ?{})",
-                params.len()
-            )
+            format!("({column} IS NULL OR {column} != ?{})", params.len())
         }
         EnumOperator::IsEmpty => {
             format!("({column} IS NULL OR {column} = '')")
@@ -262,9 +259,7 @@ fn build_library_tag_condition(
 
     match operator {
         TagOperator::HasAny => {
-            format!(
-                "t.id IN (SELECT track_id FROM track_tags WHERE tag_id IN ({ph}))"
-            )
+            format!("t.id IN (SELECT track_id FROM track_tags WHERE tag_id IN ({ph}))")
         }
         TagOperator::HasAll => {
             format!(
@@ -273,9 +268,7 @@ fn build_library_tag_condition(
             )
         }
         TagOperator::HasNone => {
-            format!(
-                "t.id NOT IN (SELECT track_id FROM track_tags WHERE tag_id IN ({ph}))"
-            )
+            format!("t.id NOT IN (SELECT track_id FROM track_tags WHERE tag_id IN ({ph}))")
         }
     }
 }
@@ -390,11 +383,7 @@ fn build_condition_sql(
 }
 
 /// Build the ORDER BY + LIMIT clause from a SmartLimit.
-fn build_limit_sql(
-    limit: &SmartLimit,
-    context: &str,
-    params: &mut Vec<Value>,
-) -> Result<String> {
+fn build_limit_sql(limit: &SmartLimit, context: &str, params: &mut Vec<Value>) -> Result<String> {
     let sort_col = if context == "discovery" {
         discovery_sort_column(&limit.sort_field)?
     } else {
@@ -412,10 +401,7 @@ fn build_limit_sql(
     };
 
     params.push(Value::Integer(limit.count as i64));
-    Ok(format!(
-        "ORDER BY {sort_col} {dir} LIMIT ?{}",
-        params.len()
-    ))
+    Ok(format!("ORDER BY {sort_col} {dir} LIMIT ?{}", params.len()))
 }
 
 /// Build the full WHERE clause (and optional ORDER BY + LIMIT) for a library smart playlist.

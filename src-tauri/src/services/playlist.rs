@@ -562,11 +562,9 @@ impl PlaylistService {
         if playlist.is_smart {
             if let Some(ref json) = playlist.smart_rules {
                 if let Ok(rules) = serde_json::from_str::<SmartRules>(json) {
-                    if let Ok(count) = self.count_smart_playlist_items_with_conn(
-                        &conn,
-                        &rules,
-                        &playlist.context,
-                    ) {
+                    if let Ok(count) =
+                        self.count_smart_playlist_items_with_conn(&conn, &rules, &playlist.context)
+                    {
                         playlist.track_count = count;
                     }
                 }
@@ -1015,9 +1013,8 @@ impl PlaylistService {
         context: String,
         smart_rules_json: String,
     ) -> Result<Playlist> {
-        let rules: SmartRules = serde_json::from_str(&smart_rules_json).map_err(|e| {
-            CrateError::InvalidOperation(format!("Invalid smart rules JSON: {e}"))
-        })?;
+        let rules: SmartRules = serde_json::from_str(&smart_rules_json)
+            .map_err(|e| CrateError::InvalidOperation(format!("Invalid smart rules JSON: {e}")))?;
 
         smart_rules::validate_smart_rules(&rules, &context)?;
 
@@ -1081,9 +1078,8 @@ impl PlaylistService {
             ));
         }
 
-        let rules: SmartRules = serde_json::from_str(&smart_rules_json).map_err(|e| {
-            CrateError::InvalidOperation(format!("Invalid smart rules JSON: {e}"))
-        })?;
+        let rules: SmartRules = serde_json::from_str(&smart_rules_json)
+            .map_err(|e| CrateError::InvalidOperation(format!("Invalid smart rules JSON: {e}")))?;
 
         smart_rules::validate_smart_rules(&rules, &playlist.context)?;
 
@@ -1183,10 +1179,7 @@ impl PlaylistService {
         Ok(tracks_with_tags)
     }
 
-    pub fn get_smart_playlist_releases(
-        &self,
-        playlist_id: &str,
-    ) -> Result<Vec<DiscoveryRelease>> {
+    pub fn get_smart_playlist_releases(&self, playlist_id: &str) -> Result<Vec<DiscoveryRelease>> {
         let playlist = self.get_playlist(playlist_id)?;
         if !playlist.is_smart {
             return Err(CrateError::InvalidOperation(
@@ -1315,14 +1308,9 @@ impl PlaylistService {
         Ok(releases)
     }
 
-    pub fn preview_smart_rules_count(
-        &self,
-        smart_rules_json: &str,
-        context: &str,
-    ) -> Result<i32> {
-        let rules: SmartRules = serde_json::from_str(smart_rules_json).map_err(|e| {
-            CrateError::InvalidOperation(format!("Invalid smart rules JSON: {e}"))
-        })?;
+    pub fn preview_smart_rules_count(&self, smart_rules_json: &str, context: &str) -> Result<i32> {
+        let rules: SmartRules = serde_json::from_str(smart_rules_json)
+            .map_err(|e| CrateError::InvalidOperation(format!("Invalid smart rules JSON: {e}")))?;
 
         smart_rules::validate_smart_rules(&rules, context)?;
 
