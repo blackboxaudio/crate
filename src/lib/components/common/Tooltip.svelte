@@ -29,6 +29,20 @@
 	let fixedStyle = $state(HIDDEN_STYLE)
 	let rafId: number | undefined
 
+	// Portal action: moves the element out of overflow/transform containers.
+	// If inside a <dialog>, portal to the dialog (stays in top layer).
+	// Otherwise, portal to document.body.
+	function portal(node: HTMLElement) {
+		const dialog = wrapperEl?.closest('dialog')
+		const target = dialog ?? document.body
+		target.appendChild(node)
+		return {
+			destroy() {
+				node.remove()
+			},
+		}
+	}
+
 	function computePosition() {
 		if (!wrapperEl || !tooltipEl) return
 
@@ -150,6 +164,7 @@
 	{#if visible}
 		<div
 			bind:this={tooltipEl}
+			use:portal
 			class="pointer-events-none z-50 rounded border border-stroke bg-surface-1 px-2 py-1 text-xs font-medium whitespace-nowrap text-text-primary shadow-lg {className}"
 			style={fixedStyle}
 			role="tooltip"
