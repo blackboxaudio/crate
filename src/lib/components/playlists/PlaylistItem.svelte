@@ -20,7 +20,7 @@
 		depth?: number
 		expanded?: boolean
 		hasChildren?: boolean
-		onclick?: () => void
+		onclick?: (e: MouseEvent) => void
 		onToggle?: () => void
 		oncontextmenu?: (e: MouseEvent) => void
 		onTracksDrop?: (trackIds: string[]) => void
@@ -150,7 +150,7 @@
 		isDragStarted = false
 	}
 
-	function handleClick() {
+	function handleClick(e: MouseEvent) {
 		if (showCheckbox && playlist.is_folder) {
 			// For folders in checkbox mode, delay the toggle to detect double-clicks
 			if (clickTimer) {
@@ -165,7 +165,7 @@
 			// Non-folders: toggle immediately
 			onCheckboxChange?.()
 		} else {
-			onclick?.()
+			onclick?.(e)
 		}
 	}
 
@@ -203,7 +203,11 @@
 	onpointermove={handlePointerMove}
 	onpointerup={handlePointerUp}
 	onpointercancel={handlePointerUp}
-	onkeydown={(e) => e.key === 'Enter' && onclick?.()}
+	onkeydown={(e) => {
+		if (e.key === 'Enter') {
+			onclick?.(new MouseEvent('click'))
+		}
+	}}
 >
 	<!-- Checkbox for selection mode, or expand/collapse toggle for folders -->
 	{#if showCheckbox}
@@ -255,7 +259,7 @@
 
 	<!-- Track count -->
 	{#if !playlist.is_folder}
-		<Text variant="caption">
+		<Text variant="caption" class="mr-1">
 			{playlist.track_count}
 		</Text>
 	{/if}

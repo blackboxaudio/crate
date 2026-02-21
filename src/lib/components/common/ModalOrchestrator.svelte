@@ -26,6 +26,7 @@
 		| { type: 'renameCategory'; category: TagCategory }
 		// Delete/Confirmation modals
 		| { type: 'deletePlaylist'; playlist: Playlist; hasChildren: boolean }
+		| { type: 'deletePlaylistBulk'; playlists: Playlist[] }
 		| { type: 'deleteTag'; tag: Tag }
 		| { type: 'deleteCategory'; category: TagCategory }
 		| { type: 'removeFromPlaylist'; trackIds: string[]; playlistId: string }
@@ -111,6 +112,7 @@
 
 		// Delete callbacks
 		onDeletePlaylist: (id: string, deleteTracksFromCollection: boolean) => Promise<void>
+		onDeletePlaylistBulk: (ids: string[], deleteTracksFromCollection: boolean) => Promise<void>
 		onDeleteTag: (id: string) => Promise<void>
 		onDeleteCategory: (id: string) => Promise<void>
 		onRemoveFromPlaylist: (trackIds: string[], playlistId: string, deleteFromCollection: boolean) => Promise<void>
@@ -157,6 +159,7 @@
 		onRenameTag,
 		onRenameCategory,
 		onDeletePlaylist,
+		onDeletePlaylistBulk,
 		onDeleteTag,
 		onDeleteCategory,
 		onRemoveFromPlaylist,
@@ -237,6 +240,11 @@
 	export function openDeletePlaylistModal(playlist: Playlist, hasChildren: boolean) {
 		deleteTracksFromCollection = false
 		activeModal = { type: 'deletePlaylist', playlist, hasChildren }
+	}
+
+	export function openDeletePlaylistBulkModal(playlists: Playlist[]) {
+		deleteTracksFromCollection = false
+		activeModal = { type: 'deletePlaylistBulk', playlists }
 	}
 
 	export function openDeleteTagModal(tag: Tag) {
@@ -394,6 +402,14 @@
 			const id = activeModal.playlist.id
 			closeAll()
 			await onDeletePlaylist(id, deleteTracksToo)
+		}
+	}
+
+	async function handleDeletePlaylistBulkConfirm(deleteTracksToo: boolean) {
+		if (activeModal.type === 'deletePlaylistBulk') {
+			const ids = activeModal.playlists.map((p) => p.id)
+			closeAll()
+			await onDeletePlaylistBulk(ids, deleteTracksToo)
 		}
 	}
 
@@ -669,6 +685,15 @@
 		return warnings
 	})
 
+	const deleteBulkWarnings = $derived.by(() => {
+		if (activeModal.type !== 'deletePlaylistBulk') return []
+		const warnings: string[] = []
+		if (activeModal.playlists.some((p) => p.is_folder)) {
+			warnings.push(get(translate)('modals.confirm.deleteItemsBulkFolderWarning'))
+		}
+		return warnings
+	})
+
 	const deletePlaylistTitle = $derived(
 		activeModal.type === 'deletePlaylist' && activeModal.playlist.is_folder
 			? get(translate)('modals.confirm.deleteFolderTitle')
@@ -781,6 +806,22 @@
 		confirmLabel={$translate('common.delete')}
 		destructive={true}
 		onConfirm={handleDeletePlaylistConfirm}
+		onCancel={closeAll}
+	/>
+{/if}
+
+<!-- Delete Playlist Bulk Confirmation -->
+{#if activeModal.type === 'deletePlaylistBulk'}
+	<ConfirmModal
+		open={true}
+		title={$translate('modals.confirm.deleteItemsTitle')}
+		message={$translate('modals.confirm.deleteItemsMessage', { values: { count: activeModal.playlists.length } })}
+		warnings={deleteBulkWarnings}
+		checkboxLabel={$translate('modals.confirm.deleteTracksFromCollection')}
+		bind:checkboxChecked={deleteTracksFromCollection}
+		confirmLabel={$translate('common.delete')}
+		destructive={true}
+		onConfirm={handleDeletePlaylistBulkConfirm}
 		onCancel={closeAll}
 	/>
 {/if}

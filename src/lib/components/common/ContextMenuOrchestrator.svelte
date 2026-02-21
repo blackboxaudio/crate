@@ -10,7 +10,7 @@
 	export type ActiveContextMenu =
 		| { type: 'none' }
 		| { type: 'track'; x: number; y: number; tracks: Track[] }
-		| { type: 'playlist'; x: number; y: number; playlist: Playlist; source: 'tree' | 'folder' }
+		| { type: 'playlist'; x: number; y: number; playlists: Playlist[]; source: 'tree' | 'folder' }
 		| { type: 'folderView'; x: number; y: number; folderId: string }
 		| { type: 'playlistTree'; x: number; y: number }
 		| { type: 'libraryView'; x: number; y: number }
@@ -55,8 +55,11 @@
 		onTrackAnalyze: (tracks: Track[]) => void
 
 		// Playlist callbacks
+		onPlaylistCreatePlaylist: (playlist: Playlist) => void
+		onPlaylistCreateFolder: (playlist: Playlist) => void
 		onPlaylistRename: (playlist: Playlist) => void
 		onPlaylistDelete: (playlist: Playlist) => void
+		onPlaylistBulkDelete: (playlists: Playlist[]) => void
 		onPlaylistMove: (playlist: Playlist, folderId: string | null) => void
 
 		// FolderView callbacks
@@ -127,8 +130,11 @@
 		onTrackRelocate,
 		onTrackSetColor,
 		onTrackAnalyze,
+		onPlaylistCreatePlaylist,
+		onPlaylistCreateFolder,
 		onPlaylistRename,
 		onPlaylistDelete,
+		onPlaylistBulkDelete,
 		onPlaylistMove,
 		onFolderViewCreatePlaylist,
 		onFolderViewCreateFolder,
@@ -208,13 +214,18 @@
 		visibleMenu = menu
 	}
 
-	export function openPlaylistMenu(e: MouseEvent, playlist: Playlist, source: 'tree' | 'folder') {
+	export function openPlaylistMenu(
+		e: MouseEvent,
+		playlistOrPlaylists: Playlist | Playlist[],
+		source: 'tree' | 'folder'
+	) {
 		e.preventDefault()
+		const playlists = Array.isArray(playlistOrPlaylists) ? playlistOrPlaylists : [playlistOrPlaylists]
 		const menu = {
 			type: 'playlist' as const,
 			x: e.clientX,
 			y: e.clientY,
-			playlist,
+			playlists,
 			source,
 		}
 		activeMenu = menu
@@ -384,6 +395,16 @@
 	}
 
 	// Playlist handlers
+	function handlePlaylistCreatePlaylist(playlist: Playlist) {
+		closeAll()
+		onPlaylistCreatePlaylist(playlist)
+	}
+
+	function handlePlaylistCreateFolder(playlist: Playlist) {
+		closeAll()
+		onPlaylistCreateFolder(playlist)
+	}
+
 	function handlePlaylistRename(playlist: Playlist) {
 		closeAll()
 		onPlaylistRename(playlist)
@@ -392,6 +413,11 @@
 	function handlePlaylistDelete(playlist: Playlist) {
 		closeAll()
 		onPlaylistDelete(playlist)
+	}
+
+	function handlePlaylistBulkDelete(playlists: Playlist[]) {
+		closeAll()
+		onPlaylistBulkDelete(playlists)
 	}
 
 	function handlePlaylistMove(playlist: Playlist, folderId: string | null) {
@@ -612,12 +638,15 @@
 		open={activeMenu.type === 'playlist'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		playlist={visibleMenu.playlist}
+		playlists={visibleMenu.playlists}
 		folders={playlistFolders}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
+		onCreatePlaylist={handlePlaylistCreatePlaylist}
+		onCreateFolder={handlePlaylistCreateFolder}
 		onRename={handlePlaylistRename}
 		onDelete={handlePlaylistDelete}
+		onBulkDelete={handlePlaylistBulkDelete}
 		onMove={handlePlaylistMove}
 		onExport={handlePlaylistExport}
 	/>

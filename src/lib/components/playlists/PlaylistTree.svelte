@@ -2,6 +2,7 @@
 	import type { Playlist } from '$lib/types'
 	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
 	import { getStoredSet, setStoredSet } from '$lib/utils'
+	import { handleSelection } from '$lib/utils/selection'
 	import { translate } from '$lib/i18n'
 	import PlaylistItem from './PlaylistItem.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -12,9 +13,12 @@
 	type Props = {
 		playlists: Playlist[]
 		selectedId?: string | null
+		selectedIds?: Set<string>
 		contextMenuItemId?: string | null
 		onSelect?: (playlist: Playlist) => void
+		onItemClick?: (playlist: Playlist, selectedIds: Set<string>, isModifierClick: boolean) => void
 		onContextMenu?: (e: MouseEvent, playlist: Playlist) => void
+		onMultiContextMenu?: (e: MouseEvent, playlists: Playlist[]) => void
 		onWhitespaceContextMenu?: (e: MouseEvent) => void
 		onWhitespaceClick?: () => void
 		onTracksDrop?: (playlistId: string, trackIds: string[]) => void
@@ -24,9 +28,12 @@
 	let {
 		playlists,
 		selectedId = null,
+		selectedIds = new Set<string>(),
 		contextMenuItemId = null,
 		onSelect,
+		onItemClick,
 		onContextMenu,
+		onMultiContextMenu,
 		onWhitespaceContextMenu,
 		onWhitespaceClick,
 		onTracksDrop,
@@ -81,23 +88,66 @@
 		}
 		expandedIds = newExpanded
 	}
+
+	// Flatten visible tree nodes (depth-first, respecting expanded state)
+	function flattenVisible(nodes: PlaylistTreeNode[]): Playlist[] {
+		const result: Playlist[] = []
+		for (const node of nodes) {
+			result.push(node.playlist)
+			if (node.playlist.is_folder && expandedIds.has(node.playlist.id)) {
+				result.push(...flattenVisible(node.children))
+			}
+		}
+		return result
+	}
+
+	const flattenedVisible = $derived(flattenVisible(tree))
+
+	let lastClickedTreeId: string | null = $state(null)
+
+	function handleItemClick(playlist: Playlist, e: MouseEvent) {
+		const isModifier = e.metaKey || e.ctrlKey || e.shiftKey
+
+		if (isModifier && onItemClick) {
+			const result = handleSelection(flattenedVisible, selectedIds, playlist.id, lastClickedTreeId, e)
+			lastClickedTreeId = result.lastClickedId
+			onItemClick(playlist, result.selectedIds, true)
+		} else {
+			// Plain click: clear multi-select and navigate
+			lastClickedTreeId = playlist.id
+			onItemClick?.(playlist, new Set<string>(), false)
+			onSelect?.(playlist)
+		}
+	}
+
+	function handleItemContextMenu(e: MouseEvent, playlist: Playlist) {
+		e.preventDefault()
+		// If the item is in the multi-selection, show multi menu
+		if (selectedIds.size > 1 && selectedIds.has(playlist.id) && onMultiContextMenu) {
+			const selected = flattenedVisible.filter((p) => selectedIds.has(p.id))
+			onMultiContextMenu(e, selected)
+		} else {
+			// Reset selection to just this item
+			if (selectedIds.size > 0) {
+				onItemClick?.(playlist, new Set<string>(), false)
+			}
+			onContextMenu?.(e, playlist)
+		}
+	}
 </script>
 
 {#snippet renderNode(node: PlaylistTreeNode, depth: number)}
 	<PlaylistItem
 		playlist={node.playlist}
 		{playlists}
-		selected={selectedId === node.playlist.id}
+		selected={selectedIds.size > 0 ? selectedIds.has(node.playlist.id) : selectedId === node.playlist.id}
 		isContextMenuActive={contextMenuItemId === node.playlist.id}
 		{depth}
 		expanded={expandedIds.has(node.playlist.id)}
 		hasChildren={node.children.length > 0}
-		onclick={() => onSelect?.(node.playlist)}
+		onclick={(e) => handleItemClick(node.playlist, e)}
 		onToggle={() => toggleExpanded(node.playlist.id)}
-		oncontextmenu={(e) => {
-			e.preventDefault()
-			onContextMenu?.(e, node.playlist)
-		}}
+		oncontextmenu={(e) => handleItemContextMenu(e, node.playlist)}
 		onTracksDrop={(trackIds) => onTracksDrop?.(node.playlist.id, trackIds)}
 		onPlaylistDrop={(droppedId) => onPlaylistMove?.(droppedId, node.playlist.id)}
 	/>

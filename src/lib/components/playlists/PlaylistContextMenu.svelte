@@ -8,22 +8,79 @@
 		open: boolean
 		x: number
 		y: number
-		playlist: Playlist | null
+		playlists: Playlist[]
 		folders: Playlist[]
 		onClose: () => void
 		onClosed?: () => void
+		onCreatePlaylist?: (playlist: Playlist) => void
+		onCreateFolder?: (playlist: Playlist) => void
 		onRename: (playlist: Playlist) => void
 		onDelete: (playlist: Playlist) => void
+		onBulkDelete?: (playlists: Playlist[]) => void
 		onMove: (playlist: Playlist, folderId: string | null) => void
 		onExport: (playlist: Playlist) => void
 	}
 
-	let { open, x, y, playlist, folders, onClose, onClosed, onRename, onDelete, onMove, onExport }: Props = $props()
+	let {
+		open,
+		x,
+		y,
+		playlists: targetPlaylists,
+		folders,
+		onClose,
+		onClosed,
+		onCreatePlaylist,
+		onCreateFolder,
+		onRename,
+		onDelete,
+		onBulkDelete,
+		onMove,
+		onExport,
+	}: Props = $props()
+
+	const isBulk = $derived(targetPlaylists.length > 1)
+	const playlist = $derived(targetPlaylists.length === 1 ? targetPlaylists[0] : null)
 
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
+		// Bulk mode: only show delete
+		if (isBulk) {
+			return [
+				{
+					id: 'bulk-delete',
+					label: get(translate)('common.delete'),
+					icon: 'trash',
+					variant: 'danger',
+					action: () => onBulkDelete?.(targetPlaylists),
+				},
+			]
+		}
+
 		if (!playlist) return []
 
 		const items: ContextMenuItem[] = []
+
+		// New Folder / New Playlist (only for folders)
+		if (playlist.is_folder) {
+			if (onCreateFolder) {
+				items.push({
+					id: 'new-folder',
+					label: get(translate)('playlists.newFolder'),
+					icon: 'folder',
+					action: () => onCreateFolder(playlist),
+				})
+			}
+			if (onCreatePlaylist) {
+				items.push({
+					id: 'new-playlist',
+					label: get(translate)('playlists.newPlaylist'),
+					icon: 'music-note',
+					action: () => onCreatePlaylist(playlist),
+				})
+			}
+			if (onCreatePlaylist || onCreateFolder) {
+				items.push({ id: 'divider-create', label: '', divider: true })
+			}
+		}
 
 		// Rename
 		items.push({

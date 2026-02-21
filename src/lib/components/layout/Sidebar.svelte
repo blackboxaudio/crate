@@ -17,13 +17,16 @@
 		contextMenuPlaylistId?: string | null
 		selectedTagIds?: string[]
 		selectedTrackIds?: Set<string>
+		selectedTreeIds?: Set<string>
 		tagStates?: Map<string, TagSelectionState>
 		tagCounts?: Map<string, number>
 		trackCount: number
 		showHeader?: boolean
 		onLibraryClick?: () => void
 		onPlaylistSelect?: (playlist: Playlist) => void
+		onPlaylistItemClick?: (playlist: Playlist, selectedIds: Set<string>, isModifierClick: boolean) => void
 		onPlaylistContextMenu?: (e: MouseEvent, playlist: Playlist) => void
+		onPlaylistMultiContextMenu?: (e: MouseEvent, playlists: Playlist[]) => void
 		onPlaylistTreeContextMenu?: (e: MouseEvent) => void
 		onDeviceContextMenu?: (e: MouseEvent, device: UsbDevice) => void
 		onCancelExport?: () => void
@@ -49,13 +52,16 @@
 		contextMenuPlaylistId = null,
 		selectedTagIds = [],
 		selectedTrackIds,
+		selectedTreeIds = new Set<string>(),
 		tagStates,
 		tagCounts,
 		trackCount,
 		showHeader = true,
 		onLibraryClick,
 		onPlaylistSelect,
+		onPlaylistItemClick,
 		onPlaylistContextMenu,
+		onPlaylistMultiContextMenu,
 		onPlaylistTreeContextMenu,
 		onDeviceContextMenu,
 		onCancelExport,
@@ -154,9 +160,12 @@
 			<PlaylistTree
 				{playlists}
 				selectedId={selectedPlaylistId ?? selectedFolderId}
+				selectedIds={selectedTreeIds}
 				contextMenuItemId={contextMenuPlaylistId}
 				onSelect={onPlaylistSelect}
+				onItemClick={onPlaylistItemClick}
 				onContextMenu={onPlaylistContextMenu}
+				onMultiContextMenu={onPlaylistMultiContextMenu}
 				onWhitespaceContextMenu={onPlaylistTreeContextMenu}
 				onWhitespaceClick={onLibraryClick}
 				{onTracksDrop}

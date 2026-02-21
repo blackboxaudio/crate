@@ -143,6 +143,24 @@
 	// Context menu state for playlist tree hover styling
 	let contextMenuPlaylistId = $state<string | null>(null)
 
+	// Playlist tree multi-selection state
+	let selectedTreeIds = $state<Set<string>>(new Set())
+
+	// Clear tree multi-selection when navigation changes (breadcrumbs, folder cards, etc.)
+	let prevNavPlaylistId: string | null = null
+	let prevNavFolderId: string | null = null
+	$effect(() => {
+		const pId = selectedPlaylistId
+		const fId = selectedFolderId
+		if (pId !== prevNavPlaylistId || fId !== prevNavFolderId) {
+			prevNavPlaylistId = pId
+			prevNavFolderId = fId
+			if (selectedTreeIds.size > 0) {
+				selectedTreeIds = new Set()
+			}
+		}
+	})
+
 	// Cleanup function from onMount
 	let cleanupOnMount: (() => void) | undefined
 
@@ -513,6 +531,15 @@
 				trackController.handleImport()
 			},
 			onDeleteSelected: () => {
+				// Bulk delete selected playlist tree items
+				if (selectedTreeIds.size > 1) {
+					const selected = playlists.filter((p) => selectedTreeIds.has(p.id))
+					if (selected.length > 0) {
+						modalOrchestrator.openDeletePlaylistBulkModal(selected)
+					}
+					return
+				}
+
 				if ($activeView === 'discovery') {
 					const releaseIds = $selectedReleaseIds
 					if (releaseIds.size > 0) {
@@ -929,6 +956,16 @@
 		contextMenuOrchestrator.openTrackMenu(e, tracks)
 	}
 
+	function handlePlaylistItemClick(playlist: Playlist, newSelectedIds: Set<string>, isModifierClick: boolean) {
+		selectedTreeIds = newSelectedIds
+		// Navigation is handled by PlaylistTree's onSelect (plain clicks only)
+	}
+
+	function handlePlaylistMultiContextMenu(e: MouseEvent, playlists: Playlist[]) {
+		contextMenuPlaylistId = null
+		contextMenuOrchestrator.openPlaylistMenu(e, playlists, 'tree')
+	}
+
 	function handlePlaylistContextMenu(e: MouseEvent, playlist: Playlist) {
 		contextMenuPlaylistId = playlist.id
 		contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'tree')
@@ -1107,13 +1144,19 @@
 					{contextMenuPlaylistId}
 					{selectedTagIds}
 					selectedTrackIds={$activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds}
+					{selectedTreeIds}
 					{tagStates}
 					{tagCounts}
 					trackCount={$activeView === 'discovery' ? $releaseCount : $trackCount}
 					showHeader={false}
-					onLibraryClick={playlistController.handleLibraryClick}
+					onLibraryClick={() => {
+						selectedTreeIds = new Set()
+						playlistController.handleLibraryClick()
+					}}
 					onPlaylistSelect={playlistController.handlePlaylistSelect}
+					onPlaylistItemClick={handlePlaylistItemClick}
 					onPlaylistContextMenu={handlePlaylistContextMenu}
+					onPlaylistMultiContextMenu={handlePlaylistMultiContextMenu}
 					onPlaylistTreeContextMenu={(e) => contextMenuOrchestrator.openPlaylistTreeMenu(e)}
 					onDeviceContextMenu={handleDeviceContextMenu}
 					onCancelExport={exportController.handleExportCancel}
@@ -1282,8 +1325,11 @@
 	onTrackRelocate={(track) => modalOrchestrator.openRelocateModal(track)}
 	onTrackSetColor={trackController.setColorFromContextMenu}
 	onTrackAnalyze={handleTrackAnalyze}
+	onPlaylistCreatePlaylist={(p) => modalOrchestrator.openCreatePlaylistModal(p.id)}
+	onPlaylistCreateFolder={(p) => modalOrchestrator.openCreateFolderModal(p.id)}
 	onPlaylistRename={playlistController.handlePlaylistRename}
 	onPlaylistDelete={playlistController.handlePlaylistDelete}
+	onPlaylistBulkDelete={(playlists) => modalOrchestrator.openDeletePlaylistBulkModal(playlists)}
 	onPlaylistMove={playlistController.handlePlaylistMove}
 	onFolderViewCreatePlaylist={(folderId) => modalOrchestrator.openCreatePlaylistModal(folderId)}
 	onFolderViewCreateFolder={(folderId) => modalOrchestrator.openCreateFolderModal(folderId)}
@@ -1332,7 +1378,9 @@
 		const releaseIds = releases.map((r) => r.id)
 		await playlistsStore.addReleases(playlistId, releaseIds)
 	}}
-	onClose={() => (contextMenuPlaylistId = null)}
+	onClose={() => {
+		contextMenuPlaylistId = null
+	}}
 />
 
 <!-- Modal Orchestrator -->
@@ -1404,6 +1452,32 @@
 		} else {
 			playlistController.handleLibraryClick()
 		}
+	}}
+	onDeletePlaylistBulk={async (ids, deleteTracksToo) => {
+		// Smart ordering: skip children whose ancestors are also in the set
+		const idSet = new Set(ids)
+		const topLevel = ids.filter((id) => {
+			let current = playlists.find((p) => p.id === id)
+			while (current?.parent_id) {
+				if (idSet.has(current.parent_id)) return false
+				current = playlists.find((p) => p.id === current!.parent_id)
+			}
+			return true
+		})
+
+		for (const id of topLevel) {
+			discoveryPlaylistReleasesCache.delete(id)
+			await playlistsStore.delete(id, deleteTracksToo)
+		}
+
+		if (deleteTracksToo) {
+			await libraryStore.loadTracks()
+			await discoveryStore.loadReleases()
+			await playlistsStore.load()
+		}
+
+		selectedTreeIds = new Set()
+		playlistController.handleLibraryClick()
 	}}
 	onDeleteTag={async (id) => {
 		await tagsStore.deleteTag(id)
