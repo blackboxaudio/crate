@@ -64,7 +64,14 @@
 				"restoringArtwork": "Restaurando carátula...",
 				"backupComplete": "Copia de seguridad creada correctamente.",
 				"lastBackupAt": "Última copia de seguridad el {date}",
-				"noBackups": "Sin copias de seguridad aún."
+				"noBackups": "Sin copias de seguridad aún.",
+				"autoBackupFrequency": "Frecuencia de copia de seguridad automática",
+				"frequencyDaily": "Diariamente",
+				"frequencyWeekly": "Semanalmente",
+				"frequencyMonthly": "Mensualmente",
+				"frequencyNever": "Nunca (desactivado)",
+				"backupTypeAutomatic": "(Automática)",
+				"backupTypeManual": "(Manual)"
 			}
 		},
 		"library": {

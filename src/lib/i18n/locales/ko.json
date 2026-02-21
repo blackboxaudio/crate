@@ -64,7 +64,14 @@
 				"restoringArtwork": "아트워크 복원 중...",
 				"backupComplete": "백업이 성공적으로 생성되었습니다.",
 				"lastBackupAt": "마지막 백업: {date}",
-				"noBackups": "아직 백업이 없습니다."
+				"noBackups": "아직 백업이 없습니다.",
+				"autoBackupFrequency": "자동 백업 빈도",
+				"frequencyDaily": "매일",
+				"frequencyWeekly": "매주",
+				"frequencyMonthly": "매월",
+				"frequencyNever": "안 함 (오프)",
+				"backupTypeAutomatic": "(자동)",
+				"backupTypeManual": "(수동)"
 			}
 		},
 		"library": {

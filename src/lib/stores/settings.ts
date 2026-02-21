@@ -9,6 +9,7 @@ import type {
 	KeyNotationFormat,
 	DateFormat,
 	ExportFormat,
+	BackupFrequency,
 } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
@@ -39,6 +40,8 @@ interface SettingsState {
 	removeReleaseAfterImport: boolean
 	ignoredDeviceIds: string[]
 	lastBackupAt: string | null
+	backupFrequency: BackupFrequency
+	lastBackupType: string | null
 	loading: boolean
 	error: string | null
 }
@@ -63,6 +66,8 @@ const initialState: SettingsState = {
 	removeReleaseAfterImport: true,
 	ignoredDeviceIds: [],
 	lastBackupAt: null,
+	backupFrequency: 'monthly',
+	lastBackupType: null,
 	loading: false,
 	error: null,
 }
@@ -263,6 +268,8 @@ function createSettingsStore() {
 					removeReleaseAfterImport: settings.removeReleaseAfterImport,
 					ignoredDeviceIds: settings.ignoredDeviceIds,
 					lastBackupAt: settings.lastBackupAt ?? null,
+					backupFrequency: settings.backupFrequency ?? 'monthly',
+					lastBackupType: settings.lastBackupType ?? null,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -410,6 +417,19 @@ function createSettingsStore() {
 				await settingsApi.setSetting('export_format', format)
 			} catch (error) {
 				console.error('Failed to save export format setting:', error)
+			}
+		},
+
+		/**
+		 * Set backup frequency
+		 */
+		async setBackupFrequency(frequency: BackupFrequency) {
+			update((s) => ({ ...s, backupFrequency: frequency }))
+
+			try {
+				await settingsApi.setSetting('backup_frequency', frequency)
+			} catch (error) {
+				console.error('Failed to save backup frequency setting:', error)
 			}
 		},
 
@@ -587,5 +607,9 @@ export const removeReleaseAfterImport = derived(settingsStore, ($s) => $s.remove
 export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceIds)
 
 export const lastBackupAt = derived(settingsStore, ($s) => $s.lastBackupAt)
+
+export const backupFrequency = derived(settingsStore, ($s) => $s.backupFrequency)
+
+export const lastBackupType = derived(settingsStore, ($s) => $s.lastBackupType)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

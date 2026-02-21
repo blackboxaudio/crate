@@ -64,7 +64,14 @@
 				"restoringArtwork": "Återställer omslag...",
 				"backupComplete": "Säkerhetskopia skapad framgångsrikt.",
 				"lastBackupAt": "Senast säkerhetskopierad {date}",
-				"noBackups": "Ingen säkerhetskopia ännu."
+				"noBackups": "Ingen säkerhetskopia ännu.",
+				"autoBackupFrequency": "Automatisk säkerhetskopieringsfrekvens",
+				"frequencyDaily": "Dagligen",
+				"frequencyWeekly": "Veckovis",
+				"frequencyMonthly": "Månadsvis",
+				"frequencyNever": "Aldrig (av)",
+				"backupTypeAutomatic": "(Automatisk)",
+				"backupTypeManual": "(Manuell)"
 			}
 		},
 		"library": {

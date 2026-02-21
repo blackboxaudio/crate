@@ -64,7 +64,14 @@
 				"restoringArtwork": "Ripristino della copertina in corso...",
 				"backupComplete": "Backup creato con successo.",
 				"lastBackupAt": "Ultimo backup eseguito il {date}",
-				"noBackups": "Nessun backup per il momento."
+				"noBackups": "Nessun backup per il momento.",
+				"autoBackupFrequency": "Frequenza backup automatico",
+				"frequencyDaily": "Giornaliera",
+				"frequencyWeekly": "Settimanale",
+				"frequencyMonthly": "Mensile",
+				"frequencyNever": "Mai (disattivato)",
+				"backupTypeAutomatic": "(Automatico)",
+				"backupTypeManual": "(Manuale)"
 			}
 		},
 		"library": {

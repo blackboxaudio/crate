@@ -98,6 +98,13 @@ impl SettingsService {
 
         let last_backup_at = self.get_setting_value(&conn, "last_backup_at")?;
 
+        let backup_frequency = self
+            .get_setting_value(&conn, "backup_frequency")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
+        let last_backup_type = self.get_setting_value(&conn, "last_backup_type")?;
+
         Ok(AppSettings {
             theme,
             accent_color,
@@ -115,6 +122,8 @@ impl SettingsService {
             remove_release_after_import,
             ignored_device_ids,
             last_backup_at,
+            backup_frequency,
+            last_backup_type,
         })
     }
 

@@ -64,7 +64,14 @@
 				"restoringArtwork": "Restoring artwork...",
 				"backupComplete": "Backup created successfully.",
 				"lastBackupAt": "Last backed up {date}",
-				"noBackups": "No backups yet."
+				"noBackups": "No backups yet.",
+				"autoBackupFrequency": "Auto-Backup Frequency",
+				"frequencyDaily": "Daily",
+				"frequencyWeekly": "Weekly",
+				"frequencyMonthly": "Monthly",
+				"frequencyNever": "Never (off)",
+				"backupTypeAutomatic": "(Automatic)",
+				"backupTypeManual": "(Manual)"
 			}
 		},
 		"library": {

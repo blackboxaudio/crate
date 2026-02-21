@@ -1,8 +1,15 @@
 <script lang="ts">
-	import type { Language, DateFormat, BackupStatus } from '$lib/types'
+	import type { Language, DateFormat, BackupFrequency, BackupStatus } from '$lib/types'
 	import { Button, Select, Text } from '$lib/components/common'
 	import ConfirmModal from '$lib/components/common/ConfirmModal.svelte'
-	import { settingsStore, language, dateFormat, lastBackupAt } from '$lib/stores/settings'
+	import {
+		settingsStore,
+		language,
+		dateFormat,
+		lastBackupAt,
+		backupFrequency,
+		lastBackupType,
+	} from '$lib/stores/settings'
 	import { backupStore, isBackupBusy, backupProgress } from '$lib/stores/backup'
 	import { toastStore } from '$lib/stores/toast'
 	import { SUPPORTED_LANGUAGES, translate } from '$lib/i18n'
@@ -26,6 +33,13 @@
 		{ value: 'dot', label: $translate('settings.general.dateFormatDot') },
 	])
 
+	let backupFrequencyOptions = $derived([
+		{ value: 'daily', label: $translate('settings.general.backup.frequencyDaily') },
+		{ value: 'weekly', label: $translate('settings.general.backup.frequencyWeekly') },
+		{ value: 'monthly', label: $translate('settings.general.backup.frequencyMonthly') },
+		{ value: 'never', label: $translate('settings.general.backup.frequencyNever') },
+	])
+
 	let showRestoreConfirm = $state(false)
 	let pendingRestorePath = $state<string | null>(null)
 
@@ -35,6 +49,10 @@
 
 	function handleDateFormatChange(value: string) {
 		settingsStore.setDateFormat(value as DateFormat)
+	}
+
+	function handleBackupFrequencyChange(value: string) {
+		settingsStore.setBackupFrequency(value as BackupFrequency)
 	}
 
 	function formatLastBackupDate(isoDate: string): string {
@@ -195,9 +213,19 @@
 		<Text variant="header-3" class="mb-2">{$translate('settings.general.backup.title')}</Text>
 		<Text variant="caption" as="p" class="mb-4">{$translate('settings.general.backup.description')}</Text>
 
+		<Text variant="caption" as="p" class="mb-2">{$translate('settings.general.backup.autoBackupFrequency')}</Text>
+		<div class="mb-4 max-w-md">
+			<Select value={$backupFrequency} options={backupFrequencyOptions} onchange={handleBackupFrequencyChange} />
+		</div>
+
 		{#if $lastBackupAt}
 			<Text variant="caption" as="p" class="text-fg-secondary mb-4">
 				{$translate('settings.general.backup.lastBackupAt', { values: { date: formatLastBackupDate($lastBackupAt) } })}
+				{#if $lastBackupType === 'automatic'}
+					{$translate('settings.general.backup.backupTypeAutomatic')}
+				{:else if $lastBackupType === 'manual'}
+					{$translate('settings.general.backup.backupTypeManual')}
+				{/if}
 			</Text>
 		{:else}
 			<Text variant="caption" as="p" class="text-fg-secondary mb-4">

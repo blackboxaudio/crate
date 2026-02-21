@@ -64,7 +64,14 @@
 				"restoringArtwork": "Restaurando capa...",
 				"backupComplete": "Backup criado com sucesso.",
 				"lastBackupAt": "Último backup em {date}",
-				"noBackups": "Nenhum backup ainda."
+				"noBackups": "Nenhum backup ainda.",
+				"autoBackupFrequency": "Frequência de backup automático",
+				"frequencyDaily": "Diariamente",
+				"frequencyWeekly": "Semanalmente",
+				"frequencyMonthly": "Mensalmente",
+				"frequencyNever": "Nunca (desativado)",
+				"backupTypeAutomatic": "(Automático)",
+				"backupTypeManual": "(Manual)"
 			}
 		},
 		"library": {

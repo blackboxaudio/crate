@@ -64,7 +64,14 @@
 				"restoringArtwork": "正在还原封面...",
 				"backupComplete": "备份创建成功。",
 				"lastBackupAt": "最后备份于 {date}",
-				"noBackups": "尚无备份。"
+				"noBackups": "尚无备份。",
+				"autoBackupFrequency": "自动备份频率",
+				"frequencyDaily": "每日",
+				"frequencyWeekly": "每周",
+				"frequencyMonthly": "每月",
+				"frequencyNever": "从不（关闭）",
+				"backupTypeAutomatic": "（自动）",
+				"backupTypeManual": "（手动）"
 			}
 		},
 		"library": {

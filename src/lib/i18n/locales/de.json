@@ -64,7 +64,14 @@
 				"restoringArtwork": "Artwork wird wiederhergestellt...",
 				"backupComplete": "Sicherung erfolgreich erstellt.",
 				"lastBackupAt": "Zuletzt gesichert am {date}",
-				"noBackups": "Noch keine Sicherungen."
+				"noBackups": "Noch keine Sicherungen.",
+				"autoBackupFrequency": "Automatische Sicherungshäufigkeit",
+				"frequencyDaily": "Täglich",
+				"frequencyWeekly": "Wöchentlich",
+				"frequencyMonthly": "Monatlich",
+				"frequencyNever": "Nie (aus)",
+				"backupTypeAutomatic": "(Automatisch)",
+				"backupTypeManual": "(Manuell)"
 			}
 		},
 		"library": {

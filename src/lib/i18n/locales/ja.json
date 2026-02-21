@@ -64,7 +64,14 @@
 				"restoringArtwork": "アートワークを復元中...",
 				"backupComplete": "バックアップが正常に作成されました。",
 				"lastBackupAt": "最後にバックアップされたのは {date}",
-				"noBackups": "バックアップはまだありません。"
+				"noBackups": "バックアップはまだありません。",
+				"autoBackupFrequency": "自動バックアップ頻度",
+				"frequencyDaily": "毎日",
+				"frequencyWeekly": "毎週",
+				"frequencyMonthly": "毎月",
+				"frequencyNever": "なし（オフ）",
+				"backupTypeAutomatic": "（自動）",
+				"backupTypeManual": "（手動）"
 			}
 		},
 		"library": {

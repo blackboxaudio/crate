@@ -618,47 +618,15 @@ pub async fn create_backup(
         },
     );
 
-    // artwork_path values in the DB are relative to app_data_dir (e.g. "artwork/abc.webp")
     let data_dir = app_handle
         .path()
         .app_data_dir()
         .map_err(|e| CrateError::Backup(format!("Failed to resolve app data dir: {e}")))?;
 
-    // Gather unique artwork paths from tracks and discovery releases
-    let mut artwork_paths: HashSet<String> = HashSet::new();
-    for t in &data.tracks {
-        if let Some(ref p) = t.artwork_path {
-            artwork_paths.insert(p.clone());
-        }
-    }
-    for dr in &data.discovery_releases {
-        if let Some(ref p) = dr.artwork_path {
-            artwork_paths.insert(p.clone());
-        }
-    }
-
-    if !artwork_paths.is_empty() {
-        let data_dir = data_dir.clone();
-        let artwork_map = tokio::task::spawn_blocking(move || -> HashMap<String, String> {
-            let engine = base64::engine::general_purpose::STANDARD;
-            let mut map = HashMap::new();
-            for rel_path in artwork_paths {
-                let full_path = data_dir.join(&rel_path);
-                if let Ok(bytes) = std::fs::read(&full_path) {
-                    map.insert(rel_path, engine.encode(&bytes));
-                }
-            }
-            map
-        })
-        .await
-        .map_err(|e| CrateError::Backup(format!("Artwork collection failed: {e}")))?;
-
+    let artwork_map = collect_artwork_files(&data_dir, &data).await?;
+    if !artwork_map.is_empty() {
         data.counts.artwork_files = artwork_map.len();
-        data.artwork_files = if artwork_map.is_empty() {
-            None
-        } else {
-            Some(artwork_map)
-        };
+        data.artwork_files = Some(artwork_map);
     }
 
     emit_progress(
@@ -700,6 +668,10 @@ pub async fn create_backup(
             conn.execute(
                 "INSERT OR REPLACE INTO settings (key, value) VALUES ('last_backup_at', ?1)",
                 params![now],
+            )?;
+            conn.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES ('last_backup_type', 'manual')",
+                [],
             )?;
             Ok(())
         })
@@ -902,5 +874,167 @@ pub async fn restore_from_backup(
         },
     );
 
+    Ok(())
+}
+
+async fn collect_artwork_files(
+    data_dir: &std::path::Path,
+    data: &BackupData,
+) -> Result<HashMap<String, String>> {
+    let mut artwork_paths: HashSet<String> = HashSet::new();
+    for t in &data.tracks {
+        if let Some(ref p) = t.artwork_path {
+            artwork_paths.insert(p.clone());
+        }
+    }
+    for dr in &data.discovery_releases {
+        if let Some(ref p) = dr.artwork_path {
+            artwork_paths.insert(p.clone());
+        }
+    }
+
+    if artwork_paths.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let data_dir = data_dir.to_path_buf();
+    tokio::task::spawn_blocking(move || -> HashMap<String, String> {
+        let engine = base64::engine::general_purpose::STANDARD;
+        let mut map = HashMap::new();
+        for rel_path in artwork_paths {
+            let full_path = data_dir.join(&rel_path);
+            if let Ok(bytes) = std::fs::read(&full_path) {
+                map.insert(rel_path, engine.encode(&bytes));
+            }
+        }
+        map
+    })
+    .await
+    .map_err(|e| CrateError::Backup(format!("Artwork collection failed: {e}")))
+}
+
+pub async fn run_auto_backup_if_due(
+    conn: Arc<Mutex<Connection>>,
+    app_handle: AppHandle,
+    app_version: String,
+) -> Result<()> {
+    use crate::models::BackupFrequency;
+
+    // Read backup_frequency from DB (short-lived lock)
+    let frequency: BackupFrequency = {
+        let conn = conn
+            .lock()
+            .map_err(|_| CrateError::Backup("Failed to acquire database lock".into()))?;
+        let result = conn.query_row(
+            "SELECT value FROM settings WHERE key = 'backup_frequency'",
+            [],
+            |row| row.get::<_, String>(0),
+        );
+        match result {
+            Ok(v) => v.parse().unwrap_or_default(),
+            Err(rusqlite::Error::QueryReturnedNoRows) => BackupFrequency::default(),
+            Err(e) => return Err(CrateError::Database(e)),
+        }
+    };
+
+    if frequency == BackupFrequency::Never {
+        log::info!("Auto-backup disabled (frequency=never)");
+        return Ok(());
+    }
+
+    let data_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| CrateError::Backup(format!("Failed to resolve app data dir: {e}")))?;
+    let auto_backup_path = data_dir.join("crate-auto.cratebackup");
+
+    // Check if backup is due based on the file's modification time
+    let threshold = match frequency {
+        BackupFrequency::Daily => std::time::Duration::from_secs(24 * 60 * 60),
+        BackupFrequency::Weekly => std::time::Duration::from_secs(7 * 24 * 60 * 60),
+        BackupFrequency::Monthly => std::time::Duration::from_secs(30 * 24 * 60 * 60),
+        BackupFrequency::Never => unreachable!(),
+    };
+
+    if auto_backup_path.exists() {
+        if let Ok(metadata) = std::fs::metadata(&auto_backup_path) {
+            if let Ok(modified) = metadata.modified() {
+                if let Ok(elapsed) = std::time::SystemTime::now().duration_since(modified) {
+                    if elapsed < threshold {
+                        log::info!(
+                            "Auto-backup not due yet (last: {:.1}h ago, threshold: {:.1}h)",
+                            elapsed.as_secs_f64() / 3600.0,
+                            threshold.as_secs_f64() / 3600.0,
+                        );
+                        return Ok(());
+                    }
+                }
+            }
+        }
+    }
+
+    log::info!("Auto-backup starting (frequency={frequency})");
+
+    // Create backup data
+    let mut data = {
+        let conn = conn.clone();
+        let app_version = app_version.clone();
+        tokio::task::spawn_blocking(move || {
+            BackupService::new(conn).create_backup_data(&app_version)
+        })
+        .await
+        .map_err(|e| CrateError::Backup(format!("Auto-backup task failed: {e}")))?
+    }?;
+
+    // Collect artwork
+    let artwork_map = collect_artwork_files(&data_dir, &data).await?;
+    if !artwork_map.is_empty() {
+        data.counts.artwork_files = artwork_map.len();
+        data.artwork_files = Some(artwork_map);
+    }
+
+    // Serialize, compress, write
+    let json = serde_json::to_vec(&data)
+        .map_err(|e| CrateError::Backup(format!("Failed to serialize auto-backup: {e}")))?;
+
+    let path = auto_backup_path.clone();
+    tokio::task::spawn_blocking(move || -> Result<()> {
+        let file = std::fs::File::create(&path)
+            .map_err(|e| CrateError::Backup(format!("Failed to create auto-backup file: {e}")))?;
+        let mut encoder = GzEncoder::new(file, Compression::default());
+        encoder
+            .write_all(&json)
+            .map_err(|e| CrateError::Backup(format!("Failed to write auto-backup: {e}")))?;
+        encoder
+            .finish()
+            .map_err(|e| CrateError::Backup(format!("Failed to finalize auto-backup: {e}")))?;
+        Ok(())
+    })
+    .await
+    .map_err(|e| CrateError::Backup(format!("Auto-backup write task failed: {e}")))??;
+
+    // Update last_backup_at and last_backup_type in settings
+    {
+        let conn = conn.clone();
+        let now = chrono::Utc::now().to_rfc3339();
+        tokio::task::spawn_blocking(move || -> Result<()> {
+            let conn = conn
+                .lock()
+                .map_err(|_| CrateError::Backup("Failed to acquire database lock".into()))?;
+            conn.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES ('last_backup_at', ?1)",
+                params![now],
+            )?;
+            conn.execute(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES ('last_backup_type', 'automatic')",
+                [],
+            )?;
+            Ok(())
+        })
+        .await
+        .map_err(|e| CrateError::Backup(format!("Auto-backup settings save failed: {e}")))??;
+    }
+
+    log::info!("Auto-backup completed successfully");
     Ok(())
 }

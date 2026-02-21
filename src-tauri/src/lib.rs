@@ -203,6 +203,21 @@ pub fn run() {
 
             // Register services with Tauri
             app.manage(backup_service);
+
+            // Spawn auto-backup check (runs in background, does not block startup)
+            {
+                let conn = conn.clone();
+                let app_handle = app.handle().clone();
+                let app_version = app.package_info().version.to_string();
+                tauri::async_runtime::spawn(async move {
+                    if let Err(e) =
+                        crate::services::backup::run_auto_backup_if_due(conn, app_handle, app_version).await
+                    {
+                        log::warn!("Auto-backup failed: {e}");
+                    }
+                });
+            }
+
             app.manage(library_service);
             app.manage(tag_service);
             app.manage(playlist_service);

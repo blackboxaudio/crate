@@ -64,7 +64,14 @@
 				"restoringArtwork": "Artwork herstellen...",
 				"backupComplete": "Back-up succesvol gemaakt.",
 				"lastBackupAt": "Laatst een back-up gemaakt op {date}",
-				"noBackups": "Nog geen back-ups."
+				"noBackups": "Nog geen back-ups.",
+				"autoBackupFrequency": "Automatische back-upfrequentie",
+				"frequencyDaily": "Dagelijks",
+				"frequencyWeekly": "Wekelijks",
+				"frequencyMonthly": "Maandelijks",
+				"frequencyNever": "Nooit (uit)",
+				"backupTypeAutomatic": "(Automatisch)",
+				"backupTypeManual": "(Handmatig)"
 			}
 		},
 		"library": {
