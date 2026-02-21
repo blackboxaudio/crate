@@ -1,13 +1,62 @@
 pub mod schema;
 
 use rusqlite::Connection;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
 use crate::error::{CrateError, Result};
 
 pub struct Database {
     conn: Arc<Mutex<Connection>>,
+}
+
+/// Retrieve or generate the database encryption key from the OS credential store.
+fn get_or_create_db_key() -> Result<String> {
+    let entry = keyring::Entry::new("com.bbx-audio.crate", "database-key")
+        .map_err(|e| CrateError::Keyring(e.to_string()))?;
+
+    match entry.get_password() {
+        Ok(key) => Ok(key),
+        Err(keyring::Error::NoEntry) => {
+            // First launch: generate a random 64-char hex key using two UUIDs
+            let key = format!(
+                "{}{}",
+                uuid::Uuid::new_v4().as_simple(),
+                uuid::Uuid::new_v4().as_simple()
+            );
+            entry
+                .set_password(&key)
+                .map_err(|e| CrateError::Keyring(e.to_string()))?;
+            Ok(key)
+        }
+        Err(e) => Err(CrateError::Keyring(e.to_string())),
+    }
+}
+
+/// Check whether a database file is unencrypted by attempting to read its header.
+/// An unencrypted SQLite database starts with "SQLite format 3\0".
+fn is_unencrypted(db_path: &Path) -> bool {
+    std::fs::read(db_path)
+        .map(|bytes| bytes.starts_with(b"SQLite format 3\0"))
+        .unwrap_or(false)
+}
+
+/// Migrate an existing unencrypted database to an encrypted one using `sqlcipher_export`.
+fn migrate_to_encrypted(db_path: &Path, key: &str) -> Result<()> {
+    let conn = Connection::open(db_path)?;
+    let encrypted_path = db_path.with_extension("db.encrypted");
+
+    conn.execute_batch(&format!(
+        "ATTACH DATABASE '{}' AS encrypted KEY '{}';
+         SELECT sqlcipher_export('encrypted');
+         DETACH DATABASE encrypted;",
+        encrypted_path.display(),
+        key
+    ))?;
+
+    drop(conn);
+    std::fs::rename(&encrypted_path, db_path)?;
+    Ok(())
 }
 
 impl Database {
@@ -17,7 +66,18 @@ impl Database {
             std::fs::create_dir_all(parent)?;
         }
 
+        let key = get_or_create_db_key()?;
+
+        // If the database file already exists and is unencrypted, migrate it
+        if db_path.exists() && is_unencrypted(&db_path) {
+            log::info!("Migrating unencrypted database to encrypted format");
+            migrate_to_encrypted(&db_path, &key)?;
+        }
+
         let conn = Connection::open(&db_path)?;
+
+        // Apply encryption key
+        conn.pragma_update(None, "key", &key)?;
 
         // Enable foreign keys
         conn.execute("PRAGMA foreign_keys = ON", [])?;

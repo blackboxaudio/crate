@@ -73,7 +73,7 @@ pub(crate) async fn proxy_http_handler(
             axum::http::Response::builder()
                 .status(502)
                 .header("Content-Type", "text/plain")
-                .body(axum::body::Body::from(format!("Stream proxy error: {e}")))
+                .body(axum::body::Body::from("Internal proxy error"))
                 .unwrap()
         }
     }
@@ -215,10 +215,7 @@ fn serve_range_from_cache(
     Ok(axum::http::Response::builder()
         .status(206)
         .header("Content-Type", &cached.content_type)
-        .header(
-            "Content-Range",
-            format!("bytes {start}-{end}/{total}"),
-        )
+        .header("Content-Range", format!("bytes {start}-{end}/{total}"))
         .header("Content-Length", slice.len().to_string())
         .header("Accept-Ranges", "bytes")
         .header("Access-Control-Allow-Origin", "*")

@@ -72,22 +72,23 @@ impl AnalysisService {
     }
 
     /// Cancel analysis for a specific track
-    pub fn cancel_track_analysis(&self, track_id: &str) -> bool {
-        let mut tasks = self.tasks.lock().unwrap();
+    pub fn cancel_track_analysis(&self, track_id: &str) -> Result<bool> {
+        let mut tasks = self.tasks.lock().map_err(|_| CrateError::LockPoisoned)?;
         if let Some(task) = tasks.remove(track_id) {
             task.cancel_token.cancel();
-            true
+            Ok(true)
         } else {
-            false
+            Ok(false)
         }
     }
 
     /// Cancel all running analysis tasks
-    pub fn cancel_all_analysis(&self) {
-        let mut tasks = self.tasks.lock().unwrap();
+    pub fn cancel_all_analysis(&self) -> Result<()> {
+        let mut tasks = self.tasks.lock().map_err(|_| CrateError::LockPoisoned)?;
         for (_, task) in tasks.drain() {
             task.cancel_token.cancel();
         }
+        Ok(())
     }
 
     /// Analyze multiple tracks with per-track events (async, non-blocking)
@@ -121,7 +122,7 @@ impl AnalysisService {
             });
 
             // Store task for potential cancellation
-            let mut tasks_guard = self.tasks.lock().unwrap();
+            let mut tasks_guard = self.tasks.lock().map_err(|_| CrateError::LockPoisoned)?;
             tasks_guard.insert(
                 track_id.clone(),
                 TrackAnalysisTask {
@@ -154,7 +155,9 @@ impl AnalysisService {
                     error: None,
                 },
             );
-            tasks.lock().unwrap().remove(&track_id);
+            if let Ok(mut t) = tasks.lock() {
+                t.remove(&track_id);
+            }
             return;
         }
 
@@ -192,7 +195,9 @@ impl AnalysisService {
                     error: None,
                 },
             );
-            tasks.lock().unwrap().remove(&track_id);
+            if let Ok(mut t) = tasks.lock() {
+                t.remove(&track_id);
+            }
             return;
         }
 
@@ -237,7 +242,9 @@ impl AnalysisService {
         }
 
         // Clean up task from map
-        tasks.lock().unwrap().remove(&track_id);
+        if let Ok(mut t) = tasks.lock() {
+            t.remove(&track_id);
+        }
     }
 
     /// Analyze a track with cancellation support - runs on blocking thread
@@ -540,8 +547,8 @@ impl AnalysisService {
     }
 
     /// Cancel the current analysis operation (cancels all)
-    pub fn cancel_analysis(&self) {
-        self.cancel_all_analysis();
+    pub fn cancel_analysis(&self) -> Result<()> {
+        self.cancel_all_analysis()
     }
 
     /// Get a track by ID
@@ -599,7 +606,10 @@ impl AnalysisService {
         })?;
 
         let tracks_with_tags = self.fetch_tags_for_tracks(&conn, vec![track])?;
-        Ok(tracks_with_tags.into_iter().next().unwrap())
+        tracks_with_tags
+            .into_iter()
+            .next()
+            .ok_or_else(|| CrateError::TrackNotFound(id.to_string()))
     }
 
     fn fetch_tags_for_tracks(

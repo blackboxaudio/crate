@@ -20,14 +20,13 @@ pub async fn cancel_track_analysis(
     track_id: String,
     analysis: State<'_, AnalysisService>,
 ) -> Result<bool> {
-    Ok(analysis.cancel_track_analysis(&track_id))
+    analysis.cancel_track_analysis(&track_id)
 }
 
 /// Cancel all running analysis operations (legacy)
 #[tauri::command]
 pub async fn cancel_analysis(analysis: State<'_, AnalysisService>) -> Result<()> {
-    analysis.cancel_analysis();
-    Ok(())
+    analysis.cancel_analysis()
 }
 
 /// Get updated tracks after analysis

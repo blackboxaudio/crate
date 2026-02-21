@@ -161,15 +161,15 @@ pub fn run() {
             let app_data_dir = app
                 .path()
                 .app_data_dir()
-                .expect("Failed to get app data directory");
+                .map_err(|e| format!("Failed to get app data directory: {e}"))?;
 
             // Ensure directory exists
-            std::fs::create_dir_all(&app_data_dir).expect("Failed to create app data directory");
+            std::fs::create_dir_all(&app_data_dir)?;
 
             let db_path = app_data_dir.join("crate.db");
             log::info!("Database path: {db_path:?}");
 
-            let db = Database::new(db_path).expect("Failed to initialize database");
+            let db = Database::new(db_path)?;
             let conn = db.connection();
 
             // Initialize services
@@ -180,7 +180,8 @@ pub fn run() {
             let export_service = Arc::new(ExportService::new(conn.clone()));
             let checkpoint_service = Arc::new(CheckpointService::new(conn.clone()));
             let sync_service = SyncService::new(conn.clone(), export_service.clone());
-            let audio_service = AudioService::new().expect("Failed to initialize audio service");
+            let audio_service = AudioService::new()
+                .map_err(|e| format!("Failed to initialize audio service: {e}"))?;
             let device_service = DeviceService::new();
             let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
             let analysis_service = AnalysisService::new(conn.clone());
@@ -227,10 +228,10 @@ pub fn run() {
             // seeking; WKWebView's custom URI scheme handler (WKURLSchemeHandler) does not reliably
             // support the multi-request, cancellation-heavy lifecycle that AVFoundation uses.
             let std_listener = std::net::TcpListener::bind("127.0.0.1:0")
-                .expect("Failed to bind stream proxy HTTP server");
+                .map_err(|e| format!("Failed to bind stream proxy: {e}"))?;
             let proxy_port = std_listener
                 .local_addr()
-                .expect("Failed to get proxy server address")
+                .map_err(|e| format!("Failed to get proxy address: {e}"))?
                 .port();
             log::info!("Stream proxy HTTP server bound to 127.0.0.1:{proxy_port}");
             app.manage(ProxyServerPort(proxy_port));
@@ -247,10 +248,9 @@ pub fn run() {
                 .pool_max_idle_per_host(0)
                 .http1_only()
                 .build()
-                .expect("Failed to build proxy HTTP client");
+                .map_err(|e| format!("Failed to build proxy client: {e}"))?;
 
-            let proxy_state =
-                proxy::ProxyServerState::new(app.handle().clone(), proxy_client);
+            let proxy_state = proxy::ProxyServerState::new(app.handle().clone(), proxy_client);
 
             tauri::async_runtime::spawn(async move {
                 std_listener

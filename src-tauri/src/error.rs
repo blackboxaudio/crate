@@ -42,6 +42,12 @@ pub enum CrateError {
 
     #[error("Discovery error: {0}")]
     Discovery(String),
+
+    #[error("Keyring error: {0}")]
+    Keyring(String),
+
+    #[error("Internal lock error")]
+    LockPoisoned,
 }
 
 impl serde::Serialize for CrateError {

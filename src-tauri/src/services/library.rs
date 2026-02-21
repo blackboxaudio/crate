@@ -492,9 +492,12 @@ impl LibraryService {
 
         if let Some(ref filter) = filter {
             if let Some(ref search) = filter.search {
-                let search_param = format!("%{search}%");
-                conditions
-                    .push("(t.title LIKE ?1 OR t.artist LIKE ?1 OR t.album LIKE ?1)".to_string());
+                let escaped = search.replace('%', "\\%").replace('_', "\\_");
+                let search_param = format!("%{escaped}%");
+                conditions.push(
+                    "(t.title LIKE ?1 ESCAPE '\\' OR t.artist LIKE ?1 ESCAPE '\\' OR t.album LIKE ?1 ESCAPE '\\')"
+                        .to_string(),
+                );
                 params.push(Box::new(search_param));
             }
 
@@ -728,7 +731,10 @@ impl LibraryService {
 
         // Fetch tags
         let tracks_with_tags = self.fetch_tags_for_tracks(&conn, vec![track])?;
-        Ok(tracks_with_tags.into_iter().next().unwrap())
+        tracks_with_tags
+            .into_iter()
+            .next()
+            .ok_or_else(|| CrateError::TrackNotFound(id.to_string()))
     }
 
     pub fn update_track(&self, id: &str, update: TrackUpdate) -> Result<Track> {
@@ -1162,7 +1168,7 @@ impl LibraryService {
         drop(conn);
 
         if self.artwork_service.are_artworks_identical(&artwork_paths) {
-            Ok(Some(artwork_paths.into_iter().next().unwrap()))
+            Ok(artwork_paths.into_iter().next())
         } else {
             Ok(None)
         }
