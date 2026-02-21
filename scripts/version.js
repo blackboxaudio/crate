@@ -143,9 +143,18 @@ function updateVersion(bumpType, channel = null) {
 	const stagingConfPath = join(ROOT, 'src-tauri', 'tauri.staging.conf.json')
 	const stagingConf = JSON.parse(readFileSync(stagingConfPath, 'utf-8'))
 	if (parsed.prerelease !== null) {
+		// Staging: set full version + MSI-compatible WiX version
 		stagingConf.version = newVersion
+		if (!stagingConf.bundle) stagingConf.bundle = {}
+		if (!stagingConf.bundle.windows) stagingConf.bundle.windows = {}
+		if (!stagingConf.bundle.windows.wix) stagingConf.bundle.windows.wix = {}
+		stagingConf.bundle.windows.wix.version = `${baseVersion}-${parsed.prerelease}`
 	} else {
+		// Stable: remove staging version + clean up WiX override
 		delete stagingConf.version
+		if (stagingConf.bundle?.windows) {
+			delete stagingConf.bundle.windows
+		}
 	}
 	writeFileSync(stagingConfPath, JSON.stringify(stagingConf, null, '\t') + '\n')
 	console.log(

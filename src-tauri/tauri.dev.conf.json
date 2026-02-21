@@ -3,6 +3,10 @@
 	"productName": "Crate Dev",
 	"identifier": "com.bbx-audio.crate-dev",
 	"app": {
-		"windows": [{ "title": "Crate [DEV]" }]
+		"windows": [
+			{
+				"title": "Crate [DEV]"
+			}
+		]
 	}
 }
