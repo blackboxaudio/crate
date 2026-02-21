@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use super::{
-    Cue, DiscoveryRelease, DiscoveryTrack, Playlist, PlaylistTrack, Tag, TagCategory,
-};
+use super::{Cue, DiscoveryRelease, DiscoveryTrack, Playlist, PlaylistTrack, Tag, TagCategory};
 
 /// A track as stored in a backup — same as Track but without waveform_data
 /// (too large; user re-analyzes after restore) and without the `tags` Vec

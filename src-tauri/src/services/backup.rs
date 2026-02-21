@@ -33,8 +33,9 @@ impl BackupService {
             .map_err(|_| CrateError::Backup("Failed to acquire database lock".into()))?;
 
         // Tag categories
-        let mut stmt =
-            conn.prepare("SELECT id, name, color, sort_order FROM tag_categories ORDER BY sort_order")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, name, color, sort_order FROM tag_categories ORDER BY sort_order",
+        )?;
         let tag_categories = stmt
             .query_map([], |row| {
                 Ok(crate::models::TagCategory {
@@ -49,8 +50,9 @@ impl BackupService {
         drop(stmt);
 
         // Tags
-        let mut stmt =
-            conn.prepare("SELECT id, category_id, name, color, sort_order FROM tags ORDER BY sort_order")?;
+        let mut stmt = conn.prepare(
+            "SELECT id, category_id, name, color, sort_order FROM tags ORDER BY sort_order",
+        )?;
         let tags = stmt
             .query_map([], |row| {
                 Ok(crate::models::Tag {
@@ -112,9 +114,13 @@ impl BackupService {
         let cues = stmt
             .query_map([], |row| {
                 let cue_type_str: String = row.get(3)?;
-                let cue_type = cue_type_str
-                    .parse()
-                    .map_err(|e: String| rusqlite::Error::FromSqlConversionFailure(3, rusqlite::types::Type::Text, Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e))))?;
+                let cue_type = cue_type_str.parse().map_err(|e: String| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        3,
+                        rusqlite::types::Type::Text,
+                        Box::new(std::io::Error::new(std::io::ErrorKind::InvalidData, e)),
+                    )
+                })?;
                 Ok(crate::models::Cue {
                     id: row.get(0)?,
                     track_id: row.get(1)?,
@@ -162,15 +168,17 @@ impl BackupService {
                     date_created: row.get(7)?,
                     date_modified: row.get(8)?,
                     track_count: 0,
-                    context: row.get::<_, Option<String>>(9)?.unwrap_or_else(|| "library".to_string()),
+                    context: row
+                        .get::<_, Option<String>>(9)?
+                        .unwrap_or_else(|| "library".to_string()),
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
         drop(stmt);
 
         // Playlist tracks
-        let mut stmt =
-            conn.prepare("SELECT playlist_id, track_id, position, date_added FROM playlist_tracks")?;
+        let mut stmt = conn
+            .prepare("SELECT playlist_id, track_id, position, date_added FROM playlist_tracks")?;
         let playlist_tracks = stmt
             .query_map([], |row| {
                 Ok(crate::models::PlaylistTrack {
@@ -436,7 +444,12 @@ impl BackupService {
                     "INSERT INTO playlist_tracks (playlist_id, track_id, position, date_added) VALUES (?1, ?2, ?3, ?4)",
                 )?;
                 for pt in &data.playlist_tracks {
-                    stmt.execute(params![pt.playlist_id, pt.track_id, pt.position, pt.date_added])?;
+                    stmt.execute(params![
+                        pt.playlist_id,
+                        pt.track_id,
+                        pt.position,
+                        pt.date_added
+                    ])?;
                 }
             }
 
@@ -542,15 +555,14 @@ impl BackupService {
 
 /// Topologically sort playlists so that roots (parent_id = None) come first,
 /// then their children, etc. This ensures parent rows exist before children.
-fn topological_sort_playlists(playlists: &[crate::models::Playlist]) -> Vec<crate::models::Playlist> {
+fn topological_sort_playlists(
+    playlists: &[crate::models::Playlist],
+) -> Vec<crate::models::Playlist> {
     use std::collections::{HashMap, VecDeque};
 
     let mut by_parent: HashMap<Option<&str>, Vec<&crate::models::Playlist>> = HashMap::new();
     for p in playlists {
-        by_parent
-            .entry(p.parent_id.as_deref())
-            .or_default()
-            .push(p);
+        by_parent.entry(p.parent_id.as_deref()).or_default().push(p);
     }
 
     let mut result = Vec::with_capacity(playlists.len());
@@ -638,13 +650,13 @@ pub async fn create_backup(
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
     // Serialize to JSON, gzip compress, write to path
-    let json =
-        serde_json::to_vec(&data).map_err(|e| CrateError::Backup(format!("Failed to serialize backup: {e}")))?;
+    let json = serde_json::to_vec(&data)
+        .map_err(|e| CrateError::Backup(format!("Failed to serialize backup: {e}")))?;
 
     let path_clone = path.clone();
     tokio::task::spawn_blocking(move || -> Result<()> {
-        let file =
-            std::fs::File::create(&path_clone).map_err(|e| CrateError::Backup(format!("Failed to create file: {e}")))?;
+        let file = std::fs::File::create(&path_clone)
+            .map_err(|e| CrateError::Backup(format!("Failed to create file: {e}")))?;
         let mut encoder = GzEncoder::new(file, Compression::default());
         encoder
             .write_all(&json)
@@ -825,16 +837,18 @@ pub async fn restore_from_backup(
             drop(stmt);
 
             if !stale_track_ids.is_empty() {
-                let mut update =
-                    conn.prepare("UPDATE tracks SET artwork_path = NULL, artwork_source = NULL WHERE id = ?1")?;
+                let mut update = conn.prepare(
+                    "UPDATE tracks SET artwork_path = NULL, artwork_source = NULL WHERE id = ?1",
+                )?;
                 for id in &stale_track_ids {
                     update.execute(params![id])?;
                 }
             }
 
             // Clean discovery releases
-            let mut stmt = conn
-                .prepare("SELECT id, artwork_path FROM discovery_releases WHERE artwork_path IS NOT NULL")?;
+            let mut stmt = conn.prepare(
+                "SELECT id, artwork_path FROM discovery_releases WHERE artwork_path IS NOT NULL",
+            )?;
             let stale_release_ids: Vec<String> = stmt
                 .query_map([], |row| {
                     let id: String = row.get(0)?;
@@ -848,8 +862,8 @@ pub async fn restore_from_backup(
             drop(stmt);
 
             if !stale_release_ids.is_empty() {
-                let mut update =
-                    conn.prepare("UPDATE discovery_releases SET artwork_path = NULL WHERE id = ?1")?;
+                let mut update = conn
+                    .prepare("UPDATE discovery_releases SET artwork_path = NULL WHERE id = ?1")?;
                 for id in &stale_release_ids {
                     update.execute(params![id])?;
                 }

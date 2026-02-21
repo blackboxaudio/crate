@@ -210,8 +210,12 @@ pub fn run() {
                 let app_handle = app.handle().clone();
                 let app_version = app.package_info().version.to_string();
                 tauri::async_runtime::spawn(async move {
-                    if let Err(e) =
-                        crate::services::backup::run_auto_backup_if_due(conn, app_handle, app_version).await
+                    if let Err(e) = crate::services::backup::run_auto_backup_if_due(
+                        conn,
+                        app_handle,
+                        app_version,
+                    )
+                    .await
                     {
                         log::warn!("Auto-backup failed: {e}");
                     }

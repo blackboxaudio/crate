@@ -16,8 +16,8 @@ pub mod tag;
 
 pub use analysis::AnalysisService;
 pub use artwork::ArtworkService;
-pub use backup::BackupService;
 pub use audio::AudioService;
+pub use backup::BackupService;
 pub use device::DeviceService;
 pub use diagnostics::DiagnosticsService;
 pub use discovery::DiscoveryService;
