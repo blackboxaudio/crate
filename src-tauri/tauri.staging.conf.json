@@ -1,12 +1,12 @@
 {
-	"version": "0.2.0-staging.10",
+	"version": "0.2.0-staging.11",
 	"productName": "Crate Staging",
 	"identifier": "com.bbx-audio.crate-staging",
 	"bundle": {
 		"createUpdaterArtifacts": true,
 		"windows": {
 			"wix": {
-				"version": "0.2.0-10"
+				"version": "0.2.0-11"
 			}
 		}
 	},
