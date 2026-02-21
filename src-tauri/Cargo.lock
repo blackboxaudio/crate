@@ -888,7 +888,7 @@ dependencies = [
 
 [[package]]
 name = "crate-app"
-version = "0.2.0-staging.13"
+version = "0.2.0-staging.14"
 dependencies = [
  "axum",
  "base64 0.22.1",
