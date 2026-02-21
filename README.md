@@ -2,7 +2,6 @@
 
 [![Build](https://github.com/blackboxaudio/crate/actions/workflows/ci.build.yml/badge.svg)](https://github.com/blackboxaudio/crate/actions/workflows/ci.build.yml)
 [![Lint](https://github.com/blackboxaudio/crate/actions/workflows/ci.lint.yml/badge.svg)](https://github.com/blackboxaudio/crate/actions/workflows/ci.lint.yml)
-[![Version](https://img.shields.io/github/v/release/blackboxaudio/crate?label=version)](https://github.com/blackboxaudio/crate/releases)
 
 > Cross-platform DJ library manager with music discovery, track analysis, and USB export
 
@@ -14,18 +13,18 @@ Crate is a cross-platform desktop application for managing DJ audio libraries. I
 
 ## 🎵 Features
 
-- **Library management** — Import and organize audio files (MP3, FLAC, WAV, AIFF, M4A/AAC) with automatic metadata extraction, search, and filtering
-- **Tagging** — Categorize tracks with a flexible tag system for fast filtering
-- **Playlists** — Build playlists manually or with smart rules
-- **Track analysis** — Waveform generation, key detection, BPM analysis, and energy profiling
-- **Music discovery** — Browse and preview releases from Bandcamp, SoundCloud, YouTube, and Discogs
-- **Audio playback** — Preview tracks with waveform display and cue point management
-- **USB export** — Export to Pioneer CDJ/XDJ devices with full rekordbox database generation
-- **Device sync** — Detect connected USB devices and sync library changes incrementally
-- **Metadata editing** — Edit track metadata in bulk or individually
-- **Customization** — Themes, accent colors, and font preferences
-- **Localization** — Available in 11 languages (EN, JA, NL, FR, DE, ES, IT, SV, KO, PT, ZH)
-- **Auto-updates** — Stay on the latest version without lifting a finger
+- **Library management** - Import and organize audio files (MP3, FLAC, WAV, AIFF, M4A/AAC) with automatic metadata extraction, search, and filtering
+- **Tagging** - Categorize tracks with a flexible tag system for fast filtering
+- **Playlists** - Build playlists manually or with smart rules
+- **Track analysis** - Waveform generation, key detection, BPM analysis, and energy profiling
+- **Music discovery** - Browse and preview releases from Bandcamp, SoundCloud, YouTube, and Discogs
+- **Audio playback** - Preview tracks with waveform display and cue point management
+- **USB export** - Export to Pioneer CDJ/XDJ devices with full Rekordbox database generation
+- **Device sync** - Detect connected USB devices and sync library changes incrementally
+- **Metadata editing** - Edit track metadata in bulk or individually
+- **Customization** - Themes, accent colors, and font preferences
+- **Localization** - Available in 11 languages (EN, JA, NL, FR, DE, ES, IT, SV, KO, PT, ZH)
+- **Auto-updates** - Stay on the latest version with minimal effort
 
 ## 🚀 Getting Started
 
@@ -79,8 +78,8 @@ yarn build:staging
 Output binaries are placed in `src-tauri/target/release/bundle/`.
 
 Platform targets:
-- **macOS** — `.dmg`, `.app`
-- **Windows** — `.msi`, `.exe`
+- **macOS** - `.dmg`, `.app`
+- **Windows** - `.msi`, `.exe`
 
 ## 🔗 Links
 

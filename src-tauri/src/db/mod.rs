@@ -43,8 +43,9 @@ fn write_key_file(path: &Path, key: &str) -> Result<()> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
-            .map_err(|e| CrateError::KeyStorage(format!("failed to set key file permissions: {e}")))?;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).map_err(|e| {
+            CrateError::KeyStorage(format!("failed to set key file permissions: {e}"))
+        })?;
     }
 
     Ok(())
