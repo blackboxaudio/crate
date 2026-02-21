@@ -24,20 +24,27 @@ jobs:
           cache: 'yarn'
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Setup sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+          targets: ${{ matrix.os == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
 
       - name: Cache Rust dependencies
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
-          cache-targets: false
+          shared-key: stable-${{ matrix.os }}
+          cache-targets: true
           cache-on-failure: true
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
-      - name: Build Tauri app
+      - name: Build Tauri app (macOS)
+        if: matrix.os == 'macos-latest'
+        run: yarn tauri build --target universal-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}'
+
+      - name: Build Tauri app (Windows)
+        if: matrix.os == 'windows-latest'
         run: yarn tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
