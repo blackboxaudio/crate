@@ -1,6 +1,6 @@
 {
 	"name": "crate",
-	"version": "0.2.0-staging.8",
+	"version": "0.2.0-staging.9",
 	"description": "Cross-platform DJ library manager with music discovery, track analysis, and USB export",
 	"type": "module",
 	"scripts": {
