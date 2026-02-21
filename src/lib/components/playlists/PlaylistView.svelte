@@ -32,6 +32,7 @@
 		hasSelection?: boolean
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
+		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onSortChange?: (config: SortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent, playlist: Playlist) => void
@@ -58,6 +59,7 @@
 		hasSelection = false,
 		onSelectionChange,
 		onTrackPlay,
+		onDiscoveryTrackPlay,
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
@@ -143,6 +145,7 @@
 					onContextMenu?.(e, release as unknown as Track)
 				}}
 				onToggleExpand={toggleExpand}
+				onTrackPlay={onDiscoveryTrackPlay}
 			/>
 		{:else}
 			<TrackList

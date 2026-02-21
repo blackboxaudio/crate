@@ -58,8 +58,10 @@
 				"creatingBackup": "Back-up wordt gemaakt...",
 				"restoringBackup": "Wordt hersteld vanuit back-up...",
 				"readingData": "Bibliotheekgegevens lezen...",
+				"collectingArtwork": "Artwork verzamelen...",
 				"writingFile": "Back-upbestand schrijven...",
 				"restoringData": "Bibliotheekgegevens herstellen...",
+				"restoringArtwork": "Artwork herstellen...",
 				"backupComplete": "Back-up succesvol gemaakt.",
 				"lastBackupAt": "Laatst een back-up gemaakt op {date}",
 				"noBackups": "Nog geen back-ups."

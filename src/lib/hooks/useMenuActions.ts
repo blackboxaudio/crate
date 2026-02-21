@@ -1,6 +1,6 @@
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { onMenuAction, type MenuAction } from '$lib/api/menu'
-import { isInputFocused } from '$lib/utils'
+import { isInputFocused, isNativeDialogOpen } from '$lib/utils'
 import type { SettingsPage } from '$lib/types'
 
 // =============================================================================
@@ -93,6 +93,8 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 	let unlistenMenu: UnlistenFn | null = null
 
 	function handleMenuAction(action: MenuAction): void {
+		if (isNativeDialogOpen()) return
+
 		switch (action) {
 			// App menu
 			case 'about':

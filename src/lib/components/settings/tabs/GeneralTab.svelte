@@ -7,6 +7,7 @@
 	import { toastStore } from '$lib/stores/toast'
 	import { SUPPORTED_LANGUAGES, translate } from '$lib/i18n'
 	import { save, open } from '@tauri-apps/plugin-dialog'
+	import { withNativeDialog } from '$lib/utils'
 	import * as backupApi from '$lib/api/backup'
 	import { get } from 'svelte/store'
 	import { slide } from 'svelte/transition'
@@ -60,10 +61,12 @@
 	}
 
 	async function handleCreateBackup() {
-		const path = await save({
-			defaultPath: `${getDefaultFilename()}.cratebackup`,
-			filters: [{ name: 'Crate Backup', extensions: ['cratebackup'] }],
-		})
+		const path = await withNativeDialog(() =>
+			save({
+				defaultPath: `${getDefaultFilename()}.cratebackup`,
+				filters: [{ name: 'Crate Backup', extensions: ['cratebackup'] }],
+			})
+		)
 		if (!path) return
 
 		backupStore.startBackup()
@@ -78,10 +81,12 @@
 	}
 
 	async function handleRestoreFromBackup() {
-		const path = await open({
-			filters: [{ name: 'Crate Backup', extensions: ['cratebackup'] }],
-			multiple: false,
-		})
+		const path = await withNativeDialog(() =>
+			open({
+				filters: [{ name: 'Crate Backup', extensions: ['cratebackup'] }],
+				multiple: false,
+			})
+		)
 		if (!path) return
 
 		pendingRestorePath = path as string
@@ -117,10 +122,14 @@
 		switch (status) {
 			case 'reading_data':
 				return t('settings.general.backup.readingData')
+			case 'collecting_artwork':
+				return t('settings.general.backup.collectingArtwork')
 			case 'writing_file':
 				return t('settings.general.backup.writingFile')
 			case 'restoring_data':
 				return t('settings.general.backup.restoringData')
+			case 'restoring_artwork':
+				return t('settings.general.backup.restoringArtwork')
 			case 'completed':
 				return t('settings.general.backup.backupComplete')
 			default:
@@ -131,12 +140,16 @@
 	function getProgressPercent(status: BackupStatus): number {
 		switch (status) {
 			case 'pending':
-				return 10
+				return 5
 			case 'reading_data':
-				return 30
+				return 20
+			case 'collecting_artwork':
+				return 40
 			case 'writing_file':
 			case 'restoring_data':
-				return 65
+				return 60
+			case 'restoring_artwork':
+				return 80
 			case 'completed':
 				return 100
 		}

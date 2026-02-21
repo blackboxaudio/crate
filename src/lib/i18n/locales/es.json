@@ -58,8 +58,10 @@
 				"creatingBackup": "Creando copia de seguridad...",
 				"restoringBackup": "Restaurando desde copia de seguridad...",
 				"readingData": "Leyendo datos de biblioteca...",
+				"collectingArtwork": "Recopilando carátula...",
 				"writingFile": "Escribiendo archivo de copia de seguridad...",
 				"restoringData": "Restaurando datos de biblioteca...",
+				"restoringArtwork": "Restaurando carátula...",
 				"backupComplete": "Copia de seguridad creada correctamente.",
 				"lastBackupAt": "Última copia de seguridad el {date}",
 				"noBackups": "Sin copias de seguridad aún."

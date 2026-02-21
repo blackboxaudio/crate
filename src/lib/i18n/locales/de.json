@@ -58,8 +58,10 @@
 				"creatingBackup": "Sicherung wird erstellt...",
 				"restoringBackup": "Wiederherstellung aus Sicherung...",
 				"readingData": "Bibliotheksdaten werden gelesen...",
+				"collectingArtwork": "Artwork wird gesammelt...",
 				"writingFile": "Sicherungsdatei wird geschrieben...",
 				"restoringData": "Bibliotheksdaten werden wiederhergestellt...",
+				"restoringArtwork": "Artwork wird wiederhergestellt...",
 				"backupComplete": "Sicherung erfolgreich erstellt.",
 				"lastBackupAt": "Zuletzt gesichert am {date}",
 				"noBackups": "Noch keine Sicherungen."

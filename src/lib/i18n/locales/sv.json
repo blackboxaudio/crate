@@ -58,8 +58,10 @@
 				"creatingBackup": "Skapar säkerhetskopia...",
 				"restoringBackup": "Återställer från säkerhetskopia...",
 				"readingData": "Läser biblioteksdata...",
+				"collectingArtwork": "Samlar in omslag...",
 				"writingFile": "Skriver säkerhetskopieringsfil...",
 				"restoringData": "Återställer biblioteksdata...",
+				"restoringArtwork": "Återställer omslag...",
 				"backupComplete": "Säkerhetskopia skapad framgångsrikt.",
 				"lastBackupAt": "Senast säkerhetskopierad {date}",
 				"noBackups": "Ingen säkerhetskopia ännu."

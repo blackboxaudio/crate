@@ -35,6 +35,14 @@ export async function setMenuItemEnabled(id: string, enabled: boolean): Promise<
 	return invoke('set_menu_item_enabled', { id, enabled })
 }
 
+/**
+ * Enable or disable all menu items whose keyboard accelerators conflict
+ * with native file dialog navigation (arrows, Space, M, etc.)
+ */
+export async function setDialogConflictingItemsEnabled(enabled: boolean): Promise<void> {
+	return invoke('set_dialog_conflicting_items_enabled', { enabled })
+}
+
 export interface MenuTranslations {
 	// Menu titles
 	file: string

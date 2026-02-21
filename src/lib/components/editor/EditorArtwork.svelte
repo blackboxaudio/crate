@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { open } from '@tauri-apps/plugin-dialog'
+	import { withNativeDialog } from '$lib/utils'
 	import AlbumArt from '$lib/components/common/AlbumArt.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import type { ArtworkSource, BulkEditValue } from '$lib/types'
@@ -32,15 +33,17 @@
 	let displayPath = $derived(resolvedArtworkPath ?? (artworkPath.mixed ? null : artworkPath.value))
 
 	async function handleAdd() {
-		const selected = await open({
-			multiple: false,
-			filters: [
-				{
-					name: 'Images',
-					extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'],
-				},
-			],
-		})
+		const selected = await withNativeDialog(() =>
+			open({
+				multiple: false,
+				filters: [
+					{
+						name: 'Images',
+						extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'],
+					},
+				],
+			})
+		)
 
 		if (selected && typeof selected === 'string') {
 			onAdd(selected)

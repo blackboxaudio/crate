@@ -58,8 +58,10 @@
 				"creatingBackup": "백업 만드는 중...",
 				"restoringBackup": "백업에서 복원하는 중...",
 				"readingData": "라이브러리 데이터 읽는 중...",
+				"collectingArtwork": "아트워크 수집 중...",
 				"writingFile": "백업 파일 쓰는 중...",
 				"restoringData": "라이브러리 데이터 복원 중...",
+				"restoringArtwork": "아트워크 복원 중...",
 				"backupComplete": "백업이 성공적으로 생성되었습니다.",
 				"lastBackupAt": "마지막 백업: {date}",
 				"noBackups": "아직 백업이 없습니다."

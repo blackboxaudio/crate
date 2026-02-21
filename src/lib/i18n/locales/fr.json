@@ -58,8 +58,10 @@
 				"creatingBackup": "Création de la sauvegarde...",
 				"restoringBackup": "Restauration à partir de la sauvegarde...",
 				"readingData": "Lecture des données de la bibliothèque...",
+				"collectingArtwork": "Collecte de l'artwork...",
 				"writingFile": "Écriture du fichier de sauvegarde...",
 				"restoringData": "Restauration des données de la bibliothèque...",
+				"restoringArtwork": "Restauration de l'artwork...",
 				"backupComplete": "Sauvegarde créée avec succès.",
 				"lastBackupAt": "Dernière sauvegarde le {date}",
 				"noBackups": "Aucune sauvegarde pour le moment."

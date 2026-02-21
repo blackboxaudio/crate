@@ -702,7 +702,14 @@ export interface PreviewInfo {
 // Backup Types
 // =============================================================================
 
-export type BackupStatus = 'pending' | 'reading_data' | 'writing_file' | 'restoring_data' | 'completed'
+export type BackupStatus =
+	| 'pending'
+	| 'reading_data'
+	| 'collecting_artwork'
+	| 'writing_file'
+	| 'restoring_data'
+	| 'restoring_artwork'
+	| 'completed'
 
 export interface BackupProgress {
 	status: BackupStatus

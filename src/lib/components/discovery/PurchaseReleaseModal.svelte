@@ -5,6 +5,7 @@
 	import { transferTagsOnImport, removeReleaseAfterImport } from '$lib/stores/settings'
 	import { translate } from '$lib/i18n'
 	import { open } from '@tauri-apps/plugin-dialog'
+	import { withNativeDialog } from '$lib/utils'
 	import { SvelteSet } from 'svelte/reactivity'
 
 	type Props = {
@@ -51,10 +52,12 @@
 	})
 
 	async function handleSelectFiles() {
-		const selected = await open({
-			multiple: true,
-			filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'] }],
-		})
+		const selected = await withNativeDialog(() =>
+			open({
+				multiple: true,
+				filters: [{ name: 'Audio Files', extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'] }],
+			})
+		)
 		if (selected && Array.isArray(selected) && selected.length > 0) {
 			filePaths = selected
 		}

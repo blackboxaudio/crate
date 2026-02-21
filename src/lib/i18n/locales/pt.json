@@ -58,8 +58,10 @@
 				"creatingBackup": "Criando backup...",
 				"restoringBackup": "Restaurando do backup...",
 				"readingData": "Lendo dados da biblioteca...",
+				"collectingArtwork": "Coletando capa...",
 				"writingFile": "Escrevendo arquivo de backup...",
 				"restoringData": "Restaurando dados da biblioteca...",
+				"restoringArtwork": "Restaurando capa...",
 				"backupComplete": "Backup criado com sucesso.",
 				"lastBackupAt": "Último backup em {date}",
 				"noBackups": "Nenhum backup ainda."

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
 
 use super::{
@@ -64,6 +66,8 @@ pub struct BackupCounts {
     pub tags: usize,
     pub playlists: usize,
     pub discovery_releases: usize,
+    #[serde(default)]
+    pub artwork_files: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,6 +87,10 @@ pub struct BackupData {
     pub discovery_tracks: Vec<DiscoveryTrack>,
     pub discovery_release_tags: Vec<BackupDiscoveryReleaseTag>,
     pub playlist_discovery_releases: Vec<BackupPlaylistDiscoveryRelease>,
+    /// Base64-encoded artwork files keyed by relative path (e.g. "artwork/abc.webp").
+    /// `None` for backups created before artwork support was added.
+    #[serde(default)]
+    pub artwork_files: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -90,8 +98,10 @@ pub struct BackupData {
 pub enum BackupStatus {
     Pending,
     ReadingData,
+    CollectingArtwork,
     WritingFile,
     RestoringData,
+    RestoringArtwork,
     Completed,
 }
 

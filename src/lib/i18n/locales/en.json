@@ -58,8 +58,10 @@
 				"creatingBackup": "Creating backup...",
 				"restoringBackup": "Restoring from backup...",
 				"readingData": "Reading library data...",
+				"collectingArtwork": "Collecting artwork...",
 				"writingFile": "Writing backup file...",
 				"restoringData": "Restoring library data...",
+				"restoringArtwork": "Restoring artwork...",
 				"backupComplete": "Backup created successfully.",
 				"lastBackupAt": "Last backed up {date}",
 				"noBackups": "No backups yet."

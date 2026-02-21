@@ -1130,6 +1130,7 @@
 										editorVisible={$rightSidebarVisible}
 										hasSelection={selectedReleasesArray.length > 0}
 										onSelectionChange={handleReleaseSelectionChange}
+										onDiscoveryTrackPlay={handleTrackPlayInRelease}
 										onContextMenu={(e, item) => {
 											handleReleaseContextMenu(e, item as unknown as DiscoveryRelease)
 										}}
@@ -1398,6 +1399,7 @@
 	onRemoveDiscoveryReleases={async (releaseIds) => {
 		await discoveryStore.deleteReleases(releaseIds)
 		uiStore.clearReleaseSelection()
+		await playlistsStore.load()
 	}}
 	onRemoveDiscoveryReleasesFromPlaylist={async (releaseIds, playlistId, deleteFromCollection) => {
 		await playlistsStore.removeReleases(playlistId, releaseIds)

@@ -1,12 +1,14 @@
+use std::collections::{HashMap, HashSet};
 use std::io::{Read as IoRead, Write as IoWrite};
 use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
+use base64::Engine;
 use flate2::read::GzDecoder;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use rusqlite::{params, Connection};
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::error::{CrateError, Result};
 use crate::models::backup::*;
@@ -263,6 +265,7 @@ impl BackupService {
             tags: tags.len(),
             playlists: playlists.len(),
             discovery_releases: discovery_releases.len(),
+            artwork_files: 0,
         };
 
         Ok(BackupData {
@@ -281,6 +284,7 @@ impl BackupService {
             discovery_tracks,
             discovery_release_tags,
             playlist_discovery_releases,
+            artwork_files: None,
         })
     }
 
@@ -596,7 +600,7 @@ pub async fn create_backup(
     );
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
-    let data = {
+    let mut data = {
         let conn = conn.clone();
         let app_version = app_version.clone();
         tokio::task::spawn_blocking(move || {
@@ -605,6 +609,57 @@ pub async fn create_backup(
         .await
         .map_err(|e| CrateError::Backup(format!("Backup task failed: {e}")))?
     }?;
+
+    // Collect artwork files as base64
+    emit_progress(
+        &app_handle,
+        &BackupProgress {
+            status: BackupStatus::CollectingArtwork,
+        },
+    );
+
+    let artwork_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| CrateError::Backup(format!("Failed to resolve app data dir: {e}")))?
+        .join("artwork");
+
+    // Gather unique artwork paths from tracks and discovery releases
+    let mut artwork_paths: HashSet<String> = HashSet::new();
+    for t in &data.tracks {
+        if let Some(ref p) = t.artwork_path {
+            artwork_paths.insert(p.clone());
+        }
+    }
+    for dr in &data.discovery_releases {
+        if let Some(ref p) = dr.artwork_path {
+            artwork_paths.insert(p.clone());
+        }
+    }
+
+    if !artwork_paths.is_empty() {
+        let artwork_dir = artwork_dir.clone();
+        let artwork_map = tokio::task::spawn_blocking(move || -> HashMap<String, String> {
+            let engine = base64::engine::general_purpose::STANDARD;
+            let mut map = HashMap::new();
+            for rel_path in artwork_paths {
+                let full_path = artwork_dir.join(&rel_path);
+                if let Ok(bytes) = std::fs::read(&full_path) {
+                    map.insert(rel_path, engine.encode(&bytes));
+                }
+            }
+            map
+        })
+        .await
+        .map_err(|e| CrateError::Backup(format!("Artwork collection failed: {e}")))?;
+
+        data.counts.artwork_files = artwork_map.len();
+        data.artwork_files = if artwork_map.is_empty() {
+            None
+        } else {
+            Some(artwork_map)
+        };
+    }
 
     emit_progress(
         &app_handle,
@@ -684,7 +739,7 @@ pub async fn restore_from_backup(
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
 
     // Read file, decompress, deserialize
-    let data: BackupData = {
+    let mut data: BackupData = {
         let path = path.clone();
         tokio::task::spawn_blocking(move || -> Result<BackupData> {
             let file = std::fs::File::open(&path)
@@ -710,6 +765,9 @@ pub async fn restore_from_backup(
         )));
     }
 
+    // Extract artwork data before moving data into DB restore
+    let artwork_files = data.artwork_files.take();
+
     emit_progress(
         &app_handle,
         &BackupProgress {
@@ -725,6 +783,109 @@ pub async fn restore_from_backup(
             .await
             .map_err(|e| CrateError::Backup(format!("Restore task failed: {e}")))?
     }?;
+
+    // Restore artwork files
+    emit_progress(
+        &app_handle,
+        &BackupProgress {
+            status: BackupStatus::RestoringArtwork,
+        },
+    );
+
+    let artwork_dir = app_handle
+        .path()
+        .app_data_dir()
+        .map_err(|e| CrateError::Backup(format!("Failed to resolve app data dir: {e}")))?
+        .join("artwork");
+
+    if let Some(files) = artwork_files {
+        // Backup contains artwork — clear existing artwork dir and write all files
+        let artwork_dir_clone = artwork_dir.clone();
+        tokio::task::spawn_blocking(move || -> Result<()> {
+            let engine = base64::engine::general_purpose::STANDARD;
+
+            // Clear artwork dir (ignore errors if it doesn't exist)
+            if artwork_dir_clone.exists() {
+                let _ = std::fs::remove_dir_all(&artwork_dir_clone);
+            }
+            std::fs::create_dir_all(&artwork_dir_clone)
+                .map_err(|e| CrateError::Backup(format!("Failed to create artwork dir: {e}")))?;
+
+            for (rel_path, b64_data) in &files {
+                let full_path = artwork_dir_clone.join(rel_path);
+                if let Some(parent) = full_path.parent() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+                if let Ok(bytes) = engine.decode(b64_data) {
+                    let _ = std::fs::write(&full_path, bytes);
+                }
+            }
+            Ok(())
+        })
+        .await
+        .map_err(|e| CrateError::Backup(format!("Artwork restore failed: {e}")))??;
+    }
+
+    // Clean up stale artwork_path references (files that don't exist on disk)
+    {
+        let conn = conn.clone();
+        let artwork_dir = artwork_dir.clone();
+        tokio::task::spawn_blocking(move || -> Result<()> {
+            let conn = conn
+                .lock()
+                .map_err(|_| CrateError::Backup("Failed to acquire database lock".into()))?;
+
+            // Clean tracks
+            let mut stmt =
+                conn.prepare("SELECT id, artwork_path FROM tracks WHERE artwork_path IS NOT NULL")?;
+            let stale_track_ids: Vec<String> = stmt
+                .query_map([], |row| {
+                    let id: String = row.get(0)?;
+                    let path: String = row.get(1)?;
+                    Ok((id, path))
+                })?
+                .filter_map(|r| r.ok())
+                .filter(|(_, path)| !artwork_dir.join(path).exists())
+                .map(|(id, _)| id)
+                .collect();
+            drop(stmt);
+
+            if !stale_track_ids.is_empty() {
+                let mut update =
+                    conn.prepare("UPDATE tracks SET artwork_path = NULL, artwork_source = NULL WHERE id = ?1")?;
+                for id in &stale_track_ids {
+                    update.execute(params![id])?;
+                }
+            }
+
+            // Clean discovery releases
+            let mut stmt = conn
+                .prepare("SELECT id, artwork_path FROM discovery_releases WHERE artwork_path IS NOT NULL")?;
+            let stale_release_ids: Vec<String> = stmt
+                .query_map([], |row| {
+                    let id: String = row.get(0)?;
+                    let path: String = row.get(1)?;
+                    Ok((id, path))
+                })?
+                .filter_map(|r| r.ok())
+                .filter(|(_, path)| !artwork_dir.join(path).exists())
+                .map(|(id, _)| id)
+                .collect();
+            drop(stmt);
+
+            if !stale_release_ids.is_empty() {
+                let mut update =
+                    conn.prepare("UPDATE discovery_releases SET artwork_path = NULL WHERE id = ?1")?;
+                for id in &stale_release_ids {
+                    update.execute(params![id])?;
+                }
+            }
+
+            Ok(())
+        })
+        .await
+        .map_err(|e| CrateError::Backup(format!("Stale artwork cleanup failed: {e}")))??;
+    }
 
     // Ensure minimum 2s total elapsed
     let elapsed = start.elapsed();

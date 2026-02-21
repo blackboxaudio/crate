@@ -7,6 +7,7 @@
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
 	import { save } from '@tauri-apps/plugin-dialog'
+	import { withNativeDialog } from '$lib/utils'
 	import { writeTextFile } from '@tauri-apps/plugin-fs'
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { formatBytes } from '$lib/utils'
@@ -79,10 +80,12 @@
 			const report = await diagnosticsStore.getReport()
 			const filename = `crate-diagnostics-${new Date().toISOString().split('T')[0]}`
 
-			const path = await save({
-				defaultPath: `${filename}.json`,
-				filters: [{ name: 'JSON', extensions: ['json'] }],
-			})
+			const path = await withNativeDialog(() =>
+				save({
+					defaultPath: `${filename}.json`,
+					filters: [{ name: 'JSON', extensions: ['json'] }],
+				})
+			)
 
 			if (path) {
 				await writeTextFile(path, JSON.stringify(report, null, 2))
@@ -98,10 +101,12 @@
 			const report = await diagnosticsStore.getReport()
 			const filename = `crate-diagnostics-${new Date().toISOString().split('T')[0]}`
 
-			const path = await save({
-				defaultPath: `${filename}.txt`,
-				filters: [{ name: 'Text', extensions: ['txt'] }],
-			})
+			const path = await withNativeDialog(() =>
+				save({
+					defaultPath: `${filename}.txt`,
+					filters: [{ name: 'Text', extensions: ['txt'] }],
+				})
+			)
 
 			if (path) {
 				await writeTextFile(path, formatReportAsText(report))
