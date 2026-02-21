@@ -1,7 +1,7 @@
 import { writable, derived, get } from 'svelte/store'
 import type { Update } from '@tauri-apps/plugin-updater'
 import { checkForUpdate, relaunch } from '$lib/api/updater'
-import { isDev } from '$lib/stores/app'
+import { appVersion, isDev } from '$lib/stores/app'
 import { toastStore } from '$lib/stores/toast'
 import { translate } from '$lib/i18n'
 
@@ -58,6 +58,12 @@ function createUpdaterStore() {
 				const result = await checkForUpdate()
 
 				if (result) {
+					const currentVersion = get(appVersion)
+					if (result.version === currentVersion) {
+						update((s) => ({ ...s, status: 'upToDate', update: null }))
+						return
+					}
+
 					const newVersion = result.version
 					update((s) => ({
 						...s,

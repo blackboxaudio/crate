@@ -24,6 +24,8 @@
 		if (open) {
 			visible = true
 			dialogEl.showModal()
+		} else if (visible) {
+			visible = false
 		}
 	})
 

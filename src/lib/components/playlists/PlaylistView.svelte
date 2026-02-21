@@ -14,7 +14,7 @@
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$lib/i18n'
-	import { SvelteSet } from 'svelte/reactivity'
+	import { expandedReleaseIds } from '$lib/stores'
 
 	type Props = {
 		playlist: Playlist
@@ -32,6 +32,7 @@
 		hasSelection?: boolean
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
+		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onSortChange?: (config: SortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent, playlist: Playlist) => void
@@ -58,6 +59,7 @@
 		hasSelection = false,
 		onSelectionChange,
 		onTrackPlay,
+		onDiscoveryTrackPlay,
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
@@ -72,26 +74,14 @@
 		onEmptySpaceContextMenu?.(e, playlist)
 	}
 
-	// Discovery expand/collapse state
-	let expandedIds = $state(new Set<string>())
-
-	function toggleExpand(id: string) {
-		expandedIds = new SvelteSet(expandedIds)
-		if (expandedIds.has(id)) {
-			expandedIds.delete(id)
-		} else {
-			expandedIds.add(id)
-		}
-	}
-
 	const hasExpandableReleases = $derived(releases.some((r) => r.tracks.length > 0))
 
-	function expandAll() {
-		expandedIds = new SvelteSet(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
+	function handleExpandAll() {
+		expandedReleaseIds.expandAll(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
 	}
 
-	function collapseAll() {
-		expandedIds = new SvelteSet()
+	function handleCollapseAll() {
+		expandedReleaseIds.collapseAll()
 	}
 
 	// Provide a default sort config for discovery lists
@@ -105,10 +95,10 @@
 			<div class="flex items-center gap-1">
 				{#if isDiscovery && hasExpandableReleases}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
-						<IconButton icon="unfold-vertical" size="sm" onclick={expandAll} />
+						<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
 					</Tooltip>
 					<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
-						<IconButton icon="fold-vertical" size="sm" onclick={collapseAll} />
+						<IconButton icon="fold-vertical" size="sm" onclick={handleCollapseAll} />
 					</Tooltip>
 				{/if}
 				<Tooltip
@@ -134,7 +124,7 @@
 			<DiscoveryList
 				{releases}
 				{selectedIds}
-				{expandedIds}
+				expandedIds={$expandedReleaseIds}
 				sortConfig={discoverySortConfig}
 				{categoryColors}
 				{categorySortOrders}
@@ -142,7 +132,8 @@
 				onContextMenu={(e, release) => {
 					onContextMenu?.(e, release as unknown as Track)
 				}}
-				onToggleExpand={toggleExpand}
+				onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
+				onTrackPlay={onDiscoveryTrackPlay}
 			/>
 		{:else}
 			<TrackList

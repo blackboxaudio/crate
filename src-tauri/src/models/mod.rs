@@ -1,3 +1,4 @@
+pub mod backup;
 pub mod cue;
 pub mod device;
 pub mod diagnostics;
@@ -9,6 +10,7 @@ pub mod tag;
 pub mod track;
 
 #[allow(unused_imports)]
+pub use backup::*;
 pub use cue::*;
 pub use device::*;
 pub use diagnostics::*;

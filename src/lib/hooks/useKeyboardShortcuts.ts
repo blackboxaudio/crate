@@ -1,4 +1,4 @@
-import { isInputFocused } from '$lib/utils'
+import { isInputFocused, isNativeDialogOpen } from '$lib/utils'
 
 // =============================================================================
 // Types
@@ -104,6 +104,7 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers): () => 
 
 	function handleKeydown(e: KeyboardEvent): void {
 		if (isModalOpen?.()) return
+		if (isNativeDialogOpen()) return
 		const inputFocused = isInputFocused()
 
 		// Shift+Tab: toggle between Library and Discovery views

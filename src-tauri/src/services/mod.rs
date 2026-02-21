@@ -1,6 +1,7 @@
 pub mod analysis;
 pub mod artwork;
 pub mod audio;
+pub mod backup;
 pub mod device;
 pub mod diagnostics;
 pub mod discovery;
@@ -16,6 +17,7 @@ pub mod tag;
 pub use analysis::AnalysisService;
 pub use artwork::ArtworkService;
 pub use audio::AudioService;
+pub use backup::BackupService;
 pub use device::DeviceService;
 pub use diagnostics::DiagnosticsService;
 pub use discovery::DiscoveryService;

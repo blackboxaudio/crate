@@ -13,6 +13,14 @@ import {
 // State
 // =============================================================================
 
+interface ViewNavigationState {
+	selectedPlaylistId: string | null
+	selectedFolderId: string | null
+	sidebarView: SidebarView
+}
+
+type ViewNavigationCache = Record<ActiveView, ViewNavigationState>
+
 interface UIState {
 	// Active view
 	activeView: ActiveView
@@ -48,6 +56,9 @@ interface UIState {
 
 	// Tag toggle tracking (for "mixed removes first" behavior)
 	recentlyToggledMixedTags: Set<string>
+
+	// Navigation cache per view context
+	viewNavigationCache: ViewNavigationCache
 }
 
 const initialState: UIState = {
@@ -70,6 +81,10 @@ const initialState: UIState = {
 	contextMenuOpen: false,
 	contextMenuPosition: { x: 0, y: 0 },
 	recentlyToggledMixedTags: new Set(),
+	viewNavigationCache: {
+		library: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library' },
+		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library' },
+	},
 }
 
 // =============================================================================
@@ -91,17 +106,33 @@ function createUIStore() {
 		 */
 		setActiveView(view: ActiveView) {
 			setStoredString('activeView', view)
-			update((state) => ({
-				...state,
-				activeView: view,
-				selectedTrackIds: new Set(),
-				lastSelectedTrackId: null,
-				selectedReleaseIds: new Set(),
-				lastSelectedReleaseId: null,
-				// Keep selectedTagIds, tagFilterMode, sidebarView, searchQuery as-is
-				selectedPlaylistId: null,
-				selectedFolderId: null,
-			}))
+			update((state) => {
+				// Save current navigation into cache
+				const updatedCache = {
+					...state.viewNavigationCache,
+					[state.activeView]: {
+						selectedPlaylistId: state.selectedPlaylistId,
+						selectedFolderId: state.selectedFolderId,
+						sidebarView: state.sidebarView,
+					},
+				}
+
+				// Restore cached navigation for the target view
+				const restored = updatedCache[view]
+
+				return {
+					...state,
+					activeView: view,
+					selectedTrackIds: new Set(),
+					lastSelectedTrackId: null,
+					selectedReleaseIds: new Set(),
+					lastSelectedReleaseId: null,
+					selectedPlaylistId: restored.selectedPlaylistId,
+					selectedFolderId: restored.selectedFolderId,
+					sidebarView: restored.sidebarView,
+					viewNavigationCache: updatedCache,
+				}
+			})
 		},
 
 		// =========================================================================

@@ -540,6 +540,36 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
     });
 }
 
+/// Menu items with keyboard accelerators that conflict with native dialog navigation.
+/// These should be disabled while a native file dialog is open.
+const DIALOG_CONFLICTING_ITEMS: &[&str] = &[
+    ids::PLAY_PAUSE,
+    ids::STOP,
+    ids::NEXT_TRACK,
+    ids::PREVIOUS_TRACK,
+    ids::SEEK_FORWARD,
+    ids::SEEK_BACKWARD,
+    ids::FINE_SEEK_FORWARD,
+    ids::FINE_SEEK_BACKWARD,
+    ids::VOLUME_UP,
+    ids::VOLUME_DOWN,
+    ids::MUTE,
+    ids::JUMP_TO_PLAYING,
+    ids::TOGGLE_VIEW,
+];
+
+/// Set the enabled state of all menu items whose keyboard accelerators
+/// conflict with native file dialog navigation (arrows, Space, M, etc.)
+pub fn set_dialog_conflicting_items_enabled(
+    app: &AppHandle<Wry>,
+    enabled: bool,
+) -> Result<(), tauri::Error> {
+    for id in DIALOG_CONFLICTING_ITEMS {
+        set_menu_item_enabled(app, id, enabled)?;
+    }
+    Ok(())
+}
+
 /// Set the enabled state of a menu item by its ID
 pub fn set_menu_item_enabled(
     app: &AppHandle<Wry>,

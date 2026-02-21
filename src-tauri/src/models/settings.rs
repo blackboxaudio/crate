@@ -246,6 +246,41 @@ impl std::str::FromStr for DateFormat {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum BackupFrequency {
+    Daily,
+    Weekly,
+    #[default]
+    Monthly,
+    Never,
+}
+
+impl std::fmt::Display for BackupFrequency {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BackupFrequency::Daily => write!(f, "daily"),
+            BackupFrequency::Weekly => write!(f, "weekly"),
+            BackupFrequency::Monthly => write!(f, "monthly"),
+            BackupFrequency::Never => write!(f, "never"),
+        }
+    }
+}
+
+impl std::str::FromStr for BackupFrequency {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "daily" => Ok(BackupFrequency::Daily),
+            "weekly" => Ok(BackupFrequency::Weekly),
+            "monthly" => Ok(BackupFrequency::Monthly),
+            "never" => Ok(BackupFrequency::Never),
+            _ => Err(format!("Unknown backup frequency: {s}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
@@ -264,6 +299,9 @@ pub struct AppSettings {
     pub transfer_tags_on_import: bool,
     pub remove_release_after_import: bool,
     pub ignored_device_ids: Vec<String>,
+    pub last_backup_at: Option<String>,
+    pub backup_frequency: BackupFrequency,
+    pub last_backup_type: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -284,6 +322,9 @@ impl Default for AppSettings {
             transfer_tags_on_import: true,
             remove_release_after_import: true,
             ignored_device_ids: Vec::new(),
+            last_backup_at: None,
+            backup_frequency: BackupFrequency::default(),
+            last_backup_type: None,
         }
     }
 }

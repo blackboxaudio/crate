@@ -2,6 +2,7 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { get } from 'svelte/store'
 import { translate } from '$lib/i18n'
+import { withNativeDialog } from '$lib/utils'
 import type { Track, TrackColor, Playlist, DuplicateTrack } from '$lib/types'
 import type { playerStore as PlayerStoreType } from '$lib/stores/player'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
@@ -151,15 +152,17 @@ export function createTrackController(
 	 * Open file dialog and import tracks to the library
 	 */
 	async function handleImport(): Promise<void> {
-		const selected = await open({
-			multiple: true,
-			filters: [
-				{
-					name: 'Audio Files',
-					extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'],
-				},
-			],
-		})
+		const selected = await withNativeDialog(() =>
+			open({
+				multiple: true,
+				filters: [
+					{
+						name: 'Audio Files',
+						extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'],
+					},
+				],
+			})
+		)
 
 		if (selected && Array.isArray(selected)) {
 			const result = await libraryStore.importTracks(selected)

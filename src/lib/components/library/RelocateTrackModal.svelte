@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { open } from '@tauri-apps/plugin-dialog'
+	import { withNativeDialog } from '$lib/utils'
 	import Modal from '$lib/components/common/Modal.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -37,16 +38,18 @@
 	})
 
 	async function handleSelectFile() {
-		const selected = await open({
-			multiple: false,
-			title: 'Select Replacement File',
-			filters: [
-				{
-					name: 'Audio Files',
-					extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'],
-				},
-			],
-		})
+		const selected = await withNativeDialog(() =>
+			open({
+				multiple: false,
+				title: 'Select Replacement File',
+				filters: [
+					{
+						name: 'Audio Files',
+						extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'],
+					},
+				],
+			})
+		)
 
 		if (selected && typeof selected === 'string') {
 			selectedPath = selected

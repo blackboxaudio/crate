@@ -80,7 +80,7 @@
 	{#if visible}
 		<div
 			class="fixed top-1/2 left-1/2 max-h-[80vh] w-full max-w-2xl -translate-x-1/2 -translate-y-1/2
-				rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
+				overflow-hidden rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 			onoutroend={handleOutroEnd}
 		>

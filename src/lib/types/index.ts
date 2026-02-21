@@ -427,6 +427,8 @@ export type DateFormat = 'locale' | 'iso' | 'us' | 'eu' | 'dot'
 
 export type ExportFormat = 'pdb' | 'device_library_plus'
 
+export type BackupFrequency = 'daily' | 'weekly' | 'monthly' | 'never'
+
 export type SettingsPage = 'general' | 'appearance' | 'library' | 'discovery' | 'sound' | 'diagnostics' | 'about'
 
 export interface AppSettings {
@@ -446,6 +448,9 @@ export interface AppSettings {
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
 	ignoredDeviceIds: string[]
+	lastBackupAt: string | null
+	backupFrequency: BackupFrequency
+	lastBackupType: string | null
 }
 
 export interface AudioDevice {
@@ -695,6 +700,23 @@ export interface PreviewInfo {
 	releaseId: string
 	release: DiscoveryRelease
 	trackIndex: number
+}
+
+// =============================================================================
+// Backup Types
+// =============================================================================
+
+export type BackupStatus =
+	| 'pending'
+	| 'reading_data'
+	| 'collecting_artwork'
+	| 'writing_file'
+	| 'restoring_data'
+	| 'restoring_artwork'
+	| 'completed'
+
+export interface BackupProgress {
+	status: BackupStatus
 }
 
 export type DiscoverySortField = 'artist' | 'title' | 'label' | 'release_date' | 'source_type' | 'date_added'

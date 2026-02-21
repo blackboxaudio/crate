@@ -85,13 +85,18 @@ function createAnalysisStore() {
 		 */
 		async analyzeTracks(trackIds: string[]): Promise<void> {
 			// Mark tracks as pending
-			update((state) => ({
-				...state,
-				isAnalyzing: true,
-				trackStates: new Map(trackIds.map((id) => [id, 'pending' as AnalysisStatus])),
-				error: null,
-				lastResults: [],
-			}))
+			update((state) => {
+				const newTrackStates = new Map(state.trackStates)
+				for (const id of trackIds) {
+					newTrackStates.set(id, 'pending' as AnalysisStatus)
+				}
+				return {
+					...state,
+					isAnalyzing: true,
+					trackStates: newTrackStates,
+					error: null,
+				}
+			})
 
 			try {
 				// Start listening if not already

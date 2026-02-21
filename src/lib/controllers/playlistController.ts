@@ -1,5 +1,6 @@
 import { open } from '@tauri-apps/plugin-dialog'
 import type { Playlist, TrackFilter } from '$lib/types'
+import { withNativeDialog } from '$lib/utils'
 import type { playlistsStore as PlaylistsStoreType } from '$lib/stores/playlists'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
 import type { uiStore as UIStoreType } from '$lib/stores/ui'
@@ -185,15 +186,17 @@ export function createPlaylistController(
 	 */
 	async function handlePlaylistViewImport(playlist: Playlist): Promise<void> {
 		// Open file dialog
-		const selected = await open({
-			multiple: true,
-			filters: [
-				{
-					name: 'Audio Files',
-					extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'],
-				},
-			],
-		})
+		const selected = await withNativeDialog(() =>
+			open({
+				multiple: true,
+				filters: [
+					{
+						name: 'Audio Files',
+						extensions: ['mp3', 'wav', 'aiff', 'aif', 'flac', 'm4a', 'aac'],
+					},
+				],
+			})
+		)
 
 		if (selected && Array.isArray(selected)) {
 			// Import tracks to collection

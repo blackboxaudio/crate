@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Library backup and restore functionality in Settings > General
+
 ### Changed
 
 - Replaced OS keyring with local key file for database encryption to avoid first-launch Keychain prompt
