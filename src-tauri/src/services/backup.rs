@@ -292,243 +292,247 @@ impl BackupService {
 
         conn.execute_batch("PRAGMA foreign_keys = OFF")?;
 
-        let tx = conn.unchecked_transaction()?;
+        let result = (|| -> Result<()> {
+            let tx = conn.unchecked_transaction()?;
 
-        // Delete existing data in reverse dependency order (settings NOT touched)
-        tx.execute_batch(
-            "DELETE FROM playlist_discovery_releases;
-             DELETE FROM discovery_release_tags;
-             DELETE FROM discovery_tracks;
-             DELETE FROM discovery_releases;
-             DELETE FROM playlist_tracks;
-             DELETE FROM track_tags;
-             DELETE FROM cues;
-             DELETE FROM tracks;
-             DELETE FROM tags;
-             DELETE FROM tag_categories;
-             DELETE FROM playlists;",
-        )?;
-
-        // Insert in dependency order
-
-        // 1. Tag categories
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO tag_categories (id, name, color, sort_order) VALUES (?1, ?2, ?3, ?4)",
+            // Delete existing data in reverse dependency order (settings NOT touched)
+            tx.execute_batch(
+                "DELETE FROM playlist_discovery_releases;
+                 DELETE FROM discovery_release_tags;
+                 DELETE FROM discovery_tracks;
+                 DELETE FROM discovery_releases;
+                 DELETE FROM playlist_tracks;
+                 DELETE FROM track_tags;
+                 DELETE FROM cues;
+                 DELETE FROM tracks;
+                 DELETE FROM tags;
+                 DELETE FROM tag_categories;
+                 DELETE FROM playlists;",
             )?;
-            for tc in &data.tag_categories {
-                stmt.execute(params![tc.id, tc.name, tc.color, tc.sort_order])?;
+
+            // Insert in dependency order
+
+            // 1. Tag categories
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO tag_categories (id, name, color, sort_order) VALUES (?1, ?2, ?3, ?4)",
+                )?;
+                for tc in &data.tag_categories {
+                    stmt.execute(params![tc.id, tc.name, tc.color, tc.sort_order])?;
+                }
             }
-        }
 
-        // 2. Tags
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO tags (id, category_id, name, color, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
-            )?;
-            for t in &data.tags {
-                stmt.execute(params![t.id, t.category_id, t.name, t.color, t.sort_order])?;
+            // 2. Tags
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO tags (id, category_id, name, color, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
+                )?;
+                for t in &data.tags {
+                    stmt.execute(params![t.id, t.category_id, t.name, t.color, t.sort_order])?;
+                }
             }
-        }
 
-        // 3. Tracks (waveform_data and analysis_source set to NULL)
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO tracks (id, file_path, file_hash, title, artist, album, year, genre, label,
-                                     catalog_number, duration_ms, bpm, key, bitrate, sample_rate, format,
-                                     analysis_source, waveform_data, rating, play_count, date_added,
-                                     date_modified, last_played, rekordbox_id, artwork_path, artwork_source, color)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
-                         NULL, NULL, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25)",
-            )?;
-            for t in &data.tracks {
-                stmt.execute(params![
-                    t.id,
-                    t.file_path,
-                    t.file_hash,
-                    t.title,
-                    t.artist,
-                    t.album,
-                    t.year,
-                    t.genre,
-                    t.label,
-                    t.catalog_number,
-                    t.duration_ms,
-                    t.bpm,
-                    t.key,
-                    t.bitrate,
-                    t.sample_rate,
-                    t.format,
-                    t.rating,
-                    t.play_count,
-                    t.date_added,
-                    t.date_modified,
-                    t.last_played,
-                    t.rekordbox_id,
-                    t.artwork_path,
-                    t.artwork_source,
-                    t.color,
-                ])?;
+            // 3. Tracks (waveform_data and analysis_source set to NULL)
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO tracks (id, file_path, file_hash, title, artist, album, year, genre, label,
+                                         catalog_number, duration_ms, bpm, key, bitrate, sample_rate, format,
+                                         analysis_source, waveform_data, rating, play_count, date_added,
+                                         date_modified, last_played, rekordbox_id, artwork_path, artwork_source, color)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16,
+                             NULL, NULL, ?17, ?18, ?19, ?20, ?21, ?22, ?23, ?24, ?25)",
+                )?;
+                for t in &data.tracks {
+                    stmt.execute(params![
+                        t.id,
+                        t.file_path,
+                        t.file_hash,
+                        t.title,
+                        t.artist,
+                        t.album,
+                        t.year,
+                        t.genre,
+                        t.label,
+                        t.catalog_number,
+                        t.duration_ms,
+                        t.bpm,
+                        t.key,
+                        t.bitrate,
+                        t.sample_rate,
+                        t.format,
+                        t.rating,
+                        t.play_count,
+                        t.date_added,
+                        t.date_modified,
+                        t.last_played,
+                        t.rekordbox_id,
+                        t.artwork_path,
+                        t.artwork_source,
+                        t.color,
+                    ])?;
+                }
             }
-        }
 
-        // 4. Cues
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO cues (id, track_id, position_ms, type, loop_end_ms, hot_cue_index, name, color)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-            )?;
-            for c in &data.cues {
-                stmt.execute(params![
-                    c.id,
-                    c.track_id,
-                    c.position_ms,
-                    c.cue_type.to_string(),
-                    c.loop_end_ms,
-                    c.hot_cue_index,
-                    c.name,
-                    c.color,
-                ])?;
+            // 4. Cues
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO cues (id, track_id, position_ms, type, loop_end_ms, hot_cue_index, name, color)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                )?;
+                for c in &data.cues {
+                    stmt.execute(params![
+                        c.id,
+                        c.track_id,
+                        c.position_ms,
+                        c.cue_type.to_string(),
+                        c.loop_end_ms,
+                        c.hot_cue_index,
+                        c.name,
+                        c.color,
+                    ])?;
+                }
             }
-        }
 
-        // 5. Track tags
-        {
-            let mut stmt =
-                tx.prepare("INSERT INTO track_tags (track_id, tag_id) VALUES (?1, ?2)")?;
-            for tt in &data.track_tags {
-                stmt.execute(params![tt.track_id, tt.tag_id])?;
+            // 5. Track tags
+            {
+                let mut stmt =
+                    tx.prepare("INSERT INTO track_tags (track_id, tag_id) VALUES (?1, ?2)")?;
+                for tt in &data.track_tags {
+                    stmt.execute(params![tt.track_id, tt.tag_id])?;
+                }
             }
-        }
 
-        // 6. Playlists (topologically sorted — roots first, then children)
-        {
-            let sorted = topological_sort_playlists(&data.playlists);
-            let mut stmt = tx.prepare(
-                "INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules,
-                                        sort_order, context, date_created, date_modified)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
-            )?;
-            for p in &sorted {
-                stmt.execute(params![
-                    p.id,
-                    p.name,
-                    p.parent_id,
-                    p.is_folder as i32,
-                    p.is_smart as i32,
-                    p.smart_rules,
-                    p.sort_order,
-                    p.context,
-                    p.date_created,
-                    p.date_modified,
-                ])?;
+            // 6. Playlists (topologically sorted — roots first, then children)
+            {
+                let sorted = topological_sort_playlists(&data.playlists);
+                let mut stmt = tx.prepare(
+                    "INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules,
+                                            sort_order, context, date_created, date_modified)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                )?;
+                for p in &sorted {
+                    stmt.execute(params![
+                        p.id,
+                        p.name,
+                        p.parent_id,
+                        p.is_folder as i32,
+                        p.is_smart as i32,
+                        p.smart_rules,
+                        p.sort_order,
+                        p.context,
+                        p.date_created,
+                        p.date_modified,
+                    ])?;
+                }
             }
-        }
 
-        // 7. Playlist tracks
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO playlist_tracks (playlist_id, track_id, position, date_added) VALUES (?1, ?2, ?3, ?4)",
-            )?;
-            for pt in &data.playlist_tracks {
-                stmt.execute(params![pt.playlist_id, pt.track_id, pt.position, pt.date_added])?;
+            // 7. Playlist tracks
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO playlist_tracks (playlist_id, track_id, position, date_added) VALUES (?1, ?2, ?3, ?4)",
+                )?;
+                for pt in &data.playlist_tracks {
+                    stmt.execute(params![pt.playlist_id, pt.track_id, pt.position, pt.date_added])?;
+                }
             }
-        }
 
-        // 8. Discovery releases
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date,
-                                                  artwork_url, artwork_path, notes, parent_url, date_added, date_modified)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
-            )?;
-            for dr in &data.discovery_releases {
-                stmt.execute(params![
-                    dr.id,
-                    dr.url,
-                    dr.source_type,
-                    dr.artist,
-                    dr.title,
-                    dr.label,
-                    dr.release_date,
-                    dr.artwork_url,
-                    dr.artwork_path,
-                    dr.notes,
-                    dr.parent_url,
-                    dr.date_added,
-                    dr.date_modified,
-                ])?;
+            // 8. Discovery releases
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date,
+                                                      artwork_url, artwork_path, notes, parent_url, date_added, date_modified)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                )?;
+                for dr in &data.discovery_releases {
+                    stmt.execute(params![
+                        dr.id,
+                        dr.url,
+                        dr.source_type,
+                        dr.artist,
+                        dr.title,
+                        dr.label,
+                        dr.release_date,
+                        dr.artwork_url,
+                        dr.artwork_path,
+                        dr.notes,
+                        dr.parent_url,
+                        dr.date_added,
+                        dr.date_modified,
+                    ])?;
+                }
             }
-        }
 
-        // 9. Discovery tracks
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id)
-                 VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-            )?;
-            for dt in &data.discovery_tracks {
-                stmt.execute(params![
-                    dt.id,
-                    dt.release_id,
-                    dt.name,
-                    dt.position,
-                    dt.duration_ms,
-                    dt.video_id,
-                ])?;
+            // 9. Discovery tracks
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                )?;
+                for dt in &data.discovery_tracks {
+                    stmt.execute(params![
+                        dt.id,
+                        dt.release_id,
+                        dt.name,
+                        dt.position,
+                        dt.duration_ms,
+                        dt.video_id,
+                    ])?;
+                }
             }
-        }
 
-        // 10. Discovery release tags
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO discovery_release_tags (release_id, tag_id) VALUES (?1, ?2)",
-            )?;
-            for drt in &data.discovery_release_tags {
-                stmt.execute(params![drt.release_id, drt.tag_id])?;
+            // 10. Discovery release tags
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO discovery_release_tags (release_id, tag_id) VALUES (?1, ?2)",
+                )?;
+                for drt in &data.discovery_release_tags {
+                    stmt.execute(params![drt.release_id, drt.tag_id])?;
+                }
             }
-        }
 
-        // 11. Playlist discovery releases
-        {
-            let mut stmt = tx.prepare(
-                "INSERT INTO playlist_discovery_releases (playlist_id, release_id, position, date_added)
-                 VALUES (?1, ?2, ?3, ?4)",
-            )?;
-            for pdr in &data.playlist_discovery_releases {
-                stmt.execute(params![
-                    pdr.playlist_id,
-                    pdr.release_id,
-                    pdr.position,
-                    pdr.date_added,
-                ])?;
+            // 11. Playlist discovery releases
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO playlist_discovery_releases (playlist_id, release_id, position, date_added)
+                     VALUES (?1, ?2, ?3, ?4)",
+                )?;
+                for pdr in &data.playlist_discovery_releases {
+                    stmt.execute(params![
+                        pdr.playlist_id,
+                        pdr.release_id,
+                        pdr.position,
+                        pdr.date_added,
+                    ])?;
+                }
             }
-        }
 
-        tx.commit()?;
+            // FK check BEFORE commit — violations trigger rollback
+            let mut fk_stmt = tx.prepare("PRAGMA foreign_key_check")?;
+            let fk_errors: Vec<String> = fk_stmt
+                .query_map([], |row| {
+                    let table: String = row.get(0)?;
+                    let rowid: i64 = row.get(1)?;
+                    Ok(format!("FK violation in {table} row {rowid}"))
+                })?
+                .filter_map(|r| r.ok())
+                .collect();
+            drop(fk_stmt);
 
-        conn.execute_batch("PRAGMA foreign_keys = ON")?;
+            if !fk_errors.is_empty() {
+                return Err(CrateError::Backup(format!(
+                    "Backup contains invalid references: {:?}",
+                    &fk_errors[..fk_errors.len().min(5)]
+                )));
+            }
 
-        // Verify referential integrity
-        let mut fk_stmt = conn.prepare("PRAGMA foreign_key_check")?;
-        let fk_errors: Vec<String> = fk_stmt
-            .query_map([], |row| {
-                let table: String = row.get(0)?;
-                let rowid: i64 = row.get(1)?;
-                Ok(format!("FK violation in {table} row {rowid}"))
-            })?
-            .filter_map(|r| r.ok())
-            .collect();
-        drop(fk_stmt);
+            tx.commit()?;
+            Ok(())
+        })();
 
-        if !fk_errors.is_empty() {
-            log::warn!(
-                "Foreign key violations after restore: {:?}",
-                &fk_errors[..fk_errors.len().min(5)]
-            );
-        }
+        // Always restore FK enforcement, regardless of success/failure
+        let _ = conn.execute_batch("PRAGMA foreign_keys = ON");
 
-        Ok(())
+        result
     }
 }
 
@@ -588,9 +592,6 @@ pub async fn create_backup(
         &app_handle,
         &BackupProgress {
             status: BackupStatus::ReadingData,
-            message: None,
-            items_processed: 0,
-            items_total: 0,
         },
     );
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -605,20 +606,10 @@ pub async fn create_backup(
         .map_err(|e| CrateError::Backup(format!("Backup task failed: {e}")))?
     }?;
 
-    let total_items = data.counts.tracks
-        + data.counts.cues
-        + data.counts.tag_categories
-        + data.counts.tags
-        + data.counts.playlists
-        + data.counts.discovery_releases;
-
     emit_progress(
         &app_handle,
         &BackupProgress {
             status: BackupStatus::WritingFile,
-            message: None,
-            items_processed: 0,
-            items_total: total_items,
         },
     );
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -671,9 +662,6 @@ pub async fn create_backup(
         &app_handle,
         &BackupProgress {
             status: BackupStatus::Completed,
-            message: None,
-            items_processed: total_items,
-            items_total: total_items,
         },
     );
 
@@ -691,9 +679,6 @@ pub async fn restore_from_backup(
         &app_handle,
         &BackupProgress {
             status: BackupStatus::Pending,
-            message: None,
-            items_processed: 0,
-            items_total: 0,
         },
     );
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -725,20 +710,10 @@ pub async fn restore_from_backup(
         )));
     }
 
-    let total_items = data.counts.tracks
-        + data.counts.cues
-        + data.counts.tag_categories
-        + data.counts.tags
-        + data.counts.playlists
-        + data.counts.discovery_releases;
-
     emit_progress(
         &app_handle,
         &BackupProgress {
             status: BackupStatus::RestoringData,
-            message: None,
-            items_processed: 0,
-            items_total: total_items,
         },
     );
     tokio::time::sleep(std::time::Duration::from_millis(500)).await;
@@ -761,9 +736,6 @@ pub async fn restore_from_backup(
         &app_handle,
         &BackupProgress {
             status: BackupStatus::Completed,
-            message: None,
-            items_processed: total_items,
-            items_total: total_items,
         },
     );
 

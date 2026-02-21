@@ -61,7 +61,6 @@
 				"writingFile": "Writing backup file...",
 				"restoringData": "Restoring library data...",
 				"backupComplete": "Backup created successfully.",
-				"restoreComplete": "Library restored successfully.",
 				"lastBackupAt": "Last backed up {date}",
 				"noBackups": "No backups yet."
 			}

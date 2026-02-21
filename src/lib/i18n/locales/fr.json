@@ -61,7 +61,6 @@
 				"writingFile": "Écriture du fichier de sauvegarde...",
 				"restoringData": "Restauration des données de la bibliothèque...",
 				"backupComplete": "Sauvegarde créée avec succès.",
-				"restoreComplete": "Bibliothèque restaurée avec succès.",
 				"lastBackupAt": "Dernière sauvegarde le {date}",
 				"noBackups": "Aucune sauvegarde pour le moment."
 			}

@@ -61,7 +61,6 @@
 				"writingFile": "バックアップファイルを書き込み中...",
 				"restoringData": "ライブラリデータを復元中...",
 				"backupComplete": "バックアップが正常に作成されました。",
-				"restoreComplete": "ライブラリが正常に復元されました。",
 				"lastBackupAt": "最後にバックアップされたのは {date}",
 				"noBackups": "バックアップはまだありません。"
 			}

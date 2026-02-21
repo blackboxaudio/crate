@@ -61,7 +61,6 @@
 				"writingFile": "Skriver säkerhetskopieringsfil...",
 				"restoringData": "Återställer biblioteksdata...",
 				"backupComplete": "Säkerhetskopia skapad framgångsrikt.",
-				"restoreComplete": "Bibliotek återställt framgångsrikt.",
 				"lastBackupAt": "Senast säkerhetskopierad {date}",
 				"noBackups": "Ingen säkerhetskopia ännu."
 			}

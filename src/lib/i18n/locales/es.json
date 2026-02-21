@@ -61,7 +61,6 @@
 				"writingFile": "Escribiendo archivo de copia de seguridad...",
 				"restoringData": "Restaurando datos de biblioteca...",
 				"backupComplete": "Copia de seguridad creada correctamente.",
-				"restoreComplete": "Biblioteca restaurada correctamente.",
 				"lastBackupAt": "Última copia de seguridad el {date}",
 				"noBackups": "Sin copias de seguridad aún."
 			}

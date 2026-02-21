@@ -93,13 +93,9 @@ pub enum BackupStatus {
     WritingFile,
     RestoringData,
     Completed,
-    Failed,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupProgress {
     pub status: BackupStatus,
-    pub message: Option<String>,
-    pub items_processed: usize,
-    pub items_total: usize,
 }

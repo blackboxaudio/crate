@@ -61,7 +61,6 @@
 				"writingFile": "正在写入备份文件...",
 				"restoringData": "正在还原曲库数据...",
 				"backupComplete": "备份创建成功。",
-				"restoreComplete": "曲库还原成功。",
 				"lastBackupAt": "最后备份于 {date}",
 				"noBackups": "尚无备份。"
 			}

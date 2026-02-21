@@ -61,7 +61,6 @@
 				"writingFile": "Sicherungsdatei wird geschrieben...",
 				"restoringData": "Bibliotheksdaten werden wiederhergestellt...",
 				"backupComplete": "Sicherung erfolgreich erstellt.",
-				"restoreComplete": "Bibliothek erfolgreich wiederhergestellt.",
 				"lastBackupAt": "Zuletzt gesichert am {date}",
 				"noBackups": "Noch keine Sicherungen."
 			}

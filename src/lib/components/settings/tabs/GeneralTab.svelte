@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Language, DateFormat } from '$lib/types'
+	import type { Language, DateFormat, BackupStatus } from '$lib/types'
 	import { Button, Select, Text } from '$lib/components/common'
 	import ConfirmModal from '$lib/components/common/ConfirmModal.svelte'
 	import { settingsStore, language, dateFormat, lastBackupAt } from '$lib/stores/settings'
@@ -9,6 +9,7 @@
 	import { save, open } from '@tauri-apps/plugin-dialog'
 	import * as backupApi from '$lib/api/backup'
 	import { get } from 'svelte/store'
+	import { slide } from 'svelte/transition'
 
 	const languageOptions = SUPPORTED_LANGUAGES.map((lang) => ({
 		value: lang.value,
@@ -127,6 +128,20 @@
 		}
 	}
 
+	function getProgressPercent(status: BackupStatus): number {
+		switch (status) {
+			case 'pending':
+				return 10
+			case 'reading_data':
+				return 30
+			case 'writing_file':
+			case 'restoring_data':
+				return 65
+			case 'completed':
+				return 100
+		}
+	}
+
 	$effect(() => {
 		backupStore.startListening()
 		return () => backupStore.stopListening()
@@ -178,16 +193,12 @@
 		{/if}
 
 		{#if $backupProgress && $isBackupBusy}
-			<div class="mb-4 max-w-md">
+			<div class="mb-4 max-w-md" transition:slide={{ duration: 200 }}>
 				<Text variant="caption" as="p" class="mb-2">{getProgressLabel($backupProgress.status)}</Text>
 				<div class="bg-bg-tertiary h-1.5 w-full overflow-hidden rounded-full">
 					<div
-						class="bg-accent h-full rounded-full transition-all duration-300"
-						style="width: {$backupProgress.status === 'completed'
-							? 100
-							: $backupProgress.status === 'pending'
-								? 5
-								: 50}%"
+						class="bg-accent h-full rounded-full transition-[width] ease-out"
+						style="width: {getProgressPercent($backupProgress.status)}%; transition-duration: 300ms"
 					></div>
 				</div>
 			</div>

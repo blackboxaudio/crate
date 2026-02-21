@@ -41,7 +41,7 @@ function createBackupStore() {
 
 			unlisten = await listen<BackupProgress>('backup-progress', (event) => {
 				update((state) => {
-					const isDone = event.payload.status === 'completed' || event.payload.status === 'failed'
+					const isDone = event.payload.status === 'completed'
 					return {
 						...state,
 						progress: event.payload,

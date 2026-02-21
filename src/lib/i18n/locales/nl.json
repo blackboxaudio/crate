@@ -61,7 +61,6 @@
 				"writingFile": "Back-upbestand schrijven...",
 				"restoringData": "Bibliotheekgegevens herstellen...",
 				"backupComplete": "Back-up succesvol gemaakt.",
-				"restoreComplete": "Bibliotheek succesvol hersteld.",
 				"lastBackupAt": "Laatst een back-up gemaakt op {date}",
 				"noBackups": "Nog geen back-ups."
 			}
