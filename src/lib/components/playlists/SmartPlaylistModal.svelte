@@ -359,11 +359,11 @@
 					<!-- Remove button -->
 					<button
 						type="button"
-						class="shrink-0 self-center rounded p-1 text-text-tertiary transition-colors hover:bg-surface-1 hover:text-danger"
+						class="shrink-0 self-center rounded p-1 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-1"
 						onclick={() => removeCondition(index)}
 						aria-label={$translate('smartPlaylist.removeCondition')}
 					>
-						<Icon name="trash" class="h-4 w-4" />
+						<Icon name="x" class="h-4 w-4" />
 					</button>
 				</div>
 			{/each}

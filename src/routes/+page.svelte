@@ -922,6 +922,7 @@
 	}
 
 	function handleTrackPlayInRelease(release: DiscoveryRelease, trackIndex: number) {
+		uiStore.clearReleaseSelection()
 		const track = release.tracks[trackIndex]
 		const canPlay =
 			PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null)
