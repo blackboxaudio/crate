@@ -16,6 +16,7 @@
 		operatorRequiresValue,
 		operatorRequiresSecondValue,
 		createDefaultCondition,
+		conditionHasValue,
 		getSortFieldsForContext,
 		findDeletedTagIds,
 		type FieldDefinition,
@@ -55,7 +56,7 @@
 
 	const isEditing = $derived(!!playlist)
 	const title = $derived(isEditing ? $translate('smartPlaylist.editTitle') : $translate('smartPlaylist.createTitle'))
-	const canSubmit = $derived(name.trim().length > 0 && conditions.length > 0)
+	const canSubmit = $derived(name.trim().length > 0 && conditions.length > 0 && conditions.every(conditionHasValue))
 
 	// Reset state when modal opens
 	$effect(() => {
@@ -98,8 +99,16 @@
 		previewTimeout = setTimeout(async () => {
 			previewLoading = true
 			try {
-				const rules = buildRules()
-				previewCount = await previewSmartRulesCount(rules, context)
+				const completeConditions = conditions.filter(conditionHasValue)
+				if (completeConditions.length === 0) {
+					previewCount = null
+				} else {
+					const rules: SmartRules = {
+						...buildRules(),
+						conditions: completeConditions,
+					}
+					previewCount = await previewSmartRulesCount(rules, context)
+				}
 			} catch {
 				previewCount = null
 			} finally {

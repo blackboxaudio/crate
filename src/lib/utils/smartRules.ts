@@ -230,6 +230,28 @@ export function createDefaultCondition(fieldDef: FieldDefinition): SmartConditio
 }
 
 // =============================================================================
+// Condition Completeness
+// =============================================================================
+
+export function conditionHasValue(condition: SmartCondition): boolean {
+	if (!operatorRequiresValue(condition.operator)) return true
+	switch (condition.type) {
+		case 'text':
+		case 'date':
+			return condition.value != null && condition.value !== ''
+		case 'numeric':
+			if (condition.operator === 'in_range') {
+				return condition.value != null && condition.value2 != null
+			}
+			return condition.value != null
+		case 'enum':
+			return condition.value != null && condition.value !== ''
+		case 'tags':
+			return condition.tag_ids.length > 0
+	}
+}
+
+// =============================================================================
 // Parse / Serialize
 // =============================================================================
 
