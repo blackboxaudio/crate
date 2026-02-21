@@ -43,8 +43,8 @@ pub enum CrateError {
     #[error("Discovery error: {0}")]
     Discovery(String),
 
-    #[error("Keyring error: {0}")]
-    Keyring(String),
+    #[error("Key storage error: {0}")]
+    KeyStorage(String),
 
     #[error("Internal lock error")]
     LockPoisoned,

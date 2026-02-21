@@ -10,27 +10,44 @@ pub struct Database {
     conn: Arc<Mutex<Connection>>,
 }
 
-/// Retrieve or generate the database encryption key from the OS credential store.
-fn get_or_create_db_key() -> Result<String> {
-    let entry = keyring::Entry::new("com.bbx-audio.crate", "database-key")
-        .map_err(|e| CrateError::Keyring(e.to_string()))?;
+/// Retrieve or generate the database encryption key from a local key file.
+fn get_or_create_db_key(app_data_dir: &Path) -> Result<String> {
+    let key_path = app_data_dir.join("db.key");
 
-    match entry.get_password() {
-        Ok(key) => Ok(key),
-        Err(keyring::Error::NoEntry) => {
-            // First launch: generate a random 64-char hex key using two UUIDs
-            let key = format!(
-                "{}{}",
-                uuid::Uuid::new_v4().as_simple(),
-                uuid::Uuid::new_v4().as_simple()
-            );
-            entry
-                .set_password(&key)
-                .map_err(|e| CrateError::Keyring(e.to_string()))?;
-            Ok(key)
+    if key_path.exists() {
+        let key = std::fs::read_to_string(&key_path)
+            .map_err(|e| CrateError::KeyStorage(format!("failed to read key file: {e}")))?;
+        let key = key.trim().to_string();
+        if !key.is_empty() {
+            return Ok(key);
         }
-        Err(e) => Err(CrateError::Keyring(e.to_string())),
     }
+
+    // First launch: generate a random 64-char hex key using two UUIDs
+    let key = format!(
+        "{}{}",
+        uuid::Uuid::new_v4().as_simple(),
+        uuid::Uuid::new_v4().as_simple()
+    );
+
+    write_key_file(&key_path, &key)?;
+
+    Ok(key)
+}
+
+/// Write the key to a file with restrictive permissions.
+fn write_key_file(path: &Path, key: &str) -> Result<()> {
+    std::fs::write(path, key)
+        .map_err(|e| CrateError::KeyStorage(format!("failed to write key file: {e}")))?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))
+            .map_err(|e| CrateError::KeyStorage(format!("failed to set key file permissions: {e}")))?;
+    }
+
+    Ok(())
 }
 
 /// Check whether a database file is unencrypted by attempting to read its header.
@@ -66,7 +83,10 @@ impl Database {
             std::fs::create_dir_all(parent)?;
         }
 
-        let key = get_or_create_db_key()?;
+        let app_data_dir = db_path.parent().ok_or_else(|| {
+            CrateError::KeyStorage("database path has no parent directory".to_string())
+        })?;
+        let key = get_or_create_db_key(app_data_dir)?;
 
         // If the database file already exists and is unencrypted, migrate it
         if db_path.exists() && is_unencrypted(&db_path) {

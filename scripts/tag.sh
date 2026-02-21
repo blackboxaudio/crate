@@ -141,6 +141,15 @@ else
 fi
 echo ""
 
+# Step 1b: Update Cargo.lock to reflect new version
+echo -e "${BLUE}Step 1b: Updating Cargo.lock...${NC}"
+if $DRY_RUN; then
+    echo -e "${YELLOW}[DRY RUN] Would run: cargo generate-lockfile --manifest-path src-tauri/Cargo.toml${NC}"
+else
+    cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+fi
+echo ""
+
 # Step 2: Prepare/graduate changelog
 echo -e "${BLUE}Step 2: Updating changelog...${NC}"
 if [[ "$BUMP_TYPE" == "prerelease" ]]; then

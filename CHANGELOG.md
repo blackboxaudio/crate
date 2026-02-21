@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Replaced OS keyring with local key file for database encryption to avoid first-launch Keychain prompt
+
 ## [0.2.0-staging.1] - 2026-02-20
 
 ### Added
