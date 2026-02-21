@@ -108,7 +108,7 @@
 	tabindex="0"
 	data-release-row
 	data-release-id={release.id}
-	class="grid cursor-pointer grid-cols-[32px_40px_1.25fr_0.6fr_1fr_110px_110px_100px_64px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+	class="grid cursor-pointer grid-cols-[24px_40px_1.25fr_0.6fr_1fr_110px_110px_100px_64px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
 	{onclick}
@@ -231,7 +231,7 @@
 			{@const playing = canPlay && isTrackPlaying(idx)}
 			<!-- svelte-ignore a11y_no_static_element_interactions -->
 			<div
-				class="grid grid-cols-[32px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
+				class="grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
 					? 'cursor-pointer hover:bg-surface-2/50'
 					: 'cursor-default'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
 				ondblclick={canPlay

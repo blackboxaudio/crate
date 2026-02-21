@@ -52,7 +52,7 @@
 
 <div class="flex h-full flex-col overflow-hidden bg-surface-0">
 	<!-- Header (matches Breadcrumbs styling) -->
-	<div class="flex items-center justify-between border-b border-stroke px-6 py-4">
+	<div class="flex items-center justify-between border-b border-stroke px-4 py-4">
 		<div class="flex items-center gap-2 rounded px-2 py-1 text-sm font-medium text-text-primary">
 			<Icon name="library" class="h-4 w-4 shrink-0" />
 			<span>{$translate('nav.library')}</span>

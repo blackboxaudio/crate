@@ -1098,113 +1098,121 @@
 
 			<!-- Right: Main Content + Optional TrackEditor -->
 			<div class="flex flex-1 overflow-hidden rounded-tl-md border-t border-l border-stroke">
-				<div class="flex-1 overflow-hidden">
+				<div class="flex-1 overflow-hidden bg-surface-0">
 					{#if selectedFolderId}
-						<FolderView
-							folderId={selectedFolderId}
-							playlists={contextPlaylists}
-							onSelect={playlistController.handlePlaylistSelect}
-							{breadcrumbItems}
-							onBreadcrumbNavigate={handleBreadcrumbNavigate}
-							onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-							onEmptySpaceContextMenu={(e, folderId) => contextMenuOrchestrator.openFolderViewMenu(e, folderId)}
-							onCardContextMenu={(e, playlist) => contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'folder')}
-						/>
+						<div class="h-full" in:fade={{ duration: 150 }}>
+							<FolderView
+								folderId={selectedFolderId}
+								playlists={contextPlaylists}
+								onSelect={playlistController.handlePlaylistSelect}
+								{breadcrumbItems}
+								onBreadcrumbNavigate={handleBreadcrumbNavigate}
+								onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+								onEmptySpaceContextMenu={(e, folderId) => contextMenuOrchestrator.openFolderViewMenu(e, folderId)}
+								onCardContextMenu={(e, playlist) => contextMenuOrchestrator.openPlaylistMenu(e, playlist, 'folder')}
+							/>
+						</div>
 					{:else if selectedPlaylistId}
 						{@const playlist = contextPlaylists.find((p) => p.id === selectedPlaylistId)}
-						{#if playlist}
-							{#if playlist.context === 'discovery'}
-								<PlaylistView
-									{playlist}
-									isDiscovery
-									releases={discoveryPlaylistReleases}
-									tracks={[]}
-									selectedIds={$selectedReleaseIds}
-									{sortConfig}
-									{categoryColors}
-									{categorySortOrders}
-									{breadcrumbItems}
-									editorVisible={$rightSidebarVisible}
-									hasSelection={selectedReleasesArray.length > 0}
-									onSelectionChange={handleReleaseSelectionChange}
-									onContextMenu={(e, item) => {
-										handleReleaseContextMenu(e, item as unknown as DiscoveryRelease)
-									}}
-									onBreadcrumbNavigate={handleBreadcrumbNavigate}
-									onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-									onToggleEditor={() => uiStore.toggleRightSidebar()}
-								/>
-							{:else}
-								<PlaylistView
-									{playlist}
-									tracks={$displayedTracks}
-									selectedIds={$selectedTrackIds}
-									playingTrackId={$currentTrack?.id ?? null}
-									{sortConfig}
-									{isDragOver}
-									{categoryColors}
-									{categorySortOrders}
-									{breadcrumbItems}
-									editorVisible={$rightSidebarVisible}
-									hasSelection={selectedTracksArray.length > 0}
-									onSelectionChange={trackController.handleSelectionChange}
-									onTrackPlay={trackController.play}
-									onSortChange={handleSortChange}
-									onContextMenu={handleTrackContextMenu}
-									onEmptySpaceContextMenu={(e, pl) => contextMenuOrchestrator.openPlaylistViewMenu(e, pl)}
-									onBreadcrumbNavigate={handleBreadcrumbNavigate}
-									onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-									onTrackColorChange={trackController.setColor}
-									onCancelAnalysis={handleCancelAnalysis}
-									onToggleEditor={() => uiStore.toggleRightSidebar()}
-								/>
+						<div class="h-full" in:fade={{ duration: 150 }}>
+							{#if playlist}
+								{#if playlist.context === 'discovery'}
+									<PlaylistView
+										{playlist}
+										isDiscovery
+										releases={discoveryPlaylistReleases}
+										tracks={[]}
+										selectedIds={$selectedReleaseIds}
+										{sortConfig}
+										{categoryColors}
+										{categorySortOrders}
+										{breadcrumbItems}
+										editorVisible={$rightSidebarVisible}
+										hasSelection={selectedReleasesArray.length > 0}
+										onSelectionChange={handleReleaseSelectionChange}
+										onContextMenu={(e, item) => {
+											handleReleaseContextMenu(e, item as unknown as DiscoveryRelease)
+										}}
+										onBreadcrumbNavigate={handleBreadcrumbNavigate}
+										onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+										onToggleEditor={() => uiStore.toggleRightSidebar()}
+									/>
+								{:else}
+									<PlaylistView
+										{playlist}
+										tracks={$displayedTracks}
+										selectedIds={$selectedTrackIds}
+										playingTrackId={$currentTrack?.id ?? null}
+										{sortConfig}
+										{isDragOver}
+										{categoryColors}
+										{categorySortOrders}
+										{breadcrumbItems}
+										editorVisible={$rightSidebarVisible}
+										hasSelection={selectedTracksArray.length > 0}
+										onSelectionChange={trackController.handleSelectionChange}
+										onTrackPlay={trackController.play}
+										onSortChange={handleSortChange}
+										onContextMenu={handleTrackContextMenu}
+										onEmptySpaceContextMenu={(e, pl) => contextMenuOrchestrator.openPlaylistViewMenu(e, pl)}
+										onBreadcrumbNavigate={handleBreadcrumbNavigate}
+										onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
+										onTrackColorChange={trackController.setColor}
+										onCancelAnalysis={handleCancelAnalysis}
+										onToggleEditor={() => uiStore.toggleRightSidebar()}
+									/>
+								{/if}
 							{/if}
-						{/if}
+						</div>
 					{:else if $activeView === 'discovery'}
-						<DiscoveryView
-							bind:this={discoveryViewRef}
-							releases={$sortedReleases}
-							releaseCount={$releaseCount}
-							selectedIds={$selectedReleaseIds}
-							sortConfig={discoverySortConfig}
-							{categoryColors}
-							{categorySortOrders}
-							editorVisible={$rightSidebarVisible}
-							hasSelection={selectedReleasesArray.length > 0}
-							onSelectionChange={handleReleaseSelectionChange}
-							onReleaseOpen={handleReleaseOpen}
-							onReleaseOpenUrl={handleDiscoveryReleaseOpenInBrowser}
-							onReleaseImport={handleDiscoveryReleaseImport}
-							onTrackPlay={handleTrackPlayInRelease}
-							onSortChange={handleDiscoverySortChange}
-							onContextMenu={handleReleaseContextMenu}
-							onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openDiscoveryViewMenu(e)}
-							onUrlDrop={async (url) => {
-								await handleAddRelease({ url })
-							}}
-							onToggleEditor={() => uiStore.toggleRightSidebar()}
-						/>
+						<div class="h-full" in:fade={{ duration: 150 }}>
+							<DiscoveryView
+								bind:this={discoveryViewRef}
+								releases={$sortedReleases}
+								releaseCount={$releaseCount}
+								selectedIds={$selectedReleaseIds}
+								sortConfig={discoverySortConfig}
+								{categoryColors}
+								{categorySortOrders}
+								editorVisible={$rightSidebarVisible}
+								hasSelection={selectedReleasesArray.length > 0}
+								onSelectionChange={handleReleaseSelectionChange}
+								onReleaseOpen={handleReleaseOpen}
+								onReleaseOpenUrl={handleDiscoveryReleaseOpenInBrowser}
+								onReleaseImport={handleDiscoveryReleaseImport}
+								onTrackPlay={handleTrackPlayInRelease}
+								onSortChange={handleDiscoverySortChange}
+								onContextMenu={handleReleaseContextMenu}
+								onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openDiscoveryViewMenu(e)}
+								onUrlDrop={async (url) => {
+									await handleAddRelease({ url })
+								}}
+								onToggleEditor={() => uiStore.toggleRightSidebar()}
+							/>
+						</div>
 					{:else}
-						<LibraryView
-							tracks={$displayedTracks}
-							trackCount={$trackCount}
-							selectedIds={$selectedTrackIds}
-							playingTrackId={$currentTrack?.id ?? null}
-							{sortConfig}
-							{isDragOver}
-							{categoryColors}
-							{categorySortOrders}
-							editorVisible={$rightSidebarVisible}
-							hasSelection={selectedTracksArray.length > 0}
-							onSelectionChange={trackController.handleSelectionChange}
-							onTrackPlay={trackController.play}
-							onSortChange={handleSortChange}
-							onContextMenu={handleTrackContextMenu}
-							onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openLibraryViewMenu(e)}
-							onTrackColorChange={trackController.setColor}
-							onCancelAnalysis={handleCancelAnalysis}
-							onToggleEditor={() => uiStore.toggleRightSidebar()}
-						/>
+						<div class="h-full" in:fade={{ duration: 150 }}>
+							<LibraryView
+								tracks={$displayedTracks}
+								trackCount={$trackCount}
+								selectedIds={$selectedTrackIds}
+								playingTrackId={$currentTrack?.id ?? null}
+								{sortConfig}
+								{isDragOver}
+								{categoryColors}
+								{categorySortOrders}
+								editorVisible={$rightSidebarVisible}
+								hasSelection={selectedTracksArray.length > 0}
+								onSelectionChange={trackController.handleSelectionChange}
+								onTrackPlay={trackController.play}
+								onSortChange={handleSortChange}
+								onContextMenu={handleTrackContextMenu}
+								onEmptySpaceContextMenu={(e) => contextMenuOrchestrator.openLibraryViewMenu(e)}
+								onTrackColorChange={trackController.setColor}
+								onCancelAnalysis={handleCancelAnalysis}
+								onToggleEditor={() => uiStore.toggleRightSidebar()}
+							/>
+						</div>
 					{/if}
 				</div>
 
@@ -1215,9 +1223,13 @@
 					onResize={handleRightSidebarResize}
 				>
 					{#if $activeView === 'discovery'}
-						<DiscoveryEditor selectedReleases={selectedReleasesArray} onImport={handleDiscoveryReleaseImport} />
+						<div class="h-full" in:fade={{ duration: 150 }}>
+							<DiscoveryEditor selectedReleases={selectedReleasesArray} onImport={handleDiscoveryReleaseImport} />
+						</div>
 					{:else}
-						<TrackEditor selectedTracks={selectedTracksArray} />
+						<div class="h-full" in:fade={{ duration: 150 }}>
+							<TrackEditor selectedTracks={selectedTracksArray} />
+						</div>
 					{/if}
 				</RightSidebar>
 			</div>

@@ -24,7 +24,7 @@
 	}
 </script>
 
-<div class="flex items-center justify-between border-b border-stroke px-6 py-4">
+<div class="flex items-center justify-between border-b border-stroke px-4 py-4">
 	<div class="flex items-center gap-1">
 		{#each items as item, index (item.id ?? 'library')}
 			{#if index > 0}

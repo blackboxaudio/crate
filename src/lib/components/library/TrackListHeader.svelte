@@ -45,7 +45,7 @@
 		{#if column.field}
 			<button
 				type="button"
-				class="text-{column.align} transition-colors hover:text-text-secondary"
+				class="text-{column.align} flex items-center gap-1 transition-colors hover:text-text-secondary"
 				onclick={() => column.field && handleSort(column.field)}
 			>
 				{column.labelKey ? $translate(column.labelKey) : ''}

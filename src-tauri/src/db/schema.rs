@@ -191,7 +191,8 @@ CREATE TABLE discovery_tracks (
     release_id TEXT NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     position INTEGER NOT NULL,
-    duration_ms INTEGER
+    duration_ms INTEGER,
+    video_id TEXT
 );
 
 CREATE INDEX idx_discovery_tracks_release ON discovery_tracks(release_id);
@@ -216,6 +217,7 @@ CREATE TABLE discovery_stream_cache (
     track_position INTEGER NOT NULL,
     stream_url     TEXT    NOT NULL,
     expires_at     TEXT    NOT NULL,
+    proxy_ua       TEXT,
     PRIMARY KEY (release_id, track_position)
 );
 
@@ -224,14 +226,6 @@ CREATE TABLE discovery_sc_client_id_cache (
     client_id  TEXT    NOT NULL,
     fetched_at TEXT    NOT NULL
 );
-"#,
-        // Migration 2: Add proxy_ua column to stream cache for YouTube UA-proxied streams
-        r#"
-ALTER TABLE discovery_stream_cache ADD COLUMN proxy_ua TEXT;
-"#,
-        // Migration 3: Add video_id column to discovery_tracks for fast YouTube single-track streaming
-        r#"
-ALTER TABLE discovery_tracks ADD COLUMN video_id TEXT;
 "#,
     ]
 }
