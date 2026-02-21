@@ -128,7 +128,7 @@
 	const selectedDevices = $derived(devices.filter((d) => selectedDeviceIds.has(d.id)))
 
 	// Calculate selected playlist count (excluding folders)
-	const selectedPlaylistCount = $derived(() => {
+	const selectedPlaylistCount = $derived.by(() => {
 		let count = 0
 		for (const id of selectedPlaylistIds) {
 			const p = playlists.find((pl) => pl.id === id)
@@ -138,7 +138,7 @@
 	})
 
 	// Calculate total track count for selected playlists
-	const totalTrackCount = $derived(() => {
+	const totalTrackCount = $derived.by(() => {
 		let count = 0
 		for (const id of selectedPlaylistIds) {
 			const p = playlists.find((pl) => pl.id === id)
@@ -231,11 +231,11 @@
 				</div>
 				<div class="summary-row">
 					<Text size="xs" as="span">{$translate('export.playlistsToExport')}:</Text>
-					<Text size="xs" weight="medium" as="span">{selectedPlaylistCount()}</Text>
+					<Text size="xs" weight="medium" as="span">{selectedPlaylistCount}</Text>
 				</div>
 				<div class="summary-row">
 					<Text size="xs" as="span">{$translate('export.tracksToExport')}:</Text>
-					<Text size="xs" weight="medium" as="span">{totalTrackCount()}</Text>
+					<Text size="xs" weight="medium" as="span">{totalTrackCount}</Text>
 				</div>
 			</div>
 

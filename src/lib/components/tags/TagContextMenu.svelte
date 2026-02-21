@@ -48,7 +48,7 @@
 		onMoveTag,
 	}: Props = $props()
 
-	const menuItems = $derived<ContextMenuItem[]>(() => {
+	const menuItems = $derived.by<ContextMenuItem[]>(() => {
 		if (!target) return []
 
 		const items: ContextMenuItem[] = []
@@ -144,4 +144,4 @@
 	})
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems()} {onClose} {onClosed} />
+<ContextMenu {open} {x} {y} items={menuItems} {onClose} {onClosed} />

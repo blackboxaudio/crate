@@ -260,6 +260,11 @@ jobs:
             [ -f "$f" ] && gcloud storage cp "$f" "gs://${BUCKET}/${PREFIX}/macos/$(basename "$f")"
           done
 
+          # Upload macOS DMG installer
+          for f in artifacts/release-macos/**/*.dmg; do
+            [ -f "$f" ] && gcloud storage cp "$f" "gs://${BUCKET}/${PREFIX}/macos/$(basename "$f")"
+          done
+
           # Upload Windows updater artifacts (v2 format: .msi + .msi.sig directly)
           for f in artifacts/release-windows/**/*.msi; do
             [ -f "$f" ] && gcloud storage cp "$f" "gs://${BUCKET}/${PREFIX}/windows/$(basename "$f")"
@@ -314,3 +319,39 @@ jobs:
 
           echo "Uploaded latest.json to gs://${BUCKET}/${CHANNEL}/latest.json"
           cat latest.json
+
+          # Build downloads.json for landing page
+          DMG_FILE=""
+          for f in artifacts/release-macos/**/*.dmg; do
+            [ -f "$f" ] && DMG_FILE=$(basename "$f")
+          done
+
+          cat > downloads.json << DLEOF
+          {
+            "version": "${VERSION}",
+            "date": "$(date -u +%Y-%m-%d)",
+            "downloads": {
+              "macos": {
+                "dmg": "${BASE_URL}/macos/${DMG_FILE}",
+                "filename": "${DMG_FILE}"
+              },
+              "windows": {
+                "msi": "${BASE_URL}/windows/${WINDOWS_FILE}",
+                "filename": "${WINDOWS_FILE}"
+              }
+            }
+          }
+          DLEOF
+
+          gcloud storage cp downloads.json "gs://${BUCKET}/${CHANNEL}/downloads.json"
+          echo "Uploaded downloads.json to gs://${BUCKET}/${CHANNEL}/downloads.json"
+          cat downloads.json
+
+      - name: Deploy landing page
+        run: |
+          BUCKET="crate-web"
+          gcloud storage cp web/index.html "gs://${BUCKET}/index.html" \
+            --content-type="text/html" \
+            --cache-control="public, max-age=300"
+          gcloud storage cp -r web/assets/ "gs://${BUCKET}/assets/" \
+            --cache-control="public, max-age=31536000"

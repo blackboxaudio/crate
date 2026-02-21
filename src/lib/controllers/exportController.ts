@@ -4,6 +4,7 @@ import type { ExportRequest, Playlist, UsbDevice } from '$lib/types'
 import type { exportStore as ExportStoreType } from '$lib/stores/export'
 import type { toastStore as ToastStoreType } from '$lib/stores/toast'
 import { isExporting } from '$lib/stores/export'
+import { exportFormat } from '$lib/stores/settings'
 import * as exportApi from '$lib/api/export'
 
 // =============================================================================
@@ -195,6 +196,7 @@ export function createExportController(
 			device_name: device.name,
 			playlist_ids: playlistIds,
 			enable_sync: true,
+			use_device_library_plus: get(exportFormat) === 'device_library_plus',
 		}
 
 		// Start export immediately

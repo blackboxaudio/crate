@@ -6,13 +6,14 @@
 	type Props = {
 		open: boolean
 		title?: string
+		size?: 'sm' | 'md' | 'lg'
 		onClose: () => void
 		onSubmit?: () => void
 		children: Snippet
 		footer?: Snippet
 	}
 
-	let { open, title, onClose, onSubmit, children, footer }: Props = $props()
+	let { open, title, size = 'sm', onClose, onSubmit, children, footer }: Props = $props()
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
 	let visible = $state(false)

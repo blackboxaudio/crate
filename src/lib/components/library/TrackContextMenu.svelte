@@ -45,7 +45,7 @@
 	}: Props = $props()
 
 	// Platform-specific label for "View in Finder/Explorer"
-	const revealLabel = $derived(() => {
+	const revealLabel = $derived.by(() => {
 		const ua = navigator.userAgent
 		if (ua.includes('Mac')) return get(translate)('contextMenu.viewInFinder')
 		if (ua.includes('Windows')) return get(translate)('contextMenu.viewInExplorer')
@@ -53,12 +53,10 @@
 	})
 
 	// Check if any selected track is missing
-	const hasMissingTrack = $derived(() => {
-		return selectedTracks.length === 1 && $missingTrackIds.has(selectedTracks[0].id)
-	})
+	const hasMissingTrack = $derived(selectedTracks.length === 1 && $missingTrackIds.has(selectedTracks[0].id))
 
 	// Get current color (for single track or common color across multi-selection)
-	const currentColor = $derived(() => {
+	const currentColor = $derived.by(() => {
 		if (selectedTracks.length === 0) return null
 		const firstColor = selectedTracks[0].color
 		// Only show as selected if all tracks have the same color
@@ -66,7 +64,7 @@
 	})
 
 	// Build menu items
-	const menuItems = $derived<ContextMenuItem[]>(() => {
+	const menuItems = $derived.by<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
 
 		// "Analyze" - analyze tracks for BPM and key (disabled during analysis)
@@ -81,7 +79,7 @@
 		}
 
 		// "Relocate..." - only for single missing track (disabled during analysis)
-		if (hasMissingTrack() && onRelocate) {
+		if (hasMissingTrack && onRelocate) {
 			items.push({
 				id: 'relocate',
 				label: get(translate)('contextMenu.relocate'),
@@ -100,7 +98,7 @@
 		if (selectedTracks.length === 1) {
 			items.push({
 				id: 'reveal-in-explorer',
-				label: revealLabel(),
+				label: revealLabel,
 				icon: 'folder-open',
 				action: onRevealInExplorer,
 			})
@@ -139,7 +137,7 @@
 				id: `color-${color.id}`,
 				label: get(translate)(`colors.${color.id}`),
 				colorDot: color.hex,
-				selected: currentColor() === color.id,
+				selected: currentColor === color.id,
 				action: () => onSetColor(color.id),
 			}))
 			colorItems.push({
@@ -199,4 +197,4 @@
 	})
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems()} {onClose} {onClosed} />
+<ContextMenu {open} {x} {y} items={menuItems} {onClose} {onClosed} />

@@ -942,6 +942,7 @@
 	<ExportFailureModal
 		open={true}
 		error={activeModal.error}
+		deviceId={activeModal.deviceId}
 		filesCopied={activeModal.filesCopied}
 		onKeepPartial={handleExportFailureKeep}
 		onCleanUp={handleExportFailureCleanup}

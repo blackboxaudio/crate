@@ -173,8 +173,9 @@
 
 	// Close device context menu if the device is disconnected
 	$effect(() => {
-		if (activeMenu.type === 'device') {
-			const deviceStillExists = $devices.some((d) => d.id === activeMenu.device.id)
+		const menu = activeMenu
+		if (menu.type === 'device') {
+			const deviceStillExists = $devices.some((d) => d.id === menu.device.id)
 			if (!deviceStillExists) {
 				closeAll()
 			}

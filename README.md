@@ -4,7 +4,7 @@
 [![Lint](https://github.com/blackboxaudio/crate/actions/workflows/ci.lint.yml/badge.svg)](https://github.com/blackboxaudio/crate/actions/workflows/ci.lint.yml)
 [![Version](https://img.shields.io/github/v/release/blackboxaudio/crate?label=version)](https://github.com/blackboxaudio/crate/releases)
 
-> Fast, local-first DJ library manager built with Tauri and Svelte
+> Cross-platform DJ library manager with music discovery, track analysis, and USB export 📦
 
 ---
 

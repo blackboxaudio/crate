@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crate - DJ library management</title>
+  <meta name="description" content="Cross-platform DJ library manager with music discovery, track analysis, and USB export.">
+  <meta property="og:title" content="Crate - DJ library management">
+  <meta property="og:description" content="Cross-platform DJ library manager with music discovery, track analysis, and USB export.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://crate.bbx-audio.com">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        fontFamily: {
+          mono: ['"Space Mono"', 'monospace'],
+        },
+        extend: {
+          colors: {
+            surface: {
+              0: '#181818',
+              1: '#202020',
+              brand: {
+                primary: '#555fd2',
+                secondary: '#ff5672',
+              },
+            },
+            stroke: {
+              0: '#303030',
+              brand: {
+                primary: '#555fd2',
+              },
+            },
+            text: {
+              primary: '#e0e0e0',
+              secondary: '#6c6c6c',
+              invert: '#181818',
+              brand: {
+                primary: '#555fd2',
+              },
+            },
+          },
+        },
+      },
+    }
+  </script>
+  <style>
+    .dots {
+      background-blend-mode: multiply;
+      background-image: url('assets/filters/worn-dots.png');
+      background-size: 256px 256px;
+    }
+    .dots-animated {
+      position: relative;
+      overflow: hidden;
+    }
+    .dots-animated::before,
+    .dots-animated::after {
+      content: '';
+      position: absolute;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      background-blend-mode: multiply;
+      background-color: inherit;
+      background-image: url('assets/filters/worn-dots.png');
+      background-size: 256px 256px;
+      pointer-events: none;
+    }
+    .dots-animated::before {
+      animation: drift1 20s ease-in-out infinite;
+      opacity: 0.6;
+    }
+    .dots-animated::after {
+      animation: drift2 25s ease-in-out infinite;
+      opacity: 0.4;
+    }
+    @keyframes drift1 {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(2%, 3%) scale(1.02); }
+      50% { transform: translate(-1%, 5%) scale(1); }
+      75% { transform: translate(3%, 1%) scale(1.01); }
+    }
+    @keyframes drift2 {
+      0%, 100% { transform: translate(0, 0) scale(1.01); }
+      25% { transform: translate(-3%, 1%) scale(1); }
+      50% { transform: translate(2%, -2%) scale(1.02); }
+      75% { transform: translate(-1%, 4%) scale(1); }
+    }
+  </style>
+</head>
+<body class="h-screen overflow-hidden bg-surface-0 font-mono text-text-primary">
+  <div class="flex h-full flex-col md:flex-row">
+    <!-- Main content -->
+    <div class="flex flex-1 flex-col">
+      <!-- Hero + description + download -->
+      <div class="flex flex-1 flex-col justify-center px-8 md:px-16">
+        <h1 class="text-[72px] font-bold leading-none md:text-[128px]">Crate</h1>
+        <p class="mt-4 max-w-lg text-base text-text-secondary md:text-lg">Cross-platform DJ library manager with music discovery, track analysis, and USB export.</p>
+        <div id="download-buttons" class="mt-8 flex flex-col gap-4 sm:flex-row sm:gap-6">
+          <a id="btn-macos" href="#" class="inline-flex items-center justify-center gap-3 rounded-sm border-[3px] border-stroke-brand-primary bg-surface-brand-primary px-6 py-3 font-bold text-text-invert transition-all duration-100 ease-out hover:brightness-[85%] active:brightness-[75%]">
+            <svg class="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
+            macOS (.dmg)
+          </a>
+          <a id="btn-windows" href="#" class="inline-flex items-center justify-center gap-3 rounded-sm border-[3px] border-stroke-brand-primary bg-surface-brand-primary px-6 py-3 font-bold text-text-invert transition-all duration-100 ease-out hover:brightness-[85%] active:brightness-[75%]">
+            <svg class="h-5 w-5 fill-current" viewBox="0 0 24 24"><path d="M3 12V6.75l6-1.32v6.48L3 12zm6.13.01 7.87-.93V4.5l-7.87 1.74v5.77zM17 11.08l7-1.08V3l-7 1.64v6.44zM3 13l6 .09v6.28l-6-1.34V13zm6.13-.02 7.87.09v6.72l-7.87-1.81v-5zM17 13.1l7 .07V21l-7-1.64v-6.26z"/></svg>
+            Windows (.msi)
+          </a>
+        </div>
+        <p id="version-info" class="mt-4 text-sm text-text-secondary"></p>
+        <p id="download-fallback" class="mt-4 hidden text-sm text-text-secondary">
+          Download links are currently unavailable.
+          <a href="https://github.com/bbx-audio/crate/releases" target="_blank" rel="noopener noreferrer" class="text-text-brand-primary underline transition-colors duration-100 ease-out hover:text-text-primary">View releases on GitHub</a>
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <footer class="border-t-[3px] border-stroke-0 px-8 py-5 text-center md:px-16">
+        <p class="text-sm text-text-secondary">Copyright &copy; 2026 Black Box Audio, LLC. All Rights Reserved.</p>
+      </footer>
+    </div>
+
+    <!-- Purple accent column -->
+    <div class="dots-animated hidden self-stretch border-l-[3px] border-stroke-0 bg-surface-brand-primary md:block md:w-[30vw]"></div>
+  </div>
+
+  <script>
+    (async function () {
+      const params = new URLSearchParams(window.location.search)
+      const channel = params.get('channel') || 'production'
+      const baseUrl = `https://storage.googleapis.com/crate-releases/${channel}/downloads.json`
+
+      try {
+        const res = await fetch(baseUrl)
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        const data = await res.json()
+
+        if (data.downloads?.macos?.dmg) {
+          document.getElementById('btn-macos').href = data.downloads.macos.dmg
+        }
+        if (data.downloads?.windows?.msi) {
+          document.getElementById('btn-windows').href = data.downloads.windows.msi
+        }
+
+        const parts = [`v${data.version}`]
+        if (data.date) parts.push(`released ${data.date}`)
+        document.getElementById('version-info').textContent = parts.join(' \u2014 ')
+      } catch (e) {
+        document.getElementById('download-fallback').classList.remove('hidden')
+      }
+    })()
+  </script>
+</body>
+</html>

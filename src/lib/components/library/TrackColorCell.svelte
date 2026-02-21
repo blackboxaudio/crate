@@ -5,9 +5,10 @@
 	type Props = {
 		color: TrackColor | null
 		disabled?: boolean
+		onselect?: (color: TrackColor | null) => void
 	}
 
-	let { color, disabled = false }: Props = $props()
+	let { color, disabled = false, onselect }: Props = $props()
 
 	const currentColor = $derived(color ? TRACK_COLORS.find((c) => c.id === color) : null)
 </script>

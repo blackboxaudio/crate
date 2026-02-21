@@ -18,15 +18,19 @@
 	let { children }: Props = $props()
 	let i18nReady = $state(false)
 
-	onMount(async () => {
-		// Initialize i18n with cached language from localStorage (or system language)
-		const cachedLanguage = localStorage.getItem('crate-language') as Language | null
-		await initializeI18n(cachedLanguage)
-		i18nReady = true
+	onMount(() => {
+		// Start async initialization
+		async function init() {
+			// Initialize i18n with cached language from localStorage (or system language)
+			const cachedLanguage = localStorage.getItem('crate-language') as Language | null
+			await initializeI18n(cachedLanguage)
+			i18nReady = true
 
-		// Load settings early so theme is applied before most errors can occur
-		// This will also update i18n to the correct language if different from cached
-		await settingsStore.load()
+			// Load settings early so theme is applied before most errors can occur
+			// This will also update i18n to the correct language if different from cached
+			await settingsStore.load()
+		}
+		init()
 
 		// Set up global error handlers
 		const cleanupErrorHandler = useGlobalErrorHandler()

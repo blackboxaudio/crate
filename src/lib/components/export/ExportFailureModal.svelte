@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
 	import Modal from '$lib/components/common/Modal.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -19,7 +18,7 @@
 
 	let { open, error, deviceId, filesCopied, onKeepPartial, onCleanUp, onResume }: Props = $props()
 
-	let checkpoint: ExportCheckpoint | null = $state(null)
+	let checkpoint = $state<ExportCheckpoint | null>(null)
 	let checkingCheckpoint = $state(false)
 
 	// Auto-detect checkpoint when modal opens

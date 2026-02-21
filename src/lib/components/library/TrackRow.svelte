@@ -115,7 +115,7 @@
 	onpointercancel={handlePointerUp}
 	onpointerenter={() => $isDraggingTag && (isTagDragHovered = true)}
 	onpointerleave={() => (isTagDragHovered = false)}
-	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e)}
+	onkeydown={(e) => e.key === 'Enter' && ondblclick?.(e as unknown as MouseEvent)}
 >
 	<!-- Missing file indicator -->
 	{#if isMissing}

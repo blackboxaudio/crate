@@ -142,7 +142,10 @@ export function formatDate(dateStr: string, format: 'locale' | 'iso' | 'us' | 'e
 /**
  * Format date string to relative time (e.g., "2 days ago")
  */
-type TranslateFn = (key: string, opts?: { values?: Record<string, unknown> }) => string
+type TranslateFn = (
+	key: string,
+	opts?: { values?: Record<string, string | number | boolean | Date | null | undefined> }
+) => string
 
 export function formatRelativeDate(dateStr: string, t: TranslateFn): string {
 	const date = new Date(dateStr)

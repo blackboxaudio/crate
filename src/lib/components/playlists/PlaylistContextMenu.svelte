@@ -20,7 +20,7 @@
 
 	let { open, x, y, playlist, folders, onClose, onClosed, onRename, onDelete, onMove, onExport }: Props = $props()
 
-	const menuItems = $derived<ContextMenuItem[]>(() => {
+	const menuItems = $derived.by<ContextMenuItem[]>(() => {
 		if (!playlist) return []
 
 		const items: ContextMenuItem[] = []
@@ -92,4 +92,4 @@
 	})
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems()} {onClose} {onClosed} />
+<ContextMenu {open} {x} {y} items={menuItems} {onClose} {onClosed} />

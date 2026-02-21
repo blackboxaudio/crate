@@ -43,7 +43,7 @@
 	// Filter to only non-folder discovery playlists
 	const availablePlaylists = $derived(playlists.filter((p) => !p.is_folder))
 
-	const menuItems = $derived<ContextMenuItem[]>(() => {
+	const menuItems = $derived.by<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
 
 		// Open in Browser - single release only
@@ -127,4 +127,4 @@
 	})
 </script>
 
-<ContextMenu {open} {x} {y} items={menuItems()} {onClose} {onClosed} />
+<ContextMenu {open} {x} {y} items={menuItems} {onClose} {onClosed} />
