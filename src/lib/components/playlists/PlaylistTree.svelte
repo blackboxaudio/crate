@@ -109,7 +109,18 @@
 		const isModifier = e.metaKey || e.ctrlKey || e.shiftKey
 
 		if (isModifier && onItemClick) {
-			const result = handleSelection(flattenedVisible, selectedIds, playlist.id, lastClickedTreeId, e)
+			// Seed multi-selection with the currently viewed playlist if starting fresh
+			let currentIds = selectedIds
+			if (currentIds.size === 0 && selectedId) {
+				currentIds = new Set([selectedId])
+			}
+			const result = handleSelection(
+				flattenedVisible,
+				currentIds,
+				playlist.id,
+				lastClickedTreeId ?? selectedId ?? null,
+				e
+			)
 			lastClickedTreeId = result.lastClickedId
 			onItemClick(playlist, result.selectedIds, true)
 		} else {
