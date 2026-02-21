@@ -6,7 +6,7 @@
 	import Text from '$lib/components/common/Text.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$lib/i18n'
-	import { SvelteSet } from 'svelte/reactivity'
+	import { expandedReleaseIds } from '$lib/stores'
 
 	type Props = {
 		releases: DiscoveryRelease[]
@@ -51,42 +51,15 @@
 	}: Props = $props()
 
 	let isDragOver = $state(false)
-	let expandedIds = $state(new Set<string>())
 
 	const hasExpandableReleases = $derived(releases.some((r) => r.tracks.length > 0))
 
-	export function toggleExpand(id: string) {
-		expandedIds = new SvelteSet(expandedIds)
-		if (expandedIds.has(id)) {
-			expandedIds.delete(id)
-		} else {
-			expandedIds.add(id)
-		}
+	function handleExpandAll() {
+		expandedReleaseIds.expandAll(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
 	}
 
-	export function expandAll() {
-		expandedIds = new SvelteSet(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
-	}
-
-	export function collapseAll() {
-		expandedIds = new SvelteSet()
-	}
-
-	export function expandRelease(id: string) {
-		expandedIds = new SvelteSet(expandedIds)
-		expandedIds.add(id)
-	}
-
-	export function toggleExpandSelection(ids: Set<string>) {
-		const expandableIds = releases.filter((r) => ids.has(r.id) && r.tracks.length > 0).map((r) => r.id)
-		if (expandableIds.length === 0) return
-		const allExpanded = expandableIds.every((id) => expandedIds.has(id))
-		expandedIds = new SvelteSet(expandedIds)
-		if (allExpanded) {
-			for (const id of expandableIds) expandedIds.delete(id)
-		} else {
-			for (const id of expandableIds) expandedIds.add(id)
-		}
+	function handleCollapseAll() {
+		expandedReleaseIds.collapseAll()
 	}
 
 	function hasUrlData(e: DragEvent): boolean {
@@ -158,10 +131,10 @@
 		<div class="flex items-center gap-1">
 			{#if hasExpandableReleases}
 				<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
-					<IconButton icon="unfold-vertical" size="sm" onclick={expandAll} />
+					<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
 				</Tooltip>
 				<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
-					<IconButton icon="fold-vertical" size="sm" onclick={collapseAll} />
+					<IconButton icon="fold-vertical" size="sm" onclick={handleCollapseAll} />
 				</Tooltip>
 			{/if}
 			<Tooltip
@@ -179,7 +152,7 @@
 		<DiscoveryList
 			{releases}
 			{selectedIds}
-			{expandedIds}
+			expandedIds={$expandedReleaseIds}
 			{sortConfig}
 			{categoryColors}
 			{categorySortOrders}
@@ -191,7 +164,7 @@
 			{onSortChange}
 			{onContextMenu}
 			{onEmptySpaceContextMenu}
-			onToggleExpand={toggleExpand}
+			onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
 			{onTrackPlay}
 		/>
 	</div>
