@@ -135,3 +135,48 @@ pub async fn get_playlist_releases(
 ) -> Result<Vec<DiscoveryRelease>> {
     playlists.get_playlist_releases(&playlist_id)
 }
+
+#[tauri::command]
+pub async fn create_smart_playlist(
+    name: String,
+    parent_id: Option<String>,
+    context: String,
+    smart_rules: String,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Playlist> {
+    playlists.create_smart_playlist(name, parent_id, context, smart_rules)
+}
+
+#[tauri::command]
+pub async fn update_smart_rules(
+    id: String,
+    smart_rules: String,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Playlist> {
+    playlists.update_smart_rules(&id, smart_rules)
+}
+
+#[tauri::command]
+pub async fn get_smart_playlist_tracks(
+    playlist_id: String,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Vec<Track>> {
+    playlists.get_smart_playlist_tracks(&playlist_id)
+}
+
+#[tauri::command]
+pub async fn get_smart_playlist_releases(
+    playlist_id: String,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Vec<DiscoveryRelease>> {
+    playlists.get_smart_playlist_releases(&playlist_id)
+}
+
+#[tauri::command]
+pub async fn preview_smart_rules_count(
+    smart_rules: String,
+    context: String,
+    playlists: State<'_, PlaylistService>,
+) -> Result<i32> {
+    playlists.preview_smart_rules_count(&smart_rules, &context)
+}

@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Smart playlists with rule-based auto-population for both library and discovery contexts
 - Library backup and restore functionality in Settings > General
 
 ### Changed

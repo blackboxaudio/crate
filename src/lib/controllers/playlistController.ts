@@ -1,5 +1,5 @@
 import { open } from '@tauri-apps/plugin-dialog'
-import type { Playlist, TrackFilter } from '$lib/types'
+import type { ActiveView, Playlist, TrackFilter } from '$lib/types'
 import { withNativeDialog } from '$lib/utils'
 import type { playlistsStore as PlaylistsStoreType } from '$lib/stores/playlists'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
@@ -27,6 +27,8 @@ export interface PlaylistControllerDeps {
 export interface PlaylistControllerModalActions {
 	openCreatePlaylistModal: (parentId: string | null) => void
 	openCreateFolderModal: (parentId: string | null) => void
+	openCreateSmartPlaylistModal: (parentId: string | null, context: ActiveView) => void
+	openEditSmartPlaylistModal: (playlist: Playlist) => void
 	openRenamePlaylistModal: (playlist: Playlist) => void
 	openDeletePlaylistModal: (playlist: Playlist, hasChildren: boolean) => void
 	openMoveConflictModal: (playlist: Playlist, conflict: Playlist, targetId: string | null) => void
@@ -37,6 +39,8 @@ export interface PlaylistController {
 	handlePlaylistSelect: (playlist: Playlist) => Promise<void>
 	handleCreatePlaylist: () => void
 	handleCreateFolder: () => void
+	handleCreateSmartPlaylist: (context: ActiveView) => void
+	handleEditSmartPlaylist: (playlist: Playlist) => void
 	handlePlaylistRename: (playlist: Playlist) => void
 	handlePlaylistDelete: (playlist: Playlist) => void
 	handlePlaylistMove: (playlist: Playlist, folderId: string | null) => Promise<void>
@@ -91,6 +95,13 @@ export function createPlaylistController(
 
 		if (playlist.is_folder) {
 			uiStore.selectFolder(playlist.id)
+		} else if (playlist.is_smart) {
+			uiStore.selectPlaylist(playlist.id)
+			if (playlist.context === 'discovery') {
+				await onDiscoveryPlaylistSelected?.(playlist.id)
+			} else {
+				await libraryStore.loadSmartPlaylistTracks(playlist.id)
+			}
 		} else if (playlist.context === 'discovery') {
 			uiStore.selectPlaylist(playlist.id)
 			await onDiscoveryPlaylistSelected?.(playlist.id)
@@ -123,6 +134,20 @@ export function createPlaylistController(
 	 */
 	function handleCreateFolder(): void {
 		modalActions.openCreateFolderModal(getSelectedFolderId())
+	}
+
+	/**
+	 * Open create smart playlist modal
+	 */
+	function handleCreateSmartPlaylist(context: ActiveView): void {
+		modalActions.openCreateSmartPlaylistModal(getSelectedFolderId(), context)
+	}
+
+	/**
+	 * Open edit smart playlist modal
+	 */
+	function handleEditSmartPlaylist(playlist: Playlist): void {
+		modalActions.openEditSmartPlaylistModal(playlist)
 	}
 
 	/**
@@ -185,6 +210,7 @@ export function createPlaylistController(
 	 * Import tracks directly into a playlist view
 	 */
 	async function handlePlaylistViewImport(playlist: Playlist): Promise<void> {
+		if (playlist.is_smart) return
 		// Open file dialog
 		const selected = await withNativeDialog(() =>
 			open({
@@ -224,6 +250,8 @@ export function createPlaylistController(
 		handlePlaylistSelect,
 		handleCreatePlaylist,
 		handleCreateFolder,
+		handleCreateSmartPlaylist,
+		handleEditSmartPlaylist,
 		handlePlaylistRename,
 		handlePlaylistDelete,
 		handlePlaylistMove,

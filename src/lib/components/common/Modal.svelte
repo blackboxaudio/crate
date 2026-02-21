@@ -15,6 +15,12 @@
 
 	let { open, title, size = 'sm', onClose, onSubmit, children, footer }: Props = $props()
 
+	const sizeClasses: Record<string, string> = {
+		sm: 'max-w-sm',
+		md: 'max-w-md',
+		lg: 'max-w-xl',
+	}
+
 	let dialogEl: HTMLDialogElement | undefined = $state()
 	let visible = $state(false)
 
@@ -65,7 +71,7 @@
 >
 	{#if visible}
 		<div
-			class="fixed top-1/2 left-1/2 flex max-h-[85vh] w-full max-w-md -translate-x-1/2
+			class="fixed top-1/2 left-1/2 flex max-h-[85vh] w-full {sizeClasses[size] ?? 'max-w-md'} -translate-x-1/2
 				-translate-y-1/2 flex-col rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 			onoutroend={handleOutroEnd}

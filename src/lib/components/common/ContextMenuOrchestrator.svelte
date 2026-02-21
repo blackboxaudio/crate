@@ -30,6 +30,8 @@
 	import DeviceContextMenu from '$lib/components/devices/DeviceContextMenu.svelte'
 	import DiscoveryContextMenu from '$lib/components/discovery/DiscoveryContextMenu.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import { get } from 'svelte/store'
+	import { translate } from '$lib/i18n'
 	import { devices, reformattingDeviceId } from '$lib/stores/devices'
 	import { activeDeviceId } from '$lib/stores/export'
 	import { syncingDeviceIds } from '$lib/stores/sync'
@@ -56,7 +58,9 @@
 
 		// Playlist callbacks
 		onPlaylistCreatePlaylist: (playlist: Playlist) => void
+		onPlaylistCreateSmartPlaylist: (playlist: Playlist) => void
 		onPlaylistCreateFolder: (playlist: Playlist) => void
+		onPlaylistEditSmartPlaylist: (playlist: Playlist) => void
 		onPlaylistRename: (playlist: Playlist) => void
 		onPlaylistDelete: (playlist: Playlist) => void
 		onPlaylistBulkDelete: (playlists: Playlist[]) => void
@@ -64,10 +68,12 @@
 
 		// FolderView callbacks
 		onFolderViewCreatePlaylist: (folderId: string | null) => void
+		onFolderViewCreateSmartPlaylist: (folderId: string | null) => void
 		onFolderViewCreateFolder: (folderId: string | null) => void
 
 		// PlaylistTree callbacks
 		onPlaylistTreeCreatePlaylist: () => void
+		onPlaylistTreeCreateSmartPlaylist: () => void
 		onPlaylistTreeCreateFolder: () => void
 
 		// LibraryView callbacks
@@ -131,14 +137,18 @@
 		onTrackSetColor,
 		onTrackAnalyze,
 		onPlaylistCreatePlaylist,
+		onPlaylistCreateSmartPlaylist,
 		onPlaylistCreateFolder,
+		onPlaylistEditSmartPlaylist,
 		onPlaylistRename,
 		onPlaylistDelete,
 		onPlaylistBulkDelete,
 		onPlaylistMove,
 		onFolderViewCreatePlaylist,
+		onFolderViewCreateSmartPlaylist,
 		onFolderViewCreateFolder,
 		onPlaylistTreeCreatePlaylist,
+		onPlaylistTreeCreateSmartPlaylist,
 		onPlaylistTreeCreateFolder,
 		onLibraryViewImport,
 		onPlaylistViewImport,
@@ -400,9 +410,19 @@
 		onPlaylistCreatePlaylist(playlist)
 	}
 
+	function handlePlaylistCreateSmartPlaylist(playlist: Playlist) {
+		closeAll()
+		onPlaylistCreateSmartPlaylist(playlist)
+	}
+
 	function handlePlaylistCreateFolder(playlist: Playlist) {
 		closeAll()
 		onPlaylistCreateFolder(playlist)
+	}
+
+	function handlePlaylistEditSmartPlaylist(playlist: Playlist) {
+		closeAll()
+		onPlaylistEditSmartPlaylist(playlist)
 	}
 
 	function handlePlaylistRename(playlist: Playlist) {
@@ -432,6 +452,12 @@
 		onFolderViewCreatePlaylist(folderId)
 	}
 
+	function handleFolderViewCreateSmartPlaylist() {
+		const folderId = activeMenu.type === 'folderView' ? activeMenu.folderId : null
+		closeAll()
+		onFolderViewCreateSmartPlaylist(folderId)
+	}
+
 	function handleFolderViewCreateFolder() {
 		const folderId = activeMenu.type === 'folderView' ? activeMenu.folderId : null
 		closeAll()
@@ -442,6 +468,11 @@
 	function handlePlaylistTreeCreatePlaylist() {
 		closeAll()
 		onPlaylistTreeCreatePlaylist()
+	}
+
+	function handlePlaylistTreeCreateSmartPlaylist() {
+		closeAll()
+		onPlaylistTreeCreateSmartPlaylist()
 	}
 
 	function handlePlaylistTreeCreateFolder() {
@@ -643,7 +674,9 @@
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onCreatePlaylist={handlePlaylistCreatePlaylist}
+		onCreateSmartPlaylist={handlePlaylistCreateSmartPlaylist}
 		onCreateFolder={handlePlaylistCreateFolder}
+		onEditSmartPlaylist={handlePlaylistEditSmartPlaylist}
 		onRename={handlePlaylistRename}
 		onDelete={handlePlaylistDelete}
 		onBulkDelete={handlePlaylistBulkDelete}
@@ -661,6 +694,12 @@
 		items={[
 			{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handlePlaylistTreeCreateFolder },
 			{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handlePlaylistTreeCreatePlaylist },
+			{
+				id: 'add-smart-playlist',
+				label: get(translate)('playlists.newSmartPlaylist'),
+				icon: 'bolt',
+				action: handlePlaylistTreeCreateSmartPlaylist,
+			},
 		]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
@@ -676,6 +715,12 @@
 		items={[
 			{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handleFolderViewCreateFolder },
 			{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handleFolderViewCreatePlaylist },
+			{
+				id: 'add-smart-playlist',
+				label: get(translate)('playlists.newSmartPlaylist'),
+				icon: 'bolt',
+				action: handleFolderViewCreateSmartPlaylist,
+			},
 		]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}

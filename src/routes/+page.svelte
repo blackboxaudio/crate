@@ -259,6 +259,9 @@
 		{
 			openCreatePlaylistModal: (parentId) => modalOrchestrator.openCreatePlaylistModal(parentId),
 			openCreateFolderModal: (parentId) => modalOrchestrator.openCreateFolderModal(parentId),
+			openCreateSmartPlaylistModal: (parentId, context) =>
+				modalOrchestrator.openCreateSmartPlaylistModal(parentId, context),
+			openEditSmartPlaylistModal: (playlist) => modalOrchestrator.openEditSmartPlaylistModal(playlist),
 			openRenamePlaylistModal: (playlist) => modalOrchestrator.openRenamePlaylistModal(playlist),
 			openDeletePlaylistModal: (playlist, hasChildren) =>
 				modalOrchestrator.openDeletePlaylistModal(playlist, hasChildren),
@@ -1165,6 +1168,7 @@
 					onTagContextMenu={handleTagContextMenu}
 					onCategoryContextMenu={handleCategoryContextMenu}
 					onCreatePlaylist={playlistController.handleCreatePlaylist}
+					onCreateSmartPlaylist={() => playlistController.handleCreateSmartPlaylist($activeView)}
 					onCreateFolder={playlistController.handleCreateFolder}
 					onCreateCategory={() => modalOrchestrator.openCreateCategoryModal()}
 					onCreateTag={(categoryId) => modalOrchestrator.openCreateTagModal(categoryId)}
@@ -1326,14 +1330,18 @@
 	onTrackSetColor={trackController.setColorFromContextMenu}
 	onTrackAnalyze={handleTrackAnalyze}
 	onPlaylistCreatePlaylist={(p) => modalOrchestrator.openCreatePlaylistModal(p.id)}
+	onPlaylistCreateSmartPlaylist={(p) => modalOrchestrator.openCreateSmartPlaylistModal(p.id, p.context)}
 	onPlaylistCreateFolder={(p) => modalOrchestrator.openCreateFolderModal(p.id)}
+	onPlaylistEditSmartPlaylist={(p) => modalOrchestrator.openEditSmartPlaylistModal(p)}
 	onPlaylistRename={playlistController.handlePlaylistRename}
 	onPlaylistDelete={playlistController.handlePlaylistDelete}
 	onPlaylistBulkDelete={(playlists) => modalOrchestrator.openDeletePlaylistBulkModal(playlists)}
 	onPlaylistMove={playlistController.handlePlaylistMove}
 	onFolderViewCreatePlaylist={(folderId) => modalOrchestrator.openCreatePlaylistModal(folderId)}
+	onFolderViewCreateSmartPlaylist={(folderId) => modalOrchestrator.openCreateSmartPlaylistModal(folderId, $activeView)}
 	onFolderViewCreateFolder={(folderId) => modalOrchestrator.openCreateFolderModal(folderId)}
 	onPlaylistTreeCreatePlaylist={() => modalOrchestrator.openCreatePlaylistModal(null)}
+	onPlaylistTreeCreateSmartPlaylist={() => modalOrchestrator.openCreateSmartPlaylistModal(null, $activeView)}
 	onPlaylistTreeCreateFolder={() => modalOrchestrator.openCreateFolderModal(null)}
 	onLibraryViewImport={trackController.handleImport}
 	onDiscoveryViewAddRelease={() => (showAddReleaseModal = true)}
@@ -1536,6 +1544,27 @@
 	}}
 	onTagInputSubmit={async (categoryId, tagName) => {
 		await tagsStore.createTag(categoryId, tagName)
+	}}
+	onCreateSmartPlaylist={async (name, smartRules, parentId, context) => {
+		const playlist = await playlistsStore.createSmartPlaylist(name, smartRules, parentId ?? undefined, context)
+		if (playlist) {
+			playlistController.handlePlaylistSelect(playlist)
+		}
+		return playlist
+	}}
+	onUpdateSmartRules={async (id, smartRules) => {
+		await playlistsStore.updateSmartRules(id, smartRules)
+		// Reload the smart playlist tracks to reflect new rules
+		const playlist = playlists.find((p) => p.id === id)
+		if (playlist && selectedPlaylistId === id) {
+			if (playlist.context === 'discovery') {
+				discoveryPlaylistReleases = await playlistsStore.getPlaylistReleases(id)
+			} else {
+				await libraryStore.loadSmartPlaylistTracks(id)
+			}
+		}
+		// Reload playlists to update counts
+		await playlistsStore.load()
 	}}
 	onRelocateComplete={handleRelocateComplete}
 	{devices}

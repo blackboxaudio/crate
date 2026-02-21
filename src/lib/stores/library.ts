@@ -221,6 +221,29 @@ function createLibraryStore() {
 		},
 
 		/**
+		 * Load tracks for a smart playlist (evaluates rules dynamically)
+		 */
+		async loadSmartPlaylistTracks(playlistId: string) {
+			update((state) => ({ ...state, loading: true, error: null }))
+
+			try {
+				const tracks = await playlistsApi.getSmartPlaylistTracks(playlistId)
+				update((state) => ({
+					...state,
+					playlistTracks: tracks,
+					selectedPlaylistId: playlistId,
+					loading: false,
+				}))
+			} catch (error) {
+				update((state) => ({
+					...state,
+					loading: false,
+					error: error instanceof Error ? error.message : 'Failed to load smart playlist tracks',
+				}))
+			}
+		},
+
+		/**
 		 * Clear playlist tracks and return to library view
 		 */
 		clearPlaylistTracks() {

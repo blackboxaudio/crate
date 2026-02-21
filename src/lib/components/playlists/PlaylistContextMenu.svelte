@@ -13,7 +13,9 @@
 		onClose: () => void
 		onClosed?: () => void
 		onCreatePlaylist?: (playlist: Playlist) => void
+		onCreateSmartPlaylist?: (playlist: Playlist) => void
 		onCreateFolder?: (playlist: Playlist) => void
+		onEditSmartPlaylist?: (playlist: Playlist) => void
 		onRename: (playlist: Playlist) => void
 		onDelete: (playlist: Playlist) => void
 		onBulkDelete?: (playlists: Playlist[]) => void
@@ -30,7 +32,9 @@
 		onClose,
 		onClosed,
 		onCreatePlaylist,
+		onCreateSmartPlaylist,
 		onCreateFolder,
+		onEditSmartPlaylist,
 		onRename,
 		onDelete,
 		onBulkDelete,
@@ -59,7 +63,7 @@
 
 		const items: ContextMenuItem[] = []
 
-		// New Folder / New Playlist (only for folders)
+		// New Folder / New Playlist / New Smart Playlist (only for folders)
 		if (playlist.is_folder) {
 			if (onCreateFolder) {
 				items.push({
@@ -77,9 +81,27 @@
 					action: () => onCreatePlaylist(playlist),
 				})
 			}
-			if (onCreatePlaylist || onCreateFolder) {
+			if (onCreateSmartPlaylist) {
+				items.push({
+					id: 'new-smart-playlist',
+					label: get(translate)('playlists.newSmartPlaylist'),
+					icon: 'bolt',
+					action: () => onCreateSmartPlaylist(playlist),
+				})
+			}
+			if (onCreatePlaylist || onCreateFolder || onCreateSmartPlaylist) {
 				items.push({ id: 'divider-create', label: '', divider: true })
 			}
+		}
+
+		// Edit Smart Playlist (for smart playlists, before Rename)
+		if (playlist.is_smart && onEditSmartPlaylist) {
+			items.push({
+				id: 'edit-smart-playlist',
+				label: get(translate)('playlists.editSmartPlaylist'),
+				icon: 'bolt',
+				action: () => onEditSmartPlaylist(playlist),
+			})
 		}
 
 		// Rename

@@ -35,6 +35,7 @@
 		onTagContextMenu?: (e: MouseEvent, tag: Tag, category: TagCategory) => void
 		onCategoryContextMenu?: (e: MouseEvent, category: TagCategory) => void
 		onCreatePlaylist?: () => void
+		onCreateSmartPlaylist?: () => void
 		onCreateFolder?: () => void
 		onCreateCategory?: () => void
 		onCreateTag?: (categoryId: string) => void
@@ -70,6 +71,7 @@
 		onTagContextMenu,
 		onCategoryContextMenu,
 		onCreatePlaylist,
+		onCreateSmartPlaylist,
 		onCreateFolder,
 		onCreateCategory,
 		onCreateTag,
@@ -195,6 +197,10 @@
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreatePlaylist}>
 				<Icon name="plus" class="mr-2 h-4 w-4" />
 				{$translate('playlists.newPlaylist')}
+			</Button>
+			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateSmartPlaylist}>
+				<Icon name="bolt" class="mr-2 h-4 w-4" />
+				{$translate('playlists.newSmartPlaylist')}
 			</Button>
 			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateFolder}>
 				<Icon name="folder" class="mr-2 h-4 w-4" />
