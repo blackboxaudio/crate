@@ -6,6 +6,7 @@ mod models;
 mod proxy;
 mod services;
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use db::Database;
@@ -13,6 +14,15 @@ use db::Database;
 /// Port of the localhost stream proxy HTTP server. Managed as Tauri state so that
 /// `fetch_preview_stream` can embed it in the URL it returns to the frontend.
 pub(crate) struct ProxyServerPort(pub u16);
+
+/// Tracks in-flight prefetch tasks by release ID to prevent duplicate spawns.
+pub(crate) struct PrefetchTracker(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
+
+impl PrefetchTracker {
+    pub fn new() -> Self {
+        Self(Arc::new(tokio::sync::Mutex::new(HashSet::new())))
+    }
+}
 
 use services::{
     export::CheckpointService, AnalysisService, AudioService, BackupService, DeviceService,
@@ -239,6 +249,7 @@ pub fn run() {
             app.manage(diagnostics_service);
             app.manage(analysis_service);
             app.manage(discovery_service);
+            app.manage(PrefetchTracker::new());
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

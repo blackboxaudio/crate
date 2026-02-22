@@ -689,7 +689,6 @@ pub(super) struct YtClientConfig {
 /// - IOS: fallback for videos that only work via native app innertube. Its CDN URLs are
 ///   single-use (YouTube rejects subsequent requests per video per IP with 403), so playback
 ///   is limited to what the proxy can cache from a single ~1 MB request.
-/// - TVHTML5: last resort, rarely succeeds where others fail.
 pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
     YtClientConfig {
         client_name: "WEB_EMBEDDED",
@@ -711,13 +710,6 @@ pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
         client_version: "19.45.4",
         user_agent:
             "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
-        browser_compatible: false,
-    },
-    YtClientConfig {
-        client_name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
-        client_id: "85",
-        client_version: "2.0",
-        user_agent: "Mozilla/5.0 (ChromiumStylePlatform) Cobalt/Version",
         browser_compatible: false,
     },
 ];

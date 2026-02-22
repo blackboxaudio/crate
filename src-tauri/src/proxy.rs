@@ -8,6 +8,7 @@ use tauri::Manager;
 
 /// Size of each sequential download chunk (~1 MB).
 /// YouTube CDN allows exactly one ~1 MB request per video per IP for IOS client URLs.
+/// Tested values: 1 MB accepted, 20 MB rejected; intermediate values untested.
 const CHUNK_SIZE: u64 = 1_048_576;
 
 /// Maximum number of cached audio entries kept in memory.
