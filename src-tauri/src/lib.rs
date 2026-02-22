@@ -306,7 +306,8 @@ pub fn run() {
                 let router = axum::Router::new()
                     .route(
                         "/:release_id/:track_position",
-                        axum::routing::get(proxy::proxy_http_handler),
+                        axum::routing::get(proxy::proxy_http_handler)
+                            .options(proxy::proxy_cors_preflight_handler),
                     )
                     .with_state(proxy_state);
 

@@ -116,16 +116,45 @@ function createPlayerStore() {
 
 	function wirePreviewEvents() {
 		previewPlayer.setOnTimeUpdate((positionMs: number) => {
-			update((state) => ({
-				...state,
-				playbackState: { ...state.playbackState, position_ms: positionMs },
-			}))
+			update((state) => {
+				const { duration_ms } = state.playbackState
+				// When the Audio element reports a position past the metadata duration,
+				// the stream container is longer than the actual audio (e.g. proxied
+				// YouTube/Discogs ~2x duration). Stop playback and trigger track end.
+				if (duration_ms > 0 && positionMs >= duration_ms) {
+					setTimeout(() => {
+						stopPreviewInternal()
+						onTrackEndCallback?.()
+					}, 0)
+					return {
+						...state,
+						playbackState: { ...state.playbackState, position_ms: duration_ms, is_playing: false },
+					}
+				}
+				return {
+					...state,
+					playbackState: { ...state.playbackState, position_ms: positionMs },
+				}
+			})
 		})
 		previewPlayer.setOnDurationChange((durationMs: number) => {
-			update((state) => ({
-				...state,
-				playbackState: { ...state.playbackState, duration_ms: durationMs },
-			}))
+			update((state) => {
+				const metadataDuration = state.playbackState.duration_ms
+				// When we have a metadata duration from the API, only accept the Audio
+				// element's duration if it's within 10% of the known value. Proxied
+				// YouTube/Discogs streams can report ~2x the real duration due to
+				// container quirks; rejecting those prevents overwriting the correct value.
+				if (metadataDuration > 0) {
+					const ratio = durationMs / metadataDuration
+					if (ratio < 0.9 || ratio > 1.1) {
+						return state
+					}
+				}
+				return {
+					...state,
+					playbackState: { ...state.playbackState, duration_ms: durationMs },
+				}
+			})
 		})
 		previewPlayer.setOnEnded(() => {
 			update((state) => ({

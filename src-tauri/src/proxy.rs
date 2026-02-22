@@ -95,13 +95,14 @@ async fn proxy_http_handler_inner(
 ) -> Result<axum::http::Response<axum::body::Body>> {
     let cache_key = format!("{release_id}/{track_position}");
     let incoming_range = req_headers.get("Range").and_then(|v| v.to_str().ok());
+    let has_range_header = incoming_range.is_some();
     let (start, end_opt) = parse_bytes_range(incoming_range);
 
     // 1. Check cache — if audio data is available, serve from memory.
     {
         let cache = state.cache.read().await;
         if let Some(cached) = cache.get(&cache_key) {
-            return serve_range_from_cache(cached, start, end_opt);
+            return serve_range_from_cache(cached, start, end_opt, has_range_header);
         }
     }
 
@@ -181,7 +182,7 @@ async fn proxy_http_handler_inner(
     let cached = cache.get(&cache_key).ok_or_else(|| {
         CrateError::Discovery("Download succeeded but cache entry missing".into())
     })?;
-    serve_range_from_cache(cached, start, end_opt)
+    serve_range_from_cache(cached, start, end_opt, has_range_header)
 }
 
 /// Download an audio stream in sequential chunks.
@@ -278,32 +279,63 @@ async fn download_stream(
     Ok(CachedAudio { data, content_type })
 }
 
-/// Serve a byte range from cached audio data.
+/// Common CORS headers applied to every proxy response.
+fn apply_cors_headers(
+    builder: axum::http::response::Builder,
+) -> axum::http::response::Builder {
+    builder
+        .header("Access-Control-Allow-Origin", "*")
+        .header(
+            "Access-Control-Expose-Headers",
+            "Content-Range, Content-Length, Accept-Ranges",
+        )
+        .header("Access-Control-Allow-Headers", "Range")
+}
+
+/// Handle OPTIONS preflight requests for the proxy endpoint.
+pub(crate) async fn proxy_cors_preflight_handler() -> axum::http::Response<axum::body::Body> {
+    apply_cors_headers(axum::http::Response::builder().status(204))
+        .header("Access-Control-Allow-Methods", "GET, OPTIONS")
+        .body(axum::body::Body::empty())
+        .unwrap()
+}
+
+/// Serve cached audio data. Returns `200 OK` with the full body when there is no Range header,
+/// or `206 Partial Content` with the requested byte slice when there is one. Returning `206`
+/// unconditionally (even without a Range request) caused WKWebView's AVFoundation to
+/// miscalculate the duration as ~2x the real value.
 fn serve_range_from_cache(
     cached: &CachedAudio,
     start: u64,
     end_opt: Option<u64>,
+    is_range_request: bool,
 ) -> Result<axum::http::Response<axum::body::Body>> {
     let total = cached.data.len() as u64;
 
-    if start >= total {
-        return Ok(axum::http::Response::builder()
-            .status(416)
+    if is_range_request && start >= total {
+        return Ok(apply_cors_headers(axum::http::Response::builder().status(416))
             .header("Content-Range", format!("bytes */{total}"))
             .body(axum::body::Body::empty())
             .unwrap());
     }
 
-    let end = end_opt.map_or(total - 1, |e| e.min(total - 1));
-    let slice = &cached.data[start as usize..=end as usize];
+    if is_range_request {
+        let end = end_opt.map_or(total - 1, |e| e.min(total - 1));
+        let slice = &cached.data[start as usize..=end as usize];
 
-    Ok(axum::http::Response::builder()
-        .status(206)
-        .header("Content-Type", &cached.content_type)
-        .header("Content-Range", format!("bytes {start}-{end}/{total}"))
-        .header("Content-Length", slice.len().to_string())
-        .header("Accept-Ranges", "bytes")
-        .header("Access-Control-Allow-Origin", "*")
-        .body(axum::body::Body::from(slice.to_vec()))
-        .unwrap())
+        Ok(apply_cors_headers(axum::http::Response::builder().status(206))
+            .header("Content-Type", &cached.content_type)
+            .header("Content-Range", format!("bytes {start}-{end}/{total}"))
+            .header("Content-Length", slice.len().to_string())
+            .header("Accept-Ranges", "bytes")
+            .body(axum::body::Body::from(slice.to_vec()))
+            .unwrap())
+    } else {
+        Ok(apply_cors_headers(axum::http::Response::builder().status(200))
+            .header("Content-Type", &cached.content_type)
+            .header("Content-Length", total.to_string())
+            .header("Accept-Ranges", "bytes")
+            .body(axum::body::Body::from(cached.data.clone()))
+            .unwrap())
+    }
 }
