@@ -6,16 +6,15 @@ use crate::services::DiscoveryService;
 
 use tauri::Manager;
 
-/// Size of each sequential download chunk (~1 MB).
-/// YouTube CDN allows exactly one ~1 MB request per video per IP for IOS client URLs.
-/// Tested values: 1 MB accepted, 20 MB rejected; intermediate values untested.
-const CHUNK_SIZE: u64 = 1_048_576;
+/// Size of each sequential download chunk (~4 MB).
+/// With n-param transformation, YouTube CDN allows full downloads for ANDROID_VR client URLs.
+const CHUNK_SIZE: u64 = 4_194_304;
 
 /// Maximum number of cached audio entries kept in memory.
 const MAX_CACHE_ENTRIES: usize = 3;
 
-/// Maximum total download size to prevent runaway downloads (~20 MB).
-const MAX_TOTAL_SIZE: u64 = 20_971_520;
+/// Maximum total download size to prevent runaway downloads (~50 MB).
+const MAX_TOTAL_SIZE: u64 = 52_428_800;
 
 /// Fully downloaded audio file held in memory for instant range serving.
 struct CachedAudio {
@@ -187,8 +186,8 @@ async fn proxy_http_handler_inner(
 
 /// Download an audio stream in sequential chunks.
 ///
-/// Downloads as many 1 MB chunks as the CDN allows. YouTube CDN enforces a per-video per-IP
-/// rate limit for IOS client URLs (typically one request), so this may produce a partial cache.
+/// Downloads chunks sequentially. Without n-param transformation, YouTube CDN throttles
+/// downloads to ~1 MB per video. With transformation, full downloads are possible.
 /// Browser-compatible clients (WEB, WEB_EMBEDDED) don't go through the proxy at all.
 async fn download_stream(
     state: &ProxyServerState,

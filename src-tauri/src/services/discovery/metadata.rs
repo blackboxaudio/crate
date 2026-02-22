@@ -676,6 +676,8 @@ pub(super) struct YtClientConfig {
     /// Whether stream URLs from this client work in a browser/WebView Audio element
     /// without requiring the matching user-agent on the CDN request.
     pub browser_compatible: bool,
+    /// Extra context fields for native app clients (device info, OS version, etc.).
+    pub extra_context: Option<&'static [(&'static str, &'static str)]>,
 }
 
 /// Fallback chain of YouTube innertube clients, ordered by preference.
@@ -686,9 +688,10 @@ pub(super) struct YtClientConfig {
 /// - WEB_EMBEDDED: handles most non-restricted videos.
 /// - WEB: handles embedded-restricted videos that WEB_EMBEDDED returns UNKNOWN for, since
 ///   embedded-restricted videos ARE playable on youtube.com itself (just not in iframes).
-/// - IOS: fallback for videos that only work via native app innertube. Its CDN URLs are
-///   single-use (YouTube rejects subsequent requests per video per IP with 403), so playback
-///   is limited to what the proxy can cache from a single ~1 MB request.
+/// - ANDROID_VR: fallback for videos that only work via native app innertube (e.g. embedded-
+///   restricted). Uses the Oculus Quest client, which doesn't require PO tokens and returns
+///   direct stream URLs with `n` parameters suitable for transformation. The IOS client was
+///   removed because YouTube now requires PO tokens for IOS CDN access (403 without one).
 pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
     YtClientConfig {
         client_name: "WEB_EMBEDDED",
@@ -696,6 +699,7 @@ pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
         client_version: "1.20250120.00.00",
         user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         browser_compatible: true,
+        extra_context: None,
     },
     YtClientConfig {
         client_name: "WEB",
@@ -703,14 +707,21 @@ pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
         client_version: "2.20250120.01.00",
         user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
         browser_compatible: true,
+        extra_context: None,
     },
     YtClientConfig {
-        client_name: "IOS",
-        client_id: "5",
-        client_version: "19.45.4",
-        user_agent:
-            "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
+        client_name: "ANDROID_VR",
+        client_id: "28",
+        client_version: "1.71.26",
+        user_agent: "com.google.android.apps.youtube.vr.oculus/1.71.26 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
         browser_compatible: false,
+        extra_context: Some(&[
+            ("deviceMake", "Oculus"),
+            ("deviceModel", "Quest 3"),
+            ("osName", "Android"),
+            ("osVersion", "12L"),
+            ("androidSdkVersion", "32"),
+        ]),
     },
 ];
 
@@ -728,29 +739,125 @@ pub(super) fn build_yt_client() -> Result<reqwest::Client> {
     build_yt_client_with_config(&YT_CLIENTS[0])
 }
 
+/// Encode a u64 as a protobuf-style LEB128 varint.
+fn encode_varint(buf: &mut Vec<u8>, mut value: u64) {
+    loop {
+        let byte = (value & 0x7F) as u8;
+        value >>= 7;
+        if value == 0 {
+            buf.push(byte);
+            break;
+        }
+        buf.push(byte | 0x80);
+    }
+}
+
+/// Generate synthetic visitorData as base64-encoded protobuf, matching yt-dlp's format.
+///
+/// The protobuf structure is:
+/// - Field 1 (string): 11 random alphanumeric characters (visitor ID)
+/// - Field 5 (varint): current Unix timestamp in seconds
+fn generate_visitor_data() -> String {
+    use base64::Engine;
+
+    // Generate 11 random alphanumeric chars from UUID bytes
+    let uuid_bytes = uuid::Uuid::new_v4().into_bytes();
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let visitor_id: String = uuid_bytes
+        .iter()
+        .take(11)
+        .map(|b| CHARSET[(*b as usize) % CHARSET.len()] as char)
+        .collect();
+
+    let timestamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+
+    // Encode as protobuf: field 1 (string) = tag 0x0A, field 5 (varint) = tag 0x28
+    let mut buf = Vec::new();
+    buf.push(0x0A); // field 1, wire type 2 (length-delimited)
+    encode_varint(&mut buf, visitor_id.len() as u64);
+    buf.extend_from_slice(visitor_id.as_bytes());
+    buf.push(0x28); // field 5, wire type 0 (varint)
+    encode_varint(&mut buf, timestamp);
+
+    base64::engine::general_purpose::URL_SAFE.encode(&buf)
+}
+
 /// Call YouTube's internal player API with a specific client configuration.
 pub(super) async fn fetch_yt_player_response_with_config(
     client: &reqwest::Client,
     video_id: &str,
     config: &YtClientConfig,
 ) -> Result<serde_json::Value> {
+    let mut client_ctx = serde_json::json!({
+        "clientName": config.client_name,
+        "clientVersion": config.client_version,
+        "hl": "en",
+        "timeZone": "UTC",
+        "utcOffsetMinutes": 0,
+    });
+
+    // Add extra context fields for native app clients (device info, OS version, etc.)
+    if let Some(extras) = config.extra_context {
+        let obj = client_ctx.as_object_mut().unwrap();
+        for (key, value) in extras {
+            // androidSdkVersion is an integer, not a string
+            if *key == "androidSdkVersion" {
+                if let Ok(v) = value.parse::<u32>() {
+                    obj.insert(key.to_string(), serde_json::json!(v));
+                    continue;
+                }
+            }
+            obj.insert(key.to_string(), serde_json::json!(value));
+        }
+        // Include the user-agent in the JSON body for native app clients (matches yt-dlp)
+        obj.insert(
+            "userAgent".to_string(),
+            serde_json::json!(config.user_agent),
+        );
+    }
+
+    // For non-browser clients (e.g. ANDROID_VR), add visitorData to help avoid bot detection.
+    // yt-dlp extracts this from prior responses; we generate a synthetic one since we don't
+    // have a prior web session. It's optional but helps when available.
+    let visitor_data = if !config.browser_compatible {
+        let vd = generate_visitor_data();
+        client_ctx
+            .as_object_mut()
+            .unwrap()
+            .insert("visitorData".to_string(), serde_json::json!(vd));
+        Some(vd)
+    } else {
+        None
+    };
+
     let body = serde_json::json!({
         "videoId": video_id,
         "contentCheckOk": true,
         "racyCheckOk": true,
         "context": {
-            "client": {
-                "clientName": config.client_name,
-                "clientVersion": config.client_version,
+            "client": client_ctx
+        },
+        "playbackContext": {
+            "contentPlaybackContext": {
+                "html5Preference": "HTML5_PREF_WANTS"
             }
         }
     });
 
-    client
-        .post("https://www.youtube.com/youtubei/v1/player")
+    let mut request = client
+        .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
         .header("Origin", "https://www.youtube.com")
         .header("X-YouTube-Client-Name", config.client_id)
-        .header("X-YouTube-Client-Version", config.client_version)
+        .header("X-YouTube-Client-Version", config.client_version);
+
+    if let Some(ref vd) = visitor_data {
+        request = request.header("X-Goog-Visitor-Id", vd);
+    }
+
+    request
         .json(&body)
         .send()
         .await

@@ -8,7 +8,8 @@ use crate::models::{
     DiscoveryTrackCreate, ImportResultWithDuplicates,
 };
 use crate::services::discovery::metadata::{self, FetchedMetadata};
-use crate::services::discovery::streams;
+use crate::services::discovery::n_transform::{self, NsigSolverState};
+use crate::services::discovery::streams::{self, StreamInfo};
 use crate::services::discovery::CachedStream;
 use crate::services::{DiscoveryService, LibraryService, TagService};
 use crate::{PrefetchTracker, ProxyServerPort};
@@ -16,6 +17,7 @@ use crate::{PrefetchTracker, ProxyServerPort};
 #[tauri::command]
 pub async fn create_discovery_release(
     create: DiscoveryReleaseCreate,
+    app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
     tracker: State<'_, PrefetchTracker>,
 ) -> Result<DiscoveryRelease> {
@@ -36,10 +38,18 @@ pub async fn create_discovery_release(
             let release_url = release.url.clone();
             let source_type = release.source_type.clone();
             let tracker_ref = tracker.0.clone();
+            let app_handle = app.clone();
             tokio::spawn(async move {
-                let svc = DiscoveryService::new(conn, app_data_dir);
-                if let Err(e) =
-                    prefetch_streams(&svc, &release_id, &release_url, &source_type).await
+                let svc = DiscoveryService::new(conn, app_data_dir.clone());
+                if let Err(e) = prefetch_streams(
+                    &svc,
+                    &release_id,
+                    &release_url,
+                    &source_type,
+                    &app_handle,
+                    &app_data_dir,
+                )
+                .await
                 {
                     log::warn!("Background stream prefetch failed for {release_id}: {e}");
                 }
@@ -57,9 +67,12 @@ pub async fn create_discovery_release(
             let app_data_dir = discovery.app_data_dir();
             let release_id = release.id.clone();
             let tracker_ref = tracker.0.clone();
+            let app_handle = app.clone();
             tokio::spawn(async move {
-                let svc = DiscoveryService::new(conn, app_data_dir);
-                if let Err(e) = prefetch_discogs_streams(&svc, &release_id).await {
+                let svc = DiscoveryService::new(conn, app_data_dir.clone());
+                if let Err(e) =
+                    prefetch_discogs_streams(&svc, &release_id, &app_handle, &app_data_dir).await
+                {
                     log::warn!("Background Discogs stream prefetch failed for {release_id}: {e}");
                 }
                 tracker_ref.lock().await.remove(&release_id);
@@ -76,8 +89,10 @@ async fn prefetch_streams(
     release_id: &str,
     url: &str,
     source_type: &str,
+    app_handle: &tauri::AppHandle,
+    app_data_dir: &std::path::Path,
 ) -> Result<()> {
-    let stream_infos = match source_type {
+    let mut stream_infos = match source_type {
         "bandcamp" => streams::extract_bandcamp_streams(url).await?,
         "soundcloud" => {
             let cached_cid = discovery.get_cached_sc_client_id()?;
@@ -88,6 +103,7 @@ async fn prefetch_streams(
         "youtube" => streams::extract_youtube_streams(url).await?,
         _ => return Ok(()),
     };
+    transform_youtube_n_params(&mut stream_infos, app_handle, app_data_dir).await;
     discovery.cache_streams(release_id, &stream_infos)?;
     log::info!(
         "Prefetched {} stream URLs for release {release_id}",
@@ -101,7 +117,12 @@ async fn prefetch_streams(
 /// Each track is fetched and cached individually so that tracks become playable
 /// as soon as their stream is resolved — without waiting for all tracks to complete.
 /// Tracks already cached (e.g. fetched on-demand by a user click) are skipped.
-async fn prefetch_discogs_streams(discovery: &DiscoveryService, release_id: &str) -> Result<()> {
+async fn prefetch_discogs_streams(
+    discovery: &DiscoveryService,
+    release_id: &str,
+    app_handle: &tauri::AppHandle,
+    app_data_dir: &std::path::Path,
+) -> Result<()> {
     let tracks = discovery.get_all_video_ids_for_release(release_id)?;
     for (position, video_id) in tracks {
         // Skip tracks already cached (e.g. fetched on-demand by a prior user click)
@@ -109,7 +130,13 @@ async fn prefetch_discogs_streams(discovery: &DiscoveryService, release_id: &str
             continue;
         }
         match streams::extract_single_youtube_stream(&video_id, position).await {
-            Ok(stream) => {
+            Ok(mut stream) => {
+                transform_youtube_n_params(
+                    std::slice::from_mut(&mut stream),
+                    app_handle,
+                    app_data_dir,
+                )
+                .await;
                 if let Err(e) = discovery.cache_streams(release_id, &[stream]) {
                     log::warn!(
                         "Failed to cache Discogs stream for position {position} on {release_id}: {e}"
@@ -130,11 +157,13 @@ async fn prefetch_discogs_streams(discovery: &DiscoveryService, release_id: &str
 pub async fn fetch_preview_stream(
     release_id: String,
     track_position: i32,
+    app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
     proxy_port: State<'_, ProxyServerPort>,
     tracker: State<'_, PrefetchTracker>,
 ) -> Result<String> {
     let port = proxy_port.0;
+    let app_data_dir = discovery.app_data_dir();
 
     // Check cache first
     if let Some(cached) = discovery.get_cached_stream(&release_id, track_position)? {
@@ -152,7 +181,14 @@ pub async fn fetch_preview_stream(
     // YouTube fast path: use stored video_id for single-track fetch (~500ms vs ~8s)
     if release.source_type == "youtube" {
         if let Some(video_id) = discovery.get_video_id_for_track(&release_id, track_position)? {
-            let stream = streams::extract_single_youtube_stream(&video_id, track_position).await?;
+            let mut stream =
+                streams::extract_single_youtube_stream(&video_id, track_position).await?;
+            transform_youtube_n_params(
+                std::slice::from_mut(&mut stream),
+                &app,
+                &app_data_dir,
+            )
+            .await;
             discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
 
             let cached = CachedStream {
@@ -166,13 +202,23 @@ pub async fn fetch_preview_stream(
             if !inflight.contains(&release_id) {
                 inflight.insert(release_id.clone());
                 let conn = discovery.connection();
-                let app_data_dir = discovery.app_data_dir();
+                let app_data_dir = app_data_dir.clone();
                 let url = release.url.clone();
                 let rid = release_id.clone();
                 let tracker_ref = tracker.0.clone();
+                let app_handle = app.clone();
                 tokio::spawn(async move {
-                    let svc = DiscoveryService::new(conn, app_data_dir);
-                    if let Err(e) = prefetch_streams(&svc, &rid, &url, "youtube").await {
+                    let svc = DiscoveryService::new(conn, app_data_dir.clone());
+                    if let Err(e) = prefetch_streams(
+                        &svc,
+                        &rid,
+                        &url,
+                        "youtube",
+                        &app_handle,
+                        &app_data_dir,
+                    )
+                    .await
+                    {
                         log::warn!("Background YouTube re-prefetch failed for {rid}: {e}");
                     }
                     tracker_ref.lock().await.remove(&rid);
@@ -188,8 +234,14 @@ pub async fn fetch_preview_stream(
     if release.source_type == "discogs" {
         return match discovery.get_video_id_for_track(&release_id, track_position)? {
             Some(video_id) => {
-                let stream =
+                let mut stream =
                     streams::extract_single_youtube_stream(&video_id, track_position).await?;
+                transform_youtube_n_params(
+                    std::slice::from_mut(&mut stream),
+                    &app,
+                    &app_data_dir,
+                )
+                .await;
                 discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
                 let cached = CachedStream {
                     stream_url: stream.stream_url.clone(),
@@ -208,7 +260,7 @@ pub async fn fetch_preview_stream(
         };
     }
 
-    let stream_infos = match release.source_type.as_str() {
+    let mut stream_infos = match release.source_type.as_str() {
         "bandcamp" => streams::extract_bandcamp_streams(&release.url).await?,
         "soundcloud" => {
             let cached_cid = discovery.get_cached_sc_client_id()?;
@@ -224,6 +276,8 @@ pub async fn fetch_preview_stream(
             )));
         }
     };
+
+    transform_youtube_n_params(&mut stream_infos, &app, &app_data_dir).await;
 
     // Cache all extracted streams
     discovery.cache_streams(&release_id, &stream_infos)?;
@@ -439,4 +493,37 @@ pub async fn purchase_discovery_release(
     }
 
     Ok(result)
+}
+
+/// Callback command invoked from the WebView after the EJS solver completes.
+/// Receives the solver result (or error) and unblocks the waiting Rust future.
+#[tauri::command]
+pub async fn nsig_solve_callback(
+    request_id: String,
+    result: Option<String>,
+    error: Option<String>,
+    state: State<'_, NsigSolverState>,
+) -> Result<()> {
+    let response = error
+        .map(|e| format!(r#"{{"type":"error","error":"{e}"}}"#))
+        .unwrap_or_else(|| result.unwrap_or_default());
+    if let Some(tx) = state.pending.lock().await.remove(&request_id) {
+        let _ = tx.send(response);
+    }
+    Ok(())
+}
+
+/// Transform the `n` query parameter on YouTube CDN stream URLs (IOS client).
+/// Only processes streams that have a `proxy_ua` set (i.e. non-browser-compatible).
+async fn transform_youtube_n_params(
+    streams: &mut [StreamInfo],
+    app_handle: &tauri::AppHandle,
+    app_data_dir: &std::path::Path,
+) {
+    for stream in streams.iter_mut() {
+        if stream.proxy_ua.is_some() {
+            stream.stream_url =
+                n_transform::transform_n_param(&stream.stream_url, app_handle, app_data_dir).await;
+        }
+    }
 }

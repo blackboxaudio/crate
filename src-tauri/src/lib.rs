@@ -25,9 +25,10 @@ impl PrefetchTracker {
 }
 
 use services::{
-    export::CheckpointService, AnalysisService, AudioService, BackupService, DeviceService,
-    DiagnosticsService, DiscoveryService, ExportService, LibraryService, MediaControlsService,
-    PlaylistService, SettingsService, SyncService, TagService,
+    discovery::n_transform::NsigSolverState, export::CheckpointService, AnalysisService,
+    AudioService, BackupService, DeviceService, DiagnosticsService, DiscoveryService,
+    ExportService, LibraryService, MediaControlsService, PlaylistService, SettingsService,
+    SyncService, TagService,
 };
 use tauri::Manager;
 
@@ -165,6 +166,7 @@ pub fn run() {
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
             commands::discovery::invalidate_preview_stream_cache,
+            commands::discovery::nsig_solve_callback,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
             // Backup commands
@@ -249,6 +251,7 @@ pub fn run() {
             app.manage(diagnostics_service);
             app.manage(analysis_service);
             app.manage(discovery_service);
+            app.manage(NsigSolverState::new());
             app.manage(PrefetchTracker::new());
 
             // Start device monitoring

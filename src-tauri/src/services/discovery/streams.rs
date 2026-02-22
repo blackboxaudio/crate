@@ -676,6 +676,18 @@ pub async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Res
             config.client_name,
         );
 
+        // Log query param keys for debugging n-param/throttle issues
+        if let Some(query) = stream_url.split('?').nth(1) {
+            let param_keys: Vec<&str> = query
+                .split('&')
+                .filter_map(|p| p.split('=').next())
+                .collect();
+            log::debug!(
+                "YouTube {} stream URL param keys for {video_id}: {param_keys:?}",
+                config.client_name,
+            );
+        }
+
         let expires_at = parse_youtube_expiry(stream_url);
         let proxy_ua = if config.browser_compatible {
             None
