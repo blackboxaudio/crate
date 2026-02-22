@@ -680,14 +680,31 @@ pub(super) struct YtClientConfig {
 
 /// Fallback chain of YouTube innertube clients, ordered by preference.
 ///
-/// IOS first because it reliably succeeds for embedded-restricted videos where WEB_EMBEDDED
-/// returns UNKNOWN and TVHTML5 returns ERROR, avoiding 2 wasted sequential HTTP round trips.
-/// WEB_EMBEDDED is the first fallback — its stream URLs are browser-compatible (`&c=WEB_EMBEDDED`)
-/// and can be played directly by the HTML5 Audio element without the localhost proxy.
-/// TVHTML5 stays last as it rarely succeeds where the others fail.
-/// Non-browser-compatible clients (IOS, TVHTML5) require proxying via the localhost HTTP server
-/// because YouTube's CDN validates the user-agent against the client type in the signed URL.
+/// Browser-compatible clients are tried first because their stream URLs can be played directly
+/// by the HTML5 Audio element without the localhost proxy, avoiding seeking/pause issues.
+///
+/// - WEB_EMBEDDED: handles most non-restricted videos.
+/// - WEB: handles embedded-restricted videos that WEB_EMBEDDED returns UNKNOWN for, since
+///   embedded-restricted videos ARE playable on youtube.com itself (just not in iframes).
+/// - IOS: fallback for videos that only work via native app innertube. Its CDN URLs are
+///   single-use (YouTube rejects subsequent requests per video per IP with 403), so playback
+///   is limited to what the proxy can cache from a single ~1 MB request.
+/// - TVHTML5: last resort, rarely succeeds where others fail.
 pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
+    YtClientConfig {
+        client_name: "WEB_EMBEDDED",
+        client_id: "56",
+        client_version: "1.20250120.00.00",
+        user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        browser_compatible: true,
+    },
+    YtClientConfig {
+        client_name: "WEB",
+        client_id: "1",
+        client_version: "2.20250120.01.00",
+        user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        browser_compatible: true,
+    },
     YtClientConfig {
         client_name: "IOS",
         client_id: "5",
@@ -695,13 +712,6 @@ pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
         user_agent:
             "com.google.ios.youtube/19.45.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
         browser_compatible: false,
-    },
-    YtClientConfig {
-        client_name: "WEB_EMBEDDED",
-        client_id: "56",
-        client_version: "1.20250120.00.00",
-        user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        browser_compatible: true,
     },
     YtClientConfig {
         client_name: "TVHTML5_SIMPLY_EMBEDDED_PLAYER",
