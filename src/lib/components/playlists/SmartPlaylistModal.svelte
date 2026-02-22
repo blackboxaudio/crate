@@ -26,7 +26,7 @@
 		SmartCondition,
 		MatchMode,
 		TagCategory,
-		SortDirection,
+		SmartSortDirection,
 		ActiveView,
 		Playlist,
 	} from '$lib/types'
@@ -49,7 +49,7 @@
 	let limitEnabled = $state(false)
 	let limitCount = $state(25)
 	let limitSortField = $state('date_added')
-	let limitSortDirection: SortDirection = $state('descending')
+	let limitSortDirection: SmartSortDirection = $state('descending')
 	let previewCount: number | null = $state(null)
 	let previewLoading = $state(false)
 	let previewTimeout: ReturnType<typeof setTimeout> | undefined
@@ -412,7 +412,7 @@
 							{ value: 'descending', label: $translate('smartPlaylist.descending') },
 						]}
 						class="min-w-0 flex-1"
-						onchange={(val) => (limitSortDirection = val as SortDirection)}
+						onchange={(val) => (limitSortDirection = val as SmartSortDirection)}
 					/>
 				</div>
 			{/if}

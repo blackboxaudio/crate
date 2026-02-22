@@ -308,12 +308,12 @@ export type SmartCondition =
 	| { type: 'enum'; field: string; operator: EnumOperator; value?: string }
 	| { type: 'tags'; operator: TagOperator; tag_ids: string[] }
 
-export type SortDirection = 'ascending' | 'descending'
+export type SmartSortDirection = 'ascending' | 'descending'
 
 export interface SmartLimit {
 	count: number
 	sort_field: string
-	sort_direction: SortDirection
+	sort_direction: SmartSortDirection
 }
 
 export interface SmartRules {
