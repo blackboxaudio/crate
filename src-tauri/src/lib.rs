@@ -97,6 +97,11 @@ pub fn run() {
             commands::playlist::add_releases_to_playlist,
             commands::playlist::remove_releases_from_playlist,
             commands::playlist::get_playlist_releases,
+            commands::playlist::create_smart_playlist,
+            commands::playlist::update_smart_rules,
+            commands::playlist::get_smart_playlist_tracks,
+            commands::playlist::get_smart_playlist_releases,
+            commands::playlist::preview_smart_rules_count,
             // Settings commands
             commands::settings::get_settings,
             commands::settings::set_setting,

@@ -3,6 +3,7 @@ import type {
 	ActiveView,
 	DiscoveryRelease,
 	Playlist,
+	SmartRules,
 	Track,
 	BreadcrumbItem,
 	MoveConflictResolution,
@@ -331,6 +332,51 @@ function createPlaylistsStore() {
 		},
 
 		/**
+		 * Create a new smart playlist
+		 */
+		async createSmartPlaylist(
+			name: string,
+			smartRules: SmartRules,
+			parentId?: string,
+			context: ActiveView = 'library'
+		) {
+			try {
+				const playlist = await playlistsApi.createSmartPlaylist(name, smartRules, parentId, context)
+				update((state) => ({
+					...state,
+					playlists: [...state.playlists, playlist],
+				}))
+				return playlist
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to create smart playlist',
+				}))
+				return null
+			}
+		},
+
+		/**
+		 * Update smart rules on an existing smart playlist
+		 */
+		async updateSmartRules(id: string, smartRules: SmartRules) {
+			try {
+				const updated = await playlistsApi.updateSmartRules(id, smartRules)
+				update((state) => ({
+					...state,
+					playlists: state.playlists.map((p) => (p.id === id ? updated : p)),
+				}))
+				return updated
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to update smart rules',
+				}))
+				return null
+			}
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {
@@ -454,7 +500,7 @@ export function buildBreadcrumbItems(
 		const item: BreadcrumbItem = {
 			id: playlist.id,
 			name: playlist.name,
-			type: playlist.is_folder ? 'folder' : 'playlist',
+			type: playlist.is_folder ? 'folder' : playlist.is_smart ? 'smart_playlist' : 'playlist',
 			playlist,
 		}
 

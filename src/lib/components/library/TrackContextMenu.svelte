@@ -109,8 +109,8 @@
 			})
 		}
 
-		// Add to Playlist submenu
-		const playlistItems = playlists.filter((p) => !p.is_folder && p.context === 'library')
+		// Add to Playlist submenu (exclude smart playlists since their content is rule-generated)
+		const playlistItems = playlists.filter((p) => !p.is_folder && !p.is_smart && p.context === 'library')
 		if (playlistItems.length > 0) {
 			items.push({
 				id: 'add-to-playlist',
@@ -163,8 +163,9 @@
 		// Build Remove submenu items
 		const removeItems: ContextMenuItem[] = []
 
-		// "Remove from Playlist" - only when viewing a playlist
-		if (currentPlaylistId) {
+		// "Remove from Playlist" - only when viewing a non-smart playlist
+		const currentPlaylist = currentPlaylistId ? playlists.find((p) => p.id === currentPlaylistId) : null
+		if (currentPlaylistId && !currentPlaylist?.is_smart) {
 			removeItems.push({
 				id: 'remove-from-playlist',
 				label: get(translate)('contextMenu.removeFromPlaylist'),

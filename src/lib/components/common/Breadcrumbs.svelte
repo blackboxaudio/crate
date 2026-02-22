@@ -18,6 +18,8 @@
 				return 'library'
 			case 'folder':
 				return 'folder'
+			case 'smart_playlist':
+				return 'bolt'
 			case 'playlist':
 				return 'playlist'
 		}

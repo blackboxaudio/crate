@@ -91,7 +91,6 @@
 		PurchaseReleaseModal,
 	} from '$lib/components/discovery'
 	import { TrackEditor } from '$lib/components/editor'
-	import { getVersion } from '@tauri-apps/api/app'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { Player } from '$lib/components/player'
 	import {
@@ -101,23 +100,20 @@
 		DragPreview,
 		Icon,
 		Text,
-		SplashScreen,
 		UpdateModal,
 	} from '$lib/components/common'
+	import { splashVisible, dismissSplash } from '$lib/stores/splash'
 	import { PlaylistView, FolderView } from '$lib/components/playlists'
 	import { openDevTools, closeDevTools, setMenuItemEnabled } from '$lib/api/app'
 	import { updateNowPlaying, updatePlaybackState, clearNowPlaying } from '$lib/api/mediaControls'
 	import { exportStore } from '$lib/stores/export'
 	import * as discoveryApi from '$lib/api/discovery'
+	import * as playlistsApi from '$lib/api/playlists'
 	import { SvelteMap } from 'svelte/reactivity'
 
 	// =============================================================================
 	// State
 	// =============================================================================
-
-	// Splash screen state
-	let showSplash = $state(true)
-	let splashVersion = $state('0.0.0')
 
 	// Local state
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
@@ -252,13 +248,19 @@
 			getSelectedTagIds: () => selectedTagIds,
 			getTagFilterMode: () => $tagFilterMode,
 			onDiscoveryPlaylistSelected: async (playlistId) => {
-				discoveryPlaylistReleases = await playlistsStore.getPlaylistReleases(playlistId)
+				const playlist = playlists.find((p) => p.id === playlistId)
+				discoveryPlaylistReleases = playlist?.is_smart
+					? await playlistsApi.getSmartPlaylistReleases(playlistId)
+					: await playlistsStore.getPlaylistReleases(playlistId)
 				discoveryPlaylistReleasesCache.set(playlistId, discoveryPlaylistReleases)
 			},
 		},
 		{
 			openCreatePlaylistModal: (parentId) => modalOrchestrator.openCreatePlaylistModal(parentId),
 			openCreateFolderModal: (parentId) => modalOrchestrator.openCreateFolderModal(parentId),
+			openCreateSmartPlaylistModal: (parentId, context) =>
+				modalOrchestrator.openCreateSmartPlaylistModal(parentId, context),
+			openEditSmartPlaylistModal: (playlist) => modalOrchestrator.openEditSmartPlaylistModal(playlist),
 			openRenamePlaylistModal: (playlist) => modalOrchestrator.openRenamePlaylistModal(playlist),
 			openDeletePlaylistModal: (playlist, hasChildren) =>
 				modalOrchestrator.openDeletePlaylistModal(playlist, hasChildren),
@@ -487,9 +489,6 @@
 		const splashStartTime = Date.now()
 		const minDisplayTime = 700
 
-		// Load version immediately (fast config read, no backend dependency)
-		splashVersion = await getVersion()
-
 		// Initialize export store event listening
 		await exportStore.startListening()
 
@@ -537,8 +536,12 @@
 					if (selected.length > 0) {
 						modalOrchestrator.openDeletePlaylistBulkModal(selected)
 					}
-					return
+					return true
 				}
+
+				// Smart playlists are read-only — don't allow removing items
+				const currentPlaylist = selectedPlaylistId ? playlists.find((p) => p.id === selectedPlaylistId) : null
+				if (currentPlaylist?.is_smart) return false
 
 				if ($activeView === 'discovery') {
 					const releaseIds = $selectedReleaseIds
@@ -548,7 +551,7 @@
 						} else {
 							modalOrchestrator.openRemoveDiscoveryReleasesModal(Array.from(releaseIds))
 						}
-						return
+						return true
 					}
 				}
 				const ids = [...$selectedTrackIds]
@@ -559,12 +562,12 @@
 						modalOrchestrator.openRemoveFromLibraryModal(ids)
 					}
 				} else if (selectedPlaylistId) {
-					const playlist = playlists.find((p) => p.id === selectedPlaylistId)
-					if (playlist) playlistController.handlePlaylistDelete(playlist)
+					if (currentPlaylist) playlistController.handlePlaylistDelete(currentPlaylist)
 				} else if (selectedFolderId) {
 					const folder = playlists.find((p) => p.id === selectedFolderId)
 					if (folder) playlistController.handlePlaylistDelete(folder)
 				}
+				return true
 			},
 			onPlaySelected: () => {
 				if ($activeView === 'discovery') {
@@ -771,7 +774,7 @@
 		const updateInterval = setInterval(() => updaterStore.check(true), 60 * 60 * 1000)
 
 		// Dismiss splash screen
-		showSplash = false
+		dismissSplash()
 
 		return () => {
 			cleanupApp()
@@ -861,10 +864,15 @@
 					if (cached) {
 						discoveryPlaylistReleases = cached
 					} else {
-						playlistsStore.getPlaylistReleases(restoredPlaylistId).then((releases) => {
+						const fetchReleases = playlist.is_smart
+							? playlistsApi.getSmartPlaylistReleases(restoredPlaylistId)
+							: playlistsStore.getPlaylistReleases(restoredPlaylistId)
+						fetchReleases.then((releases) => {
 							discoveryPlaylistReleases = releases
 						})
 					}
+				} else if (playlist.is_smart) {
+					libraryStore.loadSmartPlaylistTracks(restoredPlaylistId)
 				} else {
 					libraryStore.loadPlaylistTracks(restoredPlaylistId)
 				}
@@ -914,6 +922,7 @@
 	}
 
 	function handleTrackPlayInRelease(release: DiscoveryRelease, trackIndex: number) {
+		uiStore.clearReleaseSelection()
 		const track = release.tracks[trackIndex]
 		const canPlay =
 			PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null)
@@ -933,6 +942,13 @@
 			if (release.tracks.length > 0) {
 				expandedReleaseIds.expand(release.id)
 			}
+			// Refresh smart playlist counts and view contents
+			const playlist = playlists.find((p) => p.id === selectedPlaylistId)
+			if (playlist?.is_smart && playlist.context === 'discovery') {
+				discoveryPlaylistReleases = await playlistsApi.getSmartPlaylistReleases(playlist.id)
+				discoveryPlaylistReleasesCache.set(playlist.id, discoveryPlaylistReleases)
+			}
+			await playlistsStore.load()
 		}
 	}
 
@@ -1027,6 +1043,19 @@
 		await discoveryStore.refreshMetadata(release.id)
 	}
 
+	async function handleEditorSave() {
+		const playlist = playlists.find((p) => p.id === selectedPlaylistId)
+		if (playlist?.is_smart) {
+			if (playlist.context === 'discovery') {
+				discoveryPlaylistReleases = await playlistsApi.getSmartPlaylistReleases(playlist.id)
+				discoveryPlaylistReleasesCache.set(playlist.id, discoveryPlaylistReleases)
+			} else {
+				await libraryStore.loadSmartPlaylistTracks(playlist.id)
+			}
+			await playlistsStore.load()
+		}
+	}
+
 	function handleBreadcrumbNavigate(item: BreadcrumbItem) {
 		if (item.id === null) {
 			playlistController.handleLibraryClick()
@@ -1101,11 +1130,8 @@
 	)
 </script>
 
-<!-- Splash Screen -->
-<SplashScreen show={showSplash} version={splashVersion} />
-
 <!-- Main App Content -->
-{#if !showSplash}
+{#if !$splashVisible}
 	<div class="flex h-full flex-col" in:fade={{ duration: 300, delay: 100 }}>
 		<!-- Unified Header: Logo + Toolbar -->
 		<div class="flex rounded-br bg-surface-1">
@@ -1165,6 +1191,7 @@
 					onTagContextMenu={handleTagContextMenu}
 					onCategoryContextMenu={handleCategoryContextMenu}
 					onCreatePlaylist={playlistController.handleCreatePlaylist}
+					onCreateSmartPlaylist={() => playlistController.handleCreateSmartPlaylist($activeView)}
 					onCreateFolder={playlistController.handleCreateFolder}
 					onCreateCategory={() => modalOrchestrator.openCreateCategoryModal()}
 					onCreateTag={(categoryId) => modalOrchestrator.openCreateTagModal(categoryId)}
@@ -1296,11 +1323,15 @@
 				>
 					{#if $activeView === 'discovery'}
 						<div class="h-full" in:fade={{ duration: 150 }}>
-							<DiscoveryEditor selectedReleases={selectedReleasesArray} onImport={handleDiscoveryReleaseImport} />
+							<DiscoveryEditor
+								selectedReleases={selectedReleasesArray}
+								onImport={handleDiscoveryReleaseImport}
+								onSave={handleEditorSave}
+							/>
 						</div>
 					{:else}
 						<div class="h-full" in:fade={{ duration: 150 }}>
-							<TrackEditor selectedTracks={selectedTracksArray} />
+							<TrackEditor selectedTracks={selectedTracksArray} onSave={handleEditorSave} />
 						</div>
 					{/if}
 				</RightSidebar>
@@ -1326,14 +1357,18 @@
 	onTrackSetColor={trackController.setColorFromContextMenu}
 	onTrackAnalyze={handleTrackAnalyze}
 	onPlaylistCreatePlaylist={(p) => modalOrchestrator.openCreatePlaylistModal(p.id)}
+	onPlaylistCreateSmartPlaylist={(p) => modalOrchestrator.openCreateSmartPlaylistModal(p.id, p.context)}
 	onPlaylistCreateFolder={(p) => modalOrchestrator.openCreateFolderModal(p.id)}
+	onPlaylistEditSmartPlaylist={(p) => modalOrchestrator.openEditSmartPlaylistModal(p)}
 	onPlaylistRename={playlistController.handlePlaylistRename}
 	onPlaylistDelete={playlistController.handlePlaylistDelete}
 	onPlaylistBulkDelete={(playlists) => modalOrchestrator.openDeletePlaylistBulkModal(playlists)}
 	onPlaylistMove={playlistController.handlePlaylistMove}
 	onFolderViewCreatePlaylist={(folderId) => modalOrchestrator.openCreatePlaylistModal(folderId)}
+	onFolderViewCreateSmartPlaylist={(folderId) => modalOrchestrator.openCreateSmartPlaylistModal(folderId, $activeView)}
 	onFolderViewCreateFolder={(folderId) => modalOrchestrator.openCreateFolderModal(folderId)}
 	onPlaylistTreeCreatePlaylist={() => modalOrchestrator.openCreatePlaylistModal(null)}
+	onPlaylistTreeCreateSmartPlaylist={() => modalOrchestrator.openCreateSmartPlaylistModal(null, $activeView)}
 	onPlaylistTreeCreateFolder={() => modalOrchestrator.openCreateFolderModal(null)}
 	onLibraryViewImport={trackController.handleImport}
 	onDiscoveryViewAddRelease={() => (showAddReleaseModal = true)}
@@ -1536,6 +1571,27 @@
 	}}
 	onTagInputSubmit={async (categoryId, tagName) => {
 		await tagsStore.createTag(categoryId, tagName)
+	}}
+	onCreateSmartPlaylist={async (name, smartRules, parentId, context) => {
+		const playlist = await playlistsStore.createSmartPlaylist(name, smartRules, parentId ?? undefined, context)
+		if (playlist) {
+			playlistController.handlePlaylistSelect(playlist)
+		}
+		return playlist
+	}}
+	onUpdateSmartRules={async (id, smartRules) => {
+		await playlistsStore.updateSmartRules(id, smartRules)
+		// Reload the smart playlist tracks to reflect new rules
+		const playlist = playlists.find((p) => p.id === id)
+		if (playlist && selectedPlaylistId === id) {
+			if (playlist.context === 'discovery') {
+				discoveryPlaylistReleases = await playlistsApi.getSmartPlaylistReleases(id)
+			} else {
+				await libraryStore.loadSmartPlaylistTracks(id)
+			}
+		}
+		// Reload playlists to update counts
+		await playlistsStore.load()
 	}}
 	onRelocateComplete={handleRelocateComplete}
 	{devices}

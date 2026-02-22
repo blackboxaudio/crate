@@ -278,6 +278,51 @@ export interface MovePlaylistResult {
 }
 
 // =============================================================================
+// Smart Playlist Types
+// =============================================================================
+
+export type MatchMode = 'all' | 'any'
+
+export type TextOperator =
+	| 'contains'
+	| 'not_contains'
+	| 'equals'
+	| 'not_equals'
+	| 'starts_with'
+	| 'ends_with'
+	| 'is_empty'
+	| 'is_not_empty'
+
+export type NumericOperator = 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'in_range'
+
+export type DateOperator = 'in_last_days' | 'not_in_last_days' | 'before' | 'after' | 'is_empty' | 'is_not_empty'
+
+export type EnumOperator = 'equals' | 'not_equals' | 'is_empty' | 'is_not_empty'
+
+export type TagOperator = 'has_any' | 'has_all' | 'has_none'
+
+export type SmartCondition =
+	| { type: 'text'; field: string; operator: TextOperator; value?: string }
+	| { type: 'numeric'; field: string; operator: NumericOperator; value?: number; value2?: number }
+	| { type: 'date'; field: string; operator: DateOperator; value?: string }
+	| { type: 'enum'; field: string; operator: EnumOperator; value?: string }
+	| { type: 'tags'; operator: TagOperator; tag_ids: string[] }
+
+export type SmartSortDirection = 'ascending' | 'descending'
+
+export interface SmartLimit {
+	count: number
+	sort_field: string
+	sort_direction: SmartSortDirection
+}
+
+export interface SmartRules {
+	match_mode: MatchMode
+	conditions: SmartCondition[]
+	limit?: SmartLimit
+}
+
+// =============================================================================
 // Playback Types
 // =============================================================================
 
@@ -356,7 +401,7 @@ export interface ContextMenuItem {
 // Breadcrumb Types
 // =============================================================================
 
-export type BreadcrumbType = 'library' | 'folder' | 'playlist'
+export type BreadcrumbType = 'library' | 'folder' | 'playlist' | 'smart_playlist'
 
 export interface BreadcrumbItem {
 	id: string | null // null for Library root

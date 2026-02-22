@@ -114,19 +114,27 @@
 									<span class="text-xs text-text-tertiary">{$translate('library.matching')}</span>
 									<button
 										type="button"
-										class="flex items-center gap-0.5 rounded-full border border-stroke bg-surface-2 p-0.5 text-xs font-medium hover:cursor-pointer"
+										class="relative grid grid-cols-2 rounded-full border border-stroke bg-surface-2 p-0.5 text-xs font-medium hover:cursor-pointer"
 										onclick={() => onToggleTagFilterMode?.()}
 									>
+										<div
+											class="absolute inset-y-0.5 rounded-full bg-brand-primary transition-all duration-200 ease-out motion-reduce:transition-none"
+											style="left: {tagFilterMode === 'or' ? '2px' : '50%'}; right: {tagFilterMode === 'or'
+												? '50%'
+												: '2px'}"
+										></div>
 										<span
-											class="rounded-full px-2 py-0.5 transition-colors {tagFilterMode === 'or'
-												? 'bg-brand-primary text-white'
+											class="relative z-10 rounded-full px-2 py-0.5 text-center transition-colors {tagFilterMode ===
+											'or'
+												? 'text-white'
 												: 'text-text-tertiary hover:text-text-secondary'}"
 										>
 											{$translate('library.matchOr')}
 										</span>
 										<span
-											class="rounded-full px-2 py-0.5 transition-colors {tagFilterMode === 'and'
-												? 'bg-brand-primary text-white'
+											class="relative z-10 rounded-full px-2 py-0.5 text-center transition-colors {tagFilterMode ===
+											'and'
+												? 'text-white'
 												: 'text-text-tertiary hover:text-text-secondary'}"
 										>
 											{$translate('library.matchAnd')}

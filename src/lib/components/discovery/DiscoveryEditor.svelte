@@ -15,9 +15,10 @@
 	type Props = {
 		selectedReleases: DiscoveryRelease[]
 		onImport?: (release: DiscoveryRelease) => void
+		onSave?: () => void
 	}
 
-	let { selectedReleases, onImport }: Props = $props()
+	let { selectedReleases, onImport, onSave }: Props = $props()
 
 	// Compute bulk info from selected releases
 	let bulkInfo = $derived(computeBulkReleaseInfo(selectedReleases))
@@ -72,6 +73,8 @@
 			for (const release of selectedReleases) {
 				await discoveryStore.updateRelease(release.id, update)
 			}
+
+			onSave?.()
 
 			// Only clear snapshotted keys (preserve any new edits made during save)
 			const updated = { ...formData }

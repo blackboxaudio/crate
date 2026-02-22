@@ -2,6 +2,7 @@
 	import type {
 		Track,
 		Playlist,
+		SmartRules,
 		Tag,
 		TagCategory,
 		UsbDevice,
@@ -10,6 +11,7 @@
 		DuplicateResolutionAction,
 		ExportRequest,
 		SettingsPage,
+		ActiveView,
 	} from '$lib/types'
 
 	// Discriminated union for all modal states
@@ -65,6 +67,9 @@
 				mountPoint: string
 				filesCopied: number
 		  }
+		// Smart playlist modals
+		| { type: 'createSmartPlaylist'; parentId: string | null; context: ActiveView }
+		| { type: 'editSmartPlaylist'; playlist: Playlist }
 		// Device modals
 		| { type: 'reformatDevice'; device: UsbDevice }
 
@@ -84,9 +89,11 @@
 	import { DeviceInfoModal, ReformatDeviceModal } from '$lib/components/devices'
 	import { SettingsModal } from '$lib/components/settings'
 	import { RelocateTrackModal } from '$lib/components/library'
+	import { SmartPlaylistModal } from '$lib/components/playlists'
 	import { ExportModal, ExportFailureModal, QuickExportModal } from '$lib/components/export'
 	import { toastStore } from '$lib/stores/toast'
 	import { resolveDuplicate } from '$lib/api/library'
+	import { parseSmartRules } from '$lib/utils/smartRules'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
 
@@ -140,6 +147,15 @@
 		onExportFailureKeep: () => void
 		onExportFailureCleanup: (deviceId: string, mountPoint: string) => Promise<void>
 
+		// Smart playlist callbacks
+		onCreateSmartPlaylist: (
+			name: string,
+			smartRules: SmartRules,
+			parentId: string | null,
+			context: ActiveView
+		) => Promise<Playlist | null>
+		onUpdateSmartRules: (id: string, smartRules: SmartRules) => Promise<void>
+
 		// Device callbacks
 		onReformatDevice: (device: UsbDevice, volumeName: string) => Promise<void>
 
@@ -174,6 +190,8 @@
 		onQuickExport,
 		onExportFailureKeep,
 		onExportFailureCleanup,
+		onCreateSmartPlaylist,
+		onUpdateSmartRules,
 		onReformatDevice,
 		onModalOpenChange,
 	}: Props = $props()
@@ -313,6 +331,15 @@
 			replacedTrackIds: [],
 			onComplete,
 		}
+	}
+
+	// Smart playlist modals
+	export function openCreateSmartPlaylistModal(parentId: string | null, context: ActiveView = 'library') {
+		activeModal = { type: 'createSmartPlaylist', parentId, context }
+	}
+
+	export function openEditSmartPlaylistModal(playlist: Playlist) {
+		activeModal = { type: 'editSmartPlaylist', playlist }
 	}
 
 	// Export modals
@@ -642,6 +669,23 @@
 		}
 	}
 
+	// Smart playlist handlers
+	async function handleCreateSmartPlaylistSubmit(name: string, rules: SmartRules) {
+		if (activeModal.type === 'createSmartPlaylist') {
+			const { parentId, context } = activeModal
+			closeAll()
+			await onCreateSmartPlaylist(name, rules, parentId, context)
+		}
+	}
+
+	async function handleEditSmartPlaylistSubmit(name: string, rules: SmartRules) {
+		if (activeModal.type === 'editSmartPlaylist') {
+			const playlist = activeModal.playlist
+			closeAll()
+			await onUpdateSmartRules(playlist.id, rules)
+		}
+	}
+
 	// Export handlers
 	async function handleExportSubmit(request: ExportRequest) {
 		closeAll()
@@ -956,6 +1000,30 @@
 		totalCount={activeModal.duplicates.length}
 		onResolve={handleDuplicateResolve}
 		onCancel={handleDuplicateCancel}
+	/>
+{/if}
+
+<!-- Create Smart Playlist Modal -->
+{#if activeModal.type === 'createSmartPlaylist'}
+	<SmartPlaylistModal
+		open={true}
+		context={activeModal.context}
+		{tagCategories}
+		onSubmit={handleCreateSmartPlaylistSubmit}
+		onCancel={closeAll}
+	/>
+{/if}
+
+<!-- Edit Smart Playlist Modal -->
+{#if activeModal.type === 'editSmartPlaylist'}
+	<SmartPlaylistModal
+		open={true}
+		context={activeModal.playlist.context}
+		playlist={activeModal.playlist}
+		initialRules={parseSmartRules(activeModal.playlist.smart_rules) ?? undefined}
+		{tagCategories}
+		onSubmit={handleEditSmartPlaylistSubmit}
+		onCancel={closeAll}
 	/>
 {/if}
 

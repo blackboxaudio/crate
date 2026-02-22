@@ -11,6 +11,7 @@ pub mod library;
 pub mod media_controls;
 pub mod playlist;
 pub mod settings;
+pub mod smart_rules;
 pub mod sync;
 pub mod tag;
 

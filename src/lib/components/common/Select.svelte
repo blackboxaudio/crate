@@ -50,22 +50,71 @@
 	// Get the label for the current value
 	const selectedLabel = $derived(flatOptions.find((o) => o.value === value)?.label ?? '')
 
-	// Position the dropdown
+	// Position the dropdown using fixed positioning, portaled to document.body
+	// to escape modal overflow and transform containing blocks
+	const GAP = 4
+	const VIEWPORT_PADDING = 8
+
 	let dropdownStyle = $state('')
+	let rafId: number | undefined
+
+	// Portal action: moves the element out of overflow/transform containers.
+	// If inside a <dialog>, portal to the dialog (stays in top layer).
+	// Otherwise, portal to document.body.
+	function portal(node: HTMLElement) {
+		const dialog = triggerEl?.closest('dialog')
+		const target = dialog ?? document.body
+		target.appendChild(node)
+		return {
+			destroy() {
+				node.remove()
+			},
+		}
+	}
+
+	function computePosition() {
+		if (!triggerEl || !menuEl) return
+
+		const triggerRect = triggerEl.getBoundingClientRect()
+		const menuHeight = menuEl.offsetHeight
+		const viewportHeight = window.innerHeight
+		const spaceBelow = viewportHeight - triggerRect.bottom
+		const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
+
+		let top: number
+		if (openUpward) {
+			top = triggerRect.top - menuHeight - GAP
+		} else {
+			top = triggerRect.bottom + GAP
+		}
+
+		// Clamp to viewport
+		top = Math.max(VIEWPORT_PADDING, Math.min(top, viewportHeight - menuHeight - VIEWPORT_PADDING))
+
+		dropdownStyle = `position:fixed;top:${top}px;left:${triggerRect.left}px;width:${triggerRect.width}px;`
+	}
+
+	function onScroll() {
+		computePosition()
+	}
 
 	$effect(() => {
 		if (open && triggerEl && menuEl) {
-			const triggerRect = triggerEl.getBoundingClientRect()
-			const menuHeight = menuEl.offsetHeight
-			const viewportHeight = window.innerHeight
-			const spaceBelow = viewportHeight - triggerRect.bottom
-			const openUpward = spaceBelow < menuHeight && triggerRect.top > menuHeight
+			if (rafId) cancelAnimationFrame(rafId)
+			dropdownStyle = ''
+			rafId = requestAnimationFrame(() => {
+				computePosition()
+			})
 
-			if (openUpward) {
-				dropdownStyle = 'bottom: 100%; margin-bottom: 4px;'
-			} else {
-				dropdownStyle = 'top: 100%; margin-top: 4px;'
-			}
+			// Listen for scroll on any ancestor so the dropdown follows the trigger
+			window.addEventListener('scroll', onScroll, true)
+		} else {
+			window.removeEventListener('scroll', onScroll, true)
+		}
+
+		return () => {
+			if (rafId) cancelAnimationFrame(rafId)
+			window.removeEventListener('scroll', onScroll, true)
 		}
 	})
 
@@ -149,7 +198,7 @@
 	})
 </script>
 
-<div class="relative {className}">
+<div class={className}>
 	<button
 		bind:this={triggerEl}
 		type="button"
@@ -175,7 +224,8 @@
 	{#if open}
 		<div
 			bind:this={menuEl}
-			class="absolute right-0 left-0 z-50 max-h-60 overflow-auto rounded-lg border border-stroke bg-surface-1
+			use:portal
+			class="z-50 max-h-60 overflow-auto rounded-lg border border-stroke bg-surface-1
 				py-1 shadow-lg hover:cursor-pointer"
 			style={dropdownStyle}
 			role="listbox"

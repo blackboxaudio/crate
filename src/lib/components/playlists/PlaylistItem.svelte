@@ -62,6 +62,8 @@
 
 	// Determine if this item is a valid drop target based on what's being dragged
 	const isValidDropTarget = $derived.by(() => {
+		// Smart playlists never accept drops (content is rule-generated)
+		if (playlist.is_smart) return false
 		// Playlists accept track drops
 		if ($isDraggingTracks && !playlist.is_folder) return true
 		// Discovery playlists accept release drops

@@ -41,7 +41,7 @@
 	}: Props = $props()
 
 	// Filter to only non-folder discovery playlists
-	const availablePlaylists = $derived(playlists.filter((p) => !p.is_folder))
+	const availablePlaylists = $derived(playlists.filter((p) => !p.is_folder && !p.is_smart))
 
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
