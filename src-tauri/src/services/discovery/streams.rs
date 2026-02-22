@@ -536,9 +536,9 @@ pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
 
     let mut streams = Vec::new();
     for (idx, (video_id, position)) in video_list.iter().enumerate() {
-        // Small delay between requests for playlists to avoid rate limiting
+        // Delay between requests for playlists to avoid YouTube rate limiting / bot detection
         if idx > 0 {
-            tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
         }
 
         match extract_single_youtube_stream(video_id, *position).await {
@@ -561,7 +561,9 @@ pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
 /// Extract a single video's audio stream URL via the youtubei player API.
 ///
 /// Tries each YouTube client configuration in [`metadata::YT_CLIENTS`] until one
-/// returns a playable response with audio streams.
+/// returns a playable response with audio streams. For non-browser clients (e.g.
+/// ANDROID_VR), retries up to 2 times with backoff on `LOGIN_REQUIRED` since
+/// YouTube's bot detection is often transient for these clients.
 pub async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Result<StreamInfo> {
     let mut last_error =
         CrateError::Discovery(format!("All YouTube clients failed for video {video_id}"));
@@ -576,40 +578,76 @@ pub async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Res
             }
         };
 
-        let player =
+        // Non-browser clients (e.g. ANDROID_VR) may hit transient bot detection;
+        // retry up to 2 extra times with increasing backoff.
+        let max_attempts = if config.browser_compatible { 1 } else { 3 };
+        let mut player = None;
+        for attempt in 0..max_attempts {
+            if attempt > 0 {
+                let delay_ms = 2000 * attempt as u64;
+                log::debug!(
+                    "YouTube {} retrying {video_id} (attempt {}/{max_attempts}, backoff {delay_ms}ms)",
+                    config.client_name,
+                    attempt + 1,
+                );
+                tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
+            }
+
             match metadata::fetch_yt_player_response_with_config(&client, video_id, config).await {
-                Ok(p) => p,
+                Ok(p) => {
+                    let status = p
+                        .get("playabilityStatus")
+                        .and_then(|ps| ps.get("status"))
+                        .and_then(|s| s.as_str())
+                        .unwrap_or("UNKNOWN");
+
+                    if status == "OK" {
+                        player = Some(p);
+                        break;
+                    }
+
+                    let reason = p
+                        .get("playabilityStatus")
+                        .and_then(|ps| ps.get("reason"))
+                        .and_then(|r| r.as_str())
+                        .unwrap_or("Unknown reason");
+
+                    // Only retry on LOGIN_REQUIRED (bot detection), not other failures
+                    if status == "LOGIN_REQUIRED" && attempt + 1 < max_attempts {
+                        log::debug!(
+                            "YouTube {} got LOGIN_REQUIRED for {video_id}, will retry",
+                            config.client_name,
+                        );
+                        last_error = CrateError::Discovery(format!(
+                            "YouTube video {video_id} not playable: {reason}"
+                        ));
+                        continue;
+                    }
+
+                    log::warn!(
+                        "YouTube {} client returned {status} for {video_id}: {reason}",
+                        config.client_name,
+                    );
+                    last_error = CrateError::Discovery(format!(
+                        "YouTube video {video_id} not playable: {reason}"
+                    ));
+                    break;
+                }
                 Err(e) => {
                     log::warn!(
                         "YouTube {} client fetch failed for {video_id}: {e}",
                         config.client_name,
                     );
                     last_error = e;
-                    continue;
+                    break;
                 }
-            };
-
-        // Check playability
-        let status = player
-            .get("playabilityStatus")
-            .and_then(|ps| ps.get("status"))
-            .and_then(|s| s.as_str())
-            .unwrap_or("UNKNOWN");
-
-        if status != "OK" {
-            let reason = player
-                .get("playabilityStatus")
-                .and_then(|ps| ps.get("reason"))
-                .and_then(|r| r.as_str())
-                .unwrap_or("Unknown reason");
-            log::warn!(
-                "YouTube {} client returned {status} for {video_id}: {reason}",
-                config.client_name,
-            );
-            last_error =
-                CrateError::Discovery(format!("YouTube video {video_id} not playable: {reason}"));
-            continue;
+            }
         }
+
+        let player = match player {
+            Some(p) => p,
+            None => continue,
+        };
 
         // Extract audio stream
         let adaptive_formats = match player

@@ -124,12 +124,16 @@ async fn prefetch_discogs_streams(
     app_data_dir: &std::path::Path,
 ) -> Result<()> {
     let tracks = discovery.get_all_video_ids_for_release(release_id)?;
-    for (position, video_id) in tracks {
+    for (idx, (position, video_id)) in tracks.iter().enumerate() {
         // Skip tracks already cached (e.g. fetched on-demand by a prior user click)
-        if discovery.get_cached_stream(release_id, position)?.is_some() {
+        if discovery.get_cached_stream(release_id, *position)?.is_some() {
             continue;
         }
-        match streams::extract_single_youtube_stream(&video_id, position).await {
+        // Delay between requests to avoid YouTube rate limiting / bot detection
+        if idx > 0 {
+            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+        }
+        match streams::extract_single_youtube_stream(video_id, *position).await {
             Ok(mut stream) => {
                 transform_youtube_n_params(
                     std::slice::from_mut(&mut stream),
