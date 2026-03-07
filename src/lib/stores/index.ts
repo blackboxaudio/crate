@@ -32,6 +32,8 @@ export {
 	tagFilterMode,
 	rightSidebarVisible,
 	rightSidebarWidth,
+	selectedTreeIds,
+	contextMenuPlaylistId,
 } from './ui'
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'
@@ -76,3 +78,6 @@ export { analysisStore, analyzingTrackIds, isAnalyzing } from './analysis'
 export { discoveryStore, sortedReleases, releaseCount, isDiscoveryLoading, refreshingReleaseIds } from './discovery'
 export { updaterStore, updateStatus, updateAvailable } from './updater'
 export { expandedReleaseIds } from './expandedReleases'
+export { discoveryPlaylistStore, discoveryPlaylistReleases } from './discoveryPlaylist'
+export { pageActions } from './pageActions'
+export type { PageActions } from './pageActions'
