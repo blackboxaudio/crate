@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "Trasferisci tag all'importazione",
 			"transferTagsOnImportDescription": "Trasferisci i tag di rilascio alle tracce importate per impostazione predefinita.",
 			"removeReleaseAfterImport": "Rimuovi rilascio dopo l'importazione",
-			"removeReleaseAfterImportDescription": "Rimuovi automaticamente i rilasci dalle scoperte dopo l'importazione dei file."
+			"removeReleaseAfterImportDescription": "Rimuovi automaticamente i rilasci dalle scoperte dopo l'importazione dei file.",
+			"previewCache": "Cache anteprima",
+			"previewCacheDescription": "I brani di scoperta in anteprima vengono memorizzati nella cache localmente per una riproduzione istantanea nei prossimi ascolti.",
+			"cacheSize": "Dimensione cache",
+			"clearCache": "Cancella cache",
+			"clearCacheConfirmMessage": "Sei sicuro di voler cancellare tutto l'audio di anteprima memorizzato nella cache?",
+			"clearCacheWarning": "I brani precedentemente visualizzati in anteprima dovranno essere trasmessi nuovamente dalla loro fonte alla prossima riproduzione. Questo potrebbe essere più lento e alcuni flussi potrebbero non essere più disponibili."
 		},
 		"appearance": {
 			"font": "Carattere",

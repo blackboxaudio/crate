@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "インポート時にタグを転送",
 			"transferTagsOnImportDescription": "デフォルトでリリースタグをインポートされたトラックに転送します。",
 			"removeReleaseAfterImport": "インポート後にリリースを削除",
-			"removeReleaseAfterImportDescription": "ファイルをインポートした後、自動的にディスカバリーからリリースを削除します。"
+			"removeReleaseAfterImportDescription": "ファイルをインポートした後、自動的にディスカバリーからリリースを削除します。",
+			"previewCache": "プレビュー キャッシュ",
+			"previewCacheDescription": "プレビューされたディスカバリー トラックはローカルにキャッシュされ、後続の再生時に即座に再生できます。",
+			"cacheSize": "キャッシュ サイズ",
+			"clearCache": "キャッシュをクリア",
+			"clearCacheConfirmMessage": "キャッシュされたすべてのプレビュー オーディオをクリアしてもよろしいですか？",
+			"clearCacheWarning": "以前プレビューされたトラックは、次の再生時にソースから再度ストリーミングする必要があります。これはより遅くなり、一部のストリームは利用できなくなる可能性があります。"
 		},
 		"appearance": {
 			"font": "フォント",

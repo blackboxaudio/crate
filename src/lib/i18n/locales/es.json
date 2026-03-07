@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "Transferir etiquetas al importar",
 			"transferTagsOnImportDescription": "Transfiere las etiquetas del lanzamiento a las pistas importadas por defecto.",
 			"removeReleaseAfterImport": "Eliminar lanzamiento después de importar",
-			"removeReleaseAfterImportDescription": "Elimina automáticamente los lanzamientos del descubrimiento después de importar archivos."
+			"removeReleaseAfterImportDescription": "Elimina automáticamente los lanzamientos del descubrimiento después de importar archivos.",
+			"previewCache": "Caché de vista previa",
+			"previewCacheDescription": "Las pistas de descubrimiento previsualizadas se almacenan en caché localmente para reproducción instantánea en futuras escuchas.",
+			"cacheSize": "Tamaño de la caché",
+			"clearCache": "Borrar caché",
+			"clearCacheConfirmMessage": "¿Estás seguro de que deseas borrar todo el audio de vista previa en caché?",
+			"clearCacheWarning": "Las pistas previsualizadas anteriormente necesitarán retransmitirse desde su fuente en la siguiente reproducción. Esto puede ser más lento y algunos streams pueden no estar disponibles."
 		},
 		"appearance": {
 			"font": "Fuente",

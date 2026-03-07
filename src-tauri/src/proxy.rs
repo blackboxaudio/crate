@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::error::{CrateError, Result};
@@ -27,6 +28,7 @@ struct CachedAudio {
 pub(crate) struct ProxyServerState {
     pub app_handle: tauri::AppHandle,
     pub client: reqwest::Client,
+    app_data_dir: PathBuf,
     /// Cache of fully downloaded audio files, keyed by "{release_id}/{track_position}".
     cache: Arc<tokio::sync::RwLock<HashMap<String, Arc<CachedAudio>>>>,
     /// In-flight downloads: maps cache key to a watch receiver that signals completion.
@@ -35,10 +37,15 @@ pub(crate) struct ProxyServerState {
 }
 
 impl ProxyServerState {
-    pub fn new(app_handle: tauri::AppHandle, client: reqwest::Client) -> Self {
+    pub fn new(
+        app_handle: tauri::AppHandle,
+        client: reqwest::Client,
+        app_data_dir: PathBuf,
+    ) -> Self {
         Self {
             app_handle,
             client,
+            app_data_dir,
             cache: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             downloads: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         }
@@ -98,7 +105,7 @@ async fn proxy_http_handler_inner(
     let has_range_header = incoming_range.is_some();
     let (start, end_opt) = parse_bytes_range(incoming_range);
 
-    // 1. Check cache — if audio data is available, serve from memory.
+    // 1. Check memory cache — if audio data is available, serve from memory.
     {
         let cache = state.cache.read().await;
         if let Some(cached) = cache.get(&cache_key) {
@@ -106,7 +113,44 @@ async fn proxy_http_handler_inner(
         }
     }
 
-    // 2. Check if a download is already in progress for this key.
+    // 2. Check disk cache — load into memory and serve if available.
+    {
+        let discovery = state.app_handle.state::<DiscoveryService>();
+        if let Ok(Some((content_type, file_size))) =
+            discovery.get_cached_audio_meta(release_id, track_position)
+        {
+            let file_path = state
+                .app_data_dir
+                .join("discovery")
+                .join("streams")
+                .join(format!("{release_id}_{track_position}"));
+
+            if let Ok(data) = std::fs::read(&file_path) {
+                if data.len() as i64 == file_size {
+                    let cached = Arc::new(CachedAudio { data, content_type });
+
+                    // Promote to memory cache
+                    let mut cache = state.cache.write().await;
+                    while cache.len() >= MAX_CACHE_ENTRIES {
+                        if let Some(oldest_key) = cache.keys().next().cloned() {
+                            cache.remove(&oldest_key);
+                        }
+                    }
+                    cache.insert(cache_key.clone(), cached.clone());
+
+                    return serve_range_from_cache(&cached, start, end_opt, has_range_header);
+                } else {
+                    log::warn!(
+                        "Audio cache file size mismatch for {cache_key}, removing stale entry"
+                    );
+                    let _ = std::fs::remove_file(&file_path);
+                    let _ = discovery.delete_cached_audio_files(release_id);
+                }
+            }
+        }
+    }
+
+    // 3. Check if a download is already in progress for this key.
     //    If so, wait for it. If not, start one.
     let mut rx = {
         let mut downloads = state.downloads.lock().await;
@@ -120,11 +164,8 @@ async fn proxy_http_handler_inner(
                     CrateError::Discovery("No cached stream for proxy request".into())
                 })?;
 
-            let proxy_ua = cached_stream.proxy_ua.ok_or_else(|| {
-                CrateError::Discovery(
-                    "Cached stream has no proxy_ua — should use direct URL".into(),
-                )
-            })?;
+            // Use proxy_ua if set (YouTube/Discogs), empty string otherwise (Bandcamp/SoundCloud)
+            let proxy_ua = cached_stream.proxy_ua.unwrap_or_default();
 
             let (tx, rx) = tokio::sync::watch::channel(None);
             downloads.insert(cache_key.clone(), rx.clone());
@@ -132,6 +173,8 @@ async fn proxy_http_handler_inner(
             let state_clone = state.clone();
             let url = cached_stream.stream_url.clone();
             let key = cache_key.clone();
+            let rid = release_id.to_string();
+            let tp = track_position;
 
             tokio::spawn(async move {
                 let success = match download_stream(&state_clone, &url, &proxy_ua).await {
@@ -145,7 +188,40 @@ async fn proxy_http_handler_inner(
                             }
                         }
 
-                        cache.insert(key.clone(), entry);
+                        cache.insert(key.clone(), entry.clone());
+
+                        // Write to disk cache
+                        let cache_dir = state_clone
+                            .app_data_dir
+                            .join("discovery")
+                            .join("streams");
+                        if let Err(e) = std::fs::create_dir_all(&cache_dir) {
+                            log::warn!("Failed to create audio cache dir: {e}");
+                        } else {
+                            let file_path = cache_dir.join(format!("{rid}_{tp}"));
+                            if let Err(e) = std::fs::write(&file_path, &entry.data) {
+                                log::warn!("Failed to write audio cache file: {e}");
+                            } else {
+                                let discovery =
+                                    state_clone.app_handle.state::<DiscoveryService>();
+                                if let Err(e) = discovery.save_audio_cache_entry(
+                                    &rid,
+                                    tp,
+                                    &entry.content_type,
+                                    entry.data.len() as i64,
+                                ) {
+                                    log::warn!(
+                                        "Failed to record audio cache entry: {e}"
+                                    );
+                                } else {
+                                    log::info!(
+                                        "Cached audio to disk: {rid}/{tp} ({} bytes)",
+                                        entry.data.len()
+                                    );
+                                }
+                            }
+                        }
+
                         true
                     }
                     Err(e) => {
@@ -162,7 +238,7 @@ async fn proxy_http_handler_inner(
         }
     };
 
-    // 3. Wait for the download to complete.
+    // 4. Wait for the download to complete.
     if rx.changed().await.is_err() {
         return Err(CrateError::Discovery(
             "Download task dropped unexpectedly".into(),
@@ -177,7 +253,7 @@ async fn proxy_http_handler_inner(
             .unwrap());
     }
 
-    // 4. Serve from cache.
+    // 5. Serve from cache.
     let cache = state.cache.read().await;
     let cached = cache.get(&cache_key).ok_or_else(|| {
         CrateError::Discovery("Download succeeded but cache entry missing".into())
@@ -212,11 +288,14 @@ async fn download_stream(
         }
 
         let range_end = offset + CHUNK_SIZE - 1;
-        let response = state
+        let mut req = state
             .client
             .get(stream_url)
-            .header("User-Agent", proxy_ua)
-            .header("Range", format!("bytes={offset}-{range_end}"))
+            .header("Range", format!("bytes={offset}-{range_end}"));
+        if !proxy_ua.is_empty() {
+            req = req.header("User-Agent", proxy_ua);
+        }
+        let response = req
             .send()
             .await
             .map_err(|e| CrateError::Discovery(format!("Stream chunk request failed: {e:#}")))?;

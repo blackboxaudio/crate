@@ -1,8 +1,16 @@
+use std::sync::Arc;
+
 use serde::Serialize;
 
 use crate::error::{CrateError, Result};
 
 use super::detect_source_type;
+
+/// Chrome User-Agent shared across all YouTube-facing HTTP clients.
+pub(super) const CHROME_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";
+
+/// SOCS consent cookie that bypasses YouTube's EU cookie consent wall.
+pub(super) const YT_CONSENT_COOKIE: &str = "SOCS=CAISNJAgJB";
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FetchedMetadata {
@@ -28,7 +36,7 @@ pub struct FetchedTrack {
 pub(super) fn build_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
-        .user_agent("Mozilla/5.0 (compatible; CrateApp/0.1)")
+        .user_agent(CHROME_USER_AGENT)
         .build()
         .map_err(|e| CrateError::Discovery(format!("Failed to create HTTP client: {e}")))
 }
@@ -697,7 +705,7 @@ pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
         client_name: "WEB_EMBEDDED",
         client_id: "56",
         client_version: "1.20250120.00.00",
-        user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        user_agent: CHROME_USER_AGENT,
         browser_compatible: true,
         extra_context: None,
     },
@@ -705,7 +713,7 @@ pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
         client_name: "WEB",
         client_id: "1",
         client_version: "2.20250120.01.00",
-        user_agent: "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+        user_agent: CHROME_USER_AGENT,
         browser_compatible: true,
         extra_context: None,
     },
@@ -725,18 +733,47 @@ pub(super) const YT_CLIENTS: &[YtClientConfig] = &[
     },
 ];
 
-/// Build a reqwest client with a specific YouTube client config's user-agent.
-pub(super) fn build_yt_client_with_config(config: &YtClientConfig) -> Result<reqwest::Client> {
-    reqwest::Client::builder()
+/// Build a reqwest client with a specific YouTube client config's user-agent
+/// and optional persistent cookie jar for session continuity.
+pub(super) fn build_yt_client_with_config(
+    config: &YtClientConfig,
+    jar: Option<Arc<reqwest::cookie::Jar>>,
+) -> Result<reqwest::Client> {
+    let mut builder = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
-        .user_agent(config.user_agent)
+        .user_agent(config.user_agent);
+    if let Some(jar) = jar {
+        builder = builder.cookie_provider(jar);
+    }
+    builder
         .build()
         .map_err(|e| CrateError::Discovery(format!("Failed to create YouTube client: {e}")))
 }
 
-/// Build a reqwest client using the primary YouTube client config.
+/// Build a reqwest client using the primary YouTube client config (no cookie jar).
 pub(super) fn build_yt_client() -> Result<reqwest::Client> {
-    build_yt_client_with_config(&YT_CLIENTS[0])
+    build_yt_client_with_config(&YT_CLIENTS[0], None)
+}
+
+/// Create a new cookie jar pre-seeded with the YouTube consent cookie.
+pub(super) fn new_yt_cookie_jar() -> Arc<reqwest::cookie::Jar> {
+    let jar = reqwest::cookie::Jar::default();
+    let yt_url = "https://www.youtube.com".parse::<reqwest::Url>().unwrap();
+    jar.add_cookie_str(YT_CONSENT_COOKIE, &yt_url);
+    Arc::new(jar)
+}
+
+/// Generate a randomized delay with jitter around a base duration.
+/// Returns a `Duration` of `base_ms ± (0..base_ms/2)`, clamped to a minimum of 500ms.
+pub fn jittered_delay(base_ms: u64) -> std::time::Duration {
+    use rand::Rng;
+    let jitter = rand::rng().random_range(0..=(base_ms / 2));
+    let delay = if rand::rng().random_bool(0.5) {
+        base_ms.saturating_add(jitter)
+    } else {
+        base_ms.saturating_sub(jitter)
+    };
+    std::time::Duration::from_millis(delay.max(500))
 }
 
 /// Encode a u64 as a protobuf-style LEB128 varint.
@@ -819,19 +856,14 @@ pub(super) async fn fetch_yt_player_response_with_config(
         );
     }
 
-    // For non-browser clients (e.g. ANDROID_VR), add visitorData to help avoid bot detection.
+    // Add visitorData for all clients to help avoid bot detection.
     // yt-dlp extracts this from prior responses; we generate a synthetic one since we don't
-    // have a prior web session. It's optional but helps when available.
-    let visitor_data = if !config.browser_compatible {
-        let vd = generate_visitor_data();
-        client_ctx
-            .as_object_mut()
-            .unwrap()
-            .insert("visitorData".to_string(), serde_json::json!(vd));
-        Some(vd)
-    } else {
-        None
-    };
+    // have a prior web session. Real browsers always send visitor data.
+    let visitor_data = generate_visitor_data();
+    client_ctx
+        .as_object_mut()
+        .unwrap()
+        .insert("visitorData".to_string(), serde_json::json!(&visitor_data));
 
     let body = serde_json::json!({
         "videoId": video_id,
@@ -847,17 +879,13 @@ pub(super) async fn fetch_yt_player_response_with_config(
         }
     });
 
-    let mut request = client
+    client
         .post("https://www.youtube.com/youtubei/v1/player?prettyPrint=false")
         .header("Origin", "https://www.youtube.com")
         .header("X-YouTube-Client-Name", config.client_id)
-        .header("X-YouTube-Client-Version", config.client_version);
-
-    if let Some(ref vd) = visitor_data {
-        request = request.header("X-Goog-Visitor-Id", vd);
-    }
-
-    request
+        .header("X-YouTube-Client-Version", config.client_version)
+        .header("X-Goog-Visitor-Id", &visitor_data)
+        .header("Cookie", YT_CONSENT_COOKIE)
         .json(&body)
         .send()
         .await
@@ -1015,6 +1043,7 @@ async fn fetch_youtube_playlist(
     let playlist_url = format!("https://www.youtube.com/playlist?list={playlist_id}");
     let html = client
         .get(&playlist_url)
+        .header("Cookie", YT_CONSENT_COOKIE)
         .send()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube playlist page: {e}")))?
@@ -1349,8 +1378,8 @@ fn join_discogs_artists(artists: &[serde_json::Value]) -> Option<String> {
 
         if i < artists.len() - 1 {
             let join = artist.get("join").and_then(|j| j.as_str()).unwrap_or(", ");
-            // Ensure spacing around join separators
-            if !join.starts_with(' ') {
+            // Ensure spacing around join separators (no leading space for punctuation like commas)
+            if !join.starts_with(' ') && !join.starts_with(',') && !join.starts_with(';') {
                 result.push(' ');
             }
             result.push_str(join);

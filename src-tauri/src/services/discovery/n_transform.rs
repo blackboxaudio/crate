@@ -6,7 +6,7 @@ use tauri::Manager;
 
 use crate::error::{CrateError, Result};
 
-use super::metadata::extract_query_param;
+use super::metadata::{extract_query_param, YT_CONSENT_COOKIE};
 
 const EJS_VERSION: &str = "0.5.0";
 const EJS_CORE_URL: &str =
@@ -172,6 +172,7 @@ async fn try_transform(
 async fn fetch_player_version(client: &reqwest::Client) -> Result<String> {
     let body = client
         .get(YT_IFRAME_API_URL)
+        .header("Cookie", YT_CONSENT_COOKIE)
         .send()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to fetch iframe_api: {e}")))?
@@ -246,6 +247,7 @@ async fn fetch_player_js(
     let url = format!("https://www.youtube.com/s/player/{version}/player_ias.vflset/en_US/base.js");
     let body = client
         .get(&url)
+        .header("Cookie", YT_CONSENT_COOKIE)
         .send()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to download player JS: {e}")))?

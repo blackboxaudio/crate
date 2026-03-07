@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "Tags bij import overdragen",
 			"transferTagsOnImportDescription": "Overdraag release-tags standaard naar geïmporteerde nummers.",
 			"removeReleaseAfterImport": "Release na import verwijderen",
-			"removeReleaseAfterImportDescription": "Verwijder automatisch releases uit ontdekkingen na het importeren van bestanden."
+			"removeReleaseAfterImportDescription": "Verwijder automatisch releases uit ontdekkingen na het importeren van bestanden.",
+			"previewCache": "Voorbeeldcache",
+			"previewCacheDescription": "Voorbeeldweergegeven ontdekkingsnummers worden lokaal in het cachegeheugen opgeslagen voor onmiddellijke afspeling bij volgende luisteringen.",
+			"cacheSize": "Cachegrootte",
+			"clearCache": "Cache wissen",
+			"clearCacheConfirmMessage": "Weet je zeker dat je alle cachegeheugen voor voorbeeldaudio wilt wissen?",
+			"clearCacheWarning": "Eerder bekeken nummers moeten bij volgende afspeling opnieuw van hun bron worden gestreamd. Dit kan trager zijn en sommige streams zijn mogelijk niet meer beschikbaar."
 		},
 		"appearance": {
 			"font": "Lettertype",

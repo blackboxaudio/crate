@@ -166,6 +166,8 @@ pub fn run() {
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
             commands::discovery::invalidate_preview_stream_cache,
+            commands::discovery::get_discovery_audio_cache_size,
+            commands::discovery::clear_discovery_audio_cache,
             commands::discovery::nsig_solve_callback,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
@@ -294,7 +296,11 @@ pub fn run() {
                 .build()
                 .map_err(|e| format!("Failed to build proxy client: {e}"))?;
 
-            let proxy_state = proxy::ProxyServerState::new(app.handle().clone(), proxy_client);
+            let proxy_state = proxy::ProxyServerState::new(
+                app.handle().clone(),
+                proxy_client,
+                app_data_dir.clone(),
+            );
 
             tauri::async_runtime::spawn(async move {
                 std_listener

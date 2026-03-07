@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "가져오기 시 태그 전송",
 			"transferTagsOnImportDescription": "기본적으로 릴리스 태그를 가져온 트랙으로 전송합니다.",
 			"removeReleaseAfterImport": "가져오기 후 릴리스 제거",
-			"removeReleaseAfterImportDescription": "파일을 가져온 후 발견에서 자동으로 릴리스를 제거합니다."
+			"removeReleaseAfterImportDescription": "파일을 가져온 후 발견에서 자동으로 릴리스를 제거합니다.",
+			"previewCache": "미리보기 캐시",
+			"previewCacheDescription": "미리본 디스커버리 트랙은 로컬에 캐시되어 다음 청취 시 즉시 재생할 수 있습니다.",
+			"cacheSize": "캐시 크기",
+			"clearCache": "캐시 비우기",
+			"clearCacheConfirmMessage": "캐시된 모든 미리보기 오디오를 비우시겠습니까?",
+			"clearCacheWarning": "이전에 미리본 트랙은 다음 재생 시 소스에서 다시 스트리밍해야 합니다. 이것이 더 느릴 수 있고 일부 스트림은 더 이상 사용할 수 없을 수 있습니다."
 		},
 		"appearance": {
 			"font": "글꼴",

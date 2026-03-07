@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "Tags beim Import übertragen",
 			"transferTagsOnImportDescription": "Übertragen Sie Release-Tags standardmäßig auf importierte Titel.",
 			"removeReleaseAfterImport": "Release nach Import entfernen",
-			"removeReleaseAfterImportDescription": "Entfernen Sie Releases nach dem Importieren von Dateien automatisch aus den Entdeckungen."
+			"removeReleaseAfterImportDescription": "Entfernen Sie Releases nach dem Importieren von Dateien automatisch aus den Entdeckungen.",
+			"previewCache": "Vorschau-Cache",
+			"previewCacheDescription": "Vorschau von Discovery-Tracks werden lokal zwischengespeichert, um beim nächsten Anhören sofortige Wiedergabe zu ermöglichen.",
+			"cacheSize": "Cache-Größe",
+			"clearCache": "Cache löschen",
+			"clearCacheConfirmMessage": "Möchten Sie alle zwischengespeicherten Audio-Vorschaudateien wirklich löschen?",
+			"clearCacheWarning": "Zuvor angehörte Tracks müssen beim nächsten Abspielen erneut von ihrer Quelle gestreamt werden. Dies kann langsamer sein und einige Streams sind möglicherweise nicht mehr verfügbar."
 		},
 		"appearance": {
 			"font": "Schriftart",

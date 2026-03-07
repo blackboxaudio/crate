@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "Transfer tags on import",
 			"transferTagsOnImportDescription": "Transfer release tags to imported tracks by default.",
 			"removeReleaseAfterImport": "Remove release after import",
-			"removeReleaseAfterImportDescription": "Automatically remove releases from discovery after importing files."
+			"removeReleaseAfterImportDescription": "Automatically remove releases from discovery after importing files.",
+			"previewCache": "Preview Cache",
+			"previewCacheDescription": "Previewed discovery tracks are cached locally for instant playback on subsequent listens.",
+			"cacheSize": "Cache size",
+			"clearCache": "Clear Cache",
+			"clearCacheConfirmMessage": "Are you sure you want to clear all cached preview audio?",
+			"clearCacheWarning": "Previously previewed tracks will need to be re-streamed from their source on next play. This may be slower and some streams may no longer be available."
 		},
 		"appearance": {
 			"font": "Font",

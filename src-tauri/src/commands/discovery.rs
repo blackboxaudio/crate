@@ -129,9 +129,9 @@ async fn prefetch_discogs_streams(
         if discovery.get_cached_stream(release_id, *position)?.is_some() {
             continue;
         }
-        // Delay between requests to avoid YouTube rate limiting / bot detection
+        // Randomized delay between requests to avoid YouTube rate limiting / bot detection
         if idx > 0 {
-            tokio::time::sleep(std::time::Duration::from_millis(1500)).await;
+            tokio::time::sleep(metadata::jittered_delay(1500)).await;
         }
         match streams::extract_single_youtube_stream(video_id, *position).await {
             Ok(mut stream) => {
@@ -169,7 +169,18 @@ pub async fn fetch_preview_stream(
     let port = proxy_port.0;
     let app_data_dir = discovery.app_data_dir();
 
-    // Check cache first
+    // Check if audio bytes are already cached on disk — skip stream URL resolution entirely
+    if discovery
+        .get_cached_audio_meta(&release_id, track_position)
+        .unwrap_or(None)
+        .is_some()
+    {
+        return Ok(format!(
+            "http://127.0.0.1:{port}/{release_id}/{track_position}"
+        ));
+    }
+
+    // Check stream URL cache
     if let Some(cached) = discovery.get_cached_stream(&release_id, track_position)? {
         return Ok(resolve_stream_url(
             &cached,
@@ -308,18 +319,30 @@ pub async fn fetch_preview_stream(
     ))
 }
 
-/// Return a `http://127.0.0.1:{proxy_port}` proxy URL when the stream requires a specific
-/// user-agent, or the raw stream URL when it can be played directly by the HTML5 Audio element.
+/// Always route through the localhost proxy for unified disk caching.
+/// The proxy uses `proxy_ua` from the stream cache when set (YouTube/Discogs),
+/// or a default user-agent when not (Bandcamp/SoundCloud).
 fn resolve_stream_url(
-    cached: &CachedStream,
+    _cached: &CachedStream,
     release_id: &str,
     track_position: i32,
     proxy_port: u16,
 ) -> String {
-    match &cached.proxy_ua {
-        Some(_) => format!("http://127.0.0.1:{proxy_port}/{release_id}/{track_position}"),
-        None => cached.stream_url.clone(),
-    }
+    format!("http://127.0.0.1:{proxy_port}/{release_id}/{track_position}")
+}
+
+#[tauri::command]
+pub async fn get_discovery_audio_cache_size(
+    discovery: State<'_, DiscoveryService>,
+) -> Result<i64> {
+    discovery.get_audio_cache_total_size()
+}
+
+#[tauri::command]
+pub async fn clear_discovery_audio_cache(
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    discovery.clear_audio_cache()
 }
 
 #[tauri::command]
