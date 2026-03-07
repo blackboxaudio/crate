@@ -126,7 +126,10 @@ async fn prefetch_discogs_streams(
     let tracks = discovery.get_all_video_ids_for_release(release_id)?;
     for (idx, (position, video_id)) in tracks.iter().enumerate() {
         // Skip tracks already cached (e.g. fetched on-demand by a prior user click)
-        if discovery.get_cached_stream(release_id, *position)?.is_some() {
+        if discovery
+            .get_cached_stream(release_id, *position)?
+            .is_some()
+        {
             continue;
         }
         // Randomized delay between requests to avoid YouTube rate limiting / bot detection
@@ -198,12 +201,8 @@ pub async fn fetch_preview_stream(
         if let Some(video_id) = discovery.get_video_id_for_track(&release_id, track_position)? {
             let mut stream =
                 streams::extract_single_youtube_stream(&video_id, track_position).await?;
-            transform_youtube_n_params(
-                std::slice::from_mut(&mut stream),
-                &app,
-                &app_data_dir,
-            )
-            .await;
+            transform_youtube_n_params(std::slice::from_mut(&mut stream), &app, &app_data_dir)
+                .await;
             discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
 
             let cached = CachedStream {
@@ -224,15 +223,9 @@ pub async fn fetch_preview_stream(
                 let app_handle = app.clone();
                 tokio::spawn(async move {
                     let svc = DiscoveryService::new(conn, app_data_dir.clone());
-                    if let Err(e) = prefetch_streams(
-                        &svc,
-                        &rid,
-                        &url,
-                        "youtube",
-                        &app_handle,
-                        &app_data_dir,
-                    )
-                    .await
+                    if let Err(e) =
+                        prefetch_streams(&svc, &rid, &url, "youtube", &app_handle, &app_data_dir)
+                            .await
                     {
                         log::warn!("Background YouTube re-prefetch failed for {rid}: {e}");
                     }
@@ -251,12 +244,8 @@ pub async fn fetch_preview_stream(
             Some(video_id) => {
                 let mut stream =
                     streams::extract_single_youtube_stream(&video_id, track_position).await?;
-                transform_youtube_n_params(
-                    std::slice::from_mut(&mut stream),
-                    &app,
-                    &app_data_dir,
-                )
-                .await;
+                transform_youtube_n_params(std::slice::from_mut(&mut stream), &app, &app_data_dir)
+                    .await;
                 discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
                 let cached = CachedStream {
                     stream_url: stream.stream_url.clone(),
@@ -332,16 +321,12 @@ fn resolve_stream_url(
 }
 
 #[tauri::command]
-pub async fn get_discovery_audio_cache_size(
-    discovery: State<'_, DiscoveryService>,
-) -> Result<i64> {
+pub async fn get_discovery_audio_cache_size(discovery: State<'_, DiscoveryService>) -> Result<i64> {
     discovery.get_audio_cache_total_size()
 }
 
 #[tauri::command]
-pub async fn clear_discovery_audio_cache(
-    discovery: State<'_, DiscoveryService>,
-) -> Result<()> {
+pub async fn clear_discovery_audio_cache(discovery: State<'_, DiscoveryService>) -> Result<()> {
     discovery.clear_audio_cache()
 }
 

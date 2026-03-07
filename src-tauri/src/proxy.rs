@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::path::PathBuf;
 use std::sync::Arc;
 
 use crate::error::{CrateError, Result};
@@ -28,7 +27,6 @@ struct CachedAudio {
 pub(crate) struct ProxyServerState {
     pub app_handle: tauri::AppHandle,
     pub client: reqwest::Client,
-    app_data_dir: PathBuf,
     /// Cache of fully downloaded audio files, keyed by "{release_id}/{track_position}".
     cache: Arc<tokio::sync::RwLock<HashMap<String, Arc<CachedAudio>>>>,
     /// In-flight downloads: maps cache key to a watch receiver that signals completion.
@@ -37,15 +35,10 @@ pub(crate) struct ProxyServerState {
 }
 
 impl ProxyServerState {
-    pub fn new(
-        app_handle: tauri::AppHandle,
-        client: reqwest::Client,
-        app_data_dir: PathBuf,
-    ) -> Self {
+    pub fn new(app_handle: tauri::AppHandle, client: reqwest::Client) -> Self {
         Self {
             app_handle,
             client,
-            app_data_dir,
             cache: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             downloads: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         }
@@ -67,7 +60,7 @@ fn parse_bytes_range(header: Option<&str>) -> (u64, Option<u64>) {
 /// Parse total file size from a `Content-Range: bytes start-end/total` header.
 fn parse_total_from_content_range(headers: &reqwest::header::HeaderMap) -> Option<u64> {
     let cr = headers.get("Content-Range")?.to_str().ok()?;
-    cr.split('/').last()?.parse().ok()
+    cr.split('/').next_back()?.parse().ok()
 }
 
 /// Top-level axum handler for `GET /{release_id}/{track_position}`.
@@ -119,11 +112,7 @@ async fn proxy_http_handler_inner(
         if let Ok(Some((content_type, file_size))) =
             discovery.get_cached_audio_meta(release_id, track_position)
         {
-            let file_path = state
-                .app_data_dir
-                .join("discovery")
-                .join("streams")
-                .join(format!("{release_id}_{track_position}"));
+            let file_path = discovery.audio_cache_path(release_id, track_position);
 
             if let Ok(data) = std::fs::read(&file_path) {
                 if data.len() as i64 == file_size {
@@ -191,28 +180,21 @@ async fn proxy_http_handler_inner(
                         cache.insert(key.clone(), entry.clone());
 
                         // Write to disk cache
-                        let cache_dir = state_clone
-                            .app_data_dir
-                            .join("discovery")
-                            .join("streams");
-                        if let Err(e) = std::fs::create_dir_all(&cache_dir) {
+                        let discovery = state_clone.app_handle.state::<DiscoveryService>();
+                        let file_path = discovery.audio_cache_path(&rid, tp);
+                        if let Err(e) = std::fs::create_dir_all(file_path.parent().unwrap()) {
                             log::warn!("Failed to create audio cache dir: {e}");
                         } else {
-                            let file_path = cache_dir.join(format!("{rid}_{tp}"));
                             if let Err(e) = std::fs::write(&file_path, &entry.data) {
                                 log::warn!("Failed to write audio cache file: {e}");
                             } else {
-                                let discovery =
-                                    state_clone.app_handle.state::<DiscoveryService>();
                                 if let Err(e) = discovery.save_audio_cache_entry(
                                     &rid,
                                     tp,
                                     &entry.content_type,
                                     entry.data.len() as i64,
                                 ) {
-                                    log::warn!(
-                                        "Failed to record audio cache entry: {e}"
-                                    );
+                                    log::warn!("Failed to record audio cache entry: {e}");
                                 } else {
                                     log::info!(
                                         "Cached audio to disk: {rid}/{tp} ({} bytes)",
@@ -348,7 +330,7 @@ async fn download_stream(
         ));
     }
 
-    let full = total_size.map_or(true, |total| data.len() as u64 >= total);
+    let full = total_size.is_none_or(|total| data.len() as u64 >= total);
     log::info!(
         "Stream download {}: {} bytes cached, content-type: {content_type}",
         if full { "complete" } else { "partial" },
@@ -359,9 +341,7 @@ async fn download_stream(
 }
 
 /// Common CORS headers applied to every proxy response.
-fn apply_cors_headers(
-    builder: axum::http::response::Builder,
-) -> axum::http::response::Builder {
+fn apply_cors_headers(builder: axum::http::response::Builder) -> axum::http::response::Builder {
     builder
         .header("Access-Control-Allow-Origin", "*")
         .header(
@@ -392,29 +372,35 @@ fn serve_range_from_cache(
     let total = cached.data.len() as u64;
 
     if is_range_request && start >= total {
-        return Ok(apply_cors_headers(axum::http::Response::builder().status(416))
-            .header("Content-Range", format!("bytes */{total}"))
-            .body(axum::body::Body::empty())
-            .unwrap());
+        return Ok(
+            apply_cors_headers(axum::http::Response::builder().status(416))
+                .header("Content-Range", format!("bytes */{total}"))
+                .body(axum::body::Body::empty())
+                .unwrap(),
+        );
     }
 
     if is_range_request {
         let end = end_opt.map_or(total - 1, |e| e.min(total - 1));
         let slice = &cached.data[start as usize..=end as usize];
 
-        Ok(apply_cors_headers(axum::http::Response::builder().status(206))
-            .header("Content-Type", &cached.content_type)
-            .header("Content-Range", format!("bytes {start}-{end}/{total}"))
-            .header("Content-Length", slice.len().to_string())
-            .header("Accept-Ranges", "bytes")
-            .body(axum::body::Body::from(slice.to_vec()))
-            .unwrap())
+        Ok(
+            apply_cors_headers(axum::http::Response::builder().status(206))
+                .header("Content-Type", &cached.content_type)
+                .header("Content-Range", format!("bytes {start}-{end}/{total}"))
+                .header("Content-Length", slice.len().to_string())
+                .header("Accept-Ranges", "bytes")
+                .body(axum::body::Body::from(slice.to_vec()))
+                .unwrap(),
+        )
     } else {
-        Ok(apply_cors_headers(axum::http::Response::builder().status(200))
-            .header("Content-Type", &cached.content_type)
-            .header("Content-Length", total.to_string())
-            .header("Accept-Ranges", "bytes")
-            .body(axum::body::Body::from(cached.data.clone()))
-            .unwrap())
+        Ok(
+            apply_cors_headers(axum::http::Response::builder().status(200))
+                .header("Content-Type", &cached.content_type)
+                .header("Content-Length", total.to_string())
+                .header("Accept-Ranges", "bytes")
+                .body(axum::body::Body::from(cached.data.clone()))
+                .unwrap(),
+        )
     }
 }

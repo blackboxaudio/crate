@@ -296,11 +296,7 @@ pub fn run() {
                 .build()
                 .map_err(|e| format!("Failed to build proxy client: {e}"))?;
 
-            let proxy_state = proxy::ProxyServerState::new(
-                app.handle().clone(),
-                proxy_client,
-                app_data_dir.clone(),
-            );
+            let proxy_state = proxy::ProxyServerState::new(app.handle().clone(), proxy_client);
 
             tauri::async_runtime::spawn(async move {
                 std_listener

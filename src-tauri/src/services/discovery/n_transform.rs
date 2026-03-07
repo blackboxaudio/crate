@@ -11,8 +11,7 @@ use super::metadata::{extract_query_param, YT_CONSENT_COOKIE};
 const EJS_VERSION: &str = "0.5.0";
 const EJS_CORE_URL: &str =
     "https://github.com/yt-dlp/ejs/releases/download/0.5.0/yt.solver.core.js";
-const EJS_LIB_URL: &str =
-    "https://github.com/yt-dlp/ejs/releases/download/0.5.0/yt.solver.lib.js";
+const EJS_LIB_URL: &str = "https://github.com/yt-dlp/ejs/releases/download/0.5.0/yt.solver.lib.js";
 const YT_IFRAME_API_URL: &str = "https://www.youtube.com/iframe_api";
 
 /// Tauri-managed state for coordinating WebView <-> Rust solver callbacks.
@@ -45,7 +44,7 @@ impl NsigSolverState {
 /// The only code executed via `Webview::eval()` is:
 /// - yt-dlp's verified EJS solver scripts (downloaded from a pinned GitHub release URL)
 /// - YouTube's player JS (fetched from youtube.com)
-/// No user-supplied code is ever evaluated.
+///   No user-supplied code is ever evaluated.
 pub async fn transform_n_param(
     stream_url: &str,
     app_handle: &tauri::AppHandle,
@@ -276,19 +275,15 @@ async fn fetch_player_js(
 ///
 /// # Safety of WebView eval usage
 /// Only executes yt-dlp's verified EJS solver scripts downloaded from a pinned GitHub release.
-async fn load_solver_into_webview(
-    app_handle: &tauri::AppHandle,
-    solver_dir: &Path,
-) -> Result<()> {
+async fn load_solver_into_webview(app_handle: &tauri::AppHandle, solver_dir: &Path) -> Result<()> {
     let lib_js = std::fs::read_to_string(solver_dir.join("yt.solver.lib.js"))
         .map_err(|e| CrateError::Discovery(format!("Failed to read solver lib: {e}")))?;
     let core_js = std::fs::read_to_string(solver_dir.join("yt.solver.core.js"))
         .map_err(|e| CrateError::Discovery(format!("Failed to read solver core: {e}")))?;
 
     // Wrap in IIFE to avoid polluting the global scope, expose only the solver function
-    let loader_script = format!(
-        "(function() {{\n{lib_js}\n{core_js}\nglobalThis.__crate_jsc = jsc;\n}})();",
-    );
+    let loader_script =
+        format!("(function() {{\n{lib_js}\n{core_js}\nglobalThis.__crate_jsc = jsc;\n}})();",);
 
     let webview = app_handle
         .get_webview_window("main")
@@ -415,9 +410,7 @@ fn parse_solver_output(json_str: &str, n_value: &str) -> Result<(String, Option<
     }
 
     // Extract optional preprocessed_player
-    let preprocessed = parsed
-        .get("preprocessed_player")
-        .map(|pp| pp.to_string());
+    let preprocessed = parsed.get("preprocessed_player").map(|pp| pp.to_string());
 
     log::debug!("n-transform: {n_value} -> {transformed}");
     Ok((transformed.to_string(), preprocessed))

@@ -82,6 +82,7 @@
 		'fold-vertical': 'M7 4l5 5 5-5M7 20l5-5 5 5',
 		'external-link': 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
 		'panel-right': 'M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1zM15 3v18',
+		reset: 'M21 6v5h-5M19.35 15.1a7.5 7.5 0 1 1-1.77-7.8L21 11',
 	}
 
 	// Fill-based icons (use fill={true})
