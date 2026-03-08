@@ -226,6 +226,15 @@ CREATE TABLE discovery_sc_client_id_cache (
     client_id  TEXT    NOT NULL,
     fetched_at TEXT    NOT NULL
 );
+
+CREATE TABLE discovery_audio_cache (
+    release_id     TEXT    NOT NULL,
+    track_position INTEGER NOT NULL,
+    content_type   TEXT    NOT NULL DEFAULT 'audio/mpeg',
+    file_size      INTEGER NOT NULL,
+    cached_at      TEXT    NOT NULL,
+    PRIMARY KEY (release_id, track_position)
+);
 "#,
     ]
 }

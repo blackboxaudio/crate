@@ -6,6 +6,7 @@ mod models;
 mod proxy;
 mod services;
 
+use std::collections::HashSet;
 use std::sync::Arc;
 
 use db::Database;
@@ -14,10 +15,20 @@ use db::Database;
 /// `fetch_preview_stream` can embed it in the URL it returns to the frontend.
 pub(crate) struct ProxyServerPort(pub u16);
 
+/// Tracks in-flight prefetch tasks by release ID to prevent duplicate spawns.
+pub(crate) struct PrefetchTracker(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
+
+impl PrefetchTracker {
+    pub fn new() -> Self {
+        Self(Arc::new(tokio::sync::Mutex::new(HashSet::new())))
+    }
+}
+
 use services::{
-    export::CheckpointService, AnalysisService, AudioService, BackupService, DeviceService,
-    DiagnosticsService, DiscoveryService, ExportService, LibraryService, MediaControlsService,
-    PlaylistService, SettingsService, SyncService, TagService,
+    discovery::n_transform::NsigSolverState, export::CheckpointService, AnalysisService,
+    AudioService, BackupService, DeviceService, DiagnosticsService, DiscoveryService,
+    ExportService, LibraryService, MediaControlsService, PlaylistService, SettingsService,
+    SyncService, TagService,
 };
 use tauri::Manager;
 
@@ -155,6 +166,9 @@ pub fn run() {
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
             commands::discovery::invalidate_preview_stream_cache,
+            commands::discovery::get_discovery_audio_cache_size,
+            commands::discovery::clear_discovery_audio_cache,
+            commands::discovery::nsig_solve_callback,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
             // Backup commands
@@ -239,6 +253,8 @@ pub fn run() {
             app.manage(diagnostics_service);
             app.manage(analysis_service);
             app.manage(discovery_service);
+            app.manage(NsigSolverState::new());
+            app.manage(PrefetchTracker::new());
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();
@@ -292,7 +308,8 @@ pub fn run() {
                 let router = axum::Router::new()
                     .route(
                         "/:release_id/:track_position",
-                        axum::routing::get(proxy::proxy_http_handler),
+                        axum::routing::get(proxy::proxy_http_handler)
+                            .options(proxy::proxy_cors_preflight_handler),
                     )
                     .with_state(proxy_state);
 

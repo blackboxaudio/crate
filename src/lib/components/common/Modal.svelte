@@ -23,6 +23,7 @@
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
 	let visible = $state(false)
+	let mousedownTarget: EventTarget | null = $state(null)
 
 	// Open dialog when open becomes true
 	$effect(() => {
@@ -56,8 +57,12 @@
 		}
 	}
 
+	function handleBackdropMousedown(e: MouseEvent) {
+		mousedownTarget = e.target
+	}
+
 	function handleBackdropClick(e: MouseEvent) {
-		if (e.target === dialogEl) {
+		if (e.target === dialogEl && mousedownTarget === dialogEl) {
 			onClose()
 		}
 	}
@@ -67,6 +72,7 @@
 	bind:this={dialogEl}
 	class="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/60"
 	onkeydown={handleKeydown}
+	onmousedown={handleBackdropMousedown}
 	onclick={handleBackdropClick}
 >
 	{#if visible}

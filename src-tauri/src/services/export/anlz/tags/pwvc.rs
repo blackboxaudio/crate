@@ -89,6 +89,6 @@ mod tests {
         let mut buf = Cursor::new(Vec::new());
         tag.write(&mut buf).unwrap();
         let data = buf.into_inner();
-        assert_eq!(data.len(), HEADER_SIZE as usize);
+        assert_eq!(data.len(), (HEADER_SIZE + 4) as usize); // +4 for PWVC magic
     }
 }

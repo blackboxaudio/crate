@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "Transférer les tags lors de l'import",
 			"transferTagsOnImportDescription": "Transférez les tags de sortie aux pistes importées par défaut.",
 			"removeReleaseAfterImport": "Supprimer la sortie après l'import",
-			"removeReleaseAfterImportDescription": "Supprimez automatiquement les sorties des découvertes après avoir importé les fichiers."
+			"removeReleaseAfterImportDescription": "Supprimez automatiquement les sorties des découvertes après avoir importé les fichiers.",
+			"previewCache": "Cache d'aperçu",
+			"previewCacheDescription": "Les pistes découvertes en aperçu sont mises en cache localement pour une lecture instantanée lors des écoutes ultérieures.",
+			"cacheSize": "Taille du cache",
+			"clearCache": "Effacer le cache",
+			"clearCacheConfirmMessage": "Êtes-vous sûr de vouloir effacer tous les fichiers audio d'aperçu en cache?",
+			"clearCacheWarning": "Les pistes précédemment prévisualisées devront être à nouveau diffusées en continu à partir de leur source lors de la lecture suivante. Cela peut être plus lent et certains flux peuvent ne plus être disponibles."
 		},
 		"appearance": {
 			"font": "Police",

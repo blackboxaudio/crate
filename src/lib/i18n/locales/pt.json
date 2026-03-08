@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "Transferir tags ao importar",
 			"transferTagsOnImportDescription": "Transferir tags de lançamento para faixas importadas por padrão.",
 			"removeReleaseAfterImport": "Remover lançamento após importação",
-			"removeReleaseAfterImportDescription": "Remove automaticamente lançamentos das descobertas após importar arquivos."
+			"removeReleaseAfterImportDescription": "Remove automaticamente lançamentos das descobertas após importar arquivos.",
+			"previewCache": "Cache de visualização",
+			"previewCacheDescription": "As faixas de descoberta visualizadas são armazenadas em cache localmente para reprodução instantânea em próximas audições.",
+			"cacheSize": "Tamanho do cache",
+			"clearCache": "Limpar cache",
+			"clearCacheConfirmMessage": "Tem certeza de que deseja limpar todo o áudio de visualização em cache?",
+			"clearCacheWarning": "As faixas visualizadas anteriormente precisarão ser transmitidas novamente de sua fonte na próxima reprodução. Isso pode ser mais lento e alguns fluxos podem não estar mais disponíveis."
 		},
 		"appearance": {
 			"font": "Fonte",

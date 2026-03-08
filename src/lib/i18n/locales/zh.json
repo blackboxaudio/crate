@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "导入时转移标签",
 			"transferTagsOnImportDescription": "默认将发行标签转移到导入的曲目。",
 			"removeReleaseAfterImport": "导入后删除发行",
-			"removeReleaseAfterImportDescription": "导入文件后自动从发现中删除发行。"
+			"removeReleaseAfterImportDescription": "导入文件后自动从发现中删除发行。",
+			"previewCache": "预览缓存",
+			"previewCacheDescription": "预览的发现曲目在本地缓存，可在后续播放时即时播放。",
+			"cacheSize": "缓存大小",
+			"clearCache": "清除缓存",
+			"clearCacheConfirmMessage": "确定要清除所有缓存的预览音频吗？",
+			"clearCacheWarning": "之前预览的曲目需要在下次播放时从其来源重新流式传输。这可能会更慢，某些流可能不再可用。"
 		},
 		"appearance": {
 			"font": "字体",

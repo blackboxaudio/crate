@@ -17,8 +17,10 @@
 	let { open, initialTab, onClose }: Props = $props()
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
+	let contentEl: HTMLDivElement | undefined = $state()
 	let activePage: SettingsPage = $state('general')
 	let visible = $state(false)
+	let mousedownTarget: EventTarget | null = $state(null)
 
 	// Set active page when opening (use initialTab if provided, otherwise default to 'general')
 	$effect(() => {
@@ -56,6 +58,13 @@
 		}
 	})
 
+	// Reset scroll position when switching tabs
+	$effect(() => {
+		/* eslint-disable-next-line @typescript-eslint/no-unused-expressions */
+		activePage
+		contentEl?.scrollTo(0, 0)
+	})
+
 	function handleKeydown(e: KeyboardEvent) {
 		e.stopPropagation()
 		if (e.key === 'Escape') {
@@ -64,8 +73,12 @@
 		}
 	}
 
+	function handleBackdropMousedown(e: MouseEvent) {
+		mousedownTarget = e.target
+	}
+
 	function handleBackdropClick(e: MouseEvent) {
-		if (e.target === dialogEl) {
+		if (e.target === dialogEl && mousedownTarget === dialogEl) {
 			onClose()
 		}
 	}
@@ -75,6 +88,7 @@
 	bind:this={dialogEl}
 	class="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/60"
 	onkeydown={handleKeydown}
+	onmousedown={handleBackdropMousedown}
 	onclick={handleBackdropClick}
 >
 	{#if visible}
@@ -170,7 +184,7 @@
 				</div>
 
 				<!-- Content -->
-				<div class="flex-1 overflow-auto p-6">
+				<div bind:this={contentEl} class="flex-1 overflow-auto p-6">
 					{#if activePage === 'general'}
 						<GeneralTab />
 					{:else if activePage === 'appearance'}

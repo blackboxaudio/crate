@@ -77,6 +77,14 @@ export async function invalidatePreviewStreamCache(releaseId: string): Promise<v
 	return invoke<void>('invalidate_preview_stream_cache', { releaseId })
 }
 
+export async function getAudioCacheSize(): Promise<number> {
+	return invoke<number>('get_discovery_audio_cache_size')
+}
+
+export async function clearAudioCache(): Promise<void> {
+	return invoke<void>('clear_discovery_audio_cache')
+}
+
 export async function setDiscoveryReleaseArtwork(id: string, filePath: string): Promise<DiscoveryRelease> {
 	return invoke<DiscoveryRelease>('set_discovery_release_artwork', { releaseId: id, filePath })
 }

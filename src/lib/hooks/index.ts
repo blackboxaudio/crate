@@ -14,3 +14,6 @@ export type { DragDropCoordinationConfig } from './useDragDropCoordination'
 
 export { useMediaKeys } from './useMediaKeys'
 export type { MediaKeyHandlers } from './useMediaKeys'
+
+export { createAppSetup } from './useAppSetup'
+export type { AppSetupConfig, AppSetupResult } from './useAppSetup'

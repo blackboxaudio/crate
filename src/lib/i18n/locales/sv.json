@@ -107,7 +107,13 @@
 			"transferTagsOnImport": "Överför taggar vid import",
 			"transferTagsOnImportDescription": "Överför utgåvtaggar till importerade spår som standard.",
 			"removeReleaseAfterImport": "Ta bort utgåva efter import",
-			"removeReleaseAfterImportDescription": "Ta automatiskt bort utgåvor från upptäckterna efter att ha importerat filer."
+			"removeReleaseAfterImportDescription": "Ta automatiskt bort utgåvor från upptäckterna efter att ha importerat filer.",
+			"previewCache": "Förhandsgranskningscache",
+			"previewCacheDescription": "Förhandsgranskat upptäcktspår lagras lokalt i cachen för omedelbar uppspelning vid senare lyssningar.",
+			"cacheSize": "Cachestorlek",
+			"clearCache": "Rensa cache",
+			"clearCacheConfirmMessage": "Är du säker på att du vill rensa all cachelagrat förhandsgranskningsljud?",
+			"clearCacheWarning": "Tidigare förhandsgranskat spår måste strömmas igen från sin källa vid nästa uppspelning. Detta kan vara långsammare och vissa strömmar kanske inte längre är tillgängliga."
 		},
 		"appearance": {
 			"font": "Typsnitt",

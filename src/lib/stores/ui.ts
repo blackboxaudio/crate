@@ -57,6 +57,12 @@ interface UIState {
 	// Tag toggle tracking (for "mixed removes first" behavior)
 	recentlyToggledMixedTags: Set<string>
 
+	// Playlist tree multi-selection state
+	selectedTreeIds: Set<string>
+
+	// Context menu hover styling for playlist tree
+	contextMenuPlaylistId: string | null
+
 	// Navigation cache per view context
 	viewNavigationCache: ViewNavigationCache
 }
@@ -81,6 +87,8 @@ const initialState: UIState = {
 	contextMenuOpen: false,
 	contextMenuPosition: { x: 0, y: 0 },
 	recentlyToggledMixedTags: new Set(),
+	selectedTreeIds: new Set(),
+	contextMenuPlaylistId: null,
 	viewNavigationCache: {
 		library: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library' },
 		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library' },
@@ -484,6 +492,34 @@ function createUIStore() {
 		},
 
 		/**
+		 * Set playlist tree multi-selection IDs
+		 */
+		setSelectedTreeIds(ids: Set<string>) {
+			update((state) => ({ ...state, selectedTreeIds: ids }))
+		},
+
+		/**
+		 * Clear playlist tree multi-selection
+		 */
+		clearSelectedTreeIds() {
+			update((state) => (state.selectedTreeIds.size > 0 ? { ...state, selectedTreeIds: new Set() } : state))
+		},
+
+		/**
+		 * Set context menu playlist ID (for hover styling)
+		 */
+		setContextMenuPlaylistId(id: string | null) {
+			update((state) => ({ ...state, contextMenuPlaylistId: id }))
+		},
+
+		/**
+		 * Clear context menu playlist ID
+		 */
+		clearContextMenuPlaylistId() {
+			update((state) => (state.contextMenuPlaylistId !== null ? { ...state, contextMenuPlaylistId: null } : state))
+		},
+
+		/**
 		 * Clear all recently toggled tags (call when selection changes)
 		 */
 		clearAllRecentlyToggledTags() {
@@ -537,3 +573,7 @@ export const selectedReleaseCount = derived(uiStore, ($ui) => $ui.selectedReleas
 export const rightSidebarVisible = derived(uiStore, ($ui) => $ui.rightSidebarVisible)
 
 export const rightSidebarWidth = derived(uiStore, ($ui) => $ui.rightSidebarWidth)
+
+export const selectedTreeIds = derived(uiStore, ($ui) => $ui.selectedTreeIds)
+
+export const contextMenuPlaylistId = derived(uiStore, ($ui) => $ui.contextMenuPlaylistId)

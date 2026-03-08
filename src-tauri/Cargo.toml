@@ -1,6 +1,6 @@
 [package]
 name = "crate-app"
-version = "0.2.0-staging.17"
+version = "0.2.0-staging.18"
 description = "Cross-platform DJ library manager with music discovery, track analysis, and USB export"
 authors = ["you"]
 edition = "2021"
@@ -56,7 +56,7 @@ image = { version = "0.25.9", default-features = false, features = ["png", "jpeg
 blake3 = "1.8.2"
 
 # HTTP client + proxy server
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["json", "stream", "cookies"] }
 axum = "0.7"
 
 # Regex
@@ -70,6 +70,9 @@ log = "0.4.29"
 env_logger = "0.11.8"
 walkdir = "2.5.0"
 sysinfo = "0.37.2"
+
+# Random
+rand = "0.9"
 
 # Encoding
 base64 = "0.22"
