@@ -7,6 +7,8 @@ import type {
 	ExportController,
 	PlaylistController,
 } from '$lib/controllers'
+import type ModalOrchestrator from '$lib/components/common/ModalOrchestrator.svelte'
+import type ContextMenuOrchestrator from '$lib/components/common/ContextMenuOrchestrator.svelte'
 
 export interface PageActions {
 	tagController: TagController
@@ -19,8 +21,8 @@ export interface PageActions {
 	playNextTrack: () => void
 	playPreviousTrack: () => void
 	openAddReleaseModal: () => void
-	getModalOrchestrator: () => Record<string, (...args: unknown[]) => void> | undefined
-	getContextMenuOrchestrator: () => Record<string, (...args: unknown[]) => void> | undefined
+	getModalOrchestrator: () => ReturnType<typeof ModalOrchestrator> | undefined
+	getContextMenuOrchestrator: () => ReturnType<typeof ContextMenuOrchestrator> | undefined
 }
 
 export const pageActions = writable<PageActions | null>(null)
