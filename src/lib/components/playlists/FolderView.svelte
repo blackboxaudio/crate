@@ -1,7 +1,8 @@
 <script lang="ts">
-	import type { Playlist, BreadcrumbItem } from '$lib/types'
+	import type { Playlist, BreadcrumbItem, Tag, TagFilterMode } from '$lib/types'
 	import { getPlaylistChildren } from '$lib/stores/playlists'
 	import FolderCard from './FolderCard.svelte'
+	import { SearchBar } from '$lib/components/library'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -16,6 +17,17 @@
 		onBreadcrumbContextMenu: (e: MouseEvent, item: BreadcrumbItem) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent, folderId: string) => void
 		onCardContextMenu?: (e: MouseEvent, playlist: Playlist) => void
+		searchValue?: string
+		onSearchChange?: (query: string) => void
+		activeFilterTags?: Tag[]
+		tagColors?: Map<string, string | null>
+		tagFilterMode?: TagFilterMode
+		onRemoveTagFilter?: (tagId: string) => void
+		onClearAllTagFilters?: () => void
+		onToggleTagFilterMode?: () => void
+		isDiscoveryContext?: boolean
+		likedOnly?: boolean
+		onToggleLikedFilter?: () => void
 	}
 
 	let {
@@ -27,6 +39,17 @@
 		onBreadcrumbContextMenu,
 		onEmptySpaceContextMenu,
 		onCardContextMenu,
+		searchValue = '',
+		onSearchChange,
+		activeFilterTags,
+		tagColors,
+		tagFilterMode,
+		onRemoveTagFilter,
+		onClearAllTagFilters,
+		onToggleTagFilterMode,
+		isDiscoveryContext = false,
+		likedOnly = false,
+		onToggleLikedFilter,
 	}: Props = $props()
 
 	function handleContentContextMenu(e: MouseEvent) {
@@ -61,7 +84,27 @@
 
 <div class="flex h-full flex-col overflow-hidden bg-surface-0">
 	<!-- Breadcrumb Navigation -->
-	<Breadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} onContextMenu={onBreadcrumbContextMenu} />
+	<Breadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} onContextMenu={onBreadcrumbContextMenu}>
+		{#snippet actions()}
+			{#if onSearchChange}
+				<div class="w-64">
+					<SearchBar
+						{onSearchChange}
+						initialValue={searchValue}
+						placeholder={isDiscoveryContext ? $translate('discovery.searchPlaceholder') : undefined}
+						likedOnly={isDiscoveryContext ? likedOnly : undefined}
+						onToggleLikedFilter={isDiscoveryContext ? onToggleLikedFilter : undefined}
+						{activeFilterTags}
+						{tagColors}
+						{tagFilterMode}
+						{onRemoveTagFilter}
+						{onClearAllTagFilters}
+						{onToggleTagFilterMode}
+					/>
+				</div>
+			{/if}
+		{/snippet}
+	</Breadcrumbs>
 
 	<!-- Content -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->

@@ -201,6 +201,7 @@
 		"source": "ソース",
 		"release": "リリース",
 		"releases": "リリース",
+		"searchPlaceholder": "リリースを検索...",
 		"noReleasesYet": "まだリリースがありません",
 		"addReleaseHint": "{shortcut} を押すか、URLをここにドラッグして Bandcamp、SoundCloud、Discogs など からリリースを追加してください",
 		"dropHint": "URL をドロップしてリリースを追加",

@@ -201,6 +201,7 @@
 		"source": "Bron",
 		"release": "release",
 		"releases": "releases",
+		"searchPlaceholder": "Releases zoeken...",
 		"noReleasesYet": "Nog geen releases",
 		"addReleaseHint": "Druk {shortcut} of sleep een URL hiernaartoe om releases van Bandcamp, SoundCloud, Discogs en meer toe te voegen",
 		"dropHint": "URL hier neerleggen om release toe te voegen",

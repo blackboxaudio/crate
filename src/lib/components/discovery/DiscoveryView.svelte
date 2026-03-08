@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoverySortConfig } from '$lib/types'
+	import type { DiscoveryRelease, DiscoverySortConfig, Tag, TagFilterMode } from '$lib/types'
 	import DiscoveryList from './DiscoveryList.svelte'
+	import { SearchBar } from '$lib/components/library'
 	import { IconButton } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -17,6 +18,14 @@
 		categorySortOrders?: Map<string, number>
 		editorVisible?: boolean
 		hasSelection?: boolean
+		searchValue?: string
+		onSearchChange?: (query: string) => void
+		activeFilterTags?: Tag[]
+		tagColors?: Map<string, string | null>
+		tagFilterMode?: TagFilterMode
+		onRemoveTagFilter?: (tagId: string) => void
+		onClearAllTagFilters?: () => void
+		onToggleTagFilterMode?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
 		onReleaseOpen?: (release: DiscoveryRelease) => void
 		onReleaseOpenUrl?: (release: DiscoveryRelease) => void
@@ -41,6 +50,14 @@
 		categorySortOrders,
 		editorVisible = false,
 		hasSelection = false,
+		searchValue = '',
+		onSearchChange,
+		activeFilterTags,
+		tagColors,
+		tagFilterMode,
+		onRemoveTagFilter,
+		onClearAllTagFilters,
+		onToggleTagFilterMode,
 		onSelectionChange,
 		onReleaseOpen,
 		onReleaseOpenUrl,
@@ -134,20 +151,24 @@
 				{releaseCount === 1 ? $translate('discovery.release') : $translate('discovery.releases')}
 			</Text>
 		</div>
-		<div class="flex items-center gap-1">
-			<Tooltip
-				text={likedOnly ? $translate('discovery.showAll') : $translate('discovery.showLiked')}
-				position="bottom"
-				delay={250}
-			>
-				<IconButton
-					icon="heart"
-					size="sm"
-					fill={likedOnly}
-					class={likedOnly ? 'text-brand-primary' : ''}
-					onclick={onToggleLikedFilter}
-				/>
-			</Tooltip>
+		<div class="flex items-center gap-2">
+			{#if onSearchChange}
+				<div class="w-64">
+					<SearchBar
+						{onSearchChange}
+						initialValue={searchValue}
+						placeholder={$translate('discovery.searchPlaceholder')}
+						{likedOnly}
+						{onToggleLikedFilter}
+						{activeFilterTags}
+						{tagColors}
+						{tagFilterMode}
+						{onRemoveTagFilter}
+						{onClearAllTagFilters}
+						{onToggleTagFilterMode}
+					/>
+				</div>
+			{/if}
 			{#if hasExpandableReleases}
 				<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 					<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
@@ -176,6 +197,7 @@
 			{categoryColors}
 			{categorySortOrders}
 			{isDragOver}
+			{likedOnly}
 			{onSelectionChange}
 			{onReleaseOpen}
 			{onReleaseOpenUrl}

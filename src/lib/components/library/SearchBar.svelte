@@ -1,6 +1,5 @@
 <script lang="ts">
 	import type { Tag, TagFilterMode } from '$lib/types'
-	import { libraryStore, uiStore } from '$lib/stores'
 	import Button from '$lib/components/common/Button.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import TagChip from '$lib/components/tags/TagChip.svelte'
@@ -8,6 +7,11 @@
 	import { scale } from 'svelte/transition'
 
 	type Props = {
+		onSearchChange: (query: string) => void
+		placeholder?: string
+		initialValue?: string
+		likedOnly?: boolean
+		onToggleLikedFilter?: () => void
 		activeFilterTags?: Tag[]
 		tagColors?: Map<string, string | null>
 		tagFilterMode?: TagFilterMode
@@ -17,6 +21,11 @@
 	}
 
 	let {
+		onSearchChange,
+		placeholder,
+		initialValue = '',
+		likedOnly,
+		onToggleLikedFilter,
 		activeFilterTags = [],
 		tagColors,
 		tagFilterMode = 'or',
@@ -31,7 +40,7 @@
 	// State for hover popup
 	let showTagPopup = $state(false)
 
-	let inputValue = $state('')
+	let inputValue = $state(initialValue)
 
 	// Debounced search
 	let debounceTimer: ReturnType<typeof setTimeout>
@@ -42,24 +51,32 @@
 
 		clearTimeout(debounceTimer)
 		debounceTimer = setTimeout(() => {
-			uiStore.setSearchQuery(inputValue)
-			libraryStore.setSearch(inputValue)
+			onSearchChange(inputValue)
 		}, 300)
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
 			inputValue = ''
-			uiStore.clearSearch()
-			libraryStore.setSearch('')
+			onSearchChange('')
 			;(e.target as HTMLInputElement).blur()
 		}
 	}
 
 	function handleClear() {
 		inputValue = ''
-		uiStore.clearSearch()
-		libraryStore.setSearch('')
+		onSearchChange('')
+	}
+
+	// Compute right padding for the input based on adornments
+	const hasTagAdornments = $derived(activeFilterTags && activeFilterTags.length > 0)
+	const hasLikedAdornment = $derived(onToggleLikedFilter !== undefined)
+
+	function getInputPrClass(): string {
+		if (hasTagAdornments && hasLikedAdornment) return 'pr-[10.5rem]'
+		if (hasTagAdornments) return 'pr-[8.5rem]'
+		if (hasLikedAdornment) return 'pr-14'
+		return 'pr-8'
 	}
 </script>
 
@@ -70,113 +87,130 @@
 
 	<input
 		type="search"
-		placeholder={$translate('library.searchPlaceholder')}
+		placeholder={placeholder ?? $translate('library.searchPlaceholder')}
 		value={inputValue}
-		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pl-10 text-sm text-text-primary placeholder-text-tertiary transition-colors duration-150 focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none {activeFilterTags &&
-		activeFilterTags.length > 0
-			? 'pr-[8.5rem]'
-			: 'pr-8'}"
+		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pl-10 text-sm text-text-primary placeholder-text-tertiary transition-colors duration-150 focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none {inputValue
+			? 'pr-8'
+			: getInputPrClass()}"
 		oninput={handleInput}
 		onkeydown={handleKeydown}
-		onfocus={() => uiStore.setSearchFocused(true)}
-		onblur={() => uiStore.setSearchFocused(false)}
 	/>
 
-	<!-- Tag filters container (right side, shifts left when clear button is visible) -->
-	{#if activeFilterTags && activeFilterTags.length > 0}
-		<!-- svelte-ignore a11y_no_static_element_interactions -->
-		<div
-			class="absolute inset-y-0 flex items-center gap-1 {inputValue ? 'right-8' : 'right-0 pr-3'}"
-			onmouseleave={() => (showTagPopup = false)}
-		>
-			<TagChip
-				tag={activeFilterTags[0]}
-				color={tagColors?.get(activeFilterTags[0].category_id)}
-				size="sm"
-				removable
-				onremove={() => onRemoveTagFilter?.(activeFilterTags[0].id)}
-			/>
-			{#if remainingTagsCount > 0}
-				<!-- Hover container for +N badge and popup -->
-				<div class="relative" onmouseenter={() => (showTagPopup = true)}>
-					<span
-						class="hover:bg-surface-3 flex h-5 min-w-5 cursor-pointer items-center justify-center rounded bg-surface-2 px-1 text-xs text-text-secondary"
-					>
-						+{remainingTagsCount}
-					</span>
+	<!-- Right-side adornments container (liked filter + tag chips) -->
+	{#if !inputValue && (hasLikedAdornment || hasTagAdornments)}
+		<div class="absolute inset-y-0 right-0 flex items-center gap-1 pr-1.5">
+			<!-- Liked filter toggle -->
+			{#if hasLikedAdornment}
+				<button
+					type="button"
+					class="flex h-6 w-6 cursor-pointer items-center justify-center rounded transition-colors {likedOnly
+						? 'text-brand-primary'
+						: 'text-text-tertiary hover:text-text-secondary'}"
+					onclick={(e) => {
+						e.stopPropagation()
+						onToggleLikedFilter?.()
+					}}
+				>
+					<Icon name="heart" class="h-3.5 w-3.5" fill={likedOnly} />
+				</button>
+			{/if}
 
-					<!-- Hover popup with padding-top to create hoverable bridge -->
-					{#if showTagPopup}
-						<div class="absolute top-full right-0 z-[200] pt-1" transition:scale={{ start: 0.95, duration: 200 }}>
-							<div class="min-w-[180px] rounded-md border border-stroke bg-surface-1 p-2 shadow-lg">
-								<!-- Filter mode toggle -->
-								<div class="mb-2 flex items-center justify-between border-b border-stroke pb-2 pl-1">
-									<span class="text-xs text-text-tertiary">{$translate('library.matching')}</span>
-									<button
-										type="button"
-										class="relative grid grid-cols-2 rounded-full border border-stroke bg-surface-2 p-0.5 text-xs font-medium hover:cursor-pointer"
-										onclick={() => onToggleTagFilterMode?.()}
-									>
-										<div
-											class="absolute inset-y-0.5 rounded-full bg-brand-primary transition-all duration-200 ease-out motion-reduce:transition-none"
-											style="left: {tagFilterMode === 'or' ? '2px' : '50%'}; right: {tagFilterMode === 'or'
-												? '50%'
-												: '2px'}"
-										></div>
-										<span
-											class="relative z-10 rounded-full px-2 py-0.5 text-center transition-colors {tagFilterMode ===
-											'or'
-												? 'text-white'
-												: 'text-text-tertiary hover:text-text-secondary'}"
-										>
-											{$translate('library.matchOr')}
-										</span>
-										<span
-											class="relative z-10 rounded-full px-2 py-0.5 text-center transition-colors {tagFilterMode ===
-											'and'
-												? 'text-white'
-												: 'text-text-tertiary hover:text-text-secondary'}"
-										>
-											{$translate('library.matchAnd')}
-										</span>
-									</button>
-								</div>
-								<div class="flex flex-col gap-1.5">
-									{#each activeFilterTags as tag (tag.id)}
-										<div
-											class="flex w-full items-center justify-between gap-2 rounded px-1.5 py-0.5 text-xs font-medium"
-											style="background-color: {tagColors?.get(tag.category_id) ||
-												tag.color ||
-												'#6366f1'}20; color: {tagColors?.get(tag.category_id) ||
-												tag.color ||
-												'#6366f1'}; border: 1px solid {tagColors?.get(tag.category_id) || tag.color || '#6366f1'}40;"
-										>
-											<span>{tag.name}</span>
+			<!-- Tag filter chips -->
+			{#if hasTagAdornments}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div class="flex items-center gap-1" onmouseleave={() => (showTagPopup = false)}>
+					<TagChip
+						tag={activeFilterTags[0]}
+						color={tagColors?.get(activeFilterTags[0].category_id)}
+						size="sm"
+						removable
+						onremove={() => onRemoveTagFilter?.(activeFilterTags[0].id)}
+					/>
+					{#if remainingTagsCount > 0}
+						<!-- Hover container for +N badge and popup -->
+						<div class="relative" onmouseenter={() => (showTagPopup = true)}>
+							<span
+								class="hover:bg-surface-3 flex h-5 min-w-5 cursor-pointer items-center justify-center rounded bg-surface-2 px-1 text-xs text-text-secondary"
+							>
+								+{remainingTagsCount}
+							</span>
+
+							<!-- Hover popup with padding-top to create hoverable bridge -->
+							{#if showTagPopup}
+								<div class="absolute top-full right-0 z-[200] pt-1" transition:scale={{ start: 0.95, duration: 200 }}>
+									<div class="min-w-[180px] rounded-md border border-stroke bg-surface-1 p-2 shadow-lg">
+										<!-- Filter mode toggle -->
+										<div class="mb-2 flex items-center justify-between border-b border-stroke pb-2 pl-1">
+											<span class="text-xs text-text-tertiary">{$translate('library.matching')}</span>
 											<button
 												type="button"
-												aria-label="Remove tag"
-												class="hover:cursor-pointer hover:opacity-70"
-												onclick={() => onRemoveTagFilter?.(tag.id)}
+												class="relative grid grid-cols-2 rounded-full border border-stroke bg-surface-2 p-0.5 text-xs font-medium hover:cursor-pointer"
+												onclick={() => onToggleTagFilterMode?.()}
 											>
-												<Icon name="x" class="h-3 w-3" />
+												<div
+													class="absolute inset-y-0.5 rounded-full bg-brand-primary transition-all duration-200 ease-out motion-reduce:transition-none"
+													style="left: {tagFilterMode === 'or' ? '2px' : '50%'}; right: {tagFilterMode === 'or'
+														? '50%'
+														: '2px'}"
+												></div>
+												<span
+													class="relative z-10 rounded-full px-2 py-0.5 text-center transition-colors {tagFilterMode ===
+													'or'
+														? 'text-white'
+														: 'text-text-tertiary hover:text-text-secondary'}"
+												>
+													{$translate('library.matchOr')}
+												</span>
+												<span
+													class="relative z-10 rounded-full px-2 py-0.5 text-center transition-colors {tagFilterMode ===
+													'and'
+														? 'text-white'
+														: 'text-text-tertiary hover:text-text-secondary'}"
+												>
+													{$translate('library.matchAnd')}
+												</span>
 											</button>
 										</div>
-									{/each}
+										<div class="flex flex-col gap-1.5">
+											{#each activeFilterTags as tag (tag.id)}
+												<div
+													class="flex w-full items-center justify-between gap-2 rounded px-1.5 py-0.5 text-xs font-medium"
+													style="background-color: {tagColors?.get(tag.category_id) ||
+														tag.color ||
+														'#6366f1'}20; color: {tagColors?.get(tag.category_id) ||
+														tag.color ||
+														'#6366f1'}; border: 1px solid {tagColors?.get(tag.category_id) ||
+														tag.color ||
+														'#6366f1'}40;"
+												>
+													<span>{tag.name}</span>
+													<button
+														type="button"
+														aria-label="Remove tag"
+														class="hover:cursor-pointer hover:opacity-70"
+														onclick={() => onRemoveTagFilter?.(tag.id)}
+													>
+														<Icon name="x" class="h-3 w-3" />
+													</button>
+												</div>
+											{/each}
+										</div>
+										<div class="mt-2 border-t border-stroke pt-2">
+											<Button
+												variant="ghost-danger"
+												size="sm"
+												class="w-full justify-start"
+												onclick={() => {
+													onClearAllTagFilters?.()
+													showTagPopup = false
+												}}
+											>
+												{$translate('library.clearAll')}
+											</Button>
+										</div>
+									</div>
 								</div>
-								<div class="mt-2 border-t border-stroke pt-2">
-									<Button
-										variant="ghost-danger"
-										size="sm"
-										class="w-full justify-start"
-										onclick={() => {
-											onClearAllTagFilters?.()
-											showTagPopup = false
-										}}
-									>
-										{$translate('library.clearAll')}
-									</Button>
-								</div>
-							</div>
+							{/if}
 						</div>
 					{/if}
 				</div>

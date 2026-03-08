@@ -5,6 +5,7 @@
 
 	import type {
 		ActiveView,
+		Tag,
 		Track,
 		SortConfig,
 		DiscoverySortConfig,
@@ -412,6 +413,28 @@
 	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 	const categorySortOrders = $derived(new Map(tagCategories.map((c) => [c.id, c.sort_order])))
 
+	// Search state from context stores
+	const librarySearchValue = $derived($libraryStore.filter.search ?? '')
+	const discoverySearchValue = $derived($discoveryStore.filter.search ?? '')
+	const searchValue = $derived($activeView === 'discovery' ? discoverySearchValue : librarySearchValue)
+	const onSearchChange = $derived(
+		$activeView === 'discovery'
+			? (query: string) => discoveryStore.setSearch(query)
+			: (query: string) => libraryStore.setSearch(query)
+	)
+
+	// Active filter tags (for SearchBar tag chips)
+	const activeFilterTags = $derived.by(() => {
+		if (selectedTagIds.length === 0) return [] as Tag[]
+		const tags: Tag[] = []
+		for (const category of tagCategories) {
+			for (const tag of category.tags) {
+				if (selectedTagIds.includes(tag.id)) tags.push(tag)
+			}
+		}
+		return tags
+	})
+
 	const currentFolderChildCount = $derived(
 		selectedFolderId ? getPlaylistChildren(contextPlaylists, selectedFolderId).length : 0
 	)
@@ -455,6 +478,17 @@
 				orchestratorLayer?.getContextMenuOrchestrator()?.openFolderViewMenu(e, folderId)}
 			onCardContextMenu={(e, playlist) =>
 				orchestratorLayer?.getContextMenuOrchestrator()?.openPlaylistMenu(e, playlist, 'folder')}
+			{searchValue}
+			{onSearchChange}
+			{activeFilterTags}
+			tagColors={categoryColors}
+			tagFilterMode={$tagFilterMode}
+			onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+			onClearAllTagFilters={() => tagController.clearTagFilters()}
+			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
+			isDiscoveryContext={$activeView === 'discovery'}
+			likedOnly={$activeView === 'discovery' ? $likedOnly : false}
+			onToggleLikedFilter={$activeView === 'discovery' ? () => discoveryStore.toggleLikedFilter() : undefined}
 		/>
 	{:else if selectedPlaylistId}
 		{@const playlist = contextPlaylists.find((p) => p.id === selectedPlaylistId)}
@@ -472,6 +506,16 @@
 					{breadcrumbItems}
 					editorVisible={$rightSidebarVisible}
 					hasSelection={selectedReleasesArray.length > 0}
+					searchValue={discoverySearchValue}
+					onSearchChange={(query) => discoveryStore.setSearch(query)}
+					{activeFilterTags}
+					tagColors={categoryColors}
+					tagFilterMode={$tagFilterMode}
+					onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+					onClearAllTagFilters={() => tagController.clearTagFilters()}
+					onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
+					likedOnly={$likedOnly}
+					onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 					onSelectionChange={handleReleaseSelectionChange}
 					onDiscoveryTrackPlay={handleTrackPlayInRelease}
 					onDiscoveryTrackLikeToggle={(releaseId, trackId) => discoveryStore.toggleTrackLiked(releaseId, trackId)}
@@ -495,6 +539,14 @@
 					{breadcrumbItems}
 					editorVisible={$rightSidebarVisible}
 					hasSelection={selectedTracksArray.length > 0}
+					searchValue={librarySearchValue}
+					onSearchChange={(query) => libraryStore.setSearch(query)}
+					{activeFilterTags}
+					tagColors={categoryColors}
+					tagFilterMode={$tagFilterMode}
+					onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+					onClearAllTagFilters={() => tagController.clearTagFilters()}
+					onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 					onSelectionChange={trackController.handleSelectionChange}
 					onTrackPlay={trackController.play}
 					onSortChange={handleSortChange}
@@ -519,7 +571,16 @@
 			{categorySortOrders}
 			editorVisible={$rightSidebarVisible}
 			hasSelection={selectedReleasesArray.length > 0}
+			searchValue={discoverySearchValue}
+			onSearchChange={(query) => discoveryStore.setSearch(query)}
+			{activeFilterTags}
+			tagColors={categoryColors}
+			tagFilterMode={$tagFilterMode}
+			onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+			onClearAllTagFilters={() => tagController.clearTagFilters()}
+			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			likedOnly={$likedOnly}
+			onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 			onSelectionChange={handleReleaseSelectionChange}
 			onReleaseOpen={handleReleaseOpen}
 			onReleaseOpenUrl={(release) => openUrl(release.url)}
@@ -533,7 +594,6 @@
 				await orchestratorLayer?.addRelease({ url })
 			}}
 			onToggleEditor={() => uiStore.toggleRightSidebar()}
-			onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 		/>
 	{:else}
 		<LibraryView
@@ -547,6 +607,14 @@
 			{categorySortOrders}
 			editorVisible={$rightSidebarVisible}
 			hasSelection={selectedTracksArray.length > 0}
+			searchValue={librarySearchValue}
+			onSearchChange={(query) => libraryStore.setSearch(query)}
+			{activeFilterTags}
+			tagColors={categoryColors}
+			tagFilterMode={$tagFilterMode}
+			onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+			onClearAllTagFilters={() => tagController.clearTagFilters()}
+			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			onSelectionChange={trackController.handleSelectionChange}
 			onTrackPlay={trackController.play}
 			onSortChange={handleSortChange}

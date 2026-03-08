@@ -7,8 +7,10 @@
 		BreadcrumbItem,
 		DiscoveryRelease,
 		DiscoverySortConfig,
+		Tag,
+		TagFilterMode,
 	} from '$lib/types'
-	import { TrackList } from '$lib/components/library'
+	import { TrackList, SearchBar } from '$lib/components/library'
 	import { DiscoveryList } from '$lib/components/discovery'
 	import { IconButton } from '$lib/components/common'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
@@ -30,6 +32,16 @@
 		releases?: DiscoveryRelease[]
 		editorVisible?: boolean
 		hasSelection?: boolean
+		searchValue?: string
+		onSearchChange?: (query: string) => void
+		activeFilterTags?: Tag[]
+		tagColors?: Map<string, string | null>
+		tagFilterMode?: TagFilterMode
+		onRemoveTagFilter?: (tagId: string) => void
+		onClearAllTagFilters?: () => void
+		onToggleTagFilterMode?: () => void
+		likedOnly?: boolean
+		onToggleLikedFilter?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
@@ -58,6 +70,16 @@
 		releases = [],
 		editorVisible = false,
 		hasSelection = false,
+		searchValue = '',
+		onSearchChange,
+		activeFilterTags,
+		tagColors,
+		tagFilterMode,
+		onRemoveTagFilter,
+		onClearAllTagFilters,
+		onToggleTagFilterMode,
+		likedOnly = false,
+		onToggleLikedFilter,
 		onSelectionChange,
 		onTrackPlay,
 		onDiscoveryTrackPlay,
@@ -94,7 +116,24 @@
 	<!-- Breadcrumb Navigation -->
 	<Breadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} onContextMenu={onBreadcrumbContextMenu}>
 		{#snippet actions()}
-			<div class="flex items-center gap-1">
+			<div class="flex items-center gap-2">
+				{#if onSearchChange}
+					<div class="w-64">
+						<SearchBar
+							{onSearchChange}
+							initialValue={searchValue}
+							placeholder={isDiscovery ? $translate('discovery.searchPlaceholder') : undefined}
+							likedOnly={isDiscovery ? likedOnly : undefined}
+							onToggleLikedFilter={isDiscovery ? onToggleLikedFilter : undefined}
+							{activeFilterTags}
+							{tagColors}
+							{tagFilterMode}
+							{onRemoveTagFilter}
+							{onClearAllTagFilters}
+							{onToggleTagFilterMode}
+						/>
+					</div>
+				{/if}
 				{#if isDiscovery && hasExpandableReleases}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 						<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
@@ -130,6 +169,7 @@
 				sortConfig={discoverySortConfig}
 				{categoryColors}
 				{categorySortOrders}
+				{likedOnly}
 				{onSelectionChange}
 				onContextMenu={(e, release) => {
 					onContextMenu?.(e, release as unknown as Track)

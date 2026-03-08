@@ -201,6 +201,7 @@
 		"source": "Fonte",
 		"release": "rilascio",
 		"releases": "rilasci",
+		"searchPlaceholder": "Cerca uscite...",
 		"noReleasesYet": "Nessun rilascio per ora",
 		"addReleaseHint": "Premi {shortcut} o trascina un URL qui per aggiungere rilasci da Bandcamp, SoundCloud, Discogs e altri",
 		"dropHint": "Rilascia URL per aggiungere rilascio",

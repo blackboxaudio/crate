@@ -201,6 +201,7 @@
 		"source": "Fonte",
 		"release": "lançamento",
 		"releases": "lançamentos",
+		"searchPlaceholder": "Pesquisar lançamentos...",
 		"noReleasesYet": "Nenhum lançamento ainda",
 		"addReleaseHint": "Pressione {shortcut} ou arraste uma URL aqui para adicionar lançamentos do Bandcamp, SoundCloud, Discogs e muito mais",
 		"dropHint": "Solte URL para adicionar lançamento",

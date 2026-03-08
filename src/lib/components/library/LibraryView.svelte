@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { Track, TrackColor, SortConfig } from '$lib/types'
+	import type { Track, TrackColor, SortConfig, Tag, TagFilterMode } from '$lib/types'
 	import TrackList from './TrackList.svelte'
+	import SearchBar from './SearchBar.svelte'
 	import { IconButton } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -18,6 +19,14 @@
 		categorySortOrders?: Map<string, number>
 		editorVisible?: boolean
 		hasSelection?: boolean
+		searchValue?: string
+		onSearchChange?: (query: string) => void
+		activeFilterTags?: Tag[]
+		tagColors?: Map<string, string | null>
+		tagFilterMode?: TagFilterMode
+		onRemoveTagFilter?: (tagId: string) => void
+		onClearAllTagFilters?: () => void
+		onToggleTagFilterMode?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onSortChange?: (config: SortConfig) => void
@@ -39,6 +48,14 @@
 		categorySortOrders,
 		editorVisible = false,
 		hasSelection = false,
+		searchValue = '',
+		onSearchChange,
+		activeFilterTags,
+		tagColors,
+		tagFilterMode,
+		onRemoveTagFilter,
+		onClearAllTagFilters,
+		onToggleTagFilterMode,
 		onSelectionChange,
 		onTrackPlay,
 		onSortChange,
@@ -61,19 +78,35 @@
 				{trackCount === 1 ? $translate('library.track') : $translate('library.tracks')}
 			</Text>
 		</div>
-		<Tooltip
-			text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
-			position="bottom"
-			delay={250}
-		>
-			<IconButton
-				icon="panel-right"
-				size="sm"
-				active={editorVisible && hasSelection}
-				disabled={!hasSelection}
-				onclick={onToggleEditor}
-			/>
-		</Tooltip>
+		<div class="flex items-center gap-2">
+			{#if onSearchChange}
+				<div class="w-64">
+					<SearchBar
+						{onSearchChange}
+						initialValue={searchValue}
+						{activeFilterTags}
+						{tagColors}
+						{tagFilterMode}
+						{onRemoveTagFilter}
+						{onClearAllTagFilters}
+						{onToggleTagFilterMode}
+					/>
+				</div>
+			{/if}
+			<Tooltip
+				text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
+				position="bottom"
+				delay={250}
+			>
+				<IconButton
+					icon="panel-right"
+					size="sm"
+					active={editorVisible && hasSelection}
+					disabled={!hasSelection}
+					onclick={onToggleEditor}
+				/>
+			</Tooltip>
+		</div>
 	</div>
 
 	<!-- Content -->

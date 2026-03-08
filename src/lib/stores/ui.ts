@@ -43,10 +43,6 @@ interface UIState {
 	rightSidebarVisible: boolean
 	rightSidebarWidth: number
 
-	// Search
-	searchQuery: string
-	searchFocused: boolean
-
 	// Modals
 	activeModal: string | null
 
@@ -81,8 +77,6 @@ const initialState: UIState = {
 	sidebarWidth: getStoredNumber('sidebarWidth', 240),
 	rightSidebarVisible: getStoredBoolean('rightSidebarVisible', false),
 	rightSidebarWidth: getStoredNumber('rightSidebarWidth', 320),
-	searchQuery: '',
-	searchFocused: false,
 	activeModal: null,
 	contextMenuOpen: false,
 	contextMenuPosition: { x: 0, y: 0 },
@@ -399,31 +393,6 @@ function createUIStore() {
 		},
 
 		// =========================================================================
-		// Search
-		// =========================================================================
-
-		/**
-		 * Set search query
-		 */
-		setSearchQuery(query: string) {
-			update((state) => ({ ...state, searchQuery: query }))
-		},
-
-		/**
-		 * Set search focus state
-		 */
-		setSearchFocused(focused: boolean) {
-			update((state) => ({ ...state, searchFocused: focused }))
-		},
-
-		/**
-		 * Clear search
-		 */
-		clearSearch() {
-			update((state) => ({ ...state, searchQuery: '' }))
-		},
-
-		// =========================================================================
 		// Modals
 		// =========================================================================
 
@@ -553,10 +522,6 @@ export const selectedTrackIds = derived(uiStore, ($ui) => $ui.selectedTrackIds)
 export const selectedTrackCount = derived(uiStore, ($ui) => $ui.selectedTrackIds.size)
 
 export const hasSelection = derived(uiStore, ($ui) => $ui.selectedTrackIds.size > 0)
-
-export const searchQuery = derived(uiStore, ($ui) => $ui.searchQuery)
-
-export const isSearchActive = derived(uiStore, ($ui) => $ui.searchQuery.length > 0)
 
 export const recentlyToggledMixedTags = derived(uiStore, ($ui) => $ui.recentlyToggledMixedTags)
 

@@ -201,6 +201,7 @@
 		"source": "Källa",
 		"release": "utgåva",
 		"releases": "utgåvor",
+		"searchPlaceholder": "Sök släpp...",
 		"noReleasesYet": "Inga utgåvor än",
 		"addReleaseHint": "Tryck {shortcut} eller dra en URL hit för att lägga till utgåvor från Bandcamp, SoundCloud, Discogs och mer",
 		"dropHint": "Släpp URL för att lägga till utgåva",

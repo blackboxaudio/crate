@@ -201,6 +201,7 @@
 		"source": "출처",
 		"release": "릴리스",
 		"releases": "릴리스",
+		"searchPlaceholder": "릴리스 검색...",
 		"noReleasesYet": "아직 릴리스가 없습니다",
 		"addReleaseHint": "{shortcut} 를 누르거나 URL을 여기로 드래그하여 Bandcamp, SoundCloud, Discogs 등에서 릴리스를 추가하세요",
 		"dropHint": "릴리스를 추가하려면 URL을 놓으세요",
