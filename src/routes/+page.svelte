@@ -312,13 +312,17 @@
 	const PREVIEWABLE_SOURCES = new Set(['bandcamp', 'soundcloud', 'youtube'])
 
 	function releaseHasAnyPreviewableTrack(release: DiscoveryRelease): boolean {
-		if (PREVIEWABLE_SOURCES.has(release.source_type)) return release.tracks.length > 0
-		return release.tracks.some((t) => t.video_id !== null)
+		if (PREVIEWABLE_SOURCES.has(release.source_type)) return release.tracks.some((t) => t.duration_ms !== null)
+		return release.tracks.some((t) => t.video_id !== null && t.duration_ms !== null)
 	}
 
 	function handleReleaseOpen(release: DiscoveryRelease) {
 		if (releaseHasAnyPreviewableTrack(release)) {
-			const firstPlayable = release.source_type === 'discogs' ? release.tracks.findIndex((t) => t.video_id !== null) : 0
+			const firstPlayable = release.tracks.findIndex((t) => {
+				if (!t.duration_ms) return false
+				if (release.source_type === 'discogs') return t.video_id !== null
+				return true
+			})
 			if (firstPlayable >= 0) {
 				playerStore.playPreview(release, firstPlayable)
 				return
@@ -331,7 +335,8 @@
 		uiStore.clearReleaseSelection()
 		const track = release.tracks[trackIndex]
 		const canPlay =
-			PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null)
+			track?.duration_ms &&
+			(PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null))
 		if (canPlay && release.tracks.length > 0) {
 			playerStore.playPreview(release, trackIndex)
 		}

@@ -224,7 +224,10 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	function playNextTrack() {
 		const preview = get(previewInfo)
 		if (preview) {
-			const nextIndex = preview.trackIndex + 1
+			let nextIndex = preview.trackIndex + 1
+			while (nextIndex < preview.release.tracks.length && !preview.release.tracks[nextIndex]?.duration_ms) {
+				nextIndex++
+			}
 			if (nextIndex < preview.release.tracks.length) {
 				playerStore.playPreview(preview.release, nextIndex)
 			} else {
@@ -242,7 +245,10 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	function playPreviousTrack() {
 		const preview = get(previewInfo)
 		if (preview) {
-			const prevIndex = preview.trackIndex - 1
+			let prevIndex = preview.trackIndex - 1
+			while (prevIndex >= 0 && !preview.release.tracks[prevIndex]?.duration_ms) {
+				prevIndex--
+			}
 			if (prevIndex >= 0) {
 				playerStore.playPreview(preview.release, prevIndex)
 			}
