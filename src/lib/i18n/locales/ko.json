@@ -219,6 +219,8 @@
 		"tracks": "트랙",
 		"trackCount": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}}",
 		"openInBrowser": "브라우저에서 열기",
+		"copyUrl": "URL 복사",
+		"copiedUrl": "URL이 클립보드에 복사되었습니다",
 		"importToLibrary": "라이브러리로 가져오기",
 		"deleteRelease": "릴리스 삭제",
 		"deleteReleases": "릴리스 삭제",

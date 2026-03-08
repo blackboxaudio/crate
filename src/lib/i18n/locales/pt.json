@@ -219,6 +219,8 @@
 		"tracks": "Faixas",
 		"trackCount": "{count, plural, =1 {1 faixa} other {{count} faixas}}",
 		"openInBrowser": "Abrir no navegador",
+		"copyUrl": "Copiar URL",
+		"copiedUrl": "URL copiada para a área de transferência",
 		"importToLibrary": "Importar para a biblioteca",
 		"deleteRelease": "Excluir lançamento",
 		"deleteReleases": "Excluir lançamentos",

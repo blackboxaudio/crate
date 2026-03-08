@@ -219,6 +219,8 @@
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "In browser openen",
+		"copyUrl": "URL kopiëren",
+		"copiedUrl": "URL gekopieerd naar klembord",
 		"importToLibrary": "Importeren naar bibliotheek",
 		"deleteRelease": "Release verwijderen",
 		"deleteReleases": "Releases verwijderen",

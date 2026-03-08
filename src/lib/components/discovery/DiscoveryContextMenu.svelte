@@ -3,6 +3,8 @@
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
+	import { toastStore } from '$lib/stores/toast'
 
 	type Props = {
 		open: boolean
@@ -46,13 +48,23 @@
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
 		const items: ContextMenuItem[] = []
 
-		// Open in Browser - single release only
+		// Open in Browser / Copy URL - single release only
 		if (selectedReleases.length === 1) {
 			items.push({
 				id: 'open-in-browser',
 				label: get(translate)('discovery.openInBrowser'),
 				icon: 'external-link',
 				action: onOpenInBrowser,
+			})
+			items.push({
+				id: 'copy-url',
+				label: get(translate)('discovery.copyUrl'),
+				icon: 'copy',
+				action: () => {
+					writeText(selectedReleases[0].url).then(() => {
+						toastStore.info(get(translate)('discovery.copiedUrl'))
+					})
+				},
 			})
 			if (onRefreshMetadata) {
 				items.push({

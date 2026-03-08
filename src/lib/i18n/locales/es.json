@@ -219,6 +219,8 @@
 		"tracks": "Pistas",
 		"trackCount": "{count, plural, =1 {1 pista} other {{count} pistas}}",
 		"openInBrowser": "Abrir en navegador",
+		"copyUrl": "Copiar URL",
+		"copiedUrl": "URL copiada al portapapeles",
 		"importToLibrary": "Importar a la biblioteca",
 		"deleteRelease": "Eliminar lanzamiento",
 		"deleteReleases": "Eliminar lanzamientos",

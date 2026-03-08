@@ -219,6 +219,8 @@
 		"tracks": "Spår",
 		"trackCount": "{count, plural, =1 {1 spår} other {{count} spår}}",
 		"openInBrowser": "Öppna i webbläsare",
+		"copyUrl": "Kopiera URL",
+		"copiedUrl": "URL kopierad till urklipp",
 		"importToLibrary": "Importera till bibliotek",
 		"deleteRelease": "Ta bort utgåva",
 		"deleteReleases": "Ta bort utgåvor",

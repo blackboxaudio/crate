@@ -219,6 +219,8 @@
 		"tracks": "トラック",
 		"trackCount": "{count, plural, =1 {1曲} other {{count}曲}}",
 		"openInBrowser": "ブラウザで開く",
+		"copyUrl": "URLをコピー",
+		"copiedUrl": "URLをコピーしました",
 		"importToLibrary": "ライブラリにインポート",
 		"deleteRelease": "リリースを削除",
 		"deleteReleases": "リリースを削除",
