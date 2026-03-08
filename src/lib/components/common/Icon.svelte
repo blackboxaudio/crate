@@ -83,6 +83,7 @@
 		'external-link': 'M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14',
 		'panel-right': 'M4 3h16a1 1 0 011 1v16a1 1 0 01-1 1H4a1 1 0 01-1-1V4a1 1 0 011-1zM15 3v18',
 		reset: 'M21 6v5h-5M19.35 15.1a7.5 7.5 0 1 1-1.77-7.8L21 11',
+		logo: '<g stroke-width="1.5"><path d="M6.3 12A7 7 0 1 1 17.7 12" /><circle cx="12" cy="8" r="3.5" /><circle cx="12" cy="8" r="1" fill="currentColor" stroke="none" /><rect x="3" y="12" width="18" height="10" rx="0.75" /><line x1="3" y1="15.3" x2="21" y2="15.3" /><line x1="3" y1="18.7" x2="21" y2="18.7" /></g>',
 	}
 
 	// Fill-based icons (use fill={true})
@@ -97,7 +98,6 @@
 		pause: 'M6 19h4V5H6v14zm8-14v14h4V5h-4z',
 		stop: 'M6 6h12v12H6z',
 		'skip-forward': 'M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z',
-		logo: 'M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z',
 	}
 </script>
 

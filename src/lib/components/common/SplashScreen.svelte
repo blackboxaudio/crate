@@ -19,7 +19,7 @@
 		out:scale={{ start: 1, duration: 400, easing: cubicOut, opacity: 0 }}
 		onoutroend={onOutroEnd}
 	>
-		<Icon name="logo" class="h-16 w-16 text-brand-primary" fill />
+		<Icon name="logo" class="h-16 w-16 text-brand-primary" />
 		<Text variant="header-1" as="span" weight="bold">Crate</Text>
 		<Text variant="caption" color="tertiary">v{version}</Text>
 	</div>

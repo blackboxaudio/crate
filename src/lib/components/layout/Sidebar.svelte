@@ -90,7 +90,7 @@
 	{#if showHeader}
 		<!-- Logo section -->
 		<div class="flex items-center justify-center gap-2 py-4">
-			<Icon name="logo" class="h-6 w-6 text-brand-primary" fill />
+			<Icon name="logo" class="h-6 w-6 text-brand-primary" />
 			<Text variant="header-1" as="span" weight="bold">Crate</Text>
 			{#if $isDev}
 				<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-500"> DEV </span>
