@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.1-staging.1] - 2026-03-08
+
 ### Added
 
 - Smart playlists with rule-based auto-population for both library and discovery contexts
@@ -49,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.1-staging.1...HEAD
+[0.2.1-staging.1]: https://github.com/blackboxaudio/crate/compare/v0.2.0...v0.2.1-staging.1
 [0.2.0]: https://github.com/blackboxaudio/crate/compare/v0.2.0-staging.1...v0.2.0
 [0.1.0]: https://github.com/blackboxaudio/crate/releases/tag/v0.1.0

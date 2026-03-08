@@ -78,7 +78,9 @@
 	}
 
 	function trackCanPlay(trackIndex: number): boolean {
-		if (release.source_type === 'discogs') return release.tracks[trackIndex]?.video_id !== null
+		const track = release.tracks[trackIndex]
+		if (!track?.duration_ms) return false
+		if (release.source_type === 'discogs') return track.video_id !== null
 		return isPreviewable
 	}
 
@@ -233,7 +235,7 @@
 			<div
 				class="grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
 					? 'cursor-pointer hover:bg-surface-2/50'
-					: 'cursor-default'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
+					: 'cursor-default opacity-60'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
 				ondblclick={canPlay
 					? (e) => {
 							e.stopPropagation()
