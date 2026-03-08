@@ -319,7 +319,8 @@ fn test_score_discogs_release_penalizes_test_pressing() {
 fn test_score_discogs_release_penalizes_promo() {
     let official =
         serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\""});
-    let promo = serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", Promo"});
+    let promo =
+        serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", Promo"});
     assert!(score_discogs_release(&official, 100) > score_discogs_release(&promo, 100));
 }
 
@@ -334,12 +335,10 @@ fn test_score_discogs_release_penalizes_white_label() {
 #[test]
 fn test_score_discogs_release_artwork_beats_format_penalty() {
     // A test pressing with artwork should still score higher than an official release without
-    let test_with_art =
-        serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", Test Pressing"});
+    let test_with_art = serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", Test Pressing"});
     let official_no_art = serde_json::json!({"thumb": "", "format": "12\""});
     assert!(
-        score_discogs_release(&test_with_art, 100)
-            > score_discogs_release(&official_no_art, 100)
+        score_discogs_release(&test_with_art, 100) > score_discogs_release(&official_no_art, 100)
     );
 }
 

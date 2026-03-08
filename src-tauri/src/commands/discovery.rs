@@ -15,8 +15,7 @@ use crate::services::discovery::streams::{self, StreamInfo};
 use crate::services::discovery::CachedStream;
 use crate::services::{DiscoveryService, LibraryService, TagService};
 use crate::{
-    BulkImportCancelFlag, PrefetchTracker, ProxyServerPort, ScanEnrichmentCache,
-    ScanPageCancelFlag,
+    BulkImportCancelFlag, PrefetchTracker, ProxyServerPort, ScanEnrichmentCache, ScanPageCancelFlag,
 };
 
 /// Spawn background stream prefetch for a release. Shared by single-create and bulk-create.
@@ -618,6 +617,7 @@ pub async fn scan_discovery_page(
 }
 
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
 pub async fn bulk_create_discovery_releases(
     urls: Vec<String>,
     scanned_releases: Option<Vec<ScannedRelease>>,
