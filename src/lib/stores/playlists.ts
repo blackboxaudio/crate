@@ -488,7 +488,7 @@ export function buildBreadcrumbItems(
 	items.push({
 		id: null,
 		name: rootLabel,
-		type: 'library',
+		type: activeView === 'discovery' ? 'discovery' : 'library',
 	})
 
 	// Get path from root to target

@@ -16,6 +16,8 @@
 		switch (type) {
 			case 'library':
 				return 'library'
+			case 'discovery':
+				return 'globe'
 			case 'folder':
 				return 'folder'
 			case 'smart_playlist':
