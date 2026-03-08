@@ -21,6 +21,9 @@ pub(crate) struct PrefetchTracker(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
 /// Flag to signal cancellation of a running bulk import operation.
 pub(crate) struct BulkImportCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
 
+/// Flag to signal cancellation of a running page scan operation.
+pub(crate) struct ScanPageCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
+
 impl PrefetchTracker {
     pub fn new() -> Self {
         Self(Arc::new(tokio::sync::Mutex::new(HashSet::new())))
@@ -177,6 +180,7 @@ pub fn run() {
             commands::discovery::scan_discovery_page,
             commands::discovery::bulk_create_discovery_releases,
             commands::discovery::cancel_bulk_import,
+            commands::discovery::cancel_scan_page,
             // Backup commands
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
@@ -262,6 +266,9 @@ pub fn run() {
             app.manage(NsigSolverState::new());
             app.manage(PrefetchTracker::new());
             app.manage(BulkImportCancelFlag(Arc::new(
+                std::sync::atomic::AtomicBool::new(false),
+            )));
+            app.manage(ScanPageCancelFlag(Arc::new(
                 std::sync::atomic::AtomicBool::new(false),
             )));
 

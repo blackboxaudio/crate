@@ -14,7 +14,7 @@ use crate::services::discovery::n_transform::{self, NsigSolverState};
 use crate::services::discovery::streams::{self, StreamInfo};
 use crate::services::discovery::CachedStream;
 use crate::services::{DiscoveryService, LibraryService, TagService};
-use crate::{BulkImportCancelFlag, PrefetchTracker, ProxyServerPort};
+use crate::{BulkImportCancelFlag, PrefetchTracker, ProxyServerPort, ScanPageCancelFlag};
 
 /// Spawn background stream prefetch for a release. Shared by single-create and bulk-create.
 async fn spawn_stream_prefetch(
@@ -542,9 +542,11 @@ pub async fn nsig_solve_callback(
 pub async fn scan_discovery_page(
     url: String,
     discovery: State<'_, DiscoveryService>,
+    cancel_flag: State<'_, ScanPageCancelFlag>,
 ) -> Result<ScannedPage> {
+    cancel_flag.0.store(false, Ordering::SeqCst);
     let existing_urls = discovery.get_all_release_urls()?;
-    metadata::scan_page(&url, &existing_urls).await
+    metadata::scan_page(&url, &existing_urls, &cancel_flag.0).await
 }
 
 #[tauri::command]
@@ -672,6 +674,12 @@ pub async fn bulk_create_discovery_releases(
 
 #[tauri::command]
 pub async fn cancel_bulk_import(cancel_flag: State<'_, BulkImportCancelFlag>) -> Result<()> {
+    cancel_flag.0.store(true, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn cancel_scan_page(cancel_flag: State<'_, ScanPageCancelFlag>) -> Result<()> {
     cancel_flag.0.store(true, Ordering::SeqCst);
     Ok(())
 }

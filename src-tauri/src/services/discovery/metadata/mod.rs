@@ -78,6 +78,7 @@ pub async fn fetch_metadata(url: &str) -> Result<FetchedMetadata> {
 pub async fn scan_page(
     url: &str,
     existing_urls: &std::collections::HashSet<String>,
+    cancel_flag: &std::sync::atomic::AtomicBool,
 ) -> Result<crate::models::ScannedPage> {
     let client = build_client()?;
 
@@ -112,7 +113,7 @@ pub async fn scan_page(
             discogs::DiscogsUrlKind::Artist(_) | discogs::DiscogsUrlKind::Label(_)
         ) {
             let (mut releases, page_artist, page_label) =
-                discogs::scan_discogs_page(&client, &kind).await?;
+                discogs::scan_discogs_page(&client, &kind, cancel_flag).await?;
 
             let mut already_in_discovery = 0;
             for r in &mut releases {

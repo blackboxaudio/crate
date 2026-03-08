@@ -115,6 +115,10 @@ export async function cancelBulkImport(): Promise<void> {
 	return invoke<void>('cancel_bulk_import')
 }
 
+export async function cancelScanPage(): Promise<void> {
+	return invoke<void>('cancel_scan_page')
+}
+
 export async function purchaseRelease(
 	releaseId: string,
 	filePaths: string[],

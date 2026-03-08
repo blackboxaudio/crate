@@ -231,6 +231,9 @@
 		if (bulkImporting) {
 			discoveryApi.cancelBulkImport()
 		}
+		if (scanning) {
+			discoveryApi.cancelScanPage()
+		}
 		resetForm()
 		onClose()
 	}
@@ -403,7 +406,7 @@
 			<Button variant="ghost" onclick={handleClose}>
 				{$translate('common.cancel')}
 			</Button>
-			<Button variant="primary" disabled={!url.trim()} onclick={handleSubmit}>
+			<Button variant="primary" disabled={!url.trim() || scanning || fetching} onclick={handleSubmit}>
 				{$translate('discovery.addRelease')}
 			</Button>
 		{/if}

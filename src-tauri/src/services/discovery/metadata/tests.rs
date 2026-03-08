@@ -231,10 +231,10 @@ fn test_parse_discogs_url() {
         parse_discogs_url("https://www.discogs.com/release/123?anv=foo"),
         Some(DiscogsUrlKind::Release(123))
     );
-    // Invalid
+    // Artist/label pages (bulk import)
     assert_eq!(
         parse_discogs_url("https://www.discogs.com/artist/12345"),
-        None
+        Some(DiscogsUrlKind::Artist(12345))
     );
     assert_eq!(parse_discogs_url("https://example.com/release/abc"), None);
 }

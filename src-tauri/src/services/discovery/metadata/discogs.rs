@@ -7,6 +7,15 @@ use super::{is_compilation, FetchedMetadata, FetchedTrack};
 // Discogs
 // =============================================================================
 
+/// Strip Discogs `-00` placeholders for unknown month/day.
+///
+/// - `"2018-00-00"` → `"2018"`
+/// - `"2018-06-00"` → `"2018-06"`
+/// - `"2018-06-19"` → `"2018-06-19"` (unchanged)
+fn normalize_discogs_date(s: &str) -> String {
+    s.trim_end_matches("-00").to_string()
+}
+
 #[derive(Debug, PartialEq)]
 pub(super) enum DiscogsUrlKind {
     Release(u64),
@@ -205,11 +214,12 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
         .map(|s| s.to_string());
 
     // Prefer full `released` date, fallback to `year`
+    // Discogs uses `-00` for unknown month/day (e.g. "2018-00-00"), strip those.
     let release_date = resp
         .get("released")
         .and_then(|d| d.as_str())
         .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
+        .map(normalize_discogs_date)
         .or_else(|| {
             resp.get("year")
                 .and_then(|y| y.as_u64())
@@ -365,6 +375,7 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
 pub(super) async fn scan_discogs_page(
     client: &reqwest::Client,
     kind: &DiscogsUrlKind,
+    cancel_flag: &std::sync::atomic::AtomicBool,
 ) -> Result<(
     Vec<crate::models::ScannedRelease>,
     Option<String>,
@@ -418,6 +429,10 @@ pub(super) async fn scan_discogs_page(
     let mut page = 1u32;
 
     loop {
+        if cancel_flag.load(std::sync::atomic::Ordering::SeqCst) {
+            break;
+        }
+
         if page > 1 {
             tokio::time::sleep(jittered_delay(2500)).await;
         }
@@ -448,9 +463,10 @@ pub(super) async fn scan_discogs_page(
             .unwrap_or_default();
 
         for item in &releases {
-            // Only include actual releases (skip masters to avoid duplicates)
-            let item_type = item.get("type").and_then(|t| t.as_str()).unwrap_or("");
-            if item_type != "release" {
+            // Skip masters to avoid duplicates (artist endpoint only).
+            // Label endpoint omits the type field — treat all items as releases.
+            let item_type = item.get("type").and_then(|t| t.as_str());
+            if item_type == Some("master") {
                 continue;
             }
 
