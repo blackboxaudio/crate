@@ -184,24 +184,20 @@ async fn proxy_http_handler_inner(
                         let file_path = discovery.audio_cache_path(&rid, tp);
                         if let Err(e) = std::fs::create_dir_all(file_path.parent().unwrap()) {
                             log::warn!("Failed to create audio cache dir: {e}");
+                        } else if let Err(e) = std::fs::write(&file_path, &entry.data) {
+                            log::warn!("Failed to write audio cache file: {e}");
+                        } else if let Err(e) = discovery.save_audio_cache_entry(
+                            &rid,
+                            tp,
+                            &entry.content_type,
+                            entry.data.len() as i64,
+                        ) {
+                            log::warn!("Failed to record audio cache entry: {e}");
                         } else {
-                            if let Err(e) = std::fs::write(&file_path, &entry.data) {
-                                log::warn!("Failed to write audio cache file: {e}");
-                            } else {
-                                if let Err(e) = discovery.save_audio_cache_entry(
-                                    &rid,
-                                    tp,
-                                    &entry.content_type,
-                                    entry.data.len() as i64,
-                                ) {
-                                    log::warn!("Failed to record audio cache entry: {e}");
-                                } else {
-                                    log::info!(
-                                        "Cached audio to disk: {rid}/{tp} ({} bytes)",
-                                        entry.data.len()
-                                    );
-                                }
-                            }
+                            log::info!(
+                                "Cached audio to disk: {rid}/{tp} ({} bytes)",
+                                entry.data.len()
+                            );
                         }
 
                         true
