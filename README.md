@@ -40,6 +40,16 @@ Crate is a cross-platform desktop application for managing DJ audio libraries. I
 
 For Tauri development dependencies, see the [Tauri v2 prerequisites guide](https://v2.tauri.app/start/prerequisites/).
 
+#### Windows
+
+Windows requires [Strawberry Perl](https://strawberryperl.com/) to build SQLCipher with OpenSSL:
+
+```powershell
+choco install strawberryperl
+```
+
+Or download the installer from https://strawberryperl.com/. Restart your terminal after installation.
+
 ### Installation
 
 Clone the repository:

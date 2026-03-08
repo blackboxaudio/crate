@@ -147,6 +147,12 @@ jobs:
           cache-on-failure: true
           save-if: 'false'
 
+      - name: Install Strawberry Perl (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          choco install strawberryperl -y --no-progress
+          echo "C:\Strawberry\perl\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
