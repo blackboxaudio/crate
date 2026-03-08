@@ -52,7 +52,28 @@ use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // Install a panic hook that writes to a crash log file. On Windows, release builds
+    // use `windows_subsystem = "windows"` which hides all console output, so without
+    // this hook panics during startup are completely invisible to the user.
+    let crash_log_path = std::env::temp_dir().join("crate-crash.log");
+    let default_hook = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let message = format!(
+            "[{}] PANIC: {}\nLocation: {:?}\n\n",
+            chrono::Utc::now().format("%Y-%m-%d %H:%M:%S UTC"),
+            info,
+            info.location(),
+        );
+        let _ = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(std::env::temp_dir().join("crate-crash.log"))
+            .and_then(|mut f| std::io::Write::write_all(&mut f, message.as_bytes()));
+        default_hook(info);
+    }));
+
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    log::info!("Crash log path: {crash_log_path:?}");
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
@@ -329,11 +350,17 @@ pub fn run() {
             let proxy_state = proxy::ProxyServerState::new(app.handle().clone(), proxy_client);
 
             tauri::async_runtime::spawn(async move {
-                std_listener
-                    .set_nonblocking(true)
-                    .expect("Failed to set proxy listener non-blocking");
-                let listener = tokio::net::TcpListener::from_std(std_listener)
-                    .expect("Failed to convert proxy listener to tokio");
+                if let Err(e) = std_listener.set_nonblocking(true) {
+                    log::error!("Failed to set proxy listener non-blocking: {e}");
+                    return;
+                }
+                let listener = match tokio::net::TcpListener::from_std(std_listener) {
+                    Ok(l) => l,
+                    Err(e) => {
+                        log::error!("Failed to convert proxy listener to tokio: {e}");
+                        return;
+                    }
+                };
 
                 let router = axum::Router::new()
                     .route(
@@ -351,5 +378,8 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .unwrap_or_else(|e| {
+            log::error!("Fatal: failed to run Tauri application: {e}");
+            std::process::exit(1);
+        });
 }

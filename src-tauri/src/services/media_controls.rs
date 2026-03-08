@@ -10,16 +10,35 @@ pub struct MediaControlsService {
 
 impl MediaControlsService {
     pub fn new(app_handle: &AppHandle) -> Self {
+        let hwnd = Self::get_hwnd(app_handle);
+
+        // On Windows, souvlaki panics (via .expect()) if hwnd is None.
+        // Skip initialization entirely rather than risk a crash.
+        #[cfg(target_os = "windows")]
+        if hwnd.is_none() {
+            log::warn!("No window handle available; skipping media controls on Windows");
+            return Self { controls: None };
+        }
+
         let config = PlatformConfig {
             dbus_name: "crate_app",
             display_name: "Crate",
-            hwnd: None,
+            hwnd,
         };
 
-        let mut controls = match MediaControls::new(config) {
-            Ok(c) => c,
-            Err(e) => {
+        // Wrap in catch_unwind as a safety net — souvlaki's Windows impl can panic
+        // in ways that bypass its own Result return type.
+        let controls_result =
+            std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| MediaControls::new(config)));
+
+        let mut controls = match controls_result {
+            Ok(Ok(c)) => c,
+            Ok(Err(e)) => {
                 log::warn!("Failed to initialize media controls: {e}");
+                return Self { controls: None };
+            }
+            Err(_) => {
+                log::warn!("Media controls initialization panicked");
                 return Self { controls: None };
             }
         };
@@ -43,6 +62,24 @@ impl MediaControlsService {
         Self {
             controls: Some(Mutex::new(controls)),
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    fn get_hwnd(app_handle: &AppHandle) -> Option<*mut std::ffi::c_void> {
+        use raw_window_handle::{HasWindowHandle, RawWindowHandle};
+        use tauri::Manager;
+
+        let window = app_handle.get_webview_window("main")?;
+        let handle = window.window_handle().ok()?;
+        match handle.as_raw() {
+            RawWindowHandle::Win32(h) => Some(h.hwnd.get() as *mut std::ffi::c_void),
+            _ => None,
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    fn get_hwnd(_app_handle: &AppHandle) -> Option<*mut std::ffi::c_void> {
+        None
     }
 
     pub fn set_metadata(
