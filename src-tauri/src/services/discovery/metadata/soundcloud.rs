@@ -1,0 +1,309 @@
+use crate::error::{CrateError, Result};
+
+use super::{FetchedMetadata, FetchedTrack};
+
+pub(super) fn parse_sc_hydration(html: &str) -> Option<FetchedMetadata> {
+    // Find window.__sc_hydration JSON blob
+    let marker = "window.__sc_hydration = ";
+    let start = html.find(marker)? + marker.len();
+    // The JSON ends with ";</script>" (no newline before the closing tag)
+    let end = start + html[start..].find(";</script>")?;
+    let json_str = &html[start..end];
+
+    let hydration: serde_json::Value = serde_json::from_str(json_str).ok()?;
+    let arr = hydration.as_array()?;
+
+    // Find the "sound" hydratable entry
+    let sound_data = arr.iter().find_map(|entry| {
+        if entry.get("hydratable")?.as_str()? == "sound" {
+            entry.get("data")
+        } else {
+            None
+        }
+    })?;
+
+    let raw_title = sound_data
+        .get("title")
+        .and_then(|t| t.as_str())
+        .unwrap_or_default();
+
+    // Label accounts often use "Artist - Title" in the title field
+    let (title_artist, title) = if let Some(idx) = raw_title.find(" - ") {
+        (
+            Some(raw_title[..idx].to_string()),
+            Some(raw_title[idx + 3..].to_string()),
+        )
+    } else {
+        (None, Some(raw_title.to_string()))
+    };
+
+    let pub_meta = sound_data.get("publisher_metadata");
+
+    let artist = pub_meta
+        .and_then(|pm| pm.get("artist"))
+        .and_then(|a| a.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or(title_artist)
+        .or_else(|| {
+            sound_data
+                .get("user")
+                .and_then(|u| u.get("username"))
+                .and_then(|n| n.as_str())
+                .map(|s| s.to_string())
+        });
+
+    let label = pub_meta
+        .and_then(|pm| pm.get("publisher"))
+        .and_then(|p| p.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            sound_data
+                .get("label_name")
+                .and_then(|l| l.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string())
+        });
+
+    let release_date = sound_data
+        .get("release_date")
+        .and_then(|d| d.as_str())
+        .and_then(|s| s.get(..10))
+        .map(|s| s.to_string());
+
+    let artwork_url = sound_data
+        .get("artwork_url")
+        .and_then(|a| a.as_str())
+        .map(|s| s.replace("-large", "-t500x500"));
+
+    let duration_ms = sound_data.get("duration").and_then(|d| d.as_i64());
+
+    let tracks = if let Some(name) = title.clone() {
+        vec![FetchedTrack {
+            name,
+            position: 1,
+            duration_ms,
+            video_id: None,
+        }]
+    } else {
+        Vec::new()
+    };
+
+    Some(FetchedMetadata {
+        artist,
+        title,
+        label,
+        release_date,
+        artwork_url,
+        tracks,
+        source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
+    })
+}
+
+/// Check if a SoundCloud URL is a set/playlist URL
+pub(super) fn is_soundcloud_set(url: &str) -> bool {
+    url.to_lowercase().contains("/sets/")
+}
+
+pub(super) fn parse_sc_playlist_hydration(html: &str) -> Option<FetchedMetadata> {
+    let marker = "window.__sc_hydration = ";
+    let start = html.find(marker)? + marker.len();
+    let end = start + html[start..].find(";</script>")?;
+    let json_str = &html[start..end];
+
+    let hydration: serde_json::Value = serde_json::from_str(json_str).ok()?;
+    let arr = hydration.as_array()?;
+
+    let playlist_data = arr.iter().find_map(|entry| {
+        if entry.get("hydratable")?.as_str()? == "playlist" {
+            entry.get("data")
+        } else {
+            None
+        }
+    })?;
+
+    let raw_title = playlist_data
+        .get("title")
+        .and_then(|t| t.as_str())
+        .unwrap_or_default();
+
+    // Label accounts often use "Artist - Title" in the title field
+    let (title_artist, title) = if let Some(idx) = raw_title.find(" - ") {
+        (
+            Some(raw_title[..idx].to_string()),
+            Some(raw_title[idx + 3..].to_string()),
+        )
+    } else {
+        (None, Some(raw_title.to_string()))
+    };
+
+    let pub_meta = playlist_data.get("publisher_metadata");
+
+    let artist = pub_meta
+        .and_then(|pm| pm.get("artist"))
+        .and_then(|a| a.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or(title_artist)
+        .or_else(|| {
+            playlist_data
+                .get("user")
+                .and_then(|u| u.get("username"))
+                .and_then(|n| n.as_str())
+                .map(|s| s.to_string())
+        });
+
+    let label = pub_meta
+        .and_then(|pm| pm.get("publisher"))
+        .and_then(|p| p.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+        .or_else(|| {
+            playlist_data
+                .get("label_name")
+                .and_then(|l| l.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string())
+        });
+
+    let release_date = playlist_data
+        .get("release_date")
+        .and_then(|d| d.as_str())
+        .and_then(|s| s.get(..10))
+        .map(|s| s.to_string());
+
+    let artwork_url = playlist_data
+        .get("artwork_url")
+        .and_then(|a| a.as_str())
+        .map(|s| s.replace("-large", "-t500x500"));
+
+    // Extract tracks from the playlist
+    let tracks = playlist_data
+        .get("tracks")
+        .and_then(|t| t.as_array())
+        .map(|track_arr| {
+            track_arr
+                .iter()
+                .enumerate()
+                .filter_map(|(idx, track)| {
+                    let raw_name = track.get("title").and_then(|t| t.as_str())?.to_string();
+                    let name = artist
+                        .as_ref()
+                        .and_then(|a| {
+                            let prefix = format!("{a} - ");
+                            raw_name.strip_prefix(&prefix).map(|s| s.to_string())
+                        })
+                        .unwrap_or(raw_name);
+                    let duration_ms = track.get("duration").and_then(|d| d.as_i64());
+                    Some(FetchedTrack {
+                        name,
+                        position: (idx + 1) as i32,
+                        duration_ms,
+                        video_id: None,
+                    })
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+
+    Some(FetchedMetadata {
+        artist,
+        title,
+        label,
+        release_date,
+        artwork_url,
+        tracks,
+        source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
+    })
+}
+
+pub(super) async fn fetch_soundcloud(
+    client: &reqwest::Client,
+    url: &str,
+) -> Result<FetchedMetadata> {
+    // HTML-first strategy: fetch the page and try hydration data
+    let html = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch SoundCloud page: {e}")))?
+        .text()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to read SoundCloud response: {e}")))?;
+
+    // Try playlist hydration first for set URLs
+    if is_soundcloud_set(url) {
+        if let Some(metadata) = parse_sc_playlist_hydration(&html) {
+            return Ok(metadata);
+        }
+    }
+
+    if let Some(metadata) = parse_sc_hydration(&html) {
+        return Ok(metadata);
+    }
+
+    log::warn!("SoundCloud hydration parsing failed for {url}, falling back to oEmbed");
+    fetch_soundcloud_oembed(client, url).await
+}
+
+async fn fetch_soundcloud_oembed(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
+    let oembed_url = format!("https://soundcloud.com/oembed?url={url}&format=json");
+
+    let resp: serde_json::Value = client
+        .get(&oembed_url)
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch SoundCloud oEmbed: {e}")))?
+        .json()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to parse SoundCloud oEmbed: {e}")))?;
+
+    let full_title = resp
+        .get("title")
+        .and_then(|t| t.as_str())
+        .unwrap_or_default();
+
+    let author_name = resp
+        .get("author_name")
+        .and_then(|a| a.as_str())
+        .unwrap_or_default();
+
+    // SoundCloud titles are often "Artist - Title" or "Title by Artist"
+    let (artist, title) = if let Some(idx) = full_title.find(" - ") {
+        (
+            Some(full_title[..idx].to_string()),
+            Some(full_title[idx + 3..].to_string()),
+        )
+    } else if !author_name.is_empty() {
+        let by_suffix = format!(" by {author_name}");
+        let cleaned_title = full_title
+            .strip_suffix(&by_suffix)
+            .unwrap_or(full_title)
+            .to_string();
+        (Some(author_name.to_string()), Some(cleaned_title))
+    } else {
+        (None, Some(full_title.to_string()))
+    };
+
+    let artwork_url = resp
+        .get("thumbnail_url")
+        .and_then(|t| t.as_str())
+        .map(|s| s.to_string());
+
+    Ok(FetchedMetadata {
+        artist,
+        title,
+        label: None,
+        release_date: None,
+        artwork_url,
+        tracks: Vec::new(),
+        source_type: String::new(),
+        parent_url: None,
+        parent_album_title: None,
+    })
+}

@@ -1,0 +1,91 @@
+use super::*;
+
+impl LibraryService {
+    /// Check if a track's file still exists on disk
+    pub fn check_track_file_exists(&self, id: &str) -> Result<bool> {
+        let track = self.get_track(id)?;
+        let path = std::path::Path::new(&track.file_path);
+        Ok(path.exists())
+    }
+
+    /// Validate if a replacement file matches the original track
+    pub fn validate_replacement_file(
+        &self,
+        id: &str,
+        new_path: &std::path::Path,
+    ) -> Result<FileMatchResult> {
+        let track = self.get_track(id)?;
+
+        // Check if file exists
+        if !new_path.exists() {
+            return Err(CrateError::FileNotFound(new_path.to_path_buf()));
+        }
+
+        // Check format validity
+        let new_format = new_path
+            .extension()
+            .and_then(|e| e.to_str())
+            .map(|e| e.to_lowercase())
+            .unwrap_or_default();
+
+        let supported_formats = ["mp3", "wav", "aiff", "aif", "flac", "m4a", "aac"];
+        let format_valid = supported_formats.contains(&new_format.as_str());
+
+        // Compute hash of new file
+        let new_hash = compute_audio_hash(new_path)?;
+
+        // Check if hashes match
+        let matches = track
+            .file_hash
+            .as_ref()
+            .map(|h| h == &new_hash)
+            .unwrap_or(false);
+
+        Ok(FileMatchResult {
+            matches,
+            original_hash: track.file_hash,
+            new_hash,
+            format_valid,
+        })
+    }
+
+    /// Relocate a track to a new file path
+    pub fn relocate_track(
+        &self,
+        id: &str,
+        new_path: &std::path::Path,
+        force: bool,
+    ) -> Result<Track> {
+        // Validate the replacement file first
+        let validation = self.validate_replacement_file(id, new_path)?;
+
+        // If not forcing and hashes don't match, return error
+        if !force && !validation.matches && validation.original_hash.is_some() {
+            return Err(CrateError::Import(
+                "File content does not match original. Use force=true to override.".to_string(),
+            ));
+        }
+
+        // Check format is valid
+        if !validation.format_valid {
+            return Err(CrateError::Import("Unsupported audio format".to_string()));
+        }
+
+        let now = chrono::Utc::now().to_rfc3339();
+        let new_path_str = new_path.to_string_lossy().to_string();
+
+        // Update the database with new path and hash
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        conn.execute(
+            "UPDATE tracks SET file_path = ?1, file_hash = ?2, date_modified = ?3 WHERE id = ?4",
+            rusqlite::params![new_path_str, validation.new_hash, now, id],
+        )?;
+
+        drop(conn);
+        self.get_track(id)
+    }
+}
