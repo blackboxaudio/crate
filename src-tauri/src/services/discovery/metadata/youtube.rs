@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::error::{CrateError, Result};
 
-use super::{FetchedMetadata, FetchedTrack, CHROME_USER_AGENT, YT_CONSENT_COOKIE};
+use super::{is_compilation, FetchedMetadata, FetchedTrack, CHROME_USER_AGENT, YT_CONSENT_COOKIE};
 
 // =============================================================================
 // YouTube
@@ -500,7 +500,7 @@ fn strip_youtube_track_artist_prefix(
     tracks: Vec<FetchedTrack>,
     existing_artist: &Option<String>,
 ) -> (Vec<FetchedTrack>, Option<String>) {
-    if tracks.is_empty() {
+    if tracks.is_empty() || is_compilation(existing_artist) {
         return (tracks, None);
     }
 

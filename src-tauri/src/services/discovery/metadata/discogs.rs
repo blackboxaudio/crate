@@ -1,7 +1,7 @@
 use crate::error::{CrateError, Result};
 
 use super::youtube::parse_youtube_url;
-use super::{FetchedMetadata, FetchedTrack};
+use super::{is_compilation, FetchedMetadata, FetchedTrack};
 
 // =============================================================================
 // Discogs
@@ -218,6 +218,8 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
         .and_then(|img| img.get("uri").and_then(|u| u.as_str()))
         .map(|s| s.to_string());
 
+    let is_comp = is_compilation(&artist);
+
     // Extract tracks from tracklist, filtering to actual tracks (skip headings)
     let mut tracks = resp
         .get("tracklist")
@@ -228,10 +230,23 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
                 .filter(|t| t.get("type_").and_then(|ty| ty.as_str()).unwrap_or("track") == "track")
                 .enumerate()
                 .filter_map(|(idx, track)| {
-                    let name = track
+                    let raw_name = track
                         .get("title")
                         .and_then(|t| t.as_str())
                         .map(|s| s.to_string())?;
+
+                    // For compilations, prepend the per-track artist to preserve it
+                    let name = if is_comp {
+                        track
+                            .get("artists")
+                            .and_then(|a| a.as_array())
+                            .and_then(|arr| join_discogs_artists(arr))
+                            .map(|track_artist| format!("{track_artist} - {raw_name}"))
+                            .unwrap_or(raw_name)
+                    } else {
+                        raw_name
+                    };
+
                     let duration_ms = track
                         .get("duration")
                         .and_then(|d| d.as_str())
