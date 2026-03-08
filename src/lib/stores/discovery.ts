@@ -37,6 +37,17 @@ const initialState: DiscoveryState = {
 }
 
 // =============================================================================
+// Bulk Refresh
+// =============================================================================
+
+let bulkRefreshAbort = false
+const bulkRefreshSkipIds = new Set<string>()
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+// =============================================================================
 // Store
 // =============================================================================
 
@@ -270,6 +281,74 @@ function createDiscoveryStore() {
 					tags: r.tags.map((tag) => (tag.id === tagId ? { ...tag, category_id: newCategoryId } : tag)),
 				})),
 			}))
+		},
+
+		async bulkRefreshMetadata(releases: DiscoveryRelease[]) {
+			bulkRefreshAbort = false
+			bulkRefreshSkipIds.clear()
+
+			// Show spinners on all selected releases immediately
+			const allIds = releases.map((r) => r.id)
+			update((state) => ({
+				...state,
+				refreshingIds: new Set([...state.refreshingIds, ...allIds]),
+			}))
+
+			for (let i = 0; i < releases.length; i++) {
+				if (bulkRefreshAbort) break
+
+				const release = releases[i]
+
+				// Skip if individually cancelled
+				if (bulkRefreshSkipIds.has(release.id)) continue
+
+				// Throttle before Discogs releases to respect rate limits
+				if (i > 0) {
+					const delay = release.source_type === 'discogs' ? 2000 + Math.random() * 1000 : 500
+					await sleep(delay)
+				}
+
+				if (bulkRefreshAbort || bulkRefreshSkipIds.has(release.id)) break
+
+				try {
+					const updated = await discoveryApi.refreshMetadata(release.id)
+					update((state) => ({
+						...state,
+						releases: state.releases.map((r) => (r.id === release.id ? updated : r)),
+					}))
+				} catch (error) {
+					console.error(`Failed to refresh metadata for release ${release.id}:`, error)
+				} finally {
+					update((state) => {
+						const next = new Set(state.refreshingIds)
+						next.delete(release.id)
+						return { ...state, refreshingIds: next }
+					})
+				}
+			}
+
+			// Clear any remaining IDs if aborted early
+			update((state) => {
+				const next = new Set(state.refreshingIds)
+				for (const id of allIds) next.delete(id)
+				return { ...state, refreshingIds: next }
+			})
+
+			bulkRefreshAbort = false
+			bulkRefreshSkipIds.clear()
+		},
+
+		cancelRefresh(id: string) {
+			bulkRefreshSkipIds.add(id)
+			update((state) => {
+				const next = new Set(state.refreshingIds)
+				next.delete(id)
+				return { ...state, refreshingIds: next }
+			})
+		},
+
+		cancelBulkRefresh() {
+			bulkRefreshAbort = true
 		},
 
 		reset() {

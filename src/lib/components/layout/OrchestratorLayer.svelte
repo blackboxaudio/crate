@@ -243,8 +243,12 @@
 	onDeviceIgnore={deviceController.handleDeviceIgnore}
 	onPlaylistExport={exportController.handlePlaylistExport}
 	onDiscoveryReleaseOpenInBrowser={(release) => openUrl(release.url)}
-	onDiscoveryReleaseRefreshMetadata={async (release) => {
-		await discoveryStore.refreshMetadata(release.id)
+	onDiscoveryReleaseRefreshMetadata={async (releases) => {
+		if (releases.length === 1) {
+			await discoveryStore.refreshMetadata(releases[0].id)
+		} else {
+			discoveryStore.bulkRefreshMetadata(releases)
+		}
 	}}
 	onDiscoveryReleaseImport={(release) => (purchaseRelease = release)}
 	onDiscoveryReleaseDelete={(releaseIds) => modalOrchestrator.openRemoveDiscoveryReleasesModal(releaseIds)}
