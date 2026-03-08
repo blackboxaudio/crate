@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1 traccia} other {{count} tracce}} combinate",
 		"expandAll": "Espandi tutto",
 		"collapseAll": "Comprimi tutto",
+		"showLiked": "Mostra preferiti",
+		"showAll": "Mostra tutto",
 		"scanningReleases": "Scansione dei rilasci...",
 		"scanningReleasesProgress": "Scansione pagina {current} di {total} ({found} rilasci trovati)...",
 		"scanningReleasesEntity": "Scansione di {name}...",

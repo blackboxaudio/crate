@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Track-level likes for discovery releases with heart toggle and filter to show only releases with liked tracks
+
 ## [0.2.1] - 2026-03-08
 
 ### Added

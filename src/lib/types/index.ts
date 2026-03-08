@@ -666,6 +666,7 @@ export interface DiscoveryTrack {
 	position: number
 	duration_ms: number | null
 	video_id: string | null
+	is_liked: boolean
 }
 
 export interface DiscoveryRelease {

@@ -42,6 +42,7 @@
 		previewInfo,
 		pageActions,
 	} from '$lib/stores'
+	import { likedOnly } from '$lib/stores/discovery'
 	import { isPlaying } from '$lib/stores/player'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 	import { createAppSetup } from '$lib/hooks'
@@ -473,6 +474,7 @@
 					hasSelection={selectedReleasesArray.length > 0}
 					onSelectionChange={handleReleaseSelectionChange}
 					onDiscoveryTrackPlay={handleTrackPlayInRelease}
+					onDiscoveryTrackLikeToggle={(releaseId, trackId) => discoveryStore.toggleTrackLiked(releaseId, trackId)}
 					onContextMenu={(e, item) => {
 						handleReleaseContextMenu(e, item as unknown as DiscoveryRelease)
 					}}
@@ -517,11 +519,13 @@
 			{categorySortOrders}
 			editorVisible={$rightSidebarVisible}
 			hasSelection={selectedReleasesArray.length > 0}
+			likedOnly={$likedOnly}
 			onSelectionChange={handleReleaseSelectionChange}
 			onReleaseOpen={handleReleaseOpen}
 			onReleaseOpenUrl={(release) => openUrl(release.url)}
 			onReleaseImport={(release) => orchestratorLayer?.setPurchaseRelease(release)}
 			onTrackPlay={handleTrackPlayInRelease}
+			onTrackLikeToggle={(releaseId, trackId) => discoveryStore.toggleTrackLiked(releaseId, trackId)}
 			onSortChange={handleDiscoverySortChange}
 			onContextMenu={handleReleaseContextMenu}
 			onEmptySpaceContextMenu={(e) => orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryViewMenu(e)}
@@ -529,6 +533,7 @@
 				await orchestratorLayer?.addRelease({ url })
 			}}
 			onToggleEditor={() => uiStore.toggleRightSidebar()}
+			onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 		/>
 	{:else}
 		<LibraryView

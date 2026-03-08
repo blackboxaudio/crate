@@ -22,6 +22,7 @@ interface DiscoveryState {
 	filter: DiscoveryFilter
 	sort: DiscoverySortConfig
 	refreshingIds: Set<string>
+	likedOnly: boolean
 }
 
 const initialState: DiscoveryState = {
@@ -34,6 +35,7 @@ const initialState: DiscoveryState = {
 		direction: 'desc',
 	},
 	refreshingIds: new Set(),
+	likedOnly: false,
 }
 
 // =============================================================================
@@ -228,6 +230,26 @@ function createDiscoveryStore() {
 			}
 		},
 
+		async toggleTrackLiked(releaseId: string, trackId: string) {
+			try {
+				const isLiked = await discoveryApi.toggleTrackLiked(trackId)
+				update((state) => ({
+					...state,
+					releases: state.releases.map((r) =>
+						r.id === releaseId
+							? { ...r, tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)) }
+							: r
+					),
+				}))
+			} catch (error) {
+				console.error('Failed to toggle track liked:', error)
+			}
+		},
+
+		toggleLikedFilter() {
+			update((state) => ({ ...state, likedOnly: !state.likedOnly }))
+		},
+
 		setFilter(filter: DiscoveryFilter) {
 			update((state) => ({ ...state, filter }))
 		},
@@ -363,8 +385,15 @@ export const discoveryStore = createDiscoveryStore()
 // Derived Stores
 // =============================================================================
 
+export const likedOnly = derived(discoveryStore, ($discovery) => $discovery.likedOnly)
+
 export const sortedReleases = derived(discoveryStore, ($discovery) => {
 	let releases = [...$discovery.releases]
+
+	// Apply liked filter
+	if ($discovery.likedOnly) {
+		releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
+	}
 
 	// Apply client-side search filter
 	if ($discovery.filter.search) {

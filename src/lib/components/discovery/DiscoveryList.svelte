@@ -31,6 +31,7 @@
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onToggleExpand?: (id: string) => void
 		onTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
+		onTrackLikeToggle?: (releaseId: string, trackId: string) => void
 	}
 
 	let {
@@ -50,6 +51,7 @@
 		onEmptySpaceContextMenu,
 		onToggleExpand,
 		onTrackPlay,
+		onTrackLikeToggle,
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
@@ -140,6 +142,7 @@
 					onopenurl={() => onReleaseOpenUrl?.(release)}
 					onToggleExpand={() => onToggleExpand?.(release.id)}
 					onTrackPlay={(idx) => onTrackPlay?.(release, idx)}
+					onTrackLikeToggle={(trackId) => onTrackLikeToggle?.(release.id, trackId)}
 				/>
 			{/each}
 		{/if}

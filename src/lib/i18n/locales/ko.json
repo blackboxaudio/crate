@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}} 결합됨",
 		"expandAll": "모두 확장",
 		"collapseAll": "모두 축소",
+		"showLiked": "좋아요 표시된 항목 표시",
+		"showAll": "모두 표시",
 		"scanningReleases": "릴리스 스캔 중...",
 		"scanningReleasesProgress": "페이지 {current}/{total} 스캔 중 ({found}개의 릴리스를 찾았습니다)...",
 		"scanningReleasesEntity": "{name} 스캔 중...",

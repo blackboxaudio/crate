@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1曲} other {{count}曲}}を組み合わせ",
 		"expandAll": "すべて展開",
 		"collapseAll": "すべて折りたたむ",
+		"showLiked": "お気に入りを表示",
+		"showAll": "すべて表示",
 		"scanningReleases": "リリースをスキャン中...",
 		"scanningReleasesProgress": "ページ {current} / {total} をスキャン中 ({found}件のリリースが見つかりました)...",
 		"scanningReleasesEntity": "{name} をスキャン中...",

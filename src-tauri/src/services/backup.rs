@@ -222,7 +222,7 @@ impl BackupService {
 
         // Discovery tracks
         let mut stmt = conn.prepare(
-            "SELECT id, release_id, name, position, duration_ms, video_id FROM discovery_tracks",
+            "SELECT id, release_id, name, position, duration_ms, video_id, is_liked FROM discovery_tracks",
         )?;
         let discovery_tracks = stmt
             .query_map([], |row| {
@@ -233,6 +233,7 @@ impl BackupService {
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
                     video_id: row.get(5)?,
+                    is_liked: row.get(6)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -482,8 +483,8 @@ impl BackupService {
             // 9. Discovery tracks
             {
                 let mut stmt = tx.prepare(
-                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, is_liked)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
                 )?;
                 for dt in &data.discovery_tracks {
                     stmt.execute(params![
@@ -493,6 +494,7 @@ impl BackupService {
                         dt.position,
                         dt.duration_ms,
                         dt.video_id,
+                        dt.is_liked,
                     ])?;
                 }
             }

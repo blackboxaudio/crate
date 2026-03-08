@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1 piste} other {{count} pistes}} combinées",
 		"expandAll": "Développer tout",
 		"collapseAll": "Réduire tout",
+		"showLiked": "Afficher les favoris",
+		"showAll": "Afficher tous",
 		"scanningReleases": "Analyse des sorties...",
 		"scanningReleasesProgress": "Analyse de la page {current} sur {total} ({found} sorties trouvées)...",
 		"scanningReleasesEntity": "Analyse de {name}...",

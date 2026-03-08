@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1 spår} other {{count} spår}} kombinerat",
 		"expandAll": "Expandera alla",
 		"collapseAll": "Minimera alla",
+		"showLiked": "Visa gillade",
+		"showAll": "Visa alla",
 		"scanningReleases": "Skannar utgåvor...",
 		"scanningReleasesProgress": "Skannar sida {current} av {total} ({found} utgåvor hittades)...",
 		"scanningReleasesEntity": "Skannar {name}...",

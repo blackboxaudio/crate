@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1 faixa} other {{count} faixas}} combinadas",
 		"expandAll": "Expandir tudo",
 		"collapseAll": "Recolher tudo",
+		"showLiked": "Mostrar curtidas",
+		"showAll": "Mostrar tudo",
 		"scanningReleases": "Escaneando lançamentos...",
 		"scanningReleasesProgress": "Escaneando página {current} de {total} ({found} lançamentos encontrados)...",
 		"scanningReleasesEntity": "Escaneando {name}...",

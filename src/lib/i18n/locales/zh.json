@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}合并",
 		"expandAll": "全部展开",
 		"collapseAll": "全部折叠",
+		"showLiked": "显示已赞",
+		"showAll": "显示全部",
 		"scanningReleases": "正在扫描发行...",
 		"scanningReleasesProgress": "正在扫描第 {current} 页，共 {total} 页（找到 {found} 个发行）...",
 		"scanningReleasesEntity": "正在扫描 {name}...",

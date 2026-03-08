@@ -22,11 +22,14 @@
 		onReleaseOpenUrl?: (release: DiscoveryRelease) => void
 		onReleaseImport?: (release: DiscoveryRelease) => void
 		onTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
+		onTrackLikeToggle?: (releaseId: string, trackId: string) => void
 		onSortChange?: (config: DiscoverySortConfig) => void
 		onContextMenu?: (e: MouseEvent, release: DiscoveryRelease) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onUrlDrop?: (url: string) => void
 		onToggleEditor?: () => void
+		likedOnly?: boolean
+		onToggleLikedFilter?: () => void
 	}
 
 	let {
@@ -43,11 +46,14 @@
 		onReleaseOpenUrl,
 		onReleaseImport,
 		onTrackPlay,
+		onTrackLikeToggle,
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
 		onUrlDrop,
 		onToggleEditor,
+		likedOnly = false,
+		onToggleLikedFilter,
 	}: Props = $props()
 
 	let isDragOver = $state(false)
@@ -129,6 +135,19 @@
 			</Text>
 		</div>
 		<div class="flex items-center gap-1">
+			<Tooltip
+				text={likedOnly ? $translate('discovery.showAll') : $translate('discovery.showLiked')}
+				position="bottom"
+				delay={250}
+			>
+				<IconButton
+					icon="heart"
+					size="sm"
+					fill={likedOnly}
+					class={likedOnly ? 'text-brand-primary' : ''}
+					onclick={onToggleLikedFilter}
+				/>
+			</Tooltip>
 			{#if hasExpandableReleases}
 				<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 					<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
@@ -166,6 +185,7 @@
 			{onEmptySpaceContextMenu}
 			onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
 			{onTrackPlay}
+			{onTrackLikeToggle}
 		/>
 	</div>
 

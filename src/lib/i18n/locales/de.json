@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1 Track} other {{count} Tracks}} kombiniert",
 		"expandAll": "Alles erweitern",
 		"collapseAll": "Alles reduzieren",
+		"showLiked": "Markierte anzeigen",
+		"showAll": "Alle anzeigen",
 		"scanningReleases": "Scans Releases...",
 		"scanningReleasesProgress": "Seite {current} von {total} wird gescannt ({found} Releases gefunden)...",
 		"scanningReleasesEntity": "{name} wird gescannt...",

@@ -254,6 +254,8 @@
 		"mergeTrackCount": "{count, plural, =1 {1 nummer} other {{count} nummers}} gecombineerd",
 		"expandAll": "Alles uitvouwen",
 		"collapseAll": "Alles samenvouwen",
+		"showLiked": "Favorieten tonen",
+		"showAll": "Alles weergeven",
 		"scanningReleases": "Releases scannen...",
 		"scanningReleasesProgress": "Pagina {current} van {total} scannen ({found} releases gevonden)...",
 		"scanningReleasesEntity": "{name} scannen...",

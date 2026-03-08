@@ -354,6 +354,14 @@ pub async fn invalidate_preview_stream_cache(
 }
 
 #[tauri::command]
+pub async fn toggle_discovery_track_liked(
+    track_id: String,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<bool> {
+    discovery.toggle_track_liked(&track_id)
+}
+
+#[tauri::command]
 pub async fn get_discovery_release(
     id: String,
     discovery: State<'_, DiscoveryService>,
