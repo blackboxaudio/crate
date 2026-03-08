@@ -142,7 +142,7 @@
 	ondrop={handleDrop}
 >
 	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-stroke px-4 py-4">
+	<div class="flex items-center border-b border-stroke px-4 py-4">
 		<div class="flex items-center gap-2 rounded px-2 py-1 text-sm font-medium text-text-primary">
 			<Icon name="globe" class="h-4 w-4 shrink-0" />
 			<span>{$translate('nav.discovery')}</span>
@@ -151,7 +151,7 @@
 				{releaseCount === 1 ? $translate('discovery.release') : $translate('discovery.releases')}
 			</Text>
 		</div>
-		<div class="flex items-center gap-2">
+		<div class="flex flex-1 items-center justify-end gap-2">
 			{#if onSearchChange}
 				<div class="w-64">
 					<SearchBar

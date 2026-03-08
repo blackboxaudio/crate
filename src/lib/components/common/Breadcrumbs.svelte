@@ -28,7 +28,7 @@
 	}
 </script>
 
-<div class="flex items-center justify-between border-b border-stroke px-4 py-4">
+<div class="flex items-center border-b border-stroke px-4 py-4">
 	<div class="flex items-center gap-1">
 		{#each items as item, index (item.id ?? 'library')}
 			{#if index > 0}
@@ -58,6 +58,8 @@
 		{/each}
 	</div>
 	{#if actions}
-		{@render actions()}
+		<div class="flex flex-1 justify-end">
+			{@render actions()}
+		</div>
 	{/if}
 </div>
