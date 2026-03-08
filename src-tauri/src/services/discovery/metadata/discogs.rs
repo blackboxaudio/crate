@@ -148,6 +148,43 @@ pub(super) fn strip_discogs_suffix(name: &str) -> &str {
     name
 }
 
+/// Score a Discogs release item for version selection during bulk scanning.
+///
+/// Higher scores indicate a "better" version — official releases with artwork
+/// are preferred over test pressings, promos, and versions without artwork.
+pub(super) fn score_discogs_release(item: &serde_json::Value, id: u64) -> i32 {
+    let mut score: i32 = 0;
+
+    // Strongly prefer versions with artwork
+    let has_thumb = item
+        .get("thumb")
+        .and_then(|t| t.as_str())
+        .is_some_and(|s| !s.is_empty());
+    if has_thumb {
+        score += 10;
+    }
+
+    // Penalize test pressings, promos, and white labels
+    let format_lower = item
+        .get("format")
+        .and_then(|f| f.as_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if format_lower.contains("test pressing")
+        || format_lower.contains("promo")
+        || format_lower.contains("white label")
+    {
+        score -= 5;
+    }
+
+    // Tiebreaker: prefer lower IDs (typically the original pressing)
+    if id < 10_000_000 {
+        score += 1;
+    }
+
+    score
+}
+
 /// Join a Discogs `artists` array, respecting the `join` field between entries.
 pub(super) fn join_discogs_artists(artists: &[serde_json::Value]) -> Option<String> {
     if artists.is_empty() {
@@ -443,8 +480,9 @@ pub(super) async fn scan_discogs_page(
     };
 
     let mut all_releases = Vec::new();
-    let mut seen_titles: std::collections::HashSet<(String, String)> =
-        std::collections::HashSet::new();
+    // Maps (artist, title) → (index in all_releases, quality score) for smart dedup
+    let mut seen_titles: std::collections::HashMap<(String, String), (usize, i32)> =
+        std::collections::HashMap::new();
     let mut page = 1u32;
 
     loop {
@@ -468,16 +506,34 @@ pub(super) async fn scan_discogs_page(
             .unwrap_or_default();
 
         for item in &releases {
-            // Skip masters to avoid duplicates (artist endpoint only).
-            // Label endpoint omits the type field — treat all items as releases.
             let item_type = item.get("type").and_then(|t| t.as_str());
-            if item_type == Some("master") {
-                continue;
-            }
+            let is_master = item_type == Some("master");
 
-            let id = match item.get("id").and_then(|i| i.as_u64()) {
-                Some(id) => id,
-                None => continue,
+            // For masters on artist pages, resolve to the canonical main_release.
+            // Label endpoint omits the type field — all items are individual releases.
+            let (id, release_url) = if is_master {
+                if let Some(main_release_id) = item.get("main_release").and_then(|v| v.as_u64()) {
+                    (
+                        main_release_id,
+                        format!("https://www.discogs.com/release/{main_release_id}"),
+                    )
+                } else {
+                    // Fallback: use master URL (fetch_discogs resolves master → main_release)
+                    let master_id = match item.get("id").and_then(|i| i.as_u64()) {
+                        Some(id) => id,
+                        None => continue,
+                    };
+                    (
+                        master_id,
+                        format!("https://www.discogs.com/master/{master_id}"),
+                    )
+                }
+            } else {
+                let id = match item.get("id").and_then(|i| i.as_u64()) {
+                    Some(id) => id,
+                    None => continue,
+                };
+                (id, format!("https://www.discogs.com/release/{id}"))
             };
 
             let title = item
@@ -490,13 +546,43 @@ pub(super) async fn scan_discogs_page(
                 .and_then(|a| a.as_str())
                 .map(|s| strip_discogs_suffix(s).to_string());
 
-            // Skip duplicate pressings/formats of the same release (e.g. vinyl + digital + promo).
-            // The Discogs API returns each format variant as a separate entry.
+            // Dedup by (artist, title) — when duplicates are found (e.g. vinyl + digital
+            // + test pressing), keep the version with the highest quality score.
             let dedup_key = (
                 artist.as_deref().unwrap_or("").to_lowercase(),
                 title.as_deref().unwrap_or("").to_lowercase(),
             );
-            if !seen_titles.insert(dedup_key) {
+
+            let score = score_discogs_release(item, id);
+
+            if let Some(&(existing_idx, existing_score)) = seen_titles.get(&dedup_key) {
+                if score > existing_score {
+                    log::debug!(
+                        "Discogs scan: replacing version for {:?} (score {score} > {existing_score})",
+                        &dedup_key,
+                    );
+
+                    let artwork_url = item
+                        .get("thumb")
+                        .and_then(|t| t.as_str())
+                        .filter(|s| !s.is_empty())
+                        .map(|s| s.to_string());
+
+                    let release_date = item
+                        .get("year")
+                        .and_then(|y| y.as_u64())
+                        .map(|y| format!("{y}"));
+
+                    all_releases[existing_idx] = crate::models::ScannedRelease {
+                        url: release_url,
+                        artist,
+                        title,
+                        artwork_url,
+                        release_date,
+                        already_exists: false,
+                    };
+                    seen_titles.insert(dedup_key, (existing_idx, score));
+                }
                 continue;
             }
 
@@ -511,7 +597,8 @@ pub(super) async fn scan_discogs_page(
                 .and_then(|y| y.as_u64())
                 .map(|y| format!("{y}"));
 
-            let release_url = format!("https://www.discogs.com/release/{id}");
+            let idx = all_releases.len();
+            seen_titles.insert(dedup_key, (idx, score));
 
             all_releases.push(crate::models::ScannedRelease {
                 url: release_url,

@@ -1,8 +1,8 @@
 use super::bandcamp::parse_bandcamp_json_ld;
 use super::common::{extract_meta_content, normalize_date, parse_iso_duration};
 use super::discogs::{
-    join_discogs_artists, parse_discogs_duration, parse_discogs_url, strip_discogs_suffix,
-    DiscogsUrlKind,
+    join_discogs_artists, parse_discogs_duration, parse_discogs_url, score_discogs_release,
+    strip_discogs_suffix, DiscogsUrlKind,
 };
 use super::soundcloud::parse_sc_hydration;
 use super::youtube::{
@@ -296,6 +296,51 @@ fn test_join_discogs_artists() {
     // Empty
     let empty: Vec<serde_json::Value> = vec![];
     assert_eq!(join_discogs_artists(&empty), None);
+}
+
+#[test]
+fn test_score_discogs_release_prefers_artwork() {
+    let with_art = serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg"});
+    let without_art = serde_json::json!({"thumb": ""});
+    let no_thumb = serde_json::json!({});
+    assert!(score_discogs_release(&with_art, 100) > score_discogs_release(&without_art, 100));
+    assert!(score_discogs_release(&with_art, 100) > score_discogs_release(&no_thumb, 100));
+}
+
+#[test]
+fn test_score_discogs_release_penalizes_test_pressing() {
+    let official =
+        serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", EP"});
+    let test_press = serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", EP, Test Pressing"});
+    assert!(score_discogs_release(&official, 100) > score_discogs_release(&test_press, 100));
+}
+
+#[test]
+fn test_score_discogs_release_penalizes_promo() {
+    let official =
+        serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\""});
+    let promo = serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", Promo"});
+    assert!(score_discogs_release(&official, 100) > score_discogs_release(&promo, 100));
+}
+
+#[test]
+fn test_score_discogs_release_penalizes_white_label() {
+    let official =
+        serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\""});
+    let white_label = serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", White Label"});
+    assert!(score_discogs_release(&official, 100) > score_discogs_release(&white_label, 100));
+}
+
+#[test]
+fn test_score_discogs_release_artwork_beats_format_penalty() {
+    // A test pressing with artwork should still score higher than an official release without
+    let test_with_art =
+        serde_json::json!({"thumb": "https://img.discogs.com/abc.jpg", "format": "12\", Test Pressing"});
+    let official_no_art = serde_json::json!({"thumb": "", "format": "12\""});
+    assert!(
+        score_discogs_release(&test_with_art, 100)
+            > score_discogs_release(&official_no_art, 100)
+    );
 }
 
 // =========================================================================
