@@ -253,7 +253,21 @@
 		"mergeConfirm": "메타데이터 보존 위치:",
 		"mergeTrackCount": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}} 결합됨",
 		"expandAll": "모두 확장",
-		"collapseAll": "모두 축소"
+		"collapseAll": "모두 축소",
+		"scanningReleases": "릴리스 스캔 중...",
+		"bulkImport": {
+			"releasesFound": "{total, plural, =1 {1개의 릴리스} other {{total}개의 릴리스}}를 찾았습니다",
+			"alreadyInDiscovery": "{count, plural, =1 {1개는 이미 발견 목록에 있음} other {{count}개는 이미 발견 목록에 있음}}",
+			"selectAll": "모두 선택",
+			"deselectAll": "모두 선택 해제",
+			"addReleases": "{count, plural, =1 {1개의 릴리스} other {{count}개의 릴리스}} 추가",
+			"importing": "{current}/{total}개 릴리스 추가 중...",
+			"completed": "{succeeded, plural, =1 {1개의 릴리스} other {{succeeded}개의 릴리스}}를 추가했습니다",
+			"completedWithFailures": "{succeeded, plural, =1 {1개의 릴리스} other {{succeeded}개의 릴리스}}를 추가했습니다({failed}개 실패)",
+			"alreadyInDiscoveryBadge": "이미 발견 목록에 있음",
+			"noReleasesFound": "이 페이지에서 발견된 릴리스 없음",
+			"cancelImport": "가져오기 취소"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "새 재생목록",

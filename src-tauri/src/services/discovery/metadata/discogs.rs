@@ -11,6 +11,8 @@ use super::{is_compilation, FetchedMetadata, FetchedTrack};
 pub(super) enum DiscogsUrlKind {
     Release(u64),
     Master(u64),
+    Artist(u64),
+    Label(u64),
 }
 
 /// Parse a Discogs URL into a typed identifier.
@@ -33,6 +35,8 @@ pub(super) fn parse_discogs_url(url: &str) -> Option<DiscogsUrlKind> {
         let kind = match seg.to_lowercase().as_str() {
             "release" => Some("release"),
             "master" => Some("master"),
+            "artist" => Some("artist"),
+            "label" => Some("label"),
             _ => None,
         };
         if let Some(kind_str) = kind {
@@ -43,6 +47,8 @@ pub(super) fn parse_discogs_url(url: &str) -> Option<DiscogsUrlKind> {
                     return match kind_str {
                         "release" => Some(DiscogsUrlKind::Release(id)),
                         "master" => Some(DiscogsUrlKind::Master(id)),
+                        "artist" => Some(DiscogsUrlKind::Artist(id)),
+                        "label" => Some(DiscogsUrlKind::Label(id)),
                         _ => None,
                     };
                 }
@@ -135,6 +141,11 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
 
     // For master releases, resolve to the main release first
     let release_id = match kind {
+        DiscogsUrlKind::Artist(_) | DiscogsUrlKind::Label(_) => {
+            return Err(CrateError::Discovery(
+                "Artist/label pages cannot be fetched as a single release".into(),
+            ));
+        }
         DiscogsUrlKind::Release(id) => id,
         DiscogsUrlKind::Master(id) => {
             let master_url = format!("https://api.discogs.com/masters/{id}");
@@ -345,4 +356,154 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
         parent_url: None,
         parent_album_title: None,
     })
+}
+
+/// Scan a Discogs artist or label page, returning all releases found.
+///
+/// Paginates through the Discogs API, extracting release items and constructing
+/// canonical URLs. Returns (releases, page_artist, page_label).
+pub(super) async fn scan_discogs_page(
+    client: &reqwest::Client,
+    kind: &DiscogsUrlKind,
+) -> Result<(
+    Vec<crate::models::ScannedRelease>,
+    Option<String>,
+    Option<String>,
+)> {
+    use super::jittered_delay;
+
+    let (api_base, entity_url) = match kind {
+        DiscogsUrlKind::Artist(id) => (
+            format!("https://api.discogs.com/artists/{id}/releases"),
+            format!("https://api.discogs.com/artists/{id}"),
+        ),
+        DiscogsUrlKind::Label(id) => (
+            format!("https://api.discogs.com/labels/{id}/releases"),
+            format!("https://api.discogs.com/labels/{id}"),
+        ),
+        _ => {
+            return Err(CrateError::Discovery(
+                "Expected artist or label URL for page scanning".into(),
+            ))
+        }
+    };
+
+    // Fetch entity info first to get name
+    let entity_resp: serde_json::Value = client
+        .get(&entity_url)
+        .header("User-Agent", "CrateApp/0.1")
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Discogs entity: {e}")))?
+        .json()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to parse Discogs entity: {e}")))?;
+
+    if let Some(msg) = entity_resp.get("message").and_then(|m| m.as_str()) {
+        return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
+    }
+
+    let entity_name = entity_resp
+        .get("name")
+        .and_then(|n| n.as_str())
+        .map(|s| s.to_string());
+
+    let (page_artist, page_label) = match kind {
+        DiscogsUrlKind::Artist(_) => (entity_name, None),
+        DiscogsUrlKind::Label(_) => (None, entity_name),
+        _ => (None, None),
+    };
+
+    let mut all_releases = Vec::new();
+    let mut page = 1u32;
+
+    loop {
+        if page > 1 {
+            tokio::time::sleep(jittered_delay(2500)).await;
+        }
+
+        let url = format!("{api_base}?page={page}&per_page=100&sort=year&sort_order=desc");
+        let resp: serde_json::Value = client
+            .get(&url)
+            .header("User-Agent", "CrateApp/0.1")
+            .send()
+            .await
+            .map_err(|e| {
+                CrateError::Discovery(format!("Failed to fetch Discogs releases page: {e}"))
+            })?
+            .json()
+            .await
+            .map_err(|e| {
+                CrateError::Discovery(format!("Failed to parse Discogs releases page: {e}"))
+            })?;
+
+        if let Some(msg) = resp.get("message").and_then(|m| m.as_str()) {
+            return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
+        }
+
+        let releases = resp
+            .get("releases")
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        for item in &releases {
+            // Only include actual releases (skip masters to avoid duplicates)
+            let item_type = item.get("type").and_then(|t| t.as_str()).unwrap_or("");
+            if item_type != "release" {
+                continue;
+            }
+
+            let id = match item.get("id").and_then(|i| i.as_u64()) {
+                Some(id) => id,
+                None => continue,
+            };
+
+            let title = item
+                .get("title")
+                .and_then(|t| t.as_str())
+                .map(|s| s.to_string());
+
+            let artist = item
+                .get("artist")
+                .and_then(|a| a.as_str())
+                .map(|s| strip_discogs_suffix(s).to_string());
+
+            let artwork_url = item
+                .get("thumb")
+                .and_then(|t| t.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string());
+
+            let release_date = item
+                .get("year")
+                .and_then(|y| y.as_u64())
+                .map(|y| format!("{y}"));
+
+            let release_url = format!("https://www.discogs.com/release/{id}");
+
+            all_releases.push(crate::models::ScannedRelease {
+                url: release_url,
+                artist,
+                title,
+                artwork_url,
+                release_date,
+                already_exists: false,
+            });
+        }
+
+        // Check pagination
+        let total_pages = resp
+            .get("pagination")
+            .and_then(|p| p.get("pages"))
+            .and_then(|p| p.as_u64())
+            .unwrap_or(1) as u32;
+
+        if page >= total_pages {
+            break;
+        }
+        page += 1;
+    }
+
+    Ok((all_releases, page_artist, page_label))
 }

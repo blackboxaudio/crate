@@ -460,6 +460,20 @@ impl DiscoveryService {
         Ok(())
     }
 
+    pub fn get_all_release_urls(&self) -> Result<std::collections::HashSet<String>> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        let mut stmt = conn.prepare("SELECT url FROM discovery_releases")?;
+        let urls = stmt
+            .query_map([], |row| row.get::<_, String>(0))?
+            .collect::<std::result::Result<std::collections::HashSet<String>, _>>()?;
+
+        Ok(urls)
+    }
+
     pub fn delete_releases(&self, ids: Vec<String>) -> Result<()> {
         // Clean up cached audio files for all releases
         for id in &ids {

@@ -253,7 +253,21 @@
 		"mergeConfirm": "保留元数据来自：",
 		"mergeTrackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}合并",
 		"expandAll": "全部展开",
-		"collapseAll": "全部折叠"
+		"collapseAll": "全部折叠",
+		"scanningReleases": "正在扫描发行...",
+		"bulkImport": {
+			"releasesFound": "找到 {total, plural, =1 {1 个发行} other {{total} 个发行}}",
+			"alreadyInDiscovery": "{count, plural, =1 {1 个已在发现中} other {{count} 个已在发现中}}",
+			"selectAll": "全选",
+			"deselectAll": "取消全选",
+			"addReleases": "添加 {count, plural, =1 {1 个发行} other {{count} 个发行}}",
+			"importing": "正在添加第 {current} 个，共 {total} 个发行...",
+			"completed": "已添加 {succeeded, plural, =1 {1 个发行} other {{succeeded} 个发行}}",
+			"completedWithFailures": "已添加 {succeeded, plural, =1 {1 个发行} other {{succeeded} 个发行}}（{failed} 个失败）",
+			"alreadyInDiscoveryBadge": "已在发现中",
+			"noReleasesFound": "此页面上未找到发行",
+			"cancelImport": "取消导入"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "新建播放列表",

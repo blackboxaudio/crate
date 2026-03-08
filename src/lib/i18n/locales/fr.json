@@ -253,7 +253,21 @@
 		"mergeConfirm": "Garder les métadonnées de :",
 		"mergeTrackCount": "{count, plural, =1 {1 piste} other {{count} pistes}} combinées",
 		"expandAll": "Développer tout",
-		"collapseAll": "Réduire tout"
+		"collapseAll": "Réduire tout",
+		"scanningReleases": "Analyse des sorties...",
+		"bulkImport": {
+			"releasesFound": "{total, plural, =1 {1 sortie} other {{total} sorties}} trouvée(s)",
+			"alreadyInDiscovery": "{count, plural, =1 {1 déjà dans découvertes} other {{count} déjà dans découvertes}}",
+			"selectAll": "Tout sélectionner",
+			"deselectAll": "Tout désélectionner",
+			"addReleases": "Ajouter {count, plural, =1 {1 sortie} other {{count} sorties}}",
+			"importing": "Ajout {current} sur {total} sorties...",
+			"completed": "{succeeded, plural, =1 {1 sortie} other {{succeeded} sorties}} ajoutée(s)",
+			"completedWithFailures": "{succeeded, plural, =1 {1 sortie} other {{succeeded} sorties}} ajoutée(s) ({failed} échouée(s))",
+			"alreadyInDiscoveryBadge": "Déjà dans découvertes",
+			"noReleasesFound": "Aucune sortie trouvée sur cette page",
+			"cancelImport": "Annuler l'importation"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nouvelle playlist",

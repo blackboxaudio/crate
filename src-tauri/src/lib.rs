@@ -18,6 +18,9 @@ pub(crate) struct ProxyServerPort(pub u16);
 /// Tracks in-flight prefetch tasks by release ID to prevent duplicate spawns.
 pub(crate) struct PrefetchTracker(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
 
+/// Flag to signal cancellation of a running bulk import operation.
+pub(crate) struct BulkImportCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
+
 impl PrefetchTracker {
     pub fn new() -> Self {
         Self(Arc::new(tokio::sync::Mutex::new(HashSet::new())))
@@ -171,6 +174,9 @@ pub fn run() {
             commands::discovery::nsig_solve_callback,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
+            commands::discovery::scan_discovery_page,
+            commands::discovery::bulk_create_discovery_releases,
+            commands::discovery::cancel_bulk_import,
             // Backup commands
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
@@ -255,6 +261,9 @@ pub fn run() {
             app.manage(discovery_service);
             app.manage(NsigSolverState::new());
             app.manage(PrefetchTracker::new());
+            app.manage(BulkImportCancelFlag(Arc::new(
+                std::sync::atomic::AtomicBool::new(false),
+            )));
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

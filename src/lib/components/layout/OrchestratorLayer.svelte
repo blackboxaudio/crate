@@ -454,6 +454,10 @@
 				await discoveryStore.loadReleases()
 			}
 		}}
+		onBulkImportComplete={async () => {
+			await discoveryStore.loadReleases()
+			await playlistsStore.load()
+		}}
 	/>
 {/if}
 

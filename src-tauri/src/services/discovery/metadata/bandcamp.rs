@@ -1,7 +1,153 @@
 use crate::error::{CrateError, Result};
 
-use super::common::{extract_meta_content, parse_iso_duration};
+use super::common::{decode_html_entities, extract_meta_content, parse_iso_duration};
 use super::{is_compilation, FetchedMetadata, FetchedTrack};
+
+/// Returns `true` for `*.bandcamp.com` URLs that are artist/label pages
+/// (i.e. NOT individual album or track pages).
+pub(super) fn is_bandcamp_page_url(url: &str) -> bool {
+    let lower = url.to_lowercase();
+    if !lower.contains("bandcamp.com") {
+        return false;
+    }
+    // If the path contains /album/ or /track/, it's a release page
+    !lower.contains("/album/") && !lower.contains("/track/")
+}
+
+/// Scan a Bandcamp artist/label page for releases.
+///
+/// Extracts releases from the music grid and returns them along with the page name.
+pub(super) async fn scan_bandcamp_page(
+    client: &reqwest::Client,
+    url: &str,
+) -> Result<(Vec<crate::models::ScannedRelease>, Option<String>)> {
+    let html = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Bandcamp page: {e}")))?
+        .text()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to read Bandcamp response: {e}")))?;
+
+    let page_name = extract_meta_content(&html, "og:site_name");
+
+    // Determine base URL for constructing absolute URLs
+    let base_url = {
+        // Extract origin from the URL (e.g. "https://artist.bandcamp.com")
+        if let Some(idx) = url.find("://") {
+            let rest = &url[idx + 3..];
+            match rest.find('/') {
+                Some(slash) => &url[..idx + 3 + slash],
+                None => url,
+            }
+        } else {
+            url
+        }
+    };
+
+    let mut releases = Vec::new();
+
+    // Parse the music grid. Bandcamp uses <li> items inside the music grid.
+    // Each item has an <a> link, artwork <img>, and title text.
+    // We look for <li class="music-grid-item ..."> patterns.
+    let mut search_pos = 0;
+    while let Some(li_start) = html[search_pos..].find("<li") {
+        let abs_li_start = search_pos + li_start;
+
+        // Find the end of this <li> tag
+        let li_end = match html[abs_li_start..].find("</li>") {
+            Some(end) => abs_li_start + end + 5,
+            None => break,
+        };
+
+        let li_html = &html[abs_li_start..li_end];
+
+        // Only process music grid items
+        if !li_html.contains("music-grid-item") {
+            search_pos = li_end;
+            continue;
+        }
+
+        // Extract href from the first <a> tag
+        let href = extract_attr(li_html, "href");
+
+        // Extract artwork from <img> tag (try data-original first for lazy-loaded, then src)
+        let artwork = extract_attr(li_html, "data-original")
+            .or_else(|| {
+                // Find <img and extract src from it
+                if let Some(img_start) = li_html.find("<img") {
+                    let img_html = &li_html[img_start..];
+                    extract_attr(img_html, "src")
+                } else {
+                    None
+                }
+            })
+            .filter(|s| !s.is_empty() && !s.contains("transparent.gif"));
+
+        // Extract title from <p class="title"> ... </p>
+        let title = extract_inner_text(li_html, "title");
+
+        if let Some(href) = href {
+            // Construct absolute URL
+            let absolute_url = if href.starts_with("http") {
+                href.to_string()
+            } else {
+                format!("{}{}", base_url.trim_end_matches('/'), href)
+            };
+
+            // Only include album/track links
+            if absolute_url.contains("/album/") || absolute_url.contains("/track/") {
+                releases.push(crate::models::ScannedRelease {
+                    url: absolute_url,
+                    artist: page_name.clone(),
+                    title,
+                    artwork_url: artwork.map(|s| s.to_string()),
+                    release_date: None,
+                    already_exists: false,
+                });
+            }
+        }
+
+        search_pos = li_end;
+    }
+
+    Ok((releases, page_name))
+}
+
+/// Extract the value of an HTML attribute from a tag string.
+fn extract_attr<'a>(html: &'a str, attr: &str) -> Option<&'a str> {
+    let pattern = format!("{attr}=\"");
+    if let Some(start) = html.find(&pattern) {
+        let value_start = start + pattern.len();
+        if let Some(end) = html[value_start..].find('"') {
+            let value = &html[value_start..value_start + end];
+            if !value.is_empty() {
+                return Some(value);
+            }
+        }
+    }
+    None
+}
+
+/// Extract the inner text content from an element with a specific class.
+fn extract_inner_text(html: &str, class_name: &str) -> Option<String> {
+    let class_pattern = format!("class=\"{class_name}");
+    if let Some(class_pos) = html.find(&class_pattern) {
+        // Find the closing > of this tag
+        if let Some(tag_end) = html[class_pos..].find('>') {
+            let content_start = class_pos + tag_end + 1;
+            // Find the next < which starts the closing tag
+            if let Some(content_end) = html[content_start..].find('<') {
+                let text = html[content_start..content_start + content_end].trim();
+                if !text.is_empty() {
+                    return Some(decode_html_entities(text));
+                }
+            }
+        }
+    }
+    None
+}
 
 pub(super) async fn fetch_bandcamp(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
     let html = client
@@ -98,6 +244,13 @@ pub(super) fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
 
                     let label = value
                         .get("recordLabel")
+                        .or_else(|| {
+                            // Some Bandcamp pages nest recordLabel inside albumRelease items
+                            value
+                                .get("albumRelease")
+                                .and_then(|r| r.as_array())
+                                .and_then(|arr| arr.iter().find_map(|rel| rel.get("recordLabel")))
+                        })
                         .or_else(|| value.get("publisher"))
                         .and_then(|l| l.get("name"))
                         .and_then(|n| n.as_str())
