@@ -40,6 +40,15 @@ pub struct FetchedTrack {
     pub video_id: Option<String>,
 }
 
+pub(super) fn is_compilation(artist: &Option<String>) -> bool {
+    let Some(artist) = artist else { return false };
+    let normalized = artist.trim().to_lowercase();
+    matches!(
+        normalized.as_str(),
+        "various artists" | "various" | "v.a." | "v/a" | "va"
+    )
+}
+
 pub(super) fn build_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))

@@ -219,6 +219,8 @@
 		"tracks": "曲目",
 		"trackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}",
 		"openInBrowser": "在浏览器中打开",
+		"copyUrl": "复制URL",
+		"copiedUrl": "已复制URL到剪贴板",
 		"importToLibrary": "导入到音乐库",
 		"deleteRelease": "删除发行",
 		"deleteReleases": "删除发行",

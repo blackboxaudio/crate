@@ -1,7 +1,7 @@
 use crate::error::{CrateError, Result};
 
 use super::common::{extract_meta_content, parse_iso_duration};
-use super::{FetchedMetadata, FetchedTrack};
+use super::{is_compilation, FetchedMetadata, FetchedTrack};
 
 pub(super) async fn fetch_bandcamp(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
     let html = client
@@ -116,7 +116,7 @@ pub(super) fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                         });
 
                     // Parse tracks from albumRelease or track.itemListElement
-                    let mut tracks = parse_bandcamp_tracks(&value);
+                    let mut tracks = parse_bandcamp_tracks(&value, &artist);
 
                     // For MusicRecording (individual track pages), create a single
                     // track from the root-level name/duration when no track list exists
@@ -176,12 +176,17 @@ pub(super) fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
     None
 }
 
-fn parse_bandcamp_tracks(value: &serde_json::Value) -> Vec<FetchedTrack> {
+fn parse_bandcamp_tracks(
+    value: &serde_json::Value,
+    release_artist: &Option<String>,
+) -> Vec<FetchedTrack> {
     // Try track.itemListElement (common in MusicAlbum)
     let items = value
         .get("track")
         .and_then(|t| t.get("itemListElement"))
         .and_then(|i| i.as_array());
+
+    let is_comp = is_compilation(release_artist);
 
     if let Some(items) = items {
         return items
@@ -189,10 +194,22 @@ fn parse_bandcamp_tracks(value: &serde_json::Value) -> Vec<FetchedTrack> {
             .enumerate()
             .filter_map(|(idx, item)| {
                 let track_item = item.get("item").unwrap_or(item);
-                let name = track_item
+                let raw_name = track_item
                     .get("name")
                     .and_then(|n| n.as_str())
                     .map(|s| s.to_string())?;
+
+                // For compilations, prepend the per-track artist to preserve it
+                let name = if is_comp {
+                    track_item
+                        .get("byArtist")
+                        .and_then(|a| a.get("name"))
+                        .and_then(|n| n.as_str())
+                        .map(|artist| format!("{artist} - {raw_name}"))
+                        .unwrap_or(raw_name)
+                } else {
+                    raw_name
+                };
 
                 let position = item
                     .get("position")

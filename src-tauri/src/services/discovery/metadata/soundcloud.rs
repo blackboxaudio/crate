@@ -1,6 +1,6 @@
 use crate::error::{CrateError, Result};
 
-use super::{FetchedMetadata, FetchedTrack};
+use super::{is_compilation, FetchedMetadata, FetchedTrack};
 
 pub(super) fn parse_sc_hydration(html: &str) -> Option<FetchedMetadata> {
     // Find window.__sc_hydration JSON blob
@@ -190,13 +190,17 @@ pub(super) fn parse_sc_playlist_hydration(html: &str) -> Option<FetchedMetadata>
                 .enumerate()
                 .filter_map(|(idx, track)| {
                     let raw_name = track.get("title").and_then(|t| t.as_str())?.to_string();
-                    let name = artist
-                        .as_ref()
-                        .and_then(|a| {
-                            let prefix = format!("{a} - ");
-                            raw_name.strip_prefix(&prefix).map(|s| s.to_string())
-                        })
-                        .unwrap_or(raw_name);
+                    let name = if !is_compilation(&artist) {
+                        artist
+                            .as_ref()
+                            .and_then(|a| {
+                                let prefix = format!("{a} - ");
+                                raw_name.strip_prefix(&prefix).map(|s| s.to_string())
+                            })
+                            .unwrap_or(raw_name)
+                    } else {
+                        raw_name
+                    };
                     let duration_ms = track.get("duration").and_then(|d| d.as_i64());
                     Some(FetchedTrack {
                         name,
