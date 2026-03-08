@@ -4,6 +4,7 @@
 	import { getStoredSet, setStoredSet } from '$lib/utils'
 	import { handleSelection } from '$lib/utils/selection'
 	import { translate } from '$lib/i18n'
+	import { slide } from 'svelte/transition'
 	import PlaylistItem from './PlaylistItem.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 	import { SvelteSet } from 'svelte/reactivity'
@@ -164,9 +165,11 @@
 	/>
 
 	{#if node.playlist.is_folder && expandedIds.has(node.playlist.id)}
-		{#each node.children as child, index (index)}
-			{@render renderNode(child, depth + 1)}
-		{/each}
+		<div transition:slide={{ duration: 150 }}>
+			{#each node.children as child, index (index)}
+				{@render renderNode(child, depth + 1)}
+			{/each}
+		</div>
 	{/if}
 {/snippet}
 

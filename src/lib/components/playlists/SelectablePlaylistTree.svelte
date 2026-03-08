@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
 	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
+	import { slide } from 'svelte/transition'
 	import PlaylistItem from './PlaylistItem.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 	import { SvelteSet } from 'svelte/reactivity'
@@ -57,9 +58,11 @@
 	/>
 
 	{#if node.playlist.is_folder && expandedIds.has(node.playlist.id)}
-		{#each node.children as child, index (index)}
-			{@render renderNode(child, depth + 1)}
-		{/each}
+		<div transition:slide={{ duration: 150 }}>
+			{#each node.children as child, index (index)}
+				{@render renderNode(child, depth + 1)}
+			{/each}
+		</div>
 	{/if}
 {/snippet}
 
