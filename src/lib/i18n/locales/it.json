@@ -255,6 +255,8 @@
 		"expandAll": "Espandi tutto",
 		"collapseAll": "Comprimi tutto",
 		"scanningReleases": "Scansione dei rilasci...",
+		"scanningReleasesProgress": "Scansione pagina {current} di {total} ({found} rilasci trovati)...",
+		"scanningReleasesEntity": "Scansione di {name}...",
 		"bulkImport": {
 			"releasesFound": "{total, plural, =1 {1 rilascio} other {{total} rilasci}} trovato(i)",
 			"alreadyInDiscovery": "{count, plural, =1 {1 già nella scoperta} other {{count} già nella scoperta}}",

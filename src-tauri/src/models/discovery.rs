@@ -101,6 +101,14 @@ pub struct BulkImportProgress {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScanPageProgress {
+    pub current_page: u32,
+    pub total_pages: Option<u32>,
+    pub releases_found: usize,
+    pub entity_name: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BulkImportResult {
     pub succeeded: usize,
     pub failed: usize,

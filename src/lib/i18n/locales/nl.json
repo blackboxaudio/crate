@@ -255,6 +255,8 @@
 		"expandAll": "Alles uitvouwen",
 		"collapseAll": "Alles samenvouwen",
 		"scanningReleases": "Releases scannen...",
+		"scanningReleasesProgress": "Pagina {current} van {total} scannen ({found} releases gevonden)...",
+		"scanningReleasesEntity": "{name} scannen...",
 		"bulkImport": {
 			"releasesFound": "{total, plural, =1 {1 release} other {{total} releases}} gevonden",
 			"alreadyInDiscovery": "{count, plural, =1 {1 al in ontdekkingen} other {{count} al in ontdekkingen}}",

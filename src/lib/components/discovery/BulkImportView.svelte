@@ -81,10 +81,13 @@
 		result = null
 
 		try {
+			const selectedReleases = scannedPage.releases.filter((r) => selectedUrls.has(r.url))
 			const importResult = await discoveryApi.bulkCreateReleases(
 				[...selectedUrls],
 				scannedPage.page_label,
-				scannedPage.page_artist
+				scannedPage.page_artist,
+				selectedReleases,
+				scannedPage.source_type
 			)
 			result = importResult
 			onImportComplete(importResult)

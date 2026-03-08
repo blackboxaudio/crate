@@ -255,6 +255,8 @@
 		"expandAll": "全部展开",
 		"collapseAll": "全部折叠",
 		"scanningReleases": "正在扫描发行...",
+		"scanningReleasesProgress": "正在扫描第 {current} 页，共 {total} 页（找到 {found} 个发行）...",
+		"scanningReleasesEntity": "正在扫描 {name}...",
 		"bulkImport": {
 			"releasesFound": "找到 {total, plural, =1 {1 个发行} other {{total} 个发行}}",
 			"alreadyInDiscovery": "{count, plural, =1 {1 个已在发现中} other {{count} 个已在发现中}}",

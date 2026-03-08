@@ -6,12 +6,15 @@
 		DiscoveryTrackCreate,
 		FetchedMetadata,
 		ScannedPage,
+		ScanPageProgress,
 		BulkImportResult,
 	} from '$lib/types'
 	import { Modal, Input, Select, Button, Text, Spinner } from '$lib/components/common'
 	import { BulkImportView } from '$lib/components/discovery'
 	import { translate } from '$lib/i18n'
 	import { autoFetchMetadata } from '$lib/stores/settings'
+	import { listen } from '@tauri-apps/api/event'
+	import { onMount } from 'svelte'
 	import * as discoveryApi from '$lib/api/discovery'
 
 	type Props = {
@@ -47,8 +50,23 @@
 	// Bulk import state
 	let isBulkMode = $state(false)
 	let scanning = $state(false)
+	let scanProgress = $state<ScanPageProgress | null>(null)
 	let scannedPage = $state<ScannedPage | null>(null)
 	let bulkImporting = $state(false)
+
+	let unlistenScanProgress: (() => void) | null = null
+
+	onMount(() => {
+		listen<ScanPageProgress>('scan-page-progress', (event) => {
+			scanProgress = event.payload
+		}).then((fn) => {
+			unlistenScanProgress = fn
+		})
+
+		return () => {
+			unlistenScanProgress?.()
+		}
+	})
 
 	const sourceOptions = [
 		{ value: 'bandcamp', label: 'Bandcamp' },
@@ -92,6 +110,7 @@
 		matchType = null
 		isBulkMode = false
 		scanning = false
+		scanProgress = null
 		scannedPage = null
 	}
 
@@ -219,6 +238,7 @@
 		lastFetchedUrl = ''
 		isBulkMode = false
 		scanning = false
+		scanProgress = null
 		scannedPage = null
 		bulkImporting = false
 		if (fetchDebounceTimer) {
@@ -304,7 +324,23 @@
 				{:else if scanning}
 					<div class="mt-2 flex items-center gap-2">
 						<Spinner class="h-3.5 w-3.5" />
-						<Text size="xs" color="tertiary">{$translate('discovery.scanningReleases')}</Text>
+						<Text size="xs" color="tertiary">
+							{#if scanProgress?.total_pages}
+								{$translate('discovery.scanningReleasesProgress', {
+									values: {
+										current: scanProgress.current_page,
+										total: scanProgress.total_pages,
+										found: scanProgress.releases_found,
+									},
+								})}
+							{:else if scanProgress?.entity_name}
+								{$translate('discovery.scanningReleasesEntity', {
+									values: { name: scanProgress.entity_name },
+								})}
+							{:else}
+								{$translate('discovery.scanningReleases')}
+							{/if}
+						</Text>
 					</div>
 				{:else if fetchError}
 					<Text size="xs" color="danger" class="mt-2">{$translate('discovery.fetchError')}</Text>

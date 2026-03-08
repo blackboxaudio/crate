@@ -8,6 +8,7 @@ import type {
 	FetchedMetadata,
 	ImportResultWithDuplicates,
 	ScannedPage,
+	ScannedRelease,
 	BulkImportResult,
 } from '$lib/types'
 
@@ -102,12 +103,16 @@ export async function scanPage(url: string): Promise<ScannedPage> {
 export async function bulkCreateReleases(
 	urls: string[],
 	pageLabel?: string | null,
-	pageArtist?: string | null
+	pageArtist?: string | null,
+	scannedReleases?: ScannedRelease[] | null,
+	sourceType?: string | null
 ): Promise<BulkImportResult> {
 	return invoke<BulkImportResult>('bulk_create_discovery_releases', {
 		urls,
+		scannedReleases: scannedReleases ?? null,
 		pageLabel: pageLabel ?? null,
 		pageArtist: pageArtist ?? null,
+		sourceType: sourceType ?? null,
 	})
 }
 

@@ -779,6 +779,13 @@ export interface BulkImportResult {
 	failed_urls: string[]
 }
 
+export interface ScanPageProgress {
+	current_page: number
+	total_pages: number | null
+	releases_found: number
+	entity_name: string | null
+}
+
 // =============================================================================
 // Backup Types
 // =============================================================================

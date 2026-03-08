@@ -7,7 +7,7 @@ use crate::error::{CrateError, Result};
 use crate::models::{
     BulkImportProgress, BulkImportResult, DiscoveryFilter, DiscoveryRelease,
     DiscoveryReleaseCreate, DiscoveryReleaseUpdate, DiscoveryTrackCreate,
-    ImportResultWithDuplicates, ScannedPage,
+    ImportResultWithDuplicates, ScannedPage, ScannedRelease,
 };
 use crate::services::discovery::metadata::{self, FetchedMetadata};
 use crate::services::discovery::n_transform::{self, NsigSolverState};
@@ -541,19 +541,27 @@ pub async fn nsig_solve_callback(
 #[tauri::command]
 pub async fn scan_discovery_page(
     url: String,
+    app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
     cancel_flag: State<'_, ScanPageCancelFlag>,
 ) -> Result<ScannedPage> {
     cancel_flag.0.store(false, Ordering::SeqCst);
     let existing_urls = discovery.get_all_release_urls()?;
-    metadata::scan_page(&url, &existing_urls, &cancel_flag.0).await
+    tokio::time::timeout(
+        std::time::Duration::from_secs(60),
+        metadata::scan_page(&url, &existing_urls, &cancel_flag.0, Some(&app)),
+    )
+    .await
+    .map_err(|_| CrateError::Discovery("Scan timed out after 60 seconds".into()))?
 }
 
 #[tauri::command]
 pub async fn bulk_create_discovery_releases(
     urls: Vec<String>,
+    scanned_releases: Option<Vec<ScannedRelease>>,
     page_label: Option<String>,
     page_artist: Option<String>,
+    source_type: Option<String>,
     app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
     tracker: State<'_, PrefetchTracker>,
@@ -561,6 +569,13 @@ pub async fn bulk_create_discovery_releases(
 ) -> Result<BulkImportResult> {
     // Reset cancel flag
     cancel_flag.0.store(false, Ordering::SeqCst);
+
+    // Build a lookup of scanned data by URL for the fast path
+    let scanned_map: std::collections::HashMap<String, ScannedRelease> = scanned_releases
+        .unwrap_or_default()
+        .into_iter()
+        .map(|r| (r.url.clone(), r))
+        .collect();
 
     let total = urls.len();
     let mut succeeded = 0usize;
@@ -574,80 +589,93 @@ pub async fn bulk_create_discovery_releases(
             break;
         }
 
-        // Throttle between requests
-        if i > 0 {
-            let delay = if url.to_lowercase().contains("discogs.com") {
-                metadata::jittered_delay(2500)
-            } else {
-                metadata::jittered_delay(500)
+        // Try fast path: use scanned data if available (no API call, no throttle)
+        let (create, current_title) = if let Some(scanned) = scanned_map.get(url) {
+            let create = DiscoveryReleaseCreate {
+                url: url.clone(),
+                source_type: source_type.clone(),
+                artist: scanned.artist.clone().or(page_artist.clone()),
+                title: scanned.title.clone(),
+                label: page_label.clone(),
+                release_date: scanned.release_date.clone(),
+                artwork_url: scanned.artwork_url.clone(),
+                notes: None,
+                parent_url: None,
+                tracks: None,
             };
-            tokio::time::sleep(delay).await;
-        }
+            (Ok(create), scanned.title.clone())
+        } else {
+            // Slow path: throttle and fetch metadata individually
+            if i > 0 {
+                let delay = if url.to_lowercase().contains("discogs.com") {
+                    metadata::jittered_delay(2500)
+                } else {
+                    metadata::jittered_delay(500)
+                };
+                tokio::time::sleep(delay).await;
+            }
 
-        // Fetch full metadata for this URL
-        let fetched = match metadata::fetch_metadata(url).await {
-            Ok(data) => data,
-            Err(e) => {
-                log::warn!("Bulk import: failed to fetch metadata for {url}: {e}");
-                failed += 1;
-                failed_urls.push(url.clone());
-                let _ = app.emit(
-                    "bulk-import-progress",
-                    BulkImportProgress {
-                        current: i + 1,
-                        total,
-                        current_title: None,
-                        succeeded,
-                        failed,
-                    },
-                );
-                continue;
+            match metadata::fetch_metadata(url).await {
+                Ok(fetched) => {
+                    let title = fetched.title.clone();
+                    let create = DiscoveryReleaseCreate {
+                        url: url.clone(),
+                        source_type: Some(fetched.source_type.clone()),
+                        artist: fetched.artist.clone().or(page_artist.clone()),
+                        title: fetched.title.clone(),
+                        label: fetched.label.clone().or(page_label.clone()),
+                        release_date: fetched.release_date.clone(),
+                        artwork_url: fetched.artwork_url.clone(),
+                        notes: None,
+                        parent_url: fetched.parent_url.clone(),
+                        tracks: if fetched.tracks.is_empty() {
+                            None
+                        } else {
+                            Some(
+                                fetched
+                                    .tracks
+                                    .iter()
+                                    .map(|t| DiscoveryTrackCreate {
+                                        name: t.name.clone(),
+                                        position: t.position,
+                                        duration_ms: t.duration_ms,
+                                        video_id: t.video_id.clone(),
+                                    })
+                                    .collect(),
+                            )
+                        },
+                    };
+                    (Ok(create), title)
+                }
+                Err(e) => {
+                    log::warn!("Bulk import: failed to fetch metadata for {url}: {e}");
+                    (Err(e), None)
+                }
             }
         };
 
-        // Build the create request
-        let create = DiscoveryReleaseCreate {
-            url: url.clone(),
-            source_type: Some(fetched.source_type.clone()),
-            artist: fetched.artist.clone().or(page_artist.clone()),
-            title: fetched.title.clone(),
-            label: fetched.label.clone().or(page_label.clone()),
-            release_date: fetched.release_date.clone(),
-            artwork_url: fetched.artwork_url.clone(),
-            notes: None,
-            parent_url: fetched.parent_url.clone(),
-            tracks: if fetched.tracks.is_empty() {
-                None
-            } else {
-                Some(
-                    fetched
-                        .tracks
-                        .iter()
-                        .map(|t| DiscoveryTrackCreate {
-                            name: t.name.clone(),
-                            position: t.position,
-                            duration_ms: t.duration_ms,
-                            video_id: t.video_id.clone(),
-                        })
-                        .collect(),
-                )
-            },
-        };
-
-        // Create the release — catch UNIQUE constraint errors as skipped (not failed)
-        match discovery.create_release(create) {
-            Ok(release) => {
-                succeeded += 1;
-                spawn_stream_prefetch(&release, &discovery, &tracker, &app).await;
+        match create {
+            Ok(create_data) => {
+                // Create the release — catch UNIQUE constraint errors as skipped (not failed)
+                match discovery.create_release(create_data) {
+                    Ok(release) => {
+                        succeeded += 1;
+                        spawn_stream_prefetch(&release, &discovery, &tracker, &app).await;
+                    }
+                    Err(CrateError::Database(rusqlite::Error::SqliteFailure(err, _)))
+                        if err.code == rusqlite::ffi::ErrorCode::ConstraintViolation =>
+                    {
+                        // Already exists — treat as skipped, not failed
+                        succeeded += 1;
+                    }
+                    Err(e) => {
+                        log::warn!("Bulk import: failed to create release for {url}: {e}");
+                        failed += 1;
+                        failed_urls.push(url.clone());
+                    }
+                }
             }
-            Err(CrateError::Database(rusqlite::Error::SqliteFailure(err, _)))
-                if err.code == rusqlite::ffi::ErrorCode::ConstraintViolation =>
-            {
-                // Already exists — treat as skipped, not failed
-                succeeded += 1;
-            }
-            Err(e) => {
-                log::warn!("Bulk import: failed to create release for {url}: {e}");
+            Err(_) => {
                 failed += 1;
                 failed_urls.push(url.clone());
             }
@@ -658,7 +686,7 @@ pub async fn bulk_create_discovery_releases(
             BulkImportProgress {
                 current: i + 1,
                 total,
-                current_title: fetched.title.clone(),
+                current_title,
                 succeeded,
                 failed,
             },

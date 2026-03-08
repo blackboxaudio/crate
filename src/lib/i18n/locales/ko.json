@@ -255,6 +255,8 @@
 		"expandAll": "모두 확장",
 		"collapseAll": "모두 축소",
 		"scanningReleases": "릴리스 스캔 중...",
+		"scanningReleasesProgress": "페이지 {current}/{total} 스캔 중 ({found}개의 릴리스를 찾았습니다)...",
+		"scanningReleasesEntity": "{name} 스캔 중...",
 		"bulkImport": {
 			"releasesFound": "{total, plural, =1 {1개의 릴리스} other {{total}개의 릴리스}}를 찾았습니다",
 			"alreadyInDiscovery": "{count, plural, =1 {1개는 이미 발견 목록에 있음} other {{count}개는 이미 발견 목록에 있음}}",

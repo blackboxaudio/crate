@@ -98,6 +98,42 @@ pub(super) fn parse_discogs_duration(s: &str) -> Option<i64> {
     }
 }
 
+/// Send a GET to a Discogs API endpoint with status-code validation.
+///
+/// Returns the parsed JSON body, or a descriptive error for rate-limiting (429),
+/// other non-success status codes, or Discogs-level `message` errors.
+async fn discogs_api_get(client: &reqwest::Client, url: &str) -> Result<serde_json::Value> {
+    let response = client
+        .get(url)
+        .header("User-Agent", "CrateApp/0.1")
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Discogs API request failed: {e}")))?;
+
+    let status = response.status();
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(CrateError::Discovery(
+            "Discogs API rate limit exceeded — please wait a moment and try again".into(),
+        ));
+    }
+    if !status.is_success() {
+        return Err(CrateError::Discovery(format!(
+            "Discogs API returned status {status}"
+        )));
+    }
+
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to parse Discogs API response: {e}")))?;
+
+    if let Some(msg) = body.get("message").and_then(|m| m.as_str()) {
+        return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
+    }
+
+    Ok(body)
+}
+
 /// Strip Discogs disambiguation suffixes like `" (2)"` from artist names.
 /// Preserves non-numeric suffixes like `" (UK)"`.
 pub(super) fn strip_discogs_suffix(name: &str) -> &str {
@@ -158,21 +194,7 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
         DiscogsUrlKind::Release(id) => id,
         DiscogsUrlKind::Master(id) => {
             let master_url = format!("https://api.discogs.com/masters/{id}");
-            let resp: serde_json::Value = client
-                .get(&master_url)
-                .header("User-Agent", "CrateApp/0.1")
-                .send()
-                .await
-                .map_err(|e| CrateError::Discovery(format!("Failed to fetch Discogs master: {e}")))?
-                .json()
-                .await
-                .map_err(|e| {
-                    CrateError::Discovery(format!("Failed to parse Discogs master: {e}"))
-                })?;
-
-            if let Some(msg) = resp.get("message").and_then(|m| m.as_str()) {
-                return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
-            }
+            let resp = discogs_api_get(client, &master_url).await?;
 
             resp.get("main_release")
                 .and_then(|v| v.as_u64())
@@ -181,19 +203,7 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
     };
 
     let release_url = format!("https://api.discogs.com/releases/{release_id}");
-    let resp: serde_json::Value = client
-        .get(&release_url)
-        .header("User-Agent", "CrateApp/0.1")
-        .send()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Discogs release: {e}")))?
-        .json()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to parse Discogs release: {e}")))?;
-
-    if let Some(msg) = resp.get("message").and_then(|m| m.as_str()) {
-        return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
-    }
+    let resp = discogs_api_get(client, &release_url).await?;
 
     let artist = resp
         .get("artists")
@@ -376,12 +386,16 @@ pub(super) async fn scan_discogs_page(
     client: &reqwest::Client,
     kind: &DiscogsUrlKind,
     cancel_flag: &std::sync::atomic::AtomicBool,
+    app_handle: Option<&tauri::AppHandle>,
 ) -> Result<(
     Vec<crate::models::ScannedRelease>,
     Option<String>,
     Option<String>,
 )> {
     use super::jittered_delay;
+    use tauri::Emitter;
+
+    const MAX_PAGES: u32 = 10;
 
     let (api_base, entity_url) = match kind {
         DiscogsUrlKind::Artist(id) => (
@@ -400,61 +414,52 @@ pub(super) async fn scan_discogs_page(
     };
 
     // Fetch entity info first to get name
-    let entity_resp: serde_json::Value = client
-        .get(&entity_url)
-        .header("User-Agent", "CrateApp/0.1")
-        .send()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Discogs entity: {e}")))?
-        .json()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to parse Discogs entity: {e}")))?;
-
-    if let Some(msg) = entity_resp.get("message").and_then(|m| m.as_str()) {
-        return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
-    }
+    log::info!("Discogs scan: fetching entity info for {kind:?}");
+    let entity_resp = discogs_api_get(client, &entity_url).await?;
 
     let entity_name = entity_resp
         .get("name")
         .and_then(|n| n.as_str())
         .map(|s| s.to_string());
 
+    log::info!("Discogs scan: entity name = {:?}", entity_name);
+
+    if let Some(app) = app_handle {
+        let _ = app.emit(
+            "scan-page-progress",
+            crate::models::ScanPageProgress {
+                current_page: 0,
+                total_pages: None,
+                releases_found: 0,
+                entity_name: entity_name.clone(),
+            },
+        );
+    }
+
     let (page_artist, page_label) = match kind {
-        DiscogsUrlKind::Artist(_) => (entity_name, None),
-        DiscogsUrlKind::Label(_) => (None, entity_name),
+        DiscogsUrlKind::Artist(_) => (entity_name.clone(), None),
+        DiscogsUrlKind::Label(_) => (None, entity_name.clone()),
         _ => (None, None),
     };
 
     let mut all_releases = Vec::new();
+    let mut seen_titles: std::collections::HashSet<(String, String)> =
+        std::collections::HashSet::new();
     let mut page = 1u32;
 
     loop {
         if cancel_flag.load(std::sync::atomic::Ordering::SeqCst) {
+            log::info!("Discogs scan: cancelled at page {page}");
             break;
         }
 
         if page > 1 {
-            tokio::time::sleep(jittered_delay(2500)).await;
+            tokio::time::sleep(jittered_delay(1500)).await;
         }
 
+        log::info!("Discogs scan: fetching page {page}");
         let url = format!("{api_base}?page={page}&per_page=100&sort=year&sort_order=desc");
-        let resp: serde_json::Value = client
-            .get(&url)
-            .header("User-Agent", "CrateApp/0.1")
-            .send()
-            .await
-            .map_err(|e| {
-                CrateError::Discovery(format!("Failed to fetch Discogs releases page: {e}"))
-            })?
-            .json()
-            .await
-            .map_err(|e| {
-                CrateError::Discovery(format!("Failed to parse Discogs releases page: {e}"))
-            })?;
-
-        if let Some(msg) = resp.get("message").and_then(|m| m.as_str()) {
-            return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
-        }
+        let resp = discogs_api_get(client, &url).await?;
 
         let releases = resp
             .get("releases")
@@ -484,6 +489,16 @@ pub(super) async fn scan_discogs_page(
                 .get("artist")
                 .and_then(|a| a.as_str())
                 .map(|s| strip_discogs_suffix(s).to_string());
+
+            // Skip duplicate pressings/formats of the same release (e.g. vinyl + digital + promo).
+            // The Discogs API returns each format variant as a separate entry.
+            let dedup_key = (
+                artist.as_deref().unwrap_or("").to_lowercase(),
+                title.as_deref().unwrap_or("").to_lowercase(),
+            );
+            if !seen_titles.insert(dedup_key) {
+                continue;
+            }
 
             let artwork_url = item
                 .get("thumb")
@@ -515,11 +530,41 @@ pub(super) async fn scan_discogs_page(
             .and_then(|p| p.as_u64())
             .unwrap_or(1) as u32;
 
+        log::info!(
+            "Discogs scan: page {page}/{total_pages} — {} releases on page, {} total",
+            releases.len(),
+            all_releases.len()
+        );
+
+        if let Some(app) = app_handle {
+            let _ = app.emit(
+                "scan-page-progress",
+                crate::models::ScanPageProgress {
+                    current_page: page,
+                    total_pages: Some(total_pages),
+                    releases_found: all_releases.len(),
+                    entity_name: entity_name.clone(),
+                },
+            );
+        }
+
         if page >= total_pages {
+            break;
+        }
+        if page >= MAX_PAGES {
+            log::warn!(
+                "Discogs scan: stopped at page limit ({MAX_PAGES}), {} pages remaining",
+                total_pages - page
+            );
             break;
         }
         page += 1;
     }
+
+    log::info!(
+        "Discogs scan: complete — {} releases found",
+        all_releases.len()
+    );
 
     Ok((all_releases, page_artist, page_label))
 }

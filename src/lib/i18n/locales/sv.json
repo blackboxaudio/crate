@@ -255,6 +255,8 @@
 		"expandAll": "Expandera alla",
 		"collapseAll": "Minimera alla",
 		"scanningReleases": "Skannar utgåvor...",
+		"scanningReleasesProgress": "Skannar sida {current} av {total} ({found} utgåvor hittades)...",
+		"scanningReleasesEntity": "Skannar {name}...",
 		"bulkImport": {
 			"releasesFound": "{total, plural, =1 {1 utgåva} other {{total} utgåvor}} hittades",
 			"alreadyInDiscovery": "{count, plural, =1 {1 redan i upptäckningar} other {{count} redan i upptäckningar}}",

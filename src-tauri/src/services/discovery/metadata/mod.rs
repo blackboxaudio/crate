@@ -51,6 +51,7 @@ pub(super) fn is_compilation(artist: &Option<String>) -> bool {
 
 pub(super) fn build_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(15))
         .user_agent(CHROME_USER_AGENT)
         .build()
@@ -79,6 +80,7 @@ pub async fn scan_page(
     url: &str,
     existing_urls: &std::collections::HashSet<String>,
     cancel_flag: &std::sync::atomic::AtomicBool,
+    app_handle: Option<&tauri::AppHandle>,
 ) -> Result<crate::models::ScannedPage> {
     let client = build_client()?;
 
@@ -113,7 +115,7 @@ pub async fn scan_page(
             discogs::DiscogsUrlKind::Artist(_) | discogs::DiscogsUrlKind::Label(_)
         ) {
             let (mut releases, page_artist, page_label) =
-                discogs::scan_discogs_page(&client, &kind, cancel_flag).await?;
+                discogs::scan_discogs_page(&client, &kind, cancel_flag, app_handle).await?;
 
             let mut already_in_discovery = 0;
             for r in &mut releases {

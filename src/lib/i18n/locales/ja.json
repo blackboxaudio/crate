@@ -255,6 +255,8 @@
 		"expandAll": "すべて展開",
 		"collapseAll": "すべて折りたたむ",
 		"scanningReleases": "リリースをスキャン中...",
+		"scanningReleasesProgress": "ページ {current} / {total} をスキャン中 ({found}件のリリースが見つかりました)...",
+		"scanningReleasesEntity": "{name} をスキャン中...",
 		"bulkImport": {
 			"releasesFound": "{total, plural, =1 {1つのリリース} other {{total}つのリリース}}が見つかりました",
 			"alreadyInDiscovery": "{count, plural, =1 {1つはディスカバリーに既に含まれています} other {{count}つはディスカバリーに既に含まれています}}",
