@@ -2,8 +2,8 @@
 	import type { DiscoveryRelease } from '$lib/types'
 	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
-	import { AlbumArt, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
-	import { dateFormat, dragStore, isDraggingTag, refreshingReleaseIds } from '$lib/stores'
+	import { AlbumArt, Icon, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
+	import { dateFormat, dragStore, isDraggingTag, refreshingReleaseIds, discoveryStore } from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$lib/stores/player'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
@@ -126,8 +126,21 @@
 >
 	<!-- Expand toggle -->
 	<div class="flex items-center justify-center">
-		{#if $previewLoadingReleaseId === release.id || $refreshingReleaseIds.has(release.id)}
+		{#if $previewLoadingReleaseId === release.id}
 			<Spinner class="h-3.5 w-3.5" />
+		{:else if $refreshingReleaseIds.has(release.id)}
+			<!-- svelte-ignore a11y_click_events_have_key_events -->
+			<!-- svelte-ignore a11y_no_static_element_interactions -->
+			<div
+				class="group flex h-6 w-6 cursor-pointer items-center justify-center rounded"
+				onclick={(e) => {
+					e.stopPropagation()
+					discoveryStore.cancelRefresh(release.id)
+				}}
+			>
+				<Spinner class="h-3.5 w-3.5 group-hover:hidden" />
+				<Icon name="x" class="hidden h-3.5 w-3.5 text-text-tertiary group-hover:block hover:text-text-primary" />
+			</div>
 		{:else if release.tracks.length > 0}
 			<IconButton
 				icon="chevron-right"

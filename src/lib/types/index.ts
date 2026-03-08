@@ -747,6 +747,45 @@ export interface PreviewInfo {
 	trackIndex: number
 }
 
+export interface ScannedRelease {
+	url: string
+	artist: string | null
+	title: string | null
+	artwork_url: string | null
+	release_date: string | null
+	already_exists: boolean
+}
+
+export interface ScannedPage {
+	source_type: string
+	page_artist: string | null
+	page_label: string | null
+	releases: ScannedRelease[]
+	total_found: number
+	already_in_discovery: number
+}
+
+export interface BulkImportProgress {
+	current: number
+	total: number
+	current_title: string | null
+	succeeded: number
+	failed: number
+}
+
+export interface BulkImportResult {
+	succeeded: number
+	failed: number
+	failed_urls: string[]
+}
+
+export interface ScanPageProgress {
+	current_page: number
+	total_pages: number | null
+	releases_found: number
+	entity_name: string | null
+}
+
 // =============================================================================
 // Backup Types
 // =============================================================================

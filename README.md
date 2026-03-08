@@ -5,6 +5,10 @@
 
 > Cross-platform DJ library manager with music discovery, track analysis, and USB export
 
+<p align="center">
+  <img src="assets/screenshot.png" alt="Crate — Discovery view showing label browsing with release preview playback" width="800" />
+</p>
+
 ---
 
 ## 🎧 Overview
@@ -87,10 +91,10 @@ Platform targets:
 - [Issues](https://github.com/blackboxaudio/crate/issues)
 - [Releases](https://github.com/blackboxaudio/crate/releases)
 
+## ⚠️ Disclaimer
+
+Crate's discovery features interact with third-party music services for browsing and previewing content. These features are intended for personal use only. Users are responsible for ensuring their usage complies with applicable terms of service.
+
 ## 📄 License
 
 This project is source-available under the [PolyForm Shield License 1.0.0](LICENSE). You can read, learn from, and contribute to the code, but you can't use it to build a competing product.
-
-## 🗺️ Roadmap
-
-This project is under active development. Planned features and improvements are tracked in the [repository issues](https://github.com/blackboxaudio/crate/issues).

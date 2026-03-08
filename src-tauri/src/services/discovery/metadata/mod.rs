@@ -51,6 +51,7 @@ pub(super) fn is_compilation(artist: &Option<String>) -> bool {
 
 pub(super) fn build_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(15))
         .user_agent(CHROME_USER_AGENT)
         .build()
@@ -72,6 +73,75 @@ pub async fn fetch_metadata(url: &str) -> Result<FetchedMetadata> {
     metadata.source_type = source_type;
     metadata.release_date = metadata.release_date.map(|d| common::normalize_date(&d));
     Ok(metadata)
+}
+
+/// Scan an artist/label page URL and return all releases found on it.
+pub async fn scan_page(
+    url: &str,
+    existing_urls: &std::collections::HashSet<String>,
+    cancel_flag: &std::sync::atomic::AtomicBool,
+    app_handle: Option<&tauri::AppHandle>,
+) -> Result<crate::models::ScannedPage> {
+    let client = build_client()?;
+
+    if bandcamp::is_bandcamp_page_url(url) {
+        let (mut releases, page_name) = bandcamp::scan_bandcamp_page(&client, url).await?;
+
+        // Normalize URLs and check existing
+        let mut already_in_discovery = 0;
+        for r in &mut releases {
+            r.url = super::normalize_url(&r.url);
+            r.already_exists = existing_urls.contains(&r.url);
+            if r.already_exists {
+                already_in_discovery += 1;
+            }
+        }
+
+        let total_found = releases.len();
+
+        return Ok(crate::models::ScannedPage {
+            source_type: "bandcamp".to_string(),
+            page_artist: page_name.clone(),
+            page_label: page_name,
+            total_found,
+            already_in_discovery,
+            releases,
+        });
+    }
+
+    if let Some(kind) = discogs::parse_discogs_url(url) {
+        if matches!(
+            kind,
+            discogs::DiscogsUrlKind::Artist(_) | discogs::DiscogsUrlKind::Label(_)
+        ) {
+            let (mut releases, page_artist, page_label) =
+                discogs::scan_discogs_page(&client, &kind, cancel_flag, app_handle).await?;
+
+            let mut already_in_discovery = 0;
+            for r in &mut releases {
+                r.url = super::normalize_url(&r.url);
+                r.already_exists = existing_urls.contains(&r.url);
+                if r.already_exists {
+                    already_in_discovery += 1;
+                }
+            }
+
+            let total_found = releases.len();
+
+            return Ok(crate::models::ScannedPage {
+                source_type: "discogs".to_string(),
+                page_artist,
+                page_label,
+                total_found,
+                already_in_discovery,
+                releases,
+            });
+        }
+    }
+
+    Err(CrateError::Discovery(
+        "URL is not a supported artist or label page".into(),
+    ))
 }
 
 // Re-exports for streams.rs, n_transform.rs, and commands/discovery.rs

@@ -7,6 +7,9 @@ import type {
 	DiscoveryFilter,
 	FetchedMetadata,
 	ImportResultWithDuplicates,
+	ScannedPage,
+	ScannedRelease,
+	BulkImportResult,
 } from '$lib/types'
 
 export async function createRelease(create: DiscoveryReleaseCreate): Promise<DiscoveryRelease> {
@@ -91,6 +94,34 @@ export async function setDiscoveryReleaseArtwork(id: string, filePath: string): 
 
 export async function deleteDiscoveryReleaseArtwork(id: string): Promise<DiscoveryRelease> {
 	return invoke<DiscoveryRelease>('delete_discovery_release_artwork', { releaseId: id })
+}
+
+export async function scanPage(url: string): Promise<ScannedPage> {
+	return invoke<ScannedPage>('scan_discovery_page', { url })
+}
+
+export async function bulkCreateReleases(
+	urls: string[],
+	pageLabel?: string | null,
+	pageArtist?: string | null,
+	scannedReleases?: ScannedRelease[] | null,
+	sourceType?: string | null
+): Promise<BulkImportResult> {
+	return invoke<BulkImportResult>('bulk_create_discovery_releases', {
+		urls,
+		scannedReleases: scannedReleases ?? null,
+		pageLabel: pageLabel ?? null,
+		pageArtist: pageArtist ?? null,
+		sourceType: sourceType ?? null,
+	})
+}
+
+export async function cancelBulkImport(): Promise<void> {
+	return invoke<void>('cancel_bulk_import')
+}
+
+export async function cancelScanPage(): Promise<void> {
+	return invoke<void>('cancel_scan_page')
 }
 
 export async function purchaseRelease(

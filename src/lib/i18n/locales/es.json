@@ -253,7 +253,23 @@
 		"mergeConfirm": "Mantener metadatos de:",
 		"mergeTrackCount": "{count, plural, =1 {1 pista} other {{count} pistas}} combinadas",
 		"expandAll": "Expandir todo",
-		"collapseAll": "Contraer todo"
+		"collapseAll": "Contraer todo",
+		"scanningReleases": "Escaneando lanzamientos...",
+		"scanningReleasesProgress": "Escaneando página {current} de {total} ({found} lanzamientos encontrados)...",
+		"scanningReleasesEntity": "Escaneando {name}...",
+		"bulkImport": {
+			"releasesFound": "{total, plural, =1 {1 lanzamiento} other {{total} lanzamientos}} encontrado(s)",
+			"alreadyInDiscovery": "{count, plural, =1 {1 ya en descubrimiento} other {{count} ya en descubrimiento}}",
+			"selectAll": "Seleccionar todo",
+			"deselectAll": "Deseleccionar todo",
+			"addReleases": "Añadir {count, plural, =1 {1 lanzamiento} other {{count} lanzamientos}}",
+			"importing": "Añadiendo {current} de {total} lanzamientos...",
+			"completed": "{succeeded, plural, =1 {1 lanzamiento} other {{succeeded} lanzamientos}} añadido(s)",
+			"completedWithFailures": "{succeeded, plural, =1 {1 lanzamiento} other {{succeeded} lanzamientos}} añadido(s) ({failed} fallidos)",
+			"alreadyInDiscoveryBadge": "Ya en descubrimiento",
+			"noReleasesFound": "No se encontraron lanzamientos en esta página",
+			"cancelImport": "Cancelar importación"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nueva lista de reproducción",

@@ -83,6 +83,41 @@ pub(super) fn parse_iso_duration(s: &str) -> Option<i64> {
     }
 }
 
+/// Decode common HTML entities in a string (e.g. `&#39;` → `'`).
+pub(super) fn decode_html_entities(s: &str) -> String {
+    if !s.contains('&') {
+        return s.to_string();
+    }
+
+    let mut result = s
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"")
+        .replace("&apos;", "'");
+
+    // Decode numeric character references: &#NNN; and &#xHH;
+    while let Some(start) = result.find("&#") {
+        let rest = &result[start + 2..];
+        if let Some(end) = rest.find(';') {
+            let code_str = &rest[..end];
+            let decoded = if let Some(hex) = code_str.strip_prefix('x') {
+                u32::from_str_radix(hex, 16).ok()
+            } else {
+                code_str.parse::<u32>().ok()
+            };
+            if let Some(ch) = decoded.and_then(char::from_u32) {
+                let entity = &result[start..start + 3 + end];
+                result = result.replacen(entity, &ch.to_string(), 1);
+                continue;
+            }
+        }
+        break;
+    }
+
+    result
+}
+
 /// Extract content from an OpenGraph meta tag.
 pub(super) fn extract_meta_content(html: &str, property: &str) -> Option<String> {
     // Match both property="..." and name="..." patterns
@@ -99,7 +134,7 @@ pub(super) fn extract_meta_content(html: &str, property: &str) -> Option<String>
                 if let Some(value_end) = tag[value_start..].find('"') {
                     let value = &tag[value_start..value_start + value_end];
                     if !value.is_empty() {
-                        return Some(value.to_string());
+                        return Some(decode_html_entities(value));
                     }
                 }
             }

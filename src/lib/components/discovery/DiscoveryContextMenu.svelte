@@ -66,15 +66,17 @@
 					})
 				},
 			})
-			if (onRefreshMetadata) {
-				items.push({
-					id: 'refresh-metadata',
-					label: get(translate)('discovery.refreshMetadata'),
-					icon: 'refresh',
-					action: onRefreshMetadata,
-				})
-			}
 			items.push({ id: 'browser-divider', label: '', divider: true })
+		}
+
+		// Refresh metadata - available for single and multi-select
+		if (onRefreshMetadata) {
+			items.push({
+				id: 'refresh-metadata',
+				label: get(translate)('discovery.refreshMetadata'),
+				icon: 'refresh',
+				action: onRefreshMetadata,
+			})
 		}
 
 		// Import to Library

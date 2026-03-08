@@ -253,7 +253,23 @@
 		"mergeConfirm": "Manter metadados de:",
 		"mergeTrackCount": "{count, plural, =1 {1 faixa} other {{count} faixas}} combinadas",
 		"expandAll": "Expandir tudo",
-		"collapseAll": "Recolher tudo"
+		"collapseAll": "Recolher tudo",
+		"scanningReleases": "Escaneando lançamentos...",
+		"scanningReleasesProgress": "Escaneando página {current} de {total} ({found} lançamentos encontrados)...",
+		"scanningReleasesEntity": "Escaneando {name}...",
+		"bulkImport": {
+			"releasesFound": "{total, plural, =1 {1 lançamento} other {{total} lançamentos}} encontrado(s)",
+			"alreadyInDiscovery": "{count, plural, =1 {1 já em descobertas} other {{count} já em descobertas}}",
+			"selectAll": "Selecionar tudo",
+			"deselectAll": "Desselecionar tudo",
+			"addReleases": "Adicionar {count, plural, =1 {1 lançamento} other {{count} lançamentos}}",
+			"importing": "Adicionando {current} de {total} lançamentos...",
+			"completed": "{succeeded, plural, =1 {1 lançamento} other {{succeeded} lançamentos}} adicionado(s)",
+			"completedWithFailures": "{succeeded, plural, =1 {1 lançamento} other {{succeeded} lançamentos}} adicionado(s) ({failed} falhados)",
+			"alreadyInDiscoveryBadge": "Já em descobertas",
+			"noReleasesFound": "Nenhum lançamento encontrado nesta página",
+			"cancelImport": "Cancelar importação"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nova playlist",

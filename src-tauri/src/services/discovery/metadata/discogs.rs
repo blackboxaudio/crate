@@ -7,10 +7,21 @@ use super::{is_compilation, FetchedMetadata, FetchedTrack};
 // Discogs
 // =============================================================================
 
+/// Strip Discogs `-00` placeholders for unknown month/day.
+///
+/// - `"2018-00-00"` → `"2018"`
+/// - `"2018-06-00"` → `"2018-06"`
+/// - `"2018-06-19"` → `"2018-06-19"` (unchanged)
+fn normalize_discogs_date(s: &str) -> String {
+    s.trim_end_matches("-00").to_string()
+}
+
 #[derive(Debug, PartialEq)]
 pub(super) enum DiscogsUrlKind {
     Release(u64),
     Master(u64),
+    Artist(u64),
+    Label(u64),
 }
 
 /// Parse a Discogs URL into a typed identifier.
@@ -33,6 +44,8 @@ pub(super) fn parse_discogs_url(url: &str) -> Option<DiscogsUrlKind> {
         let kind = match seg.to_lowercase().as_str() {
             "release" => Some("release"),
             "master" => Some("master"),
+            "artist" => Some("artist"),
+            "label" => Some("label"),
             _ => None,
         };
         if let Some(kind_str) = kind {
@@ -43,6 +56,8 @@ pub(super) fn parse_discogs_url(url: &str) -> Option<DiscogsUrlKind> {
                     return match kind_str {
                         "release" => Some(DiscogsUrlKind::Release(id)),
                         "master" => Some(DiscogsUrlKind::Master(id)),
+                        "artist" => Some(DiscogsUrlKind::Artist(id)),
+                        "label" => Some(DiscogsUrlKind::Label(id)),
                         _ => None,
                     };
                 }
@@ -83,6 +98,42 @@ pub(super) fn parse_discogs_duration(s: &str) -> Option<i64> {
     }
 }
 
+/// Send a GET to a Discogs API endpoint with status-code validation.
+///
+/// Returns the parsed JSON body, or a descriptive error for rate-limiting (429),
+/// other non-success status codes, or Discogs-level `message` errors.
+async fn discogs_api_get(client: &reqwest::Client, url: &str) -> Result<serde_json::Value> {
+    let response = client
+        .get(url)
+        .header("User-Agent", "CrateApp/0.1")
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Discogs API request failed: {e}")))?;
+
+    let status = response.status();
+    if status == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(CrateError::Discovery(
+            "Discogs API rate limit exceeded — please wait a moment and try again".into(),
+        ));
+    }
+    if !status.is_success() {
+        return Err(CrateError::Discovery(format!(
+            "Discogs API returned status {status}"
+        )));
+    }
+
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to parse Discogs API response: {e}")))?;
+
+    if let Some(msg) = body.get("message").and_then(|m| m.as_str()) {
+        return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
+    }
+
+    Ok(body)
+}
+
 /// Strip Discogs disambiguation suffixes like `" (2)"` from artist names.
 /// Preserves non-numeric suffixes like `" (UK)"`.
 pub(super) fn strip_discogs_suffix(name: &str) -> &str {
@@ -95,6 +146,43 @@ pub(super) fn strip_discogs_suffix(name: &str) -> &str {
         }
     }
     name
+}
+
+/// Score a Discogs release item for version selection during bulk scanning.
+///
+/// Higher scores indicate a "better" version — official releases with artwork
+/// are preferred over test pressings, promos, and versions without artwork.
+pub(super) fn score_discogs_release(item: &serde_json::Value, id: u64) -> i32 {
+    let mut score: i32 = 0;
+
+    // Strongly prefer versions with artwork
+    let has_thumb = item
+        .get("thumb")
+        .and_then(|t| t.as_str())
+        .is_some_and(|s| !s.is_empty());
+    if has_thumb {
+        score += 10;
+    }
+
+    // Penalize test pressings, promos, and white labels
+    let format_lower = item
+        .get("format")
+        .and_then(|f| f.as_str())
+        .unwrap_or("")
+        .to_lowercase();
+    if format_lower.contains("test pressing")
+        || format_lower.contains("promo")
+        || format_lower.contains("white label")
+    {
+        score -= 5;
+    }
+
+    // Tiebreaker: prefer lower IDs (typically the original pressing)
+    if id < 10_000_000 {
+        score += 1;
+    }
+
+    score
 }
 
 /// Join a Discogs `artists` array, respecting the `join` field between entries.
@@ -135,24 +223,15 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
 
     // For master releases, resolve to the main release first
     let release_id = match kind {
+        DiscogsUrlKind::Artist(_) | DiscogsUrlKind::Label(_) => {
+            return Err(CrateError::Discovery(
+                "Artist/label pages cannot be fetched as a single release".into(),
+            ));
+        }
         DiscogsUrlKind::Release(id) => id,
         DiscogsUrlKind::Master(id) => {
             let master_url = format!("https://api.discogs.com/masters/{id}");
-            let resp: serde_json::Value = client
-                .get(&master_url)
-                .header("User-Agent", "CrateApp/0.1")
-                .send()
-                .await
-                .map_err(|e| CrateError::Discovery(format!("Failed to fetch Discogs master: {e}")))?
-                .json()
-                .await
-                .map_err(|e| {
-                    CrateError::Discovery(format!("Failed to parse Discogs master: {e}"))
-                })?;
-
-            if let Some(msg) = resp.get("message").and_then(|m| m.as_str()) {
-                return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
-            }
+            let resp = discogs_api_get(client, &master_url).await?;
 
             resp.get("main_release")
                 .and_then(|v| v.as_u64())
@@ -161,19 +240,7 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
     };
 
     let release_url = format!("https://api.discogs.com/releases/{release_id}");
-    let resp: serde_json::Value = client
-        .get(&release_url)
-        .header("User-Agent", "CrateApp/0.1")
-        .send()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Discogs release: {e}")))?
-        .json()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to parse Discogs release: {e}")))?;
-
-    if let Some(msg) = resp.get("message").and_then(|m| m.as_str()) {
-        return Err(CrateError::Discovery(format!("Discogs API error: {msg}")));
-    }
+    let resp = discogs_api_get(client, &release_url).await?;
 
     let artist = resp
         .get("artists")
@@ -194,11 +261,12 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
         .map(|s| s.to_string());
 
     // Prefer full `released` date, fallback to `year`
+    // Discogs uses `-00` for unknown month/day (e.g. "2018-00-00"), strip those.
     let release_date = resp
         .get("released")
         .and_then(|d| d.as_str())
         .filter(|s| !s.is_empty())
-        .map(|s| s.to_string())
+        .map(normalize_discogs_date)
         .or_else(|| {
             resp.get("year")
                 .and_then(|y| y.as_u64())
@@ -345,4 +413,245 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
         parent_url: None,
         parent_album_title: None,
     })
+}
+
+/// Scan a Discogs artist or label page, returning all releases found.
+///
+/// Paginates through the Discogs API, extracting release items and constructing
+/// canonical URLs. Returns (releases, page_artist, page_label).
+pub(super) async fn scan_discogs_page(
+    client: &reqwest::Client,
+    kind: &DiscogsUrlKind,
+    cancel_flag: &std::sync::atomic::AtomicBool,
+    app_handle: Option<&tauri::AppHandle>,
+) -> Result<(
+    Vec<crate::models::ScannedRelease>,
+    Option<String>,
+    Option<String>,
+)> {
+    use super::jittered_delay;
+    use tauri::Emitter;
+
+    const MAX_PAGES: u32 = 10;
+
+    let (api_base, entity_url) = match kind {
+        DiscogsUrlKind::Artist(id) => (
+            format!("https://api.discogs.com/artists/{id}/releases"),
+            format!("https://api.discogs.com/artists/{id}"),
+        ),
+        DiscogsUrlKind::Label(id) => (
+            format!("https://api.discogs.com/labels/{id}/releases"),
+            format!("https://api.discogs.com/labels/{id}"),
+        ),
+        _ => {
+            return Err(CrateError::Discovery(
+                "Expected artist or label URL for page scanning".into(),
+            ))
+        }
+    };
+
+    // Fetch entity info first to get name
+    log::info!("Discogs scan: fetching entity info for {kind:?}");
+    let entity_resp = discogs_api_get(client, &entity_url).await?;
+
+    let entity_name = entity_resp
+        .get("name")
+        .and_then(|n| n.as_str())
+        .map(|s| s.to_string());
+
+    log::info!("Discogs scan: entity name = {:?}", entity_name);
+
+    if let Some(app) = app_handle {
+        let _ = app.emit(
+            "scan-page-progress",
+            crate::models::ScanPageProgress {
+                current_page: 0,
+                total_pages: None,
+                releases_found: 0,
+                entity_name: entity_name.clone(),
+            },
+        );
+    }
+
+    let (page_artist, page_label) = match kind {
+        DiscogsUrlKind::Artist(_) => (entity_name.clone(), None),
+        DiscogsUrlKind::Label(_) => (None, entity_name.clone()),
+        _ => (None, None),
+    };
+
+    let mut all_releases = Vec::new();
+    // Maps (artist, title) → (index in all_releases, quality score) for smart dedup
+    let mut seen_titles: std::collections::HashMap<(String, String), (usize, i32)> =
+        std::collections::HashMap::new();
+    let mut page = 1u32;
+
+    loop {
+        if cancel_flag.load(std::sync::atomic::Ordering::SeqCst) {
+            log::info!("Discogs scan: cancelled at page {page}");
+            break;
+        }
+
+        if page > 1 {
+            tokio::time::sleep(jittered_delay(1500)).await;
+        }
+
+        log::info!("Discogs scan: fetching page {page}");
+        let url = format!("{api_base}?page={page}&per_page=100&sort=year&sort_order=desc");
+        let resp = discogs_api_get(client, &url).await?;
+
+        let releases = resp
+            .get("releases")
+            .and_then(|r| r.as_array())
+            .cloned()
+            .unwrap_or_default();
+
+        for item in &releases {
+            let item_type = item.get("type").and_then(|t| t.as_str());
+            let is_master = item_type == Some("master");
+
+            // For masters on artist pages, resolve to the canonical main_release.
+            // Label endpoint omits the type field — all items are individual releases.
+            let (id, release_url) = if is_master {
+                if let Some(main_release_id) = item.get("main_release").and_then(|v| v.as_u64()) {
+                    (
+                        main_release_id,
+                        format!("https://www.discogs.com/release/{main_release_id}"),
+                    )
+                } else {
+                    // Fallback: use master URL (fetch_discogs resolves master → main_release)
+                    let master_id = match item.get("id").and_then(|i| i.as_u64()) {
+                        Some(id) => id,
+                        None => continue,
+                    };
+                    (
+                        master_id,
+                        format!("https://www.discogs.com/master/{master_id}"),
+                    )
+                }
+            } else {
+                let id = match item.get("id").and_then(|i| i.as_u64()) {
+                    Some(id) => id,
+                    None => continue,
+                };
+                (id, format!("https://www.discogs.com/release/{id}"))
+            };
+
+            let title = item
+                .get("title")
+                .and_then(|t| t.as_str())
+                .map(|s| s.to_string());
+
+            let artist = item
+                .get("artist")
+                .and_then(|a| a.as_str())
+                .map(|s| strip_discogs_suffix(s).to_string());
+
+            // Dedup by (artist, title) — when duplicates are found (e.g. vinyl + digital
+            // + test pressing), keep the version with the highest quality score.
+            let dedup_key = (
+                artist.as_deref().unwrap_or("").to_lowercase(),
+                title.as_deref().unwrap_or("").to_lowercase(),
+            );
+
+            let score = score_discogs_release(item, id);
+
+            if let Some(&(existing_idx, existing_score)) = seen_titles.get(&dedup_key) {
+                if score > existing_score {
+                    log::debug!(
+                        "Discogs scan: replacing version for {:?} (score {score} > {existing_score})",
+                        &dedup_key,
+                    );
+
+                    let artwork_url = item
+                        .get("thumb")
+                        .and_then(|t| t.as_str())
+                        .filter(|s| !s.is_empty())
+                        .map(|s| s.to_string());
+
+                    let release_date = item
+                        .get("year")
+                        .and_then(|y| y.as_u64())
+                        .map(|y| format!("{y}"));
+
+                    all_releases[existing_idx] = crate::models::ScannedRelease {
+                        url: release_url,
+                        artist,
+                        title,
+                        artwork_url,
+                        release_date,
+                        already_exists: false,
+                    };
+                    seen_titles.insert(dedup_key, (existing_idx, score));
+                }
+                continue;
+            }
+
+            let artwork_url = item
+                .get("thumb")
+                .and_then(|t| t.as_str())
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string());
+
+            let release_date = item
+                .get("year")
+                .and_then(|y| y.as_u64())
+                .map(|y| format!("{y}"));
+
+            let idx = all_releases.len();
+            seen_titles.insert(dedup_key, (idx, score));
+
+            all_releases.push(crate::models::ScannedRelease {
+                url: release_url,
+                artist,
+                title,
+                artwork_url,
+                release_date,
+                already_exists: false,
+            });
+        }
+
+        // Check pagination
+        let total_pages = resp
+            .get("pagination")
+            .and_then(|p| p.get("pages"))
+            .and_then(|p| p.as_u64())
+            .unwrap_or(1) as u32;
+
+        log::info!(
+            "Discogs scan: page {page}/{total_pages} — {} releases on page, {} total",
+            releases.len(),
+            all_releases.len()
+        );
+
+        if let Some(app) = app_handle {
+            let _ = app.emit(
+                "scan-page-progress",
+                crate::models::ScanPageProgress {
+                    current_page: page,
+                    total_pages: Some(total_pages),
+                    releases_found: all_releases.len(),
+                    entity_name: entity_name.clone(),
+                },
+            );
+        }
+
+        if page >= total_pages {
+            break;
+        }
+        if page >= MAX_PAGES {
+            log::warn!(
+                "Discogs scan: stopped at page limit ({MAX_PAGES}), {} pages remaining",
+                total_pages - page
+            );
+            break;
+        }
+        page += 1;
+    }
+
+    log::info!(
+        "Discogs scan: complete — {} releases found",
+        all_releases.len()
+    );
+
+    Ok((all_releases, page_artist, page_label))
 }

@@ -6,7 +6,7 @@ mod models;
 mod proxy;
 mod services;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use db::Database;
@@ -17,6 +17,24 @@ pub(crate) struct ProxyServerPort(pub u16);
 
 /// Tracks in-flight prefetch tasks by release ID to prevent duplicate spawns.
 pub(crate) struct PrefetchTracker(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
+
+/// Flag to signal cancellation of a running bulk import operation.
+pub(crate) struct BulkImportCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
+
+/// Flag to signal cancellation of a running page scan operation.
+pub(crate) struct ScanPageCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
+
+/// Cache for pre-fetched release metadata populated during background enrichment after a page scan.
+/// Keyed by release URL. Entries are consumed (removed) by `bulk_create_discovery_releases`.
+pub(crate) struct ScanEnrichmentCache(
+    pub Arc<tokio::sync::Mutex<HashMap<String, services::discovery::metadata::FetchedMetadata>>>,
+);
+
+impl ScanEnrichmentCache {
+    pub fn new() -> Self {
+        Self(Arc::new(tokio::sync::Mutex::new(HashMap::new())))
+    }
+}
 
 impl PrefetchTracker {
     pub fn new() -> Self {
@@ -171,6 +189,10 @@ pub fn run() {
             commands::discovery::nsig_solve_callback,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
+            commands::discovery::scan_discovery_page,
+            commands::discovery::bulk_create_discovery_releases,
+            commands::discovery::cancel_bulk_import,
+            commands::discovery::cancel_scan_page,
             // Backup commands
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
@@ -255,6 +277,13 @@ pub fn run() {
             app.manage(discovery_service);
             app.manage(NsigSolverState::new());
             app.manage(PrefetchTracker::new());
+            app.manage(BulkImportCancelFlag(Arc::new(
+                std::sync::atomic::AtomicBool::new(false),
+            )));
+            app.manage(ScanPageCancelFlag(Arc::new(
+                std::sync::atomic::AtomicBool::new(false),
+            )));
+            app.manage(ScanEnrichmentCache::new());
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

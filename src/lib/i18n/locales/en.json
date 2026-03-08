@@ -253,7 +253,23 @@
 		"mergeConfirm": "Keep metadata from:",
 		"mergeTrackCount": "{count, plural, =1 {1 track} other {{count} tracks}} combined",
 		"expandAll": "Expand All",
-		"collapseAll": "Collapse All"
+		"collapseAll": "Collapse All",
+		"scanningReleases": "Scanning releases...",
+		"scanningReleasesProgress": "Scanning page {current} of {total} ({found} releases found)...",
+		"scanningReleasesEntity": "Scanning {name}...",
+		"bulkImport": {
+			"releasesFound": "{total, plural, =1 {1 release} other {{total} releases}} found",
+			"alreadyInDiscovery": "{count, plural, =1 {1 already in discovery} other {{count} already in discovery}}",
+			"selectAll": "Select all",
+			"deselectAll": "Deselect all",
+			"addReleases": "Add {count, plural, =1 {1 release} other {{count} releases}}",
+			"importing": "Adding {current} of {total} releases...",
+			"completed": "Added {succeeded, plural, =1 {1 release} other {{succeeded} releases}}",
+			"completedWithFailures": "Added {succeeded, plural, =1 {1 release} other {{succeeded} releases}} ({failed} failed)",
+			"alreadyInDiscoveryBadge": "Already in discovery",
+			"noReleasesFound": "No releases found on this page",
+			"cancelImport": "Cancel import"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "New Playlist",

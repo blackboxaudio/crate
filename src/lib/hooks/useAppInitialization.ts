@@ -1,6 +1,6 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import type { UsbDevice } from '$lib/types'
+import type { DiscoveryRelease, UsbDevice } from '$lib/types'
 import type { appStore as AppStoreType } from '$lib/stores/app'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
 import type { tagsStore as TagsStoreType } from '$lib/stores/tags'
@@ -9,6 +9,7 @@ import type { settingsStore as SettingsStoreType } from '$lib/stores/settings'
 import type { devicesStore as DevicesStoreType } from '$lib/stores/devices'
 import type { syncStore as SyncStoreType } from '$lib/stores/sync'
 import type { toastStore as ToastStoreType } from '$lib/stores/toast'
+import type { discoveryStore as DiscoveryStoreType } from '$lib/stores/discovery'
 
 // =============================================================================
 // Types
@@ -23,6 +24,7 @@ export interface AppInitConfig {
 		settingsStore: typeof SettingsStoreType
 		devicesStore: typeof DevicesStoreType
 		syncStore: typeof SyncStoreType
+		discoveryStore: typeof DiscoveryStoreType
 	}
 	toastStore: typeof ToastStoreType
 	onExternalFileDrop: (audioPaths: string[]) => Promise<void>
@@ -49,11 +51,13 @@ export let hasAudioDrag = false
  */
 export async function useAppInitialization(config: AppInitConfig): Promise<() => void> {
 	const { stores, toastStore, onExternalFileDrop, onDragStateChange } = config
-	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore, syncStore } = stores
+	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore, syncStore, discoveryStore } =
+		stores
 
 	// Store unlisten functions
 	let unlistenDevices: UnlistenFn | undefined
 	let unlistenDragDrop: UnlistenFn | undefined
+	let unlistenDiscoveryUpdate: UnlistenFn | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -159,13 +163,22 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		})
 	}
 
+	// Set up discovery release update listener (background enrichment during scan)
+	async function setupDiscoveryUpdateListener(): Promise<void> {
+		unlistenDiscoveryUpdate = await listen<DiscoveryRelease>('discovery-release-updated', (event) => {
+			discoveryStore.replaceRelease(event.payload)
+		})
+	}
+
 	// Initialize listeners
 	await setupDragDrop()
 	await setupDeviceListener()
+	await setupDiscoveryUpdateListener()
 
 	// Return cleanup function
 	return () => {
 		unlistenDragDrop?.()
 		unlistenDevices?.()
+		unlistenDiscoveryUpdate?.()
 	}
 }

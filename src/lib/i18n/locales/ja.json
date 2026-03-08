@@ -253,7 +253,23 @@
 		"mergeConfirm": "メタデータを保持：",
 		"mergeTrackCount": "{count, plural, =1 {1曲} other {{count}曲}}を組み合わせ",
 		"expandAll": "すべて展開",
-		"collapseAll": "すべて折りたたむ"
+		"collapseAll": "すべて折りたたむ",
+		"scanningReleases": "リリースをスキャン中...",
+		"scanningReleasesProgress": "ページ {current} / {total} をスキャン中 ({found}件のリリースが見つかりました)...",
+		"scanningReleasesEntity": "{name} をスキャン中...",
+		"bulkImport": {
+			"releasesFound": "{total, plural, =1 {1つのリリース} other {{total}つのリリース}}が見つかりました",
+			"alreadyInDiscovery": "{count, plural, =1 {1つはディスカバリーに既に含まれています} other {{count}つはディスカバリーに既に含まれています}}",
+			"selectAll": "すべて選択",
+			"deselectAll": "すべて選択解除",
+			"addReleases": "{count, plural, =1 {1つのリリース} other {{count}つのリリース}}を追加",
+			"importing": "{current}/{total}件のリリースを追加中...",
+			"completed": "{succeeded, plural, =1 {1つのリリース} other {{succeeded}つのリリース}}を追加しました",
+			"completedWithFailures": "{succeeded, plural, =1 {1つのリリース} other {{succeeded}つのリリース}}を追加しました（{failed}件失敗）",
+			"alreadyInDiscoveryBadge": "ディスカバリーに既に含まれています",
+			"noReleasesFound": "このページにはリリースが見つかりません",
+			"cancelImport": "インポートをキャンセル"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",

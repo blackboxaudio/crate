@@ -116,6 +116,29 @@ export function formatBytes(bytes: number | null | undefined): string {
  * Uses UTC getters for date-only strings (YYYY-MM-DD) to avoid timezone day-shift.
  */
 export function formatDate(dateStr: string, format: 'locale' | 'iso' | 'us' | 'eu' | 'dot' = 'locale'): string {
+	// Year-only (e.g. "2018" from Discogs)
+	if (/^\d{4}$/.test(dateStr)) return dateStr
+
+	// Year-month only (e.g. "2018-06" from Discogs)
+	if (/^\d{4}-\d{2}$/.test(dateStr)) {
+		const [y, mm] = dateStr.split('-')
+		switch (format) {
+			case 'iso':
+				return `${y}-${mm}`
+			case 'us':
+				return `${mm}/${y}`
+			case 'eu':
+			case 'dot':
+				return `${mm}.${y}`
+			case 'locale':
+			default:
+				return new Date(Date.UTC(parseInt(y), parseInt(mm) - 1)).toLocaleDateString(undefined, {
+					year: 'numeric',
+					month: '2-digit',
+				})
+		}
+	}
+
 	const date = new Date(dateStr)
 	const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(dateStr)
 	const y = isDateOnly ? date.getUTCFullYear() : date.getFullYear()

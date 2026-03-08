@@ -253,7 +253,23 @@
 		"mergeConfirm": "Metagegevens behouden van:",
 		"mergeTrackCount": "{count, plural, =1 {1 nummer} other {{count} nummers}} gecombineerd",
 		"expandAll": "Alles uitvouwen",
-		"collapseAll": "Alles samenvouwen"
+		"collapseAll": "Alles samenvouwen",
+		"scanningReleases": "Releases scannen...",
+		"scanningReleasesProgress": "Pagina {current} van {total} scannen ({found} releases gevonden)...",
+		"scanningReleasesEntity": "{name} scannen...",
+		"bulkImport": {
+			"releasesFound": "{total, plural, =1 {1 release} other {{total} releases}} gevonden",
+			"alreadyInDiscovery": "{count, plural, =1 {1 al in ontdekkingen} other {{count} al in ontdekkingen}}",
+			"selectAll": "Alles selecteren",
+			"deselectAll": "Alles deselecteren",
+			"addReleases": "{count, plural, =1 {1 release} other {{count} releases}} toevoegen",
+			"importing": "{current} van {total} releases toevoegen...",
+			"completed": "{succeeded, plural, =1 {1 release} other {{succeeded} releases}} toegevoegd",
+			"completedWithFailures": "{succeeded, plural, =1 {1 release} other {{succeeded} releases}} toegevoegd ({failed} mislukt)",
+			"alreadyInDiscoveryBadge": "Al in ontdekkingen",
+			"noReleasesFound": "Geen releases gevonden op deze pagina",
+			"cancelImport": "Importeren annuleren"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nieuwe afspeellijst",
