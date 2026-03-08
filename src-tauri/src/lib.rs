@@ -6,7 +6,7 @@ mod models;
 mod proxy;
 mod services;
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 
 use db::Database;
@@ -23,6 +23,18 @@ pub(crate) struct BulkImportCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
 
 /// Flag to signal cancellation of a running page scan operation.
 pub(crate) struct ScanPageCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
+
+/// Cache for pre-fetched release metadata populated during background enrichment after a page scan.
+/// Keyed by release URL. Entries are consumed (removed) by `bulk_create_discovery_releases`.
+pub(crate) struct ScanEnrichmentCache(
+    pub Arc<tokio::sync::Mutex<HashMap<String, services::discovery::metadata::FetchedMetadata>>>,
+);
+
+impl ScanEnrichmentCache {
+    pub fn new() -> Self {
+        Self(Arc::new(tokio::sync::Mutex::new(HashMap::new())))
+    }
+}
 
 impl PrefetchTracker {
     pub fn new() -> Self {
@@ -271,6 +283,7 @@ pub fn run() {
             app.manage(ScanPageCancelFlag(Arc::new(
                 std::sync::atomic::AtomicBool::new(false),
             )));
+            app.manage(ScanEnrichmentCache::new());
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

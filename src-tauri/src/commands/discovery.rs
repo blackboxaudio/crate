@@ -14,7 +14,10 @@ use crate::services::discovery::n_transform::{self, NsigSolverState};
 use crate::services::discovery::streams::{self, StreamInfo};
 use crate::services::discovery::CachedStream;
 use crate::services::{DiscoveryService, LibraryService, TagService};
-use crate::{BulkImportCancelFlag, PrefetchTracker, ProxyServerPort, ScanPageCancelFlag};
+use crate::{
+    BulkImportCancelFlag, PrefetchTracker, ProxyServerPort, ScanEnrichmentCache,
+    ScanPageCancelFlag,
+};
 
 /// Spawn background stream prefetch for a release. Shared by single-create and bulk-create.
 async fn spawn_stream_prefetch(
@@ -451,9 +454,24 @@ pub async fn refresh_release_metadata(
     let release = discovery.get_release(&id)?;
     let fetched = metadata::fetch_metadata(&release.url).await?;
 
-    // Backfill any missing track durations and video_ids from fetched data
-    discovery.update_track_durations(&id, &fetched.tracks)?;
-    discovery.update_track_video_ids(&id, &fetched.tracks)?;
+    // If the release has no tracks but fetched data does, create them (fixes bulk-imported releases)
+    if release.tracks.is_empty() && !fetched.tracks.is_empty() {
+        let track_creates = fetched
+            .tracks
+            .iter()
+            .map(|t| DiscoveryTrackCreate {
+                name: t.name.clone(),
+                position: t.position,
+                duration_ms: t.duration_ms,
+                video_id: t.video_id.clone(),
+            })
+            .collect();
+        discovery.add_tracks_to_release(&id, track_creates)?;
+    } else {
+        // Backfill any missing track durations and video_ids from fetched data
+        discovery.update_track_durations(&id, &fetched.tracks)?;
+        discovery.update_track_video_ids(&id, &fetched.tracks)?;
+    }
 
     let mut update = DiscoveryReleaseUpdate::default();
     if let Some(artist) = fetched.artist {
@@ -544,15 +562,59 @@ pub async fn scan_discovery_page(
     app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
     cancel_flag: State<'_, ScanPageCancelFlag>,
+    enrichment_cache: State<'_, ScanEnrichmentCache>,
 ) -> Result<ScannedPage> {
+    // Cancel any running enrichment from a previous scan
+    cancel_flag.0.store(true, Ordering::SeqCst);
+    enrichment_cache.0.lock().await.clear();
     cancel_flag.0.store(false, Ordering::SeqCst);
+
     let existing_urls = discovery.get_all_release_urls()?;
-    tokio::time::timeout(
+    let result = tokio::time::timeout(
         std::time::Duration::from_secs(60),
         metadata::scan_page(&url, &existing_urls, &cancel_flag.0, Some(&app)),
     )
     .await
-    .map_err(|_| CrateError::Discovery("Scan timed out after 60 seconds".into()))?
+    .map_err(|_| CrateError::Discovery("Scan timed out after 60 seconds".into()))??;
+
+    // Spawn background enrichment for Discogs releases (pre-fetch tracks while user browses)
+    if result.source_type == "discogs" {
+        let urls_to_enrich: Vec<String> = result
+            .releases
+            .iter()
+            .filter(|r| !r.already_exists)
+            .map(|r| r.url.clone())
+            .collect();
+
+        if !urls_to_enrich.is_empty() {
+            let cache = enrichment_cache.0.clone();
+            let cancel = cancel_flag.0.clone();
+            tokio::spawn(async move {
+                log::info!(
+                    "Starting background enrichment for {} Discogs releases",
+                    urls_to_enrich.len()
+                );
+                for url in &urls_to_enrich {
+                    if cancel.load(Ordering::SeqCst) {
+                        log::info!("Background enrichment cancelled");
+                        break;
+                    }
+                    // Always delay to respect Discogs rate limits after the scan
+                    tokio::time::sleep(metadata::jittered_delay(2500)).await;
+                    match metadata::fetch_metadata(url).await {
+                        Ok(fetched) => {
+                            log::info!("Enriched metadata for {url}");
+                            cache.lock().await.insert(url.clone(), fetched);
+                        }
+                        Err(e) => log::warn!("Enrichment failed for {url}: {e}"),
+                    }
+                }
+                log::info!("Background enrichment complete");
+            });
+        }
+    }
+
+    Ok(result)
 }
 
 #[tauri::command]
@@ -566,9 +628,14 @@ pub async fn bulk_create_discovery_releases(
     discovery: State<'_, DiscoveryService>,
     tracker: State<'_, PrefetchTracker>,
     cancel_flag: State<'_, BulkImportCancelFlag>,
+    scan_cancel_flag: State<'_, ScanPageCancelFlag>,
+    enrichment_cache: State<'_, ScanEnrichmentCache>,
 ) -> Result<BulkImportResult> {
     // Reset cancel flag
     cancel_flag.0.store(false, Ordering::SeqCst);
+
+    // Cancel background enrichment to avoid competing Discogs API calls
+    scan_cancel_flag.0.store(true, Ordering::SeqCst);
 
     // Build a lookup of scanned data by URL for the fast path
     let scanned_map: std::collections::HashMap<String, ScannedRelease> = scanned_releases
@@ -581,7 +648,6 @@ pub async fn bulk_create_discovery_releases(
     let mut succeeded = 0usize;
     let mut failed = 0usize;
     let mut failed_urls = Vec::new();
-
     for (i, url) in urls.iter().enumerate() {
         // Check for cancellation
         if cancel_flag.0.load(Ordering::SeqCst) {
@@ -591,19 +657,62 @@ pub async fn bulk_create_discovery_releases(
 
         // Try fast path: use scanned data if available (no API call, no throttle)
         let (create, current_title) = if let Some(scanned) = scanned_map.get(url) {
-            let create = DiscoveryReleaseCreate {
-                url: url.clone(),
-                source_type: source_type.clone(),
-                artist: scanned.artist.clone().or(page_artist.clone()),
-                title: scanned.title.clone(),
-                label: page_label.clone(),
-                release_date: scanned.release_date.clone(),
-                artwork_url: scanned.artwork_url.clone(),
-                notes: None,
-                parent_url: None,
-                tracks: None,
+            // For Discogs, check if background enrichment pre-fetched full metadata
+            let enriched = if source_type.as_deref() == Some("discogs") {
+                enrichment_cache.0.lock().await.remove(url)
+            } else {
+                None
             };
-            (Ok(create), scanned.title.clone())
+
+            if let Some(fetched) = enriched {
+                // Enriched path: has tracks from background fetch
+                let create = DiscoveryReleaseCreate {
+                    url: url.clone(),
+                    source_type: source_type.clone(),
+                    artist: fetched
+                        .artist
+                        .or(scanned.artist.clone())
+                        .or(page_artist.clone()),
+                    title: fetched.title.or(scanned.title.clone()),
+                    label: fetched.label.or(page_label.clone()),
+                    release_date: fetched.release_date.or(scanned.release_date.clone()),
+                    artwork_url: fetched.artwork_url.or(scanned.artwork_url.clone()),
+                    notes: None,
+                    parent_url: fetched.parent_url,
+                    tracks: if fetched.tracks.is_empty() {
+                        None
+                    } else {
+                        Some(
+                            fetched
+                                .tracks
+                                .iter()
+                                .map(|t| DiscoveryTrackCreate {
+                                    name: t.name.clone(),
+                                    position: t.position,
+                                    duration_ms: t.duration_ms,
+                                    video_id: t.video_id.clone(),
+                                })
+                                .collect(),
+                        )
+                    },
+                };
+                (Ok(create), scanned.title.clone())
+            } else {
+                // Fast path: use scanned data only (no tracks)
+                let create = DiscoveryReleaseCreate {
+                    url: url.clone(),
+                    source_type: source_type.clone(),
+                    artist: scanned.artist.clone().or(page_artist.clone()),
+                    title: scanned.title.clone(),
+                    label: page_label.clone(),
+                    release_date: scanned.release_date.clone(),
+                    artwork_url: scanned.artwork_url.clone(),
+                    notes: None,
+                    parent_url: None,
+                    tracks: None,
+                };
+                (Ok(create), scanned.title.clone())
+            }
         } else {
             // Slow path: throttle and fetch metadata individually
             if i > 0 {

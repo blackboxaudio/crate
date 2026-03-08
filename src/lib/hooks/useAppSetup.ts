@@ -338,7 +338,16 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		await exportStore.startListening()
 
 		const cleanupApp = await useAppInitialization({
-			stores: { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore, syncStore },
+			stores: {
+				appStore,
+				libraryStore,
+				tagsStore,
+				playlistsStore,
+				settingsStore,
+				devicesStore,
+				syncStore,
+				discoveryStore,
+			},
 			toastStore,
 			onExternalFileDrop: trackController.handleExternalFileDrop,
 			onDragStateChange: (dragOver) => setIsDragOver(dragOver),

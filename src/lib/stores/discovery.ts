@@ -250,6 +250,16 @@ function createDiscoveryStore() {
 		},
 
 		/**
+		 * Replace a release in the store with updated data (used by backend events).
+		 */
+		replaceRelease(release: DiscoveryRelease) {
+			update((state) => ({
+				...state,
+				releases: state.releases.map((r) => (r.id === release.id ? release : r)),
+			}))
+		},
+
+		/**
 		 * Update category_id for a tag across all releases
 		 */
 		updateTagCategory(tagId: string, newCategoryId: string) {
