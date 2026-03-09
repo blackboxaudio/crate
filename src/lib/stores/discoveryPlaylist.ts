@@ -78,6 +78,21 @@ function createDiscoveryPlaylistStore() {
 			return releases
 		},
 
+		updateTrackLiked(releaseId: string, trackId: string, isLiked: boolean) {
+			const updateTracks = (releases: DiscoveryRelease[]) =>
+				releases.map((r) =>
+					r.id === releaseId
+						? { ...r, tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)) }
+						: r
+				)
+			update((state) => ({ releases: updateTracks(state.releases) }))
+			for (const [key, releases] of cache) {
+				if (releases.some((r) => r.id === releaseId)) {
+					cache.set(key, updateTracks(releases))
+				}
+			}
+		},
+
 		getCache() {
 			return cache
 		},

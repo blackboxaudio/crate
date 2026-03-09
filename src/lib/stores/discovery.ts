@@ -9,6 +9,7 @@ import type {
 } from '$lib/types'
 import * as discoveryApi from '$lib/api/discovery'
 import { playerStore } from './player'
+import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { toastStore } from './toast'
 import { translate } from '$lib/i18n'
 
@@ -243,6 +244,7 @@ function createDiscoveryStore() {
 					),
 				}))
 				playerStore.setPreviewTrackLiked(trackId, isLiked)
+				discoveryPlaylistStore.updateTrackLiked(releaseId, trackId, isLiked)
 			} catch (error) {
 				console.error('Failed to toggle track liked:', error)
 			}

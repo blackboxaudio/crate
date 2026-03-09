@@ -7,14 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Fixed the "is liked" toggling of discovery tracks
+
 ## [0.2.3] - 2026-03-09
 
 ### Changed
 
 - Improved search logic for discovery releases
-
-### Fixed
-
 - Fixed bug where bulk operations on filtered selections was misleading
 
 ## [0.2.2] - 2026-03-09
