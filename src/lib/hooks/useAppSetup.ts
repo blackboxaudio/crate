@@ -1,6 +1,15 @@
 import { tick } from 'svelte'
 import { get } from 'svelte/store'
-import type { ActiveView, DuplicateTrack, Playlist, SettingsPage, Track, UsbDevice } from '$lib/types'
+import type {
+	ActiveView,
+	DiscoveryRelease,
+	DiscoverySourceType,
+	DuplicateTrack,
+	Playlist,
+	SettingsPage,
+	Track,
+	UsbDevice,
+} from '$lib/types'
 import {
 	appStore,
 	libraryStore,
@@ -187,6 +196,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	const playlistController = createPlaylistController(
 		{
 			playlistsStore,
+			discoveryStore,
 			libraryStore,
 			uiStore,
 			toastStore,
@@ -195,6 +205,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			getSelectedFolderId,
 			getSelectedTagIds,
 			getTagFilterMode: () => get(tagFilterMode),
+			getActiveView: () => get(activeView),
 			onDiscoveryPlaylistSelected: async (playlistId) => {
 				const playlist = getPlaylists().find((p) => p.id === playlistId)
 				const releases = playlist?.is_smart
@@ -221,17 +232,50 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	// Track Navigation
 	// =========================================================================
 
+	const PREVIEWABLE_SOURCES: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
+
+	function trackCanPlay(release: DiscoveryRelease, trackIndex: number): boolean {
+		const track = release.tracks[trackIndex]
+		if (!track?.duration_ms) return false
+		if (release.source_type === 'discogs') return track.video_id !== null
+		return PREVIEWABLE_SOURCES.has(release.source_type) || release.tracks.some((t) => t.video_id !== null)
+	}
+
+	function findPreviewableTrackIndex(release: DiscoveryRelease, direction: 'first' | 'last'): number {
+		if (direction === 'first') {
+			return release.tracks.findIndex((_, i) => trackCanPlay(release, i))
+		}
+		for (let i = release.tracks.length - 1; i >= 0; i--) {
+			if (trackCanPlay(release, i)) return i
+		}
+		return -1
+	}
+
 	function playNextTrack() {
 		const preview = get(previewInfo)
 		if (preview) {
+			// Try next previewable track in current release
 			let nextIndex = preview.trackIndex + 1
-			while (nextIndex < preview.release.tracks.length && !preview.release.tracks[nextIndex]?.duration_ms) {
+			while (nextIndex < preview.release.tracks.length && !trackCanPlay(preview.release, nextIndex)) {
 				nextIndex++
 			}
 			if (nextIndex < preview.release.tracks.length) {
 				playerStore.playPreview(preview.release, nextIndex)
-			} else {
-				playerStore.stop()
+				return
+			}
+
+			// Move to next release in the filtered view, wrapping around
+			const releases = get(sortedReleases)
+			const releaseIdx = releases.findIndex((r) => r.id === preview.releaseId)
+			if (releaseIdx === -1 || releases.length === 0) return
+
+			for (let i = 1; i <= releases.length; i++) {
+				const nextRelease = releases[(releaseIdx + i) % releases.length]
+				const trackIdx = findPreviewableTrackIndex(nextRelease, 'first')
+				if (trackIdx !== -1) {
+					playerStore.playPreview(nextRelease, trackIdx)
+					return
+				}
 			}
 			return
 		}
@@ -245,12 +289,28 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	function playPreviousTrack() {
 		const preview = get(previewInfo)
 		if (preview) {
+			// Try previous previewable track in current release
 			let prevIndex = preview.trackIndex - 1
-			while (prevIndex >= 0 && !preview.release.tracks[prevIndex]?.duration_ms) {
+			while (prevIndex >= 0 && !trackCanPlay(preview.release, prevIndex)) {
 				prevIndex--
 			}
 			if (prevIndex >= 0) {
 				playerStore.playPreview(preview.release, prevIndex)
+				return
+			}
+
+			// Move to previous release in the filtered view, wrapping around
+			const releases = get(sortedReleases)
+			const releaseIdx = releases.findIndex((r) => r.id === preview.releaseId)
+			if (releaseIdx === -1 || releases.length === 0) return
+
+			for (let i = 1; i <= releases.length; i++) {
+				const prevRelease = releases[(releaseIdx - i + releases.length) % releases.length]
+				const trackIdx = findPreviewableTrackIndex(prevRelease, 'last')
+				if (trackIdx !== -1) {
+					playerStore.playPreview(prevRelease, trackIdx)
+					return
+				}
 			}
 			return
 		}
@@ -531,6 +591,15 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onPreviousTrack: playPreviousTrack,
 		})
 
+		// Register Media Session API handlers for next/previous so that media keys
+		// work during preview playback. WKWebView's HTML5 Audio element creates its
+		// own media session that takes priority over souvlaki — without these
+		// handlers, next/previous keys are silently consumed by the webview.
+		if ('mediaSession' in navigator) {
+			navigator.mediaSession.setActionHandler('nexttrack', playNextTrack)
+			navigator.mediaSession.setActionHandler('previoustrack', playPreviousTrack)
+		}
+
 		playerStore.onTrackEnd(() => {
 			if (get(continuousPlayback)) {
 				playNextTrack()
@@ -556,6 +625,10 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			cleanupKeyboard()
 			cleanupMenu()
 			cleanupMediaKeys()
+			if ('mediaSession' in navigator) {
+				navigator.mediaSession.setActionHandler('nexttrack', null)
+				navigator.mediaSession.setActionHandler('previoustrack', null)
+			}
 			playerStore.onTrackEnd(null)
 			exportStore.stopListening()
 			clearInterval(updateInterval)

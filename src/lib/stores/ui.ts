@@ -43,10 +43,6 @@ interface UIState {
 	rightSidebarVisible: boolean
 	rightSidebarWidth: number
 
-	// Search
-	searchQuery: string
-	searchFocused: boolean
-
 	// Modals
 	activeModal: string | null
 
@@ -81,8 +77,6 @@ const initialState: UIState = {
 	sidebarWidth: getStoredNumber('sidebarWidth', 240),
 	rightSidebarVisible: getStoredBoolean('rightSidebarVisible', false),
 	rightSidebarWidth: getStoredNumber('rightSidebarWidth', 320),
-	searchQuery: '',
-	searchFocused: false,
 	activeModal: null,
 	contextMenuOpen: false,
 	contextMenuPosition: { x: 0, y: 0 },
@@ -262,7 +256,6 @@ function createUIStore() {
 				sidebarView: id ? 'playlist' : 'library',
 				selectedPlaylistId: id,
 				selectedFolderId: null,
-				selectedTagIds: [],
 			}))
 		},
 
@@ -273,12 +266,11 @@ function createUIStore() {
 			update((state) => {
 				const exists = state.selectedTagIds.includes(id)
 				const newIds = exists ? state.selectedTagIds.filter((tid) => tid !== id) : [...state.selectedTagIds, id]
+				const inPlaylist = state.selectedPlaylistId !== null || state.selectedFolderId !== null
 				return {
 					...state,
-					sidebarView: newIds.length > 0 ? 'tag' : 'library',
+					...(!inPlaylist && { sidebarView: newIds.length > 0 ? 'tag' : 'library' }),
 					selectedTagIds: newIds,
-					selectedPlaylistId: null,
-					selectedFolderId: null,
 				}
 			})
 		},
@@ -287,13 +279,14 @@ function createUIStore() {
 		 * Add a tag to filters
 		 */
 		addTagFilter(id: string) {
-			update((state) => ({
-				...state,
-				sidebarView: 'tag',
-				selectedTagIds: state.selectedTagIds.includes(id) ? state.selectedTagIds : [...state.selectedTagIds, id],
-				selectedPlaylistId: null,
-				selectedFolderId: null,
-			}))
+			update((state) => {
+				const inPlaylist = state.selectedPlaylistId !== null || state.selectedFolderId !== null
+				return {
+					...state,
+					...(!inPlaylist && { sidebarView: 'tag' }),
+					selectedTagIds: state.selectedTagIds.includes(id) ? state.selectedTagIds : [...state.selectedTagIds, id],
+				}
+			})
 		},
 
 		/**
@@ -350,7 +343,6 @@ function createUIStore() {
 				sidebarView: id ? 'folder' : 'library',
 				selectedFolderId: id,
 				selectedPlaylistId: null,
-				selectedTagIds: [],
 			}))
 		},
 
@@ -396,31 +388,6 @@ function createUIStore() {
 			const clampedWidth = Math.max(280, Math.min(500, width))
 			setStoredNumber('rightSidebarWidth', clampedWidth)
 			update((state) => ({ ...state, rightSidebarWidth: clampedWidth }))
-		},
-
-		// =========================================================================
-		// Search
-		// =========================================================================
-
-		/**
-		 * Set search query
-		 */
-		setSearchQuery(query: string) {
-			update((state) => ({ ...state, searchQuery: query }))
-		},
-
-		/**
-		 * Set search focus state
-		 */
-		setSearchFocused(focused: boolean) {
-			update((state) => ({ ...state, searchFocused: focused }))
-		},
-
-		/**
-		 * Clear search
-		 */
-		clearSearch() {
-			update((state) => ({ ...state, searchQuery: '' }))
 		},
 
 		// =========================================================================
@@ -553,10 +520,6 @@ export const selectedTrackIds = derived(uiStore, ($ui) => $ui.selectedTrackIds)
 export const selectedTrackCount = derived(uiStore, ($ui) => $ui.selectedTrackIds.size)
 
 export const hasSelection = derived(uiStore, ($ui) => $ui.selectedTrackIds.size > 0)
-
-export const searchQuery = derived(uiStore, ($ui) => $ui.searchQuery)
-
-export const isSearchActive = derived(uiStore, ($ui) => $ui.searchQuery.length > 0)
 
 export const recentlyToggledMixedTags = derived(uiStore, ($ui) => $ui.recentlyToggledMixedTags)
 

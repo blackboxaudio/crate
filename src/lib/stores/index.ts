@@ -25,8 +25,6 @@ export {
 	hasSelection,
 	selectedReleaseIds,
 	selectedReleaseCount,
-	searchQuery,
-	isSearchActive,
 	recentlyToggledMixedTags,
 	selectedTagIds,
 	tagFilterMode,

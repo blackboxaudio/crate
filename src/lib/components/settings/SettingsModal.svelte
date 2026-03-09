@@ -144,7 +144,7 @@
 								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
 							onclick={() => (activePage = 'discovery')}
 						>
-							<Icon name="search" class="h-4 w-4" />
+							<Icon name="globe" class="h-4 w-4" />
 							{$translate('settings.tabs.discovery')}
 						</button>
 						<button

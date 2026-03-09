@@ -7,8 +7,10 @@
 		BreadcrumbItem,
 		DiscoveryRelease,
 		DiscoverySortConfig,
+		Tag,
+		TagFilterMode,
 	} from '$lib/types'
-	import { TrackList } from '$lib/components/library'
+	import { TrackList, SearchBar } from '$lib/components/library'
 	import { DiscoveryList } from '$lib/components/discovery'
 	import { IconButton } from '$lib/components/common'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
@@ -30,9 +32,20 @@
 		releases?: DiscoveryRelease[]
 		editorVisible?: boolean
 		hasSelection?: boolean
+		searchValue?: string
+		onSearchChange?: (query: string) => void
+		activeFilterTags?: Tag[]
+		tagColors?: Map<string, string | null>
+		tagFilterMode?: TagFilterMode
+		onRemoveTagFilter?: (tagId: string) => void
+		onClearAllTagFilters?: () => void
+		onToggleTagFilterMode?: () => void
+		likedOnly?: boolean
+		onToggleLikedFilter?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
+		onDiscoveryTrackLikeToggle?: (releaseId: string, trackId: string) => void
 		onSortChange?: (config: SortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent, playlist: Playlist) => void
@@ -57,9 +70,20 @@
 		releases = [],
 		editorVisible = false,
 		hasSelection = false,
+		searchValue = '',
+		onSearchChange,
+		activeFilterTags,
+		tagColors,
+		tagFilterMode,
+		onRemoveTagFilter,
+		onClearAllTagFilters,
+		onToggleTagFilterMode,
+		likedOnly = false,
+		onToggleLikedFilter,
 		onSelectionChange,
 		onTrackPlay,
 		onDiscoveryTrackPlay,
+		onDiscoveryTrackLikeToggle,
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
@@ -74,10 +98,33 @@
 		onEmptySpaceContextMenu?.(e, playlist)
 	}
 
-	const hasExpandableReleases = $derived(releases.some((r) => r.tracks.length > 0))
+	const filteredReleases = $derived.by(() => {
+		let result = likedOnly ? releases.filter((r) => r.tracks.some((t) => t.is_liked)) : releases
+		if (activeFilterTags && activeFilterTags.length > 0) {
+			const tagIds = new Set(activeFilterTags.map((t) => t.id))
+			if (tagFilterMode === 'and') {
+				result = result.filter((r) => [...tagIds].every((id) => r.tags.some((t) => t.id === id)))
+			} else {
+				result = result.filter((r) => r.tags.some((t) => tagIds.has(t.id)))
+			}
+		}
+		if (searchValue) {
+			const search = searchValue.toLowerCase()
+			result = result.filter(
+				(r) =>
+					r.artist?.toLowerCase().includes(search) ||
+					r.title?.toLowerCase().includes(search) ||
+					r.label?.toLowerCase().includes(search) ||
+					r.notes?.toLowerCase().includes(search)
+			)
+		}
+		return result
+	})
+
+	const hasExpandableReleases = $derived(filteredReleases.some((r) => r.tracks.length > 0))
 
 	function handleExpandAll() {
-		expandedReleaseIds.expandAll(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
+		expandedReleaseIds.expandAll(filteredReleases.filter((r) => r.tracks.length > 0).map((r) => r.id))
 	}
 
 	function handleCollapseAll() {
@@ -92,13 +139,30 @@
 	<!-- Breadcrumb Navigation -->
 	<Breadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} onContextMenu={onBreadcrumbContextMenu}>
 		{#snippet actions()}
-			<div class="flex items-center gap-1">
-				{#if isDiscovery && hasExpandableReleases}
+			<div class="flex items-center gap-2">
+				{#if onSearchChange}
+					<div class="w-64">
+						<SearchBar
+							{onSearchChange}
+							initialValue={searchValue}
+							placeholder={isDiscovery ? $translate('discovery.searchPlaceholder') : undefined}
+							likedOnly={isDiscovery ? likedOnly : undefined}
+							onToggleLikedFilter={isDiscovery ? onToggleLikedFilter : undefined}
+							{activeFilterTags}
+							{tagColors}
+							{tagFilterMode}
+							{onRemoveTagFilter}
+							{onClearAllTagFilters}
+							{onToggleTagFilterMode}
+						/>
+					</div>
+				{/if}
+				{#if isDiscovery}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
-						<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
+						<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />
 					</Tooltip>
 					<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
-						<IconButton icon="fold-vertical" size="sm" onclick={handleCollapseAll} />
+						<IconButton icon="fold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleCollapseAll} />
 					</Tooltip>
 				{/if}
 				<Tooltip
@@ -122,18 +186,20 @@
 	<div class="flex-1 overflow-hidden">
 		{#if isDiscovery}
 			<DiscoveryList
-				{releases}
+				releases={filteredReleases}
 				{selectedIds}
 				expandedIds={$expandedReleaseIds}
 				sortConfig={discoverySortConfig}
 				{categoryColors}
 				{categorySortOrders}
+				{likedOnly}
 				{onSelectionChange}
 				onContextMenu={(e, release) => {
 					onContextMenu?.(e, release as unknown as Track)
 				}}
 				onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
 				onTrackPlay={onDiscoveryTrackPlay}
+				onTrackLikeToggle={onDiscoveryTrackLikeToggle}
 			/>
 		{:else}
 			<TrackList

@@ -12,7 +12,7 @@
 	import { settingsStore } from '$lib/stores/settings'
 	import { splashVisible } from '$lib/stores/splash'
 	import { useGlobalErrorHandler, hasAudioDrag } from '$lib/hooks'
-	import { initializeI18n } from '$lib/i18n'
+	import { initializeI18n, translate } from '$lib/i18n'
 	import { Sidebar, Toolbar } from '$lib/components/layout'
 	import { Player } from '$lib/components/player'
 	import { ResizeHandle, Icon, Text } from '$lib/components/common'
@@ -23,7 +23,6 @@
 		activeView,
 		selectedTrackIds,
 		selectedReleaseIds,
-		tagFilterMode,
 		visibleDevices,
 		computeTagStates,
 		releaseCount,
@@ -147,19 +146,6 @@
 
 	const contextPlaylists = $derived(playlists.filter((p) => p.context === $activeView))
 
-	const activeFilterTags = $derived.by(() => {
-		if (selectedTagIds.length === 0) return []
-		const tags: Tag[] = []
-		for (const category of tagCategories) {
-			for (const tag of category.tags) {
-				if (selectedTagIds.includes(tag.id)) tags.push(tag)
-			}
-		}
-		return tags
-	})
-
-	const tagColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
-
 	// =========================================================================
 	// Handlers
 	// =========================================================================
@@ -251,7 +237,7 @@
 			style="opacity: {$splashVisible ? 0 : 1}; pointer-events: {$splashVisible ? 'none' : 'auto'}"
 		>
 			<!-- Unified Header: Logo + Toolbar -->
-			<div class="flex rounded-br bg-surface-1">
+			<div class="relative flex rounded-br bg-surface-1">
 				<div class="flex flex-shrink-0 items-center justify-center gap-2" style="width: {sidebarWidth}px">
 					<Icon name="logo" class="h-6 w-6 text-brand-primary" />
 					<Text variant="header-1" as="span" weight="bold">Crate</Text>
@@ -259,15 +245,38 @@
 						<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-500">DEV</span>
 					{/if}
 				</div>
+
+				<!-- Segmented control (absolutely centered in full window) -->
+				<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+					<div class="pointer-events-auto relative inline-grid grid-cols-2 items-center rounded-lg bg-surface-2 p-0.5">
+						<div
+							class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-surface-0 shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
+							style="transform: translateX({$activeView === 'discovery' ? '100%' : '0%'})"
+						></div>
+						<button
+							type="button"
+							class="relative z-10 rounded-md px-3 py-1 text-center text-xs font-medium transition-colors {$activeView ===
+							'library'
+								? 'text-text-primary'
+								: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+							onclick={() => $pageActions?.handleViewChange('library')}
+						>
+							{$translate('nav.library')}
+						</button>
+						<button
+							type="button"
+							class="relative z-10 rounded-md px-3 py-1 text-center text-xs font-medium transition-colors {$activeView ===
+							'discovery'
+								? 'text-text-primary'
+								: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+							onclick={() => $pageActions?.handleViewChange('discovery')}
+						>
+							{$translate('nav.discovery')}
+						</button>
+					</div>
+				</div>
+
 				<Toolbar
-					activeView={$activeView}
-					{activeFilterTags}
-					{tagColors}
-					tagFilterMode={$tagFilterMode}
-					onViewChange={(view) => $pageActions?.handleViewChange(view)}
-					onRemoveTagFilter={(tagId) => $pageActions?.tagController.removeTagFilter(tagId)}
-					onClearAllTagFilters={() => $pageActions?.tagController.clearTagFilters()}
-					onToggleTagFilterMode={() => $pageActions?.tagController.toggleTagFilterMode()}
 					onImport={$activeView === 'library' ? () => $pageActions?.trackController.handleImport() : undefined}
 					onAddRelease={$activeView === 'discovery' ? () => $pageActions?.openAddReleaseModal() : undefined}
 					onSettings={() => $pageActions?.getModalOrchestrator()?.openSettingsModal()}

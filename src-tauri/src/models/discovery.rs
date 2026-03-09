@@ -8,6 +8,7 @@ pub struct DiscoveryTrack {
     pub position: i32,
     pub duration_ms: Option<i64>,
     pub video_id: Option<String>,
+    pub is_liked: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

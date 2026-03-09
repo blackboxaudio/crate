@@ -236,5 +236,9 @@ CREATE TABLE discovery_audio_cache (
     PRIMARY KEY (release_id, track_position)
 );
 "#,
+        // Migration 2: Track-level likes for discovery releases
+        r#"
+ALTER TABLE discovery_tracks ADD COLUMN is_liked INTEGER NOT NULL DEFAULT 0;
+"#,
     ]
 }

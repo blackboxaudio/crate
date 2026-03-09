@@ -195,6 +195,19 @@ fn get_device_path_linux(mount_point: &str) -> Result<String> {
     Ok(device)
 }
 
+/// Extract a human-readable name from a mount point path.
+/// On Unix: `/Volumes/MY_USB` → `"MY_USB"`
+/// On Windows: `D:\` → `"D:"`
+fn device_name_from_mount_point(mount_point: &str) -> String {
+    std::path::Path::new(mount_point)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .map(|s| s.to_string())
+        // Root paths (e.g. `D:\` or `/`) have no file_name — use the mount point itself,
+        // stripping any trailing separator for cleaner display.
+        .unwrap_or_else(|| mount_point.trim_end_matches(['/', '\\']).to_string())
+}
+
 pub struct DeviceService {
     devices: Arc<Mutex<Vec<UsbDevice>>>,
     stop_tx: Arc<Mutex<Option<watch::Sender<bool>>>>,
@@ -232,12 +245,7 @@ impl DeviceService {
                 UsbDevice {
                     id,
                     name: if name.is_empty() {
-                        // Use mount point as name if no name available
-                        mount_point
-                            .split('/')
-                            .next_back()
-                            .unwrap_or("USB Device")
-                            .to_string()
+                        device_name_from_mount_point(&mount_point)
                     } else {
                         name
                     },
@@ -305,7 +313,7 @@ impl DeviceService {
                                 UsbDevice {
                                     id,
                                     name: if name.is_empty() {
-                                        mount_point.split('/').next_back().unwrap_or("USB Device").to_string()
+                                        device_name_from_mount_point(&mount_point)
                                     } else {
                                         name
                                     },

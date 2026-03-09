@@ -31,6 +31,8 @@
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onToggleExpand?: (id: string) => void
 		onTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
+		onTrackLikeToggle?: (releaseId: string, trackId: string) => void
+		likedOnly?: boolean
 	}
 
 	let {
@@ -50,6 +52,8 @@
 		onEmptySpaceContextMenu,
 		onToggleExpand,
 		onTrackPlay,
+		onTrackLikeToggle,
+		likedOnly = false,
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
@@ -133,6 +137,7 @@
 					dragReleaseIds={Array.from(selectedIds)}
 					{categoryColors}
 					{categorySortOrders}
+					{likedOnly}
 					onclick={(e) => handleReleaseClick(release, e)}
 					ondblclick={() => handleReleaseDoubleClick(release)}
 					oncontextmenu={(e) => handleReleaseContextMenu(release, e)}
@@ -140,6 +145,7 @@
 					onopenurl={() => onReleaseOpenUrl?.(release)}
 					onToggleExpand={() => onToggleExpand?.(release.id)}
 					onTrackPlay={(idx) => onTrackPlay?.(release, idx)}
+					onTrackLikeToggle={(trackId) => onTrackLikeToggle?.(release.id, trackId)}
 				/>
 			{/each}
 		{/if}

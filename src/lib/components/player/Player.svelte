@@ -8,6 +8,7 @@
 		volume,
 		playbackSpeed,
 		previewInfo,
+		discoveryStore,
 	} from '$lib/stores'
 	import PlaybackControls from './PlaybackControls.svelte'
 	import SeekBar from './SeekBar.svelte'
@@ -47,12 +48,19 @@
 	function handleSpeedCommit() {
 		playerStore.commitPreviewSpeed()
 	}
+
+	function handleLikeToggle() {
+		if ($previewInfo) {
+			const track = $previewInfo.release.tracks[$previewInfo.trackIndex]
+			discoveryStore.toggleTrackLiked($previewInfo.releaseId, track.id)
+		}
+	}
 </script>
 
 <div class="flex items-center gap-4 border-t border-stroke bg-surface-1 px-4 py-3">
 	<!-- Track Info -->
 	<div class="w-64 flex-shrink-0">
-		<TrackInfo track={$currentTrack} previewInfo={$previewInfo} />
+		<TrackInfo track={$currentTrack} previewInfo={$previewInfo} onLikeToggle={handleLikeToggle} />
 	</div>
 
 	<!-- Center Controls -->

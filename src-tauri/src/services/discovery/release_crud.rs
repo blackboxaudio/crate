@@ -49,6 +49,7 @@ impl DiscoveryService {
                     position: tc.position,
                     duration_ms: tc.duration_ms,
                     video_id: tc.video_id,
+                    is_liked: false,
                 });
             }
         }
@@ -110,7 +111,7 @@ impl DiscoveryService {
 
         // Load tracks
         let mut stmt = conn.prepare(
-            "SELECT id, release_id, name, position, duration_ms, video_id FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
+            "SELECT id, release_id, name, position, duration_ms, video_id, is_liked FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
         )?;
         release.tracks = stmt
             .query_map([id], |row| {
@@ -121,6 +122,7 @@ impl DiscoveryService {
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
                     video_id: row.get(5)?,
+                    is_liked: row.get::<_, i32>(6).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -275,7 +277,7 @@ impl DiscoveryService {
             .join(", ");
 
         let mut stmt = conn.prepare(&format!(
-            "SELECT id, release_id, name, position, duration_ms, video_id FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
+            "SELECT id, release_id, name, position, duration_ms, video_id, is_liked FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
         let track_params: Vec<&dyn rusqlite::types::ToSql> = release_ids
             .iter()
@@ -290,6 +292,7 @@ impl DiscoveryService {
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
                     video_id: row.get(5)?,
+                    is_liked: row.get::<_, i32>(6).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -472,6 +475,33 @@ impl DiscoveryService {
             .collect::<std::result::Result<std::collections::HashSet<String>, _>>()?;
 
         Ok(urls)
+    }
+
+    pub fn toggle_track_liked(&self, track_id: &str) -> Result<bool> {
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+
+        conn.execute(
+            "UPDATE discovery_tracks SET is_liked = CASE WHEN is_liked = 0 THEN 1 ELSE 0 END WHERE id = ?1",
+            [track_id],
+        )?;
+
+        let is_liked: bool = conn
+            .query_row(
+                "SELECT is_liked FROM discovery_tracks WHERE id = ?1",
+                [track_id],
+                |row| row.get::<_, i32>(0).map(|v| v != 0),
+            )
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => {
+                    CrateError::Discovery(format!("Track not found: {track_id}"))
+                }
+                _ => CrateError::Database(e),
+            })?;
+
+        Ok(is_liked)
     }
 
     pub fn delete_releases(&self, ids: Vec<String>) -> Result<()> {

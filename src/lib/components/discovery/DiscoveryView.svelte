@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoverySortConfig } from '$lib/types'
+	import type { DiscoveryRelease, DiscoverySortConfig, Tag, TagFilterMode } from '$lib/types'
 	import DiscoveryList from './DiscoveryList.svelte'
+	import { SearchBar } from '$lib/components/library'
 	import { IconButton } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -17,16 +18,27 @@
 		categorySortOrders?: Map<string, number>
 		editorVisible?: boolean
 		hasSelection?: boolean
+		searchValue?: string
+		onSearchChange?: (query: string) => void
+		activeFilterTags?: Tag[]
+		tagColors?: Map<string, string | null>
+		tagFilterMode?: TagFilterMode
+		onRemoveTagFilter?: (tagId: string) => void
+		onClearAllTagFilters?: () => void
+		onToggleTagFilterMode?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
 		onReleaseOpen?: (release: DiscoveryRelease) => void
 		onReleaseOpenUrl?: (release: DiscoveryRelease) => void
 		onReleaseImport?: (release: DiscoveryRelease) => void
 		onTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
+		onTrackLikeToggle?: (releaseId: string, trackId: string) => void
 		onSortChange?: (config: DiscoverySortConfig) => void
 		onContextMenu?: (e: MouseEvent, release: DiscoveryRelease) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onUrlDrop?: (url: string) => void
 		onToggleEditor?: () => void
+		likedOnly?: boolean
+		onToggleLikedFilter?: () => void
 	}
 
 	let {
@@ -38,16 +50,27 @@
 		categorySortOrders,
 		editorVisible = false,
 		hasSelection = false,
+		searchValue = '',
+		onSearchChange,
+		activeFilterTags,
+		tagColors,
+		tagFilterMode,
+		onRemoveTagFilter,
+		onClearAllTagFilters,
+		onToggleTagFilterMode,
 		onSelectionChange,
 		onReleaseOpen,
 		onReleaseOpenUrl,
 		onReleaseImport,
 		onTrackPlay,
+		onTrackLikeToggle,
 		onSortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
 		onUrlDrop,
 		onToggleEditor,
+		likedOnly = false,
+		onToggleLikedFilter,
 	}: Props = $props()
 
 	let isDragOver = $state(false)
@@ -119,7 +142,7 @@
 	ondrop={handleDrop}
 >
 	<!-- Header -->
-	<div class="flex items-center justify-between border-b border-stroke px-4 py-4">
+	<div class="flex items-center border-b border-stroke px-4 py-4">
 		<div class="flex items-center gap-2 rounded px-2 py-1 text-sm font-medium text-text-primary">
 			<Icon name="globe" class="h-4 w-4 shrink-0" />
 			<span>{$translate('nav.discovery')}</span>
@@ -128,15 +151,30 @@
 				{releaseCount === 1 ? $translate('discovery.release') : $translate('discovery.releases')}
 			</Text>
 		</div>
-		<div class="flex items-center gap-1">
-			{#if hasExpandableReleases}
-				<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
-					<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
-				</Tooltip>
-				<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
-					<IconButton icon="fold-vertical" size="sm" onclick={handleCollapseAll} />
-				</Tooltip>
+		<div class="flex flex-1 items-center justify-end gap-2">
+			{#if onSearchChange}
+				<div class="w-64">
+					<SearchBar
+						{onSearchChange}
+						initialValue={searchValue}
+						placeholder={$translate('discovery.searchPlaceholder')}
+						{likedOnly}
+						{onToggleLikedFilter}
+						{activeFilterTags}
+						{tagColors}
+						{tagFilterMode}
+						{onRemoveTagFilter}
+						{onClearAllTagFilters}
+						{onToggleTagFilterMode}
+					/>
+				</div>
 			{/if}
+			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
+				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />
+			</Tooltip>
+			<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
+				<IconButton icon="fold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleCollapseAll} />
+			</Tooltip>
 			<Tooltip
 				text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
 				position="bottom"
@@ -157,6 +195,7 @@
 			{categoryColors}
 			{categorySortOrders}
 			{isDragOver}
+			{likedOnly}
 			{onSelectionChange}
 			{onReleaseOpen}
 			{onReleaseOpenUrl}
@@ -166,6 +205,7 @@
 			{onEmptySpaceContextMenu}
 			onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
 			{onTrackPlay}
+			{onTrackLikeToggle}
 		/>
 	</div>
 

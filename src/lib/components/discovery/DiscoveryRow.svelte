@@ -25,6 +25,8 @@
 		onopenurl?: () => void
 		onToggleExpand?: () => void
 		onTrackPlay?: (trackIndex: number) => void
+		onTrackLikeToggle?: (trackId: string) => void
+		likedOnly?: boolean
 	}
 
 	let {
@@ -42,6 +44,8 @@
 		onopenurl,
 		onToggleExpand,
 		onTrackPlay,
+		onTrackLikeToggle,
+		likedOnly = false,
 	}: Props = $props()
 
 	let isTagDragHovered = $state(false)
@@ -242,54 +246,73 @@
 {#if expanded && release.tracks.length > 0}
 	<div class="border-b border-stroke-subtle bg-surface-1/30" transition:slide={{ duration: 200 }}>
 		{#each release.tracks as track, idx (track.id)}
-			{@const canPlay = trackCanPlay(idx)}
-			{@const playing = canPlay && isTrackPlaying(idx)}
-			<!-- svelte-ignore a11y_no_static_element_interactions -->
-			<div
-				class="grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
-					? 'cursor-pointer hover:bg-surface-2/50'
-					: 'cursor-default opacity-60'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
-				ondblclick={canPlay
-					? (e) => {
-							e.stopPropagation()
-							onTrackPlay?.(idx)
-						}
-					: undefined}
-				onmouseenter={canPlay
-					? () => {
-							discoveryApi.fetchPreviewStream(release.id, track.position).catch(() => {})
-						}
-					: undefined}
-			>
-				<div></div>
+			{#if !likedOnly || track.is_liked}
+				{@const canPlay = trackCanPlay(idx)}
+				{@const playing = canPlay && isTrackPlaying(idx)}
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="text-center text-xs {playing
-						? 'text-brand-primary'
-						: canPlay
-							? 'text-text-tertiary'
-							: 'text-text-tertiary/50'}"
+					class="group/track grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
+						? 'cursor-pointer hover:bg-surface-2/50'
+						: 'cursor-default opacity-60'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
+					ondblclick={canPlay
+						? (e) => {
+								e.stopPropagation()
+								onTrackPlay?.(idx)
+							}
+						: undefined}
+					onmouseenter={canPlay
+						? () => {
+								discoveryApi.fetchPreviewStream(release.id, track.position).catch(() => {})
+							}
+						: undefined}
 				>
-					{track.position}
+					<div class="flex items-center justify-center">
+						<button
+							class="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors {track.is_liked
+								? 'text-brand-primary'
+								: 'text-text-tertiary opacity-0 group-hover/track:opacity-100 hover:opacity-100'}"
+							onclick={(e) => {
+								e.stopPropagation()
+								e.currentTarget.animate(
+									[{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }],
+									{ duration: 300, easing: 'ease-out' }
+								)
+								onTrackLikeToggle?.(track.id)
+							}}
+							ondblclick={(e) => e.stopPropagation()}
+						>
+							<Icon name="heart" class="h-3 w-3" fill={track.is_liked} />
+						</button>
+					</div>
+					<div
+						class="text-center text-xs {playing
+							? 'text-brand-primary'
+							: canPlay
+								? 'text-text-tertiary'
+								: 'text-text-tertiary/50'}"
+					>
+						{track.position}
+					</div>
+					<div
+						class="truncate text-xs {playing
+							? 'font-medium text-brand-primary'
+							: canPlay
+								? 'text-text-secondary'
+								: 'text-text-tertiary'}"
+					>
+						{track.name}
+					</div>
+					<div
+						class="mr-1 text-right text-xs {playing
+							? 'text-brand-primary'
+							: canPlay
+								? 'text-text-tertiary'
+								: 'text-text-tertiary/50'}"
+					>
+						{track.duration_ms ? formatDuration(track.duration_ms) : ''}
+					</div>
 				</div>
-				<div
-					class="truncate text-xs {playing
-						? 'font-medium text-brand-primary'
-						: canPlay
-							? 'text-text-secondary'
-							: 'text-text-tertiary'}"
-				>
-					{track.name}
-				</div>
-				<div
-					class="mr-1 text-right text-xs {playing
-						? 'text-brand-primary'
-						: canPlay
-							? 'text-text-tertiary'
-							: 'text-text-tertiary/50'}"
-				>
-					{track.duration_ms ? formatDuration(track.duration_ms) : ''}
-				</div>
-			</div>
+			{/if}
 		{/each}
 	</div>
 {/if}

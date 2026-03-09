@@ -1,15 +1,16 @@
 <script lang="ts">
 	import type { Track, PreviewInfo } from '$lib/types'
 	import { getTrackDisplayName, getTrackDisplayArtist } from '$lib/utils'
-	import { AlbumArt, AlbumArtModal, Text } from '$lib/components/common'
+	import { AlbumArt, AlbumArtModal, Icon, Text } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
 
 	type Props = {
 		track: Track | null
 		previewInfo?: PreviewInfo | null
+		onLikeToggle?: () => void
 	}
 
-	let { track, previewInfo = null }: Props = $props()
+	let { track, previewInfo = null, onLikeToggle }: Props = $props()
 
 	let showArtworkModal = $state(false)
 
@@ -63,6 +64,24 @@
 			<Text color="tertiary">{$translate('player.noTrackSelected')}</Text>
 		{/if}
 	</div>
+
+	<!-- Like button (preview only) -->
+	{#if previewInfo && previewTrack}
+		<button
+			class="flex-shrink-0 cursor-pointer transition-colors {previewTrack.is_liked
+				? 'text-brand-primary'
+				: 'text-secondary hover:text-primary'}"
+			onclick={(e) => {
+				e.currentTarget.animate([{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }], {
+					duration: 300,
+					easing: 'ease-out',
+				})
+				onLikeToggle?.()
+			}}
+		>
+			<Icon name="heart" class="h-3.5 w-3.5" fill={previewTrack.is_liked} />
+		</button>
+	{/if}
 </div>
 
 {#if showArtworkModal && (track || previewInfo)}
