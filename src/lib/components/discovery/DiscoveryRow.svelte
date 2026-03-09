@@ -251,7 +251,7 @@
 				{@const playing = canPlay && isTrackPlaying(idx)}
 				<!-- svelte-ignore a11y_no_static_element_interactions -->
 				<div
-					class="group/track grid grid-cols-[24px_40px_1fr_80px_32px] items-center gap-2 px-3 py-1 {canPlay
+					class="group/track grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
 						? 'cursor-pointer hover:bg-surface-2/50'
 						: 'cursor-default opacity-60'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
 					ondblclick={canPlay
@@ -266,7 +266,23 @@
 							}
 						: undefined}
 				>
-					<div></div>
+					<div class="flex items-center justify-center">
+						<button
+							class="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors {track.is_liked
+								? 'text-brand-primary'
+								: 'text-text-tertiary opacity-0 group-hover/track:opacity-100 hover:opacity-100'}"
+							onclick={(e) => {
+								e.stopPropagation()
+								e.currentTarget.animate(
+									[{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }],
+									{ duration: 300, easing: 'ease-out' }
+								)
+								onTrackLikeToggle?.(track.id)
+							}}
+						>
+							<Icon name="heart" class="h-3 w-3" fill={track.is_liked} />
+						</button>
+					</div>
 					<div
 						class="text-center text-xs {playing
 							? 'text-brand-primary'
@@ -293,23 +309,6 @@
 								: 'text-text-tertiary/50'}"
 					>
 						{track.duration_ms ? formatDuration(track.duration_ms) : ''}
-					</div>
-					<div class="flex items-center justify-center">
-						<button
-							class="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors {track.is_liked
-								? 'text-brand-primary'
-								: 'text-text-tertiary opacity-0 group-hover/track:opacity-100 hover:opacity-100'}"
-							onclick={(e) => {
-								e.stopPropagation()
-								e.currentTarget.animate(
-									[{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }],
-									{ duration: 300, easing: 'ease-out' }
-								)
-								onTrackLikeToggle?.(track.id)
-							}}
-						>
-							<Icon name="heart" class="h-3 w-3" fill={track.is_liked} />
-						</button>
 					</div>
 				</div>
 			{/if}
