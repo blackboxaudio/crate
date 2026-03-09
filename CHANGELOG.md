@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-03-09
+
 ### Changed
 
 - Fixed the "is liked" toggling of discovery tracks
@@ -68,7 +70,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/blackboxaudio/crate/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/blackboxaudio/crate/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/blackboxaudio/crate/compare/v0.2.2-staging.1...v0.2.2
 [0.2.1]: https://github.com/blackboxaudio/crate/compare/v0.2.1-staging.1...v0.2.1
