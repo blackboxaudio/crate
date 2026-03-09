@@ -600,6 +600,25 @@ function createPlayerStore() {
 		},
 
 		/**
+		 * Update is_liked for a preview track (keeps player store in sync with discovery store)
+		 */
+		setPreviewTrackLiked(trackId: string, isLiked: boolean) {
+			update((s) => {
+				if (!s.previewInfo) return s
+				return {
+					...s,
+					previewInfo: {
+						...s.previewInfo,
+						release: {
+							...s.previewInfo.release,
+							tracks: s.previewInfo.release.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)),
+						},
+					},
+				}
+			})
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {

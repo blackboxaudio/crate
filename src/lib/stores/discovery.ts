@@ -8,6 +8,7 @@ import type {
 	ImportResultWithDuplicates,
 } from '$lib/types'
 import * as discoveryApi from '$lib/api/discovery'
+import { playerStore } from './player'
 import { toastStore } from './toast'
 import { translate } from '$lib/i18n'
 
@@ -241,6 +242,7 @@ function createDiscoveryStore() {
 							: r
 					),
 				}))
+				playerStore.setPreviewTrackLiked(trackId, isLiked)
 			} catch (error) {
 				console.error('Failed to toggle track liked:', error)
 			}

@@ -301,6 +301,10 @@
 								: 'text-text-tertiary opacity-0 group-hover/track:opacity-100 hover:opacity-100'}"
 							onclick={(e) => {
 								e.stopPropagation()
+								e.currentTarget.animate(
+									[{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }],
+									{ duration: 300, easing: 'ease-out' }
+								)
 								onTrackLikeToggle?.(track.id)
 							}}
 						>
