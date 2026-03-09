@@ -58,6 +58,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenDevices: UnlistenFn | undefined
 	let unlistenDragDrop: UnlistenFn | undefined
 	let unlistenDiscoveryUpdate: UnlistenFn | undefined
+	let unlistenEnrichmentQueued: UnlistenFn | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -163,10 +164,17 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		})
 	}
 
-	// Set up discovery release update listener (background enrichment during scan)
+	// Set up discovery release update listener (background enrichment)
 	async function setupDiscoveryUpdateListener(): Promise<void> {
 		unlistenDiscoveryUpdate = await listen<DiscoveryRelease>('discovery-release-updated', (event) => {
 			discoveryStore.replaceRelease(event.payload)
+		})
+	}
+
+	// Set up enrichment queued listener (shows spinners on releases about to be enriched)
+	async function setupEnrichmentQueuedListener(): Promise<void> {
+		unlistenEnrichmentQueued = await listen<string[]>('discovery-enrichment-queued', (event) => {
+			discoveryStore.markEnriching(event.payload)
 		})
 	}
 
@@ -174,11 +182,13 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	await setupDragDrop()
 	await setupDeviceListener()
 	await setupDiscoveryUpdateListener()
+	await setupEnrichmentQueuedListener()
 
 	// Return cleanup function
 	return () => {
 		unlistenDragDrop?.()
 		unlistenDevices?.()
 		unlistenDiscoveryUpdate?.()
+		unlistenEnrichmentQueued?.()
 	}
 }

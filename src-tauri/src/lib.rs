@@ -24,6 +24,16 @@ pub(crate) struct BulkImportCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
 /// Flag to signal cancellation of a running page scan operation.
 pub(crate) struct ScanPageCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
 
+/// Set of release IDs that should be skipped by background enrichment.
+/// Populated when the user cancels enrichment for individual releases.
+pub(crate) struct EnrichmentSkipIds(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
+
+impl EnrichmentSkipIds {
+    pub fn new() -> Self {
+        Self(Arc::new(tokio::sync::Mutex::new(HashSet::new())))
+    }
+}
+
 /// Cache for pre-fetched release metadata populated during background enrichment after a page scan.
 /// Keyed by release URL. Entries are consumed (removed) by `bulk_create_discovery_releases`.
 pub(crate) struct ScanEnrichmentCache(
@@ -215,6 +225,7 @@ pub fn run() {
             commands::discovery::bulk_create_discovery_releases,
             commands::discovery::cancel_bulk_import,
             commands::discovery::cancel_scan_page,
+            commands::discovery::skip_enrichment,
             // Backup commands
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
@@ -306,6 +317,7 @@ pub fn run() {
                 std::sync::atomic::AtomicBool::new(false),
             )));
             app.manage(ScanEnrichmentCache::new());
+            app.manage(EnrichmentSkipIds::new());
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

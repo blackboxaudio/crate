@@ -205,12 +205,7 @@ pub(super) fn parse_client_items(
 
     items
         .into_iter()
-        .filter(|item| {
-            matches!(
-                item.item_type.as_deref(),
-                Some("album") | Some("track")
-            )
-        })
+        .filter(|item| matches!(item.item_type.as_deref(), Some("album") | Some("track")))
         .filter_map(|item| {
             let relative_url = item.page_url?;
             let absolute_url = if relative_url.starts_with("http") {

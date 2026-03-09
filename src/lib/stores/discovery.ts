@@ -289,11 +289,27 @@ function createDiscoveryStore() {
 
 		/**
 		 * Replace a release in the store with updated data (used by backend events).
+		 * Also clears the release from refreshingIds since enrichment is complete.
 		 */
 		replaceRelease(release: DiscoveryRelease) {
+			update((state) => {
+				const next = new Set(state.refreshingIds)
+				next.delete(release.id)
+				return {
+					...state,
+					releases: state.releases.map((r) => (r.id === release.id ? release : r)),
+					refreshingIds: next,
+				}
+			})
+		},
+
+		/**
+		 * Mark release IDs as enriching (shows spinner in UI).
+		 */
+		markEnriching(ids: string[]) {
 			update((state) => ({
 				...state,
-				releases: state.releases.map((r) => (r.id === release.id ? release : r)),
+				refreshingIds: new Set([...state.refreshingIds, ...ids]),
 			}))
 		},
 
@@ -367,6 +383,7 @@ function createDiscoveryStore() {
 
 		cancelRefresh(id: string) {
 			bulkRefreshSkipIds.add(id)
+			discoveryApi.skipEnrichment(id)
 			update((state) => {
 				const next = new Set(state.refreshingIds)
 				next.delete(id)

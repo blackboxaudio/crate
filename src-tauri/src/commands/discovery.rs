@@ -15,7 +15,8 @@ use crate::services::discovery::streams::{self, StreamInfo};
 use crate::services::discovery::CachedStream;
 use crate::services::{DiscoveryService, LibraryService, TagService};
 use crate::{
-    BulkImportCancelFlag, PrefetchTracker, ProxyServerPort, ScanEnrichmentCache, ScanPageCancelFlag,
+    BulkImportCancelFlag, EnrichmentSkipIds, PrefetchTracker, ProxyServerPort, ScanEnrichmentCache,
+    ScanPageCancelFlag,
 };
 
 /// Spawn background stream prefetch for a release. Shared by single-create and bulk-create.
@@ -638,9 +639,11 @@ pub async fn bulk_create_discovery_releases(
     cancel_flag: State<'_, BulkImportCancelFlag>,
     scan_cancel_flag: State<'_, ScanPageCancelFlag>,
     enrichment_cache: State<'_, ScanEnrichmentCache>,
+    enrichment_skip_ids: State<'_, EnrichmentSkipIds>,
 ) -> Result<BulkImportResult> {
-    // Reset cancel flag
+    // Reset cancel flag and enrichment skip set
     cancel_flag.0.store(false, Ordering::SeqCst);
+    enrichment_skip_ids.0.lock().await.clear();
 
     // Cancel background enrichment to avoid competing Discogs API calls
     scan_cancel_flag.0.store(true, Ordering::SeqCst);
@@ -651,6 +654,9 @@ pub async fn bulk_create_discovery_releases(
         .into_iter()
         .map(|r| (r.url.clone(), r))
         .collect();
+
+    // Collect releases created from scanned data (no tracks) for background enrichment
+    let mut needs_enrichment: Vec<(String, String, String)> = Vec::new();
 
     let total = urls.len();
     let mut succeeded = 0usize;
@@ -773,10 +779,19 @@ pub async fn bulk_create_discovery_releases(
 
         match create {
             Ok(create_data) => {
+                let has_tracks = create_data.tracks.as_ref().is_some_and(|t| !t.is_empty());
                 // Create the release — catch UNIQUE constraint errors as skipped (not failed)
                 match discovery.create_release(create_data) {
                     Ok(release) => {
                         succeeded += 1;
+                        if !has_tracks {
+                            // Track for background enrichment
+                            needs_enrichment.push((
+                                release.id.clone(),
+                                release.url.clone(),
+                                release.source_type.clone(),
+                            ));
+                        }
                         spawn_stream_prefetch(&release, &discovery, &tracker, &app).await;
                     }
                     Err(CrateError::Database(rusqlite::Error::SqliteFailure(err, _)))
@@ -810,6 +825,189 @@ pub async fn bulk_create_discovery_releases(
         );
     }
 
+    // Spawn background enrichment for releases created without tracks
+    if !needs_enrichment.is_empty() {
+        // Notify frontend so it can show spinners on releases that will be enriched
+        let enrichment_ids: Vec<String> = needs_enrichment
+            .iter()
+            .map(|(id, _, _)| id.clone())
+            .collect();
+        let _ = app.emit("discovery-enrichment-queued", &enrichment_ids);
+
+        let conn = discovery.connection();
+        let app_data_dir = discovery.app_data_dir();
+        let app_handle = app.clone();
+        let tracker_clone = tracker.0.clone();
+        let skip_ids = enrichment_skip_ids.0.clone();
+        tokio::spawn(async move {
+            log::info!(
+                "Starting background enrichment for {} releases",
+                needs_enrichment.len()
+            );
+            let svc = DiscoveryService::new(conn, app_data_dir.clone());
+            for (idx, (release_id, url, src_type)) in needs_enrichment.iter().enumerate() {
+                // Skip if the user cancelled this release
+                if skip_ids.lock().await.contains(release_id) {
+                    log::info!("Skipping enrichment for {release_id} (cancelled by user)");
+                    continue;
+                }
+
+                // Throttle between requests
+                if idx > 0 {
+                    let delay = if src_type == "discogs" {
+                        metadata::jittered_delay(2500)
+                    } else {
+                        metadata::jittered_delay(500)
+                    };
+                    tokio::time::sleep(delay).await;
+                }
+
+                // Check again after the delay in case the user cancelled during the wait
+                if skip_ids.lock().await.contains(release_id) {
+                    log::info!("Skipping enrichment for {release_id} (cancelled by user)");
+                    continue;
+                }
+
+                // Fetch full metadata
+                let fetched = match metadata::fetch_metadata(url).await {
+                    Ok(f) => f,
+                    Err(e) => {
+                        log::warn!("Background enrichment failed for {release_id}: {e}");
+                        continue;
+                    }
+                };
+
+                // Check if release still has no tracks (may have been manually refreshed)
+                let existing = match svc.get_release(release_id) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        log::warn!(
+                            "Background enrichment: could not fetch release {release_id}: {e}"
+                        );
+                        continue;
+                    }
+                };
+
+                if existing.tracks.is_empty() && !fetched.tracks.is_empty() {
+                    let track_creates = fetched
+                        .tracks
+                        .iter()
+                        .map(|t| DiscoveryTrackCreate {
+                            name: t.name.clone(),
+                            position: t.position,
+                            duration_ms: t.duration_ms,
+                            video_id: t.video_id.clone(),
+                        })
+                        .collect();
+                    if let Err(e) = svc.add_tracks_to_release(release_id, track_creates) {
+                        log::warn!(
+                            "Background enrichment: failed to add tracks to {release_id}: {e}"
+                        );
+                    }
+                } else if !existing.tracks.is_empty() {
+                    // Backfill missing durations and video IDs
+                    let _ = svc.update_track_durations(release_id, &fetched.tracks);
+                    let _ = svc.update_track_video_ids(release_id, &fetched.tracks);
+                }
+
+                // Update release metadata fields
+                let mut update = DiscoveryReleaseUpdate::default();
+                if let Some(artist) = fetched.artist {
+                    update.artist = Some(artist);
+                }
+                if let Some(title) = fetched.title {
+                    update.title = Some(title);
+                }
+                if let Some(label) = fetched.label {
+                    update.label = Some(label);
+                }
+                if let Some(release_date) = fetched.release_date {
+                    update.release_date = Some(release_date);
+                }
+                if let Some(artwork_url) = fetched.artwork_url {
+                    update.artwork_url = Some(artwork_url);
+                }
+
+                match svc.update_release(release_id, update) {
+                    Ok(updated_release) => {
+                        // Emit event so the frontend updates in real-time
+                        let _ = app_handle.emit("discovery-release-updated", &updated_release);
+                        log::info!("Background enrichment complete for {release_id}");
+
+                        // Spawn stream prefetch for the now-enriched release
+                        if !updated_release.tracks.is_empty() {
+                            if matches!(src_type.as_str(), "bandcamp" | "soundcloud" | "youtube") {
+                                let mut inflight = tracker_clone.lock().await;
+                                if !inflight.contains(release_id) {
+                                    inflight.insert(release_id.clone());
+                                    let pfx_conn = svc.connection();
+                                    let pfx_app_data_dir = app_data_dir.clone();
+                                    let pfx_release_id = release_id.clone();
+                                    let pfx_url = url.clone();
+                                    let pfx_source_type = src_type.clone();
+                                    let pfx_tracker = tracker_clone.clone();
+                                    let pfx_app = app_handle.clone();
+                                    tokio::spawn(async move {
+                                        let pfx_svc = DiscoveryService::new(
+                                            pfx_conn,
+                                            pfx_app_data_dir.clone(),
+                                        );
+                                        if let Err(e) = prefetch_streams(
+                                            &pfx_svc,
+                                            &pfx_release_id,
+                                            &pfx_url,
+                                            &pfx_source_type,
+                                            &pfx_app,
+                                            &pfx_app_data_dir,
+                                        )
+                                        .await
+                                        {
+                                            log::warn!("Background stream prefetch failed for {pfx_release_id}: {e}");
+                                        }
+                                        pfx_tracker.lock().await.remove(&pfx_release_id);
+                                    });
+                                }
+                            } else if src_type == "discogs" {
+                                let mut inflight = tracker_clone.lock().await;
+                                if !inflight.contains(release_id) {
+                                    inflight.insert(release_id.clone());
+                                    let pfx_conn = svc.connection();
+                                    let pfx_app_data_dir = app_data_dir.clone();
+                                    let pfx_release_id = release_id.clone();
+                                    let pfx_tracker = tracker_clone.clone();
+                                    let pfx_app = app_handle.clone();
+                                    tokio::spawn(async move {
+                                        let pfx_svc = DiscoveryService::new(
+                                            pfx_conn,
+                                            pfx_app_data_dir.clone(),
+                                        );
+                                        if let Err(e) = prefetch_discogs_streams(
+                                            &pfx_svc,
+                                            &pfx_release_id,
+                                            &pfx_app,
+                                            &pfx_app_data_dir,
+                                        )
+                                        .await
+                                        {
+                                            log::warn!("Background Discogs stream prefetch failed for {pfx_release_id}: {e}");
+                                        }
+                                        pfx_tracker.lock().await.remove(&pfx_release_id);
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Background enrichment: failed to update release {release_id}: {e}"
+                        );
+                    }
+                }
+            }
+            log::info!("Background enrichment finished");
+        });
+    }
+
     Ok(BulkImportResult {
         succeeded,
         failed,
@@ -826,6 +1024,12 @@ pub async fn cancel_bulk_import(cancel_flag: State<'_, BulkImportCancelFlag>) ->
 #[tauri::command]
 pub async fn cancel_scan_page(cancel_flag: State<'_, ScanPageCancelFlag>) -> Result<()> {
     cancel_flag.0.store(true, Ordering::SeqCst);
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn skip_enrichment(id: String, skip_ids: State<'_, EnrichmentSkipIds>) -> Result<()> {
+    skip_ids.0.lock().await.insert(id);
     Ok(())
 }
 

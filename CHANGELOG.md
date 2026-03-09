@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Improved metadata enrichment for discovery releases during bulk imports
 - Fixed discovery selection bugs when navigating in-context
 - Fixed Bandcamp discography parsing to include all releases
 

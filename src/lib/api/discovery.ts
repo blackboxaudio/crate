@@ -124,6 +124,10 @@ export async function cancelScanPage(): Promise<void> {
 	return invoke<void>('cancel_scan_page')
 }
 
+export async function skipEnrichment(id: string): Promise<void> {
+	return invoke<void>('skip_enrichment', { id })
+}
+
 export async function toggleTrackLiked(trackId: string): Promise<boolean> {
 	return invoke<boolean>('toggle_discovery_track_liked', { trackId })
 }
