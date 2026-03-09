@@ -40,7 +40,7 @@
 	// State for hover popup
 	let showTagPopup = $state(false)
 
-	let inputValue = $state(initialValue)
+	let inputValue = $derived(initialValue)
 
 	// Debounced search
 	let debounceTimer: ReturnType<typeof setTimeout>

@@ -140,6 +140,30 @@
 		}
 	})
 
+	// Prune discovery selection to only include visible releases
+	$effect(() => {
+		if ($activeView !== 'discovery') return
+		const visibleIds = new Set($sortedReleases.map((r) => r.id))
+		const currentSelection = $selectedReleaseIds
+		if (currentSelection.size === 0) return
+		const pruned = new Set([...currentSelection].filter((id) => visibleIds.has(id)))
+		if (pruned.size < currentSelection.size) {
+			uiStore.setSelectedReleases(pruned)
+		}
+	})
+
+	// Prune library selection to only include visible tracks
+	$effect(() => {
+		if ($activeView === 'discovery') return
+		const visibleIds = new Set($displayedTracks.map((t) => t.id))
+		const currentSelection = $selectedTrackIds
+		if (currentSelection.size === 0) return
+		const pruned = new Set([...currentSelection].filter((id) => visibleIds.has(id)))
+		if (pruned.size < currentSelection.size) {
+			uiStore.setSelectedTracks(pruned)
+		}
+	})
+
 	// =========================================================================
 	// Derived State
 	// =========================================================================
