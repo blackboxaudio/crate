@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.2.2-staging.1] - 2026-03-09
+## [0.2.2] - 2026-03-09
 
 ### Added
 
@@ -57,8 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.2-staging.1...HEAD
-[0.2.2-staging.1]: https://github.com/blackboxaudio/crate/compare/v0.2.1...v0.2.2-staging.1
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/blackboxaudio/crate/compare/v0.2.2-staging.1...v0.2.2
 [0.2.1]: https://github.com/blackboxaudio/crate/compare/v0.2.1-staging.1...v0.2.1
 [0.2.0]: https://github.com/blackboxaudio/crate/compare/v0.2.0-staging.1...v0.2.0
 [0.1.0]: https://github.com/blackboxaudio/crate/releases/tag/v0.1.0
