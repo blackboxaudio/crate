@@ -73,7 +73,14 @@ export type { DragData } from './drag'
 export { crashStore, hasCrashed, crashError } from './crash'
 export type { CrashInfo } from './crash'
 export { analysisStore, analyzingTrackIds, isAnalyzing } from './analysis'
-export { discoveryStore, sortedReleases, releaseCount, isDiscoveryLoading, refreshingReleaseIds } from './discovery'
+export {
+	discoveryStore,
+	sortedReleases,
+	displayedReleases,
+	releaseCount,
+	isDiscoveryLoading,
+	refreshingReleaseIds,
+} from './discovery'
 export { updaterStore, updateStatus, updateAvailable } from './updater'
 export { expandedReleaseIds } from './expandedReleases'
 export { discoveryPlaylistStore, discoveryPlaylistReleases } from './discoveryPlaylist'

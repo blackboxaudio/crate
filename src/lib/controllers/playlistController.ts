@@ -78,6 +78,7 @@ export function createPlaylistController(
 	 * Navigate to library view
 	 */
 	async function handleLibraryClick(): Promise<void> {
+		uiStore.clearSelection()
 		uiStore.selectPlaylist(null)
 		uiStore.selectFolder(null)
 

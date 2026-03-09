@@ -10,6 +10,7 @@ import type {
 import * as discoveryApi from '$lib/api/discovery'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
+import { uiStore } from './ui'
 import { toastStore } from './toast'
 import { translate } from '$lib/i18n'
 
@@ -438,6 +439,44 @@ export const sortedReleases = derived(discoveryStore, ($discovery) => {
 
 	return releases
 })
+
+export const displayedReleases = derived(
+	[sortedReleases, discoveryStore, uiStore, discoveryPlaylistStore],
+	([$sortedReleases, $discovery, $ui, $playlist]) => {
+		if ($ui.activeView !== 'discovery' || !$ui.selectedPlaylistId) {
+			return $sortedReleases
+		}
+
+		// Inside a discovery playlist — apply client-side filters to playlist releases
+		let releases = [...$playlist.releases]
+
+		if ($discovery.likedOnly) {
+			releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
+		}
+
+		if ($ui.selectedTagIds.length > 0) {
+			const tagIds = new Set($ui.selectedTagIds)
+			if ($ui.tagFilterMode === 'and') {
+				releases = releases.filter((r) => [...tagIds].every((id) => r.tags.some((t) => t.id === id)))
+			} else {
+				releases = releases.filter((r) => r.tags.some((t) => tagIds.has(t.id)))
+			}
+		}
+
+		if ($discovery.filter.search) {
+			const search = $discovery.filter.search.toLowerCase()
+			releases = releases.filter(
+				(r) =>
+					r.artist?.toLowerCase().includes(search) ||
+					r.title?.toLowerCase().includes(search) ||
+					r.label?.toLowerCase().includes(search) ||
+					r.notes?.toLowerCase().includes(search)
+			)
+		}
+
+		return releases
+	}
+)
 
 export const releaseCount = derived(sortedReleases, ($releases) => $releases.length)
 

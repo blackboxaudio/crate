@@ -28,7 +28,7 @@ import {
 	devicesStore,
 	missingTracksStore,
 	missingTrackIds,
-	sortedReleases,
+	displayedReleases,
 	expandedReleaseIds,
 	discoveryStore,
 	updaterStore,
@@ -265,7 +265,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			}
 
 			// Move to next release in the filtered view, wrapping around
-			const releases = get(sortedReleases)
+			const releases = get(displayedReleases)
 			const releaseIdx = releases.findIndex((r) => r.id === preview.releaseId)
 			if (releaseIdx === -1 || releases.length === 0) return
 
@@ -300,7 +300,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			}
 
 			// Move to previous release in the filtered view, wrapping around
-			const releases = get(sortedReleases)
+			const releases = get(displayedReleases)
 			const releaseIdx = releases.findIndex((r) => r.id === preview.releaseId)
 			if (releaseIdx === -1 || releases.length === 0) return
 
@@ -338,7 +338,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 
 		selectAll: () => {
 			if (get(activeView) === 'discovery') {
-				uiStore.setSelectedReleases(new Set(get(sortedReleases).map((r) => r.id)))
+				uiStore.setSelectedReleases(new Set(get(displayedReleases).map((r) => r.id)))
 			} else {
 				uiStore.setSelectedTracks(new Set(get(sortedTracks).map((t) => t.id)))
 			}
@@ -474,7 +474,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				if (get(activeView) === 'discovery') {
 					const releaseIds = get(selectedReleaseIds)
 					if (releaseIds.size > 0) {
-						const releases = get(sortedReleases)
+						const releases = get(displayedReleases)
 						expandedReleaseIds.toggleSelection(
 							[...releaseIds],
 							(id) => (releases.find((r) => r.id === id)?.tracks.length ?? 0) > 0
@@ -500,7 +500,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onToggleMute: handlers.toggleMute,
 			onSelectPreviousTrack: () => {
 				if (get(activeView) === 'discovery') {
-					const releases = get(sortedReleases)
+					const releases = get(displayedReleases)
 					if (releases.length === 0) return
 					const ids = get(selectedReleaseIds)
 					if (ids.size === 0) {
@@ -525,7 +525,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			},
 			onSelectNextTrack: () => {
 				if (get(activeView) === 'discovery') {
-					const releases = get(sortedReleases)
+					const releases = get(displayedReleases)
 					if (releases.length === 0) return
 					const ids = get(selectedReleaseIds)
 					if (ids.size === 0) {
@@ -578,7 +578,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onToggleView: handlers.toggleView,
 			onToggleEditor: () => uiStore.toggleRightSidebar(),
 			onExpandAllReleases: () => {
-				const releases = get(sortedReleases)
+				const releases = get(displayedReleases)
 				expandedReleaseIds.expandAll(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
 			},
 			onCollapseAllReleases: () => expandedReleaseIds.collapseAll(),

@@ -39,6 +39,7 @@
 		analysisStore,
 		discoveryStore,
 		sortedReleases,
+		displayedReleases,
 		releaseCount,
 		previewInfo,
 		pageActions,
@@ -367,7 +368,7 @@
 		const currentSelection = $selectedReleaseIds
 		let releases: DiscoveryRelease[]
 		if (currentSelection.has(release.id)) {
-			releases = $sortedReleases.filter((r) => currentSelection.has(r.id))
+			releases = $displayedReleases.filter((r) => currentSelection.has(r.id))
 		} else {
 			releases = [release]
 		}
@@ -408,7 +409,7 @@
 	// =============================================================================
 
 	let selectedTracksArray = $derived($displayedTracks.filter((t) => $selectedTrackIds.has(t.id)))
-	let selectedReleasesArray = $derived($sortedReleases.filter((r) => $selectedReleaseIds.has(r.id)))
+	let selectedReleasesArray = $derived($displayedReleases.filter((r) => $selectedReleaseIds.has(r.id)))
 	const contextPlaylists = $derived(playlists.filter((p) => p.context === $activeView))
 	const categoryColors = $derived(new Map(tagCategories.map((c) => [c.id, c.color])))
 	const categorySortOrders = $derived(new Map(tagCategories.map((c) => [c.id, c.sort_order])))

@@ -160,6 +160,8 @@ function createUIStore() {
 				...state,
 				selectedTrackIds: new Set(),
 				lastSelectedTrackId: null,
+				selectedReleaseIds: new Set(),
+				lastSelectedReleaseId: null,
 			}))
 		},
 
