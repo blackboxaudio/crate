@@ -2,6 +2,7 @@
 	"common": {
 		"close": "Stäng",
 		"save": "Spara",
+		"search": "Sök...",
 		"cancel": "Avbryt",
 		"create": "Skapa",
 		"delete": "Ta bort",

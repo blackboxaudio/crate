@@ -1,7 +1,8 @@
 import { open } from '@tauri-apps/plugin-dialog'
-import type { ActiveView, Playlist, TrackFilter } from '$lib/types'
+import type { ActiveView, DiscoveryFilter, Playlist, TrackFilter } from '$lib/types'
 import { withNativeDialog } from '$lib/utils'
 import type { playlistsStore as PlaylistsStoreType } from '$lib/stores/playlists'
+import type { discoveryStore as DiscoveryStoreType } from '$lib/stores/discovery'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
 import type { uiStore as UIStoreType } from '$lib/stores/ui'
 import type { toastStore as ToastStoreType } from '$lib/stores/toast'
@@ -13,6 +14,7 @@ import { findConflictingItem, getPlaylistById, hasChildren } from '$lib/utils'
 
 export interface PlaylistControllerDeps {
 	playlistsStore: typeof PlaylistsStoreType
+	discoveryStore: typeof DiscoveryStoreType
 	libraryStore: typeof LibraryStoreType
 	uiStore: typeof UIStoreType
 	toastStore: typeof ToastStoreType
@@ -21,6 +23,7 @@ export interface PlaylistControllerDeps {
 	getSelectedFolderId: () => string | null
 	getSelectedTagIds: () => string[]
 	getTagFilterMode: () => 'and' | 'or'
+	getActiveView: () => ActiveView
 	onDiscoveryPlaylistSelected?: (playlistId: string) => Promise<void>
 }
 
@@ -58,6 +61,7 @@ export function createPlaylistController(
 ): PlaylistController {
 	const {
 		playlistsStore,
+		discoveryStore,
 		libraryStore,
 		uiStore,
 		toastStore,
@@ -66,6 +70,7 @@ export function createPlaylistController(
 		getSelectedFolderId,
 		getSelectedTagIds,
 		getTagFilterMode,
+		getActiveView,
 		onDiscoveryPlaylistSelected,
 	} = deps
 
@@ -75,14 +80,25 @@ export function createPlaylistController(
 	async function handleLibraryClick(): Promise<void> {
 		uiStore.selectPlaylist(null)
 		uiStore.selectFolder(null)
-		libraryStore.clearPlaylistTracks()
-		// Reload library with current tag filters (if any)
+
 		const selectedTagIds = getSelectedTagIds()
-		if (selectedTagIds.length > 0) {
-			await libraryStore.loadTracks({ tag_ids: selectedTagIds, tag_filter_mode: getTagFilterMode() })
+		const tagFilterMode = getTagFilterMode()
+
+		if (getActiveView() === 'discovery') {
+			const filter: DiscoveryFilter = {}
+			if (selectedTagIds.length > 0) {
+				filter.tag_ids = selectedTagIds
+				filter.tag_filter_mode = tagFilterMode
+			}
+			await discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
 		} else {
-			libraryStore.clearFilters()
-			await libraryStore.loadTracks()
+			libraryStore.clearPlaylistTracks()
+			if (selectedTagIds.length > 0) {
+				await libraryStore.loadTracks({ tag_ids: selectedTagIds, tag_filter_mode: tagFilterMode })
+			} else {
+				libraryStore.clearFilters()
+				await libraryStore.loadTracks()
+			}
 		}
 	}
 

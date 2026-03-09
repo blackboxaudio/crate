@@ -71,6 +71,9 @@
 	// Compute right padding for the input based on adornments
 	const hasTagAdornments = $derived(activeFilterTags && activeFilterTags.length > 0)
 	const hasLikedAdornment = $derived(onToggleLikedFilter !== undefined)
+	const displayPlaceholder = $derived(
+		hasTagAdornments ? $translate('common.search') : (placeholder ?? $translate('library.searchPlaceholder'))
+	)
 
 	function getInputPrClass(): string {
 		if (hasTagAdornments && hasLikedAdornment) return 'pr-[10.5rem]'
@@ -87,7 +90,7 @@
 
 	<input
 		type="search"
-		placeholder={placeholder ?? $translate('library.searchPlaceholder')}
+		placeholder={displayPlaceholder}
 		value={inputValue}
 		class="w-full rounded-md border border-stroke bg-surface-2 py-1.5 pl-10 text-sm text-text-primary placeholder-text-tertiary transition-colors duration-150 focus:border-transparent focus:ring-2 focus:ring-brand-primary focus:outline-none {inputValue
 			? 'pr-8'
@@ -223,7 +226,7 @@
 		<button
 			type="button"
 			aria-label="Clear search"
-			class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-tertiary hover:text-text-secondary"
+			class="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-text-tertiary hover:text-text-secondary"
 			onclick={handleClear}
 		>
 			<Icon name="x" />

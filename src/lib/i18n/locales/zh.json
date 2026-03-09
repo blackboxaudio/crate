@@ -2,6 +2,7 @@
 	"common": {
 		"close": "关闭",
 		"save": "保存",
+		"search": "搜索...",
 		"cancel": "取消",
 		"create": "创建",
 		"delete": "删除",

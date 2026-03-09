@@ -187,6 +187,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	const playlistController = createPlaylistController(
 		{
 			playlistsStore,
+			discoveryStore,
 			libraryStore,
 			uiStore,
 			toastStore,
@@ -195,6 +196,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			getSelectedFolderId,
 			getSelectedTagIds,
 			getTagFilterMode: () => get(tagFilterMode),
+			getActiveView: () => get(activeView),
 			onDiscoveryPlaylistSelected: async (playlistId) => {
 				const playlist = getPlaylists().find((p) => p.id === playlistId)
 				const releases = playlist?.is_smart

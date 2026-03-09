@@ -169,14 +169,12 @@
 					/>
 				</div>
 			{/if}
-			{#if hasExpandableReleases}
-				<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
-					<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
-				</Tooltip>
-				<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
-					<IconButton icon="fold-vertical" size="sm" onclick={handleCollapseAll} />
-				</Tooltip>
-			{/if}
+			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
+				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />
+			</Tooltip>
+			<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
+				<IconButton icon="fold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleCollapseAll} />
+			</Tooltip>
 			<Tooltip
 				text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
 				position="bottom"

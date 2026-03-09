@@ -2,6 +2,7 @@
 	"common": {
 		"close": "닫기",
 		"save": "저장",
+		"search": "검색...",
 		"cancel": "취소",
 		"create": "만들기",
 		"delete": "삭제",

@@ -98,10 +98,33 @@
 		onEmptySpaceContextMenu?.(e, playlist)
 	}
 
-	const hasExpandableReleases = $derived(releases.some((r) => r.tracks.length > 0))
+	const filteredReleases = $derived.by(() => {
+		let result = likedOnly ? releases.filter((r) => r.tracks.some((t) => t.is_liked)) : releases
+		if (activeFilterTags && activeFilterTags.length > 0) {
+			const tagIds = new Set(activeFilterTags.map((t) => t.id))
+			if (tagFilterMode === 'and') {
+				result = result.filter((r) => [...tagIds].every((id) => r.tags.some((t) => t.id === id)))
+			} else {
+				result = result.filter((r) => r.tags.some((t) => tagIds.has(t.id)))
+			}
+		}
+		if (searchValue) {
+			const search = searchValue.toLowerCase()
+			result = result.filter(
+				(r) =>
+					r.artist?.toLowerCase().includes(search) ||
+					r.title?.toLowerCase().includes(search) ||
+					r.label?.toLowerCase().includes(search) ||
+					r.notes?.toLowerCase().includes(search)
+			)
+		}
+		return result
+	})
+
+	const hasExpandableReleases = $derived(filteredReleases.some((r) => r.tracks.length > 0))
 
 	function handleExpandAll() {
-		expandedReleaseIds.expandAll(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
+		expandedReleaseIds.expandAll(filteredReleases.filter((r) => r.tracks.length > 0).map((r) => r.id))
 	}
 
 	function handleCollapseAll() {
@@ -134,12 +157,12 @@
 						/>
 					</div>
 				{/if}
-				{#if isDiscovery && hasExpandableReleases}
+				{#if isDiscovery}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
-						<IconButton icon="unfold-vertical" size="sm" onclick={handleExpandAll} />
+						<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />
 					</Tooltip>
 					<Tooltip text={$translate('discovery.collapseAll')} position="bottom" delay={250}>
-						<IconButton icon="fold-vertical" size="sm" onclick={handleCollapseAll} />
+						<IconButton icon="fold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleCollapseAll} />
 					</Tooltip>
 				{/if}
 				<Tooltip
@@ -163,7 +186,7 @@
 	<div class="flex-1 overflow-hidden">
 		{#if isDiscovery}
 			<DiscoveryList
-				{releases}
+				releases={filteredReleases}
 				{selectedIds}
 				expandedIds={$expandedReleaseIds}
 				sortConfig={discoverySortConfig}

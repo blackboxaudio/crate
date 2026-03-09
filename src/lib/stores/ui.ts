@@ -256,7 +256,6 @@ function createUIStore() {
 				sidebarView: id ? 'playlist' : 'library',
 				selectedPlaylistId: id,
 				selectedFolderId: null,
-				selectedTagIds: [],
 			}))
 		},
 
@@ -267,12 +266,11 @@ function createUIStore() {
 			update((state) => {
 				const exists = state.selectedTagIds.includes(id)
 				const newIds = exists ? state.selectedTagIds.filter((tid) => tid !== id) : [...state.selectedTagIds, id]
+				const inPlaylist = state.selectedPlaylistId !== null || state.selectedFolderId !== null
 				return {
 					...state,
-					sidebarView: newIds.length > 0 ? 'tag' : 'library',
+					...(!inPlaylist && { sidebarView: newIds.length > 0 ? 'tag' : 'library' }),
 					selectedTagIds: newIds,
-					selectedPlaylistId: null,
-					selectedFolderId: null,
 				}
 			})
 		},
@@ -281,13 +279,14 @@ function createUIStore() {
 		 * Add a tag to filters
 		 */
 		addTagFilter(id: string) {
-			update((state) => ({
-				...state,
-				sidebarView: 'tag',
-				selectedTagIds: state.selectedTagIds.includes(id) ? state.selectedTagIds : [...state.selectedTagIds, id],
-				selectedPlaylistId: null,
-				selectedFolderId: null,
-			}))
+			update((state) => {
+				const inPlaylist = state.selectedPlaylistId !== null || state.selectedFolderId !== null
+				return {
+					...state,
+					...(!inPlaylist && { sidebarView: 'tag' }),
+					selectedTagIds: state.selectedTagIds.includes(id) ? state.selectedTagIds : [...state.selectedTagIds, id],
+				}
+			})
 		},
 
 		/**
@@ -344,7 +343,6 @@ function createUIStore() {
 				sidebarView: id ? 'folder' : 'library',
 				selectedFolderId: id,
 				selectedPlaylistId: null,
-				selectedTagIds: [],
 			}))
 		},
 

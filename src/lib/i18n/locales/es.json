@@ -2,6 +2,7 @@
 	"common": {
 		"close": "Cerrar",
 		"save": "Guardar",
+		"search": "Buscar...",
 		"cancel": "Cancelar",
 		"create": "Crear",
 		"delete": "Eliminar",
