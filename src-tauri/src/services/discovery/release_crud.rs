@@ -202,9 +202,10 @@ impl DiscoveryService {
         if let Some(ref search) = filter.search {
             let search_pattern = format!("%{search}%");
             conditions.push(
-                "(dr.artist LIKE ? OR dr.title LIKE ? OR dr.label LIKE ? OR dr.notes LIKE ?)"
+                "(dr.artist LIKE ? OR dr.title LIKE ? OR dr.label LIKE ? OR dr.notes LIKE ? OR EXISTS (SELECT 1 FROM discovery_tracks dt WHERE dt.release_id = dr.id AND dt.name LIKE ?))"
                     .to_string(),
             );
+            params.push(Box::new(search_pattern.clone()));
             params.push(Box::new(search_pattern.clone()));
             params.push(Box::new(search_pattern.clone()));
             params.push(Box::new(search_pattern.clone()));
