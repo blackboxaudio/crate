@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Improved search logic for discovery releases
+
+### Fixed
+
+- Fixed bug where bulk operations on filtered selections was misleading
+
 ## [0.2.2] - 2026-03-09
 
 ### Added
