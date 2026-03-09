@@ -326,7 +326,33 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	// =========================================================================
 
 	const handlers = {
-		playPause: () => playerStore.togglePlayPause(),
+		playPause: () => {
+			const state = get(currentTrack)
+			const preview = get(previewInfo)
+
+			// If a track or preview is loaded, toggle normally
+			if (state || preview) {
+				playerStore.togglePlayPause()
+				return
+			}
+
+			// Nothing loaded — play first item in current view
+			if (get(activeView) === 'discovery') {
+				const releases = get(displayedReleases)
+				for (const release of releases) {
+					const trackIdx = findPreviewableTrackIndex(release, 'first')
+					if (trackIdx !== -1) {
+						playerStore.playPreview(release, trackIdx)
+						return
+					}
+				}
+			} else {
+				const tracks = get(displayedTracks)
+				if (tracks.length > 0) {
+					trackController.play(tracks[0])
+				}
+			}
+		},
 		stop: () => playerStore.stop(),
 		seekForward: () => playerStore.seekRelative(10000),
 		seekBackward: () => playerStore.seekRelative(-10000),

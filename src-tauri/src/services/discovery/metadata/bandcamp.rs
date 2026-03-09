@@ -112,6 +112,21 @@ pub(super) async fn scan_bandcamp_page(
         search_pos = li_end;
     }
 
+    // Bandcamp only server-renders ~16 items in the music grid. The full discography
+    // is embedded as a JSON array in a `data-client-items` attribute on the grid's <ol>.
+    if let Some(json) = extract_data_client_items(&html) {
+        let overflow = parse_client_items(&json, base_url, &page_name);
+        if !overflow.is_empty() {
+            let existing: std::collections::HashSet<String> =
+                releases.iter().map(|r| r.url.clone()).collect();
+            for release in overflow {
+                if !existing.contains(&release.url) {
+                    releases.push(release);
+                }
+            }
+        }
+    }
+
     Ok((releases, page_name))
 }
 
@@ -147,6 +162,87 @@ fn extract_inner_text(html: &str, class_name: &str) -> Option<String> {
         }
     }
     None
+}
+
+/// A single item from the `data-client-items` JSON array on Bandcamp label/artist pages.
+#[derive(serde::Deserialize)]
+struct ClientItem {
+    page_url: Option<String>,
+    title: Option<String>,
+    artist: Option<String>,
+    art_id: Option<u64>,
+    #[serde(rename = "type")]
+    item_type: Option<String>,
+}
+
+/// Extract the JSON string from the `data-client-items="..."` attribute in the HTML.
+///
+/// The attribute value is HTML-entity encoded (e.g. `&quot;` for `"`), so we decode it
+/// before returning.
+pub(super) fn extract_data_client_items(html: &str) -> Option<String> {
+    let marker = "data-client-items=\"";
+    let start = html.find(marker)? + marker.len();
+    // The value ends at the next unencoded `"`. Since internal quotes are encoded as `&quot;`,
+    // the first raw `"` after the marker is the closing delimiter.
+    let end = html[start..].find('"')? + start;
+    let raw = &html[start..end];
+    if raw.is_empty() {
+        return None;
+    }
+    Some(decode_html_entities(raw))
+}
+
+/// Parse the decoded `data-client-items` JSON into `ScannedRelease` entries.
+pub(super) fn parse_client_items(
+    json: &str,
+    base_url: &str,
+    page_name: &Option<String>,
+) -> Vec<crate::models::ScannedRelease> {
+    let items: Vec<ClientItem> = match serde_json::from_str(json) {
+        Ok(v) => v,
+        Err(_) => return Vec::new(),
+    };
+
+    items
+        .into_iter()
+        .filter(|item| {
+            matches!(
+                item.item_type.as_deref(),
+                Some("album") | Some("track")
+            )
+        })
+        .filter_map(|item| {
+            let relative_url = item.page_url?;
+            let absolute_url = if relative_url.starts_with("http") {
+                relative_url
+            } else {
+                format!("{}{}", base_url.trim_end_matches('/'), relative_url)
+            };
+
+            // Only include album/track links
+            if !absolute_url.contains("/album/") && !absolute_url.contains("/track/") {
+                return None;
+            }
+
+            let artwork_url = item
+                .art_id
+                .map(|id| format!("https://f4.bcbits.com/img/a{id}_16.jpg"));
+
+            let artist = item
+                .artist
+                .filter(|a| !a.is_empty())
+                .or_else(|| page_name.clone());
+
+            Some(crate::models::ScannedRelease {
+                url: absolute_url,
+                artist,
+                title: item.title,
+                artwork_url,
+                release_date: None,
+                already_exists: false,
+            })
+        })
+        .collect()
 }
 
 pub(super) async fn fetch_bandcamp(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {

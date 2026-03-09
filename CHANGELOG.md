@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Fixed discovery selection bugs when navigating in-context
+- Fixed Bandcamp discography parsing to include all releases
+
 ## [0.2.4] - 2026-03-09
 
 ### Changed

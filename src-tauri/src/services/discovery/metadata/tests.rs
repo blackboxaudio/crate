@@ -479,3 +479,96 @@ fn test_extract_playlist_videos_empty() {
     let videos = extract_playlist_videos(&yt_data);
     assert!(videos.is_empty());
 }
+
+// =========================================================================
+// Bandcamp data-client-items (label page overflow)
+// =========================================================================
+
+use super::bandcamp::{extract_data_client_items, parse_client_items};
+
+#[test]
+fn test_extract_data_client_items_basic() {
+    let html = r#"<ol class="music-grid" data-client-items="[{&quot;type&quot;:&quot;album&quot;,&quot;title&quot;:&quot;Test&quot;}]"></ol>"#;
+    let json = extract_data_client_items(html).expect("should extract JSON");
+    assert_eq!(json, r#"[{"type":"album","title":"Test"}]"#);
+}
+
+#[test]
+fn test_extract_data_client_items_missing() {
+    let html = r#"<ol class="music-grid"></ol>"#;
+    assert!(extract_data_client_items(html).is_none());
+}
+
+#[test]
+fn test_extract_data_client_items_empty() {
+    let html = r#"<ol data-client-items=""></ol>"#;
+    assert!(extract_data_client_items(html).is_none());
+}
+
+#[test]
+fn test_parse_client_items_albums_and_tracks() {
+    let json = r#"[
+        {"type":"album","page_url":"/album/first","title":"First Album","artist":"Artist A","art_id":12345},
+        {"type":"track","page_url":"/track/single","title":"A Single","artist":null,"art_id":67890},
+        {"type":"merch","page_url":"/merch/tshirt","title":"T-Shirt","artist":null,"art_id":null}
+    ]"#;
+    let page_name = Some("Label Name".to_string());
+    let releases = parse_client_items(json, "https://label.bandcamp.com", &page_name);
+
+    assert_eq!(releases.len(), 2);
+
+    assert_eq!(releases[0].url, "https://label.bandcamp.com/album/first");
+    assert_eq!(releases[0].title.as_deref(), Some("First Album"));
+    assert_eq!(releases[0].artist.as_deref(), Some("Artist A"));
+    assert_eq!(
+        releases[0].artwork_url.as_deref(),
+        Some("https://f4.bcbits.com/img/a12345_16.jpg")
+    );
+
+    assert_eq!(releases[1].url, "https://label.bandcamp.com/track/single");
+    assert_eq!(releases[1].title.as_deref(), Some("A Single"));
+    // No artist on item → falls back to page_name
+    assert_eq!(releases[1].artist.as_deref(), Some("Label Name"));
+    assert_eq!(
+        releases[1].artwork_url.as_deref(),
+        Some("https://f4.bcbits.com/img/a67890_16.jpg")
+    );
+}
+
+#[test]
+fn test_parse_client_items_deduplication() {
+    // Simulate HTML-parsed releases
+    let json = r#"[
+        {"type":"album","page_url":"/album/existing","title":"Already There","artist":null,"art_id":111},
+        {"type":"album","page_url":"/album/new-one","title":"New Release","artist":null,"art_id":222}
+    ]"#;
+    let page_name = Some("Artist".to_string());
+    let overflow = parse_client_items(json, "https://artist.bandcamp.com", &page_name);
+
+    // Simulate that /album/existing was already found via HTML grid
+    let existing_urls: std::collections::HashSet<&str> =
+        ["https://artist.bandcamp.com/album/existing"]
+            .iter()
+            .copied()
+            .collect();
+
+    let new_releases: Vec<_> = overflow
+        .into_iter()
+        .filter(|r| !existing_urls.contains(r.url.as_str()))
+        .collect();
+
+    assert_eq!(new_releases.len(), 1);
+    assert_eq!(
+        new_releases[0].url,
+        "https://artist.bandcamp.com/album/new-one"
+    );
+}
+
+#[test]
+fn test_parse_client_items_no_art_id() {
+    let json = r#"[{"type":"album","page_url":"/album/no-art","title":"No Art","artist":null}]"#;
+    let releases = parse_client_items(json, "https://x.bandcamp.com", &None);
+    assert_eq!(releases.len(), 1);
+    assert!(releases[0].artwork_url.is_none());
+    assert!(releases[0].artist.is_none());
+}
