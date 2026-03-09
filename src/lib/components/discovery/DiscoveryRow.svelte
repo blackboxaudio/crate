@@ -279,6 +279,7 @@
 								)
 								onTrackLikeToggle?.(track.id)
 							}}
+							ondblclick={(e) => e.stopPropagation()}
 						>
 							<Icon name="heart" class="h-3 w-3" fill={track.is_liked} />
 						</button>
