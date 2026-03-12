@@ -19,8 +19,8 @@
 
 	let visible = $state(false)
 	let message = $state('')
-	let timeoutId: ReturnType<typeof setTimeout> | undefined = $state()
-	let hoverTimeoutId: ReturnType<typeof setTimeout> | undefined = $state()
+	let timeoutId: ReturnType<typeof setTimeout> | undefined
+	let hoverTimeoutId: ReturnType<typeof setTimeout> | undefined
 
 	const HIDDEN_STYLE = 'position:fixed;visibility:hidden;'
 
@@ -130,8 +130,11 @@
 	function handleMouseEnter() {
 		if (!text) return
 
+		if (hoverTimeoutId) clearTimeout(hoverTimeoutId)
+
 		if (delay > 0) {
 			hoverTimeoutId = setTimeout(() => {
+				hoverTimeoutId = undefined
 				message = text
 				visible = true
 			}, delay)
@@ -150,11 +153,19 @@
 		}
 		visible = false
 	}
+
+	// Cleanup all timers on destroy
+	$effect(() => {
+		return () => {
+			if (hoverTimeoutId) clearTimeout(hoverTimeoutId)
+			if (timeoutId) clearTimeout(timeoutId)
+		}
+	})
 </script>
 
 <div
 	bind:this={wrapperEl}
-	class="relative inline-flex"
+	class="inline-flex"
 	role="group"
 	onmouseenter={handleMouseEnter}
 	onmouseleave={handleMouseLeave}
