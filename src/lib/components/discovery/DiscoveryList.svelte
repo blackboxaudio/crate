@@ -7,7 +7,6 @@
 	import DiscoveryRow from './DiscoveryRow.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
-	import { SvelteSet } from 'svelte/reactivity'
 
 	const BASE_PREVIEWABLE: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
 
@@ -69,13 +68,32 @@
 	let scrollContainerEl: HTMLElement | undefined = $state(undefined)
 	let scrollRestoredForView = $state(false)
 	let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null
-	let collapsingIds = $state(new Set<string>())
+
+	// Enable CSS transition on row containers when expandedIds changes (expand/collapse).
+	// Uses $effect.pre so the transition class is present BEFORE the DOM update that
+	// repositions rows — otherwise rows jump to new positions without animating.
+	// Cleared on scroll to prevent laggy scroll-related position updates.
+	let isTransitioning = $state(false)
+	let transitionTimer: ReturnType<typeof setTimeout> | null = null
+	let initialized = false
+
+	$effect.pre(() => {
+		void expandedIds
+		if (!initialized) {
+			initialized = true
+			return
+		}
+		isTransitioning = true
+		if (transitionTimer) clearTimeout(transitionTimer)
+		transitionTimer = setTimeout(() => {
+			isTransitioning = false
+		}, 250)
+	})
 
 	function getEstimateSize(index: number): number {
 		const release = releases[index]
 		if (!release) return ROW_HEIGHT
-		const isExpanded = expandedIds.has(release.id) || collapsingIds.has(release.id)
-		if (!isExpanded || release.tracks.length === 0) return ROW_HEIGHT
+		if (!expandedIds.has(release.id) || release.tracks.length === 0) return ROW_HEIGHT
 		const visibleTracks = likedOnly ? release.tracks.filter((t) => t.is_liked).length : release.tracks.length
 		// Header (49px) + first track (28px, no border-t) + remaining tracks (29px each, with border-t) + container border-b (1px)
 		// = 49 + 28 + (N-1)*29 + 1 = 49 + 29N
@@ -89,7 +107,6 @@
 		estimateSize: () => {
 			void expandedIds
 			void likedOnly
-			void collapsingIds
 			return getEstimateSize
 		},
 		overscan: 10,
@@ -113,6 +130,11 @@
 	})
 
 	function handleScroll() {
+		// Cancel expand/collapse transition during scroll to prevent laggy repositioning
+		if (isTransitioning) {
+			isTransitioning = false
+			if (transitionTimer) clearTimeout(transitionTimer)
+		}
 		if (!scrollContainerEl || !onScrollChange) return
 		if (scrollDebounceTimer) clearTimeout(scrollDebounceTimer)
 		scrollDebounceTimer = setTimeout(() => {
@@ -133,23 +155,8 @@
 		onSelectionChange?.(result.selectedIds)
 	}
 
-	function handleToggleExpand(id: string) {
-		if (expandedIds.has(id)) {
-			// Collapsing: keep expanded height during CSS transition
-			collapsingIds = new Set([...collapsingIds, id])
-			onToggleExpand?.(id)
-			setTimeout(() => {
-				const next = new SvelteSet(collapsingIds)
-				next.delete(id)
-				collapsingIds = next
-			}, 200)
-		} else {
-			onToggleExpand?.(id)
-		}
-	}
-
 	function handleReleaseDoubleClick(release: DiscoveryRelease) {
-		handleToggleExpand(release.id)
+		onToggleExpand?.(release.id)
 	}
 
 	function handleReleaseContextMenu(release: DiscoveryRelease, e: MouseEvent) {
@@ -213,7 +220,8 @@
 				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
 					{@const release = releases[virtualItem.index]}
 					<div
-						style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({virtualItem.start}px); pointer-events: auto;"
+						class={isTransitioning ? 'transition-[transform,height] duration-200 ease-out' : ''}
+						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start}px); pointer-events: auto;"
 					>
 						<DiscoveryRow
 							{release}
@@ -229,7 +237,7 @@
 							oncontextmenu={(e) => handleReleaseContextMenu(release, e)}
 							onimport={() => onReleaseImport?.(release)}
 							onopenurl={() => onReleaseOpenUrl?.(release)}
-							onToggleExpand={() => handleToggleExpand(release.id)}
+							onToggleExpand={() => onToggleExpand?.(release.id)}
 							onTrackPlay={(idx) => onTrackPlay?.(release, idx)}
 							onTrackLikeToggle={(trackId) => onTrackLikeToggle?.(release.id, trackId)}
 						/>
