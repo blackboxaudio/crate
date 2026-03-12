@@ -43,6 +43,7 @@
 		releaseCount,
 		previewInfo,
 		pageActions,
+		scrollOffset,
 	} from '$lib/stores'
 	import { likedOnly } from '$lib/stores/discovery'
 	import { isPlaying } from '$lib/stores/player'
@@ -595,6 +596,8 @@
 				await orchestratorLayer?.addRelease({ url })
 			}}
 			onToggleEditor={() => uiStore.toggleRightSidebar()}
+			scrollOffset={$scrollOffset}
+			onScrollChange={(offset) => uiStore.setScrollOffset(offset)}
 		/>
 	{:else}
 		<LibraryView
@@ -624,6 +627,8 @@
 			onTrackColorChange={trackController.setColor}
 			onCancelAnalysis={handleCancelAnalysis}
 			onToggleEditor={() => uiStore.toggleRightSidebar()}
+			scrollOffset={$scrollOffset}
+			onScrollChange={(offset) => uiStore.setScrollOffset(offset)}
 		/>
 	{/if}
 </div>

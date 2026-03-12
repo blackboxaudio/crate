@@ -32,6 +32,7 @@ export {
 	rightSidebarWidth,
 	selectedTreeIds,
 	contextMenuPlaylistId,
+	scrollOffset,
 } from './ui'
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'
