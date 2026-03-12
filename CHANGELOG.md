@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Improved rendering of lists for library, discovery, and playlist views
+- Fixed discovery row buttons not working occasionally
+
 ## [0.2.5] - 2026-03-09
 
 ### Changed
