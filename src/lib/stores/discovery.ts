@@ -85,6 +85,11 @@ function createDiscoveryStore() {
 		async createRelease(create: DiscoveryReleaseCreate): Promise<DiscoveryRelease | null> {
 			try {
 				const release = await discoveryApi.createRelease(create)
+				if (!release || !release.id) {
+					// TAHOE-DIAG: IPC invoke resolved with null/undefined — likely a macOS WebKit issue
+					console.error('[discovery] createRelease: invoke returned falsy or missing id', release)
+					return null
+				}
 				update((state) => ({
 					...state,
 					releases: [release, ...state.releases],

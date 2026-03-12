@@ -94,8 +94,21 @@ pub async fn create_discovery_release(
     discovery: State<'_, DiscoveryService>,
     tracker: State<'_, PrefetchTracker>,
 ) -> Result<DiscoveryRelease> {
+    // TAHOE-DIAG
+    log::info!(
+        "create_discovery_release: creating release for url={}",
+        create.url
+    );
     let release = discovery.create_release(create)?;
+    log::info!(
+        "create_discovery_release: created release id={}",
+        release.id
+    );
     spawn_stream_prefetch(&release, &discovery, &tracker, &app).await;
+    log::info!(
+        "create_discovery_release: returning release id={}",
+        release.id
+    );
     Ok(release)
 }
 
