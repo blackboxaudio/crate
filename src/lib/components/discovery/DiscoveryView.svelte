@@ -39,6 +39,8 @@
 		onToggleEditor?: () => void
 		likedOnly?: boolean
 		onToggleLikedFilter?: () => void
+		scrollOffset?: number
+		onScrollChange?: (offset: number) => void
 	}
 
 	let {
@@ -71,6 +73,8 @@
 		onToggleEditor,
 		likedOnly = false,
 		onToggleLikedFilter,
+		scrollOffset = 0,
+		onScrollChange,
 	}: Props = $props()
 
 	let isDragOver = $state(false)
@@ -195,6 +199,7 @@
 			{categoryColors}
 			{categorySortOrders}
 			{isDragOver}
+			{scrollOffset}
 			{likedOnly}
 			{onSelectionChange}
 			{onReleaseOpen}
@@ -206,6 +211,7 @@
 			onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
 			{onTrackPlay}
 			{onTrackLikeToggle}
+			{onScrollChange}
 		/>
 	</div>
 

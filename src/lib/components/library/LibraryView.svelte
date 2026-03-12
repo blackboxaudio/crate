@@ -35,6 +35,8 @@
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
 		onCancelAnalysis?: (trackId: string) => void
 		onToggleEditor?: () => void
+		scrollOffset?: number
+		onScrollChange?: (offset: number) => void
 	}
 
 	let {
@@ -64,6 +66,8 @@
 		onTrackColorChange,
 		onCancelAnalysis,
 		onToggleEditor,
+		scrollOffset = 0,
+		onScrollChange,
 	}: Props = $props()
 </script>
 
@@ -119,6 +123,7 @@
 			{isDragOver}
 			{categoryColors}
 			{categorySortOrders}
+			{scrollOffset}
 			{onSelectionChange}
 			{onTrackPlay}
 			{onSortChange}
@@ -126,6 +131,7 @@
 			{onEmptySpaceContextMenu}
 			{onTrackColorChange}
 			{onCancelAnalysis}
+			{onScrollChange}
 		/>
 	</div>
 </div>

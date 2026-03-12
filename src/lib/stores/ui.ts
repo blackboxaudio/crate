@@ -17,6 +17,7 @@ interface ViewNavigationState {
 	selectedPlaylistId: string | null
 	selectedFolderId: string | null
 	sidebarView: SidebarView
+	scrollOffset: number
 }
 
 type ViewNavigationCache = Record<ActiveView, ViewNavigationState>
@@ -84,8 +85,8 @@ const initialState: UIState = {
 	selectedTreeIds: new Set(),
 	contextMenuPlaylistId: null,
 	viewNavigationCache: {
-		library: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library' },
-		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library' },
+		library: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
+		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
 	},
 }
 
@@ -116,6 +117,7 @@ function createUIStore() {
 						selectedPlaylistId: state.selectedPlaylistId,
 						selectedFolderId: state.selectedFolderId,
 						sidebarView: state.sidebarView,
+						scrollOffset: state.viewNavigationCache[state.activeView].scrollOffset,
 					},
 				}
 
@@ -135,6 +137,22 @@ function createUIStore() {
 					viewNavigationCache: updatedCache,
 				}
 			})
+		},
+
+		/**
+		 * Update scroll offset for the current active view
+		 */
+		setScrollOffset(offset: number) {
+			update((state) => ({
+				...state,
+				viewNavigationCache: {
+					...state.viewNavigationCache,
+					[state.activeView]: {
+						...state.viewNavigationCache[state.activeView],
+						scrollOffset: offset,
+					},
+				},
+			}))
 		},
 
 		// =========================================================================
@@ -542,3 +560,5 @@ export const rightSidebarWidth = derived(uiStore, ($ui) => $ui.rightSidebarWidth
 export const selectedTreeIds = derived(uiStore, ($ui) => $ui.selectedTreeIds)
 
 export const contextMenuPlaylistId = derived(uiStore, ($ui) => $ui.contextMenuPlaylistId)
+
+export const scrollOffset = derived(uiStore, ($ui) => $ui.viewNavigationCache[$ui.activeView].scrollOffset)
