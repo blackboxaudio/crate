@@ -71,13 +71,6 @@
 		}
 	})
 
-	// Reset restoration flag when scrollOffset prop changes externally (view switch)
-	$effect(() => {
-		// Read scrollOffset to track it
-		void scrollOffset
-		scrollRestoredForView = false
-	})
-
 	function handleScroll() {
 		if (!scrollContainerEl || !onScrollChange) return
 		if (scrollDebounceTimer) clearTimeout(scrollDebounceTimer)

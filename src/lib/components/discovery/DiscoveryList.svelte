@@ -123,12 +123,6 @@
 		}
 	})
 
-	// Reset restoration flag when scrollOffset prop changes externally (view switch)
-	$effect(() => {
-		void scrollOffset
-		scrollRestoredForView = false
-	})
-
 	function handleScroll() {
 		// Cancel expand/collapse transition during scroll to prevent laggy repositioning
 		if (isTransitioning) {

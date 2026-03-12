@@ -44,6 +44,7 @@
 		previewInfo,
 		pageActions,
 		scrollOffset,
+		playlistScrollOffsets,
 	} from '$lib/stores'
 	import { likedOnly } from '$lib/stores/discovery'
 	import { isPlaying } from '$lib/stores/player'
@@ -527,6 +528,8 @@
 					onBreadcrumbNavigate={handleBreadcrumbNavigate}
 					onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 					onToggleEditor={() => uiStore.toggleRightSidebar()}
+					scrollOffset={$playlistScrollOffsets.get(playlist.id) ?? 0}
+					onScrollChange={(offset) => uiStore.setPlaylistScrollOffset(playlist.id, offset)}
 				/>
 			{:else}
 				<PlaylistView
@@ -560,6 +563,8 @@
 					onTrackColorChange={trackController.setColor}
 					onCancelAnalysis={handleCancelAnalysis}
 					onToggleEditor={() => uiStore.toggleRightSidebar()}
+					scrollOffset={$playlistScrollOffsets.get(playlist.id) ?? 0}
+					onScrollChange={(offset) => uiStore.setPlaylistScrollOffset(playlist.id, offset)}
 				/>
 			{/if}
 		{/if}
