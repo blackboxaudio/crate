@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Track, TrackColor, SortConfig } from '$lib/types'
+	import { tick } from 'svelte'
 	import { handleSelection } from '$lib/utils'
 	import { createVirtualList } from '$lib/utils/virtualizer.svelte'
 	import { analyzingTrackIds } from '$lib/stores'
@@ -60,14 +61,16 @@
 		getItemKey: (index: number) => tracks[index]?.id ?? index,
 	})
 
-	// Restore scroll position after virtualizer mounts
+	// Restore scroll position once after virtualizer mounts.
+	// Uses tick() + direct scrollTop to restore before paint (no one-frame flash).
 	$effect(() => {
-		if (scrollContainerEl && scrollOffset > 0 && !scrollRestoredForView) {
+		if (scrollContainerEl && !scrollRestoredForView) {
 			scrollRestoredForView = true
-			// Use requestAnimationFrame to ensure virtualizer is ready
-			requestAnimationFrame(() => {
-				virtualList.scrollToOffset(scrollOffset)
-			})
+			if (scrollOffset > 0) {
+				tick().then(() => {
+					scrollContainerEl!.scrollTop = scrollOffset
+				})
+			}
 		}
 	})
 

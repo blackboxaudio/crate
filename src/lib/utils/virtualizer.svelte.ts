@@ -1,4 +1,4 @@
-import { untrack } from 'svelte'
+import { tick, untrack } from 'svelte'
 import { Virtualizer, elementScroll, observeElementOffset } from '@tanstack/virtual-core'
 import type { VirtualizerOptions } from '@tanstack/virtual-core'
 
@@ -73,10 +73,62 @@ export function createVirtualList(options: VirtualListOptions) {
 	// causes a visible flash.
 	let isSyncing = false
 
+	// When true, syncState skips full array replacements to prevent the
+	// scroll-restoration scroll event from triggering a secondary syncState
+	// that would replace the array and destroy CSS transition "from" values.
+	let isRestoringScroll = false
+
 	function syncState() {
 		if (isSyncing || !instance) return
-		virtualItems = instance.getVirtualItems() as VirtualItem[]
-		totalSize = instance.getTotalSize()
+		const newItems = instance.getVirtualItems() as VirtualItem[]
+
+		// Wrap in untrack() so reads of virtualItems (for the inPlace check
+		// and element access) don't create reactive dependencies in the
+		// calling $effect.pre. Without this, element-level writes
+		// (virtualItems[i] = ...) bump the array version, which would
+		// re-trigger the $effect.pre → syncState() → infinite loop.
+		// Writes still fire notifications, so {#each} templates update.
+		untrack(() => {
+			totalSize = instance.getTotalSize()
+
+			// Check if keys match at each shared position (common prefix).
+			// This is true for expand/collapse where items stay in the same
+			// order but the overscan boundary may shift, adding/removing items
+			// at the edges. Updating the common prefix in-place preserves DOM
+			// elements and their computed styles so CSS transitions animate.
+			const minLen = Math.min(newItems.length, virtualItems.length)
+			let commonPrefix = minLen > 0
+			for (let i = 0; i < minLen; i++) {
+				if (newItems[i].key !== virtualItems[i].key) {
+					commonPrefix = false
+					break
+				}
+			}
+
+			if (commonPrefix) {
+				// Update shared items in-place: keeps array reference stable so
+				// {#each} reuses DOM elements, preserving the old computed styles
+				// that CSS transitions animate from.
+				for (let i = 0; i < minLen; i++) {
+					virtualItems[i] = newItems[i]
+				}
+				// Handle items that left or entered the overscan boundary.
+				if (newItems.length < virtualItems.length) {
+					virtualItems.splice(newItems.length)
+				} else {
+					for (let i = minLen; i < newItems.length; i++) {
+						virtualItems.push(newItems[i])
+					}
+				}
+			} else if (!isRestoringScroll) {
+				// Keys reordered (e.g. scrolling brought entirely new items into
+				// view): full array replacement required.
+				virtualItems = newItems
+			}
+			// If isRestoringScroll and !commonPrefix: skip the replacement to
+			// preserve DOM elements and active CSS transitions. The rAF cleanup
+			// will call syncState() to catch up after scroll restoration completes.
+		})
 	}
 
 	// Create/destroy the virtualizer when the scroll element changes
@@ -117,6 +169,11 @@ export function createVirtualList(options: VirtualListOptions) {
 		const estimateSize = options.estimateSize()
 		if (!instance) return
 
+		// Save scroll position before recalculation. The DOM update cycle can
+		// reset scrollTop to 0 when item sizes change (e.g., expand/collapse).
+		const scrollEl = options.getScrollElement()
+		const savedScrollTop = scrollEl?.scrollTop ?? 0
+
 		// Suppress intermediate onChange calls during measure/update so only
 		// the final syncState (after all recalculations) updates reactive state.
 		isSyncing = true
@@ -129,6 +186,24 @@ export function createVirtualList(options: VirtualListOptions) {
 		instance._willUpdate()
 		isSyncing = false
 		syncState()
+
+		// Restore scroll position after DOM update if it was unexpectedly reset.
+		// Uses tick() so the restore happens after Svelte's DOM update but before
+		// browser event processing, preventing a one-frame flash of wrong scroll.
+		// Setting isRestoringScroll suppresses the scroll-event-driven syncState
+		// that would otherwise replace the array and destroy CSS transitions.
+		if (scrollEl && savedScrollTop > 0) {
+			tick().then(() => {
+				if (scrollEl.scrollTop !== savedScrollTop) {
+					isRestoringScroll = true
+					scrollEl.scrollTop = savedScrollTop
+					requestAnimationFrame(() => {
+						isRestoringScroll = false
+						syncState()
+					})
+				}
+			})
+		}
 	})
 
 	return {
