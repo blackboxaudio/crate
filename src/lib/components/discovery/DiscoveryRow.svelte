@@ -193,7 +193,7 @@
 	</div>
 
 	<!-- Label -->
-	<div class="truncate text-text-secondary">
+	<div class="truncate text-left text-text-secondary">
 		{release.label || ''}
 	</div>
 
@@ -215,17 +215,17 @@
 	</div>
 
 	<!-- Source -->
-	<div class="truncate text-text-tertiary">
+	<div class="truncate text-left text-text-tertiary">
 		{sourceLabels[release.source_type] ?? release.source_type}
 	</div>
 
 	<!-- Release Date -->
-	<div class="truncate text-text-tertiary">
+	<div class="truncate text-left text-text-tertiary">
 		{release.release_date ? formatDate(release.release_date, $dateFormat) : ''}
 	</div>
 
 	<!-- Date Added -->
-	<div class="truncate text-text-tertiary">
+	<div class="truncate text-left text-text-tertiary">
 		{formatRelativeDate(release.date_added, $translate)}
 	</div>
 

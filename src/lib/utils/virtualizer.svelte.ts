@@ -57,6 +57,7 @@ type VirtualListOptions = {
 	getScrollElement: () => HTMLElement | null
 	estimateSize: () => (index: number) => number
 	overscan?: number
+	scrollMargin?: number
 	getItemKey?: (index: number) => string | number
 }
 
@@ -124,6 +125,7 @@ export function createVirtualList(options: VirtualListOptions) {
 			getScrollElement: () => scrollElement,
 			estimateSize,
 			overscan: options.overscan ?? 10,
+			scrollMargin: options.scrollMargin ?? 0,
 			getItemKey,
 			observeElementRect,
 			observeElementOffset,
@@ -161,6 +163,7 @@ export function createVirtualList(options: VirtualListOptions) {
 			...instance.options,
 			count,
 			estimateSize,
+			scrollMargin: options.scrollMargin ?? 0,
 		})
 		instance._willUpdate()
 		isSyncing = false

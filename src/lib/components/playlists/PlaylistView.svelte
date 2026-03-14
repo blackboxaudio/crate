@@ -47,6 +47,8 @@
 		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onDiscoveryTrackLikeToggle?: (releaseId: string, trackId: string) => void
 		onSortChange?: (config: SortConfig) => void
+		discoverySortConfig?: DiscoverySortConfig
+		onDiscoverySortChange?: (config: DiscoverySortConfig) => void
 		onContextMenu?: (e: MouseEvent, track: Track) => void
 		onEmptySpaceContextMenu?: (e: MouseEvent, playlist: Playlist) => void
 		onBreadcrumbNavigate: (item: BreadcrumbItem) => void
@@ -87,6 +89,8 @@
 		onDiscoveryTrackPlay,
 		onDiscoveryTrackLikeToggle,
 		onSortChange,
+		discoverySortConfig = { field: 'artist', direction: 'asc' },
+		onDiscoverySortChange,
 		onContextMenu,
 		onEmptySpaceContextMenu,
 		onBreadcrumbNavigate,
@@ -103,7 +107,7 @@
 	}
 
 	const filteredReleases = $derived.by(() => {
-		let result = likedOnly ? releases.filter((r) => r.tracks.some((t) => t.is_liked)) : releases
+		let result = likedOnly ? releases.filter((r) => r.tracks.some((t) => t.is_liked)) : [...releases]
 		if (activeFilterTags && activeFilterTags.length > 0) {
 			const tagIds = new Set(activeFilterTags.map((t) => t.id))
 			if (tagFilterMode === 'and') {
@@ -122,6 +126,32 @@
 					r.notes?.toLowerCase().includes(search)
 			)
 		}
+
+		// Apply sorting
+		const { field, direction } = discoverySortConfig
+		const dir = direction === 'asc' ? 1 : -1
+		result.sort((a, b) => {
+			let cmp = 0
+			if (field === 'release_date') {
+				const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
+				const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
+				const aValid = !isNaN(aDate)
+				const bValid = !isNaN(bDate)
+				if (!aValid && !bValid) cmp = 0
+				else if (!aValid) return 1
+				else if (!bValid) return -1
+				else if (aDate < bDate) cmp = -1 * dir
+				else if (aDate > bDate) cmp = 1 * dir
+			} else {
+				const aVal = a[field] ?? ''
+				const bVal = b[field] ?? ''
+				if (aVal < bVal) cmp = -1 * dir
+				else if (aVal > bVal) cmp = 1 * dir
+			}
+			if (cmp !== 0) return cmp
+			return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+		})
+
 		return result
 	})
 
@@ -134,9 +164,6 @@
 	function handleCollapseAll() {
 		expandedReleaseIds.collapseAll()
 	}
-
-	// Provide a default sort config for discovery lists
-	const discoverySortConfig: DiscoverySortConfig = { field: 'date_added', direction: 'desc' }
 </script>
 
 <div class="flex h-full flex-col overflow-hidden bg-surface-0">
@@ -199,6 +226,7 @@
 				{likedOnly}
 				{scrollOffset}
 				{onSelectionChange}
+				onSortChange={onDiscoverySortChange}
 				onContextMenu={(e, release) => {
 					onContextMenu?.(e, release as unknown as Track)
 				}}

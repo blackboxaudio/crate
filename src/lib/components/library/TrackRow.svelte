@@ -186,17 +186,17 @@
 	</div>
 
 	<!-- BPM -->
-	<div class="text-right text-text-secondary tabular-nums">
+	<div class="text-text-secondary tabular-nums">
 		{formatBpm(track.bpm)}
 	</div>
 
 	<!-- Key -->
-	<div class="flex items-center justify-center text-text-secondary">
+	<div class="flex items-center text-text-secondary">
 		{formatKey(track.key, $keyNotationFormat)}
 	</div>
 
 	<!-- Duration -->
-	<div class="text-right text-text-secondary tabular-nums">
+	<div class="text-text-secondary tabular-nums">
 		{formatDurationCompact(track.duration_ms)}
 	</div>
 
