@@ -340,7 +340,11 @@ pub(super) fn parse_bandcamp_release_links(
     base_url: &str,
     page_name: &Option<String>,
 ) -> Vec<crate::models::ScannedRelease> {
-    let mut seen = std::collections::HashSet::new();
+    // Track insertion order + allow merging data from duplicate links.
+    // Bandcamp pages often have two <a> tags per release: one wrapping artwork,
+    // one containing the title text — both pointing to the same URL.
+    let mut url_to_index: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
     let mut releases = Vec::new();
     let mut search_pos = 0;
 
@@ -375,12 +379,6 @@ pub(super) fn parse_bandcamp_release_links(
             continue;
         }
 
-        // Deduplicate (same release often linked multiple times)
-        if !seen.insert(absolute_url.clone()) {
-            search_pos = a_close;
-            continue;
-        }
-
         // Extract artwork from <img> within this <a> tag
         let artwork = if let Some(img_start) = a_html.find("<img") {
             let img_html = &a_html[img_start..];
@@ -394,14 +392,26 @@ pub(super) fn parse_bandcamp_release_links(
         // Extract title from text content (skip <img> children)
         let title = extract_link_text(a_html);
 
-        releases.push(crate::models::ScannedRelease {
-            url: absolute_url,
-            artist: page_name.clone(),
-            title,
-            artwork_url: artwork,
-            release_date: None,
-            already_exists: false,
-        });
+        // Merge data from duplicate links (e.g. image link + title link)
+        if let Some(&idx) = url_to_index.get(&absolute_url) {
+            let existing: &mut crate::models::ScannedRelease = &mut releases[idx];
+            if existing.title.is_none() && title.is_some() {
+                existing.title = title;
+            }
+            if existing.artwork_url.is_none() && artwork.is_some() {
+                existing.artwork_url = artwork;
+            }
+        } else {
+            url_to_index.insert(absolute_url.clone(), releases.len());
+            releases.push(crate::models::ScannedRelease {
+                url: absolute_url,
+                artist: page_name.clone(),
+                title,
+                artwork_url: artwork,
+                release_date: None,
+                already_exists: false,
+            });
+        }
 
         search_pos = a_close;
     }

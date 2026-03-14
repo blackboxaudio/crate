@@ -709,8 +709,8 @@ fn test_parse_bandcamp_release_links_basic() {
 }
 
 #[test]
-fn test_parse_bandcamp_release_links_dedup() {
-    // Same album linked twice (image link + text link)
+fn test_parse_bandcamp_release_links_merges_duplicates() {
+    // Same album linked twice: image link (artwork, no title) + text link (title, no artwork)
     let html = r#"
         <a href="/album/my-album"><img src="https://f4.bcbits.com/img/a1_2.jpg"></a>
         <a href="/album/my-album">My Album</a>
@@ -718,6 +718,12 @@ fn test_parse_bandcamp_release_links_dedup() {
     "#;
     let releases = parse_bandcamp_release_links(html, "https://x.bandcamp.com", &None);
     assert_eq!(releases.len(), 2);
+    // First release should have both artwork (from first link) and title (from second link)
+    assert_eq!(releases[0].title.as_deref(), Some("My Album"));
+    assert_eq!(
+        releases[0].artwork_url.as_deref(),
+        Some("https://f4.bcbits.com/img/a1_2.jpg")
+    );
 }
 
 #[test]

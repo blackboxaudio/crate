@@ -34,8 +34,8 @@ const initialState: DiscoveryState = {
 	error: null,
 	filter: {},
 	sort: {
-		field: 'artist',
-		direction: 'asc',
+		field: 'date_added',
+		direction: 'desc',
 	},
 	refreshingIds: new Set(),
 	likedOnly: false,
