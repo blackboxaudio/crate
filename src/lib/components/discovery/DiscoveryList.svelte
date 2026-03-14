@@ -8,6 +8,7 @@
 	import DiscoveryRow from './DiscoveryRow.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
+	import { SvelteMap } from 'svelte/reactivity'
 
 	const BASE_PREVIEWABLE: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
 
@@ -70,34 +71,94 @@
 	let scrollRestoredForView = $state(false)
 	let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-	// Enable CSS transition on row containers during expand/collapse.
-	let isTransitioning = $state(false)
-	let transitionTimer: ReturnType<typeof setTimeout> | null = null
-
-	function startTransition() {
-		isTransitioning = true
-		if (transitionTimer) clearTimeout(transitionTimer)
-		transitionTimer = setTimeout(() => {
-			isTransitioning = false
-		}, 250)
-	}
-
-	// Reactively detect expandedIds changes and enable transition. This covers
-	// all sources of expand/collapse (Enter key, double-click, button, Expand/Collapse All)
-	// without requiring each call site to explicitly call startTransition().
+	// Animate expand/collapse using calculated deltas.
+	// Instead of FLIP (which requires capturing old positions from DOM or cache),
+	// we calculate the height delta from the toggled item's track count and
+	// directly animate each visible element. This works reliably across component
+	// remounts because it only depends on the post-tick DOM + known delta.
 	// Defined BEFORE createVirtualList so this $effect.pre runs first.
 	let prevExpandedIds: Set<string> | null = null
 
 	$effect.pre(() => {
 		const currentIds = expandedIds
 		if (prevExpandedIds === null) {
-			// Skip first render (component mount) — no animation needed
 			prevExpandedIds = currentIds
 			return
 		}
 		if (currentIds !== prevExpandedIds) {
-			startTransition()
+			// Find the single toggled item (skip animation for bulk operations)
+			let toggledId: string | null = null
+			let isExpanding = false
+			for (const id of currentIds) {
+				if (!prevExpandedIds.has(id)) {
+					if (toggledId !== null) {
+						toggledId = null
+						break
+					}
+					toggledId = id
+					isExpanding = true
+				}
+			}
+			if (toggledId === null) {
+				for (const id of prevExpandedIds) {
+					if (!currentIds.has(id)) {
+						if (toggledId !== null) {
+							toggledId = null
+							break
+						}
+						toggledId = id
+						isExpanding = false
+					}
+				}
+			}
 			prevExpandedIds = currentIds
+
+			if (!toggledId) return
+
+			const toggledIndex = releases.findIndex((r) => r.id === toggledId)
+			if (toggledIndex === -1) return
+
+			const release = releases[toggledIndex]
+			const visibleTracks = likedOnly ? release.tracks.filter((t) => t.is_liked).length : release.tracks.length
+			const delta = visibleTracks * TRACK_ROW_HEIGHT * (isExpanding ? 1 : -1)
+
+			if (Math.abs(delta) < 0.5) return
+
+			// Build index lookup for matching DOM elements to release positions
+			const indexById = new SvelteMap<string, number>()
+			for (let i = 0; i < releases.length; i++) {
+				indexById.set(releases[i].id, i)
+			}
+
+			tick().then(() => {
+				if (!scrollContainerEl) return
+
+				const wrappers = scrollContainerEl.querySelectorAll<HTMLElement>('[data-vkey]')
+				for (const el of wrappers) {
+					const key = el.getAttribute('data-vkey')
+					if (!key) continue
+
+					if (key === toggledId) {
+						// Toggled item: animate height change
+						const newSize = parseFloat(el.style.height) || 0
+						el.animate([{ height: `${newSize - delta}px` }, { height: `${newSize}px` }], {
+							duration: 200,
+							easing: 'ease-out',
+						})
+					} else {
+						// Items below the toggled item: animate position shift
+						const itemIndex = indexById.get(key)
+						if (itemIndex !== undefined && itemIndex > toggledIndex) {
+							const match = el.style.transform.match(/translateY\((.+?)px\)/)
+							const newStart = match ? parseFloat(match[1]) : 0
+							el.animate(
+								[{ transform: `translateY(${newStart - delta}px)` }, { transform: `translateY(${newStart}px)` }],
+								{ duration: 200, easing: 'ease-out' }
+							)
+						}
+					}
+				}
+			})
 		}
 	})
 
@@ -223,9 +284,8 @@
 				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
 					{@const release = releases[virtualItem.index]}
 					<div
-						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start}px); pointer-events: auto;{isTransitioning
-							? ' transition: transform 200ms ease-out, height 200ms ease-out;'
-							: ''}"
+						data-vkey={virtualItem.key}
+						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start}px); pointer-events: auto;"
 					>
 						<DiscoveryRow
 							{release}
