@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Added Ukrainian, Romanian, Polish, and Turkish locale support
 - Added first-run onboarding setup wizard with language, theme, accent color, and font customization
+- Added persistence of player state, including current track, playhead position, tempo control, and volume control 
 - Added Apple code signing and notarization for macOS builds
 
 ### Changed

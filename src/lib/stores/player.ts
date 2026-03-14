@@ -6,6 +6,14 @@ import * as previewPlayer from '$lib/services/previewPlayer'
 import { missingTracksStore } from './missingTracks'
 import { toastStore } from './toast'
 import { translate } from '$lib/i18n'
+import {
+	getStoredNumber,
+	setStoredNumber,
+	getStoredString,
+	setStoredString,
+	getStoredBoolean,
+	setStoredBoolean,
+} from '$lib/utils/storage'
 
 // =============================================================================
 // State
@@ -27,20 +35,28 @@ interface PlayerState {
 
 const initialPlaybackState: PlaybackState = {
 	is_playing: false,
-	position_ms: 0,
-	duration_ms: 0,
-	volume: 1.0,
-	speed: 1.0,
+	position_ms: getStoredNumber('player.positionMs', 0),
+	duration_ms: getStoredNumber('player.durationMs', 0),
+	volume: getStoredNumber('player.volume', 1.0),
+	speed: getStoredNumber('player.speed', 1.0),
 	current_track_id: null,
 	current_track_path: null,
 }
+
+const restoredTrackId = getStoredString('player.trackId', '')
+const restoredPlaybackSource = getStoredString<PlaybackSource>('player.playbackSource', 'library', [
+	'library',
+	'preview',
+])
+const restoredPreviewReleaseId = getStoredString('player.previewReleaseId', '')
+const restoredPreviewTrackIndex = getStoredNumber('player.previewTrackIndex', 0)
 
 const initialState: PlayerState = {
 	currentTrack: null,
 	playbackState: initialPlaybackState,
 	error: null,
-	isMuted: false,
-	volumeBeforeMute: 1.0,
+	isMuted: getStoredBoolean('player.isMuted', false),
+	volumeBeforeMute: getStoredNumber('player.volumeBeforeMute', 1.0),
 	playbackSource: 'library',
 	previewInfo: null,
 	previewTrackIndex: 0,
@@ -59,6 +75,21 @@ function createPlayerStore() {
 	let previewRetryAttempted = false
 	let previewRetrying = false
 	let previewSpeedCommitTimeout: ReturnType<typeof setTimeout> | null = null
+	let isRestoredFromStorage = false
+	let lastPositionWriteTime = 0
+
+	function persistPosition(positionMs: number) {
+		const now = Date.now()
+		if (now - lastPositionWriteTime >= 1000) {
+			setStoredNumber('player.positionMs', positionMs)
+			lastPositionWriteTime = now
+		}
+	}
+
+	function persistPositionImmediate(positionMs: number) {
+		setStoredNumber('player.positionMs', positionMs)
+		lastPositionWriteTime = Date.now()
+	}
 
 	function getState(): PlayerState {
 		let state: PlayerState = initialState
@@ -91,6 +122,9 @@ function createPlayerStore() {
 								is_playing: false,
 							},
 						}
+					}
+					if (state.playbackSource === 'library') {
+						persistPosition(newPosition)
 					}
 					return {
 						...state,
@@ -241,14 +275,26 @@ function createPlayerStore() {
 			if (state.playbackSource === 'preview') {
 				stopPreviewInternal()
 				clearPreviewEvents()
+				// Sync speed to backend since preview speed changes are frontend-only
+				try {
+					await playerApi.setSpeed(state.playbackState.speed)
+				} catch {
+					// Best effort
+				}
 			}
 
 			try {
 				const playbackState = await playerApi.playTrack(track.id)
+				isRestoredFromStorage = false
+				setStoredString('player.playbackSource', 'library')
+				setStoredString('player.trackId', track.id)
+				setStoredString('player.previewReleaseId', '')
+				setStoredNumber('player.durationMs', playbackState.duration_ms)
+				persistPositionImmediate(0)
 				update((s) => ({
 					...s,
 					currentTrack: track,
-					playbackState: { ...playbackState, speed: 1.0 },
+					playbackState,
 					error: null,
 					playbackSource: 'library',
 					previewInfo: null,
@@ -290,12 +336,18 @@ function createPlayerStore() {
 
 				wirePreviewEvents()
 
-				// Sync volume and reset speed for preview player
+				// Sync volume and speed for preview player
+				previewPlayer.play(streamUrl)
 				const currentVolume = state.isMuted ? 0 : state.playbackState.volume
 				previewPlayer.setVolume(currentVolume)
-				previewPlayer.setPlaybackRate(1.0)
-				previewPlayer.play(streamUrl)
+				previewPlayer.setPlaybackRate(state.playbackState.speed)
 
+				isRestoredFromStorage = false
+				setStoredString('player.playbackSource', 'preview')
+				setStoredString('player.previewReleaseId', release.id)
+				setStoredNumber('player.previewTrackIndex', trackIndex)
+				setStoredNumber('player.durationMs', track.duration_ms || 0)
+				persistPositionImmediate(0)
 				update((s) => ({
 					...s,
 					currentTrack: null,
@@ -304,7 +356,6 @@ function createPlayerStore() {
 						is_playing: true,
 						position_ms: 0,
 						duration_ms: track.duration_ms || 0,
-						speed: 1.0,
 						current_track_id: null,
 						current_track_path: null,
 					},
@@ -329,6 +380,7 @@ function createPlayerStore() {
 
 			if (state.playbackSource === 'preview') {
 				previewPlayer.pause()
+				persistPositionImmediate(state.playbackState.position_ms)
 				update((s) => ({
 					...s,
 					playbackState: { ...s.playbackState, is_playing: false },
@@ -339,6 +391,7 @@ function createPlayerStore() {
 
 			try {
 				const playbackState = await playerApi.pause()
+				persistPositionImmediate(playbackState.position_ms)
 				update((s) => ({ ...s, playbackState, error: null }))
 				stopPositionTracking()
 			} catch (error) {
@@ -356,6 +409,37 @@ function createPlayerStore() {
 			const state = getState()
 
 			if (state.playbackSource === 'preview') {
+				// If restored from storage, the audio element has no source — load the stream
+				if (isRestoredFromStorage && state.previewInfo) {
+					isRestoredFromStorage = false
+					const { release, trackIndex } = state.previewInfo
+					const track = release.tracks[trackIndex]
+					if (!track) return
+					const restoredPosition = state.playbackState.position_ms
+					try {
+						const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
+						wirePreviewEvents()
+						previewPlayer.play(streamUrl)
+						const currentVolume = state.isMuted ? 0 : state.playbackState.volume
+						previewPlayer.setVolume(currentVolume)
+						previewPlayer.setPlaybackRate(state.playbackState.speed)
+						if (restoredPosition > 0) {
+							previewPlayer.seek(restoredPosition)
+						}
+						update((s) => ({
+							...s,
+							playbackState: { ...s.playbackState, is_playing: true },
+							error: null,
+						}))
+					} catch {
+						update((s) => ({
+							...s,
+							error: 'Failed to load preview stream',
+							playbackState: { ...s.playbackState, is_playing: false },
+						}))
+					}
+					return
+				}
 				// Sync playback rate in case speed was changed while paused
 				previewPlayer.setPlaybackRate(state.playbackState.speed)
 				previewPlayer.resume()
@@ -364,6 +448,33 @@ function createPlayerStore() {
 					playbackState: { ...s.playbackState, is_playing: true },
 					error: null,
 				}))
+				return
+			}
+
+			// If restored from storage, the backend has no player loaded — load the track fully
+			if (isRestoredFromStorage && state.currentTrack) {
+				isRestoredFromStorage = false
+				const restoredPosition = state.playbackState.position_ms
+				try {
+					// Sync volume and speed to backend before playing so create_player uses them
+					await playerApi.setVolume(state.isMuted ? 0 : state.playbackState.volume)
+					await playerApi.setSpeed(state.playbackState.speed)
+					const playbackState = await playerApi.playTrack(state.currentTrack.id)
+					// Seek to restored position
+					if (restoredPosition > 0) {
+						const seekedState = await playerApi.seek(restoredPosition)
+						update((s) => ({ ...s, playbackState: seekedState, error: null }))
+					} else {
+						update((s) => ({ ...s, playbackState, error: null }))
+					}
+					startPositionTracking()
+				} catch (error) {
+					const errorMsg = error instanceof Error ? error.message : 'Failed to play track'
+					if (errorMsg.toLowerCase().includes('file not found') || errorMsg.toLowerCase().includes('filenotfound')) {
+						missingTracksStore.markMissing(state.currentTrack.id)
+					}
+					update((s) => ({ ...s, error: errorMsg }))
+				}
 				return
 			}
 
@@ -389,10 +500,15 @@ function createPlayerStore() {
 			if (state.playbackSource === 'preview') {
 				stopPreviewInternal()
 				clearPreviewEvents()
+				isRestoredFromStorage = false
+				setStoredString('player.playbackSource', 'library')
+				setStoredString('player.previewReleaseId', '')
+				setStoredNumber('player.positionMs', 0)
+				setStoredNumber('player.durationMs', 0)
 				update((s) => ({
 					...s,
 					currentTrack: null,
-					playbackState: { ...initialPlaybackState, volume: s.playbackState.volume },
+					playbackState: { ...initialPlaybackState, volume: s.playbackState.volume, speed: s.playbackState.speed },
 					error: null,
 					playbackSource: 'library',
 					previewInfo: null,
@@ -403,6 +519,11 @@ function createPlayerStore() {
 
 			try {
 				const playbackState = await playerApi.stop()
+				isRestoredFromStorage = false
+				setStoredString('player.playbackSource', 'library')
+				setStoredString('player.trackId', '')
+				setStoredNumber('player.positionMs', 0)
+				setStoredNumber('player.durationMs', 0)
 				update((s) => ({
 					...s,
 					currentTrack: null,
@@ -434,6 +555,7 @@ function createPlayerStore() {
 			}
 
 			// Optimistic position update to prevent playhead jump-back
+			persistPositionImmediate(positionMs)
 			update((s) => ({
 				...s,
 				playbackState: { ...s.playbackState, position_ms: positionMs },
@@ -454,6 +576,7 @@ function createPlayerStore() {
 		 */
 		async setVolume(volume: number) {
 			const state = getState()
+			setStoredNumber('player.volume', volume)
 
 			if (state.playbackSource === 'preview') {
 				previewPlayer.setVolume(volume)
@@ -481,6 +604,7 @@ function createPlayerStore() {
 		 */
 		async setSpeed(speed: number) {
 			const state = getState()
+			setStoredNumber('player.speed', speed)
 
 			if (state.playbackSource === 'preview') {
 				update((s) => ({
@@ -569,6 +693,7 @@ function createPlayerStore() {
 
 			// If muted and trying to increase volume, unmute first
 			if (state.isMuted && delta > 0) {
+				setStoredBoolean('player.isMuted', false)
 				update((s) => ({ ...s, isMuted: false }))
 			}
 
@@ -584,9 +709,12 @@ function createPlayerStore() {
 			const state = getState()
 
 			if (state.isMuted) {
+				setStoredBoolean('player.isMuted', false)
 				update((s) => ({ ...s, isMuted: false }))
 				await this.setVolume(state.volumeBeforeMute)
 			} else {
+				setStoredBoolean('player.isMuted', true)
+				setStoredNumber('player.volumeBeforeMute', state.playbackState.volume)
 				update((s) => ({ ...s, isMuted: true, volumeBeforeMute: state.playbackState.volume }))
 				await this.setVolume(0)
 			}
@@ -619,6 +747,54 @@ function createPlayerStore() {
 		},
 
 		/**
+		 * Restore the last-playing library track from localStorage after app init.
+		 * Sets the track in the UI at the stored position without loading audio in the backend.
+		 */
+		restoreTrack(tracks: Track[]) {
+			if (restoredPlaybackSource !== 'library' || !restoredTrackId) return
+			const track = tracks.find((t) => t.id === restoredTrackId)
+			if (!track) return
+			isRestoredFromStorage = true
+			update((s) => ({
+				...s,
+				currentTrack: track,
+				playbackState: {
+					...s.playbackState,
+					duration_ms: track.duration_ms || s.playbackState.duration_ms,
+				},
+			}))
+		},
+
+		/**
+		 * Restore a preview track from localStorage after app init.
+		 * Fetches the release by ID and sets the UI state without loading audio.
+		 */
+		async restorePreview() {
+			if (restoredPlaybackSource !== 'preview' || !restoredPreviewReleaseId) return
+			try {
+				const release = await discoveryApi.getRelease(restoredPreviewReleaseId)
+				const track = release.tracks[restoredPreviewTrackIndex]
+				if (!track) return
+				isRestoredFromStorage = true
+				update((s) => ({
+					...s,
+					currentTrack: null,
+					playbackState: {
+						...s.playbackState,
+						duration_ms: track.duration_ms || s.playbackState.duration_ms,
+					},
+					playbackSource: 'preview',
+					previewInfo: { releaseId: release.id, release, trackIndex: restoredPreviewTrackIndex },
+					previewTrackIndex: restoredPreviewTrackIndex,
+				}))
+			} catch {
+				// Release no longer exists — clear stale persistence silently
+				setStoredString('player.playbackSource', 'library')
+				setStoredString('player.previewReleaseId', '')
+			}
+		},
+
+		/**
 		 * Reset store to initial state
 		 */
 		reset() {
@@ -626,6 +802,12 @@ function createPlayerStore() {
 			clearPreviewEvents()
 			stopPositionTracking()
 			onTrackEndCallback = null
+			isRestoredFromStorage = false
+			setStoredString('player.playbackSource', 'library')
+			setStoredString('player.trackId', '')
+			setStoredString('player.previewReleaseId', '')
+			setStoredNumber('player.positionMs', 0)
+			setStoredNumber('player.durationMs', 0)
 			set(initialState)
 		},
 	}

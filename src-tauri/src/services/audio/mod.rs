@@ -568,9 +568,9 @@ fn handle_command(
                 p.sink.stop();
             }
             *player = None;
-            *current_speed = 1.0;
             AudioResponse::State(PlaybackState {
                 volume: *current_volume,
+                speed: *current_speed,
                 ..Default::default()
             })
         }
@@ -645,6 +645,7 @@ fn handle_command(
             } else {
                 AudioResponse::State(PlaybackState {
                     volume: clamped,
+                    speed: *current_speed,
                     ..Default::default()
                 })
             }
@@ -720,6 +721,7 @@ fn handle_command(
             } else {
                 AudioResponse::State(PlaybackState {
                     volume: *current_volume,
+                    speed: *current_speed,
                     ..Default::default()
                 })
             }

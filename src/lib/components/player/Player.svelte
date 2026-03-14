@@ -78,12 +78,7 @@
 	</div>
 
 	<!-- Tempo -->
-	<TempoControl
-		speed={$playbackSpeed}
-		onSpeedChange={handleSpeedChange}
-		onSpeedCommit={handleSpeedCommit}
-		disabled={!hasTrack}
-	/>
+	<TempoControl speed={$playbackSpeed} onSpeedChange={handleSpeedChange} onSpeedCommit={handleSpeedCommit} />
 
 	<!-- Volume -->
 	<div class="flex w-40 flex-shrink-0 justify-end">
