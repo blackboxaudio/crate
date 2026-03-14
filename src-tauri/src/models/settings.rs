@@ -302,6 +302,7 @@ pub struct AppSettings {
     pub last_backup_at: Option<String>,
     pub backup_frequency: BackupFrequency,
     pub last_backup_type: Option<String>,
+    pub has_completed_onboarding: bool,
 }
 
 impl Default for AppSettings {
@@ -325,6 +326,7 @@ impl Default for AppSettings {
             last_backup_at: None,
             backup_frequency: BackupFrequency::default(),
             last_backup_type: None,
+            has_completed_onboarding: false,
         }
     }
 }

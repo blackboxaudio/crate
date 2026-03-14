@@ -182,7 +182,7 @@
 		"matchAnd": "EN",
 		"clearAll": "Alles wissen",
 		"noTracksYet": "Nog geen tracks",
-		"dragDropHint": "Sleep audiobestanden hiernaartoe om deze te importeren",
+		"dragDropHint": "Druk {shortcut} of sleep audiobestanden hiernaartoe om deze te importeren",
 		"columns": {
 			"title": "Titel",
 			"artist": "Artiest",
@@ -204,8 +204,7 @@
 		"releases": "releases",
 		"searchPlaceholder": "Releases zoeken...",
 		"noReleasesYet": "Nog geen releases",
-		"addReleaseHint": "Druk {shortcut} of sleep een URL hiernaartoe om releases van Bandcamp, SoundCloud, Discogs en meer toe te voegen",
-		"dropHint": "URL hier neerleggen om release toe te voegen",
+		"addReleaseHint": "Druk {shortcut} om releases van Bandcamp, Discogs, YouTube en meer toe te voegen",
 		"previewNotAvailable": "Voorbeeld niet beschikbaar voor deze bron",
 		"columns": {
 			"artistTitle": "Artiest / Titel",

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { scale } from 'svelte/transition'
 	import { cubicOut } from 'svelte/easing'
+	import { onMount } from 'svelte'
 	import Text from './Text.svelte'
 
 	type Props = {
@@ -10,6 +11,17 @@
 	}
 
 	let { show, version, onOutroEnd }: Props = $props()
+
+	onMount(() => {
+		document.getElementById('splash')?.remove()
+		// Remove inline CSS properties set by app.html's startup script.
+		// Now that style.css is loaded, the [data-theme]/[data-font] CSS rules take over.
+		const s = document.documentElement.style
+		s.removeProperty('--font-family')
+		s.removeProperty('--surface-0')
+		s.removeProperty('--text-primary')
+		s.removeProperty('--text-tertiary')
+	})
 </script>
 
 {#if show}

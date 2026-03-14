@@ -19,6 +19,18 @@
         } catch (e) {}
         document.documentElement.setAttribute('data-theme', theme);
 
+        // Theme colors (set before style.css loads so the splash uses correct values)
+        var s = document.documentElement.style;
+        if (theme === 'light') {
+          s.setProperty('--surface-0', '#ffffff');
+          s.setProperty('--text-primary', '#18181b');
+          s.setProperty('--text-tertiary', '#71717a');
+        } else {
+          s.setProperty('--surface-0', '#09090b');
+          s.setProperty('--text-primary', '#fafafa');
+          s.setProperty('--text-tertiary', '#71717a');
+        }
+
         // Accent color
         var accentColors = {
           blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', purple: '#a855f7',
@@ -32,14 +44,41 @@
         } catch (e) {}
         document.documentElement.setAttribute('data-accent', accent);
         document.documentElement.style.setProperty('--color-brand-primary', accentColors[accent]);
+
+        // Font preference
+        var fontFamilies = {
+          'open-sans': "'Open Sans', sans-serif",
+          'inter': "'Inter', sans-serif",
+          'fira-code': "'Fira Code', monospace",
+          'jetbrains-mono': "'JetBrains Mono', monospace",
+          'ibm-plex-mono': "'IBM Plex Mono', monospace"
+        };
+        var font = 'open-sans';
+        try {
+          var storedFont = localStorage.getItem('crate-font');
+          if (storedFont && fontFamilies[storedFont]) font = storedFont;
+        } catch (e) {}
+        document.documentElement.setAttribute('data-font', font);
+        document.documentElement.style.setProperty('--font-family', fontFamilies[font]);
       })();
     </script>
 
+    <!-- Preload Google Fonts so they're available before style.css loads -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@300..700&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Inter:wght@300..700&family=JetBrains+Mono:wght@300..700&family=Open+Sans:wght@300..700&display=swap" />
     <link rel="icon" href="%sveltekit.assets%/crate-logo.svg" />
     <title>Crate</title>
     %sveltekit.head%
   </head>
   <body data-sveltekit-preload-data="hover">
+    <!-- Inline splash screen: renders immediately with fade-in, before any JS loads -->
+    <div id="splash" style="position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--surface-0);animation:splashIn 400ms ease-out both">
+      <div style="width:64px;height:64px;background:var(--color-brand-primary);-webkit-mask-image:url('/crate-logo.svg');-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;mask-image:url('/crate-logo.svg');mask-size:contain;mask-repeat:no-repeat;mask-position:center"></div>
+      <span style="font-size:1.125rem;line-height:1.75rem;font-weight:700;color:var(--text-primary);font-family:var(--font-family)">Crate</span>
+      <span style="font-size:0.75rem;line-height:1rem;color:var(--text-tertiary);font-family:var(--font-family)">v%sveltekit.env.PUBLIC_APP_VERSION%</span>
+    </div>
+    <style>@keyframes splashIn{from{opacity:0}to{opacity:1}}</style>
     <div style="display: contents">%sveltekit.body%</div>
   </body>
 </html>

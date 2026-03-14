@@ -9,6 +9,8 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 
+	const addReleaseShortcut = $derived(navigator.userAgent.includes('Mac') ? '⌘D' : 'Ctrl+D')
+
 	const BASE_PREVIEWABLE: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
 
 	function isReleasePreviewable(release: DiscoveryRelease): boolean {
@@ -172,20 +174,12 @@
 		onscroll={handleScroll}
 	>
 		{#if releases.length === 0}
-			<div
-				class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary {isDragOver
-					? 'border-brand-primary/50 bg-brand-primary/5 rounded-md border-2 border-dashed'
-					: ''}"
-			>
+			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
 				<Icon name="globe" class="mb-4 h-16 w-16" />
-				{#if isDragOver}
-					<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.dropHint')}</Text>
-				{:else}
-					<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.noReleasesYet')}</Text>
-					<Text color="tertiary" class="max-w-sm text-center">
-						{$translate('discovery.addReleaseHint', { values: { shortcut: '⌘D' } })}
-					</Text>
-				{/if}
+				<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.noReleasesYet')}</Text>
+				<Text color="tertiary" class="max-w-sm text-center">
+					{$translate('discovery.addReleaseHint', { values: { shortcut: addReleaseShortcut } })}
+				</Text>
 			</div>
 		{:else}
 			<div style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">

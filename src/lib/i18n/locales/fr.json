@@ -182,7 +182,7 @@
 		"matchAnd": "ET",
 		"clearAll": "Tout effacer",
 		"noTracksYet": "Aucune piste pour le moment",
-		"dragDropHint": "Glissez et déposez des fichiers audio ici pour les importer",
+		"dragDropHint": "Appuyez sur {shortcut} ou glissez-déposez des fichiers audio ici pour les importer",
 		"columns": {
 			"title": "Titre",
 			"artist": "Artiste",
@@ -204,8 +204,7 @@
 		"releases": "sorties",
 		"searchPlaceholder": "Rechercher des sorties...",
 		"noReleasesYet": "Aucune sortie pour le moment",
-		"addReleaseHint": "Appuyez sur {shortcut} ou glissez-déposez une URL ici pour ajouter des sorties de Bandcamp, SoundCloud, Discogs et plus",
-		"dropHint": "Déposer l'URL pour ajouter une sortie",
+		"addReleaseHint": "Appuyez sur {shortcut} pour ajouter des sorties de Bandcamp, Discogs, YouTube et plus",
 		"previewNotAvailable": "Aperçu non disponible pour cette source",
 		"columns": {
 			"artistTitle": "Artiste / Titre",

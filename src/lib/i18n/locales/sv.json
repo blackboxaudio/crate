@@ -182,7 +182,7 @@
 		"matchAnd": "OCH",
 		"clearAll": "Rensa alla",
 		"noTracksYet": "Inga spår än",
-		"dragDropHint": "Dra och släpp ljudfiler här för att importera dem",
+		"dragDropHint": "Tryck {shortcut} eller dra ljudfiler här för att importera dem",
 		"columns": {
 			"title": "Titel",
 			"artist": "Artist",
@@ -204,8 +204,7 @@
 		"releases": "utgåvor",
 		"searchPlaceholder": "Sök släpp...",
 		"noReleasesYet": "Inga utgåvor än",
-		"addReleaseHint": "Tryck {shortcut} eller dra en URL hit för att lägga till utgåvor från Bandcamp, SoundCloud, Discogs och mer",
-		"dropHint": "Släpp URL för att lägga till utgåva",
+		"addReleaseHint": "Tryck {shortcut} för att lägga till utgåvor från Bandcamp, Discogs, YouTube och mer",
 		"previewNotAvailable": "Förhandsvisning inte tillgänglig för denna källa",
 		"columns": {
 			"artistTitle": "Artist / Titel",

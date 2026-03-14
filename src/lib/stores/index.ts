@@ -46,6 +46,7 @@ export {
 	keyNotationFormat,
 	dateFormat,
 	continuousPlayback,
+	hasCompletedOnboarding,
 } from './settings'
 export {
 	devicesStore,

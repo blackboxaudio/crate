@@ -8,9 +8,9 @@
 	import { AboutDialog, OnboardingWizard } from '$lib/components/onboarding'
 	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
-	import { getVersion } from '@tauri-apps/api/app'
+	import { PUBLIC_APP_VERSION } from '$env/static/public'
 	import { isDev } from '$lib/stores/app'
-	import { settingsStore } from '$lib/stores/settings'
+	import { settingsStore, hasCompletedOnboarding } from '$lib/stores/settings'
 	import { splashVisible } from '$lib/stores/splash'
 	import { useGlobalErrorHandler, hasAudioDrag } from '$lib/hooks'
 	import { initializeI18n, translate } from '$lib/i18n'
@@ -43,8 +43,9 @@
 
 	let { children }: Props = $props()
 	let i18nReady = $state(false)
-	let splashVersion = $state('0.0.0')
-	let showOnboarding = $state(true)
+	let splashVersion = PUBLIC_APP_VERSION
+	let onboardingComplete = $state(false)
+	let showOnboarding = $derived(!$splashVisible && !$hasCompletedOnboarding && !onboardingComplete)
 	let showAboutDialog = $state(false)
 
 	// =========================================================================
@@ -219,8 +220,6 @@
 	// =========================================================================
 
 	onMount(() => {
-		getVersion().then((v) => (splashVersion = v))
-
 		async function init() {
 			const cachedLanguage = localStorage.getItem('crate-language') as Language | null
 			await initializeI18n(cachedLanguage)
@@ -273,17 +272,16 @@
 	})
 </script>
 
+<SplashScreen show={$splashVisible} version={splashVersion} />
+
 {#if showOnboarding}
-	{#if i18nReady}
-		<OnboardingWizard
-			onComplete={() => {
-				showOnboarding = false
-			}}
-		/>
-		<AboutDialog open={showAboutDialog} onClose={() => (showAboutDialog = false)} />
-	{/if}
-{:else}
-	<SplashScreen show={$splashVisible} version={splashVersion} />
+	<OnboardingWizard
+		onComplete={() => {
+			onboardingComplete = true
+			settingsStore.completeOnboarding()
+		}}
+	/>
+	<AboutDialog open={showAboutDialog} onClose={() => (showAboutDialog = false)} />
 {/if}
 
 <div class="flex h-screen w-screen flex-col overflow-hidden bg-surface-0 text-text-primary">

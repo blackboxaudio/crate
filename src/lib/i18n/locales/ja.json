@@ -182,7 +182,7 @@
 		"matchAnd": "かつ",
 		"clearAll": "すべてクリア",
 		"noTracksYet": "まだトラックがありません",
-		"dragDropHint": "ここにオーディオファイルをドラッグアンドドロップしてインポートしてください",
+		"dragDropHint": "{shortcut} を押すか、ここにオーディオファイルをドラッグしてインポートしてください",
 		"columns": {
 			"title": "タイトル",
 			"artist": "アーティスト",
@@ -204,8 +204,7 @@
 		"releases": "リリース",
 		"searchPlaceholder": "リリースを検索...",
 		"noReleasesYet": "まだリリースがありません",
-		"addReleaseHint": "{shortcut} を押すか、URLをここにドラッグして Bandcamp、SoundCloud、Discogs など からリリースを追加してください",
-		"dropHint": "URL をドロップしてリリースを追加",
+		"addReleaseHint": "{shortcut} を押して Bandcamp、Discogs、YouTube などからリリースを追加してください",
 		"previewNotAvailable": "このソースではプレビューを利用できません",
 		"columns": {
 			"artistTitle": "アーティスト / タイトル",

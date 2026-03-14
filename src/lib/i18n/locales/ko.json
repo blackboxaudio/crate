@@ -182,7 +182,7 @@
 		"matchAnd": "그리고",
 		"clearAll": "모두 지우기",
 		"noTracksYet": "아직 트랙이 없습니다",
-		"dragDropHint": "여기에 오디오 파일을 드래그하여 가져오세요",
+		"dragDropHint": "{shortcut} 를 누르거나 여기에 오디오 파일을 드래그하여 가져오세요",
 		"columns": {
 			"title": "제목",
 			"artist": "아티스트",
@@ -204,8 +204,7 @@
 		"releases": "릴리스",
 		"searchPlaceholder": "릴리스 검색...",
 		"noReleasesYet": "아직 릴리스가 없습니다",
-		"addReleaseHint": "{shortcut} 를 누르거나 URL을 여기로 드래그하여 Bandcamp, SoundCloud, Discogs 등에서 릴리스를 추가하세요",
-		"dropHint": "릴리스를 추가하려면 URL을 놓으세요",
+		"addReleaseHint": "{shortcut} 를 눌러 Bandcamp, Discogs, YouTube 등에서 릴리스를 추가하세요",
 		"previewNotAvailable": "이 소스에서는 미리듣기를 사용할 수 없습니다",
 		"columns": {
 			"artistTitle": "아티스트 / 제목",

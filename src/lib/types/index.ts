@@ -496,6 +496,7 @@ export interface AppSettings {
 	lastBackupAt: string | null
 	backupFrequency: BackupFrequency
 	lastBackupType: string | null
+	hasCompletedOnboarding: boolean
 }
 
 export interface AudioDevice {
