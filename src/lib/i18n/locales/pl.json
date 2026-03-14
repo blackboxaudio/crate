@@ -72,7 +72,8 @@
 				"frequencyMonthly": "Co miesiąc",
 				"frequencyNever": "Nigdy (wyłączone)",
 				"backupTypeAutomatic": "(Automatyczne)",
-				"backupTypeManual": "(Ręczne)"
+				"backupTypeManual": "(Ręczne)",
+				"backupContents": "Ta kopia zapasowa zawiera {tracks, plural, =0 {żadnych utworów} =1 {1 utwór} other {{tracks} utworów}}, {playlists, plural, =0 {żadnych list odtwarzania} =1 {1 listę odtwarzania} other {{playlists} list odtwarzania}}, {tags, plural, =0 {żadnych tagów} =1 {1 tag} other {{tags} tagów}} i {discoveryReleases, plural, =0 {żadnych wydań odkrywczych} =1 {1 wydanie odkrywcze} other {{discoveryReleases} wydań odkrywczych}}. Utworzone {date}."
 			}
 		},
 		"library": {

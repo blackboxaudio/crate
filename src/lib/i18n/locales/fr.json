@@ -72,7 +72,8 @@
 				"frequencyMonthly": "Mensuelle",
 				"frequencyNever": "Jamais (désactivée)",
 				"backupTypeAutomatic": "(Automatique)",
-				"backupTypeManual": "(Manuel)"
+				"backupTypeManual": "(Manuel)",
+				"backupContents": "Cette sauvegarde contient {tracks, plural, =0 {aucune piste} =1 {1 piste} other {{tracks} pistes}}, {playlists, plural, =0 {aucune liste de lecture} =1 {1 liste de lecture} other {{playlists} listes de lecture}}, {tags, plural, =0 {aucun tag} =1 {1 tag} other {{tags} tags}} et {discoveryReleases, plural, =0 {aucune sortie de découverte} =1 {1 sortie de découverte} other {{discoveryReleases} sorties de découverte}}. Créé le {date}."
 			}
 		},
 		"library": {

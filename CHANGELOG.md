@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added dynamic sidebar header that updates to match the active context (Library / Discovery)
 - Added bulk drag-and-drop and "Move to Folder" context menu for multi-selected playlists
 - Added persistence of navigation state, playlist tree scroll position, and discovery release expansion across restarts
+- Added information display when restoring from a backup
 
 ### Fixed
 

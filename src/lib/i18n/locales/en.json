@@ -72,7 +72,8 @@
 				"frequencyMonthly": "Monthly",
 				"frequencyNever": "Never (off)",
 				"backupTypeAutomatic": "(Automatic)",
-				"backupTypeManual": "(Manual)"
+				"backupTypeManual": "(Manual)",
+				"backupContents": "This backup contains {tracks, plural, =0 {no tracks} =1 {1 track} other {{tracks} tracks}}, {playlists, plural, =0 {no playlists} =1 {1 playlist} other {{playlists} playlists}}, {tags, plural, =0 {no tags} =1 {1 tag} other {{tags} tags}}, and {discoveryReleases, plural, =0 {no discovery releases} =1 {1 discovery release} other {{discoveryReleases} discovery releases}}. Created on {date}."
 			}
 		},
 		"library": {

@@ -16,6 +16,7 @@
 	import { save, open } from '@tauri-apps/plugin-dialog'
 	import { withNativeDialog } from '$lib/utils'
 	import * as backupApi from '$lib/api/backup'
+	import type { BackupInfo } from '$lib/api/backup'
 	import { get } from 'svelte/store'
 	import { slide } from 'svelte/transition'
 
@@ -42,6 +43,7 @@
 
 	let showRestoreConfirm = $state(false)
 	let pendingRestorePath = $state<string | null>(null)
+	let pendingBackupInfo = $state<BackupInfo | null>(null)
 
 	function handleLanguageChange(value: string) {
 		settingsStore.setLanguage(value as Language)
@@ -108,6 +110,13 @@
 		if (!path) return
 
 		pendingRestorePath = path as string
+
+		try {
+			pendingBackupInfo = await backupApi.getBackupInfo(pendingRestorePath)
+		} catch {
+			pendingBackupInfo = null
+		}
+
 		showRestoreConfirm = true
 	}
 
@@ -133,6 +142,7 @@
 	function cancelRestore() {
 		showRestoreConfirm = false
 		pendingRestorePath = null
+		pendingBackupInfo = null
 	}
 
 	function getProgressLabel(status: string): string {
@@ -172,6 +182,22 @@
 				return 100
 		}
 	}
+
+	let restoreMessage = $derived.by(() => {
+		const warning = $translate('settings.general.backup.restoreWarning')
+		if (!pendingBackupInfo) return warning
+		const info = pendingBackupInfo
+		const contents = $translate('settings.general.backup.backupContents', {
+			values: {
+				tracks: info.counts.tracks,
+				playlists: info.counts.playlists,
+				tags: info.counts.tags,
+				discoveryReleases: info.counts.discovery_releases,
+				date: formatLastBackupDate(info.created_at),
+			},
+		})
+		return contents
+	})
 
 	$effect(() => {
 		backupStore.startListening()
@@ -273,7 +299,8 @@
 <ConfirmModal
 	open={showRestoreConfirm}
 	title={$translate('settings.general.backup.restoreFromBackup')}
-	message={$translate('settings.general.backup.restoreWarning')}
+	message={restoreMessage}
+	warnings={[$translate('settings.general.backup.restoreWarning')]}
 	confirmLabel={$translate('settings.general.backup.restoreFromBackup')}
 	destructive={true}
 	onConfirm={confirmRestore}

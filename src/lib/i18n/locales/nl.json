@@ -72,7 +72,8 @@
 				"frequencyMonthly": "Maandelijks",
 				"frequencyNever": "Nooit (uit)",
 				"backupTypeAutomatic": "(Automatisch)",
-				"backupTypeManual": "(Handmatig)"
+				"backupTypeManual": "(Handmatig)",
+				"backupContents": "Deze backup bevat {tracks, plural, =0 {geen nummers} =1 {1 nummer} other {{tracks} nummers}}, {playlists, plural, =0 {geen afspeellijsten} =1 {1 afspeellijst} other {{playlists} afspeellijsten}}, {tags, plural, =0 {geen tags} =1 {1 tag} other {{tags} tags}} en {discoveryReleases, plural, =0 {geen ontdekkingsreleases} =1 {1 ontdekkingsrelease} other {{discoveryReleases} ontdekkingsreleases}}. Gemaakt op {date}."
 			}
 		},
 		"library": {

@@ -72,7 +72,8 @@
 				"frequencyMonthly": "Lunar",
 				"frequencyNever": "Niciodată (dezactivat)",
 				"backupTypeAutomatic": "(Automată)",
-				"backupTypeManual": "(Manuală)"
+				"backupTypeManual": "(Manuală)",
+				"backupContents": "Această copie de rezervă conține {tracks, plural, =0 {nicio cântec} =1 {1 cântec} other {{tracks} cântece}}, {playlists, plural, =0 {nicio listă de redare} =1 {1 listă de redare} other {{playlists} liste de redare}}, {tags, plural, =0 {niciun tag} =1 {1 tag} other {{tags} taguri}} și {discoveryReleases, plural, =0 {niciun lan discovery} =1 {1 lan discovery} other {{discoveryReleases} lansări discovery}}. Creat pe {date}."
 			}
 		},
 		"library": {

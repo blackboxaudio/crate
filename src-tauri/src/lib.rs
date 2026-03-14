@@ -228,6 +228,7 @@ pub fn run() {
             commands::discovery::cancel_scan_page,
             commands::discovery::skip_enrichment,
             // Backup commands
+            commands::backup::get_backup_info,
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
             // Media controls commands

@@ -277,6 +277,11 @@ impl BackupService {
             artwork_files: 0,
         };
 
+        log::info!(
+            "Backup collected: {} tracks, {} cues, {} tag_categories, {} tags, {} playlists, {} discovery_releases",
+            counts.tracks, counts.cues, counts.tag_categories, counts.tags, counts.playlists, counts.discovery_releases
+        );
+
         Ok(BackupData {
             version: 1,
             app_version: app_version.to_string(),
@@ -298,6 +303,11 @@ impl BackupService {
     }
 
     pub fn restore_from_backup_data(&self, data: BackupData) -> Result<()> {
+        log::info!(
+            "Restore starting with: {} tracks, {} cues, {} tag_categories, {} tags, {} playlists, {} discovery_releases",
+            data.counts.tracks, data.counts.cues, data.counts.tag_categories, data.counts.tags, data.counts.playlists, data.counts.discovery_releases
+        );
+
         let conn = self
             .conn
             .lock()
@@ -549,6 +559,27 @@ impl BackupService {
             }
 
             tx.commit()?;
+
+            // Post-commit verification
+            let track_count: i64 =
+                conn.query_row("SELECT COUNT(*) FROM tracks", [], |r| r.get(0))?;
+            let playlist_count: i64 =
+                conn.query_row("SELECT COUNT(*) FROM playlists", [], |r| r.get(0))?;
+            let tag_count: i64 = conn.query_row("SELECT COUNT(*) FROM tags", [], |r| r.get(0))?;
+            let discovery_count: i64 =
+                conn.query_row("SELECT COUNT(*) FROM discovery_releases", [], |r| r.get(0))?;
+            log::info!(
+                "Restore post-commit: {} tracks, {} playlists, {} tags, {} discovery_releases in DB",
+                track_count, playlist_count, tag_count, discovery_count
+            );
+
+            if data.counts.tracks > 0 && track_count == 0 {
+                log::error!(
+                    "DATA LOSS: Backup had {} tracks but DB shows 0 after commit!",
+                    data.counts.tracks
+                );
+            }
+
             Ok(())
         })();
 
@@ -747,6 +778,11 @@ pub async fn restore_from_backup(
         .map_err(|e| CrateError::Backup(format!("Read task failed: {e}")))??
     };
 
+    log::info!(
+        "Restore deserialized: {} tracks, {} cues, {} tag_categories, {} tags, {} playlists, {} discovery_releases",
+        data.counts.tracks, data.counts.cues, data.counts.tag_categories, data.counts.tags, data.counts.playlists, data.counts.discovery_releases
+    );
+
     // Validate version
     if data.version != 1 {
         return Err(CrateError::Backup(format!(
@@ -754,6 +790,11 @@ pub async fn restore_from_backup(
             data.version
         )));
     }
+
+    // Remember expected counts for post-restore verification
+    let expected_tracks = data.counts.tracks;
+    let expected_playlists = data.counts.playlists;
+    let expected_tags = data.counts.tags;
 
     // Extract artwork data before moving data into DB restore
     let artwork_files = data.artwork_files.take();
@@ -887,6 +928,46 @@ pub async fn restore_from_backup(
         let _ = std::fs::remove_dir_all(&streams_dir);
     }
 
+    // Post-restore verification (separate lock acquisition)
+    {
+        let conn = conn.clone();
+        let verified = tokio::task::spawn_blocking(move || -> Result<(i64, i64, i64)> {
+            let conn = conn.lock().map_err(|_| {
+                CrateError::Backup("Failed to acquire database lock for verification".into())
+            })?;
+            let tracks: i64 = conn.query_row("SELECT COUNT(*) FROM tracks", [], |r| r.get(0))?;
+            let playlists: i64 =
+                conn.query_row("SELECT COUNT(*) FROM playlists", [], |r| r.get(0))?;
+            let tags: i64 = conn.query_row("SELECT COUNT(*) FROM tags", [], |r| r.get(0))?;
+            Ok((tracks, playlists, tags))
+        })
+        .await
+        .map_err(|e| CrateError::Backup(format!("Verification task failed: {e}")))??;
+
+        log::info!(
+            "Post-restore verification: {} tracks, {} playlists, {} tags",
+            verified.0,
+            verified.1,
+            verified.2
+        );
+
+        if expected_tracks > 0 && verified.0 == 0 {
+            return Err(CrateError::Backup(
+                "Restore failed: backup contained tracks but database is empty after restore. Check logs for details.".into()
+            ));
+        }
+        if expected_playlists > 0 && verified.1 == 0 {
+            return Err(CrateError::Backup(
+                "Restore failed: backup contained playlists but database is empty after restore. Check logs for details.".into()
+            ));
+        }
+        if expected_tags > 0 && verified.2 == 0 {
+            return Err(CrateError::Backup(
+                "Restore failed: backup contained tags but database is empty after restore. Check logs for details.".into()
+            ));
+        }
+    }
+
     // Ensure minimum 2s total elapsed
     let elapsed = start.elapsed();
     if elapsed < std::time::Duration::from_secs(2) {
@@ -901,6 +982,28 @@ pub async fn restore_from_backup(
     );
 
     Ok(())
+}
+
+pub async fn get_backup_info(path: String) -> Result<BackupInfo> {
+    tokio::task::spawn_blocking(move || -> Result<BackupInfo> {
+        let file = std::fs::File::open(&path)
+            .map_err(|e| CrateError::Backup(format!("Failed to open backup file: {e}")))?;
+        let mut decoder = GzDecoder::new(file);
+        let mut json = Vec::new();
+        decoder
+            .read_to_end(&mut json)
+            .map_err(|e| CrateError::Backup(format!("Failed to decompress backup: {e}")))?;
+        let data: BackupData = serde_json::from_slice(&json)
+            .map_err(|e| CrateError::Backup(format!("Failed to parse backup: {e}")))?;
+        Ok(BackupInfo {
+            version: data.version,
+            app_version: data.app_version,
+            created_at: data.created_at,
+            counts: data.counts,
+        })
+    })
+    .await
+    .map_err(|e| CrateError::Backup(format!("Backup info task failed: {e}")))?
 }
 
 async fn collect_artwork_files(

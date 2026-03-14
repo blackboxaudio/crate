@@ -24,7 +24,7 @@ pub struct BackupTrack {
     pub key: Option<String>,
     pub bitrate: Option<i32>,
     pub sample_rate: Option<i32>,
-    pub format: String,
+    pub format: Option<String>,
     pub rating: i32,
     pub play_count: i32,
     pub date_added: String,
@@ -89,6 +89,14 @@ pub struct BackupData {
     /// `None` for backups created before artwork support was added.
     #[serde(default)]
     pub artwork_files: Option<HashMap<String, String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupInfo {
+    pub version: u32,
+    pub app_version: String,
+    pub created_at: String,
+    pub counts: BackupCounts,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
