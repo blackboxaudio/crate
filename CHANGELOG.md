@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added Apple code signing and notarization for MacOS builds
+
 ### Changed
 
 - Improved rendering of lists for library, discovery, and playlist views
