@@ -263,7 +263,10 @@
 			<!-- Unified Header: Logo + Toolbar -->
 			<div class="relative flex rounded-br bg-surface-1">
 				<div class="flex flex-shrink-0 items-center justify-center gap-2" style="width: {sidebarWidth}px">
-					<Icon name="logo" class="h-6 w-6 text-brand-primary" />
+					<div
+						class="h-6 w-6 bg-brand-primary"
+						style="-webkit-mask-image: url('/crate-logo.svg'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('/crate-logo.svg'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"
+					></div>
 					<Text variant="header-1" as="span" weight="bold">Crate</Text>
 					{#if $isDev}
 						<span class="rounded bg-amber-500/20 px-1.5 py-0.5 text-xs font-medium text-amber-500">DEV</span>

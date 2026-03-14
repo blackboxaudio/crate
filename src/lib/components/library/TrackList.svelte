@@ -1,6 +1,8 @@
 <script lang="ts">
 	import type { Track, TrackColor, SortConfig } from '$lib/types'
+	import { tick } from 'svelte'
 	import { handleSelection } from '$lib/utils'
+	import { createVirtualList } from '$lib/utils/virtualizer.svelte'
 	import { analyzingTrackIds } from '$lib/stores'
 	import { translate } from '$lib/i18n'
 	import TrackListHeader from './TrackListHeader.svelte'
@@ -16,6 +18,7 @@
 		isDragOver?: boolean
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
+		scrollOffset?: number
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onSortChange?: (config: SortConfig) => void
@@ -23,6 +26,7 @@
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
 		onCancelAnalysis?: (trackId: string) => void
+		onScrollChange?: (offset: number) => void
 	}
 
 	let {
@@ -33,6 +37,7 @@
 		isDragOver = false,
 		categoryColors,
 		categorySortOrders,
+		scrollOffset = 0,
 		onSelectionChange,
 		onTrackPlay,
 		onSortChange,
@@ -40,9 +45,44 @@
 		onEmptySpaceContextMenu,
 		onTrackColorChange,
 		onCancelAnalysis,
+		onScrollChange,
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
+	let scrollContainerEl: HTMLElement | undefined = $state(undefined)
+	let scrollRestoredForView = $state(false)
+	let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+	const virtualList = createVirtualList({
+		count: () => tracks.length,
+		getScrollElement: () => scrollContainerEl ?? null,
+		estimateSize: () => () => 33,
+		overscan: 15,
+		getItemKey: (index: number) => tracks[index]?.id ?? index,
+	})
+
+	// Restore scroll position once after virtualizer mounts.
+	// Uses tick() + direct scrollTop to restore before paint (no one-frame flash).
+	$effect(() => {
+		if (scrollContainerEl && !scrollRestoredForView) {
+			scrollRestoredForView = true
+			if (scrollOffset > 0) {
+				tick().then(() => {
+					scrollContainerEl!.scrollTop = scrollOffset
+				})
+			}
+		}
+	})
+
+	function handleScroll() {
+		if (!scrollContainerEl || !onScrollChange) return
+		if (scrollDebounceTimer) clearTimeout(scrollDebounceTimer)
+		scrollDebounceTimer = setTimeout(() => {
+			if (scrollContainerEl) {
+				onScrollChange(scrollContainerEl.scrollTop)
+			}
+		}, 100)
+	}
 
 	function handleTrackClick(track: Track, e: MouseEvent) {
 		const result = handleSelection(tracks, selectedIds, track.id, lastClickedId, {
@@ -71,9 +111,9 @@
 	}
 
 	function handleContainerClick(e: MouseEvent) {
-		if (e.target === e.currentTarget) {
-			onSelectionChange?.(new Set())
-		}
+		const target = e.target as HTMLElement
+		if (target.closest('[data-track-row]')) return
+		onSelectionChange?.(new Set())
 	}
 
 	function handleContainerContextMenu(e: MouseEvent) {
@@ -100,10 +140,12 @@
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
+		bind:this={scrollContainerEl}
 		class="relative flex-1 overflow-auto"
 		data-drop-target="tracklist-main"
 		onclick={handleContainerClick}
 		oncontextmenu={handleContainerContextMenu}
+		onscroll={handleScroll}
 	>
 		{#if isDragOver}
 			<div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-brand-muted">
@@ -120,22 +162,29 @@
 				<Text color="tertiary">{$translate('library.dragDropHint')}</Text>
 			</div>
 		{:else}
-			{#each tracks as track (track.id)}
-				<TrackRow
-					{track}
-					selected={selectedIds.has(track.id)}
-					playing={playingTrackId === track.id}
-					analyzing={$analyzingTrackIds.has(track.id)}
-					dragTrackIds={Array.from(selectedIds)}
-					{categoryColors}
-					{categorySortOrders}
-					onclick={(e) => handleTrackClick(track, e)}
-					ondblclick={() => handleTrackDoubleClick(track)}
-					oncontextmenu={(e) => handleTrackContextMenu(track, e)}
-					onColorChange={(color) => handleColorChange(track, color)}
-					onCancelAnalysis={() => onCancelAnalysis?.(track.id)}
-				/>
-			{/each}
+			<div style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
+				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
+					{@const track = tracks[virtualItem.index]}
+					<div
+						style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({virtualItem.start}px); pointer-events: auto;"
+					>
+						<TrackRow
+							{track}
+							selected={selectedIds.has(track.id)}
+							playing={playingTrackId === track.id}
+							analyzing={$analyzingTrackIds.has(track.id)}
+							dragTrackIds={Array.from(selectedIds)}
+							{categoryColors}
+							{categorySortOrders}
+							onclick={(e) => handleTrackClick(track, e)}
+							ondblclick={() => handleTrackDoubleClick(track)}
+							oncontextmenu={(e) => handleTrackContextMenu(track, e)}
+							onColorChange={(color) => handleColorChange(track, color)}
+							onCancelAnalysis={() => onCancelAnalysis?.(track.id)}
+						/>
+					</div>
+				{/each}
+			</div>
 		{/if}
 	</div>
 </div>

@@ -310,7 +310,11 @@ impl BackupService {
 
             // Delete existing data in reverse dependency order (settings NOT touched)
             tx.execute_batch(
-                "DELETE FROM playlist_discovery_releases;
+                "DELETE FROM discovery_stream_cache;
+                 DELETE FROM discovery_audio_cache;
+                 DELETE FROM device_exports;
+                 DELETE FROM device_tracks;
+                 DELETE FROM playlist_discovery_releases;
                  DELETE FROM discovery_release_tags;
                  DELETE FROM discovery_tracks;
                  DELETE FROM discovery_releases;
@@ -875,6 +879,12 @@ pub async fn restore_from_backup(
         })
         .await
         .map_err(|e| CrateError::Backup(format!("Stale artwork cleanup failed: {e}")))??;
+    }
+
+    // Clear cached discovery audio files (they'll be re-fetched on demand)
+    let streams_dir = data_dir.join("discovery").join("streams");
+    if streams_dir.exists() {
+        let _ = std::fs::remove_dir_all(&streams_dir);
     }
 
     // Ensure minimum 2s total elapsed
