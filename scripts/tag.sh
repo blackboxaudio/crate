@@ -179,7 +179,7 @@ if $DRY_RUN; then
     echo -e "${YELLOW}[DRY RUN] Would run: git commit -m \"chore: release v$NEW_VERSION\"${NC}"
 else
     git add package.json src-tauri/Cargo.toml src-tauri/Cargo.lock \
-        src-tauri/tauri.conf.json src-tauri/tauri.staging.conf.json \
+        src-tauri/tauri.conf.json src-tauri/tauri.dev.conf.json src-tauri/tauri.staging.conf.json \
         CHANGELOG.md
     git commit -m "chore: release \`v$NEW_VERSION\`"
 fi
