@@ -435,23 +435,26 @@ export const sortedReleases = derived(discoveryStore, ($discovery) => {
 	const dir = direction === 'asc' ? 1 : -1
 
 	releases.sort((a, b) => {
+		let cmp = 0
 		if (field === 'release_date') {
 			const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
 			const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
 			const aValid = !isNaN(aDate)
 			const bValid = !isNaN(bDate)
-			if (!aValid && !bValid) return 0
-			if (!aValid) return 1
-			if (!bValid) return -1
-			if (aDate < bDate) return -1 * dir
-			if (aDate > bDate) return 1 * dir
-			return 0
+			if (!aValid && !bValid) cmp = 0
+			else if (!aValid) return 1
+			else if (!bValid) return -1
+			else if (aDate < bDate) cmp = -1 * dir
+			else if (aDate > bDate) cmp = 1 * dir
+		} else {
+			const aVal = a[field] ?? ''
+			const bVal = b[field] ?? ''
+			if (aVal < bVal) cmp = -1 * dir
+			else if (aVal > bVal) cmp = 1 * dir
 		}
-		const aVal = a[field] ?? ''
-		const bVal = b[field] ?? ''
-		if (aVal < bVal) return -1 * dir
-		if (aVal > bVal) return 1 * dir
-		return 0
+		// Tiebreaker: sort by id for deterministic order when values are equal
+		if (cmp !== 0) return cmp
+		return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
 	})
 
 	return releases

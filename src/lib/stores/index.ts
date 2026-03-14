@@ -33,6 +33,7 @@ export {
 	selectedTreeIds,
 	contextMenuPlaylistId,
 	scrollOffset,
+	playlistScrollOffsets,
 } from './ui'
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'

@@ -1,4 +1,4 @@
-import { untrack } from 'svelte'
+import { tick, untrack } from 'svelte'
 import { Virtualizer, elementScroll, observeElementOffset } from '@tanstack/virtual-core'
 import type { VirtualizerOptions } from '@tanstack/virtual-core'
 
@@ -75,8 +75,39 @@ export function createVirtualList(options: VirtualListOptions) {
 
 	function syncState() {
 		if (isSyncing || !instance) return
-		virtualItems = instance.getVirtualItems() as VirtualItem[]
-		totalSize = instance.getTotalSize()
+		const newItems = instance.getVirtualItems() as VirtualItem[]
+
+		// Wrap in untrack() so reads of virtualItems (for the inPlace check
+		// and element access) don't create reactive dependencies in the
+		// calling $effect.pre. Without this, element-level writes
+		// (virtualItems[i] = ...) bump the array version, which would
+		// re-trigger the $effect.pre → syncState() → infinite loop.
+		// Writes still fire notifications, so {#each} templates update.
+		untrack(() => {
+			// @ts-expect-error we know
+			totalSize = instance.getTotalSize()
+
+			// Check if we can update in-place (same keys in same order).
+			// This avoids full array replacement which causes unnecessary
+			// DOM churn in Svelte's {#each} block.
+			let inPlace = newItems.length === virtualItems.length
+			if (inPlace) {
+				for (let i = 0; i < newItems.length; i++) {
+					if (newItems[i].key !== virtualItems[i].key) {
+						inPlace = false
+						break
+					}
+				}
+			}
+
+			if (inPlace) {
+				for (let i = 0; i < newItems.length; i++) {
+					virtualItems[i] = newItems[i]
+				}
+			} else {
+				virtualItems = newItems
+			}
+		})
 	}
 
 	// Create/destroy the virtualizer when the scroll element changes
@@ -117,6 +148,11 @@ export function createVirtualList(options: VirtualListOptions) {
 		const estimateSize = options.estimateSize()
 		if (!instance) return
 
+		// Save scroll position before recalculation. The DOM update cycle can
+		// reset scrollTop to 0 when item sizes change (e.g., expand/collapse).
+		const scrollEl = options.getScrollElement()
+		const savedScrollTop = scrollEl?.scrollTop ?? 0
+
 		// Suppress intermediate onChange calls during measure/update so only
 		// the final syncState (after all recalculations) updates reactive state.
 		isSyncing = true
@@ -129,6 +165,17 @@ export function createVirtualList(options: VirtualListOptions) {
 		instance._willUpdate()
 		isSyncing = false
 		syncState()
+
+		// Restore scroll position after DOM update if it was unexpectedly reset.
+		// Uses tick() so the restore happens after Svelte's DOM update but before
+		// browser event processing, preventing a one-frame flash of wrong scroll.
+		if (scrollEl && savedScrollTop > 0) {
+			tick().then(() => {
+				if (scrollEl.scrollTop !== savedScrollTop) {
+					scrollEl.scrollTop = savedScrollTop
+				}
+			})
+		}
 	})
 
 	return {

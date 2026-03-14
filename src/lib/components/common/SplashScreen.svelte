@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { scale } from 'svelte/transition'
 	import { cubicOut } from 'svelte/easing'
-	import Icon from './Icon.svelte'
 	import Text from './Text.svelte'
 
 	type Props = {
@@ -19,7 +18,10 @@
 		out:scale={{ start: 1, duration: 400, easing: cubicOut, opacity: 0 }}
 		onoutroend={onOutroEnd}
 	>
-		<Icon name="logo" class="h-16 w-16 text-brand-primary" />
+		<div
+			class="h-16 w-16 bg-brand-primary"
+			style="-webkit-mask-image: url('/crate-logo.svg'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('/crate-logo.svg'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"
+		></div>
 		<Text variant="header-1" as="span" weight="bold">Crate</Text>
 		<Text variant="caption" color="tertiary">v{version}</Text>
 	</div>

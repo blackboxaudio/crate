@@ -243,10 +243,7 @@
 
 <!-- Track sub-rows (CSS grid-template-rows transition for smooth expand/collapse) -->
 {#if release.tracks.length > 0}
-	<div
-		class="grid overflow-hidden transition-[grid-template-rows] duration-200 ease-out"
-		style="grid-template-rows: {expanded ? '1fr' : '0fr'}"
-	>
+	<div class="grid overflow-hidden" style="grid-template-rows: {expanded ? '1fr' : '0fr'}">
 		<div class="min-h-0 overflow-hidden">
 			<div class="border-b border-stroke-subtle bg-surface-1/30">
 				{#each release.tracks as track, idx (track.id)}

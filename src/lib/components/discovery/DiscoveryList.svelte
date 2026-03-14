@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySourceType } from '$lib/types'
+	import { tick } from 'svelte'
 	import { handleSelection } from '$lib/utils'
 	import { createVirtualList } from '$lib/utils/virtualizer.svelte'
 	import { translate } from '$lib/i18n'
@@ -69,27 +70,6 @@
 	let scrollRestoredForView = $state(false)
 	let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
-	// Enable CSS transition on row containers when expandedIds changes (expand/collapse).
-	// Uses $effect.pre so the transition class is present BEFORE the DOM update that
-	// repositions rows — otherwise rows jump to new positions without animating.
-	// Cleared on scroll to prevent laggy scroll-related position updates.
-	let isTransitioning = $state(false)
-	let transitionTimer: ReturnType<typeof setTimeout> | null = null
-	let initialized = false
-
-	$effect.pre(() => {
-		void expandedIds
-		if (!initialized) {
-			initialized = true
-			return
-		}
-		isTransitioning = true
-		if (transitionTimer) clearTimeout(transitionTimer)
-		transitionTimer = setTimeout(() => {
-			isTransitioning = false
-		}, 250)
-	})
-
 	function getEstimateSize(index: number): number {
 		const release = releases[index]
 		if (!release) return ROW_HEIGHT
@@ -113,28 +93,20 @@
 		getItemKey: (index: number) => releases[index]?.id ?? index,
 	})
 
-	// Restore scroll position after virtualizer mounts
+	// Restore scroll position once after virtualizer mounts.
+	// Uses tick() + direct scrollTop to restore before paint (no one-frame flash).
 	$effect(() => {
-		if (scrollContainerEl && scrollOffset > 0 && !scrollRestoredForView) {
+		if (scrollContainerEl && !scrollRestoredForView) {
 			scrollRestoredForView = true
-			requestAnimationFrame(() => {
-				virtualList.scrollToOffset(scrollOffset)
-			})
+			if (scrollOffset > 0) {
+				tick().then(() => {
+					scrollContainerEl!.scrollTop = scrollOffset
+				})
+			}
 		}
-	})
-
-	// Reset restoration flag when scrollOffset prop changes externally (view switch)
-	$effect(() => {
-		void scrollOffset
-		scrollRestoredForView = false
 	})
 
 	function handleScroll() {
-		// Cancel expand/collapse transition during scroll to prevent laggy repositioning
-		if (isTransitioning) {
-			isTransitioning = false
-			if (transitionTimer) clearTimeout(transitionTimer)
-		}
 		if (!scrollContainerEl || !onScrollChange) return
 		if (scrollDebounceTimer) clearTimeout(scrollDebounceTimer)
 		scrollDebounceTimer = setTimeout(() => {
@@ -220,7 +192,7 @@
 				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
 					{@const release = releases[virtualItem.index]}
 					<div
-						class={isTransitioning ? 'transition-[transform,height] duration-200 ease-out' : ''}
+						data-vkey={virtualItem.key}
 						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start}px); pointer-events: auto;"
 					>
 						<DiscoveryRow
