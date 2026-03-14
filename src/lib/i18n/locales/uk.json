@@ -172,7 +172,8 @@
 		"noTrackSelected": "Жодна доріжка не вибрана",
 		"volume": "Гучність",
 		"tempo": "Темп",
-		"resetTempo": "Скинути темп"
+		"resetTempo": "Скинути темп",
+		"trackNotFound": "Не вдалося знайти відтворюваний трек"
 	},
 	"library": {
 		"searchPlaceholder": "Пошук доріжок...",

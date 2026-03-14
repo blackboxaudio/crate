@@ -23,6 +23,7 @@ export interface PageActions {
 	openAddReleaseModal: () => void
 	getModalOrchestrator: () => ReturnType<typeof ModalOrchestrator> | undefined
 	getContextMenuOrchestrator: () => ReturnType<typeof ContextMenuOrchestrator> | undefined
+	locatePlayingTrack: () => void
 }
 
 export const pageActions = writable<PageActions | null>(null)

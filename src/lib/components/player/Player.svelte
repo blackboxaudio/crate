@@ -19,9 +19,10 @@
 	type Props = {
 		onNext?: () => void
 		onPrevious?: () => void
+		onLocateTrack?: () => void
 	}
 
-	let { onNext, onPrevious }: Props = $props()
+	let { onNext, onPrevious, onLocateTrack }: Props = $props()
 
 	const hasTrack = $derived($currentTrack !== null || $previewInfo !== null)
 
@@ -60,7 +61,12 @@
 <div class="flex items-center gap-4 border-t border-stroke bg-surface-1 px-4 py-3">
 	<!-- Track Info -->
 	<div class="w-64 flex-shrink-0">
-		<TrackInfo track={$currentTrack} previewInfo={$previewInfo} onLikeToggle={handleLikeToggle} />
+		<TrackInfo
+			track={$currentTrack}
+			previewInfo={$previewInfo}
+			onLocate={onLocateTrack}
+			onLikeToggle={handleLikeToggle}
+		/>
 	</div>
 
 	<!-- Center Controls -->

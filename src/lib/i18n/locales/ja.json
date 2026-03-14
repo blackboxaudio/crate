@@ -172,7 +172,8 @@
 		"noTrackSelected": "トラックが選択されていません",
 		"volume": "音量",
 		"tempo": "テンポ",
-		"resetTempo": "テンポをリセット"
+		"resetTempo": "テンポをリセット",
+		"trackNotFound": "再生中のトラックが見つかりません"
 	},
 	"library": {
 		"searchPlaceholder": "トラックを検索...",

@@ -172,7 +172,8 @@
 		"noTrackSelected": "Aucune piste sélectionnée",
 		"volume": "Volume",
 		"tempo": "Tempo",
-		"resetTempo": "Réinitialiser le tempo"
+		"resetTempo": "Réinitialiser le tempo",
+		"trackNotFound": "Impossible de localiser la piste en cours de lecture"
 	},
 	"library": {
 		"searchPlaceholder": "Rechercher des pistes...",

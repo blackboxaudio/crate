@@ -172,7 +172,8 @@
 		"noTrackSelected": "未选择曲目",
 		"volume": "音量",
 		"tempo": "速度",
-		"resetTempo": "重置速度"
+		"resetTempo": "重置速度",
+		"trackNotFound": "无法找到正在播放的曲目"
 	},
 	"library": {
 		"searchPlaceholder": "搜索曲目...",

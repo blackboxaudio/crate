@@ -191,5 +191,8 @@ export function createVirtualList(options: VirtualListOptions) {
 		scrollToOffset(offset: number) {
 			instance?.scrollToOffset(offset)
 		},
+		scrollToIndex(index: number, options?: { align?: 'start' | 'center' | 'end' | 'auto' }) {
+			instance?.scrollToIndex(index, options)
+		},
 	}
 }

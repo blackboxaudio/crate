@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added clickable track name in the player bar to scroll to and highlight the currently playing track
 - Added unified filter panel for library and discovery views with per-context filter state
 - Added click-to-enlarge artwork modal for discovery releases
 - Added dynamic sidebar header that updates to match the active context (Library / Discovery)

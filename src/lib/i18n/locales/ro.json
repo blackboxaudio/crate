@@ -172,7 +172,8 @@
 		"noTrackSelected": "Nicio melodie selectată",
 		"volume": "Volum",
 		"tempo": "Tempo",
-		"resetTempo": "Resetează tempo"
+		"resetTempo": "Resetează tempo",
+		"trackNotFound": "Nu s-a putut localiza piesa în curs de redare"
 	},
 	"library": {
 		"searchPlaceholder": "Caută melodii...",

@@ -172,7 +172,8 @@
 		"noTrackSelected": "Geen track geselecteerd",
 		"volume": "Volume",
 		"tempo": "Tempo",
-		"resetTempo": "Tempo resetten"
+		"resetTempo": "Tempo resetten",
+		"trackNotFound": "Kon het afspelende nummer niet vinden"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks zoeken...",

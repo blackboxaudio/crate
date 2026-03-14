@@ -172,7 +172,8 @@
 		"noTrackSelected": "Kein Track ausgewählt",
 		"volume": "Lautstärke",
 		"tempo": "Tempo",
-		"resetTempo": "Tempo zurücksetzen"
+		"resetTempo": "Tempo zurücksetzen",
+		"trackNotFound": "Der aktuell gespielte Titel konnte nicht gefunden werden"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks suchen...",

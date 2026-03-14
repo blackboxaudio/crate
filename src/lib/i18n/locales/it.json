@@ -172,7 +172,8 @@
 		"noTrackSelected": "Nessuna traccia selezionata",
 		"volume": "Volume",
 		"tempo": "Tempo",
-		"resetTempo": "Ripristina tempo"
+		"resetTempo": "Ripristina tempo",
+		"trackNotFound": "Impossibile individuare la traccia in riproduzione"
 	},
 	"library": {
 		"searchPlaceholder": "Cerca tracce...",
