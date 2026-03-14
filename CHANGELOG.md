@@ -10,19 +10,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Improved rendering of lists for library, discovery, and playlist views
-- Fixed discovery row buttons not working occasionally
+
+### Fixed
+
+- Fixed database foreign key violations during restore across app installations
+- Fixed discovery row buttons not working intermittently
 
 ## [0.2.5] - 2026-03-09
 
 ### Changed
 
 - Improved metadata enrichment for discovery releases during bulk imports
+
+### Fixed 
+
 - Fixed discovery selection bugs when navigating in-context
 - Fixed Bandcamp discography parsing to include all releases
 
 ## [0.2.4] - 2026-03-09
 
-### Changed
+### Fixed
 
 - Fixed the "is liked" toggling of discovery tracks
 
@@ -31,6 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Improved search logic for discovery releases
+
+### Fixed
+
 - Fixed bug where bulk operations on filtered selections was misleading
 
 ## [0.2.2] - 2026-03-09
