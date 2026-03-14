@@ -274,6 +274,10 @@
 			"cancelImport": "Anuluj import"
 		}
 	},
+	"filters": {
+		"title": "Filtry",
+		"liked": "Polubione"
+	},
 	"playlists": {
 		"newPlaylist": "Nowa playlista",
 		"newSmartPlaylist": "Nowa inteligentna playlista",

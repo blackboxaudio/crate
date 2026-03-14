@@ -274,6 +274,10 @@
 			"cancelImport": "Annuler l'importation"
 		}
 	},
+	"filters": {
+		"title": "Filtres",
+		"liked": "Aimés"
+	},
 	"playlists": {
 		"newPlaylist": "Nouvelle playlist",
 		"newSmartPlaylist": "Nouvelle playlist dynamique",

@@ -10,7 +10,7 @@
 		Tag,
 		TagFilterMode,
 	} from '$lib/types'
-	import { TrackList, SearchBar } from '$lib/components/library'
+	import { TrackList, SearchBar, FilterDropdown } from '$lib/components/library'
 	import { DiscoveryList } from '$lib/components/discovery'
 	import { IconButton } from '$lib/components/common'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
@@ -76,9 +76,9 @@
 		hasSelection = false,
 		searchValue = '',
 		onSearchChange,
-		activeFilterTags,
-		tagColors,
-		tagFilterMode,
+		activeFilterTags = [],
+		tagColors = new Map(),
+		tagFilterMode = 'or',
 		onRemoveTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
@@ -177,17 +177,20 @@
 							{onSearchChange}
 							initialValue={searchValue}
 							placeholder={isDiscovery ? $translate('discovery.searchPlaceholder') : undefined}
-							likedOnly={isDiscovery ? likedOnly : undefined}
-							onToggleLikedFilter={isDiscovery ? onToggleLikedFilter : undefined}
-							{activeFilterTags}
-							{tagColors}
-							{tagFilterMode}
-							{onRemoveTagFilter}
-							{onClearAllTagFilters}
-							{onToggleTagFilterMode}
 						/>
 					</div>
 				{/if}
+				<FilterDropdown
+					{activeFilterTags}
+					{tagColors}
+					{tagFilterMode}
+					onRemoveTagFilter={(tagId) => onRemoveTagFilter?.(tagId)}
+					onClearAll={() => onClearAllTagFilters?.()}
+					onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
+					showLikedFilter={isDiscovery}
+					likedOnly={isDiscovery ? likedOnly : false}
+					onToggleLikedFilter={isDiscovery ? onToggleLikedFilter : undefined}
+				/>
 				{#if isDiscovery}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 						<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />

@@ -2,6 +2,7 @@
 	import type { Track, TrackColor, SortConfig, Tag, TagFilterMode } from '$lib/types'
 	import TrackList from './TrackList.svelte'
 	import SearchBar from './SearchBar.svelte'
+	import FilterDropdown from './FilterDropdown.svelte'
 	import { IconButton } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -52,9 +53,9 @@
 		hasSelection = false,
 		searchValue = '',
 		onSearchChange,
-		activeFilterTags,
-		tagColors,
-		tagFilterMode,
+		activeFilterTags = [],
+		tagColors = new Map(),
+		tagFilterMode = 'or',
 		onRemoveTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
@@ -85,18 +86,17 @@
 		<div class="flex flex-1 items-center justify-end gap-2">
 			{#if onSearchChange}
 				<div class="w-64">
-					<SearchBar
-						{onSearchChange}
-						initialValue={searchValue}
-						{activeFilterTags}
-						{tagColors}
-						{tagFilterMode}
-						{onRemoveTagFilter}
-						{onClearAllTagFilters}
-						{onToggleTagFilterMode}
-					/>
+					<SearchBar {onSearchChange} initialValue={searchValue} />
 				</div>
 			{/if}
+			<FilterDropdown
+				{activeFilterTags}
+				{tagColors}
+				{tagFilterMode}
+				onRemoveTagFilter={(tagId) => onRemoveTagFilter?.(tagId)}
+				onClearAll={() => onClearAllTagFilters?.()}
+				onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
+			/>
 			<Tooltip
 				text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
 				position="bottom"

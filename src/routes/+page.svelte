@@ -146,7 +146,7 @@
 		const unsubUI = uiStore.subscribe((state) => {
 			selectedPlaylistId = state.selectedPlaylistId
 			selectedFolderId = state.selectedFolderId
-			selectedTagIds = state.selectedTagIds
+			selectedTagIds = state.viewFilters[state.activeView].selectedTagIds
 		})
 		const unsubDevices = visibleDevices.subscribe((visibleDevicesList) => {
 			devices = visibleDevicesList
@@ -300,18 +300,19 @@
 		} else if (!restoredFolderId) {
 			// Base-level view: load main data
 			discoveryPlaylistStore.clearReleases()
+			const viewFilters = get(uiStore).viewFilters[view]
 			if (view === 'discovery') {
 				const filter: DiscoveryFilter = {}
-				if (selectedTagIds.length > 0) {
-					filter.tag_ids = selectedTagIds
-					filter.tag_filter_mode = $tagFilterMode
+				if (viewFilters.selectedTagIds.length > 0) {
+					filter.tag_ids = viewFilters.selectedTagIds
+					filter.tag_filter_mode = viewFilters.tagFilterMode
 				}
 				discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
 			} else {
 				const filter: TrackFilter = {}
-				if (selectedTagIds.length > 0) {
-					filter.tag_ids = selectedTagIds
-					filter.tag_filter_mode = $tagFilterMode
+				if (viewFilters.selectedTagIds.length > 0) {
+					filter.tag_ids = viewFilters.selectedTagIds
+					filter.tag_filter_mode = viewFilters.tagFilterMode
 				}
 				libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
 			}
@@ -496,7 +497,10 @@
 			tagColors={categoryColors}
 			tagFilterMode={$tagFilterMode}
 			onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
-			onClearAllTagFilters={() => tagController.clearTagFilters()}
+			onClearAllTagFilters={() => {
+				tagController.clearTagFilters()
+				if ($activeView === 'discovery' && get(likedOnly)) discoveryStore.toggleLikedFilter()
+			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			isDiscoveryContext={$activeView === 'discovery'}
 			likedOnly={$activeView === 'discovery' ? $likedOnly : false}
@@ -526,7 +530,10 @@
 					tagColors={categoryColors}
 					tagFilterMode={$tagFilterMode}
 					onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
-					onClearAllTagFilters={() => tagController.clearTagFilters()}
+					onClearAllTagFilters={() => {
+						tagController.clearTagFilters()
+						if (get(likedOnly)) discoveryStore.toggleLikedFilter()
+					}}
 					onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 					likedOnly={$likedOnly}
 					onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
@@ -595,7 +602,10 @@
 			tagColors={categoryColors}
 			tagFilterMode={$tagFilterMode}
 			onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
-			onClearAllTagFilters={() => tagController.clearTagFilters()}
+			onClearAllTagFilters={() => {
+				tagController.clearTagFilters()
+				if (get(likedOnly)) discoveryStore.toggleLikedFilter()
+			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			likedOnly={$likedOnly}
 			onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}

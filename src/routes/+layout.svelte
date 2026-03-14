@@ -79,7 +79,7 @@
 		const unsubUI = uiStore.subscribe((state) => {
 			selectedPlaylistId = state.selectedPlaylistId
 			selectedFolderId = state.selectedFolderId
-			selectedTagIds = state.selectedTagIds
+			selectedTagIds = state.viewFilters[state.activeView].selectedTagIds
 			sidebarWidth = state.sidebarWidth
 		})
 		const unsubDevices = visibleDevices.subscribe((visibleDevicesList) => {
