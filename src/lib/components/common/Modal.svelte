@@ -42,6 +42,9 @@
 		visible = false
 	}
 
+	const FOCUSABLE_SELECTOR =
+		'input:not([disabled]):not([tabindex="-1"]), button:not([disabled]):not([tabindex="-1"]), select:not([disabled]):not([tabindex="-1"]), textarea:not([disabled]):not([tabindex="-1"]), [tabindex]:not([tabindex="-1"]):not([disabled])'
+
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Escape') {
 			e.stopPropagation()
@@ -54,7 +57,28 @@
 				e.preventDefault()
 				onSubmit()
 			}
+		} else if (e.key === 'Tab') {
+			trapFocus(e)
 		}
+	}
+
+	function trapFocus(e: KeyboardEvent) {
+		if (!dialogEl) return
+		const focusable = [...dialogEl.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)]
+		if (focusable.length === 0) return
+
+		const active = document.activeElement as HTMLElement
+		const currentIndex = focusable.indexOf(active)
+
+		let nextIndex: number
+		if (e.shiftKey) {
+			nextIndex = currentIndex <= 0 ? focusable.length - 1 : currentIndex - 1
+		} else {
+			nextIndex = currentIndex >= focusable.length - 1 ? 0 : currentIndex + 1
+		}
+
+		e.preventDefault()
+		focusable[nextIndex].focus()
 	}
 
 	function handleBackdropMousedown(e: MouseEvent) {

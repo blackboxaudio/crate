@@ -33,7 +33,7 @@
 		aria-label={label ?? ariaLabel}
 		{disabled}
 		onclick={handleChange}
-		class="flex h-4 w-4 items-center justify-center rounded border transition-colors
+		class="flex h-4 w-4 items-center justify-center rounded border transition-colors focus:ring-1 focus:ring-brand-primary focus:ring-offset-1 focus:ring-offset-surface-1 focus:outline-none
 			{checked ? 'border-brand-primary bg-brand-primary' : 'border-stroke bg-surface-2 hover:border-text-tertiary'}"
 	>
 		<svg class="h-3 w-3 text-white {checked ? 'opacity-100' : 'opacity-0'}" viewBox="0 0 12 12" fill="none">

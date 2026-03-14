@@ -208,7 +208,7 @@
 			? 'cursor-not-allowed border-stroke opacity-50'
 			: open
 				? 'border-brand-primary ring-1 ring-brand-primary'
-				: 'border-stroke hover:border-text-tertiary'}"
+				: 'border-stroke hover:border-text-tertiary focus:border-brand-primary focus:ring-1 focus:ring-brand-primary'}"
 		{disabled}
 		onclick={handleTriggerClick}
 		onkeydown={handleKeydown}

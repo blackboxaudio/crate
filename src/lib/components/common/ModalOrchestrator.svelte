@@ -683,6 +683,9 @@
 			const playlist = activeModal.playlist
 			closeAll()
 			await onUpdateSmartRules(playlist.id, rules)
+			if (name !== playlist.name) {
+				await onRenamePlaylist(playlist.id, name)
+			}
 		}
 	}
 

@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Fixed support for bulk-adding Bandcamp pages that use alternative indexing
 - Fixed discovery playlist search not filtering by track name
 - Fixed multi-select drag clearing selection when clicking to initiate a drag
+- Fixed renaming smart playlist names in the modal to edit smart rules
 
 ## [0.2.6] - 2026-03-14
 
