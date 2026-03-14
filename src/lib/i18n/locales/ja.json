@@ -274,6 +274,10 @@
 			"cancelImport": "インポートをキャンセル"
 		}
 	},
+	"filters": {
+		"title": "フィルター",
+		"liked": "いいね"
+	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",
 		"newSmartPlaylist": "新しいスマートプレイリスト",

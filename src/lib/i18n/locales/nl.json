@@ -274,6 +274,10 @@
 			"cancelImport": "Importeren annuleren"
 		}
 	},
+	"filters": {
+		"title": "Filters",
+		"liked": "Geliked"
+	},
 	"playlists": {
 		"newPlaylist": "Nieuwe afspeellijst",
 		"newSmartPlaylist": "Nieuwe slimme afspeellijst",

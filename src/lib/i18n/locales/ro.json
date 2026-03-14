@@ -274,6 +274,10 @@
 			"cancelImport": "Anulează import"
 		}
 	},
+	"filters": {
+		"title": "Filtre",
+		"liked": "Apreciate"
+	},
 	"playlists": {
 		"newPlaylist": "Nou Playlist",
 		"newSmartPlaylist": "Nou Smart Playlist",

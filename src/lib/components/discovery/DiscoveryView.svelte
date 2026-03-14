@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoverySortConfig, Tag, TagFilterMode } from '$lib/types'
+	import type { DiscoveryRelease, DiscoverySortConfig, Tag, TagCategory, TagFilterMode } from '$lib/types'
 	import DiscoveryList from './DiscoveryList.svelte'
-	import { SearchBar } from '$lib/components/library'
+	import { SearchBar, FilterDropdown } from '$lib/components/library'
 	import { IconButton } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -21,9 +21,10 @@
 		searchValue?: string
 		onSearchChange?: (query: string) => void
 		activeFilterTags?: Tag[]
+		tagCategories?: TagCategory[]
 		tagColors?: Map<string, string | null>
 		tagFilterMode?: TagFilterMode
-		onRemoveTagFilter?: (tagId: string) => void
+		onToggleTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
 		onToggleTagFilterMode?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
@@ -54,10 +55,11 @@
 		hasSelection = false,
 		searchValue = '',
 		onSearchChange,
-		activeFilterTags,
-		tagColors,
-		tagFilterMode,
-		onRemoveTagFilter,
+		activeFilterTags = [],
+		tagCategories = [],
+		tagColors = new Map(),
+		tagFilterMode = 'or',
+		onToggleTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
 		onSelectionChange,
@@ -162,17 +164,21 @@
 						{onSearchChange}
 						initialValue={searchValue}
 						placeholder={$translate('discovery.searchPlaceholder')}
-						{likedOnly}
-						{onToggleLikedFilter}
-						{activeFilterTags}
-						{tagColors}
-						{tagFilterMode}
-						{onRemoveTagFilter}
-						{onClearAllTagFilters}
-						{onToggleTagFilterMode}
 					/>
 				</div>
 			{/if}
+			<FilterDropdown
+				{activeFilterTags}
+				{tagCategories}
+				{tagColors}
+				{tagFilterMode}
+				onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
+				onClearAll={() => onClearAllTagFilters?.()}
+				onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
+				showLikedFilter
+				{likedOnly}
+				{onToggleLikedFilter}
+			/>
 			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />
 			</Tooltip>

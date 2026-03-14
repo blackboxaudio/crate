@@ -477,9 +477,10 @@ export const displayedReleases = derived(
 			releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
 		}
 
-		if ($ui.selectedTagIds.length > 0) {
-			const tagIds = new Set($ui.selectedTagIds)
-			if ($ui.tagFilterMode === 'and') {
+		const discoveryFilters = $ui.viewFilters.discovery
+		if (discoveryFilters.selectedTagIds.length > 0) {
+			const tagIds = new Set(discoveryFilters.selectedTagIds)
+			if (discoveryFilters.tagFilterMode === 'and') {
 				releases = releases.filter((r) => [...tagIds].every((id) => r.tags.some((t) => t.id === id)))
 			} else {
 				releases = releases.filter((r) => r.tags.some((t) => tagIds.has(t.id)))

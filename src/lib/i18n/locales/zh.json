@@ -274,6 +274,10 @@
 			"cancelImport": "取消导入"
 		}
 	},
+	"filters": {
+		"title": "筛选",
+		"liked": "已喜欢"
+	},
 	"playlists": {
 		"newPlaylist": "新建播放列表",
 		"newSmartPlaylist": "新建智能播放列表",

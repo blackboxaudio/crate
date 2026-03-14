@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added unified filter panel for library and discovery views with per-context filter state
 - Added click-to-enlarge artwork modal for discovery releases
 - Added dynamic sidebar header that updates to match the active context (Library / Discovery)
 

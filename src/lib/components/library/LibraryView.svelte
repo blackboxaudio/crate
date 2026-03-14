@@ -1,7 +1,8 @@
 <script lang="ts">
-	import type { Track, TrackColor, SortConfig, Tag, TagFilterMode } from '$lib/types'
+	import type { Track, TrackColor, SortConfig, Tag, TagCategory, TagFilterMode } from '$lib/types'
 	import TrackList from './TrackList.svelte'
 	import SearchBar from './SearchBar.svelte'
+	import FilterDropdown from './FilterDropdown.svelte'
 	import { IconButton } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -22,9 +23,10 @@
 		searchValue?: string
 		onSearchChange?: (query: string) => void
 		activeFilterTags?: Tag[]
+		tagCategories?: TagCategory[]
 		tagColors?: Map<string, string | null>
 		tagFilterMode?: TagFilterMode
-		onRemoveTagFilter?: (tagId: string) => void
+		onToggleTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
 		onToggleTagFilterMode?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
@@ -52,10 +54,11 @@
 		hasSelection = false,
 		searchValue = '',
 		onSearchChange,
-		activeFilterTags,
-		tagColors,
-		tagFilterMode,
-		onRemoveTagFilter,
+		activeFilterTags = [],
+		tagCategories = [],
+		tagColors = new Map(),
+		tagFilterMode = 'or',
+		onToggleTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
 		onSelectionChange,
@@ -85,18 +88,18 @@
 		<div class="flex flex-1 items-center justify-end gap-2">
 			{#if onSearchChange}
 				<div class="w-64">
-					<SearchBar
-						{onSearchChange}
-						initialValue={searchValue}
-						{activeFilterTags}
-						{tagColors}
-						{tagFilterMode}
-						{onRemoveTagFilter}
-						{onClearAllTagFilters}
-						{onToggleTagFilterMode}
-					/>
+					<SearchBar {onSearchChange} initialValue={searchValue} />
 				</div>
 			{/if}
+			<FilterDropdown
+				{activeFilterTags}
+				{tagCategories}
+				{tagColors}
+				{tagFilterMode}
+				onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
+				onClearAll={() => onClearAllTagFilters?.()}
+				onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
+			/>
 			<Tooltip
 				text={editorVisible ? $translate('editor.hideEditor') : $translate('editor.showEditor')}
 				position="bottom"

@@ -274,6 +274,10 @@
 			"cancelImport": "가져오기 취소"
 		}
 	},
+	"filters": {
+		"title": "필터",
+		"liked": "좋아요"
+	},
 	"playlists": {
 		"newPlaylist": "새 재생목록",
 		"newSmartPlaylist": "새 스마트 재생목록",

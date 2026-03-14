@@ -1,4 +1,5 @@
 export { default as SearchBar } from './SearchBar.svelte'
+export { default as FilterDropdown } from './FilterDropdown.svelte'
 export { default as TrackRow } from './TrackRow.svelte'
 export { default as TrackListHeader } from './TrackListHeader.svelte'
 export { default as TrackList } from './TrackList.svelte'

@@ -274,6 +274,10 @@
 			"cancelImport": "İçe aktarmayı İptal Et"
 		}
 	},
+	"filters": {
+		"title": "Filtreler",
+		"liked": "Beğenilen"
+	},
 	"playlists": {
 		"newPlaylist": "Yeni Çalma Listesi",
 		"newSmartPlaylist": "Yeni Akıllı Çalma Listesi",

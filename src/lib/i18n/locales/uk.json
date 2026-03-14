@@ -274,6 +274,10 @@
 			"cancelImport": "Скасувати імпорт"
 		}
 	},
+	"filters": {
+		"title": "Фільтри",
+		"liked": "Вподобані"
+	},
 	"playlists": {
 		"newPlaylist": "Новий плейлист",
 		"newSmartPlaylist": "Новий розумний плейлист",

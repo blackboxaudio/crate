@@ -8,9 +8,10 @@
 		DiscoveryRelease,
 		DiscoverySortConfig,
 		Tag,
+		TagCategory,
 		TagFilterMode,
 	} from '$lib/types'
-	import { TrackList, SearchBar } from '$lib/components/library'
+	import { TrackList, SearchBar, FilterDropdown } from '$lib/components/library'
 	import { DiscoveryList } from '$lib/components/discovery'
 	import { IconButton } from '$lib/components/common'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
@@ -35,9 +36,10 @@
 		searchValue?: string
 		onSearchChange?: (query: string) => void
 		activeFilterTags?: Tag[]
+		tagCategories?: TagCategory[]
 		tagColors?: Map<string, string | null>
 		tagFilterMode?: TagFilterMode
-		onRemoveTagFilter?: (tagId: string) => void
+		onToggleTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
 		onToggleTagFilterMode?: () => void
 		likedOnly?: boolean
@@ -76,10 +78,11 @@
 		hasSelection = false,
 		searchValue = '',
 		onSearchChange,
-		activeFilterTags,
-		tagColors,
-		tagFilterMode,
-		onRemoveTagFilter,
+		activeFilterTags = [],
+		tagCategories = [],
+		tagColors = new Map(),
+		tagFilterMode = 'or',
+		onToggleTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
 		likedOnly = false,
@@ -177,17 +180,21 @@
 							{onSearchChange}
 							initialValue={searchValue}
 							placeholder={isDiscovery ? $translate('discovery.searchPlaceholder') : undefined}
-							likedOnly={isDiscovery ? likedOnly : undefined}
-							onToggleLikedFilter={isDiscovery ? onToggleLikedFilter : undefined}
-							{activeFilterTags}
-							{tagColors}
-							{tagFilterMode}
-							{onRemoveTagFilter}
-							{onClearAllTagFilters}
-							{onToggleTagFilterMode}
 						/>
 					</div>
 				{/if}
+				<FilterDropdown
+					{activeFilterTags}
+					{tagCategories}
+					{tagColors}
+					{tagFilterMode}
+					onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
+					onClearAll={() => onClearAllTagFilters?.()}
+					onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
+					showLikedFilter={isDiscovery}
+					likedOnly={isDiscovery ? likedOnly : false}
+					onToggleLikedFilter={isDiscovery ? onToggleLikedFilter : undefined}
+				/>
 				{#if isDiscovery}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 						<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />

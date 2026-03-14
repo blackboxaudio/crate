@@ -274,6 +274,10 @@
 			"cancelImport": "Avbryt import"
 		}
 	},
+	"filters": {
+		"title": "Filter",
+		"liked": "Gillad"
+	},
 	"playlists": {
 		"newPlaylist": "Ny spellista",
 		"newSmartPlaylist": "Ny smart spellista",

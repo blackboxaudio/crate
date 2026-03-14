@@ -22,6 +22,13 @@ interface ViewNavigationState {
 
 type ViewNavigationCache = Record<ActiveView, ViewNavigationState>
 
+interface ViewFilterState {
+	selectedTagIds: string[]
+	tagFilterMode: TagFilterMode
+}
+
+type ViewFilterCache = Record<ActiveView, ViewFilterState>
+
 interface UIState {
 	// Active view
 	activeView: ActiveView
@@ -36,9 +43,10 @@ interface UIState {
 	sidebarView: SidebarView
 	selectedPlaylistId: string | null
 	selectedFolderId: string | null
-	selectedTagIds: string[]
-	tagFilterMode: TagFilterMode
 	sidebarWidth: number
+
+	// Per-context filter state
+	viewFilters: ViewFilterCache
 
 	// Right Sidebar (Track Editor)
 	rightSidebarVisible: boolean
@@ -79,9 +87,11 @@ const initialState: UIState = {
 	sidebarView: 'library',
 	selectedPlaylistId: null,
 	selectedFolderId: null,
-	selectedTagIds: [],
-	tagFilterMode: 'or',
 	sidebarWidth: getStoredNumber('sidebarWidth', 240),
+	viewFilters: {
+		library: { selectedTagIds: [], tagFilterMode: 'or' },
+		discovery: { selectedTagIds: [], tagFilterMode: 'or' },
+	},
 	rightSidebarVisible: getStoredBoolean('rightSidebarVisible', false),
 	rightSidebarWidth: getStoredNumber('rightSidebarWidth', 320),
 	activeModal: null,
@@ -282,7 +292,6 @@ function createUIStore() {
 				sidebarView: view,
 				selectedPlaylistId: view === 'playlist' ? state.selectedPlaylistId : null,
 				selectedFolderId: view === 'folder' ? state.selectedFolderId : null,
-				selectedTagIds: view === 'tag' ? state.selectedTagIds : [],
 			}))
 		},
 
@@ -303,13 +312,15 @@ function createUIStore() {
 		 */
 		toggleTagFilter(id: string) {
 			update((state) => {
-				const exists = state.selectedTagIds.includes(id)
-				const newIds = exists ? state.selectedTagIds.filter((tid) => tid !== id) : [...state.selectedTagIds, id]
-				const inPlaylist = state.selectedPlaylistId !== null || state.selectedFolderId !== null
+				const current = state.viewFilters[state.activeView]
+				const exists = current.selectedTagIds.includes(id)
+				const newIds = exists ? current.selectedTagIds.filter((tid) => tid !== id) : [...current.selectedTagIds, id]
 				return {
 					...state,
-					...(!inPlaylist && { sidebarView: newIds.length > 0 ? 'tag' : 'library' }),
-					selectedTagIds: newIds,
+					viewFilters: {
+						...state.viewFilters,
+						[state.activeView]: { ...current, selectedTagIds: newIds },
+					},
 				}
 			})
 		},
@@ -319,11 +330,18 @@ function createUIStore() {
 		 */
 		addTagFilter(id: string) {
 			update((state) => {
-				const inPlaylist = state.selectedPlaylistId !== null || state.selectedFolderId !== null
+				const current = state.viewFilters[state.activeView]
 				return {
 					...state,
-					...(!inPlaylist && { sidebarView: 'tag' }),
-					selectedTagIds: state.selectedTagIds.includes(id) ? state.selectedTagIds : [...state.selectedTagIds, id],
+					viewFilters: {
+						...state.viewFilters,
+						[state.activeView]: {
+							...current,
+							selectedTagIds: current.selectedTagIds.includes(id)
+								? current.selectedTagIds
+								: [...current.selectedTagIds, id],
+						},
+					},
 				}
 			})
 		},
@@ -333,11 +351,14 @@ function createUIStore() {
 		 */
 		removeTagFilter(id: string) {
 			update((state) => {
-				const newIds = state.selectedTagIds.filter((tid) => tid !== id)
+				const current = state.viewFilters[state.activeView]
+				const newIds = current.selectedTagIds.filter((tid) => tid !== id)
 				return {
 					...state,
-					sidebarView: newIds.length > 0 ? 'tag' : 'library',
-					selectedTagIds: newIds,
+					viewFilters: {
+						...state.viewFilters,
+						[state.activeView]: { ...current, selectedTagIds: newIds },
+					},
 				}
 			})
 		},
@@ -348,8 +369,10 @@ function createUIStore() {
 		clearTagFilters() {
 			update((state) => ({
 				...state,
-				sidebarView: 'library',
-				selectedTagIds: [],
+				viewFilters: {
+					...state.viewFilters,
+					[state.activeView]: { ...state.viewFilters[state.activeView], selectedTagIds: [] },
+				},
 			}))
 		},
 
@@ -359,7 +382,10 @@ function createUIStore() {
 		setTagFilterMode(mode: TagFilterMode) {
 			update((state) => ({
 				...state,
-				tagFilterMode: mode,
+				viewFilters: {
+					...state.viewFilters,
+					[state.activeView]: { ...state.viewFilters[state.activeView], tagFilterMode: mode },
+				},
 			}))
 		},
 
@@ -367,10 +393,19 @@ function createUIStore() {
 		 * Toggle tag filter mode between AND and OR
 		 */
 		toggleTagFilterMode() {
-			update((state) => ({
-				...state,
-				tagFilterMode: state.tagFilterMode === 'or' ? 'and' : 'or',
-			}))
+			update((state) => {
+				const current = state.viewFilters[state.activeView]
+				return {
+					...state,
+					viewFilters: {
+						...state.viewFilters,
+						[state.activeView]: {
+							...current,
+							tagFilterMode: current.tagFilterMode === 'or' ? 'and' : 'or',
+						},
+					},
+				}
+			})
 		},
 
 		/**
@@ -570,9 +605,9 @@ export const hasSelection = derived(uiStore, ($ui) => $ui.selectedTrackIds.size 
 
 export const recentlyToggledMixedTags = derived(uiStore, ($ui) => $ui.recentlyToggledMixedTags)
 
-export const selectedTagIds = derived(uiStore, ($ui) => $ui.selectedTagIds)
+export const selectedTagIds = derived(uiStore, ($ui) => $ui.viewFilters[$ui.activeView].selectedTagIds)
 
-export const tagFilterMode = derived(uiStore, ($ui) => $ui.tagFilterMode)
+export const tagFilterMode = derived(uiStore, ($ui) => $ui.viewFilters[$ui.activeView].tagFilterMode)
 
 export const activeView = derived(uiStore, ($ui) => $ui.activeView)
 

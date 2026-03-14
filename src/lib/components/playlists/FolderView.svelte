@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { Playlist, BreadcrumbItem, Tag, TagFilterMode } from '$lib/types'
+	import type { Playlist, BreadcrumbItem, Tag, TagCategory, TagFilterMode } from '$lib/types'
 	import { getPlaylistChildren } from '$lib/stores/playlists'
 	import FolderCard from './FolderCard.svelte'
-	import { SearchBar } from '$lib/components/library'
+	import { SearchBar, FilterDropdown } from '$lib/components/library'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -20,9 +20,10 @@
 		searchValue?: string
 		onSearchChange?: (query: string) => void
 		activeFilterTags?: Tag[]
+		tagCategories?: TagCategory[]
 		tagColors?: Map<string, string | null>
 		tagFilterMode?: TagFilterMode
-		onRemoveTagFilter?: (tagId: string) => void
+		onToggleTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
 		onToggleTagFilterMode?: () => void
 		isDiscoveryContext?: boolean
@@ -41,10 +42,11 @@
 		onCardContextMenu,
 		searchValue = '',
 		onSearchChange,
-		activeFilterTags,
-		tagColors,
-		tagFilterMode,
-		onRemoveTagFilter,
+		activeFilterTags = [],
+		tagCategories = [],
+		tagColors = new Map(),
+		tagFilterMode = 'or',
+		onToggleTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
 		isDiscoveryContext = false,
@@ -86,23 +88,29 @@
 	<!-- Breadcrumb Navigation -->
 	<Breadcrumbs items={breadcrumbItems} onNavigate={onBreadcrumbNavigate} onContextMenu={onBreadcrumbContextMenu}>
 		{#snippet actions()}
-			{#if onSearchChange}
-				<div class="w-64">
-					<SearchBar
-						{onSearchChange}
-						initialValue={searchValue}
-						placeholder={isDiscoveryContext ? $translate('discovery.searchPlaceholder') : undefined}
-						likedOnly={isDiscoveryContext ? likedOnly : undefined}
-						onToggleLikedFilter={isDiscoveryContext ? onToggleLikedFilter : undefined}
-						{activeFilterTags}
-						{tagColors}
-						{tagFilterMode}
-						{onRemoveTagFilter}
-						{onClearAllTagFilters}
-						{onToggleTagFilterMode}
-					/>
-				</div>
-			{/if}
+			<div class="flex items-center gap-2">
+				{#if onSearchChange}
+					<div class="w-64">
+						<SearchBar
+							{onSearchChange}
+							initialValue={searchValue}
+							placeholder={isDiscoveryContext ? $translate('discovery.searchPlaceholder') : undefined}
+						/>
+					</div>
+				{/if}
+				<FilterDropdown
+					{activeFilterTags}
+					{tagCategories}
+					{tagColors}
+					{tagFilterMode}
+					onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
+					onClearAll={() => onClearAllTagFilters?.()}
+					onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
+					showLikedFilter={isDiscoveryContext}
+					likedOnly={isDiscoveryContext ? likedOnly : false}
+					onToggleLikedFilter={isDiscoveryContext ? onToggleLikedFilter : undefined}
+				/>
+			</div>
 		{/snippet}
 	</Breadcrumbs>
 
