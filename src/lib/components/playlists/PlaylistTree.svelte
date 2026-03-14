@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
 	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
-	import { isDraggingPlaylist, hoveredDropTarget, dragStore } from '$lib/stores'
+	import { activeView, isDraggingPlaylist, hoveredDropTarget, dragStore } from '$lib/stores'
 	import { getStoredSet, setStoredSet } from '$lib/utils'
 	import { handleSelection } from '$lib/utils/selection'
 	import { translate } from '$lib/i18n'
@@ -64,6 +64,26 @@
 		e.preventDefault()
 		onWhitespaceClick?.()
 	}
+
+	// Suppress slide transitions during context switches (library ↔ discovery)
+	// so that all expanded folders don't animate simultaneously.
+	// Starts disabled to also skip animations on initial page load.
+	let transitionEnabled = $state(false)
+
+	$effect.pre(() => {
+		/* eslint-disable @typescript-eslint/no-unused-expressions */
+		$activeView
+		transitionEnabled = false
+	})
+
+	$effect(() => {
+		/* eslint-disable @typescript-eslint/no-unused-expressions */
+		$activeView
+		const id = requestAnimationFrame(() => {
+			transitionEnabled = true
+		})
+		return () => cancelAnimationFrame(id)
+	})
 
 	let expandedIds = $state<Set<string>>(getStoredSet(EXPANDED_STORAGE_KEY))
 
@@ -176,7 +196,7 @@
 	/>
 
 	{#if node.playlist.is_folder && expandedIds.has(node.playlist.id)}
-		<div transition:slide={{ duration: 150 }}>
+		<div transition:slide={{ duration: transitionEnabled ? 150 : 0 }}>
 			{#each node.children as child, index (index)}
 				{@render renderNode(child, depth + 1)}
 			{/each}
