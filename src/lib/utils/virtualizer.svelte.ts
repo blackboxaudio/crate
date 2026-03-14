@@ -84,6 +84,7 @@ export function createVirtualList(options: VirtualListOptions) {
 		// re-trigger the $effect.pre → syncState() → infinite loop.
 		// Writes still fire notifications, so {#each} templates update.
 		untrack(() => {
+			// @ts-expect-error we know
 			totalSize = instance.getTotalSize()
 
 			// Check if we can update in-place (same keys in same order).
