@@ -423,12 +423,18 @@ pub async fn remove_discovery_tags(
 
 #[tauri::command]
 pub async fn check_discovery_matches(
+    url: Option<String>,
     artist: Option<String>,
     title: Option<String>,
     parent_url: Option<String>,
     discovery: State<'_, DiscoveryService>,
 ) -> Result<Vec<DiscoveryRelease>> {
-    discovery.find_matching_releases(artist.as_deref(), title.as_deref(), parent_url.as_deref())
+    discovery.find_matching_releases(
+        url.as_deref(),
+        artist.as_deref(),
+        title.as_deref(),
+        parent_url.as_deref(),
+    )
 }
 
 #[tauri::command]

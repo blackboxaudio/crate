@@ -188,7 +188,7 @@
 
 			// Check for matching releases
 			try {
-				const matches = await discoveryApi.checkMatches(data.artist, data.title, data.parent_url)
+				const matches = await discoveryApi.checkMatches(fetchUrl, data.artist, data.title, data.parent_url)
 				if (matches.length > 0) {
 					// Prefer parent_url match over artist+title match
 					if (data.parent_url) {

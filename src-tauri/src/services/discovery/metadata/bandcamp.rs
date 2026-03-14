@@ -21,16 +21,38 @@ pub(super) async fn scan_bandcamp_page(
     client: &reqwest::Client,
     url: &str,
 ) -> Result<(Vec<crate::models::ScannedRelease>, Option<String>)> {
-    let html = client
+    let response = client
         .get(url)
         .send()
         .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Bandcamp page: {e}")))?
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Bandcamp page: {e}")))?;
+
+    // Check if we were redirected to an album/track page (common for single-release artists)
+    let final_url = response.url().to_string();
+    let final_lower = final_url.to_lowercase();
+    let redirected_to_release =
+        final_lower.contains("/album/") || final_lower.contains("/track/");
+
+    let html = response
         .text()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to read Bandcamp response: {e}")))?;
 
     let page_name = extract_meta_content(&html, "og:site_name");
+
+    if redirected_to_release {
+        let title = extract_meta_content(&html, "og:title");
+        let artwork_url = extract_meta_content(&html, "og:image");
+        let release = crate::models::ScannedRelease {
+            url: final_url,
+            artist: page_name.clone(),
+            title,
+            artwork_url,
+            release_date: None,
+            already_exists: false,
+        };
+        return Ok((vec![release], page_name));
+    }
 
     // Determine base URL for constructing absolute URLs
     let base_url = {
@@ -112,6 +134,19 @@ pub(super) async fn scan_bandcamp_page(
         search_pos = li_end;
     }
 
+    // Some Bandcamp pages use an "index page" layout with <div class="indexpage_list_cell">
+    // instead of the standard music grid. Parse those cells as a fallback.
+    let index_releases = parse_index_page_cells(&html, base_url, &page_name);
+    if !index_releases.is_empty() {
+        let existing: std::collections::HashSet<String> =
+            releases.iter().map(|r| r.url.clone()).collect();
+        for release in index_releases {
+            if !existing.contains(&release.url) {
+                releases.push(release);
+            }
+        }
+    }
+
     // Bandcamp only server-renders ~16 items in the music grid. The full discography
     // is embedded as a JSON array in a `data-client-items` attribute on the grid's <ol>.
     if let Some(json) = extract_data_client_items(&html) {
@@ -162,6 +197,116 @@ fn extract_inner_text(html: &str, class_name: &str) -> Option<String> {
         }
     }
     None
+}
+
+/// Extract the title text from the second `<a>` tag in an index page cell.
+///
+/// Index page cells have two `<a>` tags: the first wraps the artwork image,
+/// the second contains the release title text.
+fn extract_index_cell_title(cell_html: &str) -> Option<String> {
+    // Skip past the first </a> (closes the image link)
+    let first_close = cell_html.find("</a>")?;
+    let after_first = &cell_html[first_close + 4..];
+
+    // Find the second <a tag
+    let second_a = after_first.find("<a")?;
+    let a_tag = &after_first[second_a..];
+
+    // Find the > that closes the opening <a ...> tag
+    let tag_end = a_tag.find('>')?;
+    let content_start = tag_end + 1;
+
+    // Read text until the next < (start of </a>)
+    let content_end = a_tag[content_start..].find('<')?;
+    let text = a_tag[content_start..content_start + content_end].trim();
+
+    if !text.is_empty() {
+        Some(decode_html_entities(text))
+    } else {
+        None
+    }
+}
+
+/// Parse releases from the Bandcamp "index page" layout.
+///
+/// Some Bandcamp label/artist pages use `<div class="indexpage_list_cell">` elements
+/// instead of the standard `<li class="music-grid-item">` music grid. Each cell contains
+/// two `<a>` tags (one wrapping artwork, one with the title text) linking to the release.
+pub(super) fn parse_index_page_cells(
+    html: &str,
+    base_url: &str,
+    page_name: &Option<String>,
+) -> Vec<crate::models::ScannedRelease> {
+    let mut releases = Vec::new();
+    let marker = "indexpage_list_cell";
+    let mut search_pos = 0;
+
+    while let Some(marker_pos) = html[search_pos..].find(marker) {
+        let abs_marker = search_pos + marker_pos;
+
+        // Walk back to find the opening <div that contains this class
+        let div_start = match html[..abs_marker].rfind("<div") {
+            Some(pos) => pos,
+            None => {
+                search_pos = abs_marker + marker.len();
+                continue;
+            }
+        };
+
+        // Find the closing </div> for this cell
+        let div_end = match html[abs_marker..].find("</div>") {
+            Some(end) => abs_marker + end + 6,
+            None => break,
+        };
+
+        let cell_html = &html[div_start..div_end];
+
+        // Extract href from the first <a> tag
+        let href = extract_attr(cell_html, "href");
+
+        // Extract artwork from <img src="...">
+        let artwork = if let Some(img_start) = cell_html.find("<img") {
+            let img_html = &cell_html[img_start..];
+            extract_attr(img_html, "src")
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string())
+        } else {
+            None
+        };
+
+        // Extract title from the second <a> tag
+        let mut title = extract_index_cell_title(cell_html);
+
+        // Strip "Artist - " prefix from title (index pages embed "Artist - Title" format)
+        if let (Some(ref t), Some(ref name)) = (&title, page_name) {
+            if let Some(stripped) = t.strip_prefix(&format!("{name} - ")) {
+                title = Some(stripped.to_string());
+            }
+        }
+
+        if let Some(href) = href {
+            let absolute_url = if href.starts_with("http") {
+                href.to_string()
+            } else {
+                format!("{}{}", base_url.trim_end_matches('/'), href)
+            };
+
+            if absolute_url.contains("/album/") || absolute_url.contains("/track/") {
+                releases.push(crate::models::ScannedRelease {
+                    url: absolute_url,
+                    artist: page_name.clone(),
+                    title,
+                    artwork_url: artwork,
+                    release_date: None,
+                    already_exists: false,
+                });
+            }
+        }
+
+        search_pos = div_end;
+    }
+
+    releases
 }
 
 /// A single item from the `data-client-items` JSON array on Bandcamp label/artist pages.

@@ -45,11 +45,13 @@ export async function removeTags(releaseIds: string[], tagIds: string[]): Promis
 }
 
 export async function checkMatches(
+	url?: string | null,
 	artist?: string | null,
 	title?: string | null,
 	parentUrl?: string | null
 ): Promise<DiscoveryRelease[]> {
 	return invoke<DiscoveryRelease[]>('check_discovery_matches', {
+		url: url ?? null,
 		artist: artist ?? null,
 		title: title ?? null,
 		parentUrl: parentUrl ?? null,
