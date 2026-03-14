@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Fixed macOS Tahoe (26) compatibility issues
 - Fixed database foreign key violations during restore across app installations
 - Fixed discovery row buttons not working intermittently
 

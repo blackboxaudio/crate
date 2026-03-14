@@ -85,6 +85,9 @@ function createDiscoveryStore() {
 		async createRelease(create: DiscoveryReleaseCreate): Promise<DiscoveryRelease | null> {
 			try {
 				const release = await discoveryApi.createRelease(create)
+				if (!release || !release.id) {
+					return null
+				}
 				update((state) => ({
 					...state,
 					releases: [release, ...state.releases],
