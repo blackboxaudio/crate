@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Added Apple code signing and notarization for MacOS builds
+- Added Apple code signing and notarization for macOS builds
 
 ### Changed
 
