@@ -693,14 +693,10 @@ fn test_parse_bandcamp_release_links_basic() {
         </a>
     "#;
     let page_name = Some("Test Label".to_string());
-    let releases =
-        parse_bandcamp_release_links(html, "https://test.bandcamp.com", &page_name);
+    let releases = parse_bandcamp_release_links(html, "https://test.bandcamp.com", &page_name);
 
     assert_eq!(releases.len(), 2);
-    assert_eq!(
-        releases[0].url,
-        "https://test.bandcamp.com/album/cool-ep"
-    );
+    assert_eq!(releases[0].url, "https://test.bandcamp.com/album/cool-ep");
     assert_eq!(
         releases[0].artwork_url.as_deref(),
         Some("https://f4.bcbits.com/img/a123_2.jpg")

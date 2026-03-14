@@ -30,8 +30,7 @@ pub(super) async fn scan_bandcamp_page(
     // Check if we were redirected to an album/track page (common for single-release artists)
     let final_url = response.url().to_string();
     let final_lower = final_url.to_lowercase();
-    let redirected_to_release =
-        final_lower.contains("/album/") || final_lower.contains("/track/");
+    let redirected_to_release = final_lower.contains("/album/") || final_lower.contains("/track/");
 
     let html = response
         .text()
