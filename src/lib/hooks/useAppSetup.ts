@@ -439,6 +439,10 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onDragStateChange: (dragOver) => setIsDragOver(dragOver),
 		})
 
+		// Restore last-playing track/preview from localStorage now that stores are loaded
+		playerStore.restoreTrack(get(libraryStore).tracks)
+		await playerStore.restorePreview()
+
 		const cleanupKeyboard = useKeyboardShortcuts({
 			isModalOpen: () => getModalOrchestrator()?.isModalOpen() ?? false,
 			onPlayPause: handlers.playPause,
