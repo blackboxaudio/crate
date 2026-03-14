@@ -167,7 +167,7 @@
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		bind:this={scrollContainerEl}
-		class="relative flex-1 overflow-auto"
+		class="relative flex-1 overflow-auto bg-surface-1/50"
 		data-drop-target="releaselist-main"
 		onclick={handleContainerClick}
 		oncontextmenu={handleContainerContextMenu}
@@ -184,7 +184,7 @@
 				</Text>
 			</div>
 		{:else}
-			<div style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
+			<div class="bg-surface-0" style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
 				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
 					{@const release = releases[virtualItem.index]}
 					<div
