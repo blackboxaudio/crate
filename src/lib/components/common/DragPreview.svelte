@@ -50,6 +50,7 @@
 	const additionalCount = $derived.by(() => {
 		if (data?.type === 'tracks') return data.trackIds.length - 1
 		if (data?.type === 'releases') return data.releaseIds.length - 1
+		if (data?.type === 'playlist') return data.playlistIds.length - 1
 		return 0
 	})
 </script>
@@ -108,7 +109,7 @@
 		</div>
 	{:else if data?.type === 'playlist' && playlist}
 		<!-- Playlist/Folder Preview -->
-		<div class="flex items-center gap-2 rounded bg-surface-2 px-3 py-2 shadow-lg ring-1 ring-stroke-subtle">
+		<div class="relative flex items-center gap-2 rounded bg-surface-2 px-3 py-2 shadow-lg ring-1 ring-stroke-subtle">
 			<span class="flex-shrink-0 text-text-secondary">
 				{#if playlist.is_folder}
 					<Icon name="folder" class="h-4 w-4" />
@@ -121,6 +122,15 @@
 			<Text as="span" class="max-w-48 truncate text-sm text-text-primary">
 				{playlist.name}
 			</Text>
+
+			<!-- Multi-playlist count badge -->
+			{#if additionalCount > 0}
+				<div
+					class="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-primary px-1.5 text-xs font-medium text-white"
+				>
+					+{additionalCount}
+				</div>
+			{/if}
 		</div>
 	{:else if data?.type === 'tag' && draggedTag}
 		{@const color = draggedTag.categoryColor || draggedTag.tag.color || '#6366f1'}

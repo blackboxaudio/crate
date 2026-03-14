@@ -48,6 +48,7 @@ export interface PlaylistController {
 	handlePlaylistDelete: (playlist: Playlist) => void
 	handlePlaylistMove: (playlist: Playlist, folderId: string | null) => Promise<void>
 	handlePlaylistDragMove: (playlistId: string, targetFolderId: string | null) => Promise<void>
+	handleBulkPlaylistMove: (playlistIds: string[], targetFolderId: string | null) => Promise<void>
 	handlePlaylistViewImport: (playlist: Playlist) => Promise<void>
 }
 
@@ -224,6 +225,27 @@ export function createPlaylistController(
 	}
 
 	/**
+	 * Move multiple playlists to a folder (handles conflict detection for each)
+	 */
+	async function handleBulkPlaylistMove(playlistIds: string[], targetFolderId: string | null): Promise<void> {
+		const playlists = getPlaylists()
+		for (const id of playlistIds) {
+			const playlist = getPlaylistById(playlists, id)
+			if (!playlist) continue
+			// Skip if already in the target folder
+			if (playlist.parent_id === targetFolderId) continue
+
+			const conflict = findConflictingItem(playlists, playlist, targetFolderId)
+			if (conflict) {
+				modalActions.openMoveConflictModal(playlist, conflict, targetFolderId)
+				return
+			}
+
+			await playlistsStore.move(id, targetFolderId)
+		}
+	}
+
+	/**
 	 * Import tracks directly into a playlist view
 	 */
 	async function handlePlaylistViewImport(playlist: Playlist): Promise<void> {
@@ -273,6 +295,7 @@ export function createPlaylistController(
 		handlePlaylistDelete,
 		handlePlaylistMove,
 		handlePlaylistDragMove,
+		handleBulkPlaylistMove,
 		handlePlaylistViewImport,
 	}
 }

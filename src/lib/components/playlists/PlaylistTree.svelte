@@ -154,6 +154,7 @@
 		{playlists}
 		selected={selectedIds.size > 0 ? selectedIds.has(node.playlist.id) : selectedId === node.playlist.id}
 		isContextMenuActive={contextMenuItemId === node.playlist.id}
+		{selectedIds}
 		{depth}
 		expanded={expandedIds.has(node.playlist.id)}
 		hasChildren={node.children.length > 0}

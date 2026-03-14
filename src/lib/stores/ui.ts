@@ -78,15 +78,20 @@ interface UIState {
 	isOnboarding: boolean
 }
 
+// Restore persisted nav state
+const persistedPlaylistId = getStoredString('nav.selectedPlaylistId', '') || null
+const persistedFolderId = getStoredString('nav.selectedFolderId', '') || null
+const persistedSidebarView: SidebarView = persistedPlaylistId ? 'playlist' : persistedFolderId ? 'folder' : 'library'
+
 const initialState: UIState = {
 	activeView: getStoredString<ActiveView>('activeView', 'library', ['library', 'discovery']),
 	selectedTrackIds: new Set(),
 	lastSelectedTrackId: null,
 	selectedReleaseIds: new Set(),
 	lastSelectedReleaseId: null,
-	sidebarView: 'library',
-	selectedPlaylistId: null,
-	selectedFolderId: null,
+	sidebarView: persistedSidebarView,
+	selectedPlaylistId: persistedPlaylistId,
+	selectedFolderId: persistedFolderId,
 	sidebarWidth: getStoredNumber('sidebarWidth', 240),
 	viewFilters: {
 		library: { selectedTagIds: [], tagFilterMode: 'or' },
@@ -299,6 +304,8 @@ function createUIStore() {
 		 * Select a playlist
 		 */
 		selectPlaylist(id: string | null) {
+			setStoredString('nav.selectedPlaylistId', id ?? '')
+			setStoredString('nav.selectedFolderId', '')
 			update((state) => ({
 				...state,
 				sidebarView: id ? 'playlist' : 'library',
@@ -412,6 +419,8 @@ function createUIStore() {
 		 * Select a folder
 		 */
 		selectFolder(id: string | null) {
+			setStoredString('nav.selectedFolderId', id ?? '')
+			setStoredString('nav.selectedPlaylistId', '')
 			update((state) => ({
 				...state,
 				sidebarView: id ? 'folder' : 'library',

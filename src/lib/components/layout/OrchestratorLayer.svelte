@@ -211,6 +211,12 @@
 	onPlaylistRename={playlistController.handlePlaylistRename}
 	onPlaylistDelete={playlistController.handlePlaylistDelete}
 	onPlaylistBulkDelete={(playlists) => modalOrchestrator.openDeletePlaylistBulkModal(playlists)}
+	onPlaylistBulkMove={async (playlists, folderId) => {
+		await playlistController.handleBulkPlaylistMove(
+			playlists.map((p) => p.id),
+			folderId
+		)
+	}}
 	onPlaylistMove={playlistController.handlePlaylistMove}
 	onFolderViewCreatePlaylist={(folderId) => modalOrchestrator.openCreatePlaylistModal(folderId)}
 	onFolderViewCreateSmartPlaylist={(folderId) => modalOrchestrator.openCreateSmartPlaylistModal(folderId, $activeView)}

@@ -17,6 +17,7 @@
 		playlists?: Playlist[]
 		selected?: boolean
 		isContextMenuActive?: boolean
+		selectedIds?: Set<string>
 		depth?: number
 		expanded?: boolean
 		hasChildren?: boolean
@@ -38,6 +39,7 @@
 		playlists = [],
 		selected = false,
 		isContextMenuActive = false,
+		selectedIds,
 		depth = 0,
 		expanded = false,
 		hasChildren = false,
@@ -117,6 +119,7 @@
 	// Track pointer state for drag detection (for dragging playlists/folders)
 	let pointerStartPos: { x: number; y: number } | null = null
 	let isDragStarted = false
+	let wasDragged = false
 
 	function handlePointerDown(e: PointerEvent) {
 		// Skip drag handling if disabled
@@ -131,6 +134,7 @@
 
 		pointerStartPos = { x: e.clientX, y: e.clientY }
 		isDragStarted = false
+		wasDragged = false
 	}
 
 	function handlePointerMove(e: PointerEvent) {
@@ -141,9 +145,12 @@
 		// Start drag if threshold exceeded
 		if (!isDragStarted && distance >= DRAG_THRESHOLD) {
 			isDragStarted = true
+			wasDragged = true
 
-			// Start the drag via the store
-			dragStore.startPlaylistDrag(playlist.id, playlist.is_folder, e.clientX, e.clientY)
+			// Start the drag via the store (bulk if multi-selected)
+			const ids = selectedIds?.has(playlist.id) && selectedIds.size > 1 ? [...selectedIds] : [playlist.id]
+			const anyFolder = ids.some((id) => playlists.find((p) => p.id === id)?.is_folder ?? false)
+			dragStore.startPlaylistDrag(playlist.id, anyFolder, e.clientX, e.clientY, ids)
 		}
 	}
 
@@ -153,6 +160,11 @@
 	}
 
 	function handleClick(e: MouseEvent) {
+		// Suppress click after a drag operation to preserve multi-selection
+		if (wasDragged) {
+			wasDragged = false
+			return
+		}
 		if (showCheckbox && playlist.is_folder) {
 			// For folders in checkbox mode, delay the toggle to detect double-clicks
 			if (clickTimer) {

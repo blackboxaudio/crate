@@ -19,6 +19,7 @@
 		onRename: (playlist: Playlist) => void
 		onDelete: (playlist: Playlist) => void
 		onBulkDelete?: (playlists: Playlist[]) => void
+		onBulkMove?: (playlists: Playlist[], folderId: string | null) => void
 		onMove: (playlist: Playlist, folderId: string | null) => void
 		onExport: (playlist: Playlist) => void
 	}
@@ -38,6 +39,7 @@
 		onRename,
 		onDelete,
 		onBulkDelete,
+		onBulkMove,
 		onMove,
 		onExport,
 	}: Props = $props()
@@ -46,17 +48,51 @@
 	const playlist = $derived(targetPlaylists.length === 1 ? targetPlaylists[0] : null)
 
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
-		// Bulk mode: only show delete
+		// Bulk mode: show move to folder + delete
 		if (isBulk) {
-			return [
-				{
-					id: 'bulk-delete',
-					label: get(translate)('common.delete'),
-					icon: 'trash',
-					variant: 'danger',
-					action: () => onBulkDelete?.(targetPlaylists),
-				},
-			]
+			const bulkItems: ContextMenuItem[] = []
+
+			// Build "Move to Folder" submenu (exclude folders that are in the selection)
+			const selectedIdSet = new Set(targetPlaylists.map((p) => p.id))
+			const moveSubmenu: ContextMenuItem[] = []
+
+			// Option to move to root
+			if (targetPlaylists.some((p) => p.parent_id !== null)) {
+				moveSubmenu.push({
+					id: 'bulk-move-root',
+					label: get(translate)('playlists.rootNoFolder'),
+					action: () => onBulkMove?.(targetPlaylists, null),
+				})
+			}
+
+			for (const folder of folders) {
+				if (!selectedIdSet.has(folder.id)) {
+					moveSubmenu.push({
+						id: `bulk-move-${folder.id}`,
+						label: folder.name,
+						action: () => onBulkMove?.(targetPlaylists, folder.id),
+					})
+				}
+			}
+
+			if (moveSubmenu.length > 0) {
+				bulkItems.push({
+					id: 'bulk-move',
+					label: get(translate)('playlists.moveToFolder'),
+					icon: 'folder-arrow',
+					submenu: moveSubmenu,
+				})
+				bulkItems.push({ id: 'bulk-divider', label: '', divider: true })
+			}
+
+			bulkItems.push({
+				id: 'bulk-delete',
+				label: get(translate)('common.delete'),
+				icon: 'trash',
+				variant: 'danger',
+				action: () => onBulkDelete?.(targetPlaylists),
+			})
+			return bulkItems
 		}
 
 		if (!playlist) return []

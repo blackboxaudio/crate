@@ -1,7 +1,15 @@
 import { writable } from 'svelte/store'
+import { getStoredSet, setStoredSet } from '$lib/utils/storage'
+
+const STORAGE_KEY = 'expandedReleaseIds'
 
 function createExpandedReleaseIdsStore() {
-	const { subscribe, set, update } = writable<Set<string>>(new Set())
+	const { subscribe, set, update } = writable<Set<string>>(getStoredSet(STORAGE_KEY))
+
+	// Persist on every change
+	subscribe((ids) => {
+		setStoredSet(STORAGE_KEY, ids)
+	})
 
 	return {
 		subscribe,
