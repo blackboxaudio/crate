@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added clickable track name in the player bar to scroll to and highlight the currently playing track
 - Added unified filter panel for library and discovery views with per-context filter state
 - Added click-to-enlarge artwork modal for discovery releases
 - Added dynamic sidebar header that updates to match the active context (Library / Discovery)
@@ -20,6 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Fixed support for bulk-adding Bandcamp pages that use alternative indexing
 - Fixed discovery playlist search not filtering by track name
 - Fixed multi-select drag clearing selection when clicking to initiate a drag
+- Fixed renaming smart playlist names in the modal to edit smart rules
 
 ## [0.2.6] - 2026-03-14
 

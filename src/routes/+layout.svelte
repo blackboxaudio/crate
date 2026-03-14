@@ -397,7 +397,11 @@
 				</div>
 			</div>
 
-			<Player onNext={() => $pageActions?.playNextTrack()} onPrevious={() => $pageActions?.playPreviousTrack()} />
+			<Player
+				onNext={() => $pageActions?.playNextTrack()}
+				onPrevious={() => $pageActions?.playPreviousTrack()}
+				onLocateTrack={() => $pageActions?.locatePlayingTrack()}
+			/>
 		</div>
 	{/if}
 </div>

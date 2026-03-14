@@ -172,7 +172,8 @@
 		"noTrackSelected": "Inget spår valt",
 		"volume": "Volym",
 		"tempo": "Tempo",
-		"resetTempo": "Återställ tempo"
+		"resetTempo": "Återställ tempo",
+		"trackNotFound": "Kunde inte hitta det spelande spåret"
 	},
 	"library": {
 		"searchPlaceholder": "Sök spår...",

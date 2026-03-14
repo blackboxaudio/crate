@@ -172,7 +172,8 @@
 		"noTrackSelected": "Nie wybrano ścieżki",
 		"volume": "Głośność",
 		"tempo": "Tempo",
-		"resetTempo": "Resetuj tempo"
+		"resetTempo": "Resetuj tempo",
+		"trackNotFound": "Nie udało się zlokalizować odtwarzanego utworu"
 	},
 	"library": {
 		"searchPlaceholder": "Szukaj ścieżek...",

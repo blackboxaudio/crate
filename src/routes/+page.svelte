@@ -45,12 +45,16 @@
 		pageActions,
 		scrollOffset,
 		playlistScrollOffsets,
+		locateStore,
+		expandedReleaseIds,
 	} from '$lib/stores'
+	import { playbackSource, isPlaying } from '$lib/stores/player'
 	import { likedOnly } from '$lib/stores/discovery'
-	import { isPlaying } from '$lib/stores/player'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$lib/stores/playlists'
 	import { createAppSetup } from '$lib/hooks'
 
+	import { translate } from '$lib/i18n'
+	import { toastStore } from '$lib/stores/toast'
 	import { RightSidebar, OrchestratorLayer } from '$lib/components/layout'
 	import { LibraryView } from '$lib/components/library'
 	import { DiscoveryView, DiscoveryEditor } from '$lib/components/discovery'
@@ -130,6 +134,7 @@
 		openAddReleaseModal: () => orchestratorLayer?.openAddReleaseModal(),
 		getModalOrchestrator: () => orchestratorLayer?.getModalOrchestrator(),
 		getContextMenuOrchestrator: () => orchestratorLayer?.getContextMenuOrchestrator(),
+		locatePlayingTrack: handleLocatePlayingTrack,
 	})
 
 	// =============================================================================
@@ -246,6 +251,84 @@
 
 	async function handleCancelAnalysis(trackId: string) {
 		await analysisStore.cancelTrackAnalysis(trackId)
+	}
+
+	// =============================================================================
+	// Locate Playing Track
+	// =============================================================================
+
+	async function navigateToMainView(view: ActiveView) {
+		uiStore.clearSelection()
+		uiStore.setActiveView(view)
+		uiStore.selectPlaylist(null)
+		uiStore.selectFolder(null)
+
+		if (view === 'discovery') {
+			discoveryPlaylistStore.clearReleases()
+			await discoveryStore.loadReleases()
+		} else {
+			libraryStore.clearPlaylistTracks()
+			libraryStore.clearFilters()
+			await libraryStore.loadTracks()
+		}
+	}
+
+	async function handleLocatePlayingTrack() {
+		const source = get(playbackSource)
+
+		if (source === 'preview') {
+			const preview = get(previewInfo)
+			if (!preview) return
+
+			const currentView = get(activeView)
+			if (currentView === 'discovery' && !selectedPlaylistId && !selectedFolderId) {
+				// Already on main discovery view — check if release is visible
+				const releases = get(sortedReleases)
+				if (releases.some((r) => r.id === preview.releaseId)) {
+					uiStore.setSelectedReleases(new Set([preview.releaseId]))
+					expandedReleaseIds.expand(preview.releaseId)
+					locateStore.scrollToRelease(preview.releaseId)
+					return
+				}
+			}
+
+			// Navigate to main discovery view and await data load
+			await navigateToMainView('discovery')
+
+			const releases = get(sortedReleases)
+			if (releases.some((r) => r.id === preview.releaseId)) {
+				uiStore.setSelectedReleases(new Set([preview.releaseId]))
+				expandedReleaseIds.expand(preview.releaseId)
+				locateStore.scrollToRelease(preview.releaseId)
+			} else {
+				toastStore.warning(get(translate)('player.trackNotFound'))
+			}
+		} else {
+			const track = get(currentTrack)
+			if (!track) return
+
+			const currentView = get(activeView)
+			if (currentView === 'library' && !selectedPlaylistId && !selectedFolderId) {
+				// Already on main library view — check if track is visible
+				const tracks = get(displayedTracks)
+				if (tracks.some((t) => t.id === track.id)) {
+					uiStore.setSelectedTracks(new Set([track.id]))
+					locateStore.scrollToTrack(track.id)
+					return
+				}
+			}
+
+			// Navigate to main library view and await data load
+			await navigateToMainView('library')
+
+			const tracks = get(displayedTracks)
+			if (tracks.some((t) => t.id === track.id)) {
+				uiStore.setSelectedTracks(new Set([track.id]))
+				locateStore.scrollToTrack(track.id)
+			} else {
+				toastStore.warning(get(translate)('player.trackNotFound'))
+			}
+		}
 	}
 
 	// =============================================================================

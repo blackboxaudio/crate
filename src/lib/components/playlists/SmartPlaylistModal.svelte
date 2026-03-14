@@ -227,7 +227,7 @@
 	}
 </script>
 
-<Modal {open} {title} size="lg" onClose={handleCancel}>
+<Modal {open} {title} size="lg" onClose={handleCancel} onSubmit={handleSubmit}>
 	<div class="flex flex-col gap-4">
 		<!-- Name input -->
 		<div>
@@ -238,14 +238,27 @@
 		<!-- Match mode -->
 		<div class="flex items-center gap-2">
 			<Text variant="body-2">{$translate('smartPlaylist.matchLabel')}</Text>
-			<div class="relative flex rounded-md border border-stroke bg-surface-2">
+			<div
+				class="relative flex cursor-pointer rounded-md border border-stroke bg-surface-2 focus:border-brand-primary focus:ring-1 focus:ring-brand-primary focus:outline-none"
+				tabindex="0"
+				role="switch"
+				aria-checked={matchMode === 'any'}
+				aria-label={$translate('smartPlaylist.matchLabel')}
+				onkeydown={(e) => {
+					if (e.key === ' ') {
+						e.preventDefault()
+						matchMode = matchMode === 'all' ? 'any' : 'all'
+					}
+				}}
+			>
 				<div
 					class="absolute top-0 left-0 h-full w-1/2 rounded-md bg-brand-primary transition-transform duration-200 ease-out"
 					style="transform: translateX({matchMode === 'any' ? '100%' : '0%'})"
 				></div>
 				<button
 					type="button"
-					class="relative z-10 cursor-pointer px-3 py-1 text-sm transition-colors {matchMode === 'all'
+					tabindex="-1"
+					class="relative z-10 cursor-pointer rounded-md px-3 py-1 text-sm transition-colors {matchMode === 'all'
 						? 'text-white'
 						: 'text-text-secondary hover:text-text-primary'}"
 					onclick={() => (matchMode = 'all')}
@@ -254,7 +267,8 @@
 				</button>
 				<button
 					type="button"
-					class="relative z-10 cursor-pointer px-3 py-1 text-sm transition-colors {matchMode === 'any'
+					tabindex="-1"
+					class="relative z-10 cursor-pointer rounded-md px-3 py-1 text-sm transition-colors {matchMode === 'any'
 						? 'text-white'
 						: 'text-text-secondary hover:text-text-primary'}"
 					onclick={() => (matchMode = 'any')}
@@ -359,7 +373,7 @@
 					<!-- Remove button -->
 					<button
 						type="button"
-						class="shrink-0 self-center rounded p-1 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-1"
+						class="shrink-0 self-center rounded p-1 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-1 focus:ring-1 focus:ring-brand-primary focus:outline-none"
 						onclick={() => removeCondition(index)}
 						aria-label={$translate('smartPlaylist.removeCondition')}
 					>

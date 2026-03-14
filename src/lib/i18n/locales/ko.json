@@ -172,7 +172,8 @@
 		"noTrackSelected": "선택된 트랙 없음",
 		"volume": "볼륨",
 		"tempo": "템포",
-		"resetTempo": "템포 재설정"
+		"resetTempo": "템포 재설정",
+		"trackNotFound": "재생 중인 트랙을 찾을 수 없습니다"
 	},
 	"library": {
 		"searchPlaceholder": "트랙 검색...",

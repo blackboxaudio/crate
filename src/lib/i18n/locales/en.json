@@ -172,7 +172,8 @@
 		"noTrackSelected": "No track selected",
 		"volume": "Volume",
 		"tempo": "Tempo",
-		"resetTempo": "Reset tempo"
+		"resetTempo": "Reset tempo",
+		"trackNotFound": "Could not locate the playing track"
 	},
 	"library": {
 		"searchPlaceholder": "Search tracks...",

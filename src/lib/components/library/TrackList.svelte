@@ -3,7 +3,7 @@
 	import { tick } from 'svelte'
 	import { handleSelection } from '$lib/utils'
 	import { createVirtualList } from '$lib/utils/virtualizer.svelte'
-	import { analyzingTrackIds } from '$lib/stores'
+	import { analyzingTrackIds, pendingScrollTrackId, locateStore } from '$lib/stores'
 	import { translate } from '$lib/i18n'
 	import TrackListHeader from './TrackListHeader.svelte'
 	import TrackRow from './TrackRow.svelte'
@@ -76,6 +76,19 @@
 					scrollContainerEl!.scrollTop = scrollOffset
 				})
 			}
+		}
+	})
+
+	// Scroll to a track when locate store requests it
+	$effect(() => {
+		const targetId = $pendingScrollTrackId
+		if (!targetId || !scrollContainerEl) return
+		const index = tracks.findIndex((t) => t.id === targetId)
+		if (index >= 0) {
+			tick().then(() => {
+				virtualList.scrollToIndex(index, { align: 'center' })
+				locateStore.clear()
+			})
 		}
 	})
 

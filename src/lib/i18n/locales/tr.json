@@ -172,7 +172,8 @@
 		"noTrackSelected": "Şarkı seçilmedi",
 		"volume": "Ses Düzeyi",
 		"tempo": "Tempo",
-		"resetTempo": "Tempoyu Sıfırla"
+		"resetTempo": "Tempoyu Sıfırla",
+		"trackNotFound": "Çalan parça bulunamadı"
 	},
 	"library": {
 		"searchPlaceholder": "Şarkıları ara...",

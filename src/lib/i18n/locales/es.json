@@ -172,7 +172,8 @@
 		"noTrackSelected": "Ninguna pista seleccionada",
 		"volume": "Volumen",
 		"tempo": "Tempo",
-		"resetTempo": "Restablecer tempo"
+		"resetTempo": "Restablecer tempo",
+		"trackNotFound": "No se pudo localizar la pista en reproducción"
 	},
 	"library": {
 		"searchPlaceholder": "Buscar pistas...",

@@ -172,7 +172,8 @@
 		"noTrackSelected": "Nenhuma faixa selecionada",
 		"volume": "Volume",
 		"tempo": "Tempo",
-		"resetTempo": "Redefinir tempo"
+		"resetTempo": "Redefinir tempo",
+		"trackNotFound": "Não foi possível localizar a faixa em reprodução"
 	},
 	"library": {
 		"searchPlaceholder": "Buscar faixas...",

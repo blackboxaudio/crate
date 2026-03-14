@@ -22,7 +22,7 @@
 	}: Props = $props()
 
 	const baseStyles =
-		'inline-flex items-center justify-center font-medium rounded-md transition-[background-color,color,filter,opacity] duration-150 hover:cursor-pointer focus:outline-none focus:ring-0 focus-visible:outline-none focus-visible:ring-0 disabled:opacity-50 disabled:cursor-not-allowed'
+		'inline-flex items-center justify-center font-medium rounded-md transition-[background-color,color,filter,opacity] duration-150 hover:cursor-pointer focus:ring-1 focus:ring-brand-primary focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed'
 
 	const variantStyles = {
 		primary: 'bg-brand-primary text-white hover:bg-brand-hover',

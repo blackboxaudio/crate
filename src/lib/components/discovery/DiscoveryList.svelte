@@ -3,6 +3,7 @@
 	import { tick } from 'svelte'
 	import { handleSelection } from '$lib/utils'
 	import { createVirtualList } from '$lib/utils/virtualizer.svelte'
+	import { pendingScrollReleaseId, locateStore } from '$lib/stores'
 	import { translate } from '$lib/i18n'
 	import DiscoveryListHeader from './DiscoveryListHeader.svelte'
 	import DiscoveryRow from './DiscoveryRow.svelte'
@@ -107,6 +108,19 @@
 					scrollContainerEl!.scrollTop = scrollOffset
 				})
 			}
+		}
+	})
+
+	// Scroll to a release when locate store requests it
+	$effect(() => {
+		const targetId = $pendingScrollReleaseId
+		if (!targetId || !scrollContainerEl) return
+		const index = releases.findIndex((r) => r.id === targetId)
+		if (index >= 0) {
+			tick().then(() => {
+				virtualList.scrollToIndex(index, { align: 'center' })
+				locateStore.clear()
+			})
 		}
 	})
 

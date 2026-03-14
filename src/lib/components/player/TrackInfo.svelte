@@ -7,10 +7,11 @@
 	type Props = {
 		track: Track | null
 		previewInfo?: PreviewInfo | null
+		onLocate?: () => void
 		onLikeToggle?: () => void
 	}
 
-	let { track, previewInfo = null, onLikeToggle }: Props = $props()
+	let { track, previewInfo = null, onLocate, onLikeToggle }: Props = $props()
 
 	let showArtworkModal = $state(false)
 
@@ -47,16 +48,22 @@
 	<!-- Track info -->
 	<div class="min-w-0 flex-1">
 		{#if previewInfo && previewTrack}
-			<Text variant="body-2" truncate>
+			<button
+				class="block max-w-full cursor-pointer truncate text-left text-sm font-medium text-text-primary hover:underline"
+				onclick={() => onLocate?.()}
+			>
 				{previewTrack.name}
-			</Text>
+			</button>
 			<Text variant="caption" as="p" color="secondary" truncate>
 				{previewInfo.release.artist || previewInfo.release.title || ''}
 			</Text>
 		{:else if track}
-			<Text variant="body-2" truncate>
+			<button
+				class="block max-w-full cursor-pointer truncate text-left text-sm font-medium text-text-primary hover:underline"
+				onclick={() => onLocate?.()}
+			>
 				{getTrackDisplayName(track)}
-			</Text>
+			</button>
 			<Text variant="caption" as="p" color="secondary" truncate>
 				{getTrackDisplayArtist(track)}
 			</Text>
