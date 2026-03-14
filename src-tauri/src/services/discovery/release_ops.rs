@@ -2,9 +2,10 @@ use super::*;
 
 impl DiscoveryService {
     /// Find existing releases that may overlap with the given metadata.
-    /// Checks by parent_url match and artist+title match.
+    /// Checks by exact URL, parent_url match, and artist+title match.
     pub fn find_matching_releases(
         &self,
+        url: Option<&str>,
         artist: Option<&str>,
         title: Option<&str>,
         parent_url: Option<&str>,
@@ -15,6 +16,16 @@ impl DiscoveryService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let mut matched_ids: Vec<String> = Vec::new();
+
+        // Check 0: Exact URL match
+        if let Some(u) = url {
+            let normalized = normalize_url(u);
+            let mut stmt = conn.prepare("SELECT id FROM discovery_releases WHERE url = ?1")?;
+            let ids: Vec<String> = stmt
+                .query_map([&normalized], |row| row.get(0))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            matched_ids.extend(ids);
+        }
 
         // Check 1: If parent_url provided, find releases whose url matches the parent_url
         if let Some(p_url) = parent_url {

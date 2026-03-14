@@ -423,12 +423,18 @@ pub async fn remove_discovery_tags(
 
 #[tauri::command]
 pub async fn check_discovery_matches(
+    url: Option<String>,
     artist: Option<String>,
     title: Option<String>,
     parent_url: Option<String>,
     discovery: State<'_, DiscoveryService>,
 ) -> Result<Vec<DiscoveryRelease>> {
-    discovery.find_matching_releases(artist.as_deref(), title.as_deref(), parent_url.as_deref())
+    discovery.find_matching_releases(
+        url.as_deref(),
+        artist.as_deref(),
+        title.as_deref(),
+        parent_url.as_deref(),
+    )
 }
 
 #[tauri::command]
@@ -577,13 +583,21 @@ pub async fn scan_discovery_page(
     enrichment_cache.0.lock().await.clear();
     cancel_flag.0.store(false, Ordering::SeqCst);
 
+    log::info!("scan_discovery_page: starting scan for {url}");
+
     let existing_urls = discovery.get_all_release_urls()?;
+
     let result = tokio::time::timeout(
         std::time::Duration::from_secs(60),
         metadata::scan_page(&url, &existing_urls, &cancel_flag.0, Some(&app)),
     )
     .await
     .map_err(|_| CrateError::Discovery("Scan timed out after 60 seconds".into()))??;
+
+    log::info!(
+        "scan_discovery_page: returning {} releases",
+        result.releases.len()
+    );
 
     // Spawn background enrichment for Discogs releases (pre-fetch tracks while user browses)
     if result.source_type == "discogs" {

@@ -21,16 +21,42 @@ pub(super) async fn scan_bandcamp_page(
     client: &reqwest::Client,
     url: &str,
 ) -> Result<(Vec<crate::models::ScannedRelease>, Option<String>)> {
-    let html = client
+    let response = client
         .get(url)
         .send()
         .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Bandcamp page: {e}")))?
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Bandcamp page: {e}")))?;
+
+    // Check if we were redirected to an album/track page (common for single-release artists)
+    let final_url = response.url().to_string();
+    let final_lower = final_url.to_lowercase();
+    let redirected_to_release = final_lower.contains("/album/") || final_lower.contains("/track/");
+
+    let html = response
         .text()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to read Bandcamp response: {e}")))?;
 
+    log::info!(
+        "Fetched Bandcamp page: {} bytes, final URL: {final_url}",
+        html.len()
+    );
+
     let page_name = extract_meta_content(&html, "og:site_name");
+
+    if redirected_to_release {
+        let title = extract_meta_content(&html, "og:title");
+        let artwork_url = extract_meta_content(&html, "og:image");
+        let release = crate::models::ScannedRelease {
+            url: final_url,
+            artist: page_name.clone(),
+            title,
+            artwork_url,
+            release_date: None,
+            already_exists: false,
+        };
+        return Ok((vec![release], page_name));
+    }
 
     // Determine base URL for constructing absolute URLs
     let base_url = {
@@ -46,70 +72,25 @@ pub(super) async fn scan_bandcamp_page(
         }
     };
 
-    let mut releases = Vec::new();
+    // Primary strategy: scan for <a> links to /album/ or /track/ paths.
+    // This handles all Bandcamp layouts including non-standard ones (e.g.
+    // Knockout.js rendered pages where release class names only appear in CSS).
+    let mut releases = parse_bandcamp_release_links(&html, base_url, &page_name);
 
-    // Parse the music grid. Bandcamp uses <li> items inside the music grid.
-    // Each item has an <a> link, artwork <img>, and title text.
-    // We look for <li class="music-grid-item ..."> patterns.
-    let mut search_pos = 0;
-    while let Some(li_start) = html[search_pos..].find("<li") {
-        let abs_li_start = search_pos + li_start;
-
-        // Find the end of this <li> tag
-        let li_end = match html[abs_li_start..].find("</li>") {
-            Some(end) => abs_li_start + end + 5,
-            None => break,
-        };
-
-        let li_html = &html[abs_li_start..li_end];
-
-        // Only process music grid items
-        if !li_html.contains("music-grid-item") {
-            search_pos = li_end;
-            continue;
-        }
-
-        // Extract href from the first <a> tag
-        let href = extract_attr(li_html, "href");
-
-        // Extract artwork from <img> tag (try data-original first for lazy-loaded, then src)
-        let artwork = extract_attr(li_html, "data-original")
-            .or_else(|| {
-                // Find <img and extract src from it
-                if let Some(img_start) = li_html.find("<img") {
-                    let img_html = &li_html[img_start..];
-                    extract_attr(img_html, "src")
-                } else {
-                    None
+    // Fallback: try layout-specific parsers for pages where the link scan
+    // finds nothing (e.g. pages that load releases dynamically via JS).
+    if releases.is_empty() {
+        releases = parse_music_grid(&html, base_url, &page_name);
+        let index_releases = parse_index_page_cells(&html, base_url, &page_name);
+        if !index_releases.is_empty() {
+            let existing: std::collections::HashSet<String> =
+                releases.iter().map(|r| r.url.clone()).collect();
+            for release in index_releases {
+                if !existing.contains(&release.url) {
+                    releases.push(release);
                 }
-            })
-            .filter(|s| !s.is_empty() && !s.contains("transparent.gif"));
-
-        // Extract title from <p class="title"> ... </p>
-        let title = extract_inner_text(li_html, "title");
-
-        if let Some(href) = href {
-            // Construct absolute URL
-            let absolute_url = if href.starts_with("http") {
-                href.to_string()
-            } else {
-                format!("{}{}", base_url.trim_end_matches('/'), href)
-            };
-
-            // Only include album/track links
-            if absolute_url.contains("/album/") || absolute_url.contains("/track/") {
-                releases.push(crate::models::ScannedRelease {
-                    url: absolute_url,
-                    artist: page_name.clone(),
-                    title,
-                    artwork_url: artwork.map(|s| s.to_string()),
-                    release_date: None,
-                    already_exists: false,
-                });
             }
         }
-
-        search_pos = li_end;
     }
 
     // Bandcamp only server-renders ~16 items in the music grid. The full discography
@@ -126,6 +107,11 @@ pub(super) async fn scan_bandcamp_page(
             }
         }
     }
+
+    log::info!(
+        "Bandcamp page scan complete: {} total releases found",
+        releases.len()
+    );
 
     Ok((releases, page_name))
 }
@@ -162,6 +148,311 @@ fn extract_inner_text(html: &str, class_name: &str) -> Option<String> {
         }
     }
     None
+}
+
+/// Parse releases from the standard Bandcamp music grid layout.
+///
+/// Searches for `<li class="music-grid-item ...">` elements and extracts
+/// the release href, artwork, and title from each.
+fn parse_music_grid(
+    html: &str,
+    base_url: &str,
+    page_name: &Option<String>,
+) -> Vec<crate::models::ScannedRelease> {
+    let mut releases = Vec::new();
+    let mut search_pos = 0;
+
+    while let Some(li_start) = html[search_pos..].find("<li") {
+        let abs_li_start = search_pos + li_start;
+
+        let li_end = match html[abs_li_start..].find("</li>") {
+            Some(end) => abs_li_start + end + 5,
+            None => break,
+        };
+
+        let li_html = &html[abs_li_start..li_end];
+
+        if !li_html.contains("music-grid-item") {
+            search_pos = li_end;
+            continue;
+        }
+
+        let href = extract_attr(li_html, "href");
+
+        let artwork = extract_attr(li_html, "data-original")
+            .or_else(|| {
+                if let Some(img_start) = li_html.find("<img") {
+                    let img_html = &li_html[img_start..];
+                    extract_attr(img_html, "src")
+                } else {
+                    None
+                }
+            })
+            .filter(|s| !s.is_empty() && !s.contains("transparent.gif"));
+
+        let title = extract_inner_text(li_html, "title");
+
+        if let Some(href) = href {
+            let absolute_url = if href.starts_with("http") {
+                href.to_string()
+            } else {
+                format!("{}{}", base_url.trim_end_matches('/'), href)
+            };
+
+            if absolute_url.contains("/album/") || absolute_url.contains("/track/") {
+                releases.push(crate::models::ScannedRelease {
+                    url: absolute_url,
+                    artist: page_name.clone(),
+                    title,
+                    artwork_url: artwork.map(|s| s.to_string()),
+                    release_date: None,
+                    already_exists: false,
+                });
+            }
+        }
+
+        search_pos = li_end;
+    }
+
+    releases
+}
+
+/// Extract the title text from the second `<a>` tag in an index page cell.
+///
+/// Index page cells have two `<a>` tags: the first wraps the artwork image,
+/// the second contains the release title text.
+fn extract_index_cell_title(cell_html: &str) -> Option<String> {
+    // Skip past the first </a> (closes the image link)
+    let first_close = cell_html.find("</a>")?;
+    let after_first = &cell_html[first_close + 4..];
+
+    // Find the second <a tag
+    let second_a = after_first.find("<a")?;
+    let a_tag = &after_first[second_a..];
+
+    // Find the > that closes the opening <a ...> tag
+    let tag_end = a_tag.find('>')?;
+    let content_start = tag_end + 1;
+
+    // Read text until the next < (start of </a>)
+    let content_end = a_tag[content_start..].find('<')?;
+    let text = a_tag[content_start..content_start + content_end].trim();
+
+    if !text.is_empty() {
+        Some(decode_html_entities(text))
+    } else {
+        None
+    }
+}
+
+/// Parse releases from the Bandcamp "index page" layout.
+///
+/// Some Bandcamp label/artist pages use `<div class="indexpage_list_cell">` elements
+/// instead of the standard `<li class="music-grid-item">` music grid. Each cell contains
+/// two `<a>` tags (one wrapping artwork, one with the title text) linking to the release.
+pub(super) fn parse_index_page_cells(
+    html: &str,
+    base_url: &str,
+    page_name: &Option<String>,
+) -> Vec<crate::models::ScannedRelease> {
+    let mut releases = Vec::new();
+    let marker = "indexpage_list_cell";
+    let mut search_pos = 0;
+
+    while let Some(marker_pos) = html[search_pos..].find(marker) {
+        let abs_marker = search_pos + marker_pos;
+
+        // Walk back to find the opening <div that contains this class
+        let div_start = match html[..abs_marker].rfind("<div") {
+            Some(pos) => pos,
+            None => {
+                search_pos = abs_marker + marker.len();
+                continue;
+            }
+        };
+
+        // Find the closing </div> for this cell
+        let div_end = match html[abs_marker..].find("</div>") {
+            Some(end) => abs_marker + end + 6,
+            None => break,
+        };
+
+        let cell_html = &html[div_start..div_end];
+
+        // Extract href from the first <a> tag
+        let href = extract_attr(cell_html, "href");
+
+        // Extract artwork from <img src="...">
+        let artwork = if let Some(img_start) = cell_html.find("<img") {
+            let img_html = &cell_html[img_start..];
+            extract_attr(img_html, "src")
+                .filter(|s| !s.is_empty())
+                .map(|s| s.to_string())
+        } else {
+            None
+        };
+
+        // Extract title from the second <a> tag
+        let mut title = extract_index_cell_title(cell_html);
+
+        // Strip "Artist - " prefix from title (index pages embed "Artist - Title" format)
+        if let (Some(ref t), Some(ref name)) = (&title, page_name) {
+            if let Some(stripped) = t.strip_prefix(&format!("{name} - ")) {
+                title = Some(stripped.to_string());
+            }
+        }
+
+        if let Some(href) = href {
+            let absolute_url = if href.starts_with("http") {
+                href.to_string()
+            } else {
+                format!("{}{}", base_url.trim_end_matches('/'), href)
+            };
+
+            if absolute_url.contains("/album/") || absolute_url.contains("/track/") {
+                releases.push(crate::models::ScannedRelease {
+                    url: absolute_url,
+                    artist: page_name.clone(),
+                    title,
+                    artwork_url: artwork,
+                    release_date: None,
+                    already_exists: false,
+                });
+            }
+        }
+
+        search_pos = div_end;
+    }
+
+    releases
+}
+
+/// Fallback parser for Bandcamp pages with non-standard layouts.
+///
+/// Scans the HTML for `<a href="...">` tags whose href points to an `/album/` or `/track/`
+/// path. Extracts artwork from any `<img>` within the same `<a>` tag, and title text from
+/// the link's inner text content.
+///
+/// Only used when the music grid, index page, and data-client-items parsers all return
+/// zero results.
+pub(super) fn parse_bandcamp_release_links(
+    html: &str,
+    base_url: &str,
+    page_name: &Option<String>,
+) -> Vec<crate::models::ScannedRelease> {
+    // Track insertion order + allow merging data from duplicate links.
+    // Bandcamp pages often have two <a> tags per release: one wrapping artwork,
+    // one containing the title text — both pointing to the same URL.
+    let mut url_to_index: std::collections::HashMap<String, usize> =
+        std::collections::HashMap::new();
+    let mut releases = Vec::new();
+    let mut search_pos = 0;
+
+    while let Some(a_start) = html[search_pos..].find("<a ") {
+        let abs_a_start = search_pos + a_start;
+
+        let a_close = match html[abs_a_start..].find("</a>") {
+            Some(end) => abs_a_start + end + 4,
+            None => break,
+        };
+
+        let a_html = &html[abs_a_start..a_close];
+
+        // Extract href
+        let href = match extract_attr(a_html, "href") {
+            Some(h) => h,
+            None => {
+                search_pos = a_close;
+                continue;
+            }
+        };
+
+        let absolute_url = if href.starts_with("http") {
+            href.to_string()
+        } else {
+            format!("{}{}", base_url.trim_end_matches('/'), href)
+        };
+
+        // Only include album/track links
+        if !absolute_url.contains("/album/") && !absolute_url.contains("/track/") {
+            search_pos = a_close;
+            continue;
+        }
+
+        // Extract artwork from <img> within this <a> tag
+        let artwork = if let Some(img_start) = a_html.find("<img") {
+            let img_html = &a_html[img_start..];
+            extract_attr(img_html, "src")
+                .filter(|s| !s.is_empty() && !s.contains("transparent.gif"))
+                .map(|s| s.to_string())
+        } else {
+            None
+        };
+
+        // Extract title from text content (skip <img> children)
+        let title = extract_link_text(a_html);
+
+        // Merge data from duplicate links (e.g. image link + title link)
+        if let Some(&idx) = url_to_index.get(&absolute_url) {
+            let existing: &mut crate::models::ScannedRelease = &mut releases[idx];
+            if existing.title.is_none() && title.is_some() {
+                existing.title = title;
+            }
+            if existing.artwork_url.is_none() && artwork.is_some() {
+                existing.artwork_url = artwork;
+            }
+        } else {
+            url_to_index.insert(absolute_url.clone(), releases.len());
+            releases.push(crate::models::ScannedRelease {
+                url: absolute_url,
+                artist: page_name.clone(),
+                title,
+                artwork_url: artwork,
+                release_date: None,
+                already_exists: false,
+            });
+        }
+
+        search_pos = a_close;
+    }
+
+    releases
+}
+
+/// Extract visible text content from an `<a>` tag, skipping nested tags like `<img>`.
+fn extract_link_text(a_html: &str) -> Option<String> {
+    // Find the end of the opening <a ...> tag
+    let tag_end = a_html.find('>')? + 1;
+    let inner = &a_html[tag_end..];
+
+    // Find the closing </a>
+    let close = inner.find("</a>")?;
+    let inner = &inner[..close];
+
+    // Collect text outside of child tags
+    let mut text = String::new();
+    let mut pos = 0;
+    while pos < inner.len() {
+        if let Some(tag_start) = inner[pos..].find('<') {
+            // Collect text before the tag
+            text.push_str(&inner[pos..pos + tag_start]);
+            // Skip past the closing >
+            match inner[pos + tag_start..].find('>') {
+                Some(end) => pos = pos + tag_start + end + 1,
+                None => break,
+            }
+        } else {
+            text.push_str(&inner[pos..]);
+            break;
+        }
+    }
+
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(decode_html_entities(trimmed))
+    }
 }
 
 /// A single item from the `data-client-items` JSON array on Bandcamp label/artist pages.

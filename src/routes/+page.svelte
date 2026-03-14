@@ -67,7 +67,7 @@
 	// =============================================================================
 
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
-	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'artist', direction: 'asc' })
+	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'date_added', direction: 'desc' })
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
 	let devices = $state<UsbDevice[]>([])
@@ -258,7 +258,7 @@
 		if (currentView !== view) {
 			sortConfig = { field: 'date_added', direction: 'desc' }
 			libraryStore.setSort(sortConfig)
-			discoverySortConfig = { field: 'artist', direction: 'asc' }
+			discoverySortConfig = { field: 'date_added', direction: 'desc' }
 			discoveryStore.setSort(discoverySortConfig)
 		}
 

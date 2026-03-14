@@ -484,7 +484,10 @@ fn test_extract_playlist_videos_empty() {
 // Bandcamp data-client-items (label page overflow)
 // =========================================================================
 
-use super::bandcamp::{extract_data_client_items, parse_client_items};
+use super::bandcamp::{
+    extract_data_client_items, parse_bandcamp_release_links, parse_client_items,
+    parse_index_page_cells,
+};
 
 #[test]
 fn test_extract_data_client_items_basic() {
@@ -571,4 +574,177 @@ fn test_parse_client_items_no_art_id() {
     assert_eq!(releases.len(), 1);
     assert!(releases[0].artwork_url.is_none());
     assert!(releases[0].artist.is_none());
+}
+
+// =========================================================================
+// Bandcamp index page layout
+// =========================================================================
+
+#[test]
+fn test_parse_index_page_cells_basic() {
+    let html = r#"
+        <div class="indexpage_list_cell">
+            <a href="/album/cool-ep">
+                <img src="https://f4.bcbits.com/img/a123_2.jpg" />
+            </a>
+            <a href="/album/cool-ep">Cool EP</a>
+        </div>
+    "#;
+    let page_name = Some("Test Label".to_string());
+    let releases = parse_index_page_cells(html, "https://test.bandcamp.com", &page_name);
+
+    assert_eq!(releases.len(), 1);
+    assert_eq!(releases[0].url, "https://test.bandcamp.com/album/cool-ep");
+    assert_eq!(releases[0].title.as_deref(), Some("Cool EP"));
+    assert_eq!(releases[0].artist.as_deref(), Some("Test Label"));
+    assert_eq!(
+        releases[0].artwork_url.as_deref(),
+        Some("https://f4.bcbits.com/img/a123_2.jpg")
+    );
+}
+
+#[test]
+fn test_parse_index_page_cells_strips_artist_prefix() {
+    let html = r#"
+        <div class="indexpage_list_cell">
+            <a href="/album/my-album"><img src="https://f4.bcbits.com/img/a1_2.jpg" /></a>
+            <a href="/album/my-album">Some Artist - My Album</a>
+        </div>
+    "#;
+    let page_name = Some("Some Artist".to_string());
+    let releases = parse_index_page_cells(html, "https://x.bandcamp.com", &page_name);
+
+    assert_eq!(releases.len(), 1);
+    assert_eq!(releases[0].title.as_deref(), Some("My Album"));
+}
+
+#[test]
+fn test_parse_index_page_cells_filters_non_release() {
+    let html = r#"
+        <div class="indexpage_list_cell">
+            <a href="/merch/tshirt"><img src="https://f4.bcbits.com/img/a1_2.jpg" /></a>
+            <a href="/merch/tshirt">Cool T-Shirt</a>
+        </div>
+        <div class="indexpage_list_cell">
+            <a href="/album/real-album"><img src="https://f4.bcbits.com/img/a2_2.jpg" /></a>
+            <a href="/album/real-album">Real Album</a>
+        </div>
+    "#;
+    let releases = parse_index_page_cells(html, "https://x.bandcamp.com", &None);
+
+    assert_eq!(releases.len(), 1);
+    assert_eq!(releases[0].url, "https://x.bandcamp.com/album/real-album");
+}
+
+#[test]
+fn test_parse_index_page_cells_multiple() {
+    let html = r#"
+        <div class="indexpage_list_cell">
+            <a href="/album/first"><img src="https://f4.bcbits.com/img/a1_2.jpg" /></a>
+            <a href="/album/first">First</a>
+        </div>
+        <div class="indexpage_list_cell">
+            <a href="/album/second"><img src="https://f4.bcbits.com/img/a2_2.jpg" /></a>
+            <a href="/album/second">Second</a>
+        </div>
+        <div class="indexpage_list_cell">
+            <a href="/track/third"><img src="https://f4.bcbits.com/img/a3_2.jpg" /></a>
+            <a href="/track/third">Third</a>
+        </div>
+    "#;
+    let releases = parse_index_page_cells(html, "https://x.bandcamp.com", &None);
+
+    assert_eq!(releases.len(), 3);
+    assert_eq!(releases[0].url, "https://x.bandcamp.com/album/first");
+    assert_eq!(releases[1].url, "https://x.bandcamp.com/album/second");
+    assert_eq!(releases[2].url, "https://x.bandcamp.com/track/third");
+}
+
+#[test]
+fn test_parse_index_page_cells_empty() {
+    let html = r#"<div class="main-content"><p>No releases here</p></div>"#;
+    let releases = parse_index_page_cells(html, "https://x.bandcamp.com", &None);
+    assert!(releases.is_empty());
+}
+
+#[test]
+fn test_parse_index_page_cells_css_only_marker() {
+    // The marker appears only in a <style> block, not as an element class
+    let html = r#"
+        <style>.indexpage_list_cell { display: block; }</style>
+        <a href="/album/test"><img src="https://f4.bcbits.com/img/a1_2.jpg"></a>
+    "#;
+    let releases = parse_index_page_cells(html, "https://x.bandcamp.com", &None);
+    assert!(releases.is_empty());
+}
+
+// =========================================================================
+// Bandcamp release link fallback (bare <a href> scan)
+// =========================================================================
+
+#[test]
+fn test_parse_bandcamp_release_links_basic() {
+    let html = r#"
+        <a href="/album/cool-ep">
+            <img src="https://f4.bcbits.com/img/a123_2.jpg">
+        </a>
+        <a href="/album/another-one">
+            <img src="https://f4.bcbits.com/img/a456_2.jpg">
+        </a>
+    "#;
+    let page_name = Some("Test Label".to_string());
+    let releases = parse_bandcamp_release_links(html, "https://test.bandcamp.com", &page_name);
+
+    assert_eq!(releases.len(), 2);
+    assert_eq!(releases[0].url, "https://test.bandcamp.com/album/cool-ep");
+    assert_eq!(
+        releases[0].artwork_url.as_deref(),
+        Some("https://f4.bcbits.com/img/a123_2.jpg")
+    );
+    assert_eq!(releases[0].artist.as_deref(), Some("Test Label"));
+    assert_eq!(
+        releases[1].url,
+        "https://test.bandcamp.com/album/another-one"
+    );
+}
+
+#[test]
+fn test_parse_bandcamp_release_links_merges_duplicates() {
+    // Same album linked twice: image link (artwork, no title) + text link (title, no artwork)
+    let html = r#"
+        <a href="/album/my-album"><img src="https://f4.bcbits.com/img/a1_2.jpg"></a>
+        <a href="/album/my-album">My Album</a>
+        <a href="/album/other"><img src="https://f4.bcbits.com/img/a2_2.jpg"></a>
+    "#;
+    let releases = parse_bandcamp_release_links(html, "https://x.bandcamp.com", &None);
+    assert_eq!(releases.len(), 2);
+    // First release should have both artwork (from first link) and title (from second link)
+    assert_eq!(releases[0].title.as_deref(), Some("My Album"));
+    assert_eq!(
+        releases[0].artwork_url.as_deref(),
+        Some("https://f4.bcbits.com/img/a1_2.jpg")
+    );
+}
+
+#[test]
+fn test_parse_bandcamp_release_links_filters_non_release() {
+    let html = r#"
+        <a href="/merch/tshirt"><img src="https://f4.bcbits.com/img/a1_2.jpg"></a>
+        <a href="/">Home</a>
+        <a href="/album/real"><img src="https://f4.bcbits.com/img/a2_2.jpg"></a>
+    "#;
+    let releases = parse_bandcamp_release_links(html, "https://x.bandcamp.com", &None);
+    assert_eq!(releases.len(), 1);
+    assert_eq!(releases[0].url, "https://x.bandcamp.com/album/real");
+}
+
+#[test]
+fn test_parse_bandcamp_release_links_extracts_title() {
+    let html = r#"
+        <a href="/album/my-ep">My Great EP</a>
+    "#;
+    let releases = parse_bandcamp_release_links(html, "https://x.bandcamp.com", &None);
+    assert_eq!(releases.len(), 1);
+    assert_eq!(releases[0].title.as_deref(), Some("My Great EP"));
+    assert!(releases[0].artwork_url.is_none());
 }
