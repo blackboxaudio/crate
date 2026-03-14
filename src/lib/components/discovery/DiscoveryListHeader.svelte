@@ -2,6 +2,7 @@
 	import type { DiscoverySortConfig, DiscoverySortField } from '$lib/types'
 	import { translate } from '$lib/i18n'
 	import Icon from '$lib/components/common/Icon.svelte'
+	import { fade } from 'svelte/transition'
 
 	type Props = {
 		sortConfig: DiscoverySortConfig
@@ -52,12 +53,14 @@
 			>
 				{column.labelKey ? $translate(column.labelKey) : ''}
 				{#if column.field && column.field !== 'tags' && sortConfig.field === column.field}
-					<Icon
-						name="chevron-down"
-						class="ml-1 inline-block h-3 w-3 align-middle transition-transform {sortConfig.direction === 'asc'
-							? 'rotate-180'
-							: ''}"
-					/>
+					<span class="inline-block" transition:fade={{ duration: 50 }}>
+						<Icon
+							name="chevron-down"
+							class="ml-1 inline-block h-3 w-3 align-middle transition-transform {sortConfig.direction === 'asc'
+								? 'rotate-180'
+								: ''}"
+						/>
+					</span>
 				{/if}
 			</button>
 		{:else}
