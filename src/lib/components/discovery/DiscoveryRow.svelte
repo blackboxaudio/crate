@@ -2,7 +2,7 @@
 	import type { DiscoveryRelease } from '$lib/types'
 	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
-	import { AlbumArt, Icon, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
+	import { AlbumArt, AlbumArtModal, Icon, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
 	import { dateFormat, dragStore, isDraggingTag, refreshingReleaseIds, discoveryStore } from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$lib/stores/player'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
@@ -48,6 +48,13 @@
 	}: Props = $props()
 
 	let isTagDragHovered = $state(false)
+	let showArtworkModal = $state(false)
+
+	function handleArtworkClick() {
+		if (release.artwork_path || release.artwork_url) {
+			showArtworkModal = true
+		}
+	}
 
 	// Clear hover when tag drag ends
 	$effect(() => {
@@ -159,7 +166,13 @@
 
 	<!-- Artwork -->
 	<div class="flex items-center justify-center">
-		<AlbumArt artworkPath={release.artwork_path} artworkUrl={release.artwork_url} size="xs" />
+		<AlbumArt
+			artworkPath={release.artwork_path}
+			artworkUrl={release.artwork_url}
+			size="xs"
+			onclick={handleArtworkClick}
+			class={release.artwork_path || release.artwork_url ? 'cursor-zoom-in' : ''}
+		/>
 	</div>
 
 	<!-- Artist / Title -->
@@ -240,6 +253,16 @@
 		</Tooltip>
 	</div>
 </div>
+
+{#if showArtworkModal}
+	<AlbumArtModal
+		open={showArtworkModal}
+		artworkPath={release.artwork_path}
+		artworkUrl={release.artwork_url}
+		trackTitle={release.title ?? ''}
+		onClose={() => (showArtworkModal = false)}
+	/>
+{/if}
 
 <!-- Track sub-rows (CSS grid-template-rows transition for smooth expand/collapse) -->
 {#if release.tracks.length > 0}

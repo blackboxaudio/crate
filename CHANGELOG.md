@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added click-to-enlarge artwork modal for discovery releases
+- Added dynamic sidebar header that updates to match the active context (Library / Discovery)
+
 ## [0.2.6] - 2026-03-14
 
 ### Added
