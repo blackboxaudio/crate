@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Playlist } from '$lib/types'
 	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
+	import { isDraggingPlaylist, hoveredDropTarget, dragStore } from '$lib/stores'
 	import { getStoredSet, setStoredSet } from '$lib/utils'
 	import { handleSelection } from '$lib/utils/selection'
 	import { translate } from '$lib/i18n'
@@ -104,6 +105,15 @@
 
 	const flattenedVisible = $derived(flattenVisible(tree))
 
+	// Refresh drop targets when edge zones are rendered into the DOM
+	$effect(() => {
+		if ($isDraggingPlaylist) {
+			requestAnimationFrame(() => {
+				dragStore.requestDropTargetRefresh()
+			})
+		}
+	})
+
 	let lastClickedTreeId: string | null = $state(null)
 
 	function handleItemClick(playlist: Playlist, e: MouseEvent) {
@@ -177,16 +187,31 @@
 <div
 	role="tree"
 	tabindex="0"
-	class="h-full space-y-0.5"
+	class="flex h-full flex-col gap-0.5"
 	onclick={handleContainerClick}
 	onkeydown={handleContainerKeyDown}
 	oncontextmenu={handleContainerContextMenu}
 >
+	{#if $isDraggingPlaylist}
+		<div
+			data-drop-target="root-top"
+			class="h-1 rounded-full transition-colors {$hoveredDropTarget === 'root-top' ? 'bg-brand-primary' : ''}"
+		></div>
+	{/if}
+
 	{#each tree as node, index (index)}
 		{@render renderNode(node, 0)}
 	{/each}
 
 	{#if playlists.length === 0}
 		<Text variant="caption" as="p" italic class="py-4 text-center">{$translate('playlists.noPlaylistsYet')}</Text>
+	{/if}
+
+	{#if $isDraggingPlaylist}
+		<div data-drop-target="root-bottom" class="min-h-8 flex-1">
+			{#if $hoveredDropTarget === 'root-bottom'}
+				<div class="mx-2 h-0.5 rounded-full bg-brand-primary"></div>
+			{/if}
+		</div>
 	{/if}
 </div>

@@ -137,6 +137,14 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 				} else {
 					onPlaylistMove(data.playlistId, target.id)
 				}
+			} else if (data.type === 'playlist' && target.type === 'root') {
+				// Dropping playlist(s)/folder(s) on root edge zone → move to root level
+				const idsToMove = data.playlistIds.length > 1 ? data.playlistIds : [data.playlistId]
+				if (idsToMove.length > 1) {
+					onBulkPlaylistMove(idsToMove, null)
+				} else {
+					onPlaylistMove(data.playlistId, null)
+				}
 			} else if (data.type === 'playlist' && target.type === 'device') {
 				// Dropping a playlist/folder on a device - export immediately
 				onPlaylistExportToDevice(data.playlistId, data.isFolder, target.id)

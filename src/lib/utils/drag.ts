@@ -10,7 +10,7 @@
 export interface DropTarget {
 	element: HTMLElement
 	id: string
-	type: 'playlist' | 'folder' | 'device' | 'category' | 'tracklist' | 'releaselist'
+	type: 'playlist' | 'folder' | 'device' | 'category' | 'tracklist' | 'releaselist' | 'root'
 	rect: DOMRect
 }
 
@@ -53,7 +53,8 @@ export function findDropTargets(): DropTarget[] {
 			type !== 'device' &&
 			type !== 'category' &&
 			type !== 'tracklist' &&
-			type !== 'releaselist'
+			type !== 'releaselist' &&
+			type !== 'root'
 		)
 			return
 
