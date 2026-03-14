@@ -11,6 +11,7 @@ import type {
 } from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
 import { translate } from '$lib/i18n'
+import { toastStore } from './toast'
 import { syncStore } from './sync'
 
 // =============================================================================
@@ -56,11 +57,13 @@ function createPlaylistsStore() {
 					loading: false,
 				}))
 			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : 'Failed to load playlists'
 				update((state) => ({
 					...state,
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to load playlists',
+					error: errorMessage,
 				}))
+				toastStore.error(errorMessage)
 			}
 		},
 

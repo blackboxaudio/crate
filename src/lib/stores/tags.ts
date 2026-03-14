@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store'
 import type { TagCategory, Tag, TagSelectionState, Track } from '$lib/types'
 import * as tagsApi from '$lib/api/tags'
+import { toastStore } from './toast'
 
 // =============================================================================
 // State
@@ -42,11 +43,13 @@ function createTagsStore() {
 					loading: false,
 				}))
 			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : 'Failed to load tags'
 				update((state) => ({
 					...state,
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to load tags',
+					error: errorMessage,
 				}))
+				toastStore.error(errorMessage)
 			}
 		},
 

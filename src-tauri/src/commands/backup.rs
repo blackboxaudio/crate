@@ -1,7 +1,13 @@
 use tauri::{AppHandle, State};
 
 use crate::error::Result;
+use crate::models::backup::BackupInfo;
 use crate::services::BackupService;
+
+#[tauri::command]
+pub async fn get_backup_info(path: String) -> Result<BackupInfo> {
+    crate::services::backup::get_backup_info(path).await
+}
 
 #[tauri::command]
 pub async fn create_backup(

@@ -72,7 +72,8 @@
 				"frequencyMonthly": "매월",
 				"frequencyNever": "안 함 (오프)",
 				"backupTypeAutomatic": "(자동)",
-				"backupTypeManual": "(수동)"
+				"backupTypeManual": "(수동)",
+				"backupContents": "이 백업에는 {tracks, plural, =0 {트랙 없음} =1 {1개 트랙} other {{tracks}개 트랙}}, {playlists, plural, =0 {재생목록 없음} =1 {1개 재생목록} other {{playlists}개 재생목록}}, {tags, plural, =0 {태그 없음} =1 {1개 태그} other {{tags}개 태그}}, 그리고 {discoveryReleases, plural, =0 {디스커버리 릴리스 없음} =1 {1개 디스커버리 릴리스} other {{discoveryReleases}개 디스커버리 릴리스}}가 포함되어 있습니다. {date}에 생성됨."
 			}
 		},
 		"library": {

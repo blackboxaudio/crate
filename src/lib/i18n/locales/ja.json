@@ -72,7 +72,8 @@
 				"frequencyMonthly": "毎月",
 				"frequencyNever": "なし（オフ）",
 				"backupTypeAutomatic": "（自動）",
-				"backupTypeManual": "（手動）"
+				"backupTypeManual": "（手動）",
+				"backupContents": "このバックアップには、{tracks, plural, =0 {トラックなし} =1 {1トラック} other {{tracks}トラック}}、{playlists, plural, =0 {プレイリストなし} =1 {1プレイリスト} other {{playlists}プレイリスト}}、{tags, plural, =0 {タグなし} =1 {1タグ} other {{tags}タグ}}、および{discoveryReleases, plural, =0 {ディスカバリーリリースなし} =1 {1ディスカバリーリリース} other {{discoveryReleases}ディスカバリーリリース}}が含まれています。{date}に作成されました。"
 			}
 		},
 		"library": {

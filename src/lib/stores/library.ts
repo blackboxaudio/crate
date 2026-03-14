@@ -60,11 +60,13 @@ function createLibraryStore() {
 					filter: filter ?? {},
 				}))
 			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : 'Failed to load tracks'
 				update((state) => ({
 					...state,
 					loading: false,
-					error: error instanceof Error ? error.message : 'Failed to load tracks',
+					error: errorMessage,
 				}))
+				toastStore.error(errorMessage)
 			}
 		},
 

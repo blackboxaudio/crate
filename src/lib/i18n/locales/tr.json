@@ -72,7 +72,8 @@
 				"frequencyMonthly": "Aylık",
 				"frequencyNever": "Asla (kapalı)",
 				"backupTypeAutomatic": "(Otomatik)",
-				"backupTypeManual": "(Manuel)"
+				"backupTypeManual": "(Manuel)",
+				"backupContents": "Bu yedekleme {tracks, plural, =0 {parça yok} =1 {1 parça} other {{tracks} parça}}, {playlists, plural, =0 {çalma listesi yok} =1 {1 çalma listesi} other {{playlists} çalma listesi}}, {tags, plural, =0 {etiket yok} =1 {1 etiket} other {{tags} etiket}} ve {discoveryReleases, plural, =0 {keşif yayını yok} =1 {1 keşif yayını} other {{discoveryReleases} keşif yayını}} içerir. {date} tarihinde oluşturuldu."
 			}
 		},
 		"library": {

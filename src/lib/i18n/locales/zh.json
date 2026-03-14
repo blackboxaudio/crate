@@ -72,7 +72,8 @@
 				"frequencyMonthly": "每月",
 				"frequencyNever": "从不（关闭）",
 				"backupTypeAutomatic": "（自动）",
-				"backupTypeManual": "（手动）"
+				"backupTypeManual": "（手动）",
+				"backupContents": "此备份包含{tracks, plural, =0 {0个音轨} =1 {1个音轨} other {{tracks}个音轨}}、{playlists, plural, =0 {0个播放列表} =1 {1个播放列表} other {{playlists}个播放列表}}、{tags, plural, =0 {0个标签} =1 {1个标签} other {{tags}个标签}}和{discoveryReleases, plural, =0 {0个发现版本} =1 {1个发现版本} other {{discoveryReleases}个发现版本}}。创建于{date}。"
 			}
 		},
 		"library": {

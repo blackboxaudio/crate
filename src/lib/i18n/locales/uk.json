@@ -72,7 +72,8 @@
 				"frequencyMonthly": "Щомісяця",
 				"frequencyNever": "Ніколи (вимкнено)",
 				"backupTypeAutomatic": "(Автоматична)",
-				"backupTypeManual": "(Ручна)"
+				"backupTypeManual": "(Ручна)",
+				"backupContents": "Цей резервний коп захищає {tracks, plural, =0 {жодних доріжок} =1 {1 доріжку} other {{tracks} доріжок}}, {playlists, plural, =0 {жодних списків відтворення} =1 {1 список відтворення} other {{playlists} списків відтворення}}, {tags, plural, =0 {жодних тегів} =1 {1 тег} other {{tags} тегів}} та {discoveryReleases, plural, =0 {жодних релізів відкриття} =1 {1 реліз відкриття} other {{discoveryReleases} релізів відкриття}}. Створено {date}."
 			}
 		},
 		"library": {
