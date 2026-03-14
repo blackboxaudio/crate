@@ -881,6 +881,12 @@ pub async fn restore_from_backup(
         .map_err(|e| CrateError::Backup(format!("Stale artwork cleanup failed: {e}")))??;
     }
 
+    // Clear cached discovery audio files (they'll be re-fetched on demand)
+    let streams_dir = data_dir.join("discovery").join("streams");
+    if streams_dir.exists() {
+        let _ = std::fs::remove_dir_all(&streams_dir);
+    }
+
     // Ensure minimum 2s total elapsed
     let elapsed = start.elapsed();
     if elapsed < std::time::Duration::from_secs(2) {
