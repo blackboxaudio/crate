@@ -304,6 +304,7 @@ function createDiscoveryStore() {
 					refreshingIds: next,
 				}
 			})
+			discoveryPlaylistStore.replaceRelease(release)
 		},
 
 		/**

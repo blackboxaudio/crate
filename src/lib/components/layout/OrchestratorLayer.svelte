@@ -472,6 +472,16 @@
 		onBulkImportComplete={async () => {
 			await discoveryStore.loadReleases()
 			await playlistsStore.load()
+			const playlist = playlists.find((p) => p.id === selectedPlaylistId)
+			if (playlist?.context === 'discovery') {
+				if (playlist.is_smart) {
+					await discoveryPlaylistStore.refreshFromApi(playlist.id, () =>
+						playlistsApi.getSmartPlaylistReleases(playlist.id)
+					)
+				} else {
+					await discoveryPlaylistStore.refreshFromApi(playlist.id, () => playlistsApi.getPlaylistReleases(playlist.id))
+				}
+			}
 		}}
 	/>
 {/if}
