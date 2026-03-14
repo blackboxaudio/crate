@@ -5,11 +5,13 @@
 	import ToastContainer from '$lib/components/common/ToastContainer.svelte'
 	import CrashScreen from '$lib/components/common/CrashScreen.svelte'
 	import SplashScreen from '$lib/components/common/SplashScreen.svelte'
+	import { AboutDialog, OnboardingWizard } from '$lib/components/onboarding'
 	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
-	import { getVersion } from '@tauri-apps/api/app'
+	// @ts-expect-error — PUBLIC_APP_VERSION is set dynamically by vite.config.ts
+	import { PUBLIC_APP_VERSION } from '$env/static/public'
 	import { isDev } from '$lib/stores/app'
-	import { settingsStore } from '$lib/stores/settings'
+	import { settingsStore, hasCompletedOnboarding } from '$lib/stores/settings'
 	import { splashVisible } from '$lib/stores/splash'
 	import { useGlobalErrorHandler, hasAudioDrag } from '$lib/hooks'
 	import { initializeI18n, translate } from '$lib/i18n'
@@ -32,7 +34,8 @@
 		pageActions,
 	} from '$lib/stores'
 	import { discoveryPlaylistStore } from '$lib/stores/discoveryPlaylist'
-	import { setMenuItemEnabled } from '$lib/api/app'
+	import { listen } from '@tauri-apps/api/event'
+	import { setMenuItemEnabled, setOnboardingItemsEnabled } from '$lib/api/app'
 	import { computeDiscoveryTagStates } from '$lib/utils/tagComputation'
 
 	interface Props {
@@ -41,7 +44,10 @@
 
 	let { children }: Props = $props()
 	let i18nReady = $state(false)
-	let splashVersion = $state('0.0.0')
+	let splashVersion = PUBLIC_APP_VERSION
+	let onboardingComplete = $state(false)
+	let showOnboarding = $derived(!$splashVisible && !$hasCompletedOnboarding && !onboardingComplete)
+	let showAboutDialog = $state(false)
 
 	// =========================================================================
 	// Layout State (subscribed from stores)
@@ -127,6 +133,12 @@
 		setMenuItemEnabled('refresh_metadata', $activeView === 'discovery' && $selectedReleaseIds.size > 0)
 	})
 
+	// Disable menu items during onboarding wizard and sync state to uiStore
+	$effect(() => {
+		uiStore.setOnboarding(showOnboarding)
+		setOnboardingItemsEnabled(!showOnboarding)
+	})
+
 	// Clear tree multi-selection when navigation changes
 	let prevNavPlaylistId: string | null = null
 	let prevNavFolderId: string | null = null
@@ -209,8 +221,6 @@
 	// =========================================================================
 
 	onMount(() => {
-		getVersion().then((v) => (splashVersion = v))
-
 		async function init() {
 			const cachedLanguage = localStorage.getItem('crate-language') as Language | null
 			await initializeI18n(cachedLanguage)
@@ -243,8 +253,19 @@
 		}
 		document.addEventListener('contextmenu', contextMenuHandler)
 
+		// Listen for 'about' menu action during onboarding to show simple about dialog
+		let unlistenAbout: (() => void) | null = null
+		listen<string>('menu-action', (event) => {
+			if (event.payload === 'about' && showOnboarding) {
+				showAboutDialog = true
+			}
+		}).then((unlisten) => {
+			unlistenAbout = unlisten
+		})
+
 		return () => {
 			cleanupErrorHandler()
+			unlistenAbout?.()
 			window.removeEventListener('dragover', dragoverHandler)
 			window.removeEventListener('drop', dropHandler)
 			document.removeEventListener('contextmenu', contextMenuHandler)
@@ -254,11 +275,23 @@
 
 <SplashScreen show={$splashVisible} version={splashVersion} />
 
+{#if showOnboarding}
+	<OnboardingWizard
+		onComplete={() => {
+			onboardingComplete = true
+			settingsStore.completeOnboarding()
+		}}
+	/>
+	<AboutDialog open={showAboutDialog} onClose={() => (showAboutDialog = false)} />
+{/if}
+
 <div class="flex h-screen w-screen flex-col overflow-hidden bg-surface-0 text-text-primary">
 	{#if i18nReady}
 		<div
 			class="flex h-full flex-col transition-opacity duration-300"
-			style="opacity: {$splashVisible ? 0 : 1}; pointer-events: {$splashVisible ? 'none' : 'auto'}"
+			style="opacity: {$splashVisible || showOnboarding ? 0 : 1}; pointer-events: {$splashVisible || showOnboarding
+				? 'none'
+				: 'auto'}"
 		>
 			<!-- Unified Header: Logo + Toolbar -->
 			<div class="relative flex rounded-br bg-surface-1">

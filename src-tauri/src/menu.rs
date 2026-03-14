@@ -1,3 +1,5 @@
+use std::sync::Mutex;
+
 use serde::Deserialize;
 use tauri::{
     menu::{
@@ -5,6 +7,23 @@ use tauri::{
     },
     AppHandle, Emitter, Manager, Wry,
 };
+
+/// Cached fullscreen menu labels for dynamic text toggling.
+/// Stored as Tauri state so the backend can update the menu text
+/// when the window enters/exits fullscreen without needing the frontend.
+pub struct FullscreenLabels {
+    pub enter: String,
+    pub exit: String,
+}
+
+impl Default for FullscreenLabels {
+    fn default() -> Self {
+        Self {
+            enter: "Enter Full Screen".to_string(),
+            exit: "Exit Full Screen".to_string(),
+        }
+    }
+}
 
 /// Get the application name based on the environment
 /// - production: "Crate"
@@ -84,6 +103,7 @@ pub struct MenuTranslations {
     pub settings_diagnostics: String,
     // View menu items (predefined)
     pub enter_full_screen: String,
+    pub exit_full_screen: String,
     // Window menu items
     pub minimize: String,
     pub zoom: String,
@@ -570,6 +590,78 @@ pub fn set_dialog_conflicting_items_enabled(
     Ok(())
 }
 
+/// Menu items that should be disabled during the onboarding wizard.
+/// These items are unsafe or meaningless before the app is fully initialized.
+const ONBOARDING_DISABLED_ITEMS: &[&str] = &[
+    // App menu
+    ids::SETTINGS,
+    // File menu
+    ids::IMPORT_TRACKS,
+    ids::ADD_RELEASE,
+    ids::REFRESH_METADATA,
+    ids::NEW_PLAYLIST,
+    ids::NEW_FOLDER,
+    ids::QUICK_EXPORT,
+    // Playback menu
+    ids::PLAY_PAUSE,
+    ids::STOP,
+    ids::NEXT_TRACK,
+    ids::PREVIOUS_TRACK,
+    ids::SEEK_FORWARD,
+    ids::SEEK_BACKWARD,
+    ids::FINE_SEEK_FORWARD,
+    ids::FINE_SEEK_BACKWARD,
+    ids::VOLUME_UP,
+    ids::VOLUME_DOWN,
+    ids::MUTE,
+    ids::JUMP_TO_PLAYING,
+    // View menu
+    ids::TOGGLE_VIEW,
+    ids::TOGGLE_EDITOR,
+    ids::EXPAND_ALL_RELEASES,
+    ids::COLLAPSE_ALL_RELEASES,
+    // Help menu
+    ids::DOCUMENTATION,
+    ids::REPORT_ISSUE,
+];
+
+/// Settings submenu items disabled during onboarding (nested inside View > Settings).
+const ONBOARDING_DISABLED_NESTED_ITEMS: &[&str] = &[
+    ids::SETTINGS_GENERAL,
+    ids::SETTINGS_APPEARANCE,
+    ids::SETTINGS_LIBRARY,
+    ids::SETTINGS_DISCOVERY,
+    ids::SETTINGS_SOUND,
+    ids::SETTINGS_DIAGNOSTICS,
+];
+
+/// Set the enabled state of all menu items that should be disabled during onboarding.
+pub fn set_onboarding_items_enabled(
+    app: &AppHandle<Wry>,
+    enabled: bool,
+) -> Result<(), tauri::Error> {
+    for id in ONBOARDING_DISABLED_ITEMS {
+        set_menu_item_enabled(app, id, enabled)?;
+    }
+
+    // Handle nested settings submenu items (View > Settings > ...)
+    if let Some(menu) = app.menu() {
+        if let Some(MenuItemKind::Submenu(view_submenu)) = menu.get(ids::VIEW_MENU) {
+            if let Some(MenuItemKind::Submenu(settings_submenu)) =
+                view_submenu.get(ids::SETTINGS_MENU)
+            {
+                for id in ONBOARDING_DISABLED_NESTED_ITEMS {
+                    if let Some(MenuItemKind::MenuItem(menu_item)) = settings_submenu.get(*id) {
+                        menu_item.set_enabled(enabled)?;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Set the enabled state of a menu item by its ID
 pub fn set_menu_item_enabled(
     app: &AppHandle<Wry>,
@@ -716,25 +808,18 @@ pub fn update_menu_translations(
         ],
     )?;
 
-    // Update View menu PredefinedMenuItems (fullscreen)
-    if let Some(MenuItemKind::Submenu(view_submenu)) = menu.get(ids::VIEW_MENU) {
-        let predefined: Vec<_> = view_submenu
-            .items()?
-            .into_iter()
-            .filter_map(|item| match item {
-                MenuItemKind::Predefined(p) => {
-                    if p.text().unwrap_or_default().is_empty() {
-                        return None;
-                    }
-                    Some(p)
-                }
-                _ => None,
-            })
-            .collect();
-        if let Some(fullscreen) = predefined.first() {
-            fullscreen.set_text(&translations.enter_full_screen)?;
+    // Update fullscreen labels in state and set correct text based on current window state
+    if let Some(labels_state) = app.try_state::<Mutex<FullscreenLabels>>() {
+        if let Ok(mut labels) = labels_state.lock() {
+            labels.enter = translations.enter_full_screen.clone();
+            labels.exit = translations.exit_full_screen.clone();
         }
     }
+    let is_fullscreen = app
+        .get_webview_window("main")
+        .and_then(|w| w.is_fullscreen().ok())
+        .unwrap_or(false);
+    set_fullscreen_menu_text(&menu, is_fullscreen, app)?;
 
     // Update Window menu items
     update_item_text(&menu, ids::MINIMIZE, &translations.minimize)?;
@@ -801,6 +886,60 @@ fn update_nested_submenu_items(
                     menu_item.set_text(*text)?;
                 }
             }
+        }
+    }
+    Ok(())
+}
+
+/// Update the fullscreen menu item text based on current fullscreen state.
+/// Called from `on_window_event` when the fullscreen state changes.
+pub fn update_fullscreen_menu_text(app: &AppHandle<Wry>, is_fullscreen: bool) {
+    let Some(menu) = app.menu() else {
+        return;
+    };
+    if let Err(e) = set_fullscreen_menu_text(&menu, is_fullscreen, app) {
+        log::error!("Failed to update fullscreen menu text: {e}");
+    }
+}
+
+/// Set the fullscreen PredefinedMenuItem text using cached labels from Tauri state.
+fn set_fullscreen_menu_text(
+    menu: &Menu<Wry>,
+    is_fullscreen: bool,
+    app: &AppHandle<Wry>,
+) -> Result<(), tauri::Error> {
+    let text = if let Some(labels_state) = app.try_state::<Mutex<FullscreenLabels>>() {
+        let labels = labels_state.lock().unwrap_or_else(|e| e.into_inner());
+        if is_fullscreen {
+            labels.exit.clone()
+        } else {
+            labels.enter.clone()
+        }
+    } else {
+        // Fallback before state is initialized
+        if is_fullscreen {
+            "Exit Full Screen".to_string()
+        } else {
+            "Enter Full Screen".to_string()
+        }
+    };
+
+    if let Some(MenuItemKind::Submenu(view_submenu)) = menu.get(ids::VIEW_MENU) {
+        let predefined: Vec<_> = view_submenu
+            .items()?
+            .into_iter()
+            .filter_map(|item| match item {
+                MenuItemKind::Predefined(p) => {
+                    if p.text().unwrap_or_default().is_empty() {
+                        return None;
+                    }
+                    Some(p)
+                }
+                _ => None,
+            })
+            .collect();
+        if let Some(fullscreen) = predefined.first() {
+            fullscreen.set_text(&text)?;
         }
     }
     Ok(())

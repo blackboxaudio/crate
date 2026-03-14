@@ -105,6 +105,21 @@ impl SettingsService {
 
         let last_backup_type = self.get_setting_value(&conn, "last_backup_type")?;
 
+        let has_completed_onboarding = self
+            .get_setting_value(&conn, "has_completed_onboarding")?
+            .map(|v| v == "true")
+            .unwrap_or_else(|| {
+                // No explicit onboarding key — check if user has any library tracks.
+                // If yes, this is an existing user upgrading → skip onboarding.
+                // We check tracks rather than settings rows to avoid false positives
+                // from auto-backup writing settings on a fresh install.
+                conn.query_row("SELECT COUNT(*) FROM tracks LIMIT 1", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap_or(0)
+                    > 0
+            });
+
         Ok(AppSettings {
             theme,
             accent_color,
@@ -124,6 +139,7 @@ impl SettingsService {
             last_backup_at,
             backup_frequency,
             last_backup_type,
+            has_completed_onboarding,
         })
     }
 

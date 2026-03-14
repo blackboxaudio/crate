@@ -182,7 +182,7 @@
 		"matchAnd": "E",
 		"clearAll": "Limpar tudo",
 		"noTracksYet": "Nenhuma faixa ainda",
-		"dragDropHint": "Arraste e solte arquivos de áudio aqui para importá-los",
+		"dragDropHint": "Pressione {shortcut} ou arraste arquivos de áudio aqui para importá-los",
 		"columns": {
 			"title": "Título",
 			"artist": "Artista",
@@ -204,8 +204,7 @@
 		"releases": "lançamentos",
 		"searchPlaceholder": "Pesquisar lançamentos...",
 		"noReleasesYet": "Nenhum lançamento ainda",
-		"addReleaseHint": "Pressione {shortcut} ou arraste uma URL aqui para adicionar lançamentos do Bandcamp, SoundCloud, Discogs e muito mais",
-		"dropHint": "Solte URL para adicionar lançamento",
+		"addReleaseHint": "Pressione {shortcut} para adicionar lançamentos do Bandcamp, Discogs, YouTube e muito mais",
 		"previewNotAvailable": "Pré-visualização não disponível para esta fonte",
 		"columns": {
 			"artistTitle": "Artista / Título",
@@ -622,6 +621,7 @@
 		"toggleView": "Alternar visualização",
 		"showDevTools": "Mostrar DevTools",
 		"enterFullScreen": "Entrar em tela cheia",
+		"exitFullScreen": "Sair da tela cheia",
 		"expandAllReleases": "Expandir todos os lançamentos",
 		"collapseAllReleases": "Recolher todos os lançamentos",
 		"minimize": "Minimizar",
@@ -712,5 +712,24 @@
 			"blue": "Azul",
 			"purple": "Roxo"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "Bem-vindo ao {appName}",
+			"subtitle": "Um único lugar para gerenciar sua biblioteca DJ e descobrir música. Vamos personalizar sua experiência antes de você começar a curar."
+		},
+		"language": {
+			"title": "Escolha seu idioma",
+			"description": "Selecione o idioma para a interface do aplicativo."
+		},
+		"appearance": {
+			"title": "Personalize sua aparência",
+			"description": "Escolha seu tema preferido, cor de destaque e fonte."
+		},
+		"ready": {
+			"title": "Você está pronto!",
+			"subtitle": "Comece a construir sua coleção."
+		},
+		"getStarted": "Começar"
 	}
 }

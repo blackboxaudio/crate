@@ -419,7 +419,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 
 	async function onMountSetup(): Promise<() => void> {
 		const splashStartTime = Date.now()
-		const minDisplayTime = 700
+		const minDisplayTime = 1000
 
 		await exportStore.startListening()
 
@@ -638,7 +638,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		}
 
 		if (get(activeView) === 'discovery') {
-			discoveryStore.loadReleases()
+			await discoveryStore.loadReleases()
 		}
 
 		updaterStore.check(true)

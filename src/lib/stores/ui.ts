@@ -65,6 +65,9 @@ interface UIState {
 
 	// Per-playlist scroll offset cache
 	playlistScrollOffsets: Map<string, number>
+
+	// Onboarding state
+	isOnboarding: boolean
 }
 
 const initialState: UIState = {
@@ -92,6 +95,7 @@ const initialState: UIState = {
 		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
 	},
 	playlistScrollOffsets: new Map(),
+	isOnboarding: false,
 }
 
 // =============================================================================
@@ -529,6 +533,14 @@ function createUIStore() {
 				...state,
 				recentlyToggledMixedTags: new Set(),
 			}))
+		},
+
+		// =========================================================================
+		// Onboarding
+		// =========================================================================
+
+		setOnboarding(value: boolean) {
+			update((state) => ({ ...state, isOnboarding: value }))
 		},
 
 		// =========================================================================

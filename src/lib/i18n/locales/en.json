@@ -182,7 +182,7 @@
 		"matchAnd": "AND",
 		"clearAll": "Clear all",
 		"noTracksYet": "No tracks yet",
-		"dragDropHint": "Drag and drop audio files here to import them",
+		"dragDropHint": "Press {shortcut} or drag audio files here to import them",
 		"columns": {
 			"title": "Title",
 			"artist": "Artist",
@@ -204,8 +204,7 @@
 		"releases": "releases",
 		"searchPlaceholder": "Search releases...",
 		"noReleasesYet": "No releases yet",
-		"addReleaseHint": "Press {shortcut} or drag a URL here to add releases from Bandcamp, SoundCloud, Discogs, and more",
-		"dropHint": "Drop URL to add release",
+		"addReleaseHint": "Press {shortcut} to add releases from Bandcamp, Discogs, YouTube, and more",
 		"previewNotAvailable": "Preview not available for this source",
 		"columns": {
 			"artistTitle": "Artist / Title",
@@ -369,9 +368,9 @@
 			"removeDiscoveryReleasesTitle": "Remove from Discovery",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Remove this release from discovery?} other {Remove {count} releases from discovery?}}",
 			"removeDiscoveryReleasesWarning": "This action cannot be undone. Releases will be removed from all playlists.",
-		"removeDiscoveryReleasesFromPlaylistTitle": "Remove from Playlist",
-		"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Remove this release from the playlist?} other {Remove {count} releases from the playlist?}}",
-		"deleteReleasesFromCollection": "Also delete releases from my collection"
+			"removeDiscoveryReleasesFromPlaylistTitle": "Remove from Playlist",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Remove this release from the playlist?} other {Remove {count} releases from the playlist?}}",
+			"deleteReleasesFromCollection": "Also delete releases from my collection"
 		},
 		"relocate": {
 			"title": "Relocate Track",
@@ -623,6 +622,7 @@
 		"toggleView": "Toggle View",
 		"showDevTools": "Show DevTools",
 		"enterFullScreen": "Enter Full Screen",
+		"exitFullScreen": "Exit Full Screen",
 		"expandAllReleases": "Expand All Releases",
 		"collapseAllReleases": "Collapse All Releases",
 		"minimize": "Minimize",
@@ -713,5 +713,24 @@
 			"blue": "Blue",
 			"purple": "Purple"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "Welcome to {appName}",
+			"subtitle": "One place to manage your DJ library and discover music. Let's personalize your experience before you start curating."
+		},
+		"language": {
+			"title": "Choose Your Language",
+			"description": "Select the language for the application interface."
+		},
+		"appearance": {
+			"title": "Customize Your Look",
+			"description": "Choose your preferred theme, accent color, and font."
+		},
+		"ready": {
+			"title": "You're all set!",
+			"subtitle": "Start building your collection."
+		},
+		"getStarted": "Get Started"
 	}
 }

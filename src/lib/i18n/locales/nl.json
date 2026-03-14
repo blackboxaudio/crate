@@ -182,7 +182,7 @@
 		"matchAnd": "EN",
 		"clearAll": "Alles wissen",
 		"noTracksYet": "Nog geen tracks",
-		"dragDropHint": "Sleep audiobestanden hiernaartoe om deze te importeren",
+		"dragDropHint": "Druk {shortcut} of sleep audiobestanden hiernaartoe om deze te importeren",
 		"columns": {
 			"title": "Titel",
 			"artist": "Artiest",
@@ -204,8 +204,7 @@
 		"releases": "releases",
 		"searchPlaceholder": "Releases zoeken...",
 		"noReleasesYet": "Nog geen releases",
-		"addReleaseHint": "Druk {shortcut} of sleep een URL hiernaartoe om releases van Bandcamp, SoundCloud, Discogs en meer toe te voegen",
-		"dropHint": "URL hier neerleggen om release toe te voegen",
+		"addReleaseHint": "Druk {shortcut} om releases van Bandcamp, Discogs, YouTube en meer toe te voegen",
 		"previewNotAvailable": "Voorbeeld niet beschikbaar voor deze bron",
 		"columns": {
 			"artistTitle": "Artiest / Titel",
@@ -622,6 +621,7 @@
 		"toggleView": "Weergave wisselen",
 		"showDevTools": "DevTools tonen",
 		"enterFullScreen": "Vollscherm activeren",
+		"exitFullScreen": "Sluit volledig scherm",
 		"expandAllReleases": "Alle releases uitvouwen",
 		"collapseAllReleases": "Alle releases samenvouwen",
 		"minimize": "Minimaliseren",
@@ -712,5 +712,24 @@
 			"blue": "Blauw",
 			"purple": "Paars"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "Welkom bij {appName}",
+			"subtitle": "Één plek om je DJ-bibliotheek te beheren en muziek te ontdekken. Laten we je ervaring personaliseren voordat je met cureren begint."
+		},
+		"language": {
+			"title": "Kies je taal",
+			"description": "Selecteer de taal voor de toepassingsinterface."
+		},
+		"appearance": {
+			"title": "Pas je uiterlijk aan",
+			"description": "Kies je favoriete thema, accentkleur en lettertype."
+		},
+		"ready": {
+			"title": "Je bent helemaal klaar!",
+			"subtitle": "Begin met het opbouwen van je collectie."
+		},
+		"getStarted": "Aan de slag"
 	}
 }

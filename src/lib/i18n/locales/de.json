@@ -182,7 +182,7 @@
 		"matchAnd": "UND",
 		"clearAll": "Alles löschen",
 		"noTracksYet": "Noch keine Tracks",
-		"dragDropHint": "Ziehen Sie Audiodateien hierher, um sie zu importieren",
+		"dragDropHint": "Drücken Sie {shortcut} oder ziehen Sie Audiodateien hierher, um sie zu importieren",
 		"columns": {
 			"title": "Titel",
 			"artist": "Künstler",
@@ -204,8 +204,7 @@
 		"releases": "Releases",
 		"searchPlaceholder": "Releases suchen...",
 		"noReleasesYet": "Noch keine Releases",
-		"addReleaseHint": "Drücken Sie {shortcut} oder ziehen Sie eine URL hierher, um Releases von Bandcamp, SoundCloud, Discogs und mehr hinzuzufügen",
-		"dropHint": "URL ablegen, um Release hinzuzufügen",
+		"addReleaseHint": "Drücken Sie {shortcut}, um Releases von Bandcamp, Discogs, YouTube und mehr hinzuzufügen",
 		"previewNotAvailable": "Vorschau für diese Quelle nicht verfügbar",
 		"columns": {
 			"artistTitle": "Künstler / Titel",
@@ -622,6 +621,7 @@
 		"toggleView": "Ansicht wechseln",
 		"showDevTools": "Entwicklertools anzeigen",
 		"enterFullScreen": "Vollbild aktivieren",
+		"exitFullScreen": "Vollbild beenden",
 		"expandAllReleases": "Alle Releases erweitern",
 		"collapseAllReleases": "Alle Releases reduzieren",
 		"minimize": "Minimieren",
@@ -712,5 +712,24 @@
 			"blue": "Blau",
 			"purple": "Lila"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "Willkommen bei {appName}",
+			"subtitle": "Ein Ort zum Verwalten Ihrer DJ-Bibliothek und zur Musikentdeckung. Lassen Sie uns Ihr Erlebnis personalisieren, bevor Sie mit Ihrem Kurieren beginnen."
+		},
+		"language": {
+			"title": "Wählen Sie Ihre Sprache",
+			"description": "Wählen Sie die Sprache für die Anwendungsschnittstelle."
+		},
+		"appearance": {
+			"title": "Passen Sie Ihr Erscheinungsbild an",
+			"description": "Wählen Sie Ihr bevorzugtes Thema, Akzentfarbe und Schriftart."
+		},
+		"ready": {
+			"title": "Sie sind startklar!",
+			"subtitle": "Beginnen Sie mit dem Aufbau Ihrer Sammlung."
+		},
+		"getStarted": "Loslegen"
 	}
 }

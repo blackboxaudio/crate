@@ -101,6 +101,7 @@ pub fn run() {
             commands::app::rebuild_menu,
             commands::app::set_menu_item_enabled,
             commands::app::set_dialog_conflicting_items_enabled,
+            commands::app::set_onboarding_items_enabled,
             // Library commands
             commands::library::import_tracks,
             commands::library::get_tracks,
@@ -328,6 +329,9 @@ pub fn run() {
             app.set_menu(menu)?;
             menu::setup_menu_handlers(app.handle());
 
+            // Manage fullscreen label translations for dynamic menu text toggling
+            app.manage(std::sync::Mutex::new(menu::FullscreenLabels::default()));
+
             // Initialize media controls (Now Playing / media key integration)
             let media_controls_service = MediaControlsService::new(app.handle());
             app.manage(media_controls_service);
@@ -388,6 +392,20 @@ pub fn run() {
             });
 
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            // Track fullscreen state changes and update the menu text accordingly.
+            // There is no dedicated fullscreen event, so we check on every resize.
+            if let tauri::WindowEvent::Resized(_) = event {
+                use std::sync::atomic::{AtomicBool, Ordering};
+                static WAS_FULLSCREEN: AtomicBool = AtomicBool::new(false);
+
+                let is_fullscreen = window.is_fullscreen().unwrap_or(false);
+                let was_fullscreen = WAS_FULLSCREEN.swap(is_fullscreen, Ordering::Relaxed);
+                if is_fullscreen != was_fullscreen {
+                    menu::update_fullscreen_menu_text(window.app_handle(), is_fullscreen);
+                }
+            }
         })
         .run(tauri::generate_context!())
         .unwrap_or_else(|e| {

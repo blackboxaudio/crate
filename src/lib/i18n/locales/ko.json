@@ -182,7 +182,7 @@
 		"matchAnd": "그리고",
 		"clearAll": "모두 지우기",
 		"noTracksYet": "아직 트랙이 없습니다",
-		"dragDropHint": "여기에 오디오 파일을 드래그하여 가져오세요",
+		"dragDropHint": "{shortcut} 를 누르거나 여기에 오디오 파일을 드래그하여 가져오세요",
 		"columns": {
 			"title": "제목",
 			"artist": "아티스트",
@@ -204,8 +204,7 @@
 		"releases": "릴리스",
 		"searchPlaceholder": "릴리스 검색...",
 		"noReleasesYet": "아직 릴리스가 없습니다",
-		"addReleaseHint": "{shortcut} 를 누르거나 URL을 여기로 드래그하여 Bandcamp, SoundCloud, Discogs 등에서 릴리스를 추가하세요",
-		"dropHint": "릴리스를 추가하려면 URL을 놓으세요",
+		"addReleaseHint": "{shortcut} 를 눌러 Bandcamp, Discogs, YouTube 등에서 릴리스를 추가하세요",
 		"previewNotAvailable": "이 소스에서는 미리듣기를 사용할 수 없습니다",
 		"columns": {
 			"artistTitle": "아티스트 / 제목",
@@ -622,6 +621,7 @@
 		"toggleView": "보기 전환",
 		"showDevTools": "개발자 도구 표시",
 		"enterFullScreen": "전체 화면 진입",
+		"exitFullScreen": "전체 화면 종료",
 		"expandAllReleases": "모든 릴리스 확장",
 		"collapseAllReleases": "모든 릴리스 축소",
 		"minimize": "최소화",
@@ -712,5 +712,24 @@
 			"blue": "파랑",
 			"purple": "보라"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "{appName}에 오신 것을 환영합니다",
+			"subtitle": "DJ 라이브러리를 관리하고 음악을 발견하는 한 곳입니다. 큐레이션을 시작하기 전에 당신의 경험을 개인화해봅시다."
+		},
+		"language": {
+			"title": "언어 선택",
+			"description": "애플리케이션 인터페이스의 언어를 선택합니다."
+		},
+		"appearance": {
+			"title": "모양 사용자 정의",
+			"description": "선호하는 테마, 강조 색상 및 글꼴을 선택합니다."
+		},
+		"ready": {
+			"title": "모두 설정되었습니다!",
+			"subtitle": "컬렉션 구축을 시작합니다."
+		},
+		"getStarted": "시작하기"
 	}
 }

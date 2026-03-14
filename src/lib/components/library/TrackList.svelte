@@ -10,6 +10,8 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 
+	const importShortcut = $derived(navigator.userAgent.includes('Mac') ? '⌘L' : 'Ctrl+L')
+
 	type Props = {
 		tracks: Track[]
 		selectedIds: Set<string>
@@ -159,7 +161,9 @@
 			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
 				<Icon name="music-note" class="mb-4 h-16 w-16" />
 				<Text variant="header-1" weight="medium" class="mb-2">{$translate('library.noTracksYet')}</Text>
-				<Text color="tertiary">{$translate('library.dragDropHint')}</Text>
+				<Text color="tertiary" class="max-w-sm text-center">
+					{$translate('library.dragDropHint', { values: { shortcut: importShortcut } })}
+				</Text>
 			</div>
 		{:else}
 			<div style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">

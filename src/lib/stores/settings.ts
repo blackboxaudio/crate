@@ -42,6 +42,7 @@ interface SettingsState {
 	lastBackupAt: string | null
 	backupFrequency: BackupFrequency
 	lastBackupType: string | null
+	hasCompletedOnboarding: boolean
 	loading: boolean
 	error: string | null
 }
@@ -68,6 +69,7 @@ const initialState: SettingsState = {
 	lastBackupAt: null,
 	backupFrequency: 'monthly',
 	lastBackupType: null,
+	hasCompletedOnboarding: false,
 	loading: false,
 	error: null,
 }
@@ -112,13 +114,16 @@ function createSettingsStore() {
 		document.documentElement.setAttribute('data-font', font)
 	}
 
-	function persistToLocalStorage(theme: Theme, accentColor: AccentColor, language?: Language) {
+	function persistToLocalStorage(theme: Theme, accentColor: AccentColor, language?: Language, font?: Font) {
 		if (typeof localStorage === 'undefined') return
 		try {
 			localStorage.setItem('crate-theme', theme)
 			localStorage.setItem('crate-accent', accentColor)
 			if (language) {
 				localStorage.setItem('crate-language', language)
+			}
+			if (font) {
+				localStorage.setItem('crate-font', font)
 			}
 		} catch {
 			// localStorage not available or quota exceeded, ignore
@@ -210,6 +215,7 @@ function createSettingsStore() {
 			collapseAllReleases: t('menu.collapseAllReleases'),
 			showDevTools: t('menu.showDevTools'),
 			enterFullScreen: t('menu.enterFullScreen'),
+			exitFullScreen: t('menu.exitFullScreen'),
 			// Settings submenu
 			settingsSubmenu: t('menu.settingsSubmenu'),
 			settingsGeneral: t('menu.settingsGeneral'),
@@ -270,6 +276,7 @@ function createSettingsStore() {
 					lastBackupAt: settings.lastBackupAt ?? null,
 					backupFrequency: settings.backupFrequency ?? 'monthly',
 					lastBackupType: settings.lastBackupType ?? null,
+					hasCompletedOnboarding: settings.hasCompletedOnboarding,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -277,7 +284,7 @@ function createSettingsStore() {
 				applyTheme(resolvedTheme)
 				applyAccentColor(settings.accentColor)
 				applyFont(settings.font)
-				persistToLocalStorage(settings.theme, settings.accentColor, settings.language)
+				persistToLocalStorage(settings.theme, settings.accentColor, settings.language, settings.font)
 				setupSystemThemeListener()
 
 				// Update i18n language and menu
@@ -339,8 +346,11 @@ function createSettingsStore() {
 		 * Set font family
 		 */
 		async setFont(font: Font) {
+			const state = get({ subscribe })
+
 			update((s) => ({ ...s, font }))
 			applyFont(font)
+			persistToLocalStorage(state.theme, state.accentColor, undefined, font)
 
 			try {
 				await settingsApi.setSetting('font', font)
@@ -555,6 +565,15 @@ function createSettingsStore() {
 			}
 		},
 
+		async completeOnboarding() {
+			update((s) => ({ ...s, hasCompletedOnboarding: true }))
+			try {
+				await settingsApi.setSetting('has_completed_onboarding', 'true')
+			} catch (error) {
+				console.error('Failed to save onboarding completion:', error)
+			}
+		},
+
 		/**
 		 * Reset store to initial state
 		 */
@@ -611,5 +630,7 @@ export const lastBackupAt = derived(settingsStore, ($s) => $s.lastBackupAt)
 export const backupFrequency = derived(settingsStore, ($s) => $s.backupFrequency)
 
 export const lastBackupType = derived(settingsStore, ($s) => $s.lastBackupType)
+
+export const hasCompletedOnboarding = derived(settingsStore, ($s) => $s.hasCompletedOnboarding)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)
