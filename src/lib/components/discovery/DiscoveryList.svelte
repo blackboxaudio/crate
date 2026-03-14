@@ -18,6 +18,7 @@
 		return release.tracks.some((t) => t.video_id !== null)
 	}
 
+	const HEADER_HEIGHT = 33
 	const ROW_HEIGHT = 49
 	const TRACK_ROW_HEIGHT = 29
 
@@ -92,6 +93,7 @@
 			return getEstimateSize
 		},
 		overscan: 10,
+		scrollMargin: HEADER_HEIGHT,
 		getItemKey: (index: number) => releases[index]?.id ?? index,
 	})
 
@@ -161,18 +163,18 @@
 </script>
 
 <div class="flex h-full flex-col bg-surface-0">
-	<DiscoveryListHeader {sortConfig} onSort={onSortChange} />
-
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		bind:this={scrollContainerEl}
-		class="relative flex-1 overflow-auto"
+		class="relative flex-1 overflow-auto bg-surface-1/50"
 		data-drop-target="releaselist-main"
 		onclick={handleContainerClick}
 		oncontextmenu={handleContainerContextMenu}
 		onscroll={handleScroll}
 	>
+		<DiscoveryListHeader {sortConfig} onSort={onSortChange} />
+
 		{#if releases.length === 0}
 			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
 				<Icon name="globe" class="mb-4 h-16 w-16" />
@@ -182,12 +184,13 @@
 				</Text>
 			</div>
 		{:else}
-			<div style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
+			<div class="bg-surface-0" style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
 				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
 					{@const release = releases[virtualItem.index]}
 					<div
 						data-vkey={virtualItem.key}
-						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start}px); pointer-events: auto;"
+						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start -
+							HEADER_HEIGHT}px); pointer-events: auto;"
 					>
 						<DiscoveryRow
 							{release}

@@ -67,7 +67,7 @@
 	// =============================================================================
 
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
-	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'date_added', direction: 'desc' })
+	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'artist', direction: 'asc' })
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
 	let devices = $state<UsbDevice[]>([])
@@ -253,6 +253,15 @@
 	// =============================================================================
 
 	function handleViewChange(view: ActiveView) {
+		// Reset sort configs on context switch
+		const currentView = get(activeView)
+		if (currentView !== view) {
+			sortConfig = { field: 'date_added', direction: 'desc' }
+			libraryStore.setSort(sortConfig)
+			discoverySortConfig = { field: 'artist', direction: 'asc' }
+			discoveryStore.setSort(discoverySortConfig)
+		}
+
 		// Cache discovery playlist releases before switching away
 		if (selectedPlaylistId && $discoveryPlaylistReleases.length > 0) {
 			discoveryPlaylistStore.getCache().set(selectedPlaylistId, $discoveryPlaylistReleases)
@@ -504,6 +513,8 @@
 					tracks={[]}
 					selectedIds={$selectedReleaseIds}
 					{sortConfig}
+					{discoverySortConfig}
+					onDiscoverySortChange={handleDiscoverySortChange}
 					{categoryColors}
 					{categorySortOrders}
 					{breadcrumbItems}

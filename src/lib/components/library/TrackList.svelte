@@ -55,11 +55,14 @@
 	let scrollRestoredForView = $state(false)
 	let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
+	const HEADER_HEIGHT = 33
+
 	const virtualList = createVirtualList({
 		count: () => tracks.length,
 		getScrollElement: () => scrollContainerEl ?? null,
 		estimateSize: () => () => 33,
 		overscan: 15,
+		scrollMargin: HEADER_HEIGHT,
 		getItemKey: (index: number) => tracks[index]?.id ?? index,
 	})
 
@@ -137,18 +140,18 @@
 </script>
 
 <div class="flex h-full flex-col bg-surface-0 {isDragOver ? 'ring-2 ring-brand-primary ring-inset' : ''}">
-	<TrackListHeader {sortConfig} onSort={onSortChange} />
-
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
 		bind:this={scrollContainerEl}
-		class="relative flex-1 overflow-auto"
+		class="relative flex-1 overflow-auto bg-surface-1/50"
 		data-drop-target="tracklist-main"
 		onclick={handleContainerClick}
 		oncontextmenu={handleContainerContextMenu}
 		onscroll={handleScroll}
 	>
+		<TrackListHeader {sortConfig} onSort={onSortChange} />
+
 		{#if isDragOver}
 			<div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-brand-muted">
 				<div class="rounded-lg border-2 border-dashed border-brand-primary bg-surface-1/90 px-8 py-6 text-center">
@@ -166,11 +169,12 @@
 				</Text>
 			</div>
 		{:else}
-			<div style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
+			<div class="bg-surface-0" style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
 				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
 					{@const track = tracks[virtualItem.index]}
 					<div
-						style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({virtualItem.start}px); pointer-events: auto;"
+						style="position: absolute; top: 0; left: 0; width: 100%; transform: translateY({virtualItem.start -
+							HEADER_HEIGHT}px); pointer-events: auto;"
 					>
 						<TrackRow
 							{track}
