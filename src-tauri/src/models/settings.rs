@@ -15,6 +15,10 @@ pub enum Language {
     Pt,
     Sv,
     Zh,
+    Uk,
+    Ro,
+    Pl,
+    Tr,
 }
 
 impl std::fmt::Display for Language {
@@ -31,6 +35,10 @@ impl std::fmt::Display for Language {
             Language::Pt => write!(f, "pt"),
             Language::Sv => write!(f, "sv"),
             Language::Zh => write!(f, "zh"),
+            Language::Uk => write!(f, "uk"),
+            Language::Ro => write!(f, "ro"),
+            Language::Pl => write!(f, "pl"),
+            Language::Tr => write!(f, "tr"),
         }
     }
 }
@@ -51,6 +59,10 @@ impl std::str::FromStr for Language {
             "pt" => Ok(Language::Pt),
             "sv" => Ok(Language::Sv),
             "zh" => Ok(Language::Zh),
+            "uk" => Ok(Language::Uk),
+            "ro" => Ok(Language::Ro),
+            "pl" => Ok(Language::Pl),
+            "tr" => Ok(Language::Tr),
             _ => Err(format!("Unknown language: {s}")),
         }
     }
@@ -144,22 +156,24 @@ impl std::str::FromStr for AccentColor {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum Font {
+    Inter,
+    Nunito,
     #[default]
     OpenSans,
-    Inter,
     FiraCode,
-    JetBrainsMono,
     IbmPlexMono,
+    SourceCodePro,
 }
 
 impl std::fmt::Display for Font {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Font::OpenSans => write!(f, "open-sans"),
             Font::Inter => write!(f, "inter"),
+            Font::Nunito => write!(f, "nunito"),
+            Font::OpenSans => write!(f, "open-sans"),
             Font::FiraCode => write!(f, "fira-code"),
-            Font::JetBrainsMono => write!(f, "jetbrains-mono"),
             Font::IbmPlexMono => write!(f, "ibm-plex-mono"),
+            Font::SourceCodePro => write!(f, "source-code-pro"),
         }
     }
 }
@@ -169,11 +183,12 @@ impl std::str::FromStr for Font {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "open-sans" => Ok(Font::OpenSans),
             "inter" => Ok(Font::Inter),
+            "nunito" => Ok(Font::Nunito),
+            "open-sans" => Ok(Font::OpenSans),
             "fira-code" => Ok(Font::FiraCode),
-            "jetbrains-mono" => Ok(Font::JetBrainsMono),
             "ibm-plex-mono" => Ok(Font::IbmPlexMono),
+            "source-code-pro" => Ok(Font::SourceCodePro),
             _ => Err(format!("Unknown font: {s}")),
         }
     }

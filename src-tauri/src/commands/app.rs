@@ -78,10 +78,7 @@ pub fn set_dialog_conflicting_items_enabled(
 }
 
 #[tauri::command]
-pub fn set_onboarding_items_enabled(
-    app: tauri::AppHandle,
-    enabled: bool,
-) -> Result<(), String> {
+pub fn set_onboarding_items_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     menu::set_onboarding_items_enabled(&app, enabled).map_err(|e| e.to_string())
 }
 

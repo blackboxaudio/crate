@@ -25,11 +25,12 @@
 	]
 
 	const fontOptions: { value: Font; label: string; style: string }[] = [
-		{ value: 'open-sans', label: 'Open Sans', style: "font-family: 'Open Sans', sans-serif" },
 		{ value: 'inter', label: 'Inter', style: "font-family: 'Inter', sans-serif" },
+		{ value: 'nunito', label: 'Nunito', style: "font-family: 'Nunito', sans-serif" },
+		{ value: 'open-sans', label: 'Open Sans', style: "font-family: 'Open Sans', sans-serif" },
 		{ value: 'fira-code', label: 'Fira Code', style: "font-family: 'Fira Code', monospace" },
-		{ value: 'jetbrains-mono', label: 'JetBrains Mono', style: "font-family: 'JetBrains Mono', monospace" },
 		{ value: 'ibm-plex-mono', label: 'IBM Plex Mono', style: "font-family: 'IBM Plex Mono', monospace" },
+		{ value: 'source-code-pro', label: 'Source Code Pro', style: "font-family: 'Source Code Pro', monospace" },
 	]
 </script>
 

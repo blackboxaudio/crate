@@ -330,9 +330,7 @@ pub fn run() {
             menu::setup_menu_handlers(app.handle());
 
             // Manage fullscreen label translations for dynamic menu text toggling
-            app.manage(std::sync::Mutex::new(
-                menu::FullscreenLabels::default(),
-            ));
+            app.manage(std::sync::Mutex::new(menu::FullscreenLabels::default()));
 
             // Initialize media controls (Now Playing / media key integration)
             let media_controls_service = MediaControlsService::new(app.handle());

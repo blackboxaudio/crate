@@ -462,9 +462,24 @@ export type AccentColor =
 	| 'emerald'
 	| 'teal'
 
-export type Font = 'open-sans' | 'inter' | 'fira-code' | 'jetbrains-mono' | 'ibm-plex-mono'
+export type Font = 'inter' | 'nunito' | 'open-sans' | 'fira-code' | 'ibm-plex-mono' | 'source-code-pro'
 
-export type Language = 'en' | 'ja' | 'nl' | 'fr' | 'de' | 'es' | 'it' | 'sv' | 'ko' | 'pt' | 'zh'
+export type Language =
+	| 'en'
+	| 'ja'
+	| 'nl'
+	| 'fr'
+	| 'de'
+	| 'es'
+	| 'it'
+	| 'sv'
+	| 'ko'
+	| 'pt'
+	| 'zh'
+	| 'uk'
+	| 'ro'
+	| 'pl'
+	| 'tr'
 
 export type KeyNotationFormat = 'standard' | 'camelot'
 

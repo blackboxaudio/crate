@@ -368,9 +368,9 @@
 			"removeDiscoveryReleasesTitle": "Remove from Discovery",
 			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Remove this release from discovery?} other {Remove {count} releases from discovery?}}",
 			"removeDiscoveryReleasesWarning": "This action cannot be undone. Releases will be removed from all playlists.",
-		"removeDiscoveryReleasesFromPlaylistTitle": "Remove from Playlist",
-		"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Remove this release from the playlist?} other {Remove {count} releases from the playlist?}}",
-		"deleteReleasesFromCollection": "Also delete releases from my collection"
+			"removeDiscoveryReleasesFromPlaylistTitle": "Remove from Playlist",
+			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Remove this release from the playlist?} other {Remove {count} releases from the playlist?}}",
+			"deleteReleasesFromCollection": "Also delete releases from my collection"
 		},
 		"relocate": {
 			"title": "Relocate Track",
