@@ -241,6 +241,12 @@ function createPlayerStore() {
 			if (state.playbackSource === 'preview') {
 				stopPreviewInternal()
 				clearPreviewEvents()
+				// Sync speed to backend since preview speed changes are frontend-only
+				try {
+					await playerApi.setSpeed(state.playbackState.speed)
+				} catch {
+					// Best effort
+				}
 			}
 
 			try {
@@ -248,7 +254,7 @@ function createPlayerStore() {
 				update((s) => ({
 					...s,
 					currentTrack: track,
-					playbackState: { ...playbackState, speed: 1.0 },
+					playbackState,
 					error: null,
 					playbackSource: 'library',
 					previewInfo: null,
@@ -290,11 +296,11 @@ function createPlayerStore() {
 
 				wirePreviewEvents()
 
-				// Sync volume and reset speed for preview player
+				// Sync volume and speed for preview player
 				const currentVolume = state.isMuted ? 0 : state.playbackState.volume
 				previewPlayer.setVolume(currentVolume)
-				previewPlayer.setPlaybackRate(1.0)
 				previewPlayer.play(streamUrl)
+				previewPlayer.setPlaybackRate(state.playbackState.speed)
 
 				update((s) => ({
 					...s,
@@ -304,7 +310,6 @@ function createPlayerStore() {
 						is_playing: true,
 						position_ms: 0,
 						duration_ms: track.duration_ms || 0,
-						speed: 1.0,
 						current_track_id: null,
 						current_track_path: null,
 					},
@@ -392,7 +397,7 @@ function createPlayerStore() {
 				update((s) => ({
 					...s,
 					currentTrack: null,
-					playbackState: { ...initialPlaybackState, volume: s.playbackState.volume },
+					playbackState: { ...initialPlaybackState, volume: s.playbackState.volume, speed: s.playbackState.speed },
 					error: null,
 					playbackSource: 'library',
 					previewInfo: null,
