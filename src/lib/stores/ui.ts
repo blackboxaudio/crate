@@ -17,6 +17,7 @@ interface ViewNavigationState {
 	selectedPlaylistId: string | null
 	selectedFolderId: string | null
 	sidebarView: SidebarView
+	scrollOffset: number
 }
 
 type ViewNavigationCache = Record<ActiveView, ViewNavigationState>
@@ -61,6 +62,9 @@ interface UIState {
 
 	// Navigation cache per view context
 	viewNavigationCache: ViewNavigationCache
+
+	// Per-playlist scroll offset cache
+	playlistScrollOffsets: Map<string, number>
 }
 
 const initialState: UIState = {
@@ -84,9 +88,10 @@ const initialState: UIState = {
 	selectedTreeIds: new Set(),
 	contextMenuPlaylistId: null,
 	viewNavigationCache: {
-		library: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library' },
-		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library' },
+		library: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
+		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
 	},
+	playlistScrollOffsets: new Map(),
 }
 
 // =============================================================================
@@ -116,6 +121,7 @@ function createUIStore() {
 						selectedPlaylistId: state.selectedPlaylistId,
 						selectedFolderId: state.selectedFolderId,
 						sidebarView: state.sidebarView,
+						scrollOffset: state.viewNavigationCache[state.activeView].scrollOffset,
 					},
 				}
 
@@ -134,6 +140,33 @@ function createUIStore() {
 					sidebarView: restored.sidebarView,
 					viewNavigationCache: updatedCache,
 				}
+			})
+		},
+
+		/**
+		 * Update scroll offset for the current active view
+		 */
+		setScrollOffset(offset: number) {
+			update((state) => ({
+				...state,
+				viewNavigationCache: {
+					...state.viewNavigationCache,
+					[state.activeView]: {
+						...state.viewNavigationCache[state.activeView],
+						scrollOffset: offset,
+					},
+				},
+			}))
+		},
+
+		/**
+		 * Update scroll offset for a specific playlist
+		 */
+		setPlaylistScrollOffset(playlistId: string, offset: number) {
+			update((state) => {
+				const newOffsets = new Map(state.playlistScrollOffsets)
+				newOffsets.set(playlistId, offset)
+				return { ...state, playlistScrollOffsets: newOffsets }
 			})
 		},
 
@@ -542,3 +575,7 @@ export const rightSidebarWidth = derived(uiStore, ($ui) => $ui.rightSidebarWidth
 export const selectedTreeIds = derived(uiStore, ($ui) => $ui.selectedTreeIds)
 
 export const contextMenuPlaylistId = derived(uiStore, ($ui) => $ui.contextMenuPlaylistId)
+
+export const scrollOffset = derived(uiStore, ($ui) => $ui.viewNavigationCache[$ui.activeView].scrollOffset)
+
+export const playlistScrollOffsets = derived(uiStore, ($ui) => $ui.playlistScrollOffsets)

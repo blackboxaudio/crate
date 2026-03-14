@@ -241,6 +241,7 @@
 		scanProgress = null
 		scannedPage = null
 		bulkImporting = false
+		submitting = false
 		if (fetchDebounceTimer) {
 			clearTimeout(fetchDebounceTimer)
 			fetchDebounceTimer = null
@@ -258,23 +259,30 @@
 		onClose()
 	}
 
+	let submitting = $state(false)
+
 	async function handleSubmit() {
-		if (!url.trim()) return
+		if (!url.trim() || submitting) return
+		submitting = true
 
-		const create: DiscoveryReleaseCreate = {
-			url: url.trim(),
-			source_type: sourceType,
+		try {
+			const create: DiscoveryReleaseCreate = {
+				url: url.trim(),
+				source_type: sourceType,
+			}
+
+			if (artist.trim()) create.artist = artist.trim()
+			if (title.trim()) create.title = title.trim()
+			if (label.trim()) create.label = label.trim()
+			if (releaseDate.trim()) create.release_date = releaseDate.trim()
+			if (artworkPreview) create.artwork_url = artworkPreview
+			if (tracks.length > 0) create.tracks = tracks
+			if (fetchedData?.parent_url) create.parent_url = fetchedData.parent_url
+
+			await onSubmit(create)
+		} finally {
+			submitting = false
 		}
-
-		if (artist.trim()) create.artist = artist.trim()
-		if (title.trim()) create.title = title.trim()
-		if (label.trim()) create.label = label.trim()
-		if (releaseDate.trim()) create.release_date = releaseDate.trim()
-		if (artworkPreview) create.artwork_url = artworkPreview
-		if (tracks.length > 0) create.tracks = tracks
-		if (fetchedData?.parent_url) create.parent_url = fetchedData.parent_url
-
-		await onSubmit(create)
 	}
 
 	async function handleAddToExisting() {
@@ -442,7 +450,7 @@
 			<Button variant="ghost" onclick={handleClose}>
 				{$translate('common.cancel')}
 			</Button>
-			<Button variant="primary" disabled={!url.trim() || scanning || fetching} onclick={handleSubmit}>
+			<Button variant="primary" disabled={!url.trim() || scanning || fetching || submitting} onclick={handleSubmit}>
 				{$translate('discovery.addRelease')}
 			</Button>
 		{/if}

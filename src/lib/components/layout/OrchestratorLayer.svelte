@@ -127,6 +127,11 @@
 				)
 			}
 			await playlistsStore.load()
+		} else {
+			// Fallback: reload releases from DB to catch cases where the backend
+			// succeeded but the IPC response was lost (e.g. macOS Tahoe WebKit issue)
+			await discoveryStore.loadReleases()
+			showAddReleaseModal = false
 		}
 	}
 

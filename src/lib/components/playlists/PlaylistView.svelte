@@ -54,6 +54,8 @@
 		onTrackColorChange?: (trackIds: string[], color: TrackColor | null) => void
 		onCancelAnalysis?: (trackId: string) => void
 		onToggleEditor?: () => void
+		scrollOffset?: number
+		onScrollChange?: (offset: number) => void
 	}
 
 	let {
@@ -92,6 +94,8 @@
 		onTrackColorChange,
 		onCancelAnalysis,
 		onToggleEditor,
+		scrollOffset = 0,
+		onScrollChange,
 	}: Props = $props()
 
 	function handleEmptySpaceContextMenu(e: MouseEvent) {
@@ -193,6 +197,7 @@
 				{categoryColors}
 				{categorySortOrders}
 				{likedOnly}
+				{scrollOffset}
 				{onSelectionChange}
 				onContextMenu={(e, release) => {
 					onContextMenu?.(e, release as unknown as Track)
@@ -200,6 +205,7 @@
 				onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
 				onTrackPlay={onDiscoveryTrackPlay}
 				onTrackLikeToggle={onDiscoveryTrackLikeToggle}
+				{onScrollChange}
 			/>
 		{:else}
 			<TrackList
@@ -210,6 +216,7 @@
 				{isDragOver}
 				{categoryColors}
 				{categorySortOrders}
+				{scrollOffset}
 				{onSelectionChange}
 				{onTrackPlay}
 				{onSortChange}
@@ -217,6 +224,7 @@
 				onEmptySpaceContextMenu={handleEmptySpaceContextMenu}
 				{onTrackColorChange}
 				{onCancelAnalysis}
+				{onScrollChange}
 			/>
 		{/if}
 	</div>
