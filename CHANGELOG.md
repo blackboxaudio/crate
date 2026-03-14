@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Improved rendering of lists for library, discovery, and playlist views
-- Fixed discovery row buttons not working occasionally
+- Fixed database foreign key violations during restore across app installations
+- Fixed discovery row buttons not working intermittently
 
 ## [0.2.5] - 2026-03-09
 
