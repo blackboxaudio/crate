@@ -310,7 +310,11 @@ impl BackupService {
 
             // Delete existing data in reverse dependency order (settings NOT touched)
             tx.execute_batch(
-                "DELETE FROM playlist_discovery_releases;
+                "DELETE FROM discovery_stream_cache;
+                 DELETE FROM discovery_audio_cache;
+                 DELETE FROM device_exports;
+                 DELETE FROM device_tracks;
+                 DELETE FROM playlist_discovery_releases;
                  DELETE FROM discovery_release_tags;
                  DELETE FROM discovery_tracks;
                  DELETE FROM discovery_releases;
