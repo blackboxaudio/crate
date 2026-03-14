@@ -13,15 +13,7 @@ import type {
 } from '$lib/types'
 
 export async function createRelease(create: DiscoveryReleaseCreate): Promise<DiscoveryRelease> {
-	// TAHOE-DIAG: log IPC invoke round-trip
-	console.log('[discovery] createRelease: invoking', { url: create.url, source_type: create.source_type })
-	const result = await invoke<DiscoveryRelease>('create_discovery_release', { create })
-	console.log(
-		'[discovery] createRelease: invoke returned',
-		result ? `id=${result.id}` : 'null/undefined',
-		typeof result
-	)
-	return result
+	return invoke<DiscoveryRelease>('create_discovery_release', { create })
 }
 
 export async function getRelease(id: string): Promise<DiscoveryRelease> {

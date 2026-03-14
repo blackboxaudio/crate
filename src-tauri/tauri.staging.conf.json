@@ -2,12 +2,7 @@
 	"productName": "Crate Staging",
 	"identifier": "com.bbx-audio.crate-staging",
 	"bundle": {
-		"createUpdaterArtifacts": true,
-		"windows": {
-			"wix": {
-				"version": "0.2.6.1"
-			}
-		}
+		"createUpdaterArtifacts": true
 	},
 	"app": {
 		"windows": [
@@ -22,6 +17,5 @@
 				"https://storage.googleapis.com/crate-releases/staging/latest.json"
 			]
 		}
-	},
-	"version": "0.2.6-staging.1"
+	}
 }
