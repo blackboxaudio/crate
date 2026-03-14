@@ -104,7 +104,7 @@
 
 	function handleItemClick(item: ContextMenuItem) {
 		if (item.disabled) return
-		if (item.submenu) return // Submenus are handled by hover
+		if (item.submenu && !item.action) return // Submenu-only items handled by hover
 		if (item.action) {
 			item.action()
 		}

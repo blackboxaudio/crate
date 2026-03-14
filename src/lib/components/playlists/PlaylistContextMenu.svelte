@@ -3,6 +3,7 @@
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
+	import { SvelteSet } from 'svelte/reactivity'
 
 	type Props = {
 		open: boolean
@@ -47,6 +48,33 @@
 	const isBulk = $derived(targetPlaylists.length > 1)
 	const playlist = $derived(targetPlaylists.length === 1 ? targetPlaylists[0] : null)
 
+	function buildFolderMenuItems(
+		allFolders: Playlist[],
+		parentId: string | null,
+		excludeIds: Set<string>,
+		makeAction: (folderId: string) => () => void,
+		idPrefix: string
+	): ContextMenuItem[] {
+		return allFolders
+			.filter((f) => f.parent_id === parentId)
+			.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
+			.reduce<ContextMenuItem[]>((acc, folder) => {
+				const isExcluded = excludeIds.has(folder.id)
+				const children = buildFolderMenuItems(allFolders, folder.id, excludeIds, makeAction, idPrefix)
+
+				// Skip excluded leaf folders entirely
+				if (isExcluded && children.length === 0) return acc
+
+				acc.push({
+					id: `${idPrefix}-${folder.id}`,
+					label: folder.name,
+					...(isExcluded ? { disabled: true } : { action: makeAction(folder.id) }),
+					...(children.length > 0 ? { submenu: children } : {}),
+				})
+				return acc
+			}, [])
+	}
+
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
 		// Bulk mode: show move to folder + delete
 		if (isBulk) {
@@ -54,25 +82,21 @@
 
 			// Build "Move to Folder" submenu (exclude folders that are in the selection)
 			const selectedIdSet = new Set(targetPlaylists.map((p) => p.id))
-			const moveSubmenu: ContextMenuItem[] = []
+			const moveSubmenu = buildFolderMenuItems(
+				folders,
+				null,
+				selectedIdSet,
+				(folderId) => () => onBulkMove?.(targetPlaylists, folderId),
+				'bulk-move'
+			)
 
 			// Option to move to root
 			if (targetPlaylists.some((p) => p.parent_id !== null)) {
-				moveSubmenu.push({
+				moveSubmenu.unshift({
 					id: 'bulk-move-root',
 					label: get(translate)('playlists.rootNoFolder'),
 					action: () => onBulkMove?.(targetPlaylists, null),
 				})
-			}
-
-			for (const folder of folders) {
-				if (!selectedIdSet.has(folder.id)) {
-					moveSubmenu.push({
-						id: `bulk-move-${folder.id}`,
-						label: folder.name,
-						action: () => onBulkMove?.(targetPlaylists, folder.id),
-					})
-				}
 			}
 
 			if (moveSubmenu.length > 0) {
@@ -150,26 +174,25 @@
 
 		// Move to Folder (only for non-folders)
 		if (!playlist.is_folder) {
-			const moveSubmenu: ContextMenuItem[] = []
+			const excludeIds = new SvelteSet<string>()
+			if (playlist.parent_id) excludeIds.add(playlist.parent_id)
+			excludeIds.add(playlist.id)
+
+			const moveSubmenu = buildFolderMenuItems(
+				folders,
+				null,
+				excludeIds,
+				(folderId) => () => onMove(playlist, folderId),
+				'move'
+			)
 
 			// Option to move to root (no parent)
 			if (playlist.parent_id !== null) {
-				moveSubmenu.push({
+				moveSubmenu.unshift({
 					id: 'move-root',
 					label: get(translate)('playlists.rootNoFolder'),
 					action: () => onMove(playlist, null),
 				})
-			}
-
-			// Add folders as options (exclude current parent)
-			for (const folder of folders) {
-				if (folder.id !== playlist.parent_id && folder.id !== playlist.id) {
-					moveSubmenu.push({
-						id: `move-${folder.id}`,
-						label: folder.name,
-						action: () => onMove(playlist, folder.id),
-					})
-				}
 			}
 
 			if (moveSubmenu.length > 0) {
