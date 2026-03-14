@@ -43,6 +43,14 @@ export async function setDialogConflictingItemsEnabled(enabled: boolean): Promis
 	return invoke('set_dialog_conflicting_items_enabled', { enabled })
 }
 
+/**
+ * Enable or disable all menu items that should be inaccessible
+ * during the onboarding wizard.
+ */
+export async function setOnboardingItemsEnabled(enabled: boolean): Promise<void> {
+	return invoke('set_onboarding_items_enabled', { enabled })
+}
+
 export interface MenuTranslations {
 	// Menu titles
 	file: string
@@ -89,6 +97,7 @@ export interface MenuTranslations {
 	collapseAllReleases: string
 	showDevTools: string
 	enterFullScreen: string
+	exitFullScreen: string
 	// Settings submenu
 	settingsSubmenu: string
 	settingsGeneral: string

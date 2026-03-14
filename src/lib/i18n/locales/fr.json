@@ -622,6 +622,7 @@
 		"toggleView": "Basculer la vue",
 		"showDevTools": "Afficher les outils de développement",
 		"enterFullScreen": "Passer en plein écran",
+		"exitFullScreen": "Quitter le mode plein écran",
 		"expandAllReleases": "Développer toutes les sorties",
 		"collapseAllReleases": "Réduire toutes les sorties",
 		"minimize": "Réduire",
@@ -712,5 +713,24 @@
 			"blue": "Bleu",
 			"purple": "Violet"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "Bienvenue dans {appName}",
+			"subtitle": "Un seul endroit pour gérer votre bibliothèque DJ et découvrir la musique. Personnalisons votre expérience avant que vous ne commenciez à organiser."
+		},
+		"language": {
+			"title": "Choisissez votre langue",
+			"description": "Sélectionnez la langue de l'interface de l'application."
+		},
+		"appearance": {
+			"title": "Personnalisez votre apparence",
+			"description": "Choisissez votre thème préféré, votre couleur d'accent et votre police."
+		},
+		"ready": {
+			"title": "Vous êtes prêt!",
+			"subtitle": "Commencez à construire votre collection."
+		},
+		"getStarted": "Commencer"
 	}
 }

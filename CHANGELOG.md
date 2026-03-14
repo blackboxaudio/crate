@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added first-run onboarding setup wizard with language, theme, accent color, and font customization
 - Added Apple code signing and notarization for macOS builds
 
 ### Changed

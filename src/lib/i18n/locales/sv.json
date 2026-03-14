@@ -622,6 +622,7 @@
 		"toggleView": "Växla vy",
 		"showDevTools": "Visa DevTools",
 		"enterFullScreen": "Gå till helskärm",
+		"exitFullScreen": "Avsluta helskärm",
 		"expandAllReleases": "Expandera alla utgåvor",
 		"collapseAllReleases": "Minimera alla utgåvor",
 		"minimize": "Minimera",
@@ -712,5 +713,24 @@
 			"blue": "Blå",
 			"purple": "Lila"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "Välkommen till {appName}",
+			"subtitle": "En plats för att hantera ditt DJ-bibliotek och upptäcka musik. Låt oss personalisera din upplevelse innan du börjar kurera."
+		},
+		"language": {
+			"title": "Välj ditt språk",
+			"description": "Välj språk för programgränssnittet."
+		},
+		"appearance": {
+			"title": "Anpassa ditt utseende",
+			"description": "Välj ditt föredragna tema, accentfärg och teckensnitt."
+		},
+		"ready": {
+			"title": "Du är redo!",
+			"subtitle": "Börja bygga din samling."
+		},
+		"getStarted": "Kom igång"
 	}
 }

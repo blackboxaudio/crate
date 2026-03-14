@@ -622,6 +622,7 @@
 		"toggleView": "보기 전환",
 		"showDevTools": "개발자 도구 표시",
 		"enterFullScreen": "전체 화면 진입",
+		"exitFullScreen": "전체 화면 종료",
 		"expandAllReleases": "모든 릴리스 확장",
 		"collapseAllReleases": "모든 릴리스 축소",
 		"minimize": "최소화",
@@ -712,5 +713,24 @@
 			"blue": "파랑",
 			"purple": "보라"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "{appName}에 오신 것을 환영합니다",
+			"subtitle": "DJ 라이브러리를 관리하고 음악을 발견하는 한 곳입니다. 큐레이션을 시작하기 전에 당신의 경험을 개인화해봅시다."
+		},
+		"language": {
+			"title": "언어 선택",
+			"description": "애플리케이션 인터페이스의 언어를 선택합니다."
+		},
+		"appearance": {
+			"title": "모양 사용자 정의",
+			"description": "선호하는 테마, 강조 색상 및 글꼴을 선택합니다."
+		},
+		"ready": {
+			"title": "모두 설정되었습니다!",
+			"subtitle": "컬렉션 구축을 시작합니다."
+		},
+		"getStarted": "시작하기"
 	}
 }

@@ -5,6 +5,7 @@
 	import ToastContainer from '$lib/components/common/ToastContainer.svelte'
 	import CrashScreen from '$lib/components/common/CrashScreen.svelte'
 	import SplashScreen from '$lib/components/common/SplashScreen.svelte'
+	import { AboutDialog, OnboardingWizard } from '$lib/components/onboarding'
 	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
 	import { getVersion } from '@tauri-apps/api/app'
@@ -32,7 +33,8 @@
 		pageActions,
 	} from '$lib/stores'
 	import { discoveryPlaylistStore } from '$lib/stores/discoveryPlaylist'
-	import { setMenuItemEnabled } from '$lib/api/app'
+	import { listen } from '@tauri-apps/api/event'
+	import { setMenuItemEnabled, setOnboardingItemsEnabled } from '$lib/api/app'
 	import { computeDiscoveryTagStates } from '$lib/utils/tagComputation'
 
 	interface Props {
@@ -42,6 +44,8 @@
 	let { children }: Props = $props()
 	let i18nReady = $state(false)
 	let splashVersion = $state('0.0.0')
+	let showOnboarding = $state(true)
+	let showAboutDialog = $state(false)
 
 	// =========================================================================
 	// Layout State (subscribed from stores)
@@ -125,6 +129,12 @@
 	// Enable/disable Refresh Metadata menu item based on view and selection
 	$effect(() => {
 		setMenuItemEnabled('refresh_metadata', $activeView === 'discovery' && $selectedReleaseIds.size > 0)
+	})
+
+	// Disable menu items during onboarding wizard and sync state to uiStore
+	$effect(() => {
+		uiStore.setOnboarding(showOnboarding)
+		setOnboardingItemsEnabled(!showOnboarding)
 	})
 
 	// Clear tree multi-selection when navigation changes
@@ -243,8 +253,19 @@
 		}
 		document.addEventListener('contextmenu', contextMenuHandler)
 
+		// Listen for 'about' menu action during onboarding to show simple about dialog
+		let unlistenAbout: (() => void) | null = null
+		listen<string>('menu-action', (event) => {
+			if (event.payload === 'about' && showOnboarding) {
+				showAboutDialog = true
+			}
+		}).then((unlisten) => {
+			unlistenAbout = unlisten
+		})
+
 		return () => {
 			cleanupErrorHandler()
+			unlistenAbout?.()
 			window.removeEventListener('dragover', dragoverHandler)
 			window.removeEventListener('drop', dropHandler)
 			document.removeEventListener('contextmenu', contextMenuHandler)
@@ -252,13 +273,26 @@
 	})
 </script>
 
-<SplashScreen show={$splashVisible} version={splashVersion} />
+{#if showOnboarding}
+	{#if i18nReady}
+		<OnboardingWizard
+			onComplete={() => {
+				showOnboarding = false
+			}}
+		/>
+		<AboutDialog open={showAboutDialog} onClose={() => (showAboutDialog = false)} />
+	{/if}
+{:else}
+	<SplashScreen show={$splashVisible} version={splashVersion} />
+{/if}
 
 <div class="flex h-screen w-screen flex-col overflow-hidden bg-surface-0 text-text-primary">
 	{#if i18nReady}
 		<div
 			class="flex h-full flex-col transition-opacity duration-300"
-			style="opacity: {$splashVisible ? 0 : 1}; pointer-events: {$splashVisible ? 'none' : 'auto'}"
+			style="opacity: {$splashVisible || showOnboarding ? 0 : 1}; pointer-events: {$splashVisible || showOnboarding
+				? 'none'
+				: 'auto'}"
 		>
 			<!-- Unified Header: Logo + Toolbar -->
 			<div class="relative flex rounded-br bg-surface-1">

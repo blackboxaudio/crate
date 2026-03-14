@@ -1,5 +1,7 @@
 import type { UnlistenFn } from '@tauri-apps/api/event'
+import { get } from 'svelte/store'
 import { onMenuAction, type MenuAction } from '$lib/api/menu'
+import { uiStore } from '$lib/stores'
 import { isInputFocused, isNativeDialogOpen } from '$lib/utils'
 import type { SettingsPage } from '$lib/types'
 
@@ -94,6 +96,10 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 
 	function handleMenuAction(action: MenuAction): void {
 		if (isNativeDialogOpen()) return
+
+		// During onboarding, the 'about' action is handled by the layout's own listener
+		// to show a simple about dialog instead of the full settings modal
+		if (action === 'about' && get(uiStore).isOnboarding) return
 
 		switch (action) {
 			// App menu

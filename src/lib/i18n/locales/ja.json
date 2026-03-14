@@ -623,6 +623,7 @@
 		"toggleView": "ビューを切り替え",
 		"showDevTools": "開発者ツールを表示",
 		"enterFullScreen": "フルスクリーンに入る",
+		"exitFullScreen": "フルスクリーンを解除",
 		"expandAllReleases": "すべてのリリースを展開",
 		"collapseAllReleases": "すべてのリリースを折りたたむ",
 		"minimize": "しまう",
@@ -713,5 +714,24 @@
 			"blue": "青",
 			"purple": "紫"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "{appName}へようこそ",
+			"subtitle": "DJ ライブラリを管理して音楽を発見するための一つの場所。キュレーションを始める前にあなたの体験をパーソナライズしましょう。"
+		},
+		"language": {
+			"title": "言語を選択",
+			"description": "アプリケーションインターフェースの言語を選択します。"
+		},
+		"appearance": {
+			"title": "外観をカスタマイズ",
+			"description": "好みのテーマ、アクセントカラー、フォントを選択します。"
+		},
+		"ready": {
+			"title": "準備完了です!",
+			"subtitle": "コレクションの構築を開始します。"
+		},
+		"getStarted": "はじめる"
 	}
 }

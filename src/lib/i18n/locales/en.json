@@ -623,6 +623,7 @@
 		"toggleView": "Toggle View",
 		"showDevTools": "Show DevTools",
 		"enterFullScreen": "Enter Full Screen",
+		"exitFullScreen": "Exit Full Screen",
 		"expandAllReleases": "Expand All Releases",
 		"collapseAllReleases": "Collapse All Releases",
 		"minimize": "Minimize",
@@ -713,5 +714,24 @@
 			"blue": "Blue",
 			"purple": "Purple"
 		}
+	},
+	"onboarding": {
+		"welcome": {
+			"title": "Welcome to {appName}",
+			"subtitle": "One place to manage your DJ library and discover music. Let's personalize your experience before you start curating."
+		},
+		"language": {
+			"title": "Choose Your Language",
+			"description": "Select the language for the application interface."
+		},
+		"appearance": {
+			"title": "Customize Your Look",
+			"description": "Choose your preferred theme, accent color, and font."
+		},
+		"ready": {
+			"title": "You're all set!",
+			"subtitle": "Start building your collection."
+		},
+		"getStarted": "Get Started"
 	}
 }

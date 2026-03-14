@@ -78,6 +78,14 @@ pub fn set_dialog_conflicting_items_enabled(
 }
 
 #[tauri::command]
+pub fn set_onboarding_items_enabled(
+    app: tauri::AppHandle,
+    enabled: bool,
+) -> Result<(), String> {
+    menu::set_onboarding_items_enabled(&app, enabled).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn rebuild_menu(app: tauri::AppHandle, translations: MenuTranslations) -> Result<(), String> {
     // Use in-place text updates instead of rebuilding the entire menu
     // This works better on macOS where set_menu() may not visually refresh in production builds
