@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoverySortConfig, Tag, TagFilterMode } from '$lib/types'
+	import type { DiscoveryRelease, DiscoverySortConfig, Tag, TagCategory, TagFilterMode } from '$lib/types'
 	import DiscoveryList from './DiscoveryList.svelte'
 	import { SearchBar, FilterDropdown } from '$lib/components/library'
 	import { IconButton } from '$lib/components/common'
@@ -21,9 +21,10 @@
 		searchValue?: string
 		onSearchChange?: (query: string) => void
 		activeFilterTags?: Tag[]
+		tagCategories?: TagCategory[]
 		tagColors?: Map<string, string | null>
 		tagFilterMode?: TagFilterMode
-		onRemoveTagFilter?: (tagId: string) => void
+		onToggleTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
 		onToggleTagFilterMode?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
@@ -55,9 +56,10 @@
 		searchValue = '',
 		onSearchChange,
 		activeFilterTags = [],
+		tagCategories = [],
 		tagColors = new Map(),
 		tagFilterMode = 'or',
-		onRemoveTagFilter,
+		onToggleTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
 		onSelectionChange,
@@ -167,9 +169,10 @@
 			{/if}
 			<FilterDropdown
 				{activeFilterTags}
+				{tagCategories}
 				{tagColors}
 				{tagFilterMode}
-				onRemoveTagFilter={(tagId) => onRemoveTagFilter?.(tagId)}
+				onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
 				onClearAll={() => onClearAllTagFilters?.()}
 				onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
 				showLikedFilter

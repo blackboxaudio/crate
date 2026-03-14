@@ -436,7 +436,7 @@
 			: (query: string) => libraryStore.setSearch(query)
 	)
 
-	// Active filter tags (for SearchBar tag chips)
+	// Active filter tags
 	const activeFilterTags = $derived.by(() => {
 		if (selectedTagIds.length === 0) return [] as Tag[]
 		const tags: Tag[] = []
@@ -494,9 +494,10 @@
 			{searchValue}
 			{onSearchChange}
 			{activeFilterTags}
+			{tagCategories}
 			tagColors={categoryColors}
 			tagFilterMode={$tagFilterMode}
-			onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+			onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 			onClearAllTagFilters={() => {
 				tagController.clearTagFilters()
 				if ($activeView === 'discovery' && get(likedOnly)) discoveryStore.toggleLikedFilter()
@@ -527,9 +528,10 @@
 					searchValue={discoverySearchValue}
 					onSearchChange={(query) => discoveryStore.setSearch(query)}
 					{activeFilterTags}
+					{tagCategories}
 					tagColors={categoryColors}
 					tagFilterMode={$tagFilterMode}
-					onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+					onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 					onClearAllTagFilters={() => {
 						tagController.clearTagFilters()
 						if (get(likedOnly)) discoveryStore.toggleLikedFilter()
@@ -565,9 +567,10 @@
 					searchValue={librarySearchValue}
 					onSearchChange={(query) => libraryStore.setSearch(query)}
 					{activeFilterTags}
+					{tagCategories}
 					tagColors={categoryColors}
 					tagFilterMode={$tagFilterMode}
-					onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+					onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 					onClearAllTagFilters={() => tagController.clearTagFilters()}
 					onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 					onSelectionChange={trackController.handleSelectionChange}
@@ -599,9 +602,10 @@
 			searchValue={discoverySearchValue}
 			onSearchChange={(query) => discoveryStore.setSearch(query)}
 			{activeFilterTags}
+			{tagCategories}
 			tagColors={categoryColors}
 			tagFilterMode={$tagFilterMode}
-			onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+			onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 			onClearAllTagFilters={() => {
 				tagController.clearTagFilters()
 				if (get(likedOnly)) discoveryStore.toggleLikedFilter()
@@ -640,9 +644,10 @@
 			searchValue={librarySearchValue}
 			onSearchChange={(query) => libraryStore.setSearch(query)}
 			{activeFilterTags}
+			{tagCategories}
 			tagColors={categoryColors}
 			tagFilterMode={$tagFilterMode}
-			onRemoveTagFilter={(tagId) => tagController.removeTagFilter(tagId)}
+			onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 			onClearAllTagFilters={() => tagController.clearTagFilters()}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			onSelectionChange={trackController.handleSelectionChange}

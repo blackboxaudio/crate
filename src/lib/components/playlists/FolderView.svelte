@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Playlist, BreadcrumbItem, Tag, TagFilterMode } from '$lib/types'
+	import type { Playlist, BreadcrumbItem, Tag, TagCategory, TagFilterMode } from '$lib/types'
 	import { getPlaylistChildren } from '$lib/stores/playlists'
 	import FolderCard from './FolderCard.svelte'
 	import { SearchBar, FilterDropdown } from '$lib/components/library'
@@ -20,9 +20,10 @@
 		searchValue?: string
 		onSearchChange?: (query: string) => void
 		activeFilterTags?: Tag[]
+		tagCategories?: TagCategory[]
 		tagColors?: Map<string, string | null>
 		tagFilterMode?: TagFilterMode
-		onRemoveTagFilter?: (tagId: string) => void
+		onToggleTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
 		onToggleTagFilterMode?: () => void
 		isDiscoveryContext?: boolean
@@ -42,9 +43,10 @@
 		searchValue = '',
 		onSearchChange,
 		activeFilterTags = [],
+		tagCategories = [],
 		tagColors = new Map(),
 		tagFilterMode = 'or',
-		onRemoveTagFilter,
+		onToggleTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
 		isDiscoveryContext = false,
@@ -98,9 +100,10 @@
 				{/if}
 				<FilterDropdown
 					{activeFilterTags}
+					{tagCategories}
 					{tagColors}
 					{tagFilterMode}
-					onRemoveTagFilter={(tagId) => onRemoveTagFilter?.(tagId)}
+					onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
 					onClearAll={() => onClearAllTagFilters?.()}
 					onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
 					showLikedFilter={isDiscoveryContext}
