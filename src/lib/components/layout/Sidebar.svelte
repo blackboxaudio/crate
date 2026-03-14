@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { onMount } from 'svelte'
 	import type { Playlist, TagCategory, Tag, TagSelectionState, UsbDevice } from '$lib/types'
 	import { Button, Text } from '$lib/components/common'
 	import { PlaylistTree } from '$lib/components/playlists'
@@ -7,6 +8,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { activeView, isDev } from '$lib/stores'
 	import { translate } from '$lib/i18n'
+	import { getStoredNumber, setStoredNumber } from '$lib/utils/storage'
 
 	type Props = {
 		playlists: Playlist[]
@@ -81,6 +83,40 @@
 	}: Props = $props()
 
 	let activeSection = $state<'playlists' | 'tags'>('playlists')
+	let scrollContainer: HTMLDivElement | undefined = $state()
+	let scrollThrottleTimer: ReturnType<typeof setTimeout> | null = null
+
+	// Persist sidebar tree scroll position
+	function handleScrollContainerScroll() {
+		if (scrollThrottleTimer) return
+		scrollThrottleTimer = setTimeout(() => {
+			scrollThrottleTimer = null
+			if (scrollContainer) {
+				setStoredNumber('nav.treeScrollTop', scrollContainer.scrollTop)
+			}
+		}, 200)
+	}
+
+	// Restore scroll position once playlists have loaded and the tree is rendered
+	let scrollRestored = false
+	$effect(() => {
+		if (!scrollRestored && scrollContainer && playlists.length > 0) {
+			scrollRestored = true
+			const stored = getStoredNumber('nav.treeScrollTop', 0)
+			if (stored > 0) {
+				// Wait for DOM to update with the playlist tree content
+				requestAnimationFrame(() => {
+					if (scrollContainer) scrollContainer.scrollTop = stored
+				})
+			}
+		}
+	})
+
+	onMount(() => {
+		return () => {
+			if (scrollThrottleTimer) clearTimeout(scrollThrottleTimer)
+		}
+	})
 
 	// When tracks are selected and we're on the Tags tab, enable toggle mode
 	let isTagToggleMode = $derived(activeSection === 'tags' && (selectedTrackIds?.size ?? 0) > 0)
@@ -145,7 +181,9 @@
 	<!-- Content -->
 	<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 	<div
+		bind:this={scrollContainer}
 		class="flex-1 overflow-auto p-2"
+		onscroll={handleScrollContainerScroll}
 		onclick={(e) => {
 			if (e.target === e.currentTarget && (selectedPlaylistId || selectedTagIds.length > 0)) {
 				onLibraryClick?.()

@@ -66,6 +66,9 @@
 		onPlaylistBulkDelete: (playlists: Playlist[]) => void
 		onPlaylistMove: (playlist: Playlist, folderId: string | null) => void
 
+		// Playlist bulk move
+		onPlaylistBulkMove?: (playlists: Playlist[], folderId: string | null) => void
+
 		// FolderView callbacks
 		onFolderViewCreatePlaylist: (folderId: string | null) => void
 		onFolderViewCreateSmartPlaylist: (folderId: string | null) => void
@@ -143,6 +146,7 @@
 		onPlaylistRename,
 		onPlaylistDelete,
 		onPlaylistBulkDelete,
+		onPlaylistBulkMove,
 		onPlaylistMove,
 		onFolderViewCreatePlaylist,
 		onFolderViewCreateSmartPlaylist,
@@ -445,6 +449,11 @@
 		onPlaylistMove(playlist, folderId)
 	}
 
+	function handlePlaylistBulkMove(playlists: Playlist[], folderId: string | null) {
+		closeAll()
+		onPlaylistBulkMove?.(playlists, folderId)
+	}
+
 	// FolderView handlers
 	function handleFolderViewCreatePlaylist() {
 		const folderId = activeMenu.type === 'folderView' ? activeMenu.folderId : null
@@ -680,6 +689,7 @@
 		onRename={handlePlaylistRename}
 		onDelete={handlePlaylistDelete}
 		onBulkDelete={handlePlaylistBulkDelete}
+		onBulkMove={handlePlaylistBulkMove}
 		onMove={handlePlaylistMove}
 		onExport={handlePlaylistExport}
 	/>

@@ -443,6 +443,24 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		playerStore.restoreTrack(get(libraryStore).tracks)
 		await playerStore.restorePreview()
 
+		// Restore persisted navigation state (playlist/folder selection)
+		const restoredState = get(uiStore)
+		if (restoredState.selectedPlaylistId) {
+			const playlist = getPlaylists().find((p) => p.id === restoredState.selectedPlaylistId)
+			if (playlist) {
+				await playlistController.handlePlaylistSelect(playlist)
+			} else {
+				// Persisted playlist was deleted — clear and fall back to library
+				uiStore.selectPlaylist(null)
+			}
+		} else if (restoredState.selectedFolderId) {
+			const folder = getPlaylists().find((p) => p.id === restoredState.selectedFolderId)
+			if (!folder) {
+				// Persisted folder was deleted — clear and fall back to library
+				uiStore.selectFolder(null)
+			}
+		}
+
 		const cleanupKeyboard = useKeyboardShortcuts({
 			isModalOpen: () => getModalOrchestrator()?.isModalOpen() ?? false,
 			onPlayPause: handlers.playPause,
@@ -678,6 +696,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				await playlistsStore.addReleases(playlistId, releaseIds)
 			},
 			onPlaylistMove: playlistController.handlePlaylistDragMove,
+			onBulkPlaylistMove: playlistController.handleBulkPlaylistMove,
 			onPlaylistExportToDevice: exportController.handlePlaylistDropOnDevice,
 			onTagDropOnTrack: async (tagId: string, trackId: string) => {
 				const trackIds = get(selectedTrackIds).has(trackId) ? Array.from(get(selectedTrackIds)) : [trackId]

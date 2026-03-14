@@ -14,6 +14,7 @@ export interface DragDropCoordinationConfig {
 	onTracksDropOnPlaylist: (playlistId: string, trackIds: string[]) => Promise<void>
 	onReleasesDropOnPlaylist: (playlistId: string, releaseIds: string[]) => Promise<void>
 	onPlaylistMove: (playlistId: string, targetFolderId: string | null) => Promise<void>
+	onBulkPlaylistMove: (playlistIds: string[], targetFolderId: string | null) => Promise<void>
 	onPlaylistExportToDevice: (playlistId: string, isFolder: boolean, deviceId: string) => Promise<void>
 	onTagDropOnCategory?: (tagId: string, sourceCategoryId: string, targetCategoryId: string) => Promise<void>
 	onTagDropOnTrack?: (tagId: string, trackId: string) => Promise<void>
@@ -40,6 +41,7 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 		onTracksDropOnPlaylist,
 		onReleasesDropOnPlaylist,
 		onPlaylistMove,
+		onBulkPlaylistMove,
 		onPlaylistExportToDevice,
 		onTagDropOnCategory,
 		onTagDropOnTrack,
@@ -113,22 +115,36 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 				// Dropping releases on a discovery playlist
 				onReleasesDropOnPlaylist(target.id, data.releaseIds)
 			} else if (data.type === 'playlist' && target.type === 'folder') {
-				// Validate: prevent dropping on self
-				if (data.playlistId === target.id) {
-					toastStore.error('Cannot drop a folder into itself')
-					dragStore.endDrag()
-					return
+				// Validate each playlist in the drag set
+				const idsToMove = data.playlistIds.length > 1 ? data.playlistIds : [data.playlistId]
+				for (const id of idsToMove) {
+					if (id === target.id) {
+						toastStore.error('Cannot drop a folder into itself')
+						dragStore.endDrag()
+						return
+					}
+					const pl = getPlaylists().find((p) => p.id === id)
+					if (pl?.is_folder && isDescendantOf(id, target.id)) {
+						toastStore.error('Cannot drop a folder into its own subfolder')
+						dragStore.endDrag()
+						return
+					}
 				}
 
-				// Validate: prevent dropping folder into its own descendants
-				if (data.isFolder && isDescendantOf(data.playlistId, target.id)) {
-					toastStore.error('Cannot drop a folder into its own subfolder')
-					dragStore.endDrag()
-					return
+				// Dropping playlist(s)/folder(s) on a folder
+				if (idsToMove.length > 1) {
+					onBulkPlaylistMove(idsToMove, target.id)
+				} else {
+					onPlaylistMove(data.playlistId, target.id)
 				}
-
-				// Dropping a playlist/folder on a folder
-				onPlaylistMove(data.playlistId, target.id)
+			} else if (data.type === 'playlist' && target.type === 'root') {
+				// Dropping playlist(s)/folder(s) on root edge zone → move to root level
+				const idsToMove = data.playlistIds.length > 1 ? data.playlistIds : [data.playlistId]
+				if (idsToMove.length > 1) {
+					onBulkPlaylistMove(idsToMove, null)
+				} else {
+					onPlaylistMove(data.playlistId, null)
+				}
 			} else if (data.type === 'playlist' && target.type === 'device') {
 				// Dropping a playlist/folder on a device - export immediately
 				onPlaylistExportToDevice(data.playlistId, data.isFolder, target.id)

@@ -12,11 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added unified filter panel for library and discovery views with per-context filter state
 - Added click-to-enlarge artwork modal for discovery releases
 - Added dynamic sidebar header that updates to match the active context (Library / Discovery)
+- Added bulk drag-and-drop and "Move to Folder" context menu for multi-selected playlists
+- Added persistence of navigation state, playlist tree scroll position, and discovery release expansion across restarts
 
 ### Fixed
 
 - Fixed support for bulk-adding Bandcamp pages that use alternative indexing
 - Fixed discovery playlist search not filtering by track name
+- Fixed multi-select drag clearing selection when clicking to initiate a drag
 
 ## [0.2.6] - 2026-03-14
 

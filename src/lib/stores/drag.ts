@@ -7,7 +7,7 @@ import { writable, derived } from 'svelte/store'
 export type DragData =
 	| { type: 'tracks'; trackIds: string[] }
 	| { type: 'releases'; releaseIds: string[] }
-	| { type: 'playlist'; playlistId: string; isFolder: boolean }
+	| { type: 'playlist'; playlistId: string; playlistIds: string[]; isFolder: boolean }
 	| { type: 'tag'; tagId: string; sourceCategoryId: string }
 
 interface DragState {
@@ -61,9 +61,9 @@ function createDragStore() {
 		/**
 		 * Start dragging a playlist or folder
 		 */
-		startPlaylistDrag(playlistId: string, isFolder: boolean, x: number, y: number) {
+		startPlaylistDrag(playlistId: string, isFolder: boolean, x: number, y: number, playlistIds?: string[]) {
 			set({
-				data: { type: 'playlist', playlistId, isFolder },
+				data: { type: 'playlist', playlistId, playlistIds: playlistIds ?? [playlistId], isFolder },
 				position: { x, y },
 				hoveredDropTarget: null,
 				needsDropTargetRefresh: false,
