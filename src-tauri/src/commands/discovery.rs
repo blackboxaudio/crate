@@ -583,11 +583,10 @@ pub async fn scan_discovery_page(
     enrichment_cache.0.lock().await.clear();
     cancel_flag.0.store(false, Ordering::SeqCst);
 
-    let existing_urls = discovery.get_all_release_urls()?;
-    let result = tokio::time::timeout(
-        std::time::Duration::from_secs(60),
-        metadata::scan_page(&url, &existing_urls, &cancel_flag.0, Some(&app)),
-    )
+    let result = tokio::time::timeout(std::time::Duration::from_secs(60), async {
+        let existing_urls = discovery.get_all_release_urls()?;
+        metadata::scan_page(&url, &existing_urls, &cancel_flag.0, Some(&app)).await
+    })
     .await
     .map_err(|_| CrateError::Discovery("Scan timed out after 60 seconds".into()))??;
 

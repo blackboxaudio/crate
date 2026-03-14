@@ -82,6 +82,7 @@ pub async fn scan_page(
     cancel_flag: &std::sync::atomic::AtomicBool,
     app_handle: Option<&tauri::AppHandle>,
 ) -> Result<crate::models::ScannedPage> {
+    log::info!("Starting page scan for URL: {url}");
     let client = build_client()?;
 
     if bandcamp::is_bandcamp_page_url(url) {

@@ -494,7 +494,8 @@ export const displayedReleases = derived(
 					r.artist?.toLowerCase().includes(search) ||
 					r.title?.toLowerCase().includes(search) ||
 					r.label?.toLowerCase().includes(search) ||
-					r.notes?.toLowerCase().includes(search)
+					r.notes?.toLowerCase().includes(search) ||
+					r.tracks.some((t) => t.name?.toLowerCase().includes(search))
 			)
 		}
 
