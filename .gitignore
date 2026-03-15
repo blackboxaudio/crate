@@ -2,6 +2,10 @@
 node_modules
 /build
 /.svelte-kit
+apps/desktop/.svelte-kit/
+apps/desktop/build/
+apps/mobile/.svelte-kit/
+apps/mobile/build/
 /package
 .env
 .env.*

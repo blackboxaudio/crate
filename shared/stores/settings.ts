@@ -1,0 +1,653 @@
+import { tick } from 'svelte'
+import { writable, derived, get } from 'svelte/store'
+import type {
+	Theme,
+	AccentColor,
+	Font,
+	AudioDevice,
+	Language,
+	KeyNotationFormat,
+	DateFormat,
+	ExportFormat,
+	BackupFrequency,
+} from '../types'
+import * as settingsApi from '../api/settings'
+import { setLanguage as setI18nLanguage, translate } from '../i18n'
+
+// =============================================================================
+// State
+// =============================================================================
+
+interface SettingsState {
+	theme: Theme
+	accentColor: AccentColor
+	font: Font
+	resolvedTheme: 'light' | 'dark' // Actual theme after resolving 'system'
+	audioDevice: string | null
+	audioDevices: AudioDevice[]
+	language: Language
+	keyNotationFormat: KeyNotationFormat
+	dateFormat: DateFormat
+	exportFormat: ExportFormat
+	autoAnalyzeOnImport: boolean
+	autoSyncOnConnect: boolean
+	autoSyncOnChange: boolean
+	continuousPlayback: boolean
+	autoFetchMetadata: boolean
+	transferTagsOnImport: boolean
+	removeReleaseAfterImport: boolean
+	ignoredDeviceIds: string[]
+	lastBackupAt: string | null
+	backupFrequency: BackupFrequency
+	lastBackupType: string | null
+	hasCompletedOnboarding: boolean
+	hasCompletedWizard: boolean
+	loading: boolean
+	error: string | null
+}
+
+const initialState: SettingsState = {
+	theme: 'system',
+	accentColor: 'blue',
+	font: 'open-sans',
+	resolvedTheme: 'dark',
+	audioDevice: null,
+	audioDevices: [],
+	language: 'en',
+	keyNotationFormat: 'camelot',
+	dateFormat: 'locale',
+	exportFormat: 'pdb',
+	autoAnalyzeOnImport: true,
+	autoSyncOnConnect: false,
+	autoSyncOnChange: false,
+	continuousPlayback: true,
+	autoFetchMetadata: true,
+	transferTagsOnImport: true,
+	removeReleaseAfterImport: true,
+	ignoredDeviceIds: [],
+	lastBackupAt: null,
+	backupFrequency: 'monthly',
+	lastBackupType: null,
+	hasCompletedOnboarding: false,
+	hasCompletedWizard: false,
+	loading: false,
+	error: null,
+}
+
+// =============================================================================
+// System Theme Detection
+// =============================================================================
+
+function getSystemTheme(): 'light' | 'dark' {
+	if (typeof window === 'undefined') return 'dark'
+	return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
+// =============================================================================
+// Store
+// =============================================================================
+
+export interface SettingsStoreHooks {
+	getAppName?: () => string
+	onLanguageChanged?: () => Promise<void>
+}
+
+function createSettingsStore() {
+	const { subscribe, set, update } = writable<SettingsState>(initialState)
+	let hooks: SettingsStoreHooks = {}
+	let systemThemeMediaQuery: MediaQueryList | null = null
+	let mediaQueryHandler: ((e: MediaQueryListEvent) => void) | null = null
+
+	function resolveTheme(theme: Theme): 'light' | 'dark' {
+		if (theme === 'system') {
+			return getSystemTheme()
+		}
+		return theme
+	}
+
+	function applyTheme(resolvedTheme: 'light' | 'dark') {
+		if (typeof document === 'undefined') return
+		document.documentElement.setAttribute('data-theme', resolvedTheme)
+	}
+
+	function applyAccentColor(color: AccentColor) {
+		if (typeof document === 'undefined') return
+		document.documentElement.setAttribute('data-accent', color)
+	}
+
+	function applyFont(font: Font) {
+		if (typeof document === 'undefined') return
+		document.documentElement.setAttribute('data-font', font)
+	}
+
+	function persistToLocalStorage(theme: Theme, accentColor: AccentColor, language?: Language, font?: Font) {
+		if (typeof localStorage === 'undefined') return
+		try {
+			localStorage.setItem('crate-theme', theme)
+			localStorage.setItem('crate-accent', accentColor)
+			if (language) {
+				localStorage.setItem('crate-language', language)
+			}
+			if (font) {
+				localStorage.setItem('crate-font', font)
+			}
+		} catch {
+			// localStorage not available or quota exceeded, ignore
+		}
+	}
+
+	function setupSystemThemeListener() {
+		if (typeof window === 'undefined') return
+
+		// Clean up existing listener
+		if (systemThemeMediaQuery && mediaQueryHandler) {
+			systemThemeMediaQuery.removeEventListener('change', mediaQueryHandler)
+		}
+
+		systemThemeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+
+		mediaQueryHandler = () => {
+			const state = get({ subscribe })
+			if (state.theme === 'system') {
+				const resolved = getSystemTheme()
+				update((s) => ({ ...s, resolvedTheme: resolved }))
+				applyTheme(resolved)
+			}
+		}
+
+		systemThemeMediaQuery.addEventListener('change', mediaQueryHandler)
+	}
+
+	function getMenuTranslations() {
+		const t = get(translate)
+		const appName = hooks.getAppName?.() ?? 'Crate'
+		return {
+			// Menu titles
+			file: t('menu.file'),
+			edit: t('menu.edit'),
+			playback: t('menu.playback'),
+			view: t('menu.view'),
+			window: t('menu.window'),
+			help: t('menu.help'),
+			// App menu items (about and quit contain app name via template)
+			about: t('menu.about', { values: { appName } }),
+			settings: t('menu.settings'),
+			quit: t('menu.quit', { values: { appName } }),
+			// File menu items
+			importTracks: t('menu.importTracks'),
+			addRelease: t('menu.addRelease'),
+			refreshMetadata: t('menu.refreshMetadata'),
+			newPlaylist: t('menu.newPlaylist'),
+			newFolder: t('menu.newFolder'),
+			quickExport: t('menu.quickExport'),
+			// Edit menu items
+			undo: t('menu.undo'),
+			redo: t('menu.redo'),
+			cut: t('menu.cut'),
+			copy: t('menu.copy'),
+			paste: t('menu.paste'),
+			selectAll: t('menu.selectAll'),
+			// Playback menu items
+			playPause: t('menu.playPause'),
+			stop: t('menu.stop'),
+			nextTrack: t('menu.nextTrack'),
+			previousTrack: t('menu.previousTrack'),
+			seekForward: t('menu.seekForward'),
+			seekBackward: t('menu.seekBackward'),
+			fineSeekForward: t('menu.fineSeekForward'),
+			fineSeekBackward: t('menu.fineSeekBackward'),
+			volumeUp: t('menu.volumeUp'),
+			volumeDown: t('menu.volumeDown'),
+			mute: t('menu.mute'),
+			jumpToPlaying: t('menu.jumpToPlaying'),
+			// View menu items
+			toggleView: t('menu.toggleView'),
+			toggleEditor: t('menu.toggleEditor'),
+			expandAllReleases: t('menu.expandAllReleases'),
+			collapseAllReleases: t('menu.collapseAllReleases'),
+			showDevTools: t('menu.showDevTools'),
+			enterFullScreen: t('menu.enterFullScreen'),
+			exitFullScreen: t('menu.exitFullScreen'),
+			// Settings submenu
+			settingsSubmenu: t('menu.settingsSubmenu'),
+			settingsGeneral: t('menu.settingsGeneral'),
+			settingsLibrary: t('menu.settingsLibrary'),
+			settingsDiscovery: t('menu.settingsDiscovery'),
+			settingsAppearance: t('menu.settingsAppearance'),
+			settingsSound: t('menu.settingsSound'),
+			settingsDiagnostics: t('menu.settingsDiagnostics'),
+			// Window menu items
+			minimize: t('menu.minimize'),
+			zoom: t('menu.zoom'),
+			// Help menu items
+			featureTour: t('menu.featureTour'),
+			reportIssue: t('menu.reportIssue'),
+		}
+	}
+
+	return {
+		subscribe,
+
+		/**
+		 * Register hooks for desktop-only store interactions.
+		 */
+		registerHooks(h: SettingsStoreHooks) {
+			hooks = h
+		},
+
+		/**
+		 * Get translated menu labels for rebuilding the native menu.
+		 */
+		getMenuTranslations,
+
+		/**
+		 * Load settings from backend
+		 */
+		async load() {
+			update((s) => ({ ...s, loading: true, error: null }))
+
+			try {
+				const [settings, audioDevices] = await Promise.all([settingsApi.getSettings(), settingsApi.getAudioDevices()])
+				const resolvedTheme = resolveTheme(settings.theme)
+
+				update((s) => ({
+					...s,
+					theme: settings.theme,
+					accentColor: settings.accentColor,
+					font: settings.font,
+					audioDevice: settings.audioDevice,
+					audioDevices,
+					language: settings.language,
+					keyNotationFormat: settings.keyNotationFormat,
+					dateFormat: settings.dateFormat ?? 'locale',
+					exportFormat: settings.exportFormat ?? 'pdb',
+					autoAnalyzeOnImport: settings.autoAnalyzeOnImport,
+					autoSyncOnConnect: settings.autoSyncOnConnect,
+					autoSyncOnChange: settings.autoSyncOnChange,
+					continuousPlayback: settings.continuousPlayback,
+					autoFetchMetadata: settings.autoFetchMetadata,
+					transferTagsOnImport: settings.transferTagsOnImport,
+					removeReleaseAfterImport: settings.removeReleaseAfterImport,
+					ignoredDeviceIds: settings.ignoredDeviceIds,
+					lastBackupAt: settings.lastBackupAt ?? null,
+					backupFrequency: settings.backupFrequency ?? 'monthly',
+					lastBackupType: settings.lastBackupType ?? null,
+					hasCompletedOnboarding: settings.hasCompletedOnboarding,
+					hasCompletedWizard: settings.hasCompletedWizard,
+					resolvedTheme,
+					loading: false,
+				}))
+
+				applyTheme(resolvedTheme)
+				applyAccentColor(settings.accentColor)
+				applyFont(settings.font)
+				persistToLocalStorage(settings.theme, settings.accentColor, settings.language, settings.font)
+				setupSystemThemeListener()
+
+				// Update i18n language and menu
+				await setI18nLanguage(settings.language)
+				await tick()
+				await hooks.onLanguageChanged?.()
+			} catch (error) {
+				update((s) => ({
+					...s,
+					loading: false,
+					error: error instanceof Error ? error.message : 'Failed to load settings',
+				}))
+
+				// Apply defaults on error
+				const resolvedTheme = resolveTheme('system')
+				applyTheme(resolvedTheme)
+				applyAccentColor('blue')
+				applyFont('ibm-plex-mono')
+				setupSystemThemeListener()
+			}
+		},
+
+		/**
+		 * Set theme preference
+		 */
+		async setTheme(theme: Theme) {
+			const resolvedTheme = resolveTheme(theme)
+			const state = get({ subscribe })
+
+			update((s) => ({ ...s, theme, resolvedTheme }))
+			applyTheme(resolvedTheme)
+			persistToLocalStorage(theme, state.accentColor)
+
+			try {
+				await settingsApi.setSetting('theme', theme)
+			} catch (error) {
+				console.error('Failed to save theme setting:', error)
+			}
+		},
+
+		/**
+		 * Set accent color
+		 */
+		async setAccentColor(color: AccentColor) {
+			const state = get({ subscribe })
+
+			update((s) => ({ ...s, accentColor: color }))
+			applyAccentColor(color)
+			persistToLocalStorage(state.theme, color)
+
+			try {
+				await settingsApi.setSetting('accent_color', color)
+			} catch (error) {
+				console.error('Failed to save accent color setting:', error)
+			}
+		},
+
+		/**
+		 * Set font family
+		 */
+		async setFont(font: Font) {
+			const state = get({ subscribe })
+
+			update((s) => ({ ...s, font }))
+			applyFont(font)
+			persistToLocalStorage(state.theme, state.accentColor, undefined, font)
+
+			try {
+				await settingsApi.setSetting('font', font)
+			} catch (error) {
+				console.error('Failed to save font setting:', error)
+			}
+		},
+
+		/**
+		 * Set audio output device
+		 */
+		async setAudioDevice(deviceName: string | null) {
+			update((s) => ({ ...s, audioDevice: deviceName }))
+
+			try {
+				await settingsApi.setAudioDevice(deviceName)
+			} catch (error) {
+				console.error('Failed to save audio device setting:', error)
+			}
+		},
+
+		/**
+		 * Set display language
+		 */
+		async setLanguage(language: Language) {
+			const state = get({ subscribe })
+
+			update((s) => ({ ...s, language }))
+			await setI18nLanguage(language)
+			await tick()
+			await hooks.onLanguageChanged?.()
+			persistToLocalStorage(state.theme, state.accentColor, language)
+
+			try {
+				await settingsApi.setSetting('language', language)
+			} catch (error) {
+				console.error('Failed to save language setting:', error)
+			}
+		},
+
+		/**
+		 * Set key notation format (standard or camelot)
+		 */
+		async setKeyNotationFormat(format: KeyNotationFormat) {
+			update((s) => ({ ...s, keyNotationFormat: format }))
+
+			try {
+				await settingsApi.setSetting('key_notation_format', format)
+			} catch (error) {
+				console.error('Failed to save key notation format setting:', error)
+			}
+		},
+
+		/**
+		 * Set date format
+		 */
+		async setDateFormat(format: DateFormat) {
+			update((s) => ({ ...s, dateFormat: format }))
+
+			try {
+				await settingsApi.setSetting('date_format', format)
+			} catch (error) {
+				console.error('Failed to save date format setting:', error)
+			}
+		},
+
+		/**
+		 * Set export format (pdb or device_library_plus)
+		 */
+		async setExportFormat(format: ExportFormat) {
+			update((s) => ({ ...s, exportFormat: format }))
+
+			try {
+				await settingsApi.setSetting('export_format', format)
+			} catch (error) {
+				console.error('Failed to save export format setting:', error)
+			}
+		},
+
+		/**
+		 * Set backup frequency
+		 */
+		async setBackupFrequency(frequency: BackupFrequency) {
+			update((s) => ({ ...s, backupFrequency: frequency }))
+
+			try {
+				await settingsApi.setSetting('backup_frequency', frequency)
+			} catch (error) {
+				console.error('Failed to save backup frequency setting:', error)
+			}
+		},
+
+		/**
+		 * Set auto-analyze on import
+		 */
+		async setAutoAnalyzeOnImport(enabled: boolean) {
+			update((s) => ({ ...s, autoAnalyzeOnImport: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_analyze_on_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto analyze on import setting:', error)
+			}
+		},
+
+		/**
+		 * Set auto-sync on device connected
+		 */
+		async setAutoSyncOnConnect(enabled: boolean) {
+			update((s) => ({ ...s, autoSyncOnConnect: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_sync_on_connect', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto sync on connect setting:', error)
+			}
+		},
+
+		/**
+		 * Set auto-sync on library changes
+		 */
+		async setAutoSyncOnChange(enabled: boolean) {
+			update((s) => ({ ...s, autoSyncOnChange: enabled }))
+
+			try {
+				await settingsApi.setSetting('auto_sync_on_change', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto sync on change setting:', error)
+			}
+		},
+
+		/**
+		 * Set continuous playback
+		 */
+		async setContinuousPlayback(enabled: boolean) {
+			update((s) => ({ ...s, continuousPlayback: enabled }))
+			try {
+				await settingsApi.setSetting('continuous_playback', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save continuous playback setting:', error)
+			}
+		},
+
+		async setAutoFetchMetadata(enabled: boolean) {
+			update((s) => ({ ...s, autoFetchMetadata: enabled }))
+			try {
+				await settingsApi.setSetting('auto_fetch_metadata', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save auto fetch metadata setting:', error)
+			}
+		},
+
+		async setTransferTagsOnImport(enabled: boolean) {
+			update((s) => ({ ...s, transferTagsOnImport: enabled }))
+			try {
+				await settingsApi.setSetting('transfer_tags_on_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save transfer tags on import setting:', error)
+			}
+		},
+
+		async setRemoveReleaseAfterImport(enabled: boolean) {
+			update((s) => ({ ...s, removeReleaseAfterImport: enabled }))
+			try {
+				await settingsApi.setSetting('remove_release_after_import', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save remove release after import setting:', error)
+			}
+		},
+
+		/**
+		 * Add a device to the ignore list
+		 */
+		async ignoreDevice(deviceId: string) {
+			const state = get({ subscribe })
+			if (state.ignoredDeviceIds.includes(deviceId)) return
+
+			const newList = [...state.ignoredDeviceIds, deviceId]
+			update((s) => ({ ...s, ignoredDeviceIds: newList }))
+
+			try {
+				await settingsApi.setSetting('ignored_device_ids', JSON.stringify(newList))
+			} catch (error) {
+				console.error('Failed to save ignored devices setting:', error)
+			}
+		},
+
+		/**
+		 * Remove a device from the ignore list
+		 */
+		async unignoreDevice(deviceId: string) {
+			const state = get({ subscribe })
+			const newList = state.ignoredDeviceIds.filter((id) => id !== deviceId)
+			update((s) => ({ ...s, ignoredDeviceIds: newList }))
+
+			try {
+				await settingsApi.setSetting('ignored_device_ids', JSON.stringify(newList))
+			} catch (error) {
+				console.error('Failed to save ignored devices setting:', error)
+			}
+		},
+
+		/**
+		 * Refresh the list of available audio devices
+		 */
+		async refreshAudioDevices() {
+			try {
+				const audioDevices = await settingsApi.getAudioDevices()
+				update((s) => ({ ...s, audioDevices }))
+			} catch (error) {
+				console.error('Failed to refresh audio devices:', error)
+			}
+		},
+
+		async completeOnboarding() {
+			update((s) => ({ ...s, hasCompletedOnboarding: true }))
+			try {
+				await settingsApi.setSetting('has_completed_onboarding', 'true')
+			} catch (error) {
+				console.error('Failed to save onboarding completion:', error)
+			}
+		},
+
+		async completeWizard() {
+			update((s) => ({ ...s, hasCompletedWizard: true }))
+			try {
+				await settingsApi.setSetting('has_completed_wizard', 'true')
+			} catch (error) {
+				console.error('Failed to save wizard completion:', error)
+			}
+		},
+
+		async resetWizard() {
+			update((s) => ({ ...s, hasCompletedWizard: false }))
+			try {
+				await settingsApi.setSetting('has_completed_wizard', 'false')
+			} catch (error) {
+				console.error('Failed to reset wizard:', error)
+			}
+		},
+
+		/**
+		 * Reset store to initial state
+		 */
+		reset() {
+			set(initialState)
+		},
+	}
+}
+
+export const settingsStore = createSettingsStore()
+
+// =============================================================================
+// Derived Stores
+// =============================================================================
+
+export const theme = derived(settingsStore, ($s) => $s.theme)
+
+export const accentColor = derived(settingsStore, ($s) => $s.accentColor)
+
+export const font = derived(settingsStore, ($s) => $s.font)
+
+export const resolvedTheme = derived(settingsStore, ($s) => $s.resolvedTheme)
+
+export const audioDevice = derived(settingsStore, ($s) => $s.audioDevice)
+
+export const audioDevices = derived(settingsStore, ($s) => $s.audioDevices)
+
+export const language = derived(settingsStore, ($s) => $s.language)
+
+export const keyNotationFormat = derived(settingsStore, ($s) => $s.keyNotationFormat)
+
+export const dateFormat = derived(settingsStore, ($s) => $s.dateFormat)
+
+export const exportFormat = derived(settingsStore, ($s) => $s.exportFormat)
+
+export const autoAnalyzeOnImport = derived(settingsStore, ($s) => $s.autoAnalyzeOnImport)
+
+export const autoSyncOnConnect = derived(settingsStore, ($s) => $s.autoSyncOnConnect)
+
+export const autoSyncOnChange = derived(settingsStore, ($s) => $s.autoSyncOnChange)
+
+export const continuousPlayback = derived(settingsStore, ($s) => $s.continuousPlayback)
+
+export const autoFetchMetadata = derived(settingsStore, ($s) => $s.autoFetchMetadata)
+
+export const transferTagsOnImport = derived(settingsStore, ($s) => $s.transferTagsOnImport)
+
+export const removeReleaseAfterImport = derived(settingsStore, ($s) => $s.removeReleaseAfterImport)
+
+export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceIds)
+
+export const lastBackupAt = derived(settingsStore, ($s) => $s.lastBackupAt)
+
+export const backupFrequency = derived(settingsStore, ($s) => $s.backupFrequency)
+
+export const lastBackupType = derived(settingsStore, ($s) => $s.lastBackupType)
+
+export const hasCompletedOnboarding = derived(settingsStore, ($s) => $s.hasCompletedOnboarding)
+
+export const hasCompletedWizard = derived(settingsStore, ($s) => $s.hasCompletedWizard)
+
+export const settingsLoading = derived(settingsStore, ($s) => $s.loading)
