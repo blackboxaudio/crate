@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { scale } from 'svelte/transition'
-	import { dateFormat } from '$lib/stores/settings'
+	import { language, dateFormat } from '$lib/stores/settings'
 	import { formatDate } from '$lib/utils/format'
 	import { translate } from '$lib/i18n'
 	import Icon from '$lib/components/common/Icon.svelte'
@@ -51,11 +51,11 @@
 	const triggerLabel = $derived.by(() => {
 		if (mixed) return '---'
 		if (!value) return ''
-		return formatDate(value, $dateFormat)
+		return formatDate(value, $dateFormat, $language)
 	})
 
 	const viewMonthLabel = $derived(
-		new Intl.DateTimeFormat(undefined, { month: 'long' }).format(new Date(viewYear, viewMonth))
+		new Intl.DateTimeFormat($language, { month: 'long' }).format(new Date(viewYear, viewMonth))
 	)
 
 	const monthLabels = Array.from({ length: 12 }, (_, i) =>

@@ -115,7 +115,11 @@ export function formatBytes(bytes: number | null | undefined): string {
  * Format date string to localized display based on format preference.
  * Uses UTC getters for date-only strings (YYYY-MM-DD) to avoid timezone day-shift.
  */
-export function formatDate(dateStr: string, format: 'locale' | 'iso' | 'us' | 'eu' | 'dot' = 'locale'): string {
+export function formatDate(
+	dateStr: string,
+	format: 'locale' | 'iso' | 'us' | 'eu' | 'dot' = 'locale',
+	locale?: string
+): string {
 	// Year-only (e.g. "2018" from Discogs)
 	if (/^\d{4}$/.test(dateStr)) return dateStr
 
@@ -132,7 +136,7 @@ export function formatDate(dateStr: string, format: 'locale' | 'iso' | 'us' | 'e
 				return `${mm}.${y}`
 			case 'locale':
 			default:
-				return new Date(Date.UTC(parseInt(y), parseInt(mm) - 1)).toLocaleDateString(undefined, {
+				return new Date(Date.UTC(parseInt(y), parseInt(mm) - 1)).toLocaleDateString(locale, {
 					year: 'numeric',
 					month: '2-digit',
 				})
@@ -158,7 +162,7 @@ export function formatDate(dateStr: string, format: 'locale' | 'iso' | 'us' | 'e
 			return `${dd}.${mm}.${y}`
 		case 'locale':
 		default:
-			return isDateOnly ? new Date(Date.UTC(y, m, d)).toLocaleDateString() : date.toLocaleDateString()
+			return isDateOnly ? new Date(Date.UTC(y, m, d)).toLocaleDateString(locale) : date.toLocaleDateString(locale)
 	}
 }
 

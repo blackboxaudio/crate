@@ -556,7 +556,8 @@
 					: $displayedTracks.length
 				: undefined,
 			currentFolderChildCount,
-			$activeView
+			$activeView,
+			$translate
 		)
 	)
 </script>

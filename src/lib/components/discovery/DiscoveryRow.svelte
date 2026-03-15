@@ -3,7 +3,7 @@
 	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import { AlbumArt, AlbumArtModal, Icon, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
-	import { dateFormat, dragStore, isDraggingTag, refreshingReleaseIds, discoveryStore } from '$lib/stores'
+	import { language, dateFormat, dragStore, isDraggingTag, refreshingReleaseIds, discoveryStore } from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$lib/stores/player'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
@@ -221,7 +221,7 @@
 
 	<!-- Release Date -->
 	<div class="truncate text-left text-text-tertiary">
-		{release.release_date ? formatDate(release.release_date, $dateFormat) : ''}
+		{release.release_date ? formatDate(release.release_date, $dateFormat, $language) : ''}
 	</div>
 
 	<!-- Date Added -->

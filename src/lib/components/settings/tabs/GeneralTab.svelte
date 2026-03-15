@@ -60,7 +60,7 @@
 	function formatLastBackupDate(isoDate: string): string {
 		try {
 			const date = new Date(isoDate)
-			return date.toLocaleDateString(undefined, {
+			return date.toLocaleDateString($language, {
 				year: 'numeric',
 				month: 'short',
 				day: 'numeric',

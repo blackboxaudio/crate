@@ -44,6 +44,7 @@ export {
 	resolvedTheme,
 	settingsLoading,
 	keyNotationFormat,
+	language,
 	dateFormat,
 	continuousPlayback,
 	hasCompletedOnboarding,
