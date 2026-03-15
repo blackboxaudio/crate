@@ -33,11 +33,14 @@
 	let saving = $state(false)
 	let pendingSave = $state(false)
 
-	// Reset form when selection changes
+	// Stable key derived from selected track IDs — memoized by $derived so it only
+	// changes when the actual selection changes, not when track data is updated
+	let selectionKey = $derived(selectedTracks.map((t) => t.id).join(','))
+
+	// Reset form when selection changes (not when track metadata updates for the same selection)
 	$effect(() => {
-		// Accessing selectedTracks to trigger on change
 		/* eslint-disable @typescript-eslint/no-unused-expressions */
-		selectedTracks.length
+		selectionKey
 		formData = {}
 	})
 

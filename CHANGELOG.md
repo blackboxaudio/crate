@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Fixed editor form resetting during bulk metadata refresh for discovery releases
 - Fixed particular strings not being translated on locale change
 
 ## [0.2.7] - 2026-03-14

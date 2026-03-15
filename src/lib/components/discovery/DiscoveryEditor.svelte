@@ -34,10 +34,14 @@
 		await discoveryStore.refreshMetadata(selectedReleases[0].id)
 	}
 
-	// Reset form when selection changes
+	// Stable key derived from selected release IDs — memoized by $derived so it only
+	// changes when the actual selection changes, not when release metadata is refreshed
+	let selectionKey = $derived(selectedReleases.map((r) => r.id).join(','))
+
+	// Reset form when selection changes (not when metadata refreshes for the same selection)
 	$effect(() => {
 		/* eslint-disable @typescript-eslint/no-unused-expressions */
-		selectedReleases.length
+		selectionKey
 		formData = {}
 	})
 
