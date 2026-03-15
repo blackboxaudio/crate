@@ -96,8 +96,8 @@ pub struct MenuTranslations {
     // Settings submenu
     pub settings_submenu: String,
     pub settings_general: String,
-    pub settings_library: String,
     pub settings_discovery: String,
+    pub settings_library: String,
     pub settings_appearance: String,
     pub settings_sound: String,
     pub settings_diagnostics: String,
@@ -108,7 +108,7 @@ pub struct MenuTranslations {
     pub minimize: String,
     pub zoom: String,
     // Help menu items
-    pub documentation: String,
+    pub feature_tour: String,
     pub report_issue: String,
 }
 
@@ -171,7 +171,7 @@ pub mod ids {
     pub const ZOOM: &str = "zoom";
 
     // Help menu items
-    pub const DOCUMENTATION: &str = "documentation";
+    pub const FEATURE_TOUR: &str = "feature_tour";
     pub const REPORT_ISSUE: &str = "report_issue";
 }
 
@@ -496,15 +496,15 @@ fn build_window_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error>
 }
 
 fn build_help_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
-    let app_name = get_app_name();
     SubmenuBuilder::with_id(app, ids::HELP_MENU, "Help")
         .item(&MenuItem::with_id(
             app,
-            ids::DOCUMENTATION,
-            format!("{app_name} Documentation"),
+            ids::FEATURE_TOUR,
+            "Feature Tour...",
             true,
             None::<&str>,
         )?)
+        .separator()
         .item(&MenuItem::with_id(
             app,
             ids::REPORT_ISSUE,
@@ -621,7 +621,7 @@ const ONBOARDING_DISABLED_ITEMS: &[&str] = &[
     ids::EXPAND_ALL_RELEASES,
     ids::COLLAPSE_ALL_RELEASES,
     // Help menu
-    ids::DOCUMENTATION,
+    ids::FEATURE_TOUR,
     ids::REPORT_ISSUE,
 ];
 
@@ -798,8 +798,8 @@ pub fn update_menu_translations(
         &[
             (ids::SETTINGS_GENERAL, &translations.settings_general),
             (ids::SETTINGS_APPEARANCE, &translations.settings_appearance),
-            (ids::SETTINGS_LIBRARY, &translations.settings_library),
             (ids::SETTINGS_DISCOVERY, &translations.settings_discovery),
+            (ids::SETTINGS_LIBRARY, &translations.settings_library),
             (ids::SETTINGS_SOUND, &translations.settings_sound),
             (
                 ids::SETTINGS_DIAGNOSTICS,
@@ -826,7 +826,7 @@ pub fn update_menu_translations(
     update_item_text(&menu, ids::ZOOM, &translations.zoom)?;
 
     // Update Help menu items
-    update_item_text(&menu, ids::DOCUMENTATION, &translations.documentation)?;
+    update_item_text(&menu, ids::FEATURE_TOUR, &translations.feature_tour)?;
     update_item_text(&menu, ids::REPORT_ISSUE, &translations.report_issue)?;
 
     Ok(())

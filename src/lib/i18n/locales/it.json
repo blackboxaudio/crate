@@ -633,7 +633,7 @@
 		"collapseAllReleases": "Comprimi tutti i rilasci",
 		"minimize": "Riduci a icona",
 		"zoom": "Zoom",
-		"documentation": "Documentazione {appName}",
+		"featureTour": "Tour delle funzionalità...",
 		"reportIssue": "Segnala un problema..."
 	},
 	"smartPlaylist": {
@@ -719,6 +719,26 @@
 			"blue": "Blu",
 			"purple": "Viola"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Scoperte",
+			"description": "Esplora e salva rilasci da Bandcamp, SoundCloud e altri. Aggiungi un URL di rilascio per iniziare a costruire la tua collezione."
+		},
+		"library": {
+			"title": "Libreria",
+			"description": "La tua libreria di tracce personale. Importa file audio per organizzare, taggare e preparare le tracce per i tuoi set."
+		},
+		"playlists": {
+			"title": "Playlist",
+			"description": "Organizza le tracce in playlist e cartelle. Crea playlist intelligenti che si aggiornano automaticamente in base ai tuoi criteri."
+		},
+		"tags": {
+			"title": "Tag e categorie",
+			"description": "Crea categorie e tag per classificare la tua musica. Filtra la tua libreria o tagga più tracce contemporaneamente."
+		},
+		"skip": "Salta la visita",
+		"finish": "Termina"
 	},
 	"onboarding": {
 		"welcome": {

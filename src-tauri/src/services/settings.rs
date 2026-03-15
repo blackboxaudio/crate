@@ -120,6 +120,18 @@ impl SettingsService {
                     > 0
             });
 
+        let has_completed_wizard = self
+            .get_setting_value(&conn, "has_completed_wizard")?
+            .map(|v| v == "true")
+            .unwrap_or_else(|| {
+                // Existing users upgrading (have tracks) → skip auto-tour
+                conn.query_row("SELECT COUNT(*) FROM tracks LIMIT 1", [], |row| {
+                    row.get::<_, i64>(0)
+                })
+                .unwrap_or(0)
+                    > 0
+            });
+
         Ok(AppSettings {
             theme,
             accent_color,
@@ -140,6 +152,7 @@ impl SettingsService {
             backup_frequency,
             last_backup_type,
             has_completed_onboarding,
+            has_completed_wizard,
         })
     }
 

@@ -633,7 +633,7 @@
 		"collapseAllReleases": "Tüm Yayınları Daralt",
 		"minimize": "Küçült",
 		"zoom": "Yakınlaştır",
-		"documentation": "{appName} Belgeleri",
+		"featureTour": "Özellik Turu...",
 		"reportIssue": "Sorun Bildir..."
 	},
 	"smartPlaylist": {
@@ -719,6 +719,26 @@
 			"blue": "Mavi",
 			"purple": "Mor"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Keşfet",
+			"description": "Bandcamp, SoundCloud ve daha fazlasından yayınlara göz atın ve bunları kaydedin. Koleksiyonunuzu oluşturmaya başlamak için bir yayın URL'si ekleyin."
+		},
+		"library": {
+			"title": "Kütüphane",
+			"description": "Kişisel şarkı kütüphaneniz. Şarkıları organize etmek, etiketlemek ve setleriniz için hazırlamak üzere ses dosyalarını içe aktarın."
+		},
+		"playlists": {
+			"title": "Çalma Listeleri",
+			"description": "Şarkıları çalma listelerine ve klasörlere düzenleyin. Kriterlerinize göre otomatik olarak güncelleyen akıllı çalma listeleri oluşturun."
+		},
+		"tags": {
+			"title": "Etiketler ve kategoriler",
+			"description": "Müziklerinizi sınıflandırmak için kategoriler ve etiketler oluşturun. Kütüphanenizi filtreleyin veya aynı anda birden fazla şarkıyı etiketleyin."
+		},
+		"skip": "Turu atla",
+		"finish": "Bitir"
 	},
 	"onboarding": {
 		"welcome": {

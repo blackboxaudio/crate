@@ -634,7 +634,7 @@
 		"collapseAllReleases": "Collapse All Releases",
 		"minimize": "Minimize",
 		"zoom": "Zoom",
-		"documentation": "{appName} Documentation",
+		"featureTour": "Feature Tour...",
 		"reportIssue": "Report an Issue..."
 	},
 	"smartPlaylist": {
@@ -720,6 +720,26 @@
 			"blue": "Blue",
 			"purple": "Purple"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Discovery",
+			"description": "Browse and save releases from Bandcamp, SoundCloud, and more. Add a release URL to start building your collection."
+		},
+		"library": {
+			"title": "Library",
+			"description": "Your personal track library. Import audio files to organize, tag, and prepare tracks for your sets."
+		},
+		"playlists": {
+			"title": "Playlists",
+			"description": "Organize tracks into playlists and folders. Create smart playlists that automatically update based on your criteria."
+		},
+		"tags": {
+			"title": "Tags & Categories",
+			"description": "Create categories and tags to classify your music. Filter your library or tag multiple tracks at once."
+		},
+		"skip": "Skip tour",
+		"finish": "Finish"
 	},
 	"onboarding": {
 		"welcome": {

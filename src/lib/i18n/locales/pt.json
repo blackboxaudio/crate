@@ -633,8 +633,28 @@
 		"collapseAllReleases": "Recolher todos os lançamentos",
 		"minimize": "Minimizar",
 		"zoom": "Zoom",
-		"documentation": "Documentação do {appName}",
+		"featureTour": "Tour de recursos...",
 		"reportIssue": "Relatar um problema..."
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Descobertas",
+			"description": "Procure e salve lançamentos do Bandcamp, SoundCloud e muito mais. Adicione uma URL de lançamento para começar a construir sua coleção."
+		},
+		"library": {
+			"title": "Biblioteca",
+			"description": "Sua biblioteca pessoal de faixas. Importe arquivos de áudio para organizar, marcar e preparar faixas para seus sets."
+		},
+		"playlists": {
+			"title": "Playlists",
+			"description": "Organize faixas em playlists e pastas. Crie playlists inteligentes que se atualizam automaticamente com base em seus critérios."
+		},
+		"tags": {
+			"title": "Tags e Categorias",
+			"description": "Crie categorias e tags para classificar sua música. Filtre sua biblioteca ou marque várias faixas de uma vez."
+		},
+		"skip": "Pular tour",
+		"finish": "Concluir"
 	},
 	"smartPlaylist": {
 		"createTitle": "Criar playlist inteligente",

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added guided feature tour for first-time users
+
 ### Fixed
 
 - Fixed metadata auto-fetching for unsupported URL domains in discovery

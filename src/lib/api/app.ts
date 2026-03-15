@@ -110,7 +110,7 @@ export interface MenuTranslations {
 	minimize: string
 	zoom: string
 	// Help menu items
-	documentation: string
+	featureTour: string
 	reportIssue: string
 }
 

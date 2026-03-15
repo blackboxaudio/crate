@@ -633,7 +633,7 @@
 		"collapseAllReleases": "Alle Releases reduzieren",
 		"minimize": "Minimieren",
 		"zoom": "Zoom",
-		"documentation": "{appName} Dokumentation",
+		"featureTour": "Funktionsrundgang...",
 		"reportIssue": "Problem melden..."
 	},
 	"smartPlaylist": {
@@ -719,6 +719,26 @@
 			"blue": "Blau",
 			"purple": "Lila"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Entdeckungen",
+			"description": "Durchsuchen und speichern Sie Releases von Bandcamp, SoundCloud und mehr. Fügen Sie eine Release-URL hinzu, um Ihre Sammlung aufzubauen."
+		},
+		"library": {
+			"title": "Bibliothek",
+			"description": "Ihre persönliche Track-Bibliothek. Importieren Sie Audiodateien, um Tracks zu organisieren, zu taggen und auf Ihre Sets vorzubereiten."
+		},
+		"playlists": {
+			"title": "Playlists",
+			"description": "Organisieren Sie Tracks in Playlists und Ordnern. Erstellen Sie intelligente Playlists, die sich automatisch basierend auf Ihren Kriterien aktualisieren."
+		},
+		"tags": {
+			"title": "Tags und Kategorien",
+			"description": "Erstellen Sie Kategorien und Tags, um Ihre Musik zu klassifizieren. Filtern Sie Ihre Bibliothek oder taggen Sie mehrere Tracks auf einmal."
+		},
+		"skip": "Tour überspringen",
+		"finish": "Fertig"
 	},
 	"onboarding": {
 		"welcome": {

@@ -633,7 +633,7 @@
 		"collapseAllReleases": "Restrângeți Toate Lanserile",
 		"minimize": "Minimizează",
 		"zoom": "Zoom",
-		"documentation": "Documentația {appName}",
+		"featureTour": "Tur caracteristici...",
 		"reportIssue": "Raportați o Problemă..."
 	},
 	"smartPlaylist": {
@@ -719,6 +719,26 @@
 			"blue": "Albastru",
 			"purple": "Violet"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Descoperiri",
+			"description": "Răsfoiți și salvați lansări de pe Bandcamp, SoundCloud și mai mult. Adăugați o adresă URL de lansare pentru a începe să construiți colecția dvs."
+		},
+		"library": {
+			"title": "Bibliotecă",
+			"description": "Biblioteca dvs. personală de melodii. Importați fișiere audio pentru a organiza, eticheta și pregăti melodiile pentru seturile dvs."
+		},
+		"playlists": {
+			"title": "Playlisturi",
+			"description": "Organizați melodiile în playlisturi și foldere. Creați playlisturi inteligente care se actualizează automat pe baza criteriilor dvs."
+		},
+		"tags": {
+			"title": "Etichete și categorii",
+			"description": "Creați categorii și etichete pentru a clasifica muzica dvs. Filtrați biblioteca dvs. sau etichetați mai multe melodii simultan."
+		},
+		"skip": "Omite turul",
+		"finish": "Terminare"
 	},
 	"onboarding": {
 		"welcome": {
