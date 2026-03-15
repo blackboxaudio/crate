@@ -219,6 +219,7 @@
 		"fetchingMetadata": "Obtendo metadados...",
 		"refreshMetadata": "Atualizar metadados",
 		"fetchError": "Não foi possível obter metadados desta URL",
+		"unsupportedUrl": "Esta URL não é suportada",
 		"tracks": "Faixas",
 		"trackCount": "{count, plural, =1 {1 faixa} other {{count} faixas}}",
 		"openInBrowser": "Abrir no navegador",

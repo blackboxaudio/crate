@@ -487,12 +487,11 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				const playlistId = getSelectedPlaylistId()
 				const playlists = getPlaylists()
 				const currentPlaylist = playlistId ? playlists.find((p) => p.id === playlistId) : null
-				if (currentPlaylist?.is_smart) return false
 
 				if (get(activeView) === 'discovery') {
 					const releaseIds = get(selectedReleaseIds)
 					if (releaseIds.size > 0) {
-						if (playlistId) {
+						if (playlistId && !currentPlaylist?.is_smart) {
 							getModalOrchestrator()?.openRemoveDiscoveryReleasesFromPlaylistModal(Array.from(releaseIds), playlistId)
 						} else {
 							getModalOrchestrator()?.openRemoveDiscoveryReleasesModal(Array.from(releaseIds))
@@ -500,9 +499,10 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 						return true
 					}
 				}
+
 				const ids = [...get(selectedTrackIds)]
 				if (ids.length > 0) {
-					if (playlistId) {
+					if (playlistId && !currentPlaylist?.is_smart) {
 						getModalOrchestrator()?.openRemoveFromPlaylistModal(ids, playlistId)
 					} else {
 						getModalOrchestrator()?.openRemoveFromLibraryModal(ids)

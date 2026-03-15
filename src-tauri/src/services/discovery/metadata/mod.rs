@@ -67,7 +67,7 @@ pub async fn fetch_metadata(url: &str) -> Result<FetchedMetadata> {
         "soundcloud" => soundcloud::fetch_soundcloud(&client, url).await,
         "youtube" => youtube::fetch_youtube(&client, url).await,
         "discogs" => discogs::fetch_discogs(&client, url).await,
-        _ => common::fetch_generic(&client, url).await,
+        _ => return Err(CrateError::Discovery("Unsupported URL domain".into())),
     }?;
 
     metadata.source_type = source_type;

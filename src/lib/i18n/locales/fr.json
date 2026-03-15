@@ -219,6 +219,7 @@
 		"fetchingMetadata": "Récupération des métadonnées...",
 		"refreshMetadata": "Actualiser les métadonnées",
 		"fetchError": "Impossible de récupérer les métadonnées à partir de cette URL",
+		"unsupportedUrl": "Cette URL n'est pas supportée",
 		"tracks": "Pistes",
 		"trackCount": "{count, plural, =1 {1 piste} other {{count} pistes}}",
 		"openInBrowser": "Ouvrir dans le navigateur",

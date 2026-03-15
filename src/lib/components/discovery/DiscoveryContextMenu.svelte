@@ -113,7 +113,8 @@
 			})
 		}
 
-		if (currentPlaylistId && onRemoveFromPlaylist) {
+		const currentPlaylist = currentPlaylistId ? playlists.find((p) => p.id === currentPlaylistId) : null
+		if (currentPlaylistId && !currentPlaylist?.is_smart && onRemoveFromPlaylist) {
 			items.push({
 				id: 'remove-from-playlist',
 				label: get(translate)('contextMenu.removeFromPlaylist'),

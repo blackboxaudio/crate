@@ -392,16 +392,20 @@
 	}}
 	onRemoveDiscoveryReleases={async (releaseIds) => {
 		await discoveryStore.deleteReleases(releaseIds)
+		discoveryPlaylistStore.filterOutFromAll(releaseIds)
 		uiStore.clearReleaseSelection()
 		await playlistsStore.load()
 	}}
 	onRemoveDiscoveryReleasesFromPlaylist={async (releaseIds, playlistId, deleteFromCollection) => {
 		await playlistsStore.removeReleases(playlistId, releaseIds)
-		discoveryPlaylistStore.filterOutAndCache(playlistId, releaseIds)
 		if (deleteFromCollection) {
+			discoveryPlaylistStore.filterOutFromAll(releaseIds)
 			await discoveryStore.deleteReleases(releaseIds)
+		} else {
+			discoveryPlaylistStore.filterOutAndCache(playlistId, releaseIds)
 		}
 		uiStore.clearReleaseSelection()
+		await playlistsStore.load()
 	}}
 	onRemoveFromLibrary={async (trackIds) => {
 		await libraryStore.deleteTracks(trackIds)
