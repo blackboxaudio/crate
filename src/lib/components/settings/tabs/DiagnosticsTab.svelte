@@ -4,6 +4,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { diagnosticsStore, diagnosticEntries, systemInfo } from '$lib/stores/diagnostics'
+	import { language } from '$lib/stores/settings'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
 	import { save } from '@tauri-apps/plugin-dialog'
@@ -17,7 +18,7 @@
 
 	// Format timestamp
 	function formatTimestamp(iso: string): string {
-		return new Date(iso).toLocaleString()
+		return new Date(iso).toLocaleString($language)
 	}
 
 	// Format report as text

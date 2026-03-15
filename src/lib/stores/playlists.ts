@@ -1,4 +1,4 @@
-import { writable, derived, get } from 'svelte/store'
+import { writable, derived } from 'svelte/store'
 import type {
 	ActiveView,
 	DiscoveryRelease,
@@ -10,7 +10,6 @@ import type {
 	MovePlaylistResult,
 } from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
-import { translate } from '$lib/i18n'
 import { toastStore } from './toast'
 import { syncStore } from './sync'
 
@@ -474,7 +473,8 @@ export function buildBreadcrumbItems(
 	selectedPlaylistId: string | null,
 	trackCount?: number,
 	childCount?: number,
-	activeView: ActiveView = 'library'
+	activeView: ActiveView = 'library',
+	t: (key: string) => string = (key) => key
 ): BreadcrumbItem[] {
 	const items: BreadcrumbItem[] = []
 
@@ -487,7 +487,7 @@ export function buildBreadcrumbItems(
 	}
 
 	// Add root breadcrumb based on active view
-	const rootLabel = activeView === 'discovery' ? get(translate)('nav.discovery') : get(translate)('nav.library')
+	const rootLabel = activeView === 'discovery' ? t('nav.discovery') : t('nav.library')
 	items.push({
 		id: null,
 		name: rootLabel,
@@ -511,14 +511,14 @@ export function buildBreadcrumbItems(
 		if (isLast) {
 			if (playlist.is_folder) {
 				item.count = childCount
-				item.countLabel = childCount === 1 ? get(translate)('library.item') : get(translate)('library.items')
+				item.countLabel = childCount === 1 ? t('library.item') : t('library.items')
 			} else {
 				const count = trackCount ?? playlist.track_count
 				item.count = count
 				if (activeView === 'discovery') {
-					item.countLabel = count === 1 ? get(translate)('discovery.release') : get(translate)('discovery.releases')
+					item.countLabel = count === 1 ? t('discovery.release') : t('discovery.releases')
 				} else {
-					item.countLabel = count === 1 ? get(translate)('library.track') : get(translate)('library.tracks')
+					item.countLabel = count === 1 ? t('library.track') : t('library.tracks')
 				}
 			}
 		}

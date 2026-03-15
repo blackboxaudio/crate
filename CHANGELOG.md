@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed particular strings not being translated on locale change
+
 ## [0.2.7] - 2026-03-14
 
 ### Added

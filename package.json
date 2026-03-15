@@ -73,7 +73,6 @@
 	},
 	"lint-staged": {
 		"**/*.{ts,js,svelte,json,css}": "yarn format:fix",
-		"**/*.{ts,js,svelte}": "yarn lint:fix",
-		"**/*.rs": "cd src-tauri/ && cargo +nightly fmt"
+		"**/*.{ts,js,svelte}": "yarn lint:fix"
 	}
 }
