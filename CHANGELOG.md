@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.8] - 2026-03-15
+
 ### Added
 
 - Added guided feature tour for first-time users
@@ -133,7 +135,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.7...HEAD
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.8...HEAD
+[0.2.8]: https://github.com/blackboxaudio/crate/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/blackboxaudio/crate/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/blackboxaudio/crate/compare/v0.2.5...v0.2.6
 [0.2.5]: https://github.com/blackboxaudio/crate/compare/v0.2.4...v0.2.5
