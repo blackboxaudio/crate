@@ -39,7 +39,7 @@ export type MenuAction =
 	| 'settings_sound'
 	| 'settings_diagnostics'
 	// Help menu
-	| 'documentation'
+	| 'feature_tour'
 	| 'report_issue'
 
 /**

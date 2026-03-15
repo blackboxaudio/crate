@@ -633,7 +633,7 @@
 		"collapseAllReleases": "Zwiń wszystkie wydania",
 		"minimize": "Minimalizuj",
 		"zoom": "Powiększ",
-		"documentation": "Dokumentacja {appName}",
+		"featureTour": "Przewodnik funkcji...",
 		"reportIssue": "Zgłoś błąd..."
 	},
 	"smartPlaylist": {
@@ -719,6 +719,26 @@
 			"blue": "Niebieski",
 			"purple": "Fioletowy"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Odkrywanie",
+			"description": "Przeglądaj i zapisuj wydania z Bandcamp, SoundCloud i nie tylko. Dodaj URL wydania, aby rozpocząć budowanie swojej kolekcji."
+		},
+		"library": {
+			"title": "Biblioteka",
+			"description": "Twoja osobista biblioteka ścieżek. Importuj pliki audio, aby organizować, oznaczać tagami i przygotowywać ścieżki do swoich setów."
+		},
+		"playlists": {
+			"title": "Playlisty",
+			"description": "Organizuj ścieżki na playlisty i foldery. Twórz inteligentne playlisty, które automatycznie aktualizują się na podstawie Twoich kryteriów."
+		},
+		"tags": {
+			"title": "Tagi i kategorie",
+			"description": "Twórz kategorie i tagi, aby klasyfikować swoją muzykę. Filtruj bibliotekę lub oznaczaj wiele ścieżek jednocześnie."
+		},
+		"skip": "Pomiń wycieczkę",
+		"finish": "Zakończ"
 	},
 	"onboarding": {
 		"welcome": {

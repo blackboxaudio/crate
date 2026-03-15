@@ -151,10 +151,11 @@
 	<div class="relative mx-0 mt-1 flex border-b border-stroke">
 		<!-- Sliding indicator -->
 		<div
-			class="absolute bottom-0 h-0.5 w-1/2 bg-brand-primary transition-transform duration-200 ease-out motion-reduce:transition-none"
+			class="absolute bottom-0 h-0.5 w-1/2 bg-brand-primary transition-transform duration-200 ease-in-out motion-reduce:transition-none"
 			style="transform: translateX({activeSection === 'playlists' ? '0%' : '100%'})"
 		></div>
 		<button
+			id="wizard-playlists-tab"
 			type="button"
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
 			'playlists'
@@ -166,6 +167,7 @@
 			{$translate('nav.playlists')}
 		</button>
 		<button
+			id="wizard-tags-tab"
 			type="button"
 			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
 			'tags'

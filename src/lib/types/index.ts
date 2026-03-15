@@ -401,7 +401,7 @@ export interface ContextMenuItem {
 // Breadcrumb Types
 // =============================================================================
 
-export type BreadcrumbType = 'library' | 'discovery' | 'folder' | 'playlist' | 'smart_playlist'
+export type BreadcrumbType = 'discovery' | 'library' | 'folder' | 'playlist' | 'smart_playlist'
 
 export interface BreadcrumbItem {
 	id: string | null // null for Library root
@@ -416,7 +416,7 @@ export interface BreadcrumbItem {
 // Sidebar View Types
 // =============================================================================
 
-export type ActiveView = 'library' | 'discovery'
+export type ActiveView = 'discovery' | 'library'
 
 export type SidebarView = 'library' | 'playlist' | 'tag' | 'folder'
 
@@ -489,7 +489,7 @@ export type ExportFormat = 'pdb' | 'device_library_plus'
 
 export type BackupFrequency = 'daily' | 'weekly' | 'monthly' | 'never'
 
-export type SettingsPage = 'general' | 'appearance' | 'library' | 'discovery' | 'sound' | 'diagnostics' | 'about'
+export type SettingsPage = 'general' | 'appearance' | 'discovery' | 'library' | 'sound' | 'diagnostics' | 'about'
 
 export interface AppSettings {
 	theme: Theme
@@ -512,6 +512,7 @@ export interface AppSettings {
 	backupFrequency: BackupFrequency
 	lastBackupType: string | null
 	hasCompletedOnboarding: boolean
+	hasCompletedWizard: boolean
 }
 
 export interface AudioDevice {

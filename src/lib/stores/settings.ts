@@ -43,6 +43,7 @@ interface SettingsState {
 	backupFrequency: BackupFrequency
 	lastBackupType: string | null
 	hasCompletedOnboarding: boolean
+	hasCompletedWizard: boolean
 	loading: boolean
 	error: string | null
 }
@@ -70,6 +71,7 @@ const initialState: SettingsState = {
 	backupFrequency: 'monthly',
 	lastBackupType: null,
 	hasCompletedOnboarding: false,
+	hasCompletedWizard: false,
 	loading: false,
 	error: null,
 }
@@ -228,7 +230,7 @@ function createSettingsStore() {
 			minimize: t('menu.minimize'),
 			zoom: t('menu.zoom'),
 			// Help menu items
-			documentation: t('menu.documentation', { values: { appName } }),
+			featureTour: t('menu.featureTour'),
 			reportIssue: t('menu.reportIssue'),
 		}
 	}
@@ -277,6 +279,7 @@ function createSettingsStore() {
 					backupFrequency: settings.backupFrequency ?? 'monthly',
 					lastBackupType: settings.lastBackupType ?? null,
 					hasCompletedOnboarding: settings.hasCompletedOnboarding,
+					hasCompletedWizard: settings.hasCompletedWizard,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -574,6 +577,24 @@ function createSettingsStore() {
 			}
 		},
 
+		async completeWizard() {
+			update((s) => ({ ...s, hasCompletedWizard: true }))
+			try {
+				await settingsApi.setSetting('has_completed_wizard', 'true')
+			} catch (error) {
+				console.error('Failed to save wizard completion:', error)
+			}
+		},
+
+		async resetWizard() {
+			update((s) => ({ ...s, hasCompletedWizard: false }))
+			try {
+				await settingsApi.setSetting('has_completed_wizard', 'false')
+			} catch (error) {
+				console.error('Failed to reset wizard:', error)
+			}
+		},
+
 		/**
 		 * Reset store to initial state
 		 */
@@ -632,5 +653,7 @@ export const backupFrequency = derived(settingsStore, ($s) => $s.backupFrequency
 export const lastBackupType = derived(settingsStore, ($s) => $s.lastBackupType)
 
 export const hasCompletedOnboarding = derived(settingsStore, ($s) => $s.hasCompletedOnboarding)
+
+export const hasCompletedWizard = derived(settingsStore, ($s) => $s.hasCompletedWizard)
 
 export const settingsLoading = derived(settingsStore, ($s) => $s.loading)

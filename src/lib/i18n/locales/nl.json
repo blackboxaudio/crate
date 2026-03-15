@@ -633,8 +633,28 @@
 		"collapseAllReleases": "Alle releases samenvouwen",
 		"minimize": "Minimaliseren",
 		"zoom": "Zoomen",
-		"documentation": "{appName} Documentatie",
+		"featureTour": "Functiegereedschapstips...",
 		"reportIssue": "Probleem melden..."
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Ontdekkingen",
+			"description": "Blader en sla releases van Bandcamp, SoundCloud en meer op. Voeg een release-URL toe om je collectie op te bouwen."
+		},
+		"library": {
+			"title": "Bibliotheek",
+			"description": "Je persoonlijke nummercollectie. Importeer audiobestanden om nummers te organiseren, taggen en voor te bereiden voor je sets."
+		},
+		"playlists": {
+			"title": "Afspeellijsten",
+			"description": "Organiseer nummers in afspeellijsten en mappen. Maak intelligente afspeellijsten die automatisch bijwerken op basis van je criteria."
+		},
+		"tags": {
+			"title": "Tags & Categorieën",
+			"description": "Maak categorieën en tags om je muziek in te delen. Filter je bibliotheek of tag meerdere nummers tegelijk."
+		},
+		"skip": "Rondleiding overslaan",
+		"finish": "Klaar"
 	},
 	"smartPlaylist": {
 		"createTitle": "Slimme afspeellijst maken",

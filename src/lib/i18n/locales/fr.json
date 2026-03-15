@@ -633,7 +633,7 @@
 		"collapseAllReleases": "Réduire toutes les sorties",
 		"minimize": "Réduire",
 		"zoom": "Zoom",
-		"documentation": "Documentation {appName}",
+		"featureTour": "Visite des fonctionnalités...",
 		"reportIssue": "Signaler un problème..."
 	},
 	"smartPlaylist": {
@@ -719,6 +719,26 @@
 			"blue": "Bleu",
 			"purple": "Violet"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Découvertes",
+			"description": "Parcourez et enregistrez les sorties de Bandcamp, SoundCloud et bien d'autres. Ajoutez une URL de sortie pour commencer à construire votre collection."
+		},
+		"library": {
+			"title": "Bibliothèque",
+			"description": "Votre bibliothèque de pistes personnelle. Importez des fichiers audio pour organiser, taguer et préparer les pistes pour vos sets."
+		},
+		"playlists": {
+			"title": "Playlists",
+			"description": "Organisez les pistes en playlists et dossiers. Créez des playlists dynamiques qui se mettent à jour automatiquement selon vos critères."
+		},
+		"tags": {
+			"title": "Tags et catégories",
+			"description": "Créez des catégories et des tags pour classer votre musique. Filtrez votre bibliothèque ou tagguez plusieurs pistes à la fois."
+		},
+		"skip": "Ignorer la visite",
+		"finish": "Terminer"
 	},
 	"onboarding": {
 		"welcome": {

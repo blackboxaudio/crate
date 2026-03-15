@@ -6,12 +6,13 @@
 	import CrashScreen from '$lib/components/common/CrashScreen.svelte'
 	import SplashScreen from '$lib/components/common/SplashScreen.svelte'
 	import { AboutDialog, OnboardingWizard } from '$lib/components/onboarding'
+	import { WizardTour } from '$lib/components/wizard'
 	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
 	// @ts-expect-error — PUBLIC_APP_VERSION is set dynamically by vite.config.ts
 	import { PUBLIC_APP_VERSION } from '$env/static/public'
 	import { isDev } from '$lib/stores/app'
-	import { settingsStore, hasCompletedOnboarding } from '$lib/stores/settings'
+	import { settingsStore, hasCompletedOnboarding, hasCompletedWizard } from '$lib/stores/settings'
 	import { splashVisible } from '$lib/stores/splash'
 	import { useGlobalErrorHandler, hasAudioDrag } from '$lib/hooks'
 	import { initializeI18n, translate } from '$lib/i18n'
@@ -48,6 +49,7 @@
 	let onboardingComplete = $state(false)
 	let showOnboarding = $derived(!$splashVisible && !$hasCompletedOnboarding && !onboardingComplete)
 	let showAboutDialog = $state(false)
+	let showWizardTour = $state(false)
 
 	// =========================================================================
 	// Layout State (subscribed from stores)
@@ -176,6 +178,15 @@
 		}
 	})
 
+	// Auto-start wizard tour after onboarding completes for new users
+	$effect(() => {
+		if (!$splashVisible && !showOnboarding && onboardingComplete && !$hasCompletedWizard) {
+			setTimeout(() => {
+				showWizardTour = true
+			}, 600)
+		}
+	})
+
 	// =========================================================================
 	// Derived State
 	// =========================================================================
@@ -253,19 +264,22 @@
 		}
 		document.addEventListener('contextmenu', contextMenuHandler)
 
-		// Listen for 'about' menu action during onboarding to show simple about dialog
-		let unlistenAbout: (() => void) | null = null
+		// Listen for menu actions handled at the layout level
+		let unlistenMenuAction: (() => void) | null = null
 		listen<string>('menu-action', (event) => {
 			if (event.payload === 'about' && showOnboarding) {
 				showAboutDialog = true
 			}
+			if (event.payload === 'feature_tour' && !showOnboarding) {
+				showWizardTour = true
+			}
 		}).then((unlisten) => {
-			unlistenAbout = unlisten
+			unlistenMenuAction = unlisten
 		})
 
 		return () => {
 			cleanupErrorHandler()
-			unlistenAbout?.()
+			unlistenMenuAction?.()
 			window.removeEventListener('dragover', dragoverHandler)
 			window.removeEventListener('drop', dropHandler)
 			document.removeEventListener('contextmenu', contextMenuHandler)
@@ -308,21 +322,14 @@
 
 				<!-- Segmented control (absolutely centered in full window) -->
 				<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
-					<div class="pointer-events-auto relative inline-grid grid-cols-2 items-center rounded-lg bg-surface-2 p-0.5">
+					<div
+						id="wizard-view-switcher"
+						class="pointer-events-auto relative inline-grid grid-cols-2 items-center rounded-lg bg-surface-2 p-0.5"
+					>
 						<div
 							class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-surface-0 shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
-							style="transform: translateX({$activeView === 'discovery' ? '100%' : '0%'})"
+							style="transform: translateX({$activeView === 'library' ? '100%' : '0%'})"
 						></div>
-						<button
-							type="button"
-							class="relative z-10 rounded-md px-3 py-1 text-center text-xs font-medium transition-colors {$activeView ===
-							'library'
-								? 'text-text-primary'
-								: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
-							onclick={() => $pageActions?.handleViewChange('library')}
-						>
-							{$translate('nav.library')}
-						</button>
 						<button
 							type="button"
 							class="relative z-10 rounded-md px-3 py-1 text-center text-xs font-medium transition-colors {$activeView ===
@@ -332,6 +339,16 @@
 							onclick={() => $pageActions?.handleViewChange('discovery')}
 						>
 							{$translate('nav.discovery')}
+						</button>
+						<button
+							type="button"
+							class="relative z-10 rounded-md px-3 py-1 text-center text-xs font-medium transition-colors {$activeView ===
+							'library'
+								? 'text-text-primary'
+								: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+							onclick={() => $pageActions?.handleViewChange('library')}
+						>
+							{$translate('nav.library')}
 						</button>
 					</div>
 				</div>
@@ -405,6 +422,19 @@
 		</div>
 	{/if}
 </div>
+
+{#if showWizardTour}
+	<WizardTour
+		onComplete={() => {
+			showWizardTour = false
+			settingsStore.completeWizard()
+		}}
+		onSkip={() => {
+			showWizardTour = false
+			settingsStore.completeWizard()
+		}}
+	/>
+{/if}
 
 <ToastContainer />
 <CrashScreen />

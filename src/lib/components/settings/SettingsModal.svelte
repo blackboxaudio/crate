@@ -128,17 +128,6 @@
 						<button
 							type="button"
 							class="flex w-full items-center gap-2 rounded-md px-3 py-2
-							text-sm font-medium hover:cursor-pointer {activePage === 'library'
-								? 'bg-brand-muted text-brand-primary'
-								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
-							onclick={() => (activePage = 'library')}
-						>
-							<Icon name="library" class="h-4 w-4" />
-							{$translate('settings.tabs.library')}
-						</button>
-						<button
-							type="button"
-							class="flex w-full items-center gap-2 rounded-md px-3 py-2
 							text-sm font-medium hover:cursor-pointer {activePage === 'discovery'
 								? 'bg-brand-muted text-brand-primary'
 								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
@@ -146,6 +135,17 @@
 						>
 							<Icon name="globe" class="h-4 w-4" />
 							{$translate('settings.tabs.discovery')}
+						</button>
+						<button
+							type="button"
+							class="flex w-full items-center gap-2 rounded-md px-3 py-2
+							text-sm font-medium hover:cursor-pointer {activePage === 'library'
+								? 'bg-brand-muted text-brand-primary'
+								: 'text-text-secondary hover:bg-surface-2 hover:text-text-primary'}"
+							onclick={() => (activePage = 'library')}
+						>
+							<Icon name="library" class="h-4 w-4" />
+							{$translate('settings.tabs.library')}
 						</button>
 						<button
 							type="button"
@@ -189,10 +189,10 @@
 						<GeneralTab />
 					{:else if activePage === 'appearance'}
 						<AppearanceTab />
-					{:else if activePage === 'library'}
-						<LibraryTab />
 					{:else if activePage === 'discovery'}
 						<DiscoveryTab />
+					{:else if activePage === 'library'}
+						<LibraryTab />
 					{:else if activePage === 'sound'}
 						<SoundTab />
 					{:else if activePage === 'diagnostics'}

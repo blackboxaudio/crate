@@ -1,5 +1,6 @@
 import type { UnlistenFn } from '@tauri-apps/api/event'
 import { get } from 'svelte/store'
+import { openUrl } from '@tauri-apps/plugin-opener'
 import { onMenuAction, type MenuAction } from '$lib/api/menu'
 import { uiStore } from '$lib/stores'
 import { isInputFocused, isNativeDialogOpen } from '$lib/utils'
@@ -55,7 +56,8 @@ export interface MenuActionHandlers {
  * - quick_export: Open quick export modal
  * - jump_to_playing: Jump to currently playing track
  * - toggle_editor: Toggle right sidebar editor
- * - documentation, report_issue: TODOs
+ * - report_issue: Open GitHub issues page
+ * - feature_tour: Handled by layout
  *
  * Menu actions handled by backend:
  * - quit: Exit application
@@ -215,11 +217,11 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				break
 
 			// Help menu
-			case 'documentation':
-				// TODO: Open documentation
+			case 'feature_tour':
+				// Handled by +layout.svelte's menu-action listener
 				break
 			case 'report_issue':
-				// TODO: Open issue reporting
+				openUrl('https://github.com/blackboxaudio/crate/issues')
 				break
 		}
 	}

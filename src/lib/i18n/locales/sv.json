@@ -633,8 +633,28 @@
 		"collapseAllReleases": "Minimera alla utgåvor",
 		"minimize": "Minimera",
 		"zoom": "Zooma",
-		"documentation": "{appName} Dokumentation",
+		"featureTour": "Funktionstur...",
 		"reportIssue": "Rapportera ett problem..."
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Upptäckter",
+			"description": "Bläddra och spara utgåvor från Bandcamp, SoundCloud och mer. Lägg till en utgåv-URL för att börja bygga din samling."
+		},
+		"library": {
+			"title": "Bibliotek",
+			"description": "Ditt personliga spårbibliotek. Importera ljudfiler för att organisera, tagga och förbereda spår för dina set."
+		},
+		"playlists": {
+			"title": "Spellistor",
+			"description": "Organisera spår i spellistor och mappar. Skapa smarta spellistor som uppdateras automatiskt baserat på dina kriterier."
+		},
+		"tags": {
+			"title": "Taggar och kategorier",
+			"description": "Skapa kategorier och taggar för att klassificera din musik. Filtrera ditt bibliotek eller tagga flera spår på en gång."
+		},
+		"skip": "Hoppa över guidad tur",
+		"finish": "Slutför"
 	},
 	"smartPlaylist": {
 		"createTitle": "Skapa smart spellista",

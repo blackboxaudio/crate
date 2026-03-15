@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fly, fade } from 'svelte/transition'
 	import { cubicOut } from 'svelte/easing'
-	import { Button } from '$lib/components/common'
+	import { Button, StepIndicator } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
 	import WelcomeStep from './WelcomeStep.svelte'
 	import LanguageStep from './LanguageStep.svelte'
@@ -78,19 +78,7 @@
 				</Button>
 			</div>
 
-			<!-- Step Indicator -->
-			<div class="flex gap-2">
-				{#each Array(TOTAL_STEPS) as _, i (i)}
-					<button
-						type="button"
-						class="h-2 w-2 rounded-full transition-colors duration-200 hover:cursor-pointer {i === currentStep
-							? 'bg-brand-primary'
-							: 'bg-surface-2 hover:bg-text-tertiary/25'}"
-						onclick={() => goToStep(i)}
-						aria-label="Step {i + 1}"
-					></button>
-				{/each}
-			</div>
+			<StepIndicator totalSteps={TOTAL_STEPS} {currentStep} onStepClick={goToStep} />
 
 			<div class="flex w-28 justify-end">
 				{#if isLastStep}

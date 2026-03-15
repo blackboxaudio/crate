@@ -634,7 +634,7 @@
 		"collapseAllReleases": "すべてのリリースを折りたたむ",
 		"minimize": "しまう",
 		"zoom": "拡大/縮小",
-		"documentation": "{appName}ドキュメント",
+		"featureTour": "機能ツアー...",
 		"reportIssue": "問題を報告..."
 	},
 	"smartPlaylist": {
@@ -720,6 +720,26 @@
 			"blue": "青",
 			"purple": "紫"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "ディスカバリー",
+			"description": "Bandcamp、SoundCloud など、さまざまなプラットフォームからリリースを閲覧して保存しましょう。リリース URL を追加して、あなたのコレクションを構築し始めます。"
+		},
+		"library": {
+			"title": "ライブラリ",
+			"description": "あなたの個人的なトラックライブラリ。オーディオファイルをインポートして、トラックを整理、タグ付け、セット用に準備します。"
+		},
+		"playlists": {
+			"title": "プレイリスト",
+			"description": "トラックをプレイリストとフォルダに整理します。基準に基づいて自動的に更新されるスマートプレイリストを作成できます。"
+		},
+		"tags": {
+			"title": "タグとカテゴリ",
+			"description": "音楽を分類するためのカテゴリとタグを作成しましょう。ライブラリをフィルタリングするか、複数のトラックを一度にタグ付けします。"
+		},
+		"skip": "ツアーをスキップ",
+		"finish": "完了"
 	},
 	"onboarding": {
 		"welcome": {

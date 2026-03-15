@@ -633,7 +633,7 @@
 		"collapseAllReleases": "Contraer todos los lanzamientos",
 		"minimize": "Minimizar",
 		"zoom": "Zoom",
-		"documentation": "Documentación de {appName}",
+		"featureTour": "Tour de características...",
 		"reportIssue": "Informar de un problema..."
 	},
 	"smartPlaylist": {
@@ -719,6 +719,26 @@
 			"blue": "Azul",
 			"purple": "Morado"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Descubrimientos",
+			"description": "Explora y guarda lanzamientos de Bandcamp, SoundCloud y más. Añade una URL de lanzamiento para empezar a construir tu colección."
+		},
+		"library": {
+			"title": "Biblioteca",
+			"description": "Tu librería de pistas personal. Importa archivos de audio para organizar, etiquetar y preparar pistas para tus sets."
+		},
+		"playlists": {
+			"title": "Listas de reproducción",
+			"description": "Organiza pistas en listas de reproducción y carpetas. Crea listas inteligentes que se actualicen automáticamente según tus criterios."
+		},
+		"tags": {
+			"title": "Etiquetas y categorías",
+			"description": "Crea categorías y etiquetas para clasificar tu música. Filtra tu biblioteca o etiqueta varias pistas a la vez."
+		},
+		"skip": "Omitir tour",
+		"finish": "Terminar"
 	},
 	"onboarding": {
 		"welcome": {

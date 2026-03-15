@@ -48,6 +48,7 @@ export {
 	dateFormat,
 	continuousPlayback,
 	hasCompletedOnboarding,
+	hasCompletedWizard,
 } from './settings'
 export {
 	devicesStore,

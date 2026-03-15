@@ -633,8 +633,28 @@
 		"collapseAllReleases": "全部折叠发行",
 		"minimize": "最小化",
 		"zoom": "缩放",
-		"documentation": "{appName} 文档",
+		"featureTour": "功能导览...",
 		"reportIssue": "报告问题..."
+	},
+	"wizard": {
+		"discovery": {
+			"title": "发现",
+			"description": "浏览并保存来自 Bandcamp、SoundCloud 等的发行。添加发行 URL 以开始构建您的音乐收藏。"
+		},
+		"library": {
+			"title": "曲库",
+			"description": "您的个人曲目库。导入音频文件以组织、标记和准备用于您的演奏的曲目。"
+		},
+		"playlists": {
+			"title": "播放列表",
+			"description": "将曲目组织成播放列表和文件夹。创建根据您的条件自动更新的智能播放列表。"
+		},
+		"tags": {
+			"title": "标签和分类",
+			"description": "创建分类和标签来分类您的音乐。筛选您的曲库或一次性标记多首曲目。"
+		},
+		"skip": "跳过导览",
+		"finish": "完成"
 	},
 	"smartPlaylist": {
 		"createTitle": "创建智能播放列表",
