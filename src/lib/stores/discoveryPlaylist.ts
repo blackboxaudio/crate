@@ -71,6 +71,18 @@ function createDiscoveryPlaylistStore() {
 			})
 		},
 
+		filterOutFromAll(releaseIds: string[]) {
+			update((state) => ({
+				releases: state.releases.filter((r) => !releaseIds.includes(r.id)),
+			}))
+			for (const [key, releases] of cache) {
+				cache.set(
+					key,
+					releases.filter((r) => !releaseIds.includes(r.id))
+				)
+			}
+		},
+
 		async refreshFromApi(playlistId: string, fetchFn: () => Promise<DiscoveryRelease[]>) {
 			const releases = await fetchFn()
 			cache.set(playlistId, releases)

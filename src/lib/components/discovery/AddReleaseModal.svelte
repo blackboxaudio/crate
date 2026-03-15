@@ -54,6 +54,8 @@
 	let scannedPage = $state<ScannedPage | null>(null)
 	let bulkImporting = $state(false)
 
+	let unsupportedUrl = $state(false)
+
 	let unlistenScanProgress: (() => void) | null = null
 
 	onMount(() => {
@@ -75,6 +77,17 @@
 		{ value: 'discogs', label: 'Discogs' },
 		{ value: 'other', label: 'Other' },
 	]
+
+	function isSupportedDomain(input: string): boolean {
+		const lower = input.toLowerCase()
+		return (
+			lower.includes('bandcamp.com') ||
+			lower.includes('soundcloud.com') ||
+			lower.includes('youtube.com') ||
+			lower.includes('youtu.be') ||
+			lower.includes('discogs.com')
+		)
+	}
 
 	function isPageUrl(input: string): boolean {
 		const lower = input.toLowerCase()
@@ -116,6 +129,7 @@
 
 	function handleUrlInput() {
 		detectSource(url)
+		unsupportedUrl = false
 
 		const trimmed = url.trim()
 
@@ -128,10 +142,17 @@
 		// Debounced auto-fetch
 		if (fetchDebounceTimer) clearTimeout(fetchDebounceTimer)
 
-		if (trimmed.startsWith('http') && $autoFetchMetadata) {
-			fetchDebounceTimer = setTimeout(() => {
-				autoFetch(trimmed)
-			}, 500)
+		if (trimmed.startsWith('http')) {
+			if (!isSupportedDomain(trimmed)) {
+				unsupportedUrl = true
+				return
+			}
+
+			if ($autoFetchMetadata) {
+				fetchDebounceTimer = setTimeout(() => {
+					autoFetch(trimmed)
+				}, 500)
+			}
 		}
 	}
 
@@ -236,6 +257,7 @@
 		artworkPreview = ''
 		tracks = []
 		lastFetchedUrl = ''
+		unsupportedUrl = false
 		isBulkMode = false
 		scanning = false
 		scanProgress = null
@@ -350,6 +372,8 @@
 							{/if}
 						</Text>
 					</div>
+				{:else if unsupportedUrl}
+					<Text size="xs" color="danger" class="mt-2">{$translate('discovery.unsupportedUrl')}</Text>
 				{:else if fetchError}
 					<Text size="xs" color="danger" class="mt-2">{$translate('discovery.fetchError')}</Text>
 				{/if}
@@ -450,7 +474,11 @@
 			<Button variant="ghost" onclick={handleClose}>
 				{$translate('common.cancel')}
 			</Button>
-			<Button variant="primary" disabled={!url.trim() || scanning || fetching || submitting} onclick={handleSubmit}>
+			<Button
+				variant="primary"
+				disabled={!url.trim() || unsupportedUrl || scanning || fetching || submitting}
+				onclick={handleSubmit}
+			>
 				{$translate('discovery.addRelease')}
 			</Button>
 		{/if}

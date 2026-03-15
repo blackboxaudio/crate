@@ -1,7 +1,3 @@
-use crate::error::{CrateError, Result};
-
-use super::FetchedMetadata;
-
 /// Normalize a date string to `YYYY-MM-DD` format.
 ///
 /// Handles:
@@ -141,27 +137,4 @@ pub(super) fn extract_meta_content(html: &str, property: &str) -> Option<String>
         }
     }
     None
-}
-
-pub(super) async fn fetch_generic(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
-    let html = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch page: {e}")))?
-        .text()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to read response: {e}")))?;
-
-    Ok(FetchedMetadata {
-        artist: extract_meta_content(&html, "og:site_name"),
-        title: extract_meta_content(&html, "og:title"),
-        label: None,
-        release_date: None,
-        artwork_url: extract_meta_content(&html, "og:image"),
-        tracks: Vec::new(),
-        source_type: String::new(),
-        parent_url: None,
-        parent_album_title: None,
-    })
 }

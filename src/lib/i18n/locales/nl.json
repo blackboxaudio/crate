@@ -219,6 +219,7 @@
 		"fetchingMetadata": "Metagegevens ophalen...",
 		"refreshMetadata": "Metagegevens vernieuwen",
 		"fetchError": "Kan metagegevens niet ophalen van deze URL",
+		"unsupportedUrl": "Deze URL wordt niet ondersteund",
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "In browser openen",

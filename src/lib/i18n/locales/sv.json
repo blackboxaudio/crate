@@ -219,6 +219,7 @@
 		"fetchingMetadata": "Hämtar metadata...",
 		"refreshMetadata": "Uppdatera metadata",
 		"fetchError": "Kunde inte hämta metadata från denna URL",
+		"unsupportedUrl": "Denna URL stöds inte",
 		"tracks": "Spår",
 		"trackCount": "{count, plural, =1 {1 spår} other {{count} spår}}",
 		"openInBrowser": "Öppna i webbläsare",

@@ -219,6 +219,7 @@
 		"fetchingMetadata": "Obteniendo metadatos...",
 		"refreshMetadata": "Actualizar metadatos",
 		"fetchError": "No se pudieron obtener los metadatos de esta URL",
+		"unsupportedUrl": "Esta URL no es compatible",
 		"tracks": "Pistas",
 		"trackCount": "{count, plural, =1 {1 pista} other {{count} pistas}}",
 		"openInBrowser": "Abrir en navegador",
