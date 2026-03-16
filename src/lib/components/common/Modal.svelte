@@ -94,15 +94,14 @@
 
 <dialog
 	bind:this={dialogEl}
-	class="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/60"
+	class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center bg-transparent p-0 backdrop:bg-black/60"
 	onkeydown={handleKeydown}
 	onmousedown={handleBackdropMousedown}
 	onclick={handleBackdropClick}
 >
 	{#if visible}
 		<div
-			class="fixed top-1/2 left-1/2 flex max-h-[85vh] w-full {sizeClasses[size] ?? 'max-w-md'} -translate-x-1/2
-				-translate-y-1/2 flex-col rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
+			class="flex max-h-[85vh] w-full {sizeClasses[size] ?? 'max-w-md'} flex-col rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 			onoutroend={handleOutroEnd}
 		>
