@@ -101,7 +101,8 @@
 >
 	{#if visible}
 		<div
-			class="flex max-h-[85vh] w-full {sizeClasses[size] ?? 'max-w-md'} flex-col rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
+			class="flex max-h-[85vh] w-full {sizeClasses[size] ??
+				'max-w-md'} flex-col rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 			onoutroend={handleOutroEnd}
 		>
