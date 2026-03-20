@@ -183,6 +183,10 @@ function createSettingsStore() {
 			about: t('menu.about', { values: { appName } }),
 			settings: t('menu.settings'),
 			quit: t('menu.quit', { values: { appName } }),
+			// App menu items (macOS only: Hide, Hide Others, Show All)
+			hide: t('menu.hide', { values: { appName } }),
+			hideOthers: t('menu.hideOthers'),
+			showAll: t('menu.showAll'),
 			// File menu items
 			importTracks: t('menu.importTracks'),
 			addRelease: t('menu.addRelease'),
