@@ -63,6 +63,10 @@ export interface MenuTranslations {
 	about: string
 	settings: string
 	quit: string
+	// App menu items (macOS only: Hide, Hide Others, Show All)
+	hide: string
+	hideOthers: string
+	showAll: string
 	// File menu items
 	importTracks: string
 	addRelease: string

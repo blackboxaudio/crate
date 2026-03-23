@@ -6,19 +6,21 @@
 	type Props = {
 		open: boolean
 		title?: string
-		size?: 'sm' | 'md' | 'lg'
+		size?: 'sm' | 'md' | 'lg' | 'xl'
+		flush?: boolean
 		onClose: () => void
 		onSubmit?: () => void
 		children: Snippet
 		footer?: Snippet
 	}
 
-	let { open, title, size = 'sm', onClose, onSubmit, children, footer }: Props = $props()
+	let { open, title, size = 'sm', flush = false, onClose, onSubmit, children, footer }: Props = $props()
 
 	const sizeClasses: Record<string, string> = {
 		sm: 'max-w-sm',
 		md: 'max-w-md',
 		lg: 'max-w-xl',
+		xl: 'max-w-2xl',
 	}
 
 	let dialogEl: HTMLDialogElement | undefined = $state()
@@ -94,14 +96,15 @@
 
 <dialog
 	bind:this={dialogEl}
-	class="fixed inset-0 m-0 flex h-full max-h-none w-full max-w-none items-center justify-center bg-transparent p-0 backdrop:bg-black/60"
+	class="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/60"
 	onkeydown={handleKeydown}
 	onmousedown={handleBackdropMousedown}
 	onclick={handleBackdropClick}
 >
 	{#if visible}
 		<div
-			class="flex max-h-[85vh] w-full {sizeClasses[size] ?? 'max-w-md'} flex-col rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
+			class="fixed top-1/2 left-1/2 flex max-h-[85vh] w-full {sizeClasses[size] ??
+				'max-w-md'} -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg border border-stroke bg-surface-1 text-text-primary shadow-xl"
 			transition:scale={{ start: 0.95, duration: 200 }}
 			onoutroend={handleOutroEnd}
 		>
@@ -111,7 +114,7 @@
 				</div>
 			{/if}
 
-			<div class="min-h-0 overflow-y-auto px-4 py-4">
+			<div class="min-h-0 {flush ? '' : 'overflow-y-auto px-4 py-4'}">
 				{@render children()}
 			</div>
 
