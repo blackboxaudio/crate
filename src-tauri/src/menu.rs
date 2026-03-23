@@ -60,6 +60,13 @@ pub struct MenuTranslations {
     pub about: String,
     pub settings: String,
     pub quit: String,
+    // App menu items (macOS only: Hide, Hide Others, Show All)
+    #[serde(default)]
+    pub hide: String,
+    #[serde(default)]
+    pub hide_others: String,
+    #[serde(default)]
+    pub show_all: String,
     // File menu items
     pub import_tracks: String,
     pub add_release: String,
@@ -202,7 +209,7 @@ pub fn build_menu(app: &AppHandle<Wry>) -> Result<Menu<Wry>, tauri::Error> {
 
 fn build_app_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     let app_name = get_app_name();
-    SubmenuBuilder::with_id(app, ids::APP_MENU, &app_name)
+    let mut builder = SubmenuBuilder::with_id(app, ids::APP_MENU, &app_name)
         .item(&MenuItem::with_id(
             app,
             ids::ABOUT,
@@ -218,7 +225,21 @@ fn build_app_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
             true,
             Some("CmdOrCtrl+,"),
         )?)
-        .separator()
+        .separator();
+
+    #[cfg(target_os = "macos")]
+    {
+        builder = builder
+            .item(&PredefinedMenuItem::hide(
+                app,
+                Some(&format!("Hide {app_name}")),
+            )?)
+            .item(&PredefinedMenuItem::hide_others(app, Some("Hide Others"))?)
+            .item(&PredefinedMenuItem::show_all(app, Some("Show All"))?)
+            .separator();
+    }
+
+    builder
         .item(&MenuItem::with_id(
             app,
             ids::QUIT,
@@ -707,6 +728,32 @@ pub fn update_menu_translations(
     update_item_text(&menu, ids::ABOUT, &translations.about)?;
     update_item_text(&menu, ids::SETTINGS, &translations.settings)?;
     update_item_text(&menu, ids::QUIT, &translations.quit)?;
+
+    // Update App menu PredefinedMenuItems (Hide, Hide Others, Show All) — macOS only
+    #[cfg(target_os = "macos")]
+    if let Some(MenuItemKind::Submenu(app_submenu)) = menu.get(ids::APP_MENU) {
+        let app_texts: [&str; 3] = [
+            &translations.hide,
+            &translations.hide_others,
+            &translations.show_all,
+        ];
+        let predefined: Vec<_> = app_submenu
+            .items()?
+            .into_iter()
+            .filter_map(|item| match item {
+                MenuItemKind::Predefined(p) => {
+                    if p.text().unwrap_or_default().is_empty() {
+                        return None;
+                    }
+                    Some(p)
+                }
+                _ => None,
+            })
+            .collect();
+        for (item, text) in predefined.iter().zip(app_texts.iter()) {
+            item.set_text(*text)?;
+        }
+    }
 
     // Update File menu items
     update_item_text(&menu, ids::IMPORT_TRACKS, &translations.import_tracks)?;
