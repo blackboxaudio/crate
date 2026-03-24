@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Fixed continuous playback selecting next track from wrong context when navigating between views
 - Fixed discovery row buttons (import and open URL) not working in playlist view
 
 ## [0.2.8] - 2026-03-15

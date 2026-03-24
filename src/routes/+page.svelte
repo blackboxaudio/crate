@@ -23,7 +23,6 @@
 		sortedTracks,
 		displayedTracks,
 		trackCount,
-		playerStore,
 		currentTrack,
 		tagsStore,
 		playlistsStore,
@@ -101,6 +100,7 @@
 		deviceController,
 		exportController,
 		playlistController,
+		playPreview,
 		playNextTrack,
 		playPreviousTrack,
 		onMountSetup,
@@ -422,7 +422,7 @@
 				return true
 			})
 			if (firstPlayable >= 0) {
-				playerStore.playPreview(release, firstPlayable)
+				playPreview(release, firstPlayable)
 				return
 			}
 		}
@@ -436,7 +436,7 @@
 			track?.duration_ms &&
 			(PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null))
 		if (canPlay && release.tracks.length > 0) {
-			playerStore.playPreview(release, trackIndex)
+			playPreview(release, trackIndex)
 		}
 	}
 
