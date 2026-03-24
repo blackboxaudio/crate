@@ -632,6 +632,8 @@
 					onBreadcrumbNavigate={handleBreadcrumbNavigate}
 					onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 					onToggleEditor={() => uiStore.toggleRightSidebar()}
+					onReleaseImport={(release) => orchestratorLayer?.setPurchaseRelease(release)}
+					onReleaseOpenUrl={(release) => openUrl(release.url)}
 					scrollOffset={$playlistScrollOffsets.get(playlist.id) ?? 0}
 					onScrollChange={(offset) => uiStore.setPlaylistScrollOffset(playlist.id, offset)}
 				/>

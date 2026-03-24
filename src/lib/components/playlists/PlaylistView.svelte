@@ -48,6 +48,8 @@
 		onTrackPlay?: (track: Track) => void
 		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onDiscoveryTrackLikeToggle?: (releaseId: string, trackId: string) => void
+		onReleaseImport?: (release: DiscoveryRelease) => void
+		onReleaseOpenUrl?: (release: DiscoveryRelease) => void
 		onSortChange?: (config: SortConfig) => void
 		discoverySortConfig?: DiscoverySortConfig
 		onDiscoverySortChange?: (config: DiscoverySortConfig) => void
@@ -91,6 +93,8 @@
 		onTrackPlay,
 		onDiscoveryTrackPlay,
 		onDiscoveryTrackLikeToggle,
+		onReleaseImport,
+		onReleaseOpenUrl,
 		onSortChange,
 		discoverySortConfig = { field: 'artist', direction: 'asc' },
 		onDiscoverySortChange,
@@ -241,6 +245,8 @@
 				onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
 				onTrackPlay={onDiscoveryTrackPlay}
 				onTrackLikeToggle={onDiscoveryTrackLikeToggle}
+				{onReleaseImport}
+				{onReleaseOpenUrl}
 				{onScrollChange}
 			/>
 		{:else}

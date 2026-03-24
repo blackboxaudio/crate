@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added macOS keyboard shortcuts for hide/hide others/show all
+
+### Fixed
+
+- Fixed discovery row buttons (import and open URL) not working in playlist view
+
 ## [0.2.8] - 2026-03-15
 
 ### Added
