@@ -413,6 +413,33 @@ export const discoveryStore = createDiscoveryStore()
 
 export const likedOnly = derived(discoveryStore, ($discovery) => $discovery.likedOnly)
 
+function sortReleases(releases: DiscoveryRelease[], sort: DiscoverySortConfig): DiscoveryRelease[] {
+	const { field, direction } = sort
+	const dir = direction === 'asc' ? 1 : -1
+
+	return [...releases].sort((a, b) => {
+		let cmp = 0
+		if (field === 'release_date') {
+			const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
+			const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
+			const aValid = !isNaN(aDate)
+			const bValid = !isNaN(bDate)
+			if (!aValid && !bValid) cmp = 0
+			else if (!aValid) return 1
+			else if (!bValid) return -1
+			else if (aDate < bDate) cmp = -1 * dir
+			else if (aDate > bDate) cmp = 1 * dir
+		} else {
+			const aVal = a[field] ?? ''
+			const bVal = b[field] ?? ''
+			if (aVal < bVal) cmp = -1 * dir
+			else if (aVal > bVal) cmp = 1 * dir
+		}
+		if (cmp !== 0) return cmp
+		return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+	})
+}
+
 export const sortedReleases = derived(discoveryStore, ($discovery) => {
 	let releases = [...$discovery.releases]
 
@@ -435,33 +462,7 @@ export const sortedReleases = derived(discoveryStore, ($discovery) => {
 	}
 
 	// Apply sorting
-	const { field, direction } = $discovery.sort
-	const dir = direction === 'asc' ? 1 : -1
-
-	releases.sort((a, b) => {
-		let cmp = 0
-		if (field === 'release_date') {
-			const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
-			const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
-			const aValid = !isNaN(aDate)
-			const bValid = !isNaN(bDate)
-			if (!aValid && !bValid) cmp = 0
-			else if (!aValid) return 1
-			else if (!bValid) return -1
-			else if (aDate < bDate) cmp = -1 * dir
-			else if (aDate > bDate) cmp = 1 * dir
-		} else {
-			const aVal = a[field] ?? ''
-			const bVal = b[field] ?? ''
-			if (aVal < bVal) cmp = -1 * dir
-			else if (aVal > bVal) cmp = 1 * dir
-		}
-		// Tiebreaker: sort by id for deterministic order when values are equal
-		if (cmp !== 0) return cmp
-		return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
-	})
-
-	return releases
+	return sortReleases(releases, $discovery.sort)
 })
 
 export const displayedReleases = derived(
@@ -500,7 +501,7 @@ export const displayedReleases = derived(
 			)
 		}
 
-		return releases
+		return sortReleases(releases, $discovery.sort)
 	}
 )
 

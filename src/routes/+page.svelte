@@ -23,7 +23,6 @@
 		sortedTracks,
 		displayedTracks,
 		trackCount,
-		playerStore,
 		currentTrack,
 		tagsStore,
 		playlistsStore,
@@ -101,6 +100,7 @@
 		deviceController,
 		exportController,
 		playlistController,
+		playPreview,
 		playNextTrack,
 		playPreviousTrack,
 		onMountSetup,
@@ -280,10 +280,10 @@
 			const preview = get(previewInfo)
 			if (!preview) return
 
+			// If already on discovery view (main or playlist), check current displayed releases first
 			const currentView = get(activeView)
-			if (currentView === 'discovery' && !selectedPlaylistId && !selectedFolderId) {
-				// Already on main discovery view — check if release is visible
-				const releases = get(sortedReleases)
+			if (currentView === 'discovery' && !selectedFolderId) {
+				const releases = get(displayedReleases)
 				if (releases.some((r) => r.id === preview.releaseId)) {
 					uiStore.setSelectedReleases(new Set([preview.releaseId]))
 					expandedReleaseIds.expand(preview.releaseId)
@@ -292,7 +292,7 @@
 				}
 			}
 
-			// Navigate to main discovery view and await data load
+			// Not found in current view — fall back to main discovery list
 			await navigateToMainView('discovery')
 
 			const releases = get(sortedReleases)
@@ -307,9 +307,9 @@
 			const track = get(currentTrack)
 			if (!track) return
 
+			// If already on library view (main or playlist), check current displayed tracks first
 			const currentView = get(activeView)
-			if (currentView === 'library' && !selectedPlaylistId && !selectedFolderId) {
-				// Already on main library view — check if track is visible
+			if (currentView === 'library' && !selectedFolderId) {
 				const tracks = get(displayedTracks)
 				if (tracks.some((t) => t.id === track.id)) {
 					uiStore.setSelectedTracks(new Set([track.id]))
@@ -318,7 +318,7 @@
 				}
 			}
 
-			// Navigate to main library view and await data load
+			// Not found in current view — fall back to main library list
 			await navigateToMainView('library')
 
 			const tracks = get(displayedTracks)
@@ -422,7 +422,7 @@
 				return true
 			})
 			if (firstPlayable >= 0) {
-				playerStore.playPreview(release, firstPlayable)
+				playPreview(release, firstPlayable)
 				return
 			}
 		}
@@ -436,7 +436,7 @@
 			track?.duration_ms &&
 			(PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null))
 		if (canPlay && release.tracks.length > 0) {
-			playerStore.playPreview(release, trackIndex)
+			playPreview(release, trackIndex)
 		}
 	}
 
