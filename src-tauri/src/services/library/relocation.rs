@@ -1,4 +1,6 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
+use crate::services::cloud_sync::resolution;
 
 impl LibraryService {
     /// Check if a track's file still exists on disk
@@ -80,10 +82,24 @@ impl LibraryService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
+        let (library_root_id, relative_path) =
+            resolution::assign_root_for_import(&conn, &new_path_str)?;
+
         conn.execute(
-            "UPDATE tracks SET file_path = ?1, file_hash = ?2, date_modified = ?3 WHERE id = ?4",
-            rusqlite::params![new_path_str, validation.new_hash, now, id],
+            "UPDATE tracks SET file_path = ?1, file_hash = ?2, date_modified = ?3, \
+                _hlc = ?4, library_root_id = ?5, relative_path = ?6 WHERE id = ?7",
+            rusqlite::params![
+                new_path_str,
+                validation.new_hash,
+                now,
+                hlc,
+                library_root_id,
+                relative_path,
+                id
+            ],
         )?;
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(id))?;
 
         drop(conn);
         self.get_track(id)

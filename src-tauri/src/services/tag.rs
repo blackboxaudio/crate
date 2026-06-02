@@ -4,6 +4,7 @@ use rusqlite::Connection;
 
 use crate::error::{CrateError, Result};
 use crate::models::{Tag, TagCategory};
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 pub struct TagService {
     conn: Arc<Mutex<Connection>>,
@@ -101,15 +102,18 @@ impl TagService {
             tags: Vec::new(),
         };
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "INSERT INTO tag_categories (id, name, color, sort_order) VALUES (?1, ?2, ?3, ?4)",
+            "INSERT INTO tag_categories (id, name, color, sort_order, _hlc) VALUES (?1, ?2, ?3, ?4, ?5)",
             rusqlite::params![
                 category.id,
                 category.name,
                 category.color,
-                category.sort_order
+                category.sort_order,
+                hlc
             ],
         )?;
+        dirty::mark_dirty(&conn, buckets::TAG_CATEGORIES)?;
 
         Ok(category)
     }
@@ -125,19 +129,21 @@ impl TagService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         if let Some(ref n) = name {
             conn.execute(
-                "UPDATE tag_categories SET name = ?1 WHERE id = ?2",
-                rusqlite::params![n, id],
+                "UPDATE tag_categories SET name = ?1, _hlc = ?2 WHERE id = ?3",
+                rusqlite::params![n, hlc, id],
             )?;
         }
 
         if let Some(ref c) = color {
             conn.execute(
-                "UPDATE tag_categories SET color = ?1 WHERE id = ?2",
-                rusqlite::params![c, id],
+                "UPDATE tag_categories SET color = ?1, _hlc = ?2 WHERE id = ?3",
+                rusqlite::params![c, hlc, id],
             )?;
         }
+        dirty::mark_dirty(&conn, buckets::TAG_CATEGORIES)?;
 
         drop(conn);
         self.get_category(id)
@@ -149,7 +155,15 @@ impl TagService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
+        dirty::record_tombstone(&conn, buckets::TAG_CATEGORIES, id, &hlc)?;
         conn.execute("DELETE FROM tag_categories WHERE id = ?1", [id])?;
+        // Cascade removes this category's tags + their track/discovery links;
+        // re-serialize those buckets so peers don't re-insert orphaned rows.
+        dirty::mark_dirty(&conn, buckets::TAG_CATEGORIES)?;
+        dirty::mark_dirty(&conn, buckets::TAGS)?;
+        dirty::mark_dirty(&conn, buckets::TRACK_TAGS)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
         Ok(())
     }
 
@@ -221,10 +235,12 @@ impl TagService {
             sort_order: max_order + 1,
         };
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "INSERT INTO tags (id, category_id, name, color, sort_order) VALUES (?1, ?2, ?3, ?4, ?5)",
-            rusqlite::params![tag.id, tag.category_id, tag.name, tag.color, tag.sort_order],
+            "INSERT INTO tags (id, category_id, name, color, sort_order, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+            rusqlite::params![tag.id, tag.category_id, tag.name, tag.color, tag.sort_order, hlc],
         )?;
+        dirty::mark_dirty(&conn, buckets::TAGS)?;
 
         Ok(tag)
     }
@@ -235,19 +251,21 @@ impl TagService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         if let Some(ref n) = name {
             conn.execute(
-                "UPDATE tags SET name = ?1 WHERE id = ?2",
-                rusqlite::params![n, id],
+                "UPDATE tags SET name = ?1, _hlc = ?2 WHERE id = ?3",
+                rusqlite::params![n, hlc, id],
             )?;
         }
 
         if let Some(ref c) = color {
             conn.execute(
-                "UPDATE tags SET color = ?1 WHERE id = ?2",
-                rusqlite::params![c, id],
+                "UPDATE tags SET color = ?1, _hlc = ?2 WHERE id = ?3",
+                rusqlite::params![c, hlc, id],
             )?;
         }
+        dirty::mark_dirty(&conn, buckets::TAGS)?;
 
         conn.query_row(
             "SELECT id, category_id, name, color, sort_order FROM tags WHERE id = ?1",
@@ -320,10 +338,12 @@ impl TagService {
             .unwrap_or(-1);
 
         // Update the tag
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "UPDATE tags SET category_id = ?1, sort_order = ?2 WHERE id = ?3",
-            rusqlite::params![target_category_id, max_order + 1, tag_id],
+            "UPDATE tags SET category_id = ?1, sort_order = ?2, _hlc = ?3 WHERE id = ?4",
+            rusqlite::params![target_category_id, max_order + 1, hlc, tag_id],
         )?;
+        dirty::mark_dirty(&conn, buckets::TAGS)?;
 
         // Return updated tag
         conn.query_row(
@@ -348,7 +368,13 @@ impl TagService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
+        dirty::record_tombstone(&conn, buckets::TAGS, id, &hlc)?;
         conn.execute("DELETE FROM tags WHERE id = ?1", [id])?;
+        // Cascade removes this tag's track/discovery links; re-serialize them.
+        dirty::mark_dirty(&conn, buckets::TAGS)?;
+        dirty::mark_dirty(&conn, buckets::TRACK_TAGS)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
         Ok(())
     }
 
@@ -358,14 +384,17 @@ impl TagService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         for track_id in &track_ids {
             for tag_id in &tag_ids {
+                // OR IGNORE preserves an existing link's _hlc; new links are stamped.
                 conn.execute(
-                    "INSERT OR IGNORE INTO track_tags (track_id, tag_id) VALUES (?1, ?2)",
-                    rusqlite::params![track_id, tag_id],
+                    "INSERT OR IGNORE INTO track_tags (track_id, tag_id, _hlc) VALUES (?1, ?2, ?3)",
+                    rusqlite::params![track_id, tag_id, hlc],
                 )?;
             }
         }
+        dirty::mark_dirty(&conn, buckets::TRACK_TAGS)?;
 
         Ok(())
     }
@@ -376,14 +405,24 @@ impl TagService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         for track_id in &track_ids {
             for tag_id in &tag_ids {
-                conn.execute(
+                let deleted = conn.execute(
                     "DELETE FROM track_tags WHERE track_id = ?1 AND tag_id = ?2",
                     rusqlite::params![track_id, tag_id],
                 )?;
+                if deleted > 0 {
+                    dirty::record_tombstone(
+                        &conn,
+                        buckets::TRACK_TAGS,
+                        &dirty::junction_entity_id(track_id, tag_id),
+                        &hlc,
+                    )?;
+                }
             }
         }
+        dirty::mark_dirty(&conn, buckets::TRACK_TAGS)?;
 
         Ok(())
     }

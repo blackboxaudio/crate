@@ -9,6 +9,8 @@ use symphonia::core::io::MediaSourceStream;
 use symphonia::core::probe::Hint;
 
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
+use crate::services::cloud_sync::resolution;
 
 impl LibraryService {
     pub fn import_tracks(&self, paths: Vec<PathBuf>) -> Result<ImportResult> {
@@ -312,6 +314,10 @@ impl LibraryService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
+        let (library_root_id, relative_path) =
+            resolution::assign_root_for_import(&conn, &track.file_path)?;
+
         conn.execute(
             r#"
             INSERT INTO tracks (
@@ -321,7 +327,8 @@ impl LibraryService {
                 analysis_source, waveform_data,
                 rating, play_count,
                 date_added, date_modified, last_played,
-                rekordbox_id, artwork_path, artwork_source, color
+                rekordbox_id, artwork_path, artwork_source, color,
+                _hlc, library_root_id, relative_path
             ) VALUES (
                 ?1, ?2, ?3,
                 ?4, ?5, ?6, ?7, ?8, ?9, ?10,
@@ -329,7 +336,8 @@ impl LibraryService {
                 ?17, ?18,
                 ?19, ?20,
                 ?21, ?22, ?23,
-                ?24, ?25, ?26, ?27
+                ?24, ?25, ?26, ?27,
+                ?28, ?29, ?30
             )
             ON CONFLICT(file_path) DO UPDATE SET
                 title = excluded.title,
@@ -339,7 +347,10 @@ impl LibraryService {
                 genre = excluded.genre,
                 artwork_path = excluded.artwork_path,
                 artwork_source = excluded.artwork_source,
-                date_modified = excluded.date_modified
+                date_modified = excluded.date_modified,
+                _hlc = excluded._hlc,
+                library_root_id = excluded.library_root_id,
+                relative_path = excluded.relative_path
             "#,
             rusqlite::params![
                 track.id,
@@ -369,8 +380,13 @@ impl LibraryService {
                 track.artwork_path,
                 track.artwork_source,
                 track.color,
+                hlc,
+                library_root_id,
+                relative_path,
             ],
         )?;
+
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(&track.id))?;
 
         Ok(())
     }

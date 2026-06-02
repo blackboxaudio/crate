@@ -49,6 +49,18 @@ pub enum CrateError {
     #[error("Key storage error: {0}")]
     KeyStorage(String),
 
+    #[allow(dead_code)]
+    #[error("Cloud sync error: {0}")]
+    CloudSync(String),
+
+    #[allow(dead_code)]
+    #[error("Cloud sync conflict (manifest etag mismatch)")]
+    CloudSyncConflict,
+
+    #[allow(dead_code)]
+    #[error("Cloud sync blob not found: {0}")]
+    CloudSyncBlobNotFound(String),
+
     #[error("Internal lock error")]
     LockPoisoned,
 }

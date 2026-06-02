@@ -17,6 +17,7 @@ use crate::models::{
     DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate,
     DiscoveryTrack, DiscoveryTrackCreate, Tag,
 };
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 use crate::services::ArtworkService;
 
 use metadata::FetchedTrack;
@@ -64,14 +65,16 @@ impl DiscoveryService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         for release_id in &release_ids {
             for tag_id in &tag_ids {
                 conn.execute(
-                    "INSERT OR IGNORE INTO discovery_release_tags (release_id, tag_id) VALUES (?1, ?2)",
-                    rusqlite::params![release_id, tag_id],
+                    "INSERT OR IGNORE INTO discovery_release_tags (release_id, tag_id, _hlc) VALUES (?1, ?2, ?3)",
+                    rusqlite::params![release_id, tag_id, hlc],
                 )?;
             }
         }
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
 
         Ok(())
     }
@@ -82,14 +85,24 @@ impl DiscoveryService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         for release_id in &release_ids {
             for tag_id in &tag_ids {
-                conn.execute(
+                let deleted = conn.execute(
                     "DELETE FROM discovery_release_tags WHERE release_id = ?1 AND tag_id = ?2",
                     rusqlite::params![release_id, tag_id],
                 )?;
+                if deleted > 0 {
+                    dirty::record_tombstone(
+                        &conn,
+                        buckets::DISCOVERY_RELEASE_TAGS,
+                        &dirty::junction_entity_id(release_id, tag_id),
+                        &hlc,
+                    )?;
+                }
             }
         }
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
 
         Ok(())
     }

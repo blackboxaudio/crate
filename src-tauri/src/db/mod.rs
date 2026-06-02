@@ -147,11 +147,17 @@ impl Database {
             let version = version as i32 + 1;
             if version > current_version {
                 log::info!("Running migration {version}");
-                conn.execute_batch(sql)?;
-                conn.execute(
+                // Apply the migration and record its version atomically. Without
+                // the transaction, an interrupted run (e.g. killing `yarn dev`
+                // mid-migration) can commit the DDL but not the version row,
+                // leaving a half-applied schema that fails to re-run.
+                let tx = conn.unchecked_transaction()?;
+                tx.execute_batch(sql)?;
+                tx.execute(
                     "INSERT INTO schema_version (version) VALUES (?1)",
                     [version],
                 )?;
+                tx.commit()?;
             }
         }
 

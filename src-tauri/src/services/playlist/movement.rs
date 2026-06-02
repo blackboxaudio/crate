@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl PlaylistService {
     /// Find a playlist/folder with the same name in the target location (excluding the item being moved)
@@ -66,10 +67,12 @@ impl PlaylistService {
             )
             .unwrap_or(-1);
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "UPDATE playlists SET parent_id = ?1, sort_order = ?2, date_modified = ?3 WHERE id = ?4",
-            rusqlite::params![parent_id, max_order + 1, now, id],
+            "UPDATE playlists SET parent_id = ?1, sort_order = ?2, date_modified = ?3, _hlc = ?4 WHERE id = ?5",
+            rusqlite::params![parent_id, max_order + 1, now, hlc, id],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         drop(conn);
         self.get_playlist(id)

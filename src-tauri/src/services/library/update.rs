@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl LibraryService {
     pub fn update_track(&self, id: &str, update: TrackUpdate) -> Result<Track> {
@@ -60,6 +61,11 @@ impl LibraryService {
             param_idx += 1;
         }
 
+        let hlc = dirty::next_hlc(&conn)?;
+        updates.push(format!("_hlc = ?{param_idx}"));
+        params.push(Box::new(hlc));
+        param_idx += 1;
+
         params.push(Box::new(id.to_string()));
 
         let sql = format!(
@@ -71,6 +77,7 @@ impl LibraryService {
         let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
 
         conn.execute(&sql, params_refs.as_slice())?;
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(id))?;
 
         drop(conn);
         self.get_track(id)
@@ -140,6 +147,11 @@ impl LibraryService {
             param_idx += 1;
         }
 
+        let hlc = dirty::next_hlc(&conn)?;
+        updates.push(format!("_hlc = ?{param_idx}"));
+        params.push(Box::new(hlc));
+        param_idx += 1;
+
         // Build placeholders for track IDs
         let placeholders: Vec<String> = ids
             .iter()
@@ -185,26 +197,29 @@ impl LibraryService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
 
         let placeholders: Vec<String> = track_ids
             .iter()
             .enumerate()
-            .map(|(i, _)| format!("?{}", i + 3))
+            .map(|(i, _)| format!("?{}", i + 4))
             .collect();
 
         let sql = format!(
-            "UPDATE tracks SET color = ?1, date_modified = ?2 WHERE id IN ({})",
+            "UPDATE tracks SET color = ?1, date_modified = ?2, _hlc = ?3 WHERE id IN ({})",
             placeholders.join(", ")
         );
 
-        let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(color), Box::new(now)];
+        let mut params: Vec<Box<dyn rusqlite::ToSql>> =
+            vec![Box::new(color), Box::new(now), Box::new(hlc)];
 
-        for id in track_ids {
-            params.push(Box::new(id));
+        for id in &track_ids {
+            params.push(Box::new(id.clone()));
         }
 
         let params_refs: Vec<&dyn rusqlite::ToSql> = params.iter().map(|p| p.as_ref()).collect();
         conn.execute(&sql, params_refs.as_slice())?;
+        dirty::mark_dirty_track_shards(&conn, &track_ids)?;
 
         Ok(())
     }
@@ -234,7 +249,19 @@ impl LibraryService {
         let params_refs: Vec<&dyn rusqlite::ToSql> =
             ids.iter().map(|s| s as &dyn rusqlite::ToSql).collect();
 
+        let hlc = dirty::next_hlc(&conn)?;
+        for id in &ids {
+            dirty::record_tombstone(&conn, buckets::TRACKS_ENTITY, id, &hlc)?;
+        }
+
         conn.execute(&sql, params_refs.as_slice())?;
+
+        // The deleted tracks' shards, plus the cascade-deleted child buckets
+        // (playlist memberships, tag links, cues).
+        dirty::mark_dirty_track_shards(&conn, &ids)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::TRACK_TAGS)?;
+        dirty::mark_dirty(&conn, buckets::CUES)?;
 
         Ok(())
     }

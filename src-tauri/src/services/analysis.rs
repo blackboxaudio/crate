@@ -19,6 +19,7 @@ use symphonia::core::probe::Hint;
 
 use crate::error::{CrateError, Result};
 use crate::models::{Tag, Track};
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 /// Result of analyzing a single track
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -452,11 +453,13 @@ impl AnalysisService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
 
         conn.execute(
-            "UPDATE tracks SET bpm = ?1, key = ?2, analysis_source = 'crate', date_modified = ?3 WHERE id = ?4",
-            rusqlite::params![bpm, key, now, track_id],
+            "UPDATE tracks SET bpm = ?1, key = ?2, analysis_source = 'crate', date_modified = ?3, _hlc = ?4 WHERE id = ?5",
+            rusqlite::params![bpm, key, now, hlc, track_id],
         )?;
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(track_id))?;
 
         Ok(())
     }

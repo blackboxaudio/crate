@@ -5,6 +5,7 @@ use serde_json;
 
 use crate::error::{CrateError, Result};
 use crate::models::AppSettings;
+use crate::services::cloud_sync::{self, pipeline::dirty};
 
 pub struct SettingsService {
     conn: Arc<Mutex<Connection>>,
@@ -166,6 +167,13 @@ impl SettingsService {
             "INSERT OR REPLACE INTO settings (key, value) VALUES (?1, ?2)",
             rusqlite::params![key, value],
         )?;
+
+        // Only whitelisted settings sync; device-local keys never leave this device.
+        // Per-key HLCs live in `sync_state` so the `settings` table shape is untouched.
+        // Best-effort: a sync-bookkeeping hiccup never blocks a settings change.
+        if cloud_sync::is_synced_setting(key) {
+            dirty::stamp_setting(&conn, key);
+        }
 
         Ok(())
     }

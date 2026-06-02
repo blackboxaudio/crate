@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl PlaylistService {
     pub fn create_smart_playlist(
@@ -29,10 +30,11 @@ impl PlaylistService {
         let now = chrono::Utc::now().to_rfc3339();
         let id = uuid::Uuid::new_v4().to_string();
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
             r#"
-            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified, context)
-            VALUES (?1, ?2, ?3, 0, 1, ?4, ?5, ?6, ?7, ?8)
+            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified, context, _hlc)
+            VALUES (?1, ?2, ?3, 0, 1, ?4, ?5, ?6, ?7, ?8, ?9)
             "#,
             rusqlite::params![
                 id,
@@ -43,8 +45,10 @@ impl PlaylistService {
                 now,
                 now,
                 context,
+                hlc,
             ],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         // Compute the track count by evaluating rules
         let track_count = self.count_smart_playlist_items_with_conn(&conn, &rules, &context)?;
@@ -84,11 +88,13 @@ impl PlaylistService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
 
         conn.execute(
-            "UPDATE playlists SET smart_rules = ?1, date_modified = ?2 WHERE id = ?3",
-            rusqlite::params![smart_rules_json, now, id],
+            "UPDATE playlists SET smart_rules = ?1, date_modified = ?2, _hlc = ?3 WHERE id = ?4",
+            rusqlite::params![smart_rules_json, now, hlc, id],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         drop(conn);
         self.get_playlist(id)
