@@ -200,7 +200,7 @@ mod tests {
         let cols: Vec<String> = stmt
             .query_map([], |r| r.get::<_, String>(1))
             .unwrap()
-            .filter_map(Result::ok)
+            .filter_map(|r| r.ok())
             .collect();
         cols.iter().any(|c| c == column)
     }
