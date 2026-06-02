@@ -106,6 +106,7 @@ export interface AppSetupResult {
 	deviceController: ReturnType<typeof createDeviceController>
 	exportController: ReturnType<typeof createExportController>
 	playlistController: ReturnType<typeof createPlaylistController>
+	playPreview: (release: DiscoveryRelease, trackIndex: number) => void
 	playNextTrack: () => void
 	playPreviousTrack: () => void
 	onMountSetup: () => Promise<() => void>
@@ -147,7 +148,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		getActiveView: () => get(activeView),
 	})
 
-	const trackController = createTrackController(
+	const rawTrackController = createTrackController(
 		{
 			playerStore,
 			libraryStore,
@@ -168,6 +169,19 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				getModalOrchestrator()?.openDuplicateTrackModal(duplicates, onComplete),
 		}
 	)
+
+	// Wrap trackController.play to capture the playback queue context when
+	// the user initiates library playback (double-click, Enter, etc.)
+	const trackController = {
+		...rawTrackController,
+		play(track: Track) {
+			hasLibraryQueueContext = true
+			libraryQueueContextActiveView = get(activeView)
+			libraryQueueContextPlaylistId = get(libraryStore).selectedPlaylistId
+			libraryQueueTracks = get(displayedTracks)
+			rawTrackController.play(track)
+		},
+	}
 
 	const deviceController = createDeviceController(
 		{ devicesStore, settingsStore, toastStore },
@@ -229,6 +243,77 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	)
 
 	// =========================================================================
+	// Playback Queue
+	// =========================================================================
+	// Tracks the playback context so continuous playback, next/previous use the
+	// correct track list even when the user navigates to a different view.
+	// When the current view matches the playback context, live data is used
+	// (so sort changes, track adds/removes are reflected immediately).
+	// When navigated away, a frozen snapshot is used instead.
+
+	// Library track queue
+	let hasLibraryQueueContext = false
+	let libraryQueueContextActiveView: ActiveView = 'library'
+	let libraryQueueContextPlaylistId: string | null = null
+	let libraryQueueTracks: Track[] = []
+
+	// Discovery release queue
+	let hasDiscoveryQueueContext = false
+	let discoveryQueueContextPlaylistId: string | null = null
+	let discoveryQueueReleases: DiscoveryRelease[] = []
+
+	// Keep the frozen queue snapshot up-to-date while the context view is active.
+	// When the user navigates away, the snapshot freezes at the last known state.
+	displayedTracks.subscribe((tracks) => {
+		if (!hasLibraryQueueContext) return
+		if (get(activeView) !== libraryQueueContextActiveView) return
+		if (get(libraryStore).selectedPlaylistId === libraryQueueContextPlaylistId) {
+			libraryQueueTracks = tracks
+		}
+	})
+
+	displayedReleases.subscribe((releases) => {
+		if (!hasDiscoveryQueueContext) return
+		const ui = get(uiStore)
+		if (ui.activeView !== 'discovery') return
+		if ((ui.selectedPlaylistId ?? null) === discoveryQueueContextPlaylistId) {
+			discoveryQueueReleases = releases
+		}
+	})
+
+	/** Get the current library track queue, using live data when the view matches. */
+	function getLibraryQueue(): Track[] {
+		if (!hasLibraryQueueContext) return get(displayedTracks)
+		const currentPlaylistId = get(libraryStore).selectedPlaylistId
+		if (get(activeView) === libraryQueueContextActiveView && currentPlaylistId === libraryQueueContextPlaylistId) {
+			return get(displayedTracks)
+		}
+		return libraryQueueTracks
+	}
+
+	/** Get the current discovery release queue, using live data when the view matches. */
+	function getDiscoveryQueue(): DiscoveryRelease[] {
+		if (!hasDiscoveryQueueContext) return get(displayedReleases)
+		const ui = get(uiStore)
+		if (ui.activeView === 'discovery' && (ui.selectedPlaylistId ?? null) === discoveryQueueContextPlaylistId) {
+			return get(displayedReleases)
+		}
+		return discoveryQueueReleases
+	}
+
+	/**
+	 * Play a discovery preview, capturing the release queue context.
+	 * Use this instead of playerStore.playPreview() for user-initiated preview playback.
+	 */
+	function playPreview(release: DiscoveryRelease, trackIndex: number) {
+		hasDiscoveryQueueContext = true
+		const ui = get(uiStore)
+		discoveryQueueContextPlaylistId = ui.activeView === 'discovery' ? (ui.selectedPlaylistId ?? null) : null
+		discoveryQueueReleases = get(displayedReleases)
+		playerStore.playPreview(release, trackIndex)
+	}
+
+	// =========================================================================
 	// Track Navigation
 	// =========================================================================
 
@@ -264,8 +349,8 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				return
 			}
 
-			// Move to next release in the filtered view, wrapping around
-			const releases = get(displayedReleases)
+			// Move to next release in the queue (or current view as fallback), wrapping around
+			const releases = getDiscoveryQueue()
 			const releaseIdx = releases.findIndex((r) => r.id === preview.releaseId)
 			if (releaseIdx === -1 || releases.length === 0) return
 
@@ -281,9 +366,10 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		}
 		const id = get(currentTrack)?.id
 		if (!id) return
-		const tracks = get(displayedTracks)
+		const tracks = getLibraryQueue()
+		if (tracks.length === 0) return
 		const idx = tracks.findIndex((t) => t.id === id)
-		if (idx >= 0 && idx < tracks.length - 1) trackController.play(tracks[idx + 1])
+		if (idx >= 0) playerStore.play(tracks[(idx + 1) % tracks.length])
 	}
 
 	function playPreviousTrack() {
@@ -299,8 +385,8 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				return
 			}
 
-			// Move to previous release in the filtered view, wrapping around
-			const releases = get(displayedReleases)
+			// Move to previous release in the queue (or current view as fallback), wrapping around
+			const releases = getDiscoveryQueue()
 			const releaseIdx = releases.findIndex((r) => r.id === preview.releaseId)
 			if (releaseIdx === -1 || releases.length === 0) return
 
@@ -316,9 +402,10 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		}
 		const id = get(currentTrack)?.id
 		if (!id) return
-		const tracks = get(displayedTracks)
+		const tracks = getLibraryQueue()
+		if (tracks.length === 0) return
 		const idx = tracks.findIndex((t) => t.id === id)
-		if (idx > 0) trackController.play(tracks[idx - 1])
+		if (idx >= 0) playerStore.play(tracks[(idx - 1 + tracks.length) % tracks.length])
 	}
 
 	// =========================================================================
@@ -342,7 +429,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				for (const release of releases) {
 					const trackIdx = findPreviewableTrackIndex(release, 'first')
 					if (trackIdx !== -1) {
-						playerStore.playPreview(release, trackIdx)
+						playPreview(release, trackIdx)
 						return
 					}
 				}
@@ -732,6 +819,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		deviceController,
 		exportController,
 		playlistController,
+		playPreview,
 		playNextTrack,
 		playPreviousTrack,
 		onMountSetup,

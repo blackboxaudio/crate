@@ -319,6 +319,10 @@ function createPlayerStore() {
 			const track = release.tracks[trackIndex]
 			if (!track) return
 
+			// Clear stale preview events before the async gap to prevent the old
+			// error handler from firing when audio.src='' triggers an error event
+			clearPreviewEvents()
+
 			// Stop library audio if playing
 			if (state.playbackSource === 'library' && state.playbackState.is_playing) {
 				try {
