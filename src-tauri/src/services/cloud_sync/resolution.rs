@@ -72,10 +72,12 @@ pub fn assign_root_for_import(
     file_path: &str,
 ) -> Result<(Option<String>, Option<String>)> {
     // Best-effort: never fail an import because root resolution is unavailable.
-    Ok(try_assign_root_for_import(conn, file_path).unwrap_or_else(|e| {
-        log::warn!("cloud_sync: root assignment skipped, track stored device-local: {e}");
-        (None, None)
-    }))
+    Ok(
+        try_assign_root_for_import(conn, file_path).unwrap_or_else(|e| {
+            log::warn!("cloud_sync: root assignment skipped, track stored device-local: {e}");
+            (None, None)
+        }),
+    )
 }
 
 fn try_assign_root_for_import(
@@ -85,9 +87,7 @@ fn try_assign_root_for_import(
     let mut stmt =
         conn.prepare("SELECT library_root_id, local_absolute_path FROM sync_root_mappings")?;
     let rows = stmt
-        .query_map([], |r| {
-            Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
-        })?
+        .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?
         .collect::<std::result::Result<Vec<_>, _>>()?;
 
     for (root_id, local_root) in rows {

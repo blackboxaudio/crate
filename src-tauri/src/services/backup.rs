@@ -562,7 +562,10 @@ impl BackupService {
 
             // A wholesale restore replaces the library; force the next cloud-sync
             // push to re-stamp every restored row by clearing the one-time guard.
-            let _ = conn.execute("DELETE FROM sync_state WHERE key = 'initial_stamp_done'", []);
+            let _ = conn.execute(
+                "DELETE FROM sync_state WHERE key = 'initial_stamp_done'",
+                [],
+            );
 
             // Post-commit verification
             let track_count: i64 =

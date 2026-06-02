@@ -50,14 +50,20 @@ impl LibraryService {
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
-        let (library_root_id, relative_path) =
-            resolution::assign_root_for_import(&conn, new_path)?;
+        let (library_root_id, relative_path) = resolution::assign_root_for_import(&conn, new_path)?;
 
         // Update file_path and date_modified only
         conn.execute(
             "UPDATE tracks SET file_path = ?1, date_modified = ?2, _hlc = ?3, \
                 library_root_id = ?4, relative_path = ?5 WHERE id = ?6",
-            rusqlite::params![new_path, now, hlc, library_root_id, relative_path, existing_track_id],
+            rusqlite::params![
+                new_path,
+                now,
+                hlc,
+                library_root_id,
+                relative_path,
+                existing_track_id
+            ],
         )?;
         dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(existing_track_id))?;
 
