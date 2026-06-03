@@ -235,6 +235,12 @@ pub fn run() {
             commands::media_controls::update_now_playing,
             commands::media_controls::update_playback_state,
             commands::media_controls::clear_now_playing,
+            // Cloud sync commands
+            commands::cloud_sync::sign_in,
+            commands::cloud_sync::sign_out,
+            commands::cloud_sync::get_sync_status,
+            commands::cloud_sync::sync_now,
+            commands::cloud_sync::list_devices,
         ])
         .setup(|app| {
             // Get Tauri's app data directory
@@ -320,6 +326,75 @@ pub fn run() {
             )));
             app.manage(ScanEnrichmentCache::new());
             app.manage(EnrichmentSkipIds::new());
+
+            // Cloud sync (Phase 2): build the Firebase backend if a config file is
+            // present (degrades gracefully to "unavailable" when it isn't), manage the
+            // runtime state, and spawn session-restore + the debounce push loop.
+            {
+                use crate::services::cloud_sync::{
+                    backend, config, hlc, runtime::CloudSyncState,
+                };
+
+                let cloud_config =
+                    config::load_cloud_config(app.path().app_config_dir().ok().as_deref())
+                        .unwrap_or(None);
+
+                let cloud_backend = cloud_config.as_ref().and_then(|cfg| {
+                    match backend::build_default_backend(cfg) {
+                        Ok(b) => Some(b),
+                        Err(e) => {
+                            log::warn!("cloud_sync: backend init failed: {e}");
+                            None
+                        }
+                    }
+                });
+
+                let device_id = {
+                    let guard = conn.lock().expect("db mutex poisoned");
+                    hlc::load_node_id(&guard)
+                        .map(|n| format!("{n:08x}"))
+                        .unwrap_or_else(|_| "00000000".to_string())
+                };
+                let device_name =
+                    sysinfo::System::host_name().unwrap_or_else(|| "Crate device".to_string());
+                let app_version = app.package_info().version.to_string();
+
+                let cloud_state = Arc::new(CloudSyncState::new(
+                    cloud_backend,
+                    cloud_config,
+                    conn.clone(),
+                    device_id,
+                    device_name,
+                    app_version,
+                ));
+                app.manage(cloud_state.clone());
+
+                // Restore any persisted session, then push whenever the dirty queue
+                // goes quiescent (~15s after the last mutation). "Sync now" pushes
+                // immediately via the command. Pull/listener arrive in Phase 3.
+                tauri::async_runtime::spawn(async move {
+                    cloud_state.restore_session().await;
+                    if !cloud_state.is_available() {
+                        return;
+                    }
+                    let quiescent = std::time::Duration::from_secs(15);
+                    loop {
+                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                        if !cloud_state.is_signed_in().await {
+                            continue;
+                        }
+                        match cloud_state.dirty_quiescent(quiescent) {
+                            Ok(true) => {
+                                if let Err(e) = cloud_state.run_push().await {
+                                    log::warn!("cloud_sync: debounced push failed: {e}");
+                                }
+                            }
+                            Ok(false) => {}
+                            Err(e) => log::warn!("cloud_sync: dirty check failed: {e}"),
+                        }
+                    }
+                });
+            }
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

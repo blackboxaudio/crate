@@ -61,6 +61,10 @@ pub enum CrateError {
     #[error("Cloud sync blob not found: {0}")]
     CloudSyncBlobNotFound(String),
 
+    #[allow(dead_code)]
+    #[error("Cloud sync auth error: {0}")]
+    CloudSyncAuth(String),
+
     #[error("Internal lock error")]
     LockPoisoned,
 }

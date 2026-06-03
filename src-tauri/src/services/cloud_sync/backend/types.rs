@@ -73,6 +73,15 @@ impl ManifestEtag {
     pub fn token(s: impl Into<String>) -> Self {
         Self(EtagInner::Token(s.into()))
     }
+
+    /// The opaque server token, if this etag is a server token (Firestore
+    /// `updateTime`). Returns `None` for the mock's counter variant.
+    pub fn as_token(&self) -> Option<&str> {
+        match &self.0 {
+            EtagInner::Token(s) => Some(s),
+            EtagInner::Counter(_) => None,
+        }
+    }
 }
 
 /// A blob scheduled for deletion once its manifest entry is superseded. Enqueued

@@ -13,6 +13,9 @@ use futures::stream::BoxStream;
 
 use crate::error::Result;
 
+use super::config::CloudConfig;
+
+pub mod firebase;
 pub mod mock;
 pub mod types;
 
@@ -92,12 +95,12 @@ pub trait DeviceRegistry: Send + Sync {
     async fn remove(&self, session: &AuthSession, device_id: &str) -> Result<()>;
 }
 
-// Phase 2 adds the construction seam here:
-//
-//     pub struct CloudConfig { /* project id, web api key, storage bucket, ... */ }
-//     pub fn build_default_backend(config: &CloudConfig) -> Result<Arc<dyn CloudBackend>> {
-//         Ok(Arc::new(firebase::FirebaseBackend::new(config)?))
-//     }
-//
-// Phase 1 has no config and no Firebase impl, so the seam is intentionally left as
-// this comment rather than a stub — tests construct `MockCloudBackend::new()`.
+/// The construction seam: build the default cloud backend (Firebase) from config.
+///
+/// Everything above the trait boundary holds an `Arc<dyn CloudBackend>` and never
+/// names a vendor type; this is the one function that does. `CloudConfig` lives in
+/// [`super::config`]; loading degrades gracefully (sync is simply unavailable when
+/// the config file is absent), so this is only ever called with a complete config.
+pub fn build_default_backend(config: &CloudConfig) -> Result<Arc<dyn CloudBackend>> {
+    Ok(Arc::new(firebase::FirebaseBackend::new(config)?))
+}

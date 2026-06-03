@@ -7,4 +7,5 @@ pub mod buckets;
 pub mod dirty;
 pub mod manifest;
 pub mod merge;
+pub mod push;
 pub mod rows;
