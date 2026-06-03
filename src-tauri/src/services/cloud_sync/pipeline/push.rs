@@ -5,10 +5,11 @@
 //! backoff, GC enqueue of superseded blobs, and (via the Firebase `BlobStore`) gzip.
 //!
 //! Flow: stamp any unstamped rows once → CAS loop: read remote manifest → pull-then-
-//! merge any remote-ahead buckets (so our write carries the union) → recompute the
-//! local manifest → upload changed buckets → `manifest.write` with the prior object
-//! keys enqueued for GC → clear the dirty queue on success. Self-echo skip and the
-//! live listener are Phase 3; this push is idempotent and safe to call repeatedly.
+//! merge any remote-ahead buckets via [`pull::pull_and_merge`] (so our write carries
+//! the union) → recompute the local manifest → upload changed buckets →
+//! `manifest.write` with the prior object keys enqueued for GC → clear the dirty queue
+//! on success. The standalone pull, self-echo skip, and live updates live in the
+//! sibling [`pull`] module; this push is idempotent and safe to call repeatedly.
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
@@ -24,7 +25,7 @@ use super::super::hlc;
 use super::buckets::Bucket;
 use super::dirty::stamp_unstamped_rows;
 use super::manifest::{compute_local_manifest, diff_manifest};
-use super::merge::merge_bucket;
+use super::pull;
 use super::rows;
 
 /// Max CAS attempts before giving up (each retry re-reads + re-merges the remote).
@@ -59,7 +60,7 @@ pub async fn push(
 
         // Pull-then-merge remote-ahead buckets so our write carries the union.
         if let Some(rm) = &remote_manifest {
-            pull_remote_ahead(&conn, &blobs, session, rm).await?;
+            pull::pull_and_merge(&conn, &blobs, session, rm).await?;
         }
 
         // Recompute the local manifest + serialize the changed buckets (all sync work
@@ -153,45 +154,4 @@ fn prepare_uploads(
     }
 
     Ok((local, uploads, gc_enqueue))
-}
-
-/// Download + merge every bucket the remote has that differs from local, parents
-/// before children. Downloads happen without the guard; each merge re-takes it.
-async fn pull_remote_ahead(
-    conn: &Arc<Mutex<Connection>>,
-    blobs: &Arc<dyn BlobStore>,
-    session: &AuthSession,
-    remote: &Manifest,
-) -> Result<()> {
-    let mut to_download = {
-        let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        let local = compute_local_manifest(&guard, "")?;
-        diff_manifest(&local, remote).to_download
-    };
-    if to_download.is_empty() {
-        return Ok(());
-    }
-
-    // Merge parents before children so a junction's endpoints already exist.
-    let order = Bucket::merge_order();
-    to_download.sort_by_key(|name| {
-        order
-            .iter()
-            .position(|b| b.as_str() == *name)
-            .unwrap_or(usize::MAX)
-    });
-
-    for name in to_download {
-        let bucket = Bucket::parse(&name)
-            .ok_or_else(|| CrateError::CloudSync(format!("bad bucket {name}")))?;
-        let Some(entry) = remote.bucket(&name) else {
-            continue;
-        };
-        let key = format!("users/{}/vault/{}", session.uid, entry.object_key);
-        let bytes = blobs.download(session, &key).await?;
-        let parsed = rows::parse_bucket(&bucket, &bytes)?;
-        let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        merge_bucket(&guard, &bucket, &parsed)?;
-    }
-    Ok(())
 }

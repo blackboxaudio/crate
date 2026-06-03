@@ -18,7 +18,7 @@ use super::auth;
 use super::backend::types::{AuthSession, DeviceRecord};
 use super::backend::{CloudBackend, DeviceRegistry};
 use super::config::CloudConfig;
-use super::pipeline::push;
+use super::pipeline::{gc, pull, push};
 
 /// Coarse sync state surfaced to the UI (Phase 4) + status indicator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -57,6 +57,9 @@ pub struct CloudSyncState {
     app_version: String,
     session: RwLock<Option<AuthSession>>,
     status: RwLock<SyncStatus>,
+    /// Serializes sync operations (the poll loop's pull/push plus a manual "Sync now")
+    /// so they never overlap or fight over [`SyncStatus`]. Held across the whole op.
+    sync_lock: tokio::sync::Mutex<()>,
 }
 
 impl CloudSyncState {
@@ -90,6 +93,7 @@ impl CloudSyncState {
             app_version,
             session: RwLock::new(None),
             status: RwLock::new(status),
+            sync_lock: tokio::sync::Mutex::new(()),
         }
     }
 
@@ -191,6 +195,7 @@ impl CloudSyncState {
             .await?
             .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
 
+        let _sync = self.sync_lock.lock().await;
         self.set_phase(SyncPhase::Syncing, None).await;
         let result = push::push(self.conn.clone(), &backend, &session, &self.device_id).await;
         match &result {
@@ -201,6 +206,43 @@ impl CloudSyncState {
             Err(e) => self.set_phase(SyncPhase::Error, Some(e.to_string())).await,
         }
         result
+    }
+
+    /// Pull other devices' changes now (the poll loop). Resolves a fresh session and
+    /// merges any remote-ahead buckets. Status is updated only when something actually
+    /// merged — an unchanged poll is a silent no-op, so the indicator doesn't flicker
+    /// on every tick. Returns via [`pull::pull`], whose etag gate keeps idle polls cheap.
+    pub async fn run_pull(&self) -> Result<()> {
+        let backend = self.require_backend()?;
+        let session = self
+            .ensure_session(&backend)
+            .await?
+            .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
+
+        let _sync = self.sync_lock.lock().await;
+        let result = pull::pull(self.conn.clone(), &backend, &session, &self.device_id).await;
+        match &result {
+            Ok(true) => self.mark_synced().await,
+            Ok(false) => {} // nothing changed — leave status untouched
+            Err(e) => self.set_phase(SyncPhase::Error, Some(e.to_string())).await,
+        }
+        result.map(|_| ())
+    }
+
+    /// Reclaim superseded blobs whose GC grace window has elapsed. Best-effort and run
+    /// once per session at startup; does not touch [`SyncStatus`] (it's background
+    /// cleanup, not a user-facing sync) and does not take the sync lock.
+    pub async fn run_gc_sweep(&self) -> Result<()> {
+        let backend = self.require_backend()?;
+        let session = self
+            .ensure_session(&backend)
+            .await?
+            .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
+        let n = gc::gc_sweep(&backend, &session).await?;
+        if n > 0 {
+            log::info!("cloud_sync: gc sweep reclaimed {n} superseded blob(s)");
+        }
+        Ok(())
     }
 
     /// List devices registered against the signed-in account.

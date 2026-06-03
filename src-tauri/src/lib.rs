@@ -327,9 +327,9 @@ pub fn run() {
             app.manage(ScanEnrichmentCache::new());
             app.manage(EnrichmentSkipIds::new());
 
-            // Cloud sync (Phase 2): build the Firebase backend if a config file is
-            // present (degrades gracefully to "unavailable" when it isn't), manage the
-            // runtime state, and spawn session-restore + the debounce push loop.
+            // Cloud sync: build the Firebase backend if a config file is present
+            // (degrades gracefully to "unavailable" when it isn't), manage the runtime
+            // state, and spawn the session-restore + pull/push/GC sync task.
             {
                 use crate::services::cloud_sync::{
                     backend, config, hlc, runtime::CloudSyncState,
@@ -369,19 +369,36 @@ pub fn run() {
                 ));
                 app.manage(cloud_state.clone());
 
-                // Restore any persisted session, then push whenever the dirty queue
-                // goes quiescent (~15s after the last mutation). "Sync now" pushes
-                // immediately via the command. Pull/listener arrive in Phase 3.
+                // Restore any persisted session, then run one serialized sync task:
+                // each tick pulls other devices' changes (polled every ~10s) and pushes
+                // ours once the dirty queue goes quiescent (~15s after the last
+                // mutation). "Sync now" pushes immediately via the command. A one-shot
+                // GC sweep at startup reclaims superseded blobs past their grace window.
                 tauri::async_runtime::spawn(async move {
                     cloud_state.restore_session().await;
                     if !cloud_state.is_available() {
                         return;
                     }
+                    // Best-effort GC sweep once per session (signed-in only).
+                    if cloud_state.is_signed_in().await {
+                        if let Err(e) = cloud_state.run_gc_sweep().await {
+                            log::warn!("cloud_sync: gc sweep failed: {e}");
+                        }
+                    }
                     let quiescent = std::time::Duration::from_secs(15);
+                    let mut tick: u64 = 0;
                     loop {
                         tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                        tick += 1;
                         if !cloud_state.is_signed_in().await {
                             continue;
+                        }
+                        // Pull every other tick (~10s) to halve manifest reads; the
+                        // etag gate keeps an unchanged poll cheap.
+                        if tick % 2 == 0 {
+                            if let Err(e) = cloud_state.run_pull().await {
+                                log::warn!("cloud_sync: pull failed: {e}");
+                            }
                         }
                         match cloud_state.dirty_quiescent(quiescent) {
                             Ok(true) => {

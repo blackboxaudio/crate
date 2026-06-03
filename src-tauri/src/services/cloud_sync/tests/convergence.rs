@@ -7,16 +7,24 @@
 //! position). Each helper also marks the bucket dirty / records a tombstone exactly
 //! as a real mutation site would.
 
+use std::sync::{Arc, Mutex};
+use std::time::{Duration, SystemTime};
+
+use bytes::Bytes;
 use rusqlite::{params, Connection, OptionalExtension};
 
-use crate::error::Result;
+use crate::error::{CrateError, Result};
 use crate::services::cloud_sync::backend::mock::MockCloudBackend;
+use crate::services::cloud_sync::backend::types::{GcEntry, Manifest};
+use crate::services::cloud_sync::backend::{BlobStore, CloudBackend, ManifestStore};
 use crate::services::cloud_sync::hlc::Hlc;
 use crate::services::cloud_sync::pipeline::buckets::{self, Bucket};
 use crate::services::cloud_sync::pipeline::dirty;
-use crate::services::cloud_sync::pipeline::rows;
+use crate::services::cloud_sync::pipeline::pull::pull as pull_remote;
+use crate::services::cloud_sync::pipeline::push::push as push_remote;
+use crate::services::cloud_sync::pipeline::{gc, rows};
 
-use super::{new_device, pull, push, state_hash};
+use super::{new_device, pull, push, state_hash, test_session};
 
 const DATE: &str = "2020-01-01T00:00:00Z";
 
@@ -574,5 +582,108 @@ async fn byte_identical_buckets_after_convergence() -> Result<()> {
         let bb = rows::serialize_bucket(&b, &bucket)?;
         assert_eq!(ba, bb, "bucket {} diverged byte-for-byte", bucket.as_str());
     }
+    Ok(())
+}
+
+// --- Phase 3: production pull + GC ------------------------------------------
+//
+// These drive the REAL `pull::pull` / `push::push` (Arc<Mutex<Connection>> +
+// Arc<dyn CloudBackend>), unlike the simplified `super::{push, pull}` helpers above.
+
+/// Device A pushes, Device B pulls and converges; a redundant pull is a no-op (etag
+/// gate) and A never merges its own manifest back (self-echo skip).
+#[tokio::test]
+async fn production_pull_converges_then_short_circuits() -> Result<()> {
+    let backend: Arc<dyn CloudBackend> = Arc::new(MockCloudBackend::new());
+    let session = test_session();
+
+    let a_conn = new_device(0x0A);
+    create_playlist(&a_conn, 0x0A, 5, "p", "Set");
+    let a = Arc::new(Mutex::new(a_conn));
+    let b = Arc::new(Mutex::new(new_device(0x0B)));
+
+    // A pushes; B pulls and converges.
+    push_remote(a.clone(), &backend, &session, "A").await?;
+    assert!(
+        pull_remote(b.clone(), &backend, &session, "B").await?,
+        "B merges A's push"
+    );
+    assert_eq!(
+        playlist_name(&b.lock().unwrap(), "p").as_deref(),
+        Some("Set"),
+        "playlist crossed to B"
+    );
+    assert_eq!(
+        state_hash(&a.lock().unwrap())?,
+        state_hash(&b.lock().unwrap())?,
+        "A and B converged"
+    );
+
+    // A redundant pull on B does nothing — the manifest etag is unchanged.
+    assert!(
+        !pull_remote(b.clone(), &backend, &session, "B").await?,
+        "second pull is a no-op (etag gate)"
+    );
+    // A never merges its own manifest back.
+    assert!(
+        !pull_remote(a.clone(), &backend, &session, "A").await?,
+        "A skips its own write (self-echo)"
+    );
+    Ok(())
+}
+
+/// `gc_sweep` deletes blobs whose grace window has elapsed and drains the queue.
+#[tokio::test]
+async fn gc_sweep_reclaims_due_blobs() -> Result<()> {
+    let backend: Arc<dyn CloudBackend> = Arc::new(MockCloudBackend::new());
+    let session = test_session();
+    let key = "users/test-uid/vault/superseded-deadbeef.jsonl.gz".to_string();
+
+    // Stage a stale blob and enqueue it for GC with a past-due delete_after.
+    backend
+        .blobs()
+        .upload(
+            &session,
+            &key,
+            Bytes::from_static(b"stale"),
+            "application/x-ndjson",
+        )
+        .await?;
+    let past = SystemTime::now() - Duration::from_secs(120);
+    backend
+        .manifest()
+        .write(
+            &session,
+            &Manifest::empty("A"),
+            None,
+            &[GcEntry {
+                object_key: key.clone(),
+                delete_after: past,
+            }],
+        )
+        .await?;
+
+    assert_eq!(
+        gc::gc_sweep(&backend, &session).await?,
+        1,
+        "one entry processed"
+    );
+
+    // The blob is gone and the queue is drained.
+    assert!(
+        matches!(
+            backend.blobs().download(&session, &key).await,
+            Err(CrateError::CloudSyncBlobNotFound(_))
+        ),
+        "blob deleted"
+    );
+    assert!(
+        backend
+            .manifest()
+            .dequeue_gc(&session, SystemTime::now() + Duration::from_secs(3600), 100)
+            .await?
+            .is_empty(),
+        "queue drained"
+    );
     Ok(())
 }
