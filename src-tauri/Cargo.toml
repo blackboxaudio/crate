@@ -85,17 +85,6 @@ base64 = "0.22"
 flate2 = "1.0"
 base85 = "2.0"
 
-# Cloud sync (auth: PKCE S256 hashing; OS keychain backend is per-platform below)
+# Cloud sync (auth: PKCE S256 hashing)
 sha2 = "0.10"
-
-# Cloud sync refresh-token storage in the OS keychain. Per-platform so each OS only
-# compiles its native backend (no D-Bus/secret-service pulled in on macOS/Windows).
-[target.'cfg(target_os = "macos")'.dependencies]
-keyring = { version = "3", features = ["apple-native"] }
-
-[target.'cfg(target_os = "windows")'.dependencies]
-keyring = { version = "3", features = ["windows-native"] }
-
-[target.'cfg(target_os = "linux")'.dependencies]
-keyring = { version = "3", features = ["sync-secret-service", "crypto-rust"] }
 

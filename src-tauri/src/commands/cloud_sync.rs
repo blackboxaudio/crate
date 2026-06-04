@@ -76,13 +76,14 @@ pub async fn list_devices(state: State<'_, Arc<CloudSyncState>>) -> Result<Vec<D
     state.list_devices().await
 }
 
-/// Rename this device (updates the local name + pushes a heartbeat).
+/// Rename this device (updates the local name + best-effort heartbeat).
 #[tauri::command]
 pub async fn rename_device(
     name: String,
     state: State<'_, Arc<CloudSyncState>>,
 ) -> Result<()> {
-    state.rename_device(&name).await
+    state.rename_device(&name).await;
+    Ok(())
 }
 
 /// Revoke a device. If `device_id` is the current device, also signs out.

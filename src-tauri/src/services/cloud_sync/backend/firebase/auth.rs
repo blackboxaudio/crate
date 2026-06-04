@@ -140,7 +140,7 @@ impl AuthBackend for FirebaseAuth {
 
     async fn sign_out(&self, _session: &AuthSession) -> Result<()> {
         // Firebase ID tokens are stateless JWTs; "sign out" is dropping the refresh
-        // token locally (handled by `auth::keychain`). Nothing to revoke server-side
+        // token locally (handled by `auth::token_store`). Nothing to revoke server-side
         // for the desktop flow in v1.
         Ok(())
     }

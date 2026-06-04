@@ -279,12 +279,17 @@ impl CloudSyncState {
         Ok(status)
     }
 
-    /// Sign out: clear the keychain refresh token + in-memory session.
+    /// Sign out: clear the stored refresh token + in-memory session.
     pub async fn sign_out(&self) -> Result<()> {
         let session = self.session.write().await.take();
         match &self.backend {
-            Some(backend) => auth::sign_out(backend, session.as_ref()).await?,
-            None => auth::keychain::clear_refresh_token()?,
+            Some(backend) => {
+                auth::sign_out(backend, session.as_ref(), self.conn.clone()).await?
+            }
+            None => {
+                let guard = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+                auth::token_store::clear_refresh_token(&guard)?;
+            }
         }
         let mut st = self.status.write().await;
         st.phase = if self.backend.is_some() {
@@ -471,7 +476,7 @@ impl CloudSyncState {
     }
 
     /// Resolve a usable session: refresh the cached one if it's near expiry, else load
-    /// from the keychain. Caches the result. `None` means signed out.
+    /// from the database. Caches the result. `None` means signed out.
     async fn ensure_session(
         &self,
         backend: &Arc<dyn CloudBackend>,
@@ -587,22 +592,26 @@ impl CloudSyncState {
         f(&guard)
     }
 
-    /// Rename this device and push a heartbeat.
-    pub async fn rename_device(&self, name: &str) -> Result<()> {
-        let backend = self.require_backend()?;
-        let session = self
-            .ensure_session(&backend)
-            .await?
-            .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
-
+    /// Rename this device. The local name updates immediately; the Firebase
+    /// heartbeat is best-effort — if it fails (e.g. offline), the next automatic
+    /// heartbeat from `do_push` carries the new name.
+    pub async fn rename_device(&self, name: &str) {
         {
             let mut st = self.status.write().await;
             st.device_name = name.to_string();
         }
+        if let Ok(guard) = self.conn.lock() {
+            let _ = auth::write_state(&guard, "device_name", name);
+        }
 
-        let record = self.device_record().await;
-        backend.devices().upsert(&session, &record).await?;
-        Ok(())
+        if let Some(backend) = self.backend.clone() {
+            if let Ok(Some(session)) = self.ensure_session(&backend).await {
+                let record = self.device_record().await;
+                if let Err(e) = backend.devices().upsert(&session, &record).await {
+                    log::warn!("cloud_sync: rename heartbeat failed (will retry): {e}");
+                }
+            }
+        }
     }
 
     /// Revoke a device. If it's the current device, also signs out.

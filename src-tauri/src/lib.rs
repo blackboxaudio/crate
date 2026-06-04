@@ -344,7 +344,7 @@ pub fn run() {
             // state, and spawn the session-restore + pull/push/GC sync task.
             {
                 use crate::services::cloud_sync::{
-                    backend, config, hlc, runtime::CloudSyncState,
+                    auth, backend, config, hlc, runtime::CloudSyncState,
                 };
 
                 let cloud_config =
@@ -367,8 +367,16 @@ pub fn run() {
                         .map(|n| format!("{n:08x}"))
                         .unwrap_or_else(|_| "00000000".to_string())
                 };
-                let device_name =
-                    sysinfo::System::host_name().unwrap_or_else(|| "Crate device".to_string());
+                let device_name = {
+                    let guard = conn.lock().expect("db mutex poisoned");
+                    auth::read_state(&guard, "device_name")
+                        .ok()
+                        .flatten()
+                        .filter(|s| !s.is_empty())
+                }
+                .unwrap_or_else(|| {
+                    sysinfo::System::host_name().unwrap_or_else(|| "Crate device".to_string())
+                });
                 let app_version = app.package_info().version.to_string();
 
                 let cloud_state = Arc::new(CloudSyncState::new(

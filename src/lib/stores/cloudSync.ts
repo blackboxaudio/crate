@@ -131,6 +131,7 @@ function createCloudSyncStore() {
 		},
 
 		async syncNow() {
+			update((s) => ({ ...s, status: { ...s.status, phase: 'syncing' as CloudSyncPhase } }))
 			try {
 				await cloudSyncApi.syncNow()
 				await cloudSyncApi.pullNow()
@@ -158,8 +159,11 @@ function createCloudSyncStore() {
 			try {
 				await cloudSyncApi.renameDevice(name)
 				const status = await cloudSyncApi.getSyncStatus()
-				update((s) => ({ ...s, status }))
-				await this.loadDevices()
+				update((s) => ({
+					...s,
+					status,
+					devices: s.devices.map((d) => (d.device_id === status.device_id ? { ...d, name } : d)),
+				}))
 			} catch (error) {
 				console.error('Failed to rename device:', error)
 				toastStore.error(get(translate)('cloudSync.devices.renameFailed'))

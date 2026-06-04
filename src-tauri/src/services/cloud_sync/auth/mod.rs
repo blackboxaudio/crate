@@ -1,14 +1,14 @@
 //! Cloud-sync authentication orchestration.
 //!
 //! Runs the provider-agnostic loopback flow, hands the resulting provider ID token to
-//! the backend's `signInWithIdp`, and persists the Firebase refresh token in the OS
-//! keychain. Crate never sees the user's password. The short-lived ID token lives in
-//! memory and is refreshed within ~5 min of expiry.
+//! the backend's `signInWithIdp`, and persists the Firebase refresh token in the
+//! encrypted database. Crate never sees the user's password. The short-lived ID token
+//! lives in memory and is refreshed within ~5 min of expiry.
 
-pub mod keychain;
 pub mod oauth_flow;
 pub mod provider;
 pub mod providers;
+pub mod token_store;
 
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
@@ -47,26 +47,26 @@ pub async fn sign_in(
         .sign_in_with_idp(provider.firebase_provider_id(), &id_token)
         .await?;
 
-    // Keychain writes are blocking and can prompt the OS (e.g. macOS Keychain access
-    // dialog), so push them off the async runtime.
-    let refresh = session.refresh_token.clone();
-    tokio::task::spawn_blocking(move || keychain::store_refresh_token(&refresh))
-        .await
-        .map_err(|e| CrateError::CloudSyncAuth(format!("keychain task join: {e}")))??;
+    {
+        let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        token_store::store_refresh_token(&guard, &session.refresh_token)?;
+    }
 
     persist_profile(&conn, &session)?;
     Ok(session)
 }
 
-/// Sign out: best-effort backend sign-out, then clear the keychain refresh token.
+/// Sign out: best-effort backend sign-out, then clear the stored refresh token.
 pub async fn sign_out(
     backend: &Arc<dyn CloudBackend>,
     session: Option<&AuthSession>,
+    conn: Arc<Mutex<Connection>>,
 ) -> Result<()> {
     if let Some(s) = session {
         let _ = backend.auth().sign_out(s).await;
     }
-    keychain::clear_refresh_token()?;
+    let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+    token_store::clear_refresh_token(&guard)?;
     Ok(())
 }
 
@@ -77,7 +77,11 @@ pub async fn current_session(
     backend: &Arc<dyn CloudBackend>,
     conn: Arc<Mutex<Connection>>,
 ) -> Result<Option<AuthSession>> {
-    let Some(refresh_token) = keychain::load_refresh_token()? else {
+    let refresh_token = {
+        let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        token_store::load_refresh_token(&guard)?
+    };
+    let Some(refresh_token) = refresh_token else {
         return Ok(None);
     };
     let mut session = backend.auth().refresh(&refresh_token).await?;
@@ -85,7 +89,10 @@ pub async fn current_session(
     session.email = session.email.or(email);
     session.display_name = session.display_name.or(display_name);
     session.photo_url = session.photo_url.or(photo_url);
-    keychain::store_refresh_token(&session.refresh_token)?;
+    {
+        let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        token_store::store_refresh_token(&guard, &session.refresh_token)?;
+    }
     Ok(Some(session))
 }
 
@@ -153,7 +160,7 @@ pub(crate) fn read_profile(
     Ok((email, display_name, photo_url))
 }
 
-fn write_state(conn: &Connection, key: &str, value: &str) -> Result<()> {
+pub(crate) fn write_state(conn: &Connection, key: &str, value: &str) -> Result<()> {
     conn.execute(
         "INSERT INTO sync_state (key, value) VALUES (?1, ?2)
          ON CONFLICT(key) DO UPDATE SET value = excluded.value",
@@ -162,7 +169,7 @@ fn write_state(conn: &Connection, key: &str, value: &str) -> Result<()> {
     Ok(())
 }
 
-fn read_state(conn: &Connection, key: &str) -> Result<Option<String>> {
+pub(crate) fn read_state(conn: &Connection, key: &str) -> Result<Option<String>> {
     Ok(conn
         .query_row("SELECT value FROM sync_state WHERE key = ?1", [key], |r| {
             r.get(0)
