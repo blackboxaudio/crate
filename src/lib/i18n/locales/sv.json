@@ -202,7 +202,7 @@
 			"none": "Inga biblioteksrötter än."
 		},
 		"conflicts": {
-			"overridden": "'{label}' ändrades på {device} — din redigering ersattes"
+			"overridden": "‘{label}’ ändrades på {device} — din redigering ersattes"
 		},
 		"danger": {
 			"title": "Farlig zon",

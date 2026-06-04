@@ -331,10 +331,13 @@ impl CloudSyncState {
         }
 
         self.set_phase(SyncPhase::Syncing, None).await;
-        let overrides = push::push(self.conn.clone(), backend, &session, &self.device_id).await?;
+        let outcome = push::push(self.conn.clone(), backend, &session, &self.device_id).await?;
         let record = self.device_record().await;
         let _ = backend.devices().upsert(&session, &record).await;
-        self.emit_overrides(backend, &session, overrides).await;
+        self.emit_overrides(backend, &session, outcome.overrides).await;
+        // A push pull-then-merges the remote union before uploading; reload the affected
+        // UI stores so a peer's change shows after a manual "Sync now" too.
+        self.emit_merged(outcome.merged_buckets);
         // Best-effort: refresh cached profile so a Google avatar/name change shows up
         // after a sync.
         if let Err(e) = self.refresh_profile(backend, &session).await {
@@ -369,8 +372,11 @@ impl CloudSyncState {
             return Ok(());
         }
         let outcome = pull::pull(self.conn.clone(), backend, &session, &self.device_id).await?;
+        let merged = outcome.merged;
         self.emit_overrides(backend, &session, outcome.overrides).await;
-        if outcome.merged {
+        // Tell the UI which stores to reload so a peer's change shows without a restart.
+        self.emit_merged(outcome.buckets);
+        if merged {
             self.mark_synced().await;
         }
         Ok(())
@@ -417,6 +423,21 @@ impl CloudSyncState {
         }
         if let Err(e) = self.app_handle.emit("cloud-sync-override", &notices) {
             log::warn!("cloud_sync: emit override event failed: {e}");
+        }
+    }
+
+    /// Emit `cloud-sync-merged` with the deduped plain names of the buckets a pull/push
+    /// just merged from a peer (e.g. `["playlists", "tracks/3"]`), so the frontend reloads
+    /// only the affected stores. No-op when nothing merged. Best-effort and silent on
+    /// failure — a missed reload self-corrects on the next merge or app restart.
+    fn emit_merged(&self, mut buckets: Vec<String>) {
+        if buckets.is_empty() {
+            return;
+        }
+        buckets.sort();
+        buckets.dedup();
+        if let Err(e) = self.app_handle.emit("cloud-sync-merged", &buckets) {
+            log::warn!("cloud_sync: emit merged event failed: {e}");
         }
     }
 

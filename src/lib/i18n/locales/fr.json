@@ -202,7 +202,7 @@
 			"none": "Pas encore de racines de bibliothèque."
 		},
 		"conflicts": {
-			"overridden": "'{label}' a été modifié sur {device} — votre modification a été remplacée"
+			"overridden": "‘{label}’ a été modifié sur {device} — votre modification a été remplacée"
 		},
 		"danger": {
 			"title": "Zone Dangereuse",

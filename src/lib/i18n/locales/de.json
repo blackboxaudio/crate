@@ -202,7 +202,7 @@
 			"none": "Noch keine Bibliotheks-Roots."
 		},
 		"conflicts": {
-			"overridden": "'{label}' wurde auf {device} geändert — Ihre Änderung wurde ersetzt"
+			"overridden": "‘{label}’ wurde auf {device} geändert — Ihre Änderung wurde ersetzt"
 		},
 		"danger": {
 			"title": "Gefahrenzone",

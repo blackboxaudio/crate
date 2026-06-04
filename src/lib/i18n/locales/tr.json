@@ -202,7 +202,7 @@
 			"none": "Henüz kütüphane kökleri yok."
 		},
 		"conflicts": {
-			"overridden": "'{label}' {device} üzerinde değiştirildi — düzenlemeleriniz değiştirildi"
+			"overridden": "‘{label}’ {device} üzerinde değiştirildi — düzenlemeleriniz değiştirildi"
 		},
 		"danger": {
 			"title": "Tehlike Bölgesi",

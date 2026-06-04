@@ -202,7 +202,7 @@
 			"none": "Nicio rădăcină a bibliotecii încă."
 		},
 		"conflicts": {
-			"overridden": "'{label}' a fost modificat pe {device} — editarea dvs. a fost înlocuită"
+			"overridden": "‘{label}’ a fost modificat pe {device} — editarea dvs. a fost înlocuită"
 		},
 		"danger": {
 			"title": "Zona de Pericol",

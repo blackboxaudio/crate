@@ -202,7 +202,7 @@
 			"none": "No library roots yet."
 		},
 		"conflicts": {
-			"overridden": "'{label}' was changed on {device} — your edit was replaced"
+			"overridden": "‘{label}’ was changed on {device} — your edit was replaced"
 		},
 		"danger": {
 			"title": "Danger Zone",

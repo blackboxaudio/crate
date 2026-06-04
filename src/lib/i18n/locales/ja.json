@@ -202,7 +202,7 @@
 			"none": "ライブラリルートはまだありません。"
 		},
 		"conflicts": {
-			"overridden": "'{label}'は{device}で変更されました — あなたの編集は置き換えられました"
+			"overridden": "‘{label}’は{device}で変更されました — あなたの編集は置き換えられました"
 		},
 		"danger": {
 			"title": "危険ゾーン",

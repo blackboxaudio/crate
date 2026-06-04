@@ -61,10 +61,13 @@ pub struct MenuTranslations {
     pub settings: String,
     pub quit: String,
     // App menu items (macOS only: Hide, Hide Others, Show All)
+    #[cfg(target_os = "macos")]
     #[serde(default)]
     pub hide: String,
+    #[cfg(target_os = "macos")]
     #[serde(default)]
     pub hide_others: String,
+    #[cfg(target_os = "macos")]
     #[serde(default)]
     pub show_all: String,
     // File menu items

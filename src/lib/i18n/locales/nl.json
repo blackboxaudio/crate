@@ -202,7 +202,7 @@
 			"none": "Nog geen bibliothekerwortels."
 		},
 		"conflicts": {
-			"overridden": "'{label}' is gewijzigd op {device} — uw bewerking is vervangen"
+			"overridden": "‘{label}’ is gewijzigd op {device} — uw bewerking is vervangen"
 		},
 		"danger": {
 			"title": "Gevarenzone",

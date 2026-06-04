@@ -40,6 +40,10 @@ const LAST_SYNCED_HLC: &str = "last_synced_manifest_hlc";
 /// override toast. Purely a reporting channel — it does not affect convergence.
 pub struct MergeOutcome {
     pub merged: bool,
+    /// Plain names of the buckets actually downloaded + merged this pass (e.g.
+    /// `"playlists"`, `"tracks/3"`). The runtime maps these to the UI stores that must
+    /// reload so a peer's change shows without an app restart. Empty when nothing merged.
+    pub buckets: Vec<String>,
     pub overrides: Vec<OverrideEvent>,
 }
 
@@ -47,6 +51,7 @@ impl MergeOutcome {
     fn unchanged() -> Self {
         Self {
             merged: false,
+            buckets: Vec::new(),
             overrides: Vec::new(),
         }
     }
@@ -132,6 +137,7 @@ pub async fn pull_and_merge(
     });
 
     let mut overrides = Vec::new();
+    let mut merged_buckets = Vec::new();
     for name in to_download {
         let bucket = Bucket::parse(&name)
             .ok_or_else(|| CrateError::CloudSync(format!("bad bucket {name}")))?;
@@ -142,8 +148,11 @@ pub async fn pull_and_merge(
         let key = format!("users/{}/vault/{}", session.uid, entry.object_key);
         let bytes = blobs.download(session, &key).await?;
         let parsed = rows::parse_bucket(&bucket, &bytes)?;
-        let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        overrides.extend(merge_bucket(&guard, &bucket, &parsed)?);
+        {
+            let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+            overrides.extend(merge_bucket(&guard, &bucket, &parsed)?);
+        }
+        merged_buckets.push(name);
     }
 
     // Attribute every override to the device that last wrote this manifest (the winner).
@@ -152,6 +161,7 @@ pub async fn pull_and_merge(
     }
     Ok(MergeOutcome {
         merged: true,
+        buckets: merged_buckets,
         overrides,
     })
 }

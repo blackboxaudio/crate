@@ -74,6 +74,28 @@ pub async fn run_loopback_flow(
         code_challenge: &challenge,
         state: &state,
     });
+    // On Windows, open the URL directly via cmd.exe instead of the closure.
+    // The closure routes through tauri-plugin-opener → open::that_detached →
+    // ShellExecuteExW, which can silently fail from Tokio worker threads that
+    // lack COM initialization.
+    #[cfg(target_os = "windows")]
+    {
+        let _ = open_url;
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        std::process::Command::new("cmd")
+            .arg("/c")
+            .arg("start")
+            .raw_arg("\"\"")
+            .raw_arg(format!("\"{}\"", &auth_url))
+            .creation_flags(CREATE_NO_WINDOW)
+            .spawn()
+            .map_err(|e| {
+                server.abort();
+                CrateError::CloudSyncAuth(format!("failed to open browser: {e}"))
+            })?;
+    }
+    #[cfg(not(target_os = "windows"))]
     if let Err(e) = open_url(&auth_url) {
         server.abort();
         return Err(e);

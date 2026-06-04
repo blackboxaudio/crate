@@ -202,7 +202,7 @@
 			"none": "Sin raíces de biblioteca aún."
 		},
 		"conflicts": {
-			"overridden": "'{label}' fue modificado en {device} — tu cambio fue reemplazado"
+			"overridden": "‘{label}’ fue modificado en {device} — tu cambio fue reemplazado"
 		},
 		"danger": {
 			"title": "Zona de Peligro",

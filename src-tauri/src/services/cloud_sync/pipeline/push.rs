@@ -34,15 +34,25 @@ const MAX_RETRIES: usize = 8;
 /// Grace period before a superseded blob becomes eligible for GC (Phase 3 sweep).
 const GC_GRACE: Duration = Duration::from_secs(3600);
 
+/// The result of a push: any non-trivial overrides observed while pull-then-merging the
+/// remote (for the override toast), plus the plain names of the buckets that pull-then-
+/// merge brought down from peers (so the runtime can tell the UI to reload them — a push
+/// merges the remote union before uploading, so "Sync now" must refresh too).
+pub struct PushOutcome {
+    pub overrides: Vec<OverrideEvent>,
+    pub merged_buckets: Vec<String>,
+}
+
 /// Push all local changes to the cloud. Safe to call repeatedly; clears
 /// `sync_dirty_buckets` only on a successful manifest commit. Returns any non-trivial
-/// overrides observed while pull-then-merging the remote (for the override toast).
+/// overrides observed while pull-then-merging the remote, plus the buckets merged from
+/// peers during that step.
 pub async fn push(
     conn: Arc<Mutex<Connection>>,
     backend: &Arc<dyn CloudBackend>,
     session: &AuthSession,
     device_id: &str,
-) -> Result<Vec<OverrideEvent>> {
+) -> Result<PushOutcome> {
     // One-time first-sync stamping (internally gated by `initial_stamp_done`).
     {
         let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
@@ -54,6 +64,7 @@ pub async fn push(
     let blobs = backend.blobs();
     let mut backoff = Duration::from_millis(200);
     let mut overrides = Vec::new();
+    let mut merged_buckets = Vec::new();
 
     for attempt in 0..MAX_RETRIES {
         let (remote_manifest, expected) = match store.read(session).await? {
@@ -62,10 +73,12 @@ pub async fn push(
         };
 
         // Pull-then-merge remote-ahead buckets so our write carries the union. A re-merge
-        // of already-applied rows is a no-op, so retries don't double-count overrides.
+        // of already-applied rows is a no-op, so retries don't double-count overrides (the
+        // runtime dedupes the bucket names before signaling the UI).
         if let Some(rm) = &remote_manifest {
             let outcome = pull::pull_and_merge(&conn, &blobs, session, rm).await?;
             overrides.extend(outcome.overrides);
+            merged_buckets.extend(outcome.buckets);
         }
 
         // Recompute the local manifest + serialize the changed buckets (all sync work
@@ -105,7 +118,10 @@ pub async fn push(
                         rusqlite::params![bucket, marked_at],
                     )?;
                 }
-                return Ok(overrides);
+                return Ok(PushOutcome {
+                    overrides,
+                    merged_buckets,
+                });
             }
             Err(CrateError::CloudSyncConflict) => {
                 log::info!(

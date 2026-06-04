@@ -202,7 +202,7 @@
 			"none": "라이브러리 루트가 아직 없습니다."
 		},
 		"conflicts": {
-			"overridden": "'{label}'이(가) {device}에서 변경됨 — 편집 내용이 대체됨"
+			"overridden": "‘{label}’이(가) {device}에서 변경됨 — 편집 내용이 대체됨"
 		},
 		"danger": {
 			"title": "위험 영역",

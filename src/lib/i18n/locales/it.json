@@ -202,7 +202,7 @@
 			"none": "Nessuna radice della libreria ancora."
 		},
 		"conflicts": {
-			"overridden": "'{label}' è stato modificato su {device} — la tua modifica è stata sostituita"
+			"overridden": "‘{label}’ è stato modificato su {device} — la tua modifica è stata sostituita"
 		},
 		"danger": {
 			"title": "Zona Pericolosa",
