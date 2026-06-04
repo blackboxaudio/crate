@@ -37,9 +37,9 @@
 		renamingDevice = true
 	}
 
-	function confirmRename() {
+	async function confirmRename() {
 		if (newDeviceName.trim()) {
-			cloudSyncStore.renameDevice(newDeviceName.trim())
+			await cloudSyncStore.renameDevice(newDeviceName.trim())
 		}
 		renamingDevice = false
 	}

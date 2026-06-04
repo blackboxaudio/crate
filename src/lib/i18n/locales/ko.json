@@ -190,7 +190,8 @@
 			"lastSeen": "마지막 확인 {time}",
 			"revoke": "취소",
 			"revokeTitle": "디바이스를 취소하시겠습니까?",
-			"revokeMessage": "이 디바이스는 동기화를 중지하며 다시 연결하려면 로그인해야 합니다."
+			"revokeMessage": "이 디바이스는 동기화를 중지하며 다시 연결하려면 로그인해야 합니다.",
+			"renameFailed": "디바이스 이름을 변경할 수 없습니다"
 		},
 		"roots": {
 			"title": "라이브러리 루트",

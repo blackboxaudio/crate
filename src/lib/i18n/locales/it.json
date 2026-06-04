@@ -190,7 +190,8 @@
 			"lastSeen": "Visto l'ultima volta {time}",
 			"revoke": "Revoca",
 			"revokeTitle": "Revocare il dispositivo?",
-			"revokeMessage": "Questo dispositivo smetterà di sincronizzarsi e dovrà accedere di nuovo per riconnettersi."
+			"revokeMessage": "Questo dispositivo smetterà di sincronizzarsi e dovrà accedere di nuovo per riconnettersi.",
+			"renameFailed": "Impossibile rinominare il dispositivo"
 		},
 		"roots": {
 			"title": "Radici della libreria",

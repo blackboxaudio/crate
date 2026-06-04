@@ -190,7 +190,8 @@
 			"lastSeen": "Visto por última vez {time}",
 			"revoke": "Revocar",
 			"revokeTitle": "¿Revocar dispositivo?",
-			"revokeMessage": "Este dispositivo dejará de sincronizarse y tendrá que iniciar sesión de nuevo para reconectarse."
+			"revokeMessage": "Este dispositivo dejará de sincronizarse y tendrá que iniciar sesión de nuevo para reconectarse.",
+			"renameFailed": "No se pudo renombrar el dispositivo"
 		},
 		"roots": {
 			"title": "Raíces de la biblioteca",

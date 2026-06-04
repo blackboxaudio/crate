@@ -143,7 +143,7 @@ pub fn persist_profile_fields(
     Ok(())
 }
 
-fn read_profile(
+pub(crate) fn read_profile(
     conn: &Arc<Mutex<Connection>>,
 ) -> Result<(Option<String>, Option<String>, Option<String>)> {
     let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;

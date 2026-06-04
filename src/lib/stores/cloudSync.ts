@@ -162,6 +162,7 @@ function createCloudSyncStore() {
 				await this.loadDevices()
 			} catch (error) {
 				console.error('Failed to rename device:', error)
+				toastStore.error(get(translate)('cloudSync.devices.renameFailed'))
 			}
 		},
 

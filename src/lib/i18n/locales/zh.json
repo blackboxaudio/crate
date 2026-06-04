@@ -190,7 +190,8 @@
 			"lastSeen": "最后出现于 {time}",
 			"revoke": "撤销",
 			"revokeTitle": "撤销设备?",
-			"revokeMessage": "此设备将停止同步，需要重新登录才能重新连接。"
+			"revokeMessage": "此设备将停止同步，需要重新登录才能重新连接。",
+			"renameFailed": "无法重命名设备"
 		},
 		"roots": {
 			"title": "曲库根目录",

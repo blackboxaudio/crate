@@ -190,7 +190,8 @@
 			"lastSeen": "Last seen {time}",
 			"revoke": "Revoke",
 			"revokeTitle": "Revoke device?",
-			"revokeMessage": "This device will stop syncing and need to sign in again to reconnect."
+			"revokeMessage": "This device will stop syncing and need to sign in again to reconnect.",
+			"renameFailed": "Failed to rename device"
 		},
 		"roots": {
 			"title": "Library Roots",

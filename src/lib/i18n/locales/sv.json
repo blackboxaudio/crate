@@ -190,7 +190,8 @@
 			"lastSeen": "Sist sedd {time}",
 			"revoke": "Återkalla",
 			"revokeTitle": "Återkalla enheten?",
-			"revokeMessage": "Den här enheten slutar synkroniseras och måste logga in igen för att återansluta."
+			"revokeMessage": "Den här enheten slutar synkroniseras och måste logga in igen för att återansluta.",
+			"renameFailed": "Det gick inte att byta namn på enheten"
 		},
 		"roots": {
 			"title": "Biblioteksrötter",

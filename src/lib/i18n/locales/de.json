@@ -190,7 +190,8 @@
 			"lastSeen": "Zuletzt gesehen {time}",
 			"revoke": "Widerrufen",
 			"revokeTitle": "Gerät widerrufen?",
-			"revokeMessage": "Dieses Gerät wird nicht mehr synchronisiert und muss sich erneut anmelden, um die Verbindung wiederherzustellen."
+			"revokeMessage": "Dieses Gerät wird nicht mehr synchronisiert und muss sich erneut anmelden, um die Verbindung wiederherzustellen.",
+			"renameFailed": "Gerät konnte nicht umbenannt werden"
 		},
 		"roots": {
 			"title": "Bibliotheks-Roots",

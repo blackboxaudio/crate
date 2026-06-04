@@ -190,7 +190,8 @@
 			"lastSeen": "Laatst gezien {time}",
 			"revoke": "Intrekken",
 			"revokeTitle": "Apparaat intrekken?",
-			"revokeMessage": "Dit apparaat stopt met synchroniseren en moet zich opnieuw aanmelden om opnieuw verbinding te maken."
+			"revokeMessage": "Dit apparaat stopt met synchroniseren en moet zich opnieuw aanmelden om opnieuw verbinding te maken.",
+			"renameFailed": "Apparaat kon niet worden hernoemd"
 		},
 		"roots": {
 			"title": "Bibliothekerwortels",

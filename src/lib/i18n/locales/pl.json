@@ -190,7 +190,8 @@
 			"lastSeen": "Ostatnio widoczne {time}",
 			"revoke": "Odwołaj",
 			"revokeTitle": "Odwołać urządzenie?",
-			"revokeMessage": "To urządzenie przestanie się synchronizować i będzie musiało zalogować się ponownie, aby się ponownie połączyć."
+			"revokeMessage": "To urządzenie przestanie się synchronizować i będzie musiało zalogować się ponownie, aby się ponownie połączyć.",
+			"renameFailed": "Nie udało się zmienić nazwy urządzenia"
 		},
 		"roots": {
 			"title": "Korzenie biblioteki",

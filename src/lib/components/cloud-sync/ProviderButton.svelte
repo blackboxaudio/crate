@@ -17,7 +17,7 @@
 	type="button"
 	class="flex w-full items-center justify-center gap-3 rounded-lg border border-stroke bg-surface-1 px-4 py-3
 		text-sm font-medium text-text-primary transition-colors
-		hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
+		hover:cursor-pointer hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
 	{disabled}
 	{onclick}
 >

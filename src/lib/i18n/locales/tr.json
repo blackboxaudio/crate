@@ -190,7 +190,8 @@
 			"lastSeen": "Son görülme {time}",
 			"revoke": "İptal Et",
 			"revokeTitle": "Cihazı iptal et?",
-			"revokeMessage": "Bu cihaz senkronize olmayı durdururacak ve yeniden bağlanmak için tekrar giriş yapması gerekecektir."
+			"revokeMessage": "Bu cihaz senkronize olmayı durdururacak ve yeniden bağlanmak için tekrar giriş yapması gerekecektir.",
+			"renameFailed": "Cihazın adı değiştirilemedi"
 		},
 		"roots": {
 			"title": "Kütüphane Kökleri",

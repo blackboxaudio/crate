@@ -185,7 +185,21 @@ impl CloudSyncState {
                 *self.session.write().await = Some(session);
             }
             Ok(None) => {}
-            Err(e) => log::warn!("cloud_sync: session restore failed: {e}"),
+            Err(e) => {
+                log::warn!("cloud_sync: session restore failed: {e}");
+                if e.is_transient() {
+                    if let Ok((email, display_name, photo_url)) =
+                        auth::read_profile(&self.conn)
+                    {
+                        let mut st = self.status.write().await;
+                        st.phase = SyncPhase::Offline;
+                        st.email = email;
+                        st.display_name = display_name;
+                        st.photo_url = photo_url;
+                        st.last_error = Some(e.to_string());
+                    }
+                }
+            }
         }
     }
 
@@ -313,7 +327,8 @@ impl CloudSyncState {
 
         self.set_phase(SyncPhase::Syncing, None).await;
         let overrides = push::push(self.conn.clone(), backend, &session, &self.device_id).await?;
-        let _ = backend.devices().upsert(&session, &self.device_record()).await;
+        let record = self.device_record().await;
+        let _ = backend.devices().upsert(&session, &record).await;
         self.emit_overrides(backend, &session, overrides).await;
         // Best-effort: refresh cached profile so a Google avatar/name change shows up
         // after a sync.
@@ -473,14 +488,13 @@ impl CloudSyncState {
         Ok(Some(session))
     }
 
-    fn device_record(&self) -> DeviceRecord {
+    async fn device_record(&self) -> DeviceRecord {
+        let st = self.status.read().await;
         DeviceRecord {
-            device_id: self.device_id.clone(),
-            name: self.device_name.clone(),
+            device_id: st.device_id.clone(),
+            name: st.device_name.clone(),
             last_seen: std::time::SystemTime::now(),
             app_version: self.app_version.clone(),
-            // Never written by a heartbeat (the backend masks it out); the persisted
-            // flag is owned by `set_revoked`.
             revoked: false,
         }
     }
@@ -581,14 +595,13 @@ impl CloudSyncState {
             .await?
             .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
 
-        let mut record = self.device_record();
-        record.name = name.to_string();
-        backend.devices().upsert(&session, &record).await?;
-
         {
             let mut st = self.status.write().await;
             st.device_name = name.to_string();
         }
+
+        let record = self.device_record().await;
+        backend.devices().upsert(&session, &record).await?;
         Ok(())
     }
 

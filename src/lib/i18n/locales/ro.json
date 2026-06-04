@@ -190,7 +190,8 @@
 			"lastSeen": "Seen ultima dată {time}",
 			"revoke": "Revocare",
 			"revokeTitle": "Revocare dispozitiv?",
-			"revokeMessage": "Acest dispozitiv va înceta sincronizarea și va trebui să se conecteze din nou pentru a se reconecta."
+			"revokeMessage": "Acest dispozitiv va înceta sincronizarea și va trebui să se conecteze din nou pentru a se reconecta.",
+			"renameFailed": "Nu s-a putut redenumi dispozitivul"
 		},
 		"roots": {
 			"title": "Rădăcinile bibliotecii",

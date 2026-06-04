@@ -190,7 +190,8 @@
 			"lastSeen": "Vu pour la dernière fois {time}",
 			"revoke": "Révoquer",
 			"revokeTitle": "Révoquer l'appareil?",
-			"revokeMessage": "Cet appareil arrêtera de se synchroniser et devra se reconnecter pour fonctionner à nouveau."
+			"revokeMessage": "Cet appareil arrêtera de se synchroniser et devra se reconnecter pour fonctionner à nouveau.",
+			"renameFailed": "Impossible de renommer l'appareil"
 		},
 		"roots": {
 			"title": "Racines de la bibliothèque",
