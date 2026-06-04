@@ -230,7 +230,7 @@ impl CloudSyncState {
         // Best-effort device heartbeat — don't block the sign-in return on it.
         let backend_for_hb = backend.clone();
         let session_for_hb = session.clone();
-        let device_for_hb = self.device_record();
+        let device_for_hb = self.device_record().await;
         tokio::spawn(async move {
             if let Err(e) = backend_for_hb
                 .devices()
