@@ -27,16 +27,12 @@
 
 	const iconColor = $derived.by(() => {
 		switch ($syncPhase) {
-			case 'idle':
-				return 'text-text-secondary'
 			case 'syncing':
 				return 'text-brand-primary'
 			case 'error':
 				return 'text-red-500'
-			case 'signedout':
-				return 'text-text-tertiary'
 			default:
-				return 'text-text-secondary'
+				return 'text-text-primary'
 		}
 	})
 </script>
@@ -45,7 +41,7 @@
 	<Tooltip text={tooltipText} position="bottom" delay={250}>
 		<button
 			type="button"
-			class="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:bg-surface-2 {iconColor}"
+			class="flex h-8 w-8 items-center justify-center rounded-md transition-colors hover:cursor-pointer hover:bg-surface-2 {iconColor}"
 			{onclick}
 		>
 			{#if $syncPhase === 'syncing'}

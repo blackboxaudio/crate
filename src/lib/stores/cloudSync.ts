@@ -18,6 +18,8 @@ interface CloudSyncState {
 const initialStatus: CloudSyncStatus = {
 	phase: 'disabled',
 	email: null,
+	display_name: null,
+	photo_url: null,
 	device_id: '',
 	device_name: '',
 	last_error: null,

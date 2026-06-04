@@ -57,8 +57,11 @@ pub async fn run_loopback_flow(
     let listener = tokio::net::TcpListener::from_std(std_listener)
         .map_err(|e| CrateError::CloudSyncAuth(format!("loopback tokio: {e}")))?;
 
+    // Catch-all route so any redirect target (e.g. with an unexpected path) still hits
+    // the handler — Google sometimes appends an empty path the router would 404 on.
     let router = axum::Router::new()
         .route("/", axum::routing::get(callback_handler))
+        .fallback(axum::routing::get(callback_handler))
         .with_state(shared);
     let server = tokio::spawn(async move {
         let _ = axum::serve(listener, router).await;
@@ -153,7 +156,10 @@ async fn exchange_code(
     code: &str,
     verifier: &str,
 ) -> Result<String> {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .build()
+        .map_err(|e| CrateError::CloudSyncAuth(format!("token exchange client build: {e}")))?;
     let params = [
         ("grant_type", "authorization_code"),
         ("code", code),

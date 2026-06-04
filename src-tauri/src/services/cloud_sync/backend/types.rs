@@ -115,4 +115,5 @@ pub struct AuthSession {
     pub access_token_expires_at: SystemTime,
     pub email: Option<String>,
     pub display_name: Option<String>,
+    pub photo_url: Option<String>,
 }

@@ -50,6 +50,7 @@ fn mock_session() -> AuthSession {
         access_token_expires_at: SystemTime::now() + Duration::from_secs(3600),
         email: None,
         display_name: None,
+        photo_url: None,
     }
 }
 

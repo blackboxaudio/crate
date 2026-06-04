@@ -47,7 +47,13 @@ pub async fn sign_in(
         .sign_in_with_idp(provider.firebase_provider_id(), &id_token)
         .await?;
 
-    keychain::store_refresh_token(&session.refresh_token)?;
+    // Keychain writes are blocking and can prompt the OS (e.g. macOS Keychain access
+    // dialog), so push them off the async runtime.
+    let refresh = session.refresh_token.clone();
+    tokio::task::spawn_blocking(move || keychain::store_refresh_token(&refresh))
+        .await
+        .map_err(|e| CrateError::CloudSyncAuth(format!("keychain task join: {e}")))??;
+
     persist_profile(&conn, &session)?;
     Ok(session)
 }
@@ -75,9 +81,10 @@ pub async fn current_session(
         return Ok(None);
     };
     let mut session = backend.auth().refresh(&refresh_token).await?;
-    let (email, display_name) = read_profile(&conn)?;
+    let (email, display_name, photo_url) = read_profile(&conn)?;
     session.email = session.email.or(email);
     session.display_name = session.display_name.or(display_name);
+    session.photo_url = session.photo_url.or(photo_url);
     keychain::store_refresh_token(&session.refresh_token)?;
     Ok(Some(session))
 }
@@ -112,14 +119,22 @@ fn persist_profile(conn: &Arc<Mutex<Connection>>, s: &AuthSession) -> Result<()>
         "cloud_display_name",
         s.display_name.as_deref().unwrap_or(""),
     )?;
+    write_state(
+        &guard,
+        "cloud_photo_url",
+        s.photo_url.as_deref().unwrap_or(""),
+    )?;
     Ok(())
 }
 
-fn read_profile(conn: &Arc<Mutex<Connection>>) -> Result<(Option<String>, Option<String>)> {
+fn read_profile(
+    conn: &Arc<Mutex<Connection>>,
+) -> Result<(Option<String>, Option<String>, Option<String>)> {
     let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
     let email = read_state(&guard, "cloud_email")?.filter(|s| !s.is_empty());
     let display_name = read_state(&guard, "cloud_display_name")?.filter(|s| !s.is_empty());
-    Ok((email, display_name))
+    let photo_url = read_state(&guard, "cloud_photo_url")?.filter(|s| !s.is_empty());
+    Ok((email, display_name, photo_url))
 }
 
 fn write_state(conn: &Connection, key: &str, value: &str) -> Result<()> {

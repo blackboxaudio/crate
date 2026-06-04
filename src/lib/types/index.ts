@@ -849,6 +849,8 @@ export type CloudSyncPhase = 'disabled' | 'signedout' | 'idle' | 'syncing' | 'er
 export interface CloudSyncStatus {
 	phase: CloudSyncPhase
 	email: string | null
+	display_name: string | null
+	photo_url: string | null
 	device_id: string
 	device_name: string
 	last_error: string | null

@@ -17,7 +17,7 @@
 	{#each $libraryRoots as root (root.id)}
 		<div class="flex items-center justify-between rounded-lg border border-stroke bg-surface-1 px-4 py-3">
 			<div class="min-w-0 flex-1">
-				<Text variant="body" class="font-medium">{root.name}</Text>
+				<Text variant="body-2" class="font-medium">{root.name}</Text>
 				{#if root.local_path}
 					<Text variant="caption" as="p" class="mt-0.5 truncate" title={root.local_path}>
 						{root.local_path}

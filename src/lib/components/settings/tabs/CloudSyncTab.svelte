@@ -3,7 +3,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Input from '$lib/components/common/Input.svelte'
 	import ConfirmModal from '$lib/components/common/ConfirmModal.svelte'
-	import { SignInPanel, LibraryRootsWizard } from '$lib/components/cloud-sync'
+	import { Avatar, SignInPanel, LibraryRootsWizard } from '$lib/components/cloud-sync'
 	import { cloudSyncStore, syncStatus, syncPhase, isSignedIn, cloudDevices, libraryRoots } from '$lib/stores/cloudSync'
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
@@ -66,18 +66,19 @@
 		<!-- Account Section -->
 		<section>
 			<Text variant="header-3" class="mb-2">{$translate('cloudSync.account.title')}</Text>
-			<div class="flex items-center justify-between rounded-lg border border-stroke bg-surface-1 p-4">
-				<div>
-					<Text variant="body" class="font-medium">{$syncStatus.email}</Text>
-					{#if $syncStatus.last_synced_at}
-						<Text variant="caption" as="p" class="mt-1">
-							{$translate('cloudSync.account.lastSynced', {
-								values: { time: formatRelativeDate($syncStatus.last_synced_at, get(translate)) },
-							})}
-						</Text>
+			<div class="flex items-center gap-4 rounded-lg border border-stroke bg-surface-1 p-4">
+				<Avatar photoUrl={$syncStatus.photo_url} name={$syncStatus.display_name} email={$syncStatus.email} size={48} />
+				<div class="min-w-0 flex-1">
+					{#if $syncStatus.display_name}
+						<Text variant="body-2" truncate class="font-medium">{$syncStatus.display_name}</Text>
+						{#if $syncStatus.email}
+							<Text variant="caption" as="p" truncate>{$syncStatus.email}</Text>
+						{/if}
+					{:else if $syncStatus.email}
+						<Text variant="body-2" truncate class="font-medium">{$syncStatus.email}</Text>
 					{/if}
 				</div>
-				<div class="flex items-center gap-2">
+				<div class="flex flex-shrink-0 items-center gap-2">
 					{#if $syncPhase === 'syncing'}
 						<div class="flex items-center gap-2 text-sm text-text-secondary">
 							<svg class="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24">
@@ -92,11 +93,18 @@
 							{$translate('cloudSync.account.syncNow')}
 						</Button>
 					{/if}
-					<Button variant="secondary" size="sm" onclick={handleSignOut}>
+					<Button variant="ghost-danger" size="sm" onclick={handleSignOut}>
 						{$translate('cloudSync.account.signOut')}
 					</Button>
 				</div>
 			</div>
+			{#if $syncStatus.last_synced_at}
+				<Text variant="caption" as="p" class="text-fg-secondary mt-2">
+					{$translate('cloudSync.account.lastSynced', {
+						values: { time: formatRelativeDate($syncStatus.last_synced_at, get(translate)) },
+					})}
+				</Text>
+			{/if}
 			{#if $syncStatus.last_error}
 				<div class="mt-2 rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-500">
 					{$syncStatus.last_error}
@@ -112,12 +120,12 @@
 				{#each $cloudDevices as device (device.device_id)}
 					{@const isCurrentDevice = device.device_id === $syncStatus.device_id}
 					<div
-						class="flex items-center justify-between rounded-lg border px-4 py-3
-							{isCurrentDevice ? 'border-brand-primary/30 bg-brand-muted' : 'border-stroke bg-surface-1'}"
+						class="flex items-center justify-between rounded-lg px-4 py-3
+							{isCurrentDevice ? 'bg-brand-muted' : 'bg-surface-2'}"
 					>
 						<div>
 							<div class="flex items-center gap-2">
-								<Text variant="body" class="font-medium">{device.name}</Text>
+								<Text variant="body-2" class="font-medium">{device.name}</Text>
 								{#if isCurrentDevice}
 									<span class="bg-brand-primary/20 rounded-full px-2 py-0.5 text-xs font-medium text-brand-primary">
 										{$translate('cloudSync.devices.thisDevice')}

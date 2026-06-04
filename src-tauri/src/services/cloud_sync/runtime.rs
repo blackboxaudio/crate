@@ -41,6 +41,8 @@ pub enum SyncPhase {
 pub struct SyncStatus {
     pub phase: SyncPhase,
     pub email: Option<String>,
+    pub display_name: Option<String>,
+    pub photo_url: Option<String>,
     pub device_id: String,
     pub device_name: String,
     pub last_error: Option<String>,
@@ -79,6 +81,8 @@ impl CloudSyncState {
         let status = SyncStatus {
             phase,
             email: None,
+            display_name: None,
+            photo_url: None,
             device_id: device_id.clone(),
             device_name: device_name.clone(),
             last_error: None,
@@ -123,6 +127,8 @@ impl CloudSyncState {
                     let mut st = self.status.write().await;
                     st.phase = SyncPhase::Idle;
                     st.email = session.email.clone();
+                    st.display_name = session.display_name.clone();
+                    st.photo_url = session.photo_url.clone();
                 }
                 *self.session.write().await = Some(session);
             }
@@ -155,13 +161,26 @@ impl CloudSyncState {
         )
         .await?;
 
-        // Best-effort device heartbeat.
-        let _ = backend.devices().upsert(&session, &self.device_record()).await;
+        // Best-effort device heartbeat — don't block the sign-in return on it.
+        let backend_for_hb = backend.clone();
+        let session_for_hb = session.clone();
+        let device_for_hb = self.device_record();
+        tokio::spawn(async move {
+            if let Err(e) = backend_for_hb
+                .devices()
+                .upsert(&session_for_hb, &device_for_hb)
+                .await
+            {
+                log::warn!("cloud_sync: initial device heartbeat failed: {e}");
+            }
+        });
 
         {
             let mut st = self.status.write().await;
             st.phase = SyncPhase::Idle;
             st.email = session.email.clone();
+            st.display_name = session.display_name.clone();
+            st.photo_url = session.photo_url.clone();
             st.last_error = None;
         }
         *self.session.write().await = Some(session);
@@ -182,6 +201,8 @@ impl CloudSyncState {
             SyncPhase::Disabled
         };
         st.email = None;
+        st.display_name = None;
+        st.photo_url = None;
         st.last_error = None;
         Ok(())
     }

@@ -37,6 +37,8 @@ struct SignInResponse {
     email: Option<String>,
     #[serde(default)]
     display_name: Option<String>,
+    #[serde(default)]
+    photo_url: Option<String>,
 }
 
 /// `securetoken` refresh response (snake_case — note this differs from signInWithIdp).
@@ -92,6 +94,7 @@ impl AuthBackend for FirebaseAuth {
             access_token_expires_at: expires_at(&p.expires_in),
             email: p.email,
             display_name: p.display_name,
+            photo_url: p.photo_url,
         })
     }
 
@@ -131,6 +134,7 @@ impl AuthBackend for FirebaseAuth {
             access_token_expires_at: expires_at(&p.expires_in),
             email: None,
             display_name: None,
+            photo_url: None,
         })
     }
 

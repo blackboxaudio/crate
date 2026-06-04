@@ -47,6 +47,7 @@ fn test_session() -> AuthSession {
         access_token_expires_at: std::time::SystemTime::now(),
         email: None,
         display_name: None,
+        photo_url: None,
     }
 }
 
