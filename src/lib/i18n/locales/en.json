@@ -35,6 +35,7 @@
 			"discovery": "Discovery",
 			"appearance": "Appearance",
 			"sound": "Sound",
+			"cloudSync": "Cloud Sync",
 			"diagnostics": "Diagnostics",
 			"about": "About"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Check for Updates",
 			"upToDate": "Up to date",
 			"updateAvailable": "{version} available"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Sign in to sync your library",
+			"description": "Sync your tracks, playlists, and tags across all your devices.",
+			"button": "Sign in with {provider}"
+		},
+		"status": {
+			"idle": "All changes synced",
+			"syncing": "Syncing…",
+			"error": "Sync error",
+			"signedOut": "Not signed in"
+		},
+		"account": {
+			"title": "Account",
+			"syncNow": "Sync now",
+			"syncing": "Syncing…",
+			"signOut": "Sign out",
+			"lastSynced": "Last synced {time}"
+		},
+		"devices": {
+			"title": "Devices",
+			"description": "Devices signed in to this account share your library.",
+			"thisDevice": "This device",
+			"lastSeen": "Last seen {time}",
+			"revoke": "Revoke",
+			"revokeTitle": "Revoke device?",
+			"revokeMessage": "This device will stop syncing and need to sign in again to reconnect."
+		},
+		"roots": {
+			"title": "Library Roots",
+			"description": "Map each synced library root to a folder on this device so its tracks become playable.",
+			"map": "Map folder",
+			"remap": "Remap",
+			"unmapped": "Not mapped on this device",
+			"none": "No library roots yet."
 		}
 	},
 	"player": {

@@ -35,6 +35,7 @@
 			"discovery": "Scoperte",
 			"appearance": "Aspetto",
 			"sound": "Suono",
+			"cloudSync": "Sincronizzazione cloud",
 			"diagnostics": "Diagnostica",
 			"about": "Informazioni"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Controlla aggiornamenti",
 			"upToDate": "Aggiornato",
 			"updateAvailable": "{version} disponibile"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Accedi per sincronizzare la tua libreria",
+			"description": "Sincronizza i tuoi brani, playlist e tag su tutti i tuoi dispositivi.",
+			"button": "Accedi con {provider}"
+		},
+		"status": {
+			"idle": "Tutti i cambiamenti sincronizzati",
+			"syncing": "Sincronizzazione in corso…",
+			"error": "Errore di sincronizzazione",
+			"signedOut": "Non connesso"
+		},
+		"account": {
+			"title": "Account",
+			"syncNow": "Sincronizza ora",
+			"syncing": "Sincronizzazione in corso…",
+			"signOut": "Esci",
+			"lastSynced": "Ultima sincronizzazione {time}"
+		},
+		"devices": {
+			"title": "Dispositivi",
+			"description": "I dispositivi connessi a questo account condividono la tua libreria.",
+			"thisDevice": "Questo dispositivo",
+			"lastSeen": "Visto l'ultima volta {time}",
+			"revoke": "Revoca",
+			"revokeTitle": "Revocare il dispositivo?",
+			"revokeMessage": "Questo dispositivo smetterà di sincronizzarsi e dovrà accedere di nuovo per riconnettersi."
+		},
+		"roots": {
+			"title": "Radici della libreria",
+			"description": "Mappa ogni radice della libreria sincronizzata a una cartella su questo dispositivo affinché i suoi brani siano riproducibili.",
+			"map": "Mappa cartella",
+			"remap": "Rimappa",
+			"unmapped": "Non mappato su questo dispositivo",
+			"none": "Nessuna radice della libreria ancora."
 		}
 	},
 	"player": {

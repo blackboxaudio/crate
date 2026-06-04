@@ -3,11 +3,24 @@ use crate::services::cloud_sync::pipeline::{buckets, dirty};
 use crate::services::cloud_sync::resolution;
 
 impl LibraryService {
-    /// Check if a track's file still exists on disk
+    /// Check if a track's file resolves to a playable location on this device.
+    ///
+    /// For cloud-synced tracks (with `library_root_id` + `relative_path`), this
+    /// joins the logical relative path against the device-local mapping; for
+    /// device-local tracks it falls back to the absolute `file_path`.
     pub fn check_track_file_exists(&self, id: &str) -> Result<bool> {
         let track = self.get_track(id)?;
-        let path = std::path::Path::new(&track.file_path);
-        Ok(path.exists())
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+        let resolved = resolution::resolve_track_path(
+            &conn,
+            track.library_root_id.as_deref(),
+            track.relative_path.as_deref(),
+            &track.file_path,
+        )?;
+        Ok(matches!(resolved, resolution::ResolvedPath::Playable(_)))
     }
 
     /// Validate if a replacement file matches the original track

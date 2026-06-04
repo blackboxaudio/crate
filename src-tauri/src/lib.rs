@@ -240,7 +240,17 @@ pub fn run() {
             commands::cloud_sync::sign_out,
             commands::cloud_sync::get_sync_status,
             commands::cloud_sync::sync_now,
+            commands::cloud_sync::pull_now,
             commands::cloud_sync::list_devices,
+            commands::cloud_sync::rename_device,
+            commands::cloud_sync::revoke_device,
+            commands::cloud_sync::list_library_roots,
+            commands::cloud_sync::create_library_root,
+            commands::cloud_sync::rename_library_root,
+            commands::cloud_sync::remove_library_root,
+            commands::cloud_sync::set_library_root_mapping,
+            commands::cloud_sync::suggest_library_roots,
+            commands::cloud_sync::locate_track,
         ])
         .setup(|app| {
             // Get Tauri's app data directory

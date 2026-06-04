@@ -357,6 +357,7 @@
 					onImport={$activeView === 'library' ? () => $pageActions?.trackController.handleImport() : undefined}
 					onAddRelease={$activeView === 'discovery' ? () => $pageActions?.openAddReleaseModal() : undefined}
 					onSettings={() => $pageActions?.getModalOrchestrator()?.openSettingsModal()}
+					onCloudSync={() => $pageActions?.getModalOrchestrator()?.openSettingsModal('cloudSync')}
 					onDevTools={() => $pageActions?.handleToggleDevTools()}
 				/>
 			</div>

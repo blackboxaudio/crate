@@ -35,6 +35,7 @@
 			"discovery": "Keşfet",
 			"appearance": "Görünüm",
 			"sound": "Ses",
+			"cloudSync": "Bulut Senkronizasyonu",
 			"diagnostics": "Tanılamalar",
 			"about": "Hakkında"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Güncellemeleri Denetle",
 			"upToDate": "Güncel",
 			"updateAvailable": "{version} mevcut"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Kütüphaneni senkronize etmek için giriş yap",
+			"description": "Şarkılarını, çalma listelerini ve etiketlerini tüm cihazlarında senkronize et.",
+			"button": "{provider} ile giriş yap"
+		},
+		"status": {
+			"idle": "Tüm değişiklikler senkronize edildi",
+			"syncing": "Senkronize ediliyor…",
+			"error": "Senkronizasyon hatası",
+			"signedOut": "Oturum açılmadı"
+		},
+		"account": {
+			"title": "Hesap",
+			"syncNow": "Şimdi senkronize et",
+			"syncing": "Senkronize ediliyor…",
+			"signOut": "Oturumu Kapat",
+			"lastSynced": "Son senkronizasyon {time}"
+		},
+		"devices": {
+			"title": "Cihazlar",
+			"description": "Bu hesaba giriş yapmış cihazlar kütüphaneni paylaşır.",
+			"thisDevice": "Bu cihaz",
+			"lastSeen": "Son görülme {time}",
+			"revoke": "İptal Et",
+			"revokeTitle": "Cihazı iptal et?",
+			"revokeMessage": "Bu cihaz senkronize olmayı durdururacak ve yeniden bağlanmak için tekrar giriş yapması gerekecektir."
+		},
+		"roots": {
+			"title": "Kütüphane Kökleri",
+			"description": "Senkronize edilen her kütüphane kökünü bu cihazdaki bir klasöre eşleştir, böylece şarkıları oynatılabilir olsun.",
+			"map": "Klasörü Eşle",
+			"remap": "Yeniden Eşle",
+			"unmapped": "Bu cihazda eşleştirilmemiş",
+			"none": "Henüz kütüphane kökleri yok."
 		}
 	},
 	"player": {

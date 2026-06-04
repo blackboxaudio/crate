@@ -15,7 +15,7 @@ use std::time::SystemTime;
 use crate::error::Result;
 
 use super::super::backend::types::AuthSession;
-use super::super::backend::{BlobStore, CloudBackend, ManifestStore};
+use super::super::backend::CloudBackend;
 
 /// Entries pulled from the GC queue per round.
 const GC_BATCH: usize = 100;

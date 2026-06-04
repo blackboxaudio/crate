@@ -35,6 +35,7 @@
 			"discovery": "Descoperiri",
 			"appearance": "Aspect",
 			"sound": "Sunet",
+			"cloudSync": "Sincronizare în cloud",
 			"diagnostics": "Diagnosticare",
 			"about": "Despre"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Caută Actualizări",
 			"upToDate": "Actualizat",
 			"updateAvailable": "{version} disponibil"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Conectați-vă pentru a sincroniza biblioteca dvs.",
+			"description": "Sincronizați piesele, listele de redare și etichetele pe toate dispozitivele.",
+			"button": "Conectați-vă cu {provider}"
+		},
+		"status": {
+			"idle": "Toate modificările sincronizate",
+			"syncing": "Se sincronizează…",
+			"error": "Eroare de sincronizare",
+			"signedOut": "Nu sunteți conectat"
+		},
+		"account": {
+			"title": "Cont",
+			"syncNow": "Sincronizați acum",
+			"syncing": "Se sincronizează…",
+			"signOut": "Deconectați-vă",
+			"lastSynced": "Ultima sincronizare {time}"
+		},
+		"devices": {
+			"title": "Dispozitive",
+			"description": "Dispozitivele conectate la acest cont partajează biblioteca dvs.",
+			"thisDevice": "Acest dispozitiv",
+			"lastSeen": "Seen ultima dată {time}",
+			"revoke": "Revocare",
+			"revokeTitle": "Revocare dispozitiv?",
+			"revokeMessage": "Acest dispozitiv va înceta sincronizarea și va trebui să se conecteze din nou pentru a se reconecta."
+		},
+		"roots": {
+			"title": "Rădăcinile bibliotecii",
+			"description": "Mapați fiecare rădăcină a bibliotecii sincronizate la un folder pe acest dispozitiv, astfel încât piesele sale să fie redabile.",
+			"map": "Mapați folder",
+			"remap": "Remapați",
+			"unmapped": "Nu este mapat pe acest dispozitiv",
+			"none": "Nicio rădăcină a bibliotecii încă."
 		}
 	},
 	"player": {

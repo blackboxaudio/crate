@@ -16,7 +16,7 @@ use crate::error::{CrateError, Result};
 
 use super::auth;
 use super::backend::types::{AuthSession, DeviceRecord};
-use super::backend::{CloudBackend, DeviceRegistry};
+use super::backend::CloudBackend;
 use super::config::CloudConfig;
 use super::pipeline::{gc, pull, push};
 
@@ -322,5 +322,51 @@ impl CloudSyncState {
         st.phase = SyncPhase::Idle;
         st.last_error = None;
         st.last_synced_at = Some(chrono::Utc::now().to_rfc3339());
+    }
+
+    // --- Phase 4: library roots + device management ---
+
+    /// Run a synchronous closure with the database connection.
+    pub fn with_conn<F, T>(&self, f: F) -> Result<T>
+    where
+        F: FnOnce(&rusqlite::Connection) -> Result<T>,
+    {
+        let guard = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        f(&guard)
+    }
+
+    /// Rename this device and push a heartbeat.
+    pub async fn rename_device(&self, name: &str) -> Result<()> {
+        let backend = self.require_backend()?;
+        let session = self
+            .ensure_session(&backend)
+            .await?
+            .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
+
+        let mut record = self.device_record();
+        record.name = name.to_string();
+        backend.devices().upsert(&session, &record).await?;
+
+        {
+            let mut st = self.status.write().await;
+            st.device_name = name.to_string();
+        }
+        Ok(())
+    }
+
+    /// Revoke a device. If it's the current device, also signs out.
+    pub async fn revoke_device(&self, device_id: &str) -> Result<()> {
+        let backend = self.require_backend()?;
+        let session = self
+            .ensure_session(&backend)
+            .await?
+            .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
+
+        backend.devices().remove(&session, device_id).await?;
+
+        if device_id == self.device_id {
+            self.sign_out().await?;
+        }
+        Ok(())
     }
 }

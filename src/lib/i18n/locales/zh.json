@@ -35,6 +35,7 @@
 			"discovery": "发现",
 			"appearance": "外观",
 			"sound": "声音",
+			"cloudSync": "云同步",
 			"diagnostics": "诊断",
 			"about": "关于"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "检查更新",
 			"upToDate": "已是最新版本",
 			"updateAvailable": "{version} 可用"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "登录以同步您的曲库",
+			"description": "在所有设备上同步您的曲目、播放列表和标签。",
+			"button": "使用 {provider} 登录"
+		},
+		"status": {
+			"idle": "所有更改已同步",
+			"syncing": "正在同步…",
+			"error": "同步错误",
+			"signedOut": "未登录"
+		},
+		"account": {
+			"title": "账户",
+			"syncNow": "立即同步",
+			"syncing": "正在同步…",
+			"signOut": "登出",
+			"lastSynced": "最后同步于 {time}"
+		},
+		"devices": {
+			"title": "设备",
+			"description": "登录到此账户的设备共享您的曲库。",
+			"thisDevice": "此设备",
+			"lastSeen": "最后出现于 {time}",
+			"revoke": "撤销",
+			"revokeTitle": "撤销设备?",
+			"revokeMessage": "此设备将停止同步，需要重新登录才能重新连接。"
+		},
+		"roots": {
+			"title": "曲库根目录",
+			"description": "将每个同步的曲库根目录映射到此设备上的文件夹，以便其曲目可播放。",
+			"map": "映射文件夹",
+			"remap": "重新映射",
+			"unmapped": "未映射到此设备",
+			"none": "尚无曲库根目录。"
 		}
 	},
 	"player": {

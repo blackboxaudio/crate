@@ -35,6 +35,7 @@
 			"discovery": "Descobertas",
 			"appearance": "Aparência",
 			"sound": "Som",
+			"cloudSync": "Sincronização na nuvem",
 			"diagnostics": "Diagnósticos",
 			"about": "Sobre"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Verificar atualizações",
 			"upToDate": "Atualizado",
 			"updateAvailable": "{version} disponível"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Faça login para sincronizar sua biblioteca",
+			"description": "Sincronize suas faixas, playlists e tags em todos os seus dispositivos.",
+			"button": "Fazer login com {provider}"
+		},
+		"status": {
+			"idle": "Todas as alterações sincronizadas",
+			"syncing": "Sincronizando…",
+			"error": "Erro de sincronização",
+			"signedOut": "Não conectado"
+		},
+		"account": {
+			"title": "Conta",
+			"syncNow": "Sincronizar agora",
+			"syncing": "Sincronizando…",
+			"signOut": "Sair",
+			"lastSynced": "Última sincronização {time}"
+		},
+		"devices": {
+			"title": "Dispositivos",
+			"description": "Os dispositivos conectados a esta conta compartilham sua biblioteca.",
+			"thisDevice": "Este dispositivo",
+			"lastSeen": "Visto pela última vez {time}",
+			"revoke": "Revogar",
+			"revokeTitle": "Revogar dispositivo?",
+			"revokeMessage": "Este dispositivo deixará de sincronizar e precisará fazer login novamente para se reconectar."
+		},
+		"roots": {
+			"title": "Raízes da biblioteca",
+			"description": "Mapeie cada raiz de biblioteca sincronizada para uma pasta neste dispositivo para que suas faixas possam ser reproduzidas.",
+			"map": "Mapear pasta",
+			"remap": "Remapear",
+			"unmapped": "Não mapeado neste dispositivo",
+			"none": "Nenhuma raiz de biblioteca ainda."
 		}
 	},
 	"player": {

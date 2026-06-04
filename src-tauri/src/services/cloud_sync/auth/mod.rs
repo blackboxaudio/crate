@@ -18,7 +18,7 @@ use rusqlite::{Connection, OptionalExtension};
 use crate::error::{CrateError, Result};
 
 use super::backend::types::AuthSession;
-use super::backend::{AuthBackend, CloudBackend};
+use super::backend::CloudBackend;
 use super::config::CloudConfig;
 use provider::IdentityProvider;
 

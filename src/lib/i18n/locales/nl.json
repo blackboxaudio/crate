@@ -35,6 +35,7 @@
 			"discovery": "Ontdekkingen",
 			"appearance": "Uiterlijk",
 			"sound": "Geluid",
+			"cloudSync": "Cloudsynchronisatie",
 			"diagnostics": "Diagnostiek",
 			"about": "Over"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Op updates controleren",
 			"upToDate": "Up-to-date",
 			"updateAvailable": "{version} beschikbaar"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Meld u aan om uw bibliotheek te synchroniseren",
+			"description": "Synchroniseer uw nummers, afspeellijsten en tags op al uw apparaten.",
+			"button": "Aanmelden met {provider}"
+		},
+		"status": {
+			"idle": "Alle wijzigingen gesynchroniseerd",
+			"syncing": "Synchroniseren…",
+			"error": "Synchronisatiefout",
+			"signedOut": "Niet aangemeld"
+		},
+		"account": {
+			"title": "Account",
+			"syncNow": "Nu synchroniseren",
+			"syncing": "Synchroniseren…",
+			"signOut": "Afmelden",
+			"lastSynced": "Laatst gesynchroniseerd {time}"
+		},
+		"devices": {
+			"title": "Apparaten",
+			"description": "Apparaten die zijn aangemeld bij dit account delen uw bibliotheek.",
+			"thisDevice": "Dit apparaat",
+			"lastSeen": "Laatst gezien {time}",
+			"revoke": "Intrekken",
+			"revokeTitle": "Apparaat intrekken?",
+			"revokeMessage": "Dit apparaat stopt met synchroniseren en moet zich opnieuw aanmelden om opnieuw verbinding te maken."
+		},
+		"roots": {
+			"title": "Bibliothekerwortels",
+			"description": "Wijs elke gesynchroniseerde bibliotheekwortel toe aan een map op dit apparaat, zodat de nummers afspeelbaar zijn.",
+			"map": "Map toewijzen",
+			"remap": "Opnieuw toewijzen",
+			"unmapped": "Niet toegewezen op dit apparaat",
+			"none": "Nog geen bibliothekerwortels."
 		}
 	},
 	"player": {

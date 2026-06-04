@@ -20,7 +20,7 @@ use rusqlite::Connection;
 use crate::error::{CrateError, Result};
 
 use super::super::backend::types::{AuthSession, GcEntry, Manifest};
-use super::super::backend::{BlobStore, CloudBackend, ManifestStore};
+use super::super::backend::CloudBackend;
 use super::super::hlc;
 use super::buckets::Bucket;
 use super::dirty::stamp_unstamped_rows;

@@ -22,7 +22,7 @@ use rusqlite::{Connection, OptionalExtension};
 use crate::error::{CrateError, Result};
 
 use super::super::backend::types::{AuthSession, Manifest};
-use super::super::backend::{BlobStore, CloudBackend, ManifestStore};
+use super::super::backend::{BlobStore, CloudBackend};
 use super::buckets::Bucket;
 use super::manifest::{compute_local_manifest, diff_manifest};
 use super::merge::merge_bucket;

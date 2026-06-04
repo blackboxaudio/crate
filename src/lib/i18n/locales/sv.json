@@ -35,6 +35,7 @@
 			"discovery": "Upptäckter",
 			"appearance": "Utseende",
 			"sound": "Ljud",
+			"cloudSync": "Molnsynkronisering",
 			"diagnostics": "Diagnostik",
 			"about": "Om"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Sök efter uppdateringar",
 			"upToDate": "Uppdaterad",
 			"updateAvailable": "{version} tillgänglig"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Logga in för att synkronisera ditt bibliotek",
+			"description": "Synkronisera dina låtar, spellistor och taggar på alla dina enheter.",
+			"button": "Logga in med {provider}"
+		},
+		"status": {
+			"idle": "Alla ändringar synkroniserade",
+			"syncing": "Synkroniserar…",
+			"error": "Synkroniseringsfel",
+			"signedOut": "Inte inloggad"
+		},
+		"account": {
+			"title": "Konto",
+			"syncNow": "Synkronisera nu",
+			"syncing": "Synkroniserar…",
+			"signOut": "Logga ut",
+			"lastSynced": "Senast synkroniserad {time}"
+		},
+		"devices": {
+			"title": "Enheter",
+			"description": "Enheter som är inloggade på det här kontot delar ditt bibliotek.",
+			"thisDevice": "Den här enheten",
+			"lastSeen": "Sist sedd {time}",
+			"revoke": "Återkalla",
+			"revokeTitle": "Återkalla enheten?",
+			"revokeMessage": "Den här enheten slutar synkroniseras och måste logga in igen för att återansluta."
+		},
+		"roots": {
+			"title": "Biblioteksrötter",
+			"description": "Mappa varje synkroniserad biblioteksrot till en mapp på den här enheten så att dess låtar kan spelas.",
+			"map": "Mappa mapp",
+			"remap": "Omkarta",
+			"unmapped": "Inte mappad på den här enheten",
+			"none": "Inga biblioteksrötter än."
 		}
 	},
 	"player": {

@@ -35,6 +35,7 @@
 			"discovery": "Découvertes",
 			"appearance": "Apparence",
 			"sound": "Son",
+			"cloudSync": "Synchronisation cloud",
 			"diagnostics": "Diagnostics",
 			"about": "À propos"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Vérifier les mises à jour",
 			"upToDate": "À jour",
 			"updateAvailable": "{version} disponible"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Connectez-vous pour synchroniser votre bibliothèque",
+			"description": "Synchronisez vos pistes, playlists et tags sur tous vos appareils.",
+			"button": "Se connecter avec {provider}"
+		},
+		"status": {
+			"idle": "Tous les changements synchronisés",
+			"syncing": "Synchronisation…",
+			"error": "Erreur de synchronisation",
+			"signedOut": "Non connecté"
+		},
+		"account": {
+			"title": "Compte",
+			"syncNow": "Synchroniser maintenant",
+			"syncing": "Synchronisation…",
+			"signOut": "Déconnexion",
+			"lastSynced": "Dernière synchronisation {time}"
+		},
+		"devices": {
+			"title": "Appareils",
+			"description": "Les appareils connectés à ce compte partagent votre bibliothèque.",
+			"thisDevice": "Cet appareil",
+			"lastSeen": "Vu pour la dernière fois {time}",
+			"revoke": "Révoquer",
+			"revokeTitle": "Révoquer l'appareil?",
+			"revokeMessage": "Cet appareil arrêtera de se synchroniser et devra se reconnecter pour fonctionner à nouveau."
+		},
+		"roots": {
+			"title": "Racines de la bibliothèque",
+			"description": "Associez chaque racine de bibliothèque synchronisée à un dossier sur cet appareil pour que ses pistes soient lisibles.",
+			"map": "Associer un dossier",
+			"remap": "Réassocier",
+			"unmapped": "Non associé sur cet appareil",
+			"none": "Pas encore de racines de bibliothèque."
 		}
 	},
 	"player": {

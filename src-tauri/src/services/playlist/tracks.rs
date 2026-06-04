@@ -17,7 +17,8 @@ impl PlaylistService {
                 t.analysis_source, t.waveform_data,
                 t.rating, t.play_count,
                 t.date_added, t.date_modified, t.last_played,
-                t.rekordbox_id, t.artwork_path, t.artwork_source, t.color
+                t.rekordbox_id, t.artwork_path, t.artwork_source, t.color,
+                t.library_root_id, t.relative_path
             FROM tracks t
             JOIN playlist_tracks pt ON t.id = pt.track_id
             WHERE pt.playlist_id = ?1
@@ -55,6 +56,8 @@ impl PlaylistService {
                     artwork_path: row.get(24)?,
                     artwork_source: row.get(25)?,
                     color: row.get(26)?,
+                    library_root_id: row.get(27)?,
+                    relative_path: row.get(28)?,
                     tags: Vec::new(),
                 })
             })?

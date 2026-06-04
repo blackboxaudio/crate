@@ -478,7 +478,8 @@ impl AnalysisService {
                    analysis_source, waveform_data,
                    rating, play_count,
                    date_added, date_modified, last_played,
-                   rekordbox_id, artwork_path, artwork_source, color
+                   rekordbox_id, artwork_path, artwork_source, color,
+                   library_root_id, relative_path
             FROM tracks
             WHERE id = ?1
             "#,
@@ -513,6 +514,8 @@ impl AnalysisService {
                 artwork_path: row.get(24)?,
                 artwork_source: row.get(25)?,
                 color: row.get(26)?,
+                library_root_id: row.get(27)?,
+                relative_path: row.get(28)?,
                 tags: Vec::new(),
             })
         })?;
@@ -569,7 +572,8 @@ impl AnalysisService {
                    analysis_source, waveform_data,
                    rating, play_count,
                    date_added, date_modified, last_played,
-                   rekordbox_id, artwork_path, artwork_source, color
+                   rekordbox_id, artwork_path, artwork_source, color,
+                   library_root_id, relative_path
             FROM tracks
             WHERE id = ?1
             "#,
@@ -604,6 +608,8 @@ impl AnalysisService {
                 artwork_path: row.get(24)?,
                 artwork_source: row.get(25)?,
                 color: row.get(26)?,
+                library_root_id: row.get(27)?,
+                relative_path: row.get(28)?,
                 tags: Vec::new(),
             })
         })?;

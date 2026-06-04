@@ -48,6 +48,10 @@ pub struct Track {
     // Track color (Rekordbox-compatible)
     pub color: Option<String>,
 
+    // Cloud sync: library root association
+    pub library_root_id: Option<String>,
+    pub relative_path: Option<String>,
+
     // Tags (populated when fetching tracks)
     #[serde(default)]
     pub tags: Vec<super::Tag>,
@@ -84,6 +88,8 @@ impl Track {
             artwork_path: None,
             artwork_source: None,
             color: None,
+            library_root_id: None,
+            relative_path: None,
             tags: Vec::new(),
         }
     }

@@ -35,6 +35,7 @@
 			"discovery": "Entdeckungen",
 			"appearance": "Erscheinung",
 			"sound": "Ton",
+			"cloudSync": "Cloud-Synchronisierung",
 			"diagnostics": "Diagnose",
 			"about": "Über"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Auf Updates prüfen",
 			"upToDate": "Aktuell",
 			"updateAvailable": "{version} verfügbar"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Melden Sie sich an, um Ihre Bibliothek zu synchronisieren",
+			"description": "Synchronisieren Sie Ihre Tracks, Playlists und Tags auf allen Ihren Geräten.",
+			"button": "Anmelden mit {provider}"
+		},
+		"status": {
+			"idle": "Alle Änderungen synchronisiert",
+			"syncing": "Wird synchronisiert…",
+			"error": "Synchronisierungsfehler",
+			"signedOut": "Nicht angemeldet"
+		},
+		"account": {
+			"title": "Konto",
+			"syncNow": "Jetzt synchronisieren",
+			"syncing": "Wird synchronisiert…",
+			"signOut": "Abmelden",
+			"lastSynced": "Zuletzt synchronisiert {time}"
+		},
+		"devices": {
+			"title": "Geräte",
+			"description": "Geräte, die bei diesem Konto angemeldet sind, teilen Ihre Bibliothek.",
+			"thisDevice": "Dieses Gerät",
+			"lastSeen": "Zuletzt gesehen {time}",
+			"revoke": "Widerrufen",
+			"revokeTitle": "Gerät widerrufen?",
+			"revokeMessage": "Dieses Gerät wird nicht mehr synchronisiert und muss sich erneut anmelden, um die Verbindung wiederherzustellen."
+		},
+		"roots": {
+			"title": "Bibliotheks-Roots",
+			"description": "Ordnen Sie jeden synchronisierten Bibliotheks-Root einem Ordner auf diesem Gerät zu, damit dessen Tracks abspielbar werden.",
+			"map": "Ordner zuordnen",
+			"remap": "Neu zuordnen",
+			"unmapped": "Auf diesem Gerät nicht zugeordnet",
+			"none": "Noch keine Bibliotheks-Roots."
 		}
 	},
 	"player": {

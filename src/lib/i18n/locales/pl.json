@@ -35,6 +35,7 @@
 			"discovery": "Odkrywanie",
 			"appearance": "Wygląd",
 			"sound": "Dźwięk",
+			"cloudSync": "Synchronizacja w chmurze",
 			"diagnostics": "Diagnostyka",
 			"about": "Informacje"
 		},
@@ -160,6 +161,43 @@
 			"checkForUpdates": "Sprawdź dostępne aktualizacje",
 			"upToDate": "Aktualna",
 			"updateAvailable": "Dostępna wersja {version}"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Zaloguj się, aby zsynchronizować bibliotekę",
+			"description": "Synchronizuj swoje utwory, playlisty i tagi na wszystkich urządzeniach.",
+			"button": "Zaloguj się za pomocą {provider}"
+		},
+		"status": {
+			"idle": "Wszystkie zmiany zsynchronizowane",
+			"syncing": "Synchronizowanie…",
+			"error": "Błąd synchronizacji",
+			"signedOut": "Niezalogowany"
+		},
+		"account": {
+			"title": "Konto",
+			"syncNow": "Synchronizuj teraz",
+			"syncing": "Synchronizowanie…",
+			"signOut": "Wyloguj",
+			"lastSynced": "Ostatnia synchronizacja {time}"
+		},
+		"devices": {
+			"title": "Urządzenia",
+			"description": "Urządzenia zalogowane na tym koncie dzielą się biblioteką.",
+			"thisDevice": "To urządzenie",
+			"lastSeen": "Ostatnio widoczne {time}",
+			"revoke": "Odwołaj",
+			"revokeTitle": "Odwołać urządzenie?",
+			"revokeMessage": "To urządzenie przestanie się synchronizować i będzie musiało zalogować się ponownie, aby się ponownie połączyć."
+		},
+		"roots": {
+			"title": "Korzenie biblioteki",
+			"description": "Mapuj każdy zsynchronizowany korzeń biblioteki do folderu na tym urządzeniu, aby jego utwory były odtwarzalne.",
+			"map": "Mapuj folder",
+			"remap": "Mapuj ponownie",
+			"unmapped": "Nie zmapowane na tym urządzeniu",
+			"none": "Jeszcze bez korzeni biblioteki."
 		}
 	},
 	"player": {

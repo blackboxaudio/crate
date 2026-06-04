@@ -6,7 +6,7 @@
 	import Text from '$lib/components/common/Text.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import * as libraryApi from '$lib/api/library'
-	import { missingTracksStore } from '$lib/stores'
+	import { missingTracksStore, cloudSyncStore } from '$lib/stores'
 	import type { Track, FileMatchResult } from '$lib/types'
 
 	type Props = {
@@ -24,6 +24,10 @@
 	let relocating = $state(false)
 	let forceRelocate = $state(false)
 	let error: string | null = $state(null)
+
+	// Cloud-synced tracks (with library_root_id) locate by mapping the root folder —
+	// fixing all sibling tracks at once. Device-local tracks keep the per-file flow.
+	const isCloudSynced = $derived(track?.library_root_id != null)
 
 	// Reset state when modal opens/closes
 	$effect(() => {
@@ -59,6 +63,21 @@
 		}
 	}
 
+	async function handleSelectFolder() {
+		const selected = await withNativeDialog(() =>
+			open({
+				directory: true,
+				multiple: false,
+				title: 'Select Library Root Folder',
+			})
+		)
+
+		if (selected && typeof selected === 'string') {
+			selectedPath = selected
+			error = null
+		}
+	}
+
 	async function validateFile() {
 		if (!track || !selectedPath) return
 
@@ -82,14 +101,21 @@
 		error = null
 
 		try {
-			const updatedTrack = await libraryApi.relocateTrack(
-				track.id,
-				selectedPath,
-				forceRelocate || (validationResult?.matches ?? false)
-			)
-			missingTracksStore.markFound(track.id)
-			onRelocate(updatedTrack)
-			onClose()
+			if (isCloudSynced) {
+				await cloudSyncStore.locateTrack(track.id, selectedPath)
+				missingTracksStore.markFound(track.id)
+				onRelocate(track)
+				onClose()
+			} else {
+				const updatedTrack = await libraryApi.relocateTrack(
+					track.id,
+					selectedPath,
+					forceRelocate || (validationResult?.matches ?? false)
+				)
+				missingTracksStore.markFound(track.id)
+				onRelocate(updatedTrack)
+				onClose()
+			}
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'Failed to relocate track'
 		} finally {
@@ -98,7 +124,9 @@
 	}
 
 	const canRelocate = $derived(() => {
-		if (!selectedPath || !validationResult || validating || relocating) return false
+		if (!selectedPath || validating || relocating) return false
+		if (isCloudSynced) return true
+		if (!validationResult) return false
 		if (!validationResult.format_valid) return false
 		return validationResult.matches || forceRelocate
 	})
@@ -123,15 +151,29 @@
 		<!-- Warning Banner -->
 		<div class="flex gap-2 rounded-md border border-warning/20 bg-warning/10 p-3">
 			<Icon name="warning" class="h-5 w-5 flex-shrink-0 text-warning" />
-			<Text color="warning">The file for this track could not be found at its original location.</Text>
+			<Text color="warning">
+				{#if isCloudSynced}
+					This track was added on another device. Pick the local folder that contains its library root to make it
+					playable here.
+				{:else}
+					The file for this track could not be found at its original location.
+				{/if}
+			</Text>
 		</div>
 
-		<!-- File Picker -->
+		<!-- File / Folder Picker -->
 		<div class="space-y-2">
-			<Button variant="secondary" onclick={handleSelectFile} class="w-full">
-				<Icon name="folder" class="mr-2 h-4 w-4" />
-				Select Replacement File
-			</Button>
+			{#if isCloudSynced}
+				<Button variant="secondary" onclick={handleSelectFolder} class="w-full">
+					<Icon name="folder-open" class="mr-2 h-4 w-4" />
+					Select Library Root Folder
+				</Button>
+			{:else}
+				<Button variant="secondary" onclick={handleSelectFile} class="w-full">
+					<Icon name="folder" class="mr-2 h-4 w-4" />
+					Select Replacement File
+				</Button>
+			{/if}
 
 			{#if selectedPath}
 				<Text color="secondary" truncate title={selectedPath}>
@@ -140,13 +182,13 @@
 			{/if}
 		</div>
 
-		<!-- Validation Status -->
-		{#if validating}
+		<!-- Validation Status (device-local file flow only) -->
+		{#if !isCloudSynced && validating}
 			<div class="flex items-center gap-2 text-sm text-text-secondary">
 				<div class="h-4 w-4 animate-spin rounded-full border-2 border-brand-primary border-t-transparent"></div>
 				Validating file...
 			</div>
-		{:else if validationResult}
+		{:else if !isCloudSynced && validationResult}
 			{#if !validationResult.format_valid}
 				<div class="flex gap-2 rounded-md border border-red-500/20 bg-red-500/10 p-3">
 					<Icon name="close" class="h-5 w-5 flex-shrink-0 text-red-500" />
