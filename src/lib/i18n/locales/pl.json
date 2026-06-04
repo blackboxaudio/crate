@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Wszystkie zmiany zsynchronizowane",
 			"syncing": "Synchronizowanie…",
+			"offline": "Offline — zmiany będą synchronizowane po ponownym połączeniu",
 			"error": "Błąd synchronizacji",
 			"signedOut": "Niezalogowany"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Mapuj ponownie",
 			"unmapped": "Nie zmapowane na tym urządzeniu",
 			"none": "Jeszcze bez korzeni biblioteki."
+		},
+		"conflicts": {
+			"overridden": "'{label}' został zmieniony na {device} — twoja edycja została zastąpiona"
+		},
+		"danger": {
+			"title": "Strefa Niebezpieczeństwa",
+			"deleteVault": "Usuń sejf w chmurze",
+			"deleteVaultDescription": "Trwale usuń wszystkie zsynchronizowane dane z chmury. Twoja lokalna biblioteka nie jest zagrożona.",
+			"confirmTitle": "Usunąć sejf w chmurze?",
+			"confirmMessage": "To trwale usuwa wszystkie twoje zsynchronizowane dane z chmury i wylogowuje cię. Twoja lokalna biblioteka pozostaje niezmieniona. Tej czynności nie można cofnąć.",
+			"error": "Nie udało się usunąć sejfu w chmurze"
 		}
 	},
 	"player": {

@@ -422,3 +422,50 @@ fn settings_keep_local_when_older() {
         "older remote ignored"
     );
 }
+
+// --- override reporting (observational — must not change merge outcomes) ---
+
+fn set_node_id(conn: &Connection, node: &str) {
+    conn.execute(
+        "INSERT INTO sync_state (key, value) VALUES ('node_id', ?1)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+        [node],
+    )
+    .unwrap();
+}
+
+#[test]
+fn override_reported_when_local_authored_value_is_replaced() {
+    let conn = mem();
+    set_node_id(&conn, "aabbccdd");
+    // Local "House" authored by THIS device (node aabbccdd).
+    insert_tag_category(&conn, "c1", "House", "0000000000000005-00000000-aabbccdd");
+    // Remote rename with a higher HLC from ANOTHER device.
+    let overrides = merge_bucket(
+        &conn,
+        &Bucket::TagCategories,
+        &[tc_live("c1", "Techno", "0000000000000006-00000000-11223344")],
+    )
+    .unwrap();
+    // Outcome is unchanged (remote wins); the override is reported alongside.
+    assert_eq!(tc_name(&conn, "c1").as_deref(), Some("Techno"));
+    assert_eq!(overrides.len(), 1);
+    assert_eq!(overrides[0].label, "House", "names the discarded local value");
+}
+
+#[test]
+fn no_override_when_local_value_authored_elsewhere() {
+    let conn = mem();
+    set_node_id(&conn, "aabbccdd");
+    // Local value was authored by a DIFFERENT device (node 99999999) — plain
+    // propagation, not a conflict this device should be toasted about.
+    insert_tag_category(&conn, "c1", "House", "0000000000000005-00000000-99999999");
+    let overrides = merge_bucket(
+        &conn,
+        &Bucket::TagCategories,
+        &[tc_live("c1", "Techno", "0000000000000006-00000000-11223344")],
+    )
+    .unwrap();
+    assert_eq!(tc_name(&conn, "c1").as_deref(), Some("Techno"));
+    assert!(overrides.is_empty());
+}

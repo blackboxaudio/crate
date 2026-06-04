@@ -25,7 +25,7 @@ use super::super::backend::types::{AuthSession, Manifest};
 use super::super::backend::{BlobStore, CloudBackend};
 use super::buckets::Bucket;
 use super::manifest::{compute_local_manifest, diff_manifest};
-use super::merge::merge_bucket;
+use super::merge::{merge_bucket, OverrideEvent};
 use super::rows;
 
 /// `sync_state` key: serialized etag of the manifest we last observed. Every
@@ -34,6 +34,23 @@ use super::rows;
 const LAST_SYNCED_ETAG: &str = "last_synced_manifest_etag";
 /// `sync_state` key: the manifest HLC we last merged (diagnostics / forward-compat).
 const LAST_SYNCED_HLC: &str = "last_synced_manifest_hlc";
+
+/// The result of a pull/merge: whether anything merged, plus any non-trivial overrides
+/// observed (this device's authored values that lost to a higher-HLC remote) for the
+/// override toast. Purely a reporting channel — it does not affect convergence.
+pub struct MergeOutcome {
+    pub merged: bool,
+    pub overrides: Vec<OverrideEvent>,
+}
+
+impl MergeOutcome {
+    fn unchanged() -> Self {
+        Self {
+            merged: false,
+            overrides: Vec::new(),
+        }
+    }
+}
 
 /// Pull other devices' changes into the local DB. Reads the remote manifest, skips
 /// self-authored writes, merges any remote-ahead buckets, and records the synced
@@ -46,12 +63,12 @@ pub async fn pull(
     backend: &Arc<dyn CloudBackend>,
     session: &AuthSession,
     self_device_id: &str,
-) -> Result<bool> {
+) -> Result<MergeOutcome> {
     let store = backend.manifest();
     let blobs = backend.blobs();
 
     let Some((remote, etag)) = store.read(session).await? else {
-        return Ok(false); // no remote vault yet — nothing to pull
+        return Ok(MergeOutcome::unchanged()); // no remote vault yet — nothing to pull
     };
     let etag_str = serde_json::to_string(&etag)
         .map_err(|e| CrateError::CloudSync(format!("serialize manifest etag: {e}")))?;
@@ -62,7 +79,7 @@ pub async fn pull(
     {
         let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         if read_sync_state(&guard, LAST_SYNCED_ETAG)?.as_deref() == Some(etag_str.as_str()) {
-            return Ok(false);
+            return Ok(MergeOutcome::unchanged());
         }
     }
 
@@ -72,15 +89,15 @@ pub async fn pull(
         let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         write_sync_state(&guard, LAST_SYNCED_ETAG, &etag_str)?;
         write_sync_state(&guard, LAST_SYNCED_HLC, &remote.manifest_hlc)?;
-        return Ok(false);
+        return Ok(MergeOutcome::unchanged());
     }
 
-    let merged = pull_and_merge(&conn, &blobs, session, &remote).await?;
+    let outcome = pull_and_merge(&conn, &blobs, session, &remote).await?;
 
     let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
     write_sync_state(&guard, LAST_SYNCED_ETAG, &etag_str)?;
     write_sync_state(&guard, LAST_SYNCED_HLC, &remote.manifest_hlc)?;
-    Ok(merged)
+    Ok(outcome)
 }
 
 /// Download + merge every bucket the remote has that differs from local, parents
@@ -94,7 +111,7 @@ pub async fn pull_and_merge(
     blobs: &Arc<dyn BlobStore>,
     session: &AuthSession,
     remote: &Manifest,
-) -> Result<bool> {
+) -> Result<MergeOutcome> {
     let mut to_download = {
         let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         // device_id is irrelevant here: diffing keys on blob_hash only.
@@ -102,7 +119,7 @@ pub async fn pull_and_merge(
         diff_manifest(&local, remote).to_download
     };
     if to_download.is_empty() {
-        return Ok(false);
+        return Ok(MergeOutcome::unchanged());
     }
 
     // Merge parents before children so a junction's endpoints already exist.
@@ -114,6 +131,7 @@ pub async fn pull_and_merge(
             .unwrap_or(usize::MAX)
     });
 
+    let mut overrides = Vec::new();
     for name in to_download {
         let bucket = Bucket::parse(&name)
             .ok_or_else(|| CrateError::CloudSync(format!("bad bucket {name}")))?;
@@ -125,9 +143,17 @@ pub async fn pull_and_merge(
         let bytes = blobs.download(session, &key).await?;
         let parsed = rows::parse_bucket(&bucket, &bytes)?;
         let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        merge_bucket(&guard, &bucket, &parsed)?;
+        overrides.extend(merge_bucket(&guard, &bucket, &parsed)?);
     }
-    Ok(true)
+
+    // Attribute every override to the device that last wrote this manifest (the winner).
+    for ev in &mut overrides {
+        ev.winner_device_id = remote.last_writer_device.clone();
+    }
+    Ok(MergeOutcome {
+        merged: true,
+        overrides,
+    })
 }
 
 // --- sync_state helpers -------------------------------------------------------

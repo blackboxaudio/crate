@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "所有更改已同步",
 			"syncing": "正在同步…",
+			"offline": "离线 — 重新连接时更改将同步",
 			"error": "同步错误",
 			"signedOut": "未登录"
 		},
@@ -198,6 +199,17 @@
 			"remap": "重新映射",
 			"unmapped": "未映射到此设备",
 			"none": "尚无曲库根目录。"
+		},
+		"conflicts": {
+			"overridden": "\"{label}\"在{device}上被更改 — 您的编辑已被替换"
+		},
+		"danger": {
+			"title": "危险区域",
+			"deleteVault": "删除云存储库",
+			"deleteVaultDescription": "从云中永久删除所有同步的数据。您的本地曲库不受影响。",
+			"confirmTitle": "删除云存储库?",
+			"confirmMessage": "这将从云中永久删除您的所有同步数据并将您登出。您的本地曲库保持不变。此操作无法撤销。",
+			"error": "无法删除您的云存储库"
 		}
 	},
 	"player": {

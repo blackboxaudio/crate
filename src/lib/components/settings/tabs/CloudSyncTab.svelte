@@ -12,8 +12,12 @@
 	let renamingDevice = $state(false)
 	let newDeviceName = $state('')
 	let confirmRevokeDeviceId = $state<string | null>(null)
+	let deleteVaultOpen = $state(false)
 
 	$effect(() => {
+		// Reload on sign-in and whenever a sync completes, so a fresh-device restore pull
+		// surfaces its library roots (and the wizard) as soon as the merge lands.
+		void $syncStatus.last_synced_at
 		if ($isSignedIn) {
 			cloudSyncStore.loadDevices()
 			cloudSyncStore.loadLibraryRoots()
@@ -49,6 +53,11 @@
 			cloudSyncStore.revokeDevice(confirmRevokeDeviceId)
 			confirmRevokeDeviceId = null
 		}
+	}
+
+	function handleDeleteVault() {
+		cloudSyncStore.deleteCloudVault()
+		deleteVaultOpen = false
 	}
 
 	function formatDeviceLastSeen(lastSeen: { secs_since_epoch: number; nanos_since_epoch: number }): string {
@@ -177,6 +186,20 @@
 				<LibraryRootsWizard />
 			</section>
 		{/if}
+
+		<!-- Danger Zone -->
+		<section>
+			<Text variant="header-3" class="mb-2">{$translate('cloudSync.danger.title')}</Text>
+			<div class="flex items-center justify-between gap-4 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+				<div class="min-w-0 flex-1">
+					<Text variant="body-2" class="font-medium">{$translate('cloudSync.danger.deleteVault')}</Text>
+					<Text variant="caption" as="p" class="mt-0.5">{$translate('cloudSync.danger.deleteVaultDescription')}</Text>
+				</div>
+				<Button variant="ghost-danger" size="sm" onclick={() => (deleteVaultOpen = true)}>
+					{$translate('cloudSync.danger.deleteVault')}
+				</Button>
+			</div>
+		</section>
 	</div>
 {/if}
 
@@ -188,4 +211,14 @@
 	destructive
 	onConfirm={confirmRevoke}
 	onCancel={() => (confirmRevokeDeviceId = null)}
+/>
+
+<ConfirmModal
+	open={deleteVaultOpen}
+	title={$translate('cloudSync.danger.confirmTitle')}
+	message={$translate('cloudSync.danger.confirmMessage')}
+	confirmLabel={$translate('cloudSync.danger.deleteVault')}
+	destructive
+	onConfirm={handleDeleteVault}
+	onCancel={() => (deleteVaultOpen = false)}
 />

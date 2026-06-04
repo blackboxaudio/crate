@@ -127,6 +127,22 @@ fn persist_profile(conn: &Arc<Mutex<Connection>>, s: &AuthSession) -> Result<()>
     Ok(())
 }
 
+/// Update only the cached profile fields (email/display_name/photo_url) without
+/// touching `cloud_uid` or any session state. Used to refresh the avatar after a
+/// successful sync.
+pub fn persist_profile_fields(
+    conn: &Arc<Mutex<Connection>>,
+    email: Option<&str>,
+    display_name: Option<&str>,
+    photo_url: Option<&str>,
+) -> Result<()> {
+    let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+    write_state(&guard, "cloud_email", email.unwrap_or(""))?;
+    write_state(&guard, "cloud_display_name", display_name.unwrap_or(""))?;
+    write_state(&guard, "cloud_photo_url", photo_url.unwrap_or(""))?;
+    Ok(())
+}
+
 fn read_profile(
     conn: &Arc<Mutex<Connection>>,
 ) -> Result<(Option<String>, Option<String>, Option<String>)> {

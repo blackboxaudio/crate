@@ -62,6 +62,12 @@ jobs:
         run: yarn tauri build --config src-tauri/tauri.${{ inputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json --target universal-apple-darwin
         env:
           CRATE_ENV: ${{ inputs.channel }}
+          # Cloud sync config — public client identifiers, baked in at compile time
+          CRATE_CLOUD_PROJECT_ID: ${{ secrets.CRATE_CLOUD_PROJECT_ID }}
+          CRATE_CLOUD_WEB_API_KEY: ${{ secrets.CRATE_CLOUD_WEB_API_KEY }}
+          CRATE_CLOUD_STORAGE_BUCKET: ${{ secrets.CRATE_CLOUD_STORAGE_BUCKET }}
+          CRATE_CLOUD_OAUTH_CLIENT_ID: ${{ secrets.CRATE_CLOUD_OAUTH_CLIENT_ID }}
+          CRATE_CLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.CRATE_CLOUD_OAUTH_CLIENT_SECRET }}
           # Tauri updater signing
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -79,6 +85,12 @@ jobs:
         run: yarn tauri build --config src-tauri/tauri.${{ inputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json
         env:
           CRATE_ENV: ${{ inputs.channel }}
+          # Cloud sync config — public client identifiers, baked in at compile time
+          CRATE_CLOUD_PROJECT_ID: ${{ secrets.CRATE_CLOUD_PROJECT_ID }}
+          CRATE_CLOUD_WEB_API_KEY: ${{ secrets.CRATE_CLOUD_WEB_API_KEY }}
+          CRATE_CLOUD_STORAGE_BUCKET: ${{ secrets.CRATE_CLOUD_STORAGE_BUCKET }}
+          CRATE_CLOUD_OAUTH_CLIENT_ID: ${{ secrets.CRATE_CLOUD_OAUTH_CLIENT_ID }}
+          CRATE_CLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.CRATE_CLOUD_OAUTH_CLIENT_SECRET }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 

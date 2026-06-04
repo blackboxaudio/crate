@@ -83,6 +83,12 @@ impl AuthBackend for MockCloudBackend {
     async fn sign_out(&self, _session: &AuthSession) -> Result<()> {
         Ok(())
     }
+    async fn lookup_profile(
+        &self,
+        _session: &AuthSession,
+    ) -> Result<crate::services::cloud_sync::backend::types::ProfileInfo> {
+        Ok(Default::default())
+    }
 }
 
 #[async_trait]
@@ -142,6 +148,11 @@ impl ManifestStore for MockCloudBackend {
         st.gc_queue.retain(|(qid, _)| *qid != id);
         Ok(())
     }
+
+    async fn delete(&self, _session: &AuthSession) -> Result<()> {
+        self.state.lock().await.manifest = None;
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -176,11 +187,17 @@ impl BlobStore for MockCloudBackend {
 #[async_trait]
 impl DeviceRegistry for MockCloudBackend {
     async fn upsert(&self, _session: &AuthSession, device: &DeviceRecord) -> Result<()> {
-        self.state
-            .lock()
-            .await
+        let mut st = self.state.lock().await;
+        // Heartbeat preserves an existing record's revoked flag (mirrors the disjoint
+        // update mask on the real backend).
+        let revoked = st
             .devices
-            .insert(device.device_id.clone(), device.clone());
+            .get(&device.device_id)
+            .map(|d| d.revoked)
+            .unwrap_or(false);
+        let mut rec = device.clone();
+        rec.revoked = revoked;
+        st.devices.insert(device.device_id.clone(), rec);
         Ok(())
     }
 
@@ -188,8 +205,65 @@ impl DeviceRegistry for MockCloudBackend {
         Ok(self.state.lock().await.devices.values().cloned().collect())
     }
 
+    async fn get(&self, _session: &AuthSession, device_id: &str) -> Result<Option<DeviceRecord>> {
+        Ok(self.state.lock().await.devices.get(device_id).cloned())
+    }
+
+    async fn set_revoked(
+        &self,
+        _session: &AuthSession,
+        device_id: &str,
+        revoked: bool,
+    ) -> Result<()> {
+        if let Some(d) = self.state.lock().await.devices.get_mut(device_id) {
+            d.revoked = revoked;
+        }
+        Ok(())
+    }
+
     async fn remove(&self, _session: &AuthSession, device_id: &str) -> Result<()> {
         self.state.lock().await.devices.remove(device_id);
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn dev(id: &str) -> DeviceRecord {
+        DeviceRecord {
+            device_id: id.into(),
+            name: "Test".into(),
+            last_seen: SystemTime::now(),
+            app_version: "1".into(),
+            revoked: false,
+        }
+    }
+
+    /// A heartbeat (full-record upsert) must NOT clear a concurrent revoke — the mock
+    /// mirrors the real backend's disjoint update mask. This is the resurrection guard.
+    #[tokio::test]
+    async fn heartbeat_preserves_revoked_flag() {
+        let backend = MockCloudBackend::new();
+        let s = mock_session();
+        backend.upsert(&s, &dev("a")).await.unwrap();
+        backend.set_revoked(&s, "a", true).await.unwrap();
+        backend.upsert(&s, &dev("a")).await.unwrap(); // heartbeat
+        let got = backend.get(&s, "a").await.unwrap().unwrap();
+        assert!(got.revoked, "heartbeat resurrected a revoked device");
+    }
+
+    /// `set_revoked` toggles a single device's flag and `get` reads it back.
+    #[tokio::test]
+    async fn set_revoked_then_get_roundtrips() {
+        let backend = MockCloudBackend::new();
+        let s = mock_session();
+        backend.upsert(&s, &dev("b")).await.unwrap();
+        assert!(!backend.get(&s, "b").await.unwrap().unwrap().revoked);
+        backend.set_revoked(&s, "b", true).await.unwrap();
+        assert!(backend.get(&s, "b").await.unwrap().unwrap().revoked);
+        backend.set_revoked(&s, "b", false).await.unwrap();
+        assert!(!backend.get(&s, "b").await.unwrap().unwrap().revoked);
     }
 }

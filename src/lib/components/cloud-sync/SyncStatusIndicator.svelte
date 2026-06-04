@@ -16,6 +16,8 @@
 				return $translate('cloudSync.status.idle')
 			case 'syncing':
 				return $translate('cloudSync.status.syncing')
+			case 'offline':
+				return $translate('cloudSync.status.offline')
 			case 'error':
 				return $translate('cloudSync.status.error')
 			case 'signedout':
@@ -29,6 +31,8 @@
 		switch ($syncPhase) {
 			case 'syncing':
 				return 'text-brand-primary'
+			case 'offline':
+				return 'text-amber-500'
 			case 'error':
 				return 'text-red-500'
 			default:
@@ -46,7 +50,7 @@
 		>
 			{#if $syncPhase === 'syncing'}
 				<Icon name="loader" class="h-[18px] w-[18px] animate-spin" />
-			{:else if $syncPhase === 'error'}
+			{:else if $syncPhase === 'error' || $syncPhase === 'offline'}
 				<Icon name="cloud-off" class="h-[18px] w-[18px]" />
 			{:else if $isSignedIn}
 				<Icon name="cloud" class="h-[18px] w-[18px]" />

@@ -10,10 +10,10 @@ use serde::Deserialize;
 use serde_json::json;
 
 use crate::error::{CrateError, Result};
-use crate::services::cloud_sync::backend::types::AuthSession;
+use crate::services::cloud_sync::backend::types::{AuthSession, ProfileInfo};
 use crate::services::cloud_sync::backend::AuthBackend;
 
-use super::FirebaseInner;
+use super::{rest, FirebaseInner};
 
 pub(crate) struct FirebaseAuth {
     inner: Arc<FirebaseInner>,
@@ -75,7 +75,7 @@ impl AuthBackend for FirebaseAuth {
             .json(&body)
             .send()
             .await
-            .map_err(|e| CrateError::CloudSyncAuth(format!("signInWithIdp request: {e}")))?;
+            .map_err(|e| rest::send_error("signInWithIdp request", e))?;
         if !resp.status().is_success() {
             let status = resp.status();
             let text = resp.text().await.unwrap_or_default();
@@ -114,7 +114,7 @@ impl AuthBackend for FirebaseAuth {
             .form(&params)
             .send()
             .await
-            .map_err(|e| CrateError::CloudSyncAuth(format!("token refresh request: {e}")))?;
+            .map_err(|e| rest::send_error("token refresh request", e))?;
         if !resp.status().is_success() {
             let status = resp.status();
             let text = resp.text().await.unwrap_or_default();
@@ -144,4 +144,57 @@ impl AuthBackend for FirebaseAuth {
         // for the desktop flow in v1.
         Ok(())
     }
+
+    async fn lookup_profile(&self, session: &AuthSession) -> Result<ProfileInfo> {
+        let url = format!(
+            "https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={}",
+            self.inner.config.web_api_key
+        );
+        let body = json!({ "idToken": session.access_token });
+        let resp = self
+            .inner
+            .client
+            .post(&url)
+            .json(&body)
+            .send()
+            .await
+            .map_err(|e| rest::send_error("accounts:lookup request", e))?;
+        if !resp.status().is_success() {
+            let status = resp.status();
+            let text = resp.text().await.unwrap_or_default();
+            return Err(CrateError::CloudSyncAuth(format!(
+                "accounts:lookup HTTP {status}: {text}"
+            )));
+        }
+        let body: LookupResponse = resp
+            .json()
+            .await
+            .map_err(|e| CrateError::CloudSyncAuth(format!("accounts:lookup decode: {e}")))?;
+        let user = body.users.into_iter().next().ok_or_else(|| {
+            CrateError::CloudSyncAuth("accounts:lookup returned no users".into())
+        })?;
+        Ok(ProfileInfo {
+            email: user.email,
+            display_name: user.display_name,
+            photo_url: user.photo_url,
+        })
+    }
+}
+
+/// `accounts:lookup` response — only the fields we care about for the profile card.
+#[derive(Deserialize)]
+struct LookupResponse {
+    #[serde(default)]
+    users: Vec<LookupUser>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct LookupUser {
+    #[serde(default)]
+    email: Option<String>,
+    #[serde(default)]
+    display_name: Option<String>,
+    #[serde(default)]
+    photo_url: Option<String>,
 }

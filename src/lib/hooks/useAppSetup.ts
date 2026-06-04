@@ -754,9 +754,11 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		updaterStore.check(true)
 		const updateInterval = setInterval(() => updaterStore.check(true), 60 * 60 * 1000)
 
-		// Cloud sync: load initial status + poll for updates so the indicator stays current
+		// Cloud sync: load initial status + poll for updates so the indicator stays current,
+		// and listen for override-conflict toasts.
 		await cloudSyncStore.load()
 		cloudSyncStore.startPolling()
+		cloudSyncStore.startOverrideListener()
 
 		dismissSplash()
 
@@ -772,6 +774,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			playerStore.onTrackEnd(null)
 			exportStore.stopListening()
 			cloudSyncStore.stopPolling()
+			cloudSyncStore.stopOverrideListener()
 			clearInterval(updateInterval)
 		}
 	}

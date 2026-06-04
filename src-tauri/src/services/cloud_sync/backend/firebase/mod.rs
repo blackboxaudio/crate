@@ -60,6 +60,7 @@ pub struct FirebaseBackend {
 impl FirebaseBackend {
     pub fn new(config: &CloudConfig) -> Result<Self> {
         let client = reqwest::Client::builder()
+            .connect_timeout(std::time::Duration::from_secs(10))
             .timeout(std::time::Duration::from_secs(60))
             .build()
             .map_err(|e| CrateError::CloudSync(format!("failed to build HTTP client: {e}")))?;

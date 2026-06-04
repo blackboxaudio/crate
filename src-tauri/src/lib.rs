@@ -241,9 +241,11 @@ pub fn run() {
             commands::cloud_sync::get_sync_status,
             commands::cloud_sync::sync_now,
             commands::cloud_sync::pull_now,
+            commands::cloud_sync::get_recent_overrides,
             commands::cloud_sync::list_devices,
             commands::cloud_sync::rename_device,
             commands::cloud_sync::revoke_device,
+            commands::cloud_sync::delete_cloud_vault,
             commands::cloud_sync::list_library_roots,
             commands::cloud_sync::create_library_root,
             commands::cloud_sync::rename_library_root,
@@ -376,6 +378,7 @@ pub fn run() {
                     device_id,
                     device_name,
                     app_version,
+                    app.handle().clone(),
                 ));
                 app.manage(cloud_state.clone());
 
@@ -407,13 +410,24 @@ pub fn run() {
                         // etag gate keeps an unchanged poll cheap.
                         if tick % 2 == 0 {
                             if let Err(e) = cloud_state.run_pull().await {
-                                log::warn!("cloud_sync: pull failed: {e}");
+                                // A transient connectivity failure is expected while
+                                // offline (already surfaced as the `Offline` phase) —
+                                // don't spam warnings every poll.
+                                if e.is_transient() {
+                                    log::debug!("cloud_sync: pull offline: {e}");
+                                } else {
+                                    log::warn!("cloud_sync: pull failed: {e}");
+                                }
                             }
                         }
                         match cloud_state.dirty_quiescent(quiescent) {
                             Ok(true) => {
                                 if let Err(e) = cloud_state.run_push().await {
-                                    log::warn!("cloud_sync: debounced push failed: {e}");
+                                    if e.is_transient() {
+                                        log::debug!("cloud_sync: push offline: {e}");
+                                    } else {
+                                        log::warn!("cloud_sync: debounced push failed: {e}");
+                                    }
                                 }
                             }
                             Ok(false) => {}

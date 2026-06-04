@@ -25,6 +25,7 @@ use super::super::hlc;
 use super::buckets::Bucket;
 use super::dirty::stamp_unstamped_rows;
 use super::manifest::{compute_local_manifest, diff_manifest};
+use super::merge::OverrideEvent;
 use super::pull;
 use super::rows;
 
@@ -34,13 +35,14 @@ const MAX_RETRIES: usize = 8;
 const GC_GRACE: Duration = Duration::from_secs(3600);
 
 /// Push all local changes to the cloud. Safe to call repeatedly; clears
-/// `sync_dirty_buckets` only on a successful manifest commit.
+/// `sync_dirty_buckets` only on a successful manifest commit. Returns any non-trivial
+/// overrides observed while pull-then-merging the remote (for the override toast).
 pub async fn push(
     conn: Arc<Mutex<Connection>>,
     backend: &Arc<dyn CloudBackend>,
     session: &AuthSession,
     device_id: &str,
-) -> Result<()> {
+) -> Result<Vec<OverrideEvent>> {
     // One-time first-sync stamping (internally gated by `initial_stamp_done`).
     {
         let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
@@ -51,6 +53,7 @@ pub async fn push(
     let store = backend.manifest();
     let blobs = backend.blobs();
     let mut backoff = Duration::from_millis(200);
+    let mut overrides = Vec::new();
 
     for attempt in 0..MAX_RETRIES {
         let (remote_manifest, expected) = match store.read(session).await? {
@@ -58,17 +61,19 @@ pub async fn push(
             None => (None, None),
         };
 
-        // Pull-then-merge remote-ahead buckets so our write carries the union.
+        // Pull-then-merge remote-ahead buckets so our write carries the union. A re-merge
+        // of already-applied rows is a no-op, so retries don't double-count overrides.
         if let Some(rm) = &remote_manifest {
-            pull::pull_and_merge(&conn, &blobs, session, rm).await?;
+            let outcome = pull::pull_and_merge(&conn, &blobs, session, rm).await?;
+            overrides.extend(outcome.overrides);
         }
 
         // Recompute the local manifest + serialize the changed buckets (all sync work
-        // happens under the guard; the guard is dropped before any upload).
-        let (local, uploads, gc_enqueue) =
-            prepare_uploads(&conn, session, device_id, remote_manifest.as_ref())?;
+        // happens under the guard; the guard is dropped before any upload). This also
+        // snapshots the dirty rows this attempt claims (see `PreparedPush`).
+        let prepared = prepare_uploads(&conn, session, device_id, remote_manifest.as_ref())?;
 
-        for (key, bytes) in &uploads {
+        for (key, bytes) in &prepared.uploads {
             blobs
                 .upload(
                     session,
@@ -80,13 +85,27 @@ pub async fn push(
         }
 
         match store
-            .write(session, &local, expected.as_ref(), &gc_enqueue)
+            .write(
+                session,
+                &prepared.manifest,
+                expected.as_ref(),
+                &prepared.gc_enqueue,
+            )
             .await
         {
             Ok(_) => {
+                // Clear ONLY the rows this snapshot claimed. A mutation that marked a
+                // bucket dirty during the push has a newer `(bucket, marked_at)` pair
+                // that is absent here, so it survives to trigger the next push instead
+                // of being silently wiped.
                 let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-                guard.execute("DELETE FROM sync_dirty_buckets", [])?;
-                return Ok(());
+                for (bucket, marked_at) in &prepared.claimed_dirty {
+                    guard.execute(
+                        "DELETE FROM sync_dirty_buckets WHERE bucket = ?1 AND marked_at = ?2",
+                        rusqlite::params![bucket, marked_at],
+                    )?;
+                }
+                return Ok(overrides);
             }
             Err(CrateError::CloudSyncConflict) => {
                 log::info!(
@@ -104,16 +123,27 @@ pub async fn push(
     Err(CrateError::CloudSync("push exceeded CAS retries".into()))
 }
 
-/// Recompute the local manifest and serialize every bucket that differs from
-/// `remote`, returning the manifest, the `(full_key, bytes)` uploads, and the prior
-/// object keys to enqueue for GC. Synchronous — holds the guard for its whole body.
-#[allow(clippy::type_complexity)]
+/// A snapshot taken for one push attempt: the manifest to write, the blobs to upload,
+/// the prior object keys to enqueue for GC, and the exact dirty rows this snapshot
+/// claims. The claimed rows are deleted only on a successful commit, so a mutation that
+/// marks a bucket dirty *during* the push (after this snapshot) keeps its trigger and
+/// drives the next push rather than being silently cleared.
+struct PreparedPush {
+    manifest: Manifest,
+    uploads: Vec<(String, Vec<u8>)>,
+    gc_enqueue: Vec<GcEntry>,
+    claimed_dirty: Vec<(String, String)>,
+}
+
+/// Recompute the local manifest and serialize every bucket that differs from `remote`.
+/// Synchronous — holds the guard for its whole body, so the dirty-row snapshot is taken
+/// atomically with the data snapshot (the correctness crux of the coalescing fix).
 fn prepare_uploads(
     conn: &Arc<Mutex<Connection>>,
     session: &AuthSession,
     device_id: &str,
     remote: Option<&Manifest>,
-) -> Result<(Manifest, Vec<(String, Vec<u8>)>, Vec<GcEntry>)> {
+) -> Result<PreparedPush> {
     let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
     let local = compute_local_manifest(&guard, device_id)?;
     let base = remote
@@ -153,5 +183,113 @@ fn prepare_uploads(
         }
     }
 
-    Ok((local, uploads, gc_enqueue))
+    // Snapshot the exact dirty rows this push claims, atomically with the data above
+    // (same guard). On success we delete ONLY these `(bucket, marked_at)` pairs, so a
+    // concurrent mutation's newer mark survives and triggers the next push.
+    let claimed_dirty = {
+        let mut stmt = guard.prepare("SELECT bucket, marked_at FROM sync_dirty_buckets")?;
+        let rows = stmt
+            .query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?
+            .collect::<std::result::Result<Vec<(String, String)>, _>>()?;
+        rows
+    };
+
+    Ok(PreparedPush {
+        manifest: local,
+        uploads,
+        gc_enqueue,
+        claimed_dirty,
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use rusqlite::{params, Connection};
+
+    fn dirty_db() -> Connection {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch(
+            "CREATE TABLE sync_dirty_buckets (bucket TEXT PRIMARY KEY, marked_at TEXT NOT NULL);",
+        )
+        .unwrap();
+        conn
+    }
+
+    /// Mirrors `dirty::mark_dirty`.
+    fn mark(conn: &Connection, bucket: &str, at: &str) {
+        conn.execute(
+            "INSERT INTO sync_dirty_buckets (bucket, marked_at) VALUES (?1, ?2)
+             ON CONFLICT(bucket) DO UPDATE SET marked_at = excluded.marked_at",
+            params![bucket, at],
+        )
+        .unwrap();
+    }
+
+    /// Mirrors the snapshot in `prepare_uploads`.
+    fn claim(conn: &Connection) -> Vec<(String, String)> {
+        let mut stmt = conn
+            .prepare("SELECT bucket, marked_at FROM sync_dirty_buckets")
+            .unwrap();
+        stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+            .unwrap()
+            .collect::<std::result::Result<Vec<(String, String)>, _>>()
+            .unwrap()
+    }
+
+    /// Mirrors the post-commit clear in `push`.
+    fn clear_claimed(conn: &Connection, claimed: &[(String, String)]) {
+        for (bucket, marked_at) in claimed {
+            conn.execute(
+                "DELETE FROM sync_dirty_buckets WHERE bucket = ?1 AND marked_at = ?2",
+                params![bucket, marked_at],
+            )
+            .unwrap();
+        }
+    }
+
+    fn buckets(conn: &Connection) -> Vec<String> {
+        conn.prepare("SELECT bucket FROM sync_dirty_buckets ORDER BY bucket")
+            .unwrap()
+            .query_map([], |r| r.get::<_, String>(0))
+            .unwrap()
+            .collect::<std::result::Result<Vec<String>, _>>()
+            .unwrap()
+    }
+
+    /// A bucket marked dirty (or re-marked) *during* a push must survive the post-commit
+    /// clear: only the exact rows claimed at snapshot time are deleted, so the newer
+    /// mark keeps its trigger and drives the next push (the coalescing-race fix).
+    #[test]
+    fn concurrent_dirty_marks_survive_the_clear() {
+        let conn = dirty_db();
+        // Two buckets dirty when the push snapshots them.
+        mark(&conn, "playlists", "2026-06-03T00:00:00.000000001+00:00");
+        mark(&conn, "tags", "2026-06-03T00:00:00.000000002+00:00");
+        let claimed = claim(&conn);
+
+        // During the upload/CAS window: "playlists" is edited again (marked_at bumped via
+        // ON CONFLICT) and a brand-new "tracks/3" bucket is dirtied.
+        mark(&conn, "playlists", "2026-06-03T00:00:05.000000000+00:00");
+        mark(&conn, "tracks/3", "2026-06-03T00:00:05.000000000+00:00");
+
+        clear_claimed(&conn, &claimed);
+
+        // "tags" was synced and untouched → cleared. "playlists" (re-marked) and
+        // "tracks/3" (new) survive to trigger the next push.
+        assert_eq!(
+            buckets(&conn),
+            vec!["playlists".to_string(), "tracks/3".to_string()]
+        );
+    }
+
+    /// A clean push with no concurrent mutation clears the whole queue.
+    #[test]
+    fn quiescent_push_clears_all_claimed() {
+        let conn = dirty_db();
+        mark(&conn, "playlists", "2026-06-03T00:00:00.000000001+00:00");
+        mark(&conn, "tags", "2026-06-03T00:00:00.000000002+00:00");
+        let claimed = claim(&conn);
+        clear_claimed(&conn, &claimed);
+        assert!(buckets(&conn).is_empty());
+    }
 }

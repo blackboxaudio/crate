@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Tutti i cambiamenti sincronizzati",
 			"syncing": "Sincronizzazione in corso…",
+			"offline": "Offline — i cambiamenti verranno sincronizzati quando ti riconnetti",
 			"error": "Errore di sincronizzazione",
 			"signedOut": "Non connesso"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Rimappa",
 			"unmapped": "Non mappato su questo dispositivo",
 			"none": "Nessuna radice della libreria ancora."
+		},
+		"conflicts": {
+			"overridden": "'{label}' è stato modificato su {device} — la tua modifica è stata sostituita"
+		},
+		"danger": {
+			"title": "Zona Pericolosa",
+			"deleteVault": "Elimina vault cloud",
+			"deleteVaultDescription": "Elimina permanentemente tutti i tuoi dati sincronizzati dal cloud. La tua libreria locale non è interessata.",
+			"confirmTitle": "Eliminare il vault cloud?",
+			"confirmMessage": "Questo elimina permanentemente tutti i tuoi dati sincronizzati dal cloud e ti disconnette. La tua libreria locale rimane intatta. Questa azione non può essere annullata.",
+			"error": "Non è stato possibile eliminare il tuo vault cloud"
 		}
 	},
 	"player": {

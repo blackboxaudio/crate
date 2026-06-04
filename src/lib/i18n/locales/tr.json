@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Tüm değişiklikler senkronize edildi",
 			"syncing": "Senkronize ediliyor…",
+			"offline": "Çevrimdışı — yeniden bağlandığında değişiklikler senkronize edilecek",
 			"error": "Senkronizasyon hatası",
 			"signedOut": "Oturum açılmadı"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Yeniden Eşle",
 			"unmapped": "Bu cihazda eşleştirilmemiş",
 			"none": "Henüz kütüphane kökleri yok."
+		},
+		"conflicts": {
+			"overridden": "'{label}' {device} üzerinde değiştirildi — düzenlemeleriniz değiştirildi"
+		},
+		"danger": {
+			"title": "Tehlike Bölgesi",
+			"deleteVault": "Bulut kasasını sil",
+			"deleteVaultDescription": "Tüm senkronize edilmiş verileri buluttan kalıcı olarak sil. Yerel kütüphanene dokunulmaz.",
+			"confirmTitle": "Bulut kasası silinsin mi?",
+			"confirmMessage": "Bu, tüm senkronize edilmiş verilerinizi buluttan kalıcı olarak siler ve seni oturumu kapatır. Yerel kütüphanene dokunulmaz. Bu işlem geri alınamaz.",
+			"error": "Bulut kasası silinemedi"
 		}
 	},
 	"player": {

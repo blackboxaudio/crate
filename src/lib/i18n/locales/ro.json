@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Toate modificările sincronizate",
 			"syncing": "Se sincronizează…",
+			"offline": "Offline — modificările vor fi sincronizate la reconectare",
 			"error": "Eroare de sincronizare",
 			"signedOut": "Nu sunteți conectat"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Remapați",
 			"unmapped": "Nu este mapat pe acest dispozitiv",
 			"none": "Nicio rădăcină a bibliotecii încă."
+		},
+		"conflicts": {
+			"overridden": "'{label}' a fost modificat pe {device} — editarea dvs. a fost înlocuită"
+		},
+		"danger": {
+			"title": "Zona de Pericol",
+			"deleteVault": "Ștergeți seiful cloud",
+			"deleteVaultDescription": "Ștergeți permanent toate datele sincronizate din cloud. Biblioteca dvs. locală nu este afectată.",
+			"confirmTitle": "Ștergeți seiful cloud?",
+			"confirmMessage": "Aceasta șterge permanent toate datele sincronizate din cloud și vă deconectează. Biblioteca dvs. locală rămâne intactă. Această acțiune nu poate fi anulată.",
+			"error": "Nu s-a putut șterge seiful dvs. cloud"
 		}
 	},
 	"player": {

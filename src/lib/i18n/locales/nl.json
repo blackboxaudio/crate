@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Alle wijzigingen gesynchroniseerd",
 			"syncing": "Synchroniseren…",
+			"offline": "Offline — wijzigingen worden gesynchroniseerd wanneer u weer verbonden bent",
 			"error": "Synchronisatiefout",
 			"signedOut": "Niet aangemeld"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Opnieuw toewijzen",
 			"unmapped": "Niet toegewezen op dit apparaat",
 			"none": "Nog geen bibliothekerwortels."
+		},
+		"conflicts": {
+			"overridden": "'{label}' is gewijzigd op {device} — uw bewerking is vervangen"
+		},
+		"danger": {
+			"title": "Gevarenzone",
+			"deleteVault": "Cloudkluis verwijderen",
+			"deleteVaultDescription": "Verwijder permanent alle gesynchroniseerde gegevens uit de cloud. Uw lokale bibliotheek wordt niet beïnvloed.",
+			"confirmTitle": "Cloudkluis verwijderen?",
+			"confirmMessage": "Hiermee verwijdert u permanent alle uw gesynchroniseerde gegevens uit de cloud en meldt u af. Uw lokale bibliotheek blijft intact. Deze actie kan niet ongedaan worden gemaakt.",
+			"error": "Kon uw cloudkluis niet verwijderen"
 		}
 	},
 	"player": {

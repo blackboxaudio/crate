@@ -20,6 +20,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::error::{CrateError, Result};
 
+use super::super::hlc;
 use super::buckets::{Bucket, BucketKind};
 use super::dirty;
 use super::rows::{self, ParsedRow};
@@ -29,17 +30,40 @@ mod writers;
 #[cfg(test)]
 mod tests;
 
+/// A non-trivial override observed during merge: this device's own locally-authored
+/// entity value was replaced by a higher-HLC remote value. Collected for an unobtrusive
+/// toast — **observational only**, it never affects merge outcomes. `winner_device_id`
+/// is filled in by the pull pipeline (the remote manifest's last writer).
+#[derive(Clone, Debug)]
+pub struct OverrideEvent {
+    pub label: String,
+    pub winner_device_id: String,
+}
+
 /// Merge a bucket's parsed remote rows into local state, in one transaction.
 /// FK checks are deferred to commit so intra-bucket ordering (e.g. a child
-/// playlist before its parent folder) is tolerated.
-pub fn merge_bucket(conn: &Connection, bucket: &Bucket, rows: &[ParsedRow]) -> Result<()> {
+/// playlist before its parent folder) is tolerated. Returns any non-trivial overrides
+/// observed (entities only) for surfacing as a toast — the merge result is unchanged
+/// whether or not the caller looks at them.
+pub fn merge_bucket(
+    conn: &Connection,
+    bucket: &Bucket,
+    rows: &[ParsedRow],
+) -> Result<Vec<OverrideEvent>> {
+    // This device's node id (the last `-`-separated segment of every locally-authored
+    // `_hlc`). Used ONLY to attribute overrides to this device — never to merge.
+    let self_node = hlc::load_node_id(conn).ok().map(|n| format!("{n:08x}"));
+
     let tx = conn.unchecked_transaction()?;
     tx.execute_batch("PRAGMA defer_foreign_keys = ON")?;
+    let mut overrides = Vec::new();
     match bucket.kind() {
         BucketKind::Settings => merge_settings(&tx, rows)?,
         BucketKind::Entity => {
             for row in rows {
-                merge_entity_row(&tx, bucket, row)?;
+                if let Some(ev) = merge_entity_row(&tx, bucket, row, self_node.as_deref())? {
+                    overrides.push(ev);
+                }
             }
         }
         BucketKind::Junction => {
@@ -49,7 +73,7 @@ pub fn merge_bucket(conn: &Connection, bucket: &Bucket, rows: &[ParsedRow]) -> R
         }
     }
     tx.commit()?;
-    Ok(())
+    Ok(overrides)
 }
 
 fn hlc_ge(a: &str, b: &str) -> bool {
@@ -98,10 +122,16 @@ fn select_tomb_hlc(tx: &Connection, bucket: &Bucket, cid: &str) -> Result<Option
 // Entities — DELETE-WINS-TIE
 // ---------------------------------------------------------------------------
 
-fn merge_entity_row(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result<()> {
+fn merge_entity_row(
+    tx: &Connection,
+    bucket: &Bucket,
+    row: &ParsedRow,
+    self_node: Option<&str>,
+) -> Result<Option<OverrideEvent>> {
     let cid = rows::canonical_id(bucket, &row.value)?;
     let local_live = select_live_hlc(tx, bucket, &cid)?;
     let local_tomb = select_tomb_hlc(tx, bucket, &cid)?;
+    let mut override_event = None;
 
     if !row.deleted {
         // ---- remote LIVE (upsert) ----
@@ -118,6 +148,9 @@ fn merge_entity_row(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result
             // Present locally: LWW, remote wins only if strictly newer.
             (Some(l), None) => {
                 if hlc_gt(&row.hlc, &l) {
+                    // Observe a non-trivial override BEFORE overwriting: this device's own
+                    // authored value is being replaced by a higher remote HLC.
+                    override_event = detect_override(tx, bucket, &cid, &l, self_node)?;
                     writers::upsert_entity(tx, bucket, row)?;
                 }
             }
@@ -136,7 +169,48 @@ fn merge_entity_row(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result
             (None, _) => writers::upsert_tombstone(tx, bucket, &cid, &row.hlc)?,
         }
     }
-    Ok(())
+    Ok(override_event)
+}
+
+/// Build an [`OverrideEvent`] when THIS device authored the value being discarded (the
+/// local `_hlc`'s node id matches ours). Returns `None` otherwise — normal propagation of
+/// a value this device merely received earlier is not a conflict worth a toast. Reads the
+/// label, never writes; observational only.
+fn detect_override(
+    tx: &Connection,
+    bucket: &Bucket,
+    cid: &str,
+    local_hlc: &str,
+    self_node: Option<&str>,
+) -> Result<Option<OverrideEvent>> {
+    let Some(self_node) = self_node else {
+        return Ok(None);
+    };
+    // The node id is the last `-`-separated segment of the HLC; `""` (never stamped) has
+    // none and never matches.
+    if local_hlc.rsplit('-').next() != Some(self_node) {
+        return Ok(None);
+    }
+    Ok(Some(OverrideEvent {
+        label: read_entity_label(tx, bucket, cid)?,
+        winner_device_id: String::new(), // filled in by the pull pipeline
+    }))
+}
+
+/// Read an entity's display label (name/title) from local state, BEFORE the merge
+/// overwrites it, for the override toast. Falls back to the id.
+fn read_entity_label(tx: &Connection, bucket: &Bucket, cid: &str) -> Result<String> {
+    let col = bucket.label_column();
+    let table = bucket.table();
+    let label: Option<String> = tx
+        .query_row(
+            &format!("SELECT {col} FROM {table} WHERE id = ?1"),
+            [cid],
+            |r| r.get::<_, Option<String>>(0),
+        )
+        .optional()?
+        .flatten();
+    Ok(label.unwrap_or_else(|| cid.to_string()))
 }
 
 // ---------------------------------------------------------------------------

@@ -14,7 +14,7 @@ use tauri_plugin_opener::OpenerExt;
 use crate::error::{CrateError, Result};
 use crate::services::cloud_sync::backend::types::DeviceRecord;
 use crate::services::cloud_sync::resolution;
-use crate::services::cloud_sync::runtime::{CloudSyncState, SyncStatus};
+use crate::services::cloud_sync::runtime::{CloudSyncState, OverrideNotice, SyncStatus};
 use crate::services::LibraryService;
 
 // =============================================================================
@@ -62,6 +62,14 @@ pub async fn pull_now(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
     state.run_pull().await
 }
 
+/// The recent override notices kept in memory (diagnostics; no audit-log UI in v1).
+#[tauri::command]
+pub async fn get_recent_overrides(
+    state: State<'_, Arc<CloudSyncState>>,
+) -> Result<Vec<OverrideNotice>> {
+    Ok(state.recent_overrides().await)
+}
+
 /// List devices registered against the signed-in account.
 #[tauri::command]
 pub async fn list_devices(state: State<'_, Arc<CloudSyncState>>) -> Result<Vec<DeviceRecord>> {
@@ -84,6 +92,13 @@ pub async fn revoke_device(
     state: State<'_, Arc<CloudSyncState>>,
 ) -> Result<()> {
     state.revoke_device(&device_id).await
+}
+
+/// Delete the user's entire cloud vault (manifest + devices + GC + all blobs) and sign
+/// out. Local library data is untouched.
+#[tauri::command]
+pub async fn delete_cloud_vault(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
+    state.delete_cloud_vault().await
 }
 
 // =============================================================================

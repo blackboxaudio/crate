@@ -73,7 +73,7 @@ impl BlobStore for FirebaseBlobs {
             .body(compressed)
             .send()
             .await
-            .map_err(|e| CrateError::CloudSync(format!("blob upload request: {e}")))?;
+            .map_err(|e| rest::send_error("blob upload request", e))?;
         if !resp.status().is_success() {
             return Err(rest::http_error("blob upload", resp).await);
         }
@@ -93,7 +93,7 @@ impl BlobStore for FirebaseBlobs {
             .bearer_auth(&s.access_token)
             .send()
             .await
-            .map_err(|e| CrateError::CloudSync(format!("blob download request: {e}")))?;
+            .map_err(|e| rest::send_error("blob download request", e))?;
         if resp.status() == StatusCode::NOT_FOUND {
             return Err(CrateError::CloudSyncBlobNotFound(key.to_string()));
         }
@@ -120,7 +120,7 @@ impl BlobStore for FirebaseBlobs {
             .bearer_auth(&s.access_token)
             .send()
             .await
-            .map_err(|e| CrateError::CloudSync(format!("blob delete request: {e}")))?;
+            .map_err(|e| rest::send_error("blob delete request", e))?;
         if !resp.status().is_success() && resp.status() != StatusCode::NOT_FOUND {
             return Err(rest::http_error("blob delete", resp).await);
         }

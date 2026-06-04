@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Todas as alterações sincronizadas",
 			"syncing": "Sincronizando…",
+			"offline": "Offline — as alterações serão sincronizadas quando você se reconectar",
 			"error": "Erro de sincronização",
 			"signedOut": "Não conectado"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Remapear",
 			"unmapped": "Não mapeado neste dispositivo",
 			"none": "Nenhuma raiz de biblioteca ainda."
+		},
+		"conflicts": {
+			"overridden": "'{label}' foi alterado em {device} — sua edição foi substituída"
+		},
+		"danger": {
+			"title": "Zona de Perigo",
+			"deleteVault": "Excluir cofre em nuvem",
+			"deleteVaultDescription": "Exclua permanentemente todos os seus dados sincronizados da nuvem. Sua biblioteca local não é afetada.",
+			"confirmTitle": "Excluir cofre em nuvem?",
+			"confirmMessage": "Isso exclui permanentemente todos os seus dados sincronizados da nuvem e faz logout. Sua biblioteca local permanece intacta. Esta ação não pode ser desfeita.",
+			"error": "Não foi possível excluir seu cofre em nuvem"
 		}
 	},
 	"player": {

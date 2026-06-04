@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Alle Änderungen synchronisiert",
 			"syncing": "Wird synchronisiert…",
+			"offline": "Offline — Änderungen werden synchronisiert, wenn Sie sich wieder verbinden",
 			"error": "Synchronisierungsfehler",
 			"signedOut": "Nicht angemeldet"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Neu zuordnen",
 			"unmapped": "Auf diesem Gerät nicht zugeordnet",
 			"none": "Noch keine Bibliotheks-Roots."
+		},
+		"conflicts": {
+			"overridden": "'{label}' wurde auf {device} geändert — Ihre Änderung wurde ersetzt"
+		},
+		"danger": {
+			"title": "Gefahrenzone",
+			"deleteVault": "Cloud-Tresor löschen",
+			"deleteVaultDescription": "Löschen Sie alle synchronisierten Daten aus der Cloud dauerhaft. Ihre lokale Bibliothek ist nicht betroffen.",
+			"confirmTitle": "Cloud-Tresor löschen?",
+			"confirmMessage": "Dies löscht alle Ihre synchronisierten Daten aus der Cloud dauerhaft und meldet Sie ab. Ihre lokale Bibliothek bleibt erhalten. Dies kann nicht rückgängig gemacht werden.",
+			"error": "Cloud-Tresor konnte nicht gelöscht werden"
 		}
 	},
 	"player": {

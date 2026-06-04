@@ -37,6 +37,10 @@ export async function revokeDevice(deviceId: string): Promise<void> {
 	return invoke<void>('revoke_device', { deviceId })
 }
 
+export async function deleteCloudVault(): Promise<void> {
+	return invoke<void>('delete_cloud_vault')
+}
+
 // Library roots
 
 export async function listLibraryRoots(): Promise<LibraryRoot[]> {

@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Todos los cambios sincronizados",
 			"syncing": "Sincronizando…",
+			"offline": "Desconectado — los cambios se sincronizarán cuando te reconectes",
 			"error": "Error de sincronización",
 			"signedOut": "No conectado"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Reasignar",
 			"unmapped": "No asignado en este dispositivo",
 			"none": "Sin raíces de biblioteca aún."
+		},
+		"conflicts": {
+			"overridden": "'{label}' fue modificado en {device} — tu cambio fue reemplazado"
+		},
+		"danger": {
+			"title": "Zona de Peligro",
+			"deleteVault": "Eliminar bóveda en la nube",
+			"deleteVaultDescription": "Elimina permanentemente todos tus datos sincronizados de la nube. Tu biblioteca local no se verá afectada.",
+			"confirmTitle": "¿Eliminar bóveda en la nube?",
+			"confirmMessage": "Esto elimina permanentemente todos tus datos sincronizados de la nube y te desconecta. Tu biblioteca local permanecerá intacta. Esto no se puede deshacer.",
+			"error": "No se pudo eliminar tu bóveda en la nube"
 		}
 	},
 	"player": {

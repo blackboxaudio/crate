@@ -67,7 +67,7 @@ impl ManifestStore for FirebaseManifest {
             .bearer_auth(&s.access_token)
             .send()
             .await
-            .map_err(|e| CrateError::CloudSync(format!("manifest read request: {e}")))?;
+            .map_err(|e| rest::send_error("manifest read request", e))?;
         if resp.status() == StatusCode::NOT_FOUND {
             return Ok(None);
         }
@@ -134,7 +134,7 @@ impl ManifestStore for FirebaseManifest {
             .json(&json!({ "writes": writes }))
             .send()
             .await
-            .map_err(|e| CrateError::CloudSync(format!("manifest commit request: {e}")))?;
+            .map_err(|e| rest::send_error("manifest commit request", e))?;
 
         let status = resp.status();
         if !status.is_success() {
@@ -190,7 +190,7 @@ impl ManifestStore for FirebaseManifest {
             .bearer_auth(&s.access_token)
             .send()
             .await
-            .map_err(|e| CrateError::CloudSync(format!("gc list request: {e}")))?;
+            .map_err(|e| rest::send_error("gc list request", e))?;
         if resp.status() == StatusCode::NOT_FOUND {
             return Ok(vec![]);
         }
@@ -237,9 +237,29 @@ impl ManifestStore for FirebaseManifest {
             .bearer_auth(&s.access_token)
             .send()
             .await
-            .map_err(|e| CrateError::CloudSync(format!("gc ack request: {e}")))?;
+            .map_err(|e| rest::send_error("gc ack request", e))?;
         if !resp.status().is_success() && resp.status() != StatusCode::NOT_FOUND {
             return Err(rest::http_error("gc ack", resp).await);
+        }
+        Ok(())
+    }
+
+    async fn delete(&self, s: &AuthSession) -> Result<()> {
+        let url = format!(
+            "{}/{}",
+            self.inner.firestore_base(),
+            Self::manifest_doc_path(&s.uid)
+        );
+        let resp = self
+            .inner
+            .client
+            .delete(&url)
+            .bearer_auth(&s.access_token)
+            .send()
+            .await
+            .map_err(|e| rest::send_error("manifest delete request", e))?;
+        if !resp.status().is_success() && resp.status() != StatusCode::NOT_FOUND {
+            return Err(rest::http_error("manifest delete", resp).await);
         }
         Ok(())
     }

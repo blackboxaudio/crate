@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "Alla ändringar synkroniserade",
 			"syncing": "Synkroniserar…",
+			"offline": "Offline — ändringar synkroniseras när du ansluter igen",
 			"error": "Synkroniseringsfel",
 			"signedOut": "Inte inloggad"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Omkarta",
 			"unmapped": "Inte mappad på den här enheten",
 			"none": "Inga biblioteksrötter än."
+		},
+		"conflicts": {
+			"overridden": "'{label}' ändrades på {device} — din redigering ersattes"
+		},
+		"danger": {
+			"title": "Farlig zon",
+			"deleteVault": "Ta bort molnvalv",
+			"deleteVaultDescription": "Ta permanent bort all synkroniserad data från molnet. Ditt lokala bibliotek påverkas inte.",
+			"confirmTitle": "Ta bort molnvalv?",
+			"confirmMessage": "Detta tar permanent bort all din synkroniserad data från molnet och loggar ut dig. Ditt lokala bibliotek förblir intakt. Den här åtgärden kan inte ångras.",
+			"error": "Det gick inte att ta bort ditt molnvalv"
 		}
 	},
 	"player": {

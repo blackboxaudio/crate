@@ -103,6 +103,13 @@ pub struct DeviceRecord {
     pub name: String,
     pub last_seen: SystemTime,
     pub app_version: String,
+    /// Revocation flag. Stored as a **separate top-level field** on the backend (NOT
+    /// inside this record's serialized blob) and written with a disjoint update mask, so
+    /// an in-flight heartbeat can't clear a concurrent revoke. `#[serde(skip)]` keeps it
+    /// out of the blob (and the Tauri IPC payload); the backend populates it on read from
+    /// the separate field.
+    #[serde(skip)]
+    pub revoked: bool,
 }
 
 /// An authenticated backend session. `access_token_expires_at` drives refresh.
@@ -113,6 +120,16 @@ pub struct AuthSession {
     pub access_token: String,
     pub refresh_token: String,
     pub access_token_expires_at: SystemTime,
+    pub email: Option<String>,
+    pub display_name: Option<String>,
+    pub photo_url: Option<String>,
+}
+
+/// Latest profile fields fetched live from the backend (e.g. Firebase
+/// `accounts:lookup`). Refreshed after each sync so the avatar/name follow the
+/// user's Google profile updates without requiring a re-sign-in.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ProfileInfo {
     pub email: Option<String>,
     pub display_name: Option<String>,
     pub photo_url: Option<String>,

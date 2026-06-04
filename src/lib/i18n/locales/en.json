@@ -172,6 +172,7 @@
 		"status": {
 			"idle": "All changes synced",
 			"syncing": "Syncing…",
+			"offline": "Offline — changes will sync when you reconnect",
 			"error": "Sync error",
 			"signedOut": "Not signed in"
 		},
@@ -198,6 +199,17 @@
 			"remap": "Remap",
 			"unmapped": "Not mapped on this device",
 			"none": "No library roots yet."
+		},
+		"conflicts": {
+			"overridden": "'{label}' was changed on {device} — your edit was replaced"
+		},
+		"danger": {
+			"title": "Danger Zone",
+			"deleteVault": "Delete cloud vault",
+			"deleteVaultDescription": "Permanently delete all synced data from the cloud. Your local library is not affected.",
+			"confirmTitle": "Delete cloud vault?",
+			"confirmMessage": "This permanently deletes all your synced data from the cloud and signs you out. Your local library stays intact. This can't be undone.",
+			"error": "Couldn't delete your cloud vault"
 		}
 	},
 	"player": {

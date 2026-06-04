@@ -844,7 +844,10 @@ export interface DiscoverySortConfig {
 // Cloud Sync Types
 // =============================================================================
 
-export type CloudSyncPhase = 'disabled' | 'signedout' | 'idle' | 'syncing' | 'error'
+export type CloudSyncPhase = 'disabled' | 'signedout' | 'idle' | 'syncing' | 'offline' | 'error'
+
+/** First-sign-in onboarding hint — only present on the sign-in response. */
+export type CloudSyncOnboarding = 'initial' | 'restore'
 
 export interface CloudSyncStatus {
 	phase: CloudSyncPhase
@@ -855,6 +858,7 @@ export interface CloudSyncStatus {
 	device_name: string
 	last_error: string | null
 	last_synced_at: string | null
+	onboarding: CloudSyncOnboarding | null
 }
 
 export interface CloudDeviceRecord {

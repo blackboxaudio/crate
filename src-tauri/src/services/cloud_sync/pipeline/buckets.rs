@@ -237,6 +237,16 @@ impl Bucket {
         }
     }
 
+    /// The display-label column (`name`/`title`) for an entity, used only to name the
+    /// entity in an override toast. Meaningless for junctions/settings (which never
+    /// produce overrides), where it defaults to `"name"`.
+    pub fn label_column(&self) -> &'static str {
+        match self {
+            Bucket::Tracks(_) | Bucket::DiscoveryReleases => "title",
+            _ => "name",
+        }
+    }
+
     /// PK column names in declaration order: one element for entities, two for
     /// junctions (matching the `a|b` order of [`super::dirty::junction_entity_id`]),
     /// and `["key"]` for settings.

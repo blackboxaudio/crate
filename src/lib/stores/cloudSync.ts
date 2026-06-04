@@ -1,6 +1,12 @@
-import { writable, derived } from 'svelte/store'
+import { writable, derived, get } from 'svelte/store'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type { CloudSyncStatus, CloudSyncPhase, CloudDeviceRecord, LibraryRoot } from '$lib/types'
 import * as cloudSyncApi from '$lib/api/cloudSync'
+import { translate } from '$lib/i18n'
+import { toastStore } from './toast'
+
+/** Payload of the backend `cloud-sync-override` event (one per discarded local edit). */
+type OverrideNotice = { label: string; device: string }
 
 // =============================================================================
 // State
@@ -24,6 +30,7 @@ const initialStatus: CloudSyncStatus = {
 	device_name: '',
 	last_error: null,
 	last_synced_at: null,
+	onboarding: null,
 }
 
 const initialState: CloudSyncState = {
@@ -45,6 +52,7 @@ function createCloudSyncStore() {
 	const { subscribe, set, update } = writable<CloudSyncState>(initialState)
 
 	let pollTimer: ReturnType<typeof setInterval> | null = null
+	let overrideUnlisten: UnlistenFn | null = null
 
 	async function pollStatus() {
 		try {
@@ -86,6 +94,23 @@ function createCloudSyncStore() {
 			try {
 				const status = await cloudSyncApi.signIn(providerId)
 				update((s) => ({ ...s, status, signingIn: false }))
+				// Drive first-sign-in onboarding. The dirty queue is empty on a fresh
+				// sign-in, so the debounce loop won't push on its own — kick the initial
+				// op here. Fire-and-forget; the indicator reflects progress via polling.
+				if (status.onboarding === 'initial') {
+					// First device: upload the local library as the initial vault.
+					cloudSyncApi
+						.syncNow()
+						.then(() => this.refreshStatus())
+						.catch((e) => console.error('Initial sync failed:', e))
+				} else if (status.onboarding === 'restore') {
+					// Fresh device: pull the vault. The Cloud Sync tab surfaces the roots
+					// wizard once the pulled roots land (it reloads on each completed sync).
+					cloudSyncApi
+						.pullNow()
+						.then(() => this.refreshStatus())
+						.catch((e) => console.error('Restore pull failed:', e))
+				}
 			} catch (error) {
 				update((s) => ({
 					...s,
@@ -153,6 +178,18 @@ function createCloudSyncStore() {
 			}
 		},
 
+		async deleteCloudVault() {
+			try {
+				await cloudSyncApi.deleteCloudVault()
+				// The backend signs out after wiping; reflect the signed-out state.
+				const status = await cloudSyncApi.getSyncStatus()
+				update((s) => ({ ...s, status, devices: [], libraryRoots: [], error: null }))
+			} catch (error) {
+				console.error('Failed to delete cloud vault:', error)
+				toastStore.error(get(translate)('cloudSync.danger.error'))
+			}
+		},
+
 		async loadLibraryRoots() {
 			try {
 				const libraryRoots = await cloudSyncApi.listLibraryRoots()
@@ -192,6 +229,27 @@ function createCloudSyncStore() {
 			}
 		},
 
+		/** Listen for override conflicts and toast the discarded edit's owner. */
+		async startOverrideListener() {
+			if (overrideUnlisten) return
+			overrideUnlisten = await listen<OverrideNotice[]>('cloud-sync-override', (event) => {
+				const t = get(translate)
+				// Cap the burst so a large concurrent merge can't flood the UI.
+				for (const notice of event.payload.slice(0, 5)) {
+					toastStore.warning(
+						t('cloudSync.conflicts.overridden', { values: { label: notice.label, device: notice.device } })
+					)
+				}
+			})
+		},
+
+		stopOverrideListener() {
+			if (overrideUnlisten) {
+				overrideUnlisten()
+				overrideUnlisten = null
+			}
+		},
+
 		reset() {
 			set(initialState)
 		},
@@ -210,7 +268,11 @@ export const syncPhase = derived(cloudSyncStore, ($s) => $s.status.phase)
 
 export const isSignedIn = derived(
 	cloudSyncStore,
-	($s) => $s.status.phase === 'idle' || $s.status.phase === 'syncing' || $s.status.phase === 'error'
+	($s) =>
+		$s.status.phase === 'idle' ||
+		$s.status.phase === 'syncing' ||
+		$s.status.phase === 'offline' ||
+		$s.status.phase === 'error'
 )
 
 export const isSyncAvailable = derived(cloudSyncStore, ($s) => $s.status.phase !== 'disabled')
