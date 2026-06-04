@@ -209,6 +209,7 @@ pub fn build_menu(app: &AppHandle<Wry>) -> Result<Menu<Wry>, tauri::Error> {
 
 fn build_app_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     let app_name = get_app_name();
+    #[allow(unused_mut)]
     let mut builder = SubmenuBuilder::with_id(app, ids::APP_MENU, &app_name)
         .item(&MenuItem::with_id(
             app,

@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-#[cfg(target_os = "macos")]
+#[cfg(any(target_os = "macos", target_os = "linux"))]
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
