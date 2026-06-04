@@ -38,10 +38,13 @@
 	}
 
 	async function confirmRename() {
-		if (newDeviceName.trim()) {
+		if (!newDeviceName.trim()) return
+		try {
 			await cloudSyncStore.renameDevice(newDeviceName.trim())
+			renamingDevice = false
+		} catch {
+			// Error toast already shown by the store — keep edit mode open for retry
 		}
-		renamingDevice = false
 	}
 
 	function handleRevoke(deviceId: string) {

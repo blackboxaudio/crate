@@ -444,8 +444,20 @@ impl CloudSyncState {
             .ensure_session(&backend)
             .await?
             .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
-        let devices = backend.devices().list(&session).await?;
-        Ok(devices.into_iter().filter(|d| !d.revoked).collect())
+        let mut devices: Vec<_> = backend
+            .devices()
+            .list(&session)
+            .await?
+            .into_iter()
+            .filter(|d| !d.revoked)
+            .collect();
+
+        // Local device name is authoritative — the Firebase heartbeat may lag.
+        let local_name = self.status.read().await.device_name.clone();
+        if let Some(me) = devices.iter_mut().find(|d| d.device_id == self.device_id) {
+            me.name = local_name;
+        }
+        Ok(devices)
     }
 
     /// True when the dirty queue is non-empty and has been quiet for `quiescent`
@@ -593,8 +605,8 @@ impl CloudSyncState {
     }
 
     /// Rename this device. The local name updates immediately; the Firebase
-    /// heartbeat is best-effort — if it fails (e.g. offline), the next automatic
-    /// heartbeat from `do_push` carries the new name.
+    /// heartbeat is fire-and-forget — if it fails (e.g. offline), the next
+    /// automatic heartbeat from `do_push` carries the new name.
     pub async fn rename_device(&self, name: &str) {
         {
             let mut st = self.status.write().await;
@@ -607,9 +619,11 @@ impl CloudSyncState {
         if let Some(backend) = self.backend.clone() {
             if let Ok(Some(session)) = self.ensure_session(&backend).await {
                 let record = self.device_record().await;
-                if let Err(e) = backend.devices().upsert(&session, &record).await {
-                    log::warn!("cloud_sync: rename heartbeat failed (will retry): {e}");
-                }
+                tokio::spawn(async move {
+                    if let Err(e) = backend.devices().upsert(&session, &record).await {
+                        log::warn!("cloud_sync: rename heartbeat failed (will retry): {e}");
+                    }
+                });
             }
         }
     }
