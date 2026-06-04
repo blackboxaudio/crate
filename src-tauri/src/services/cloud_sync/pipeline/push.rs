@@ -172,8 +172,8 @@ fn prepare_uploads(
     let delete_after = SystemTime::now() + GC_GRACE;
 
     for name in &diff.to_upload {
-        let bucket =
-            Bucket::parse(name).ok_or_else(|| CrateError::CloudSync(format!("bad bucket {name}")))?;
+        let bucket = Bucket::parse(name)
+            .ok_or_else(|| CrateError::CloudSync(format!("bad bucket {name}")))?;
         let bytes = rows::serialize_bucket(&guard, &bucket)?;
         let hash = rows::bucket_hash(&bytes);
         // Full storage key (BucketEntry.object_key is relative — see manifest.rs).

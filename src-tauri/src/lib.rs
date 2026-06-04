@@ -416,7 +416,7 @@ pub fn run() {
                         }
                         // Pull every other tick (~10s) to halve manifest reads; the
                         // etag gate keeps an unchanged poll cheap.
-                        if tick % 2 == 0 {
+                        if tick.is_multiple_of(2) {
                             if let Err(e) = cloud_state.run_pull().await {
                                 // A transient connectivity failure is expected while
                                 // offline (already surfaced as the `Offline` phase) —

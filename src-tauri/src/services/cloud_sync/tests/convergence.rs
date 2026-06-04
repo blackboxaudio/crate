@@ -605,7 +605,9 @@ async fn production_pull_converges_then_short_circuits() -> Result<()> {
     // A pushes; B pulls and converges.
     push_remote(a.clone(), &backend, &session, "A").await?;
     assert!(
-        pull_remote(b.clone(), &backend, &session, "B").await?.merged,
+        pull_remote(b.clone(), &backend, &session, "B")
+            .await?
+            .merged,
         "B merges A's push"
     );
     assert_eq!(
@@ -621,12 +623,16 @@ async fn production_pull_converges_then_short_circuits() -> Result<()> {
 
     // A redundant pull on B does nothing — the manifest etag is unchanged.
     assert!(
-        !pull_remote(b.clone(), &backend, &session, "B").await?.merged,
+        !pull_remote(b.clone(), &backend, &session, "B")
+            .await?
+            .merged,
         "second pull is a no-op (etag gate)"
     );
     // A never merges its own manifest back.
     assert!(
-        !pull_remote(a.clone(), &backend, &session, "A").await?.merged,
+        !pull_remote(a.clone(), &backend, &session, "A")
+            .await?
+            .merged,
         "A skips its own write (self-echo)"
     );
     Ok(())

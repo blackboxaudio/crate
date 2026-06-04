@@ -78,20 +78,14 @@ pub async fn list_devices(state: State<'_, Arc<CloudSyncState>>) -> Result<Vec<D
 
 /// Rename this device (updates the local name + best-effort heartbeat).
 #[tauri::command]
-pub async fn rename_device(
-    name: String,
-    state: State<'_, Arc<CloudSyncState>>,
-) -> Result<()> {
+pub async fn rename_device(name: String, state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
     state.rename_device(&name).await;
     Ok(())
 }
 
 /// Revoke a device. If `device_id` is the current device, also signs out.
 #[tauri::command]
-pub async fn revoke_device(
-    device_id: String,
-    state: State<'_, Arc<CloudSyncState>>,
-) -> Result<()> {
+pub async fn revoke_device(device_id: String, state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
     state.revoke_device(&device_id).await
 }
 
@@ -161,10 +155,7 @@ pub async fn rename_library_root(
 
 /// Delete a library root (synced).
 #[tauri::command]
-pub async fn remove_library_root(
-    id: String,
-    state: State<'_, Arc<CloudSyncState>>,
-) -> Result<()> {
+pub async fn remove_library_root(id: String, state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
     state.with_conn(|conn| resolution::remove_root(conn, &id))
 }
 
@@ -180,9 +171,7 @@ pub async fn set_library_root_mapping(
 
 /// Suggest library root paths by finding common prefixes of existing track paths.
 #[tauri::command]
-pub async fn suggest_library_roots(
-    state: State<'_, Arc<CloudSyncState>>,
-) -> Result<Vec<String>> {
+pub async fn suggest_library_roots(state: State<'_, Arc<CloudSyncState>>) -> Result<Vec<String>> {
     state.with_conn(|conn| {
         let mut stmt = conn.prepare(
             "SELECT DISTINCT file_path FROM tracks WHERE library_root_id IS NULL LIMIT 2000",
@@ -252,12 +241,14 @@ fn find_common_prefixes(paths: &[String]) -> Vec<String> {
         .into_iter()
         .filter(|(_, count)| *count >= 3)
         .collect();
-    prefixes.sort_by(|a, b| b.1.cmp(&a.1));
+    prefixes.sort_by_key(|b| std::cmp::Reverse(b.1));
 
     // Deduplicate: if a parent of an entry is already in the list, skip the child.
     let mut result: Vec<String> = Vec::new();
     for (dir, _) in &prefixes {
-        let dominated = result.iter().any(|existing| dir.starts_with(existing.as_str()));
+        let dominated = result
+            .iter()
+            .any(|existing| dir.starts_with(existing.as_str()));
         if !dominated {
             result.push(dir.clone());
         }

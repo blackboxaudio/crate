@@ -444,13 +444,20 @@ fn override_reported_when_local_authored_value_is_replaced() {
     let overrides = merge_bucket(
         &conn,
         &Bucket::TagCategories,
-        &[tc_live("c1", "Techno", "0000000000000006-00000000-11223344")],
+        &[tc_live(
+            "c1",
+            "Techno",
+            "0000000000000006-00000000-11223344",
+        )],
     )
     .unwrap();
     // Outcome is unchanged (remote wins); the override is reported alongside.
     assert_eq!(tc_name(&conn, "c1").as_deref(), Some("Techno"));
     assert_eq!(overrides.len(), 1);
-    assert_eq!(overrides[0].label, "House", "names the discarded local value");
+    assert_eq!(
+        overrides[0].label, "House",
+        "names the discarded local value"
+    );
 }
 
 #[test]
@@ -463,7 +470,11 @@ fn no_override_when_local_value_authored_elsewhere() {
     let overrides = merge_bucket(
         &conn,
         &Bucket::TagCategories,
-        &[tc_live("c1", "Techno", "0000000000000006-00000000-11223344")],
+        &[tc_live(
+            "c1",
+            "Techno",
+            "0000000000000006-00000000-11223344",
+        )],
     )
     .unwrap();
     assert_eq!(tc_name(&conn, "c1").as_deref(), Some("Techno"));

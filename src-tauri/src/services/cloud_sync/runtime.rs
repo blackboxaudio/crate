@@ -188,9 +188,7 @@ impl CloudSyncState {
             Err(e) => {
                 log::warn!("cloud_sync: session restore failed: {e}");
                 if e.is_transient() {
-                    if let Ok((email, display_name, photo_url)) =
-                        auth::read_profile(&self.conn)
-                    {
+                    if let Ok((email, display_name, photo_url)) = auth::read_profile(&self.conn) {
                         let mut st = self.status.write().await;
                         st.phase = SyncPhase::Offline;
                         st.email = email;
@@ -283,9 +281,7 @@ impl CloudSyncState {
     pub async fn sign_out(&self) -> Result<()> {
         let session = self.session.write().await.take();
         match &self.backend {
-            Some(backend) => {
-                auth::sign_out(backend, session.as_ref(), self.conn.clone()).await?
-            }
+            Some(backend) => auth::sign_out(backend, session.as_ref(), self.conn.clone()).await?,
             None => {
                 let guard = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
                 auth::token_store::clear_refresh_token(&guard)?;
@@ -313,7 +309,8 @@ impl CloudSyncState {
         let _sync = self.sync_lock.lock().await;
         let result = self.do_push(&backend).await;
         if let Err(e) = &result {
-            self.set_phase(phase_for_error(e), Some(e.to_string())).await;
+            self.set_phase(phase_for_error(e), Some(e.to_string()))
+                .await;
         }
         result
     }
@@ -334,7 +331,8 @@ impl CloudSyncState {
         let outcome = push::push(self.conn.clone(), backend, &session, &self.device_id).await?;
         let record = self.device_record().await;
         let _ = backend.devices().upsert(&session, &record).await;
-        self.emit_overrides(backend, &session, outcome.overrides).await;
+        self.emit_overrides(backend, &session, outcome.overrides)
+            .await;
         // A push pull-then-merges the remote union before uploading; reload the affected
         // UI stores so a peer's change shows after a manual "Sync now" too.
         self.emit_merged(outcome.merged_buckets);
@@ -358,7 +356,10 @@ impl CloudSyncState {
         let result = self.do_pull(&backend).await;
         match &result {
             Ok(()) => self.clear_offline_phase().await,
-            Err(e) => self.set_phase(phase_for_error(e), Some(e.to_string())).await,
+            Err(e) => {
+                self.set_phase(phase_for_error(e), Some(e.to_string()))
+                    .await
+            }
         }
         result
     }
@@ -373,7 +374,8 @@ impl CloudSyncState {
         }
         let outcome = pull::pull(self.conn.clone(), backend, &session, &self.device_id).await?;
         let merged = outcome.merged;
-        self.emit_overrides(backend, &session, outcome.overrides).await;
+        self.emit_overrides(backend, &session, outcome.overrides)
+            .await;
         // Tell the UI which stores to reload so a peer's change shows without a restart.
         self.emit_merged(outcome.buckets);
         if merged {
@@ -485,11 +487,10 @@ impl CloudSyncState {
     /// (the debounce condition). Reads `sync_dirty_buckets.marked_at` (RFC 3339).
     pub fn dirty_quiescent(&self, quiescent: std::time::Duration) -> Result<bool> {
         let guard = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        let newest: Option<String> = guard.query_row(
-            "SELECT MAX(marked_at) FROM sync_dirty_buckets",
-            [],
-            |r| r.get::<_, Option<String>>(0),
-        )?;
+        let newest: Option<String> =
+            guard.query_row("SELECT MAX(marked_at) FROM sync_dirty_buckets", [], |r| {
+                r.get::<_, Option<String>>(0)
+            })?;
         let Some(newest) = newest else {
             return Ok(false); // empty queue
         };
@@ -510,10 +511,7 @@ impl CloudSyncState {
 
     /// Resolve a usable session: refresh the cached one if it's near expiry, else load
     /// from the database. Caches the result. `None` means signed out.
-    async fn ensure_session(
-        &self,
-        backend: &Arc<dyn CloudBackend>,
-    ) -> Result<Option<AuthSession>> {
+    async fn ensure_session(&self, backend: &Arc<dyn CloudBackend>) -> Result<Option<AuthSession>> {
         let cached = self.session.read().await.clone();
         let session = match cached {
             Some(s) => auth::ensure_fresh(backend, self.conn.clone(), s).await?,
@@ -698,8 +696,8 @@ impl CloudSyncState {
 
         // 2. Drain the GC queue (superseded blobs + their queue docs). `due_before` is far
         // in the future so every entry is returned regardless of its grace window.
-        let far_future = std::time::SystemTime::now()
-            + std::time::Duration::from_secs(100 * 365 * 24 * 3600);
+        let far_future =
+            std::time::SystemTime::now() + std::time::Duration::from_secs(100 * 365 * 24 * 3600);
         for _ in 0..100 {
             let due = store.dequeue_gc(&session, far_future, 300).await?;
             if due.is_empty() {

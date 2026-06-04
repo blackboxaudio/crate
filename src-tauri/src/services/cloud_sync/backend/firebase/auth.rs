@@ -170,9 +170,10 @@ impl AuthBackend for FirebaseAuth {
             .json()
             .await
             .map_err(|e| CrateError::CloudSyncAuth(format!("accounts:lookup decode: {e}")))?;
-        let user = body.users.into_iter().next().ok_or_else(|| {
-            CrateError::CloudSyncAuth("accounts:lookup returned no users".into())
-        })?;
+        let user =
+            body.users.into_iter().next().ok_or_else(|| {
+                CrateError::CloudSyncAuth("accounts:lookup returned no users".into())
+            })?;
         Ok(ProfileInfo {
             email: user.email,
             display_name: user.display_name,
