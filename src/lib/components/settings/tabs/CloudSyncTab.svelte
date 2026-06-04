@@ -37,14 +37,10 @@
 		renamingDevice = true
 	}
 
-	async function confirmRename() {
+	function confirmRename() {
 		if (!newDeviceName.trim()) return
-		try {
-			await cloudSyncStore.renameDevice(newDeviceName.trim())
-			renamingDevice = false
-		} catch {
-			// Error toast already shown by the store — keep edit mode open for retry
-		}
+		renamingDevice = false
+		cloudSyncStore.renameDevice(newDeviceName.trim()).catch(() => {})
 	}
 
 	function handleRevoke(deviceId: string) {
@@ -156,6 +152,7 @@
 										<Input
 											bind:value={newDeviceName}
 											class="h-8 w-40 text-sm"
+											autofocus
 											onkeydown={(e) => e.key === 'Enter' && confirmRename()}
 										/>
 										<Button variant="primary" size="sm" onclick={confirmRename}>
