@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl DiscoveryService {
     /// Find existing releases that may overlap with the given metadata.
@@ -99,6 +100,7 @@ impl DiscoveryService {
             let max_position = existing.iter().map(|(_, pos)| *pos).max().unwrap_or(0);
 
             let now = chrono::Utc::now().to_rfc3339();
+            let hlc = dirty::next_hlc(&conn)?;
             let mut next_position = max_position + 1;
 
             for track in &tracks {
@@ -107,17 +109,19 @@ impl DiscoveryService {
                 }
                 let track_id = uuid::Uuid::new_v4().to_string();
                 conn.execute(
-                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                    rusqlite::params![track_id, release_id, track.name, next_position, track.duration_ms, track.video_id],
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    rusqlite::params![track_id, release_id, track.name, next_position, track.duration_ms, track.video_id, hlc],
                 )?;
                 next_position += 1;
             }
 
             // Update date_modified
             conn.execute(
-                "UPDATE discovery_releases SET date_modified = ?1 WHERE id = ?2",
-                rusqlite::params![now, release_id],
+                "UPDATE discovery_releases SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+                rusqlite::params![now, hlc, release_id],
             )?;
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
         }
 
         drop(conn);
@@ -139,6 +143,7 @@ impl DiscoveryService {
 
         {
             let now = chrono::Utc::now().to_rfc3339();
+            let hlc = dirty::next_hlc(&conn)?;
 
             // Get existing target track names for dedup
             let mut stmt = conn.prepare(
@@ -182,8 +187,8 @@ impl DiscoveryService {
                     }
                     let track_id = uuid::Uuid::new_v4().to_string();
                     conn.execute(
-                        "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                        rusqlite::params![track_id, target_id, name, next_position, duration_ms, video_id],
+                        "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                        rusqlite::params![track_id, target_id, name, next_position, duration_ms, video_id, hlc],
                     )?;
                     existing_names.push(name.to_lowercase());
                     next_position += 1;
@@ -198,15 +203,15 @@ impl DiscoveryService {
 
                 for tag_id in &tag_ids {
                     conn.execute(
-                        "INSERT OR IGNORE INTO discovery_release_tags (release_id, tag_id) VALUES (?1, ?2)",
-                        rusqlite::params![target_id, tag_id],
+                        "INSERT OR IGNORE INTO discovery_release_tags (release_id, tag_id, _hlc) VALUES (?1, ?2, ?3)",
+                        rusqlite::params![target_id, tag_id, hlc],
                     )?;
                 }
 
                 // Move playlist memberships from source to target
                 conn.execute(
-                    "UPDATE OR IGNORE playlist_discovery_releases SET release_id = ?1 WHERE release_id = ?2",
-                    rusqlite::params![target_id, source_id],
+                    "UPDATE OR IGNORE playlist_discovery_releases SET release_id = ?1, _hlc = ?2 WHERE release_id = ?3",
+                    rusqlite::params![target_id, hlc, source_id],
                 )?;
                 // Delete any remaining (duplicates that couldn't be moved due to PK conflict)
                 conn.execute(
@@ -227,6 +232,7 @@ impl DiscoveryService {
                 }
 
                 // Delete source release (cascading deletes handle tracks/tags)
+                dirty::record_tombstone(&conn, buckets::DISCOVERY_RELEASES, source_id, &hlc)?;
                 conn.execute(
                     "DELETE FROM discovery_releases WHERE id = ?1",
                     [source_id.as_str()],
@@ -241,9 +247,13 @@ impl DiscoveryService {
             };
 
             conn.execute(
-                "UPDATE discovery_releases SET date_modified = ?1, notes = ?2 WHERE id = ?3",
-                rusqlite::params![now, merged_notes, target_id],
+                "UPDATE discovery_releases SET date_modified = ?1, notes = ?2, _hlc = ?3 WHERE id = ?4",
+                rusqlite::params![now, merged_notes, hlc, target_id],
             )?;
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
+            dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
         }
 
         drop(conn);

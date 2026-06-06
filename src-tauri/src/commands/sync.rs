@@ -1,7 +1,7 @@
 use tauri::{AppHandle, State};
 
 use crate::error::Result;
-use crate::services::sync::{DeviceInfo, SyncResult};
+use crate::services::device_sync::{DeviceInfo, SyncResult};
 use crate::services::SyncService;
 
 /// Sync playlists to a USB device

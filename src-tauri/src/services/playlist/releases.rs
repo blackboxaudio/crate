@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl PlaylistService {
     pub fn add_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<Playlist> {
@@ -17,20 +18,23 @@ impl PlaylistService {
             .unwrap_or(-1);
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
 
         for (i, release_id) in release_ids.iter().enumerate() {
             let position = max_position + 1 + i as i32;
             conn.execute(
-                "INSERT OR IGNORE INTO playlist_discovery_releases (playlist_id, release_id, position, date_added) VALUES (?1, ?2, ?3, ?4)",
-                rusqlite::params![playlist_id, release_id, position, now],
+                "INSERT OR IGNORE INTO playlist_discovery_releases (playlist_id, release_id, position, date_added, _hlc) VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![playlist_id, release_id, position, now, hlc],
             )?;
         }
 
         // Update playlist modified date
         conn.execute(
-            "UPDATE playlists SET date_modified = ?1 WHERE id = ?2",
-            rusqlite::params![now, playlist_id],
+            "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, playlist_id],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         drop(conn);
         self.get_playlist(playlist_id)
@@ -42,11 +46,20 @@ impl PlaylistService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         for release_id in &release_ids {
-            conn.execute(
+            let deleted = conn.execute(
                 "DELETE FROM playlist_discovery_releases WHERE playlist_id = ?1 AND release_id = ?2",
                 rusqlite::params![playlist_id, release_id],
             )?;
+            if deleted > 0 {
+                dirty::record_tombstone(
+                    &conn,
+                    buckets::PLAYLIST_DISCOVERY_RELEASES,
+                    &dirty::junction_entity_id(playlist_id, release_id),
+                    &hlc,
+                )?;
+            }
         }
 
         // Reorder remaining releases
@@ -62,17 +75,19 @@ impl PlaylistService {
 
         for (i, release_id) in remaining.iter().enumerate() {
             conn.execute(
-                "UPDATE playlist_discovery_releases SET position = ?1 WHERE playlist_id = ?2 AND release_id = ?3",
-                rusqlite::params![i as i32, playlist_id, release_id],
+                "UPDATE playlist_discovery_releases SET position = ?1, _hlc = ?2 WHERE playlist_id = ?3 AND release_id = ?4",
+                rusqlite::params![i as i32, hlc, playlist_id, release_id],
             )?;
         }
 
         // Update playlist modified date
         let now = chrono::Utc::now().to_rfc3339();
         conn.execute(
-            "UPDATE playlists SET date_modified = ?1 WHERE id = ?2",
-            rusqlite::params![now, playlist_id],
+            "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, playlist_id],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         drop(conn);
         self.get_playlist(playlist_id)

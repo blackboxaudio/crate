@@ -61,10 +61,13 @@ pub struct MenuTranslations {
     pub settings: String,
     pub quit: String,
     // App menu items (macOS only: Hide, Hide Others, Show All)
+    #[cfg(target_os = "macos")]
     #[serde(default)]
     pub hide: String,
+    #[cfg(target_os = "macos")]
     #[serde(default)]
     pub hide_others: String,
+    #[cfg(target_os = "macos")]
     #[serde(default)]
     pub show_all: String,
     // File menu items
@@ -209,6 +212,7 @@ pub fn build_menu(app: &AppHandle<Wry>) -> Result<Menu<Wry>, tauri::Error> {
 
 fn build_app_menu(app: &AppHandle<Wry>) -> Result<Submenu<Wry>, tauri::Error> {
     let app_name = get_app_name();
+    #[allow(unused_mut)]
     let mut builder = SubmenuBuilder::with_id(app, ids::APP_MENU, &app_name)
         .item(&MenuItem::with_id(
             app,

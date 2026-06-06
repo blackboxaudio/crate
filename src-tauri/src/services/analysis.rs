@@ -19,6 +19,7 @@ use symphonia::core::probe::Hint;
 
 use crate::error::{CrateError, Result};
 use crate::models::{Tag, Track};
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 /// Result of analyzing a single track
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -452,11 +453,13 @@ impl AnalysisService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
 
         conn.execute(
-            "UPDATE tracks SET bpm = ?1, key = ?2, analysis_source = 'crate', date_modified = ?3 WHERE id = ?4",
-            rusqlite::params![bpm, key, now, track_id],
+            "UPDATE tracks SET bpm = ?1, key = ?2, analysis_source = 'crate', date_modified = ?3, _hlc = ?4 WHERE id = ?5",
+            rusqlite::params![bpm, key, now, hlc, track_id],
         )?;
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(track_id))?;
 
         Ok(())
     }
@@ -475,7 +478,8 @@ impl AnalysisService {
                    analysis_source, waveform_data,
                    rating, play_count,
                    date_added, date_modified, last_played,
-                   rekordbox_id, artwork_path, artwork_source, color
+                   rekordbox_id, artwork_path, artwork_source, color,
+                   library_root_id, relative_path
             FROM tracks
             WHERE id = ?1
             "#,
@@ -510,6 +514,8 @@ impl AnalysisService {
                 artwork_path: row.get(24)?,
                 artwork_source: row.get(25)?,
                 color: row.get(26)?,
+                library_root_id: row.get(27)?,
+                relative_path: row.get(28)?,
                 tags: Vec::new(),
             })
         })?;
@@ -566,7 +572,8 @@ impl AnalysisService {
                    analysis_source, waveform_data,
                    rating, play_count,
                    date_added, date_modified, last_played,
-                   rekordbox_id, artwork_path, artwork_source, color
+                   rekordbox_id, artwork_path, artwork_source, color,
+                   library_root_id, relative_path
             FROM tracks
             WHERE id = ?1
             "#,
@@ -601,6 +608,8 @@ impl AnalysisService {
                 artwork_path: row.get(24)?,
                 artwork_source: row.get(25)?,
                 color: row.get(26)?,
+                library_root_id: row.get(27)?,
+                relative_path: row.get(28)?,
                 tags: Vec::new(),
             })
         })?;

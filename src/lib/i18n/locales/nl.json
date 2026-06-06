@@ -35,6 +35,7 @@
 			"discovery": "Ontdekkingen",
 			"appearance": "Uiterlijk",
 			"sound": "Geluid",
+			"cloudSync": "Cloudsynchronisatie",
 			"diagnostics": "Diagnostiek",
 			"about": "Over"
 		},
@@ -160,6 +161,56 @@
 			"checkForUpdates": "Op updates controleren",
 			"upToDate": "Up-to-date",
 			"updateAvailable": "{version} beschikbaar"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Meld u aan om uw bibliotheek te synchroniseren",
+			"description": "Synchroniseer uw nummers, afspeellijsten en tags op al uw apparaten.",
+			"button": "Aanmelden met {provider}"
+		},
+		"status": {
+			"idle": "Alle wijzigingen gesynchroniseerd",
+			"syncing": "Synchroniseren…",
+			"offline": "Offline — wijzigingen worden gesynchroniseerd wanneer u weer verbonden bent",
+			"error": "Synchronisatiefout",
+			"signedOut": "Niet aangemeld"
+		},
+		"account": {
+			"title": "Account",
+			"syncNow": "Nu synchroniseren",
+			"syncing": "Synchroniseren…",
+			"signOut": "Afmelden",
+			"lastSynced": "Laatst gesynchroniseerd {time}"
+		},
+		"devices": {
+			"title": "Apparaten",
+			"description": "Apparaten die zijn aangemeld bij dit account delen uw bibliotheek.",
+			"thisDevice": "Dit apparaat",
+			"lastSeen": "Laatst gezien {time}",
+			"revoke": "Intrekken",
+			"revokeTitle": "Apparaat intrekken?",
+			"revokeMessage": "Dit apparaat stopt met synchroniseren en moet zich opnieuw aanmelden om opnieuw verbinding te maken.",
+			"renameFailed": "Apparaat kon niet worden hernoemd"
+		},
+		"roots": {
+			"title": "Bibliothekerwortels",
+			"description": "Wijs elke gesynchroniseerde bibliotheekwortel toe aan een map op dit apparaat, zodat de nummers afspeelbaar zijn.",
+			"map": "Map toewijzen",
+			"remap": "Opnieuw toewijzen",
+			"unmapped": "Niet toegewezen op dit apparaat",
+			"none": "Nog geen bibliothekerwortels."
+		},
+		"conflicts": {
+			"overridden": "‘{label}’ is gewijzigd op {device} — uw bewerking is vervangen"
+		},
+		"danger": {
+			"title": "Gevarenzone",
+			"deleteVault": "Cloudkluis verwijderen",
+			"deleteVaultDescription": "Verwijder permanent alle gesynchroniseerde gegevens uit de cloud. Uw lokale bibliotheek wordt niet beïnvloed.",
+			"confirmTitle": "Cloudkluis verwijderen?",
+			"confirmMessage": "Hiermee verwijdert u permanent alle uw gesynchroniseerde gegevens uit de cloud en meldt u af. Uw lokale bibliotheek blijft intact. Deze actie kan niet ongedaan worden gemaakt.",
+			"error": "Kon uw cloudkluis niet verwijderen"
 		}
 	},
 	"player": {

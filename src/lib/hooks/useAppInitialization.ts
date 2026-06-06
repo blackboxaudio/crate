@@ -59,6 +59,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenDragDrop: UnlistenFn | undefined
 	let unlistenDiscoveryUpdate: UnlistenFn | undefined
 	let unlistenEnrichmentQueued: UnlistenFn | undefined
+	let unlistenCloudSyncMerge: UnlistenFn | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -178,11 +179,63 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		})
 	}
 
+	// Set up cloud-sync merge listener: a background pull/push (or "Sync now") merged a
+	// peer's changes into the local DB. The payload is the list of merged sync buckets;
+	// reload only the stores those buckets feed so the change shows without an app restart.
+	async function setupCloudSyncMergeListener(): Promise<void> {
+		unlistenCloudSyncMerge = await listen<string[]>('cloud-sync-merged', (event) => {
+			reloadStoresForBuckets(event.payload)
+		})
+	}
+
+	// Map merged sync buckets to the stores that must reload. Tag name/color and track-tag
+	// links are embedded on tracks and discovery releases, so a tag-related merge reloads
+	// those stores too.
+	function reloadStoresForBuckets(buckets: string[]): void {
+		let library = false
+		let playlists = false
+		let tags = false
+		let discovery = false
+		let settings = false
+
+		for (const bucket of buckets) {
+			if (bucket.startsWith('tracks/') || bucket === 'cues' || bucket === 'library_roots') {
+				library = true
+			} else if (bucket === 'playlists' || bucket === 'playlist_tracks') {
+				playlists = true
+			} else if (bucket === 'playlist_discovery_releases') {
+				playlists = true
+				discovery = true
+			} else if (bucket === 'tag_categories' || bucket === 'tags') {
+				tags = true
+				library = true
+				discovery = true
+			} else if (bucket === 'track_tags') {
+				tags = true
+				library = true
+			} else if (bucket === 'discovery_release_tags') {
+				tags = true
+				discovery = true
+			} else if (bucket === 'discovery_releases' || bucket === 'discovery_tracks') {
+				discovery = true
+			} else if (bucket === 'settings') {
+				settings = true
+			}
+		}
+
+		if (library) libraryStore.loadTracks()
+		if (playlists) playlistsStore.load()
+		if (tags) tagsStore.load()
+		if (discovery) discoveryStore.loadReleases()
+		if (settings) settingsStore.load()
+	}
+
 	// Initialize listeners
 	await setupDragDrop()
 	await setupDeviceListener()
 	await setupDiscoveryUpdateListener()
 	await setupEnrichmentQueuedListener()
+	await setupCloudSyncMergeListener()
 
 	// Return cleanup function
 	return () => {
@@ -190,5 +243,6 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenDevices?.()
 		unlistenDiscoveryUpdate?.()
 		unlistenEnrichmentQueued?.()
+		unlistenCloudSyncMerge?.()
 	}
 }

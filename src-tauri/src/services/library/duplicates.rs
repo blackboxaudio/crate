@@ -1,4 +1,6 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
+use crate::services::cloud_sync::resolution;
 
 impl LibraryService {
     /// Resolve a duplicate by applying the user's chosen action
@@ -47,12 +49,23 @@ impl LibraryService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
+        let (library_root_id, relative_path) = resolution::assign_root_for_import(&conn, new_path)?;
 
         // Update file_path and date_modified only
         conn.execute(
-            "UPDATE tracks SET file_path = ?1, date_modified = ?2 WHERE id = ?3",
-            rusqlite::params![new_path, now, existing_track_id],
+            "UPDATE tracks SET file_path = ?1, date_modified = ?2, _hlc = ?3, \
+                library_root_id = ?4, relative_path = ?5 WHERE id = ?6",
+            rusqlite::params![
+                new_path,
+                now,
+                hlc,
+                library_root_id,
+                relative_path,
+                existing_track_id
+            ],
         )?;
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(existing_track_id))?;
 
         drop(conn);
         self.get_track(existing_track_id)
@@ -81,6 +94,11 @@ impl LibraryService {
             rows.collect::<std::result::Result<Vec<_>, _>>()?
         };
 
+        // Tombstone the old track so the delete propagates; cascade children
+        // (cues/tags/memberships) converge via the same delete on peers.
+        let hlc = dirty::next_hlc(&conn)?;
+        dirty::record_tombstone(&conn, buckets::TRACKS_ENTITY, existing_track_id, &hlc)?;
+
         // 2. Delete related data (cues, tags)
         conn.execute("DELETE FROM cues WHERE track_id = ?1", [existing_track_id])?;
         conn.execute(
@@ -100,6 +118,13 @@ impl LibraryService {
         // Delete old artwork
         self.artwork_service.delete(existing_track_id);
 
+        // Re-serialize the old track's shard (now carrying its tombstone) and the
+        // cascade-cleared child buckets.
+        dirty::mark_dirty_track(&conn, existing_track_id)?;
+        dirty::mark_dirty(&conn, buckets::CUES)?;
+        dirty::mark_dirty(&conn, buckets::TRACK_TAGS)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
+
         drop(conn);
 
         // 5. Import fresh track
@@ -111,12 +136,14 @@ impl LibraryService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         for (playlist_id, position, date_added) in playlist_memberships {
             conn.execute(
-                "INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position, date_added) VALUES (?1, ?2, ?3, ?4)",
-                rusqlite::params![playlist_id, track.id, position, date_added],
+                "INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position, date_added, _hlc) VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![playlist_id, track.id, position, date_added, hlc],
             )?;
         }
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
 
         drop(conn);
         self.get_track(&track.id)

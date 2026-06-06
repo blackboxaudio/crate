@@ -6,7 +6,17 @@
 	import Modal from '$lib/components/common/Modal.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import { translate } from '$lib/i18n'
-	import { GeneralTab, LibraryTab, DiscoveryTab, AppearanceTab, SoundTab, DiagnosticsTab, AboutTab } from './tabs'
+	import {
+		GeneralTab,
+		LibraryTab,
+		DiscoveryTab,
+		AppearanceTab,
+		SoundTab,
+		CloudSyncTab,
+		DiagnosticsTab,
+		AboutTab,
+	} from './tabs'
+	import { isSyncAvailable, cloudSyncStore } from '$lib/stores/cloudSync'
 
 	type Props = {
 		open: boolean
@@ -19,15 +29,18 @@
 	let contentEl: HTMLDivElement | undefined = $state()
 	let activePage: SettingsPage = $state('general')
 
-	const tabs: { page: SettingsPage; icon: string; fill?: boolean }[] = [
+	const allTabs: { page: SettingsPage; icon: string; fill?: boolean; requireSync?: boolean }[] = [
 		{ page: 'general', icon: 'sliders-horizontal' },
 		{ page: 'appearance', icon: 'palette' },
 		{ page: 'discovery', icon: 'globe' },
 		{ page: 'library', icon: 'library' },
 		{ page: 'sound', icon: 'volume-full', fill: true },
+		{ page: 'cloudSync', icon: 'cloud', requireSync: true },
 		{ page: 'diagnostics', icon: 'terminal' },
 		{ page: 'about', icon: 'info' },
 	]
+
+	const tabs = $derived(allTabs.filter((t) => !t.requireSync || $isSyncAvailable))
 
 	// Set active page when opening (use initialTab if provided, otherwise default to 'general')
 	$effect(() => {
@@ -40,6 +53,13 @@
 	$effect(() => {
 		if (open && activePage === 'sound') {
 			settingsStore.refreshAudioDevices()
+		}
+	})
+
+	// Load cloud sync status when opening the cloud sync tab
+	$effect(() => {
+		if (open && activePage === 'cloudSync') {
+			cloudSyncStore.load()
 		}
 	})
 
@@ -92,6 +112,8 @@
 				<LibraryTab />
 			{:else if activePage === 'sound'}
 				<SoundTab />
+			{:else if activePage === 'cloudSync'}
+				<CloudSyncTab />
 			{:else if activePage === 'diagnostics'}
 				<DiagnosticsTab />
 			{:else if activePage === 'about'}

@@ -92,3 +92,14 @@ export { discoveryPlaylistStore, discoveryPlaylistReleases } from './discoveryPl
 export { pageActions } from './pageActions'
 export type { PageActions } from './pageActions'
 export { locateStore, pendingScrollTrackId, pendingScrollReleaseId } from './locate'
+export {
+	cloudSyncStore,
+	syncStatus,
+	syncPhase,
+	isSignedIn,
+	isSyncAvailable,
+	cloudDevices,
+	libraryRoots,
+	unmappedRootIds,
+	signingIn,
+} from './cloudSync'

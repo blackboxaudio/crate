@@ -37,6 +37,7 @@ import {
 import { tagFilterMode } from '$lib/stores/ui'
 import { recentlyToggledMixedTags } from '$lib/stores/ui'
 import { syncStore } from '$lib/stores/sync'
+import { cloudSyncStore } from '$lib/stores/cloudSync'
 import { toastStore } from '$lib/stores/toast'
 import { exportStore } from '$lib/stores/export'
 import { dismissSplash } from '$lib/stores/splash'
@@ -753,6 +754,12 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		updaterStore.check(true)
 		const updateInterval = setInterval(() => updaterStore.check(true), 60 * 60 * 1000)
 
+		// Cloud sync: load initial status + poll for updates so the indicator stays current,
+		// and listen for override-conflict toasts.
+		await cloudSyncStore.load()
+		cloudSyncStore.startPolling()
+		cloudSyncStore.startOverrideListener()
+
 		dismissSplash()
 
 		return () => {
@@ -766,6 +773,8 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			}
 			playerStore.onTrackEnd(null)
 			exportStore.stopListening()
+			cloudSyncStore.stopPolling()
+			cloudSyncStore.stopOverrideListener()
 			clearInterval(updateInterval)
 		}
 	}
