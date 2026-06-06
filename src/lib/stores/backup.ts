@@ -32,6 +32,14 @@ function createBackupStore() {
 	const { subscribe, set, update } = writable<BackupState>(initialState)
 
 	let unlisten: UnlistenFn | null = null
+	let completionTimeout: ReturnType<typeof setTimeout> | null = null
+
+	function clearCompletionTimeout() {
+		if (completionTimeout) {
+			clearTimeout(completionTimeout)
+			completionTimeout = null
+		}
+	}
 
 	return {
 		subscribe,
@@ -40,19 +48,29 @@ function createBackupStore() {
 			if (unlisten) return
 
 			unlisten = await listen<BackupProgress>('backup-progress', (event) => {
-				update((state) => {
-					const isDone = event.payload.status === 'completed'
-					return {
-						...state,
-						progress: event.payload,
-						isCreating: isDone ? false : state.isCreating,
-						isRestoring: isDone ? false : state.isRestoring,
-					}
-				})
+				const isDone = event.payload.status === 'completed'
+
+				update((state) => ({
+					...state,
+					progress: event.payload,
+				}))
+
+				if (isDone) {
+					clearCompletionTimeout()
+					completionTimeout = setTimeout(() => {
+						update((state) => ({
+							...state,
+							isCreating: false,
+							isRestoring: false,
+						}))
+						completionTimeout = null
+					}, 1000)
+				}
 			})
 		},
 
 		stopListening() {
+			clearCompletionTimeout()
 			if (unlisten) {
 				unlisten()
 				unlisten = null
@@ -60,6 +78,7 @@ function createBackupStore() {
 		},
 
 		startBackup() {
+			clearCompletionTimeout()
 			update((state) => ({
 				...state,
 				isCreating: true,
@@ -69,6 +88,7 @@ function createBackupStore() {
 		},
 
 		startRestore() {
+			clearCompletionTimeout()
 			update((state) => ({
 				...state,
 				isRestoring: true,

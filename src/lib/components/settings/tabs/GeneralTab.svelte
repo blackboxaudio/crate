@@ -18,7 +18,7 @@
 	import * as backupApi from '$lib/api/backup'
 	import type { BackupInfo } from '$lib/api/backup'
 	import { get } from 'svelte/store'
-	import { slide } from 'svelte/transition'
+	import { fade, slide } from 'svelte/transition'
 
 	const languageOptions = SUPPORTED_LANGUAGES.map((lang) => ({
 		value: lang.value,
@@ -261,12 +261,14 @@
 
 		{#if $backupProgress && $isBackupBusy}
 			<div class="mb-4 max-w-md" transition:slide={{ duration: 200 }}>
-				<Text variant="caption" as="p" class="mb-2">{getProgressLabel($backupProgress.status)}</Text>
-				<div class="bg-bg-tertiary h-1.5 w-full overflow-hidden rounded-full">
-					<div
-						class="bg-accent h-full rounded-full transition-[width] ease-out"
-						style="width: {getProgressPercent($backupProgress.status)}%; transition-duration: 300ms"
-					></div>
+				<div transition:fade={{ duration: 150 }}>
+					<Text variant="caption" as="p" class="mb-2">{getProgressLabel($backupProgress.status)}</Text>
+					<div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+						<div
+							class="h-full rounded-full bg-brand-primary transition-[width] ease-out"
+							style="width: {getProgressPercent($backupProgress.status)}%; transition-duration: 300ms"
+						></div>
+					</div>
 				</div>
 			</div>
 		{/if}

@@ -49,8 +49,8 @@
 >
 	<div
 		class="absolute top-1.5 bottom-0 left-0 w-px bg-transparent transition-colors {isDragging
-			? 'bg-accent'
-			: 'group-hover:bg-accent'}"
+			? 'bg-brand-primary'
+			: 'group-hover:bg-brand-primary'}"
 	></div>
 	<div class="absolute inset-y-0 -left-1 w-3"></div>
 </div>

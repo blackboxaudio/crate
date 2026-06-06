@@ -219,6 +219,7 @@
 		"stop": "Stop",
 		"previous": "Previous",
 		"next": "Next",
+		"shuffle": "Shuffle",
 		"mute": "Mute",
 		"unmute": "Unmute",
 		"noTrackSelected": "No track selected",
