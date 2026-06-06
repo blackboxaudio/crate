@@ -7,7 +7,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let moving = self.get_playlist_with_conn(&conn, id)?;
 
@@ -54,7 +54,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 

@@ -6,7 +6,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"
@@ -68,7 +68,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut playlist = self.get_playlist_with_conn(&conn, id)?;
 
@@ -97,7 +97,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Get next sort order
         let max_order: i32 = conn
@@ -156,7 +156,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let max_order: i32 = conn
             .query_row(
@@ -209,7 +209,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -231,7 +231,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Use recursive CTE to find all playlist IDs in the subtree (handles folders)
         let mut stmt = conn.prepare(
@@ -285,7 +285,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Foreign key cascade deletes child playlists + junction entries; the
         // tombstone drives the same cascade on peers.
@@ -304,7 +304,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"

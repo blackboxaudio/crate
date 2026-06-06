@@ -470,6 +470,22 @@
 		orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryReleaseMenu(e, releases)
 	}
 
+	function handleTrackContextMenuInRelease(
+		release: DiscoveryRelease,
+		trackIndex: number,
+		canPlay: boolean,
+		e: MouseEvent
+	) {
+		uiStore.setContextMenuDiscoveryTrackId(release.tracks[trackIndex].id)
+		orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryTrackMenu(e, release, trackIndex, canPlay)
+	}
+
+	function handleTrackLikeToggle(releaseId: string, trackId: string) {
+		// Close any open context menu so its Like/Unlike label can't get out of sync with the row's heart
+		orchestratorLayer?.getContextMenuOrchestrator()?.closeAll()
+		discoveryStore.toggleTrackLiked(releaseId, trackId)
+	}
+
 	async function handleEditorSave() {
 		const playlist = playlists.find((p) => p.id === selectedPlaylistId)
 		if (playlist?.is_smart) {
@@ -625,7 +641,8 @@
 					onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 					onSelectionChange={handleReleaseSelectionChange}
 					onDiscoveryTrackPlay={handleTrackPlayInRelease}
-					onDiscoveryTrackLikeToggle={(releaseId, trackId) => discoveryStore.toggleTrackLiked(releaseId, trackId)}
+					onDiscoveryTrackLikeToggle={handleTrackLikeToggle}
+					onDiscoveryTrackContextMenu={handleTrackContextMenuInRelease}
 					onContextMenu={(e, item) => {
 						handleReleaseContextMenu(e, item as unknown as DiscoveryRelease)
 					}}
@@ -704,7 +721,8 @@
 			onReleaseOpenUrl={(release) => openUrl(release.url)}
 			onReleaseImport={(release) => orchestratorLayer?.setPurchaseRelease(release)}
 			onTrackPlay={handleTrackPlayInRelease}
-			onTrackLikeToggle={(releaseId, trackId) => discoveryStore.toggleTrackLiked(releaseId, trackId)}
+			onTrackLikeToggle={handleTrackLikeToggle}
+			onTrackContextMenu={handleTrackContextMenuInRelease}
 			onSortChange={handleDiscoverySortChange}
 			onContextMenu={handleReleaseContextMenu}
 			onEmptySpaceContextMenu={(e) => orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryViewMenu(e)}
@@ -784,5 +802,6 @@
 	{deviceController}
 	{exportController}
 	{playlistController}
+	onDiscoveryTrackPlayPreview={handleTrackPlayInRelease}
 	onEditorSave={handleEditorSave}
 />

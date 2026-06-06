@@ -4,7 +4,9 @@
 	import { translate } from '$lib/i18n'
 	import { get } from 'svelte/store'
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
+	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { toastStore } from '$lib/stores/toast'
+	import { buildYouTubeSearchUrl } from '$lib/utils'
 
 	type Props = {
 		open: boolean
@@ -64,6 +66,14 @@
 					writeText(selectedReleases[0].url).then(() => {
 						toastStore.info(get(translate)('discovery.copiedUrl'))
 					})
+				},
+			})
+			items.push({
+				id: 'search-youtube',
+				label: get(translate)('discovery.searchOnYouTube'),
+				icon: 'search',
+				action: () => {
+					openUrl(buildYouTubeSearchUrl(selectedReleases[0].artist, selectedReleases[0].title))
 				},
 			})
 			items.push({ id: 'browser-divider', label: '', divider: true })

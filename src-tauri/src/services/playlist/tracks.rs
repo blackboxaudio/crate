@@ -6,7 +6,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"
@@ -136,7 +136,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Get current max position
         let max_position: i32 = conn
@@ -177,7 +177,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for track_id in &track_ids {
@@ -233,7 +233,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for (i, track_id) in track_ids.iter().enumerate() {

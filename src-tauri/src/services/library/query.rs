@@ -5,7 +5,7 @@ impl LibraryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut sql = String::from(
             r#"
@@ -217,7 +217,7 @@ impl LibraryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let track = conn.query_row(
             r#"
@@ -282,7 +282,7 @@ impl LibraryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let result = conn.query_row(
             r#"

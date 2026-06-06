@@ -336,7 +336,7 @@ impl ExportService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"

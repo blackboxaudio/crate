@@ -63,7 +63,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for release_id in &release_ids {
@@ -83,7 +83,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for release_id in &release_ids {

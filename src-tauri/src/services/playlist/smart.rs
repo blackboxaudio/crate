@@ -17,7 +17,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let max_order: i32 = conn
             .query_row(
@@ -85,7 +85,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -120,7 +120,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let sql = format!(
             r#"
@@ -203,7 +203,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let sql = format!(
             r#"
@@ -322,7 +322,7 @@ impl PlaylistService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         self.count_smart_playlist_items_with_conn(&conn, &rules, context)
     }

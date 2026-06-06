@@ -48,6 +48,12 @@
 		onTrackPlay?: (track: Track) => void
 		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onDiscoveryTrackLikeToggle?: (releaseId: string, trackId: string) => void
+		onDiscoveryTrackContextMenu?: (
+			release: DiscoveryRelease,
+			trackIndex: number,
+			canPlay: boolean,
+			e: MouseEvent
+		) => void
 		onReleaseImport?: (release: DiscoveryRelease) => void
 		onReleaseOpenUrl?: (release: DiscoveryRelease) => void
 		onSortChange?: (config: SortConfig) => void
@@ -93,6 +99,7 @@
 		onTrackPlay,
 		onDiscoveryTrackPlay,
 		onDiscoveryTrackLikeToggle,
+		onDiscoveryTrackContextMenu,
 		onReleaseImport,
 		onReleaseOpenUrl,
 		onSortChange,
@@ -245,6 +252,7 @@
 				onToggleExpand={(id) => expandedReleaseIds.toggle(id)}
 				onTrackPlay={onDiscoveryTrackPlay}
 				onTrackLikeToggle={onDiscoveryTrackLikeToggle}
+				onTrackContextMenu={onDiscoveryTrackContextMenu}
 				{onReleaseImport}
 				{onReleaseOpenUrl}
 				{onScrollChange}

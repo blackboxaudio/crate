@@ -19,7 +19,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Get categories
         let mut stmt = conn.prepare(
@@ -70,7 +70,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Check category count (max 4)
         let count: i32 =
@@ -127,7 +127,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         if let Some(ref n) = name {
@@ -153,7 +153,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         dirty::record_tombstone(&conn, buckets::TAG_CATEGORIES, id, &hlc)?;
@@ -171,7 +171,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut category = conn.query_row(
             "SELECT id, name, color, sort_order FROM tag_categories WHERE id = ?1",
@@ -216,7 +216,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Get next sort order
         let max_order: i32 = conn
@@ -249,7 +249,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         if let Some(ref n) = name {
@@ -287,7 +287,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Get current tag
         let (current_category_id, tag_name): (String, String) = conn.query_row(
@@ -366,7 +366,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         dirty::record_tombstone(&conn, buckets::TAGS, id, &hlc)?;
@@ -382,7 +382,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for track_id in &track_ids {
@@ -403,7 +403,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for track_id in &track_ids {
@@ -432,7 +432,7 @@ impl TagService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare("SELECT track_id FROM track_tags WHERE tag_id = ?1")?;
 

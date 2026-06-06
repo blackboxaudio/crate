@@ -10,7 +10,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let result = conn.query_row(
@@ -37,7 +37,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         for stream in streams {
             conn.execute(
@@ -61,7 +61,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24)).to_rfc3339();
         let result = conn.query_row(
@@ -87,7 +87,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         conn.execute(
             "DELETE FROM discovery_stream_cache WHERE release_id = ?1",
@@ -102,7 +102,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         conn.execute(

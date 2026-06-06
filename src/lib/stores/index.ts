@@ -33,6 +33,7 @@ export {
 	rightSidebarWidth,
 	selectedTreeIds,
 	contextMenuPlaylistId,
+	contextMenuDiscoveryTrackId,
 	scrollOffset,
 	playlistScrollOffsets,
 } from './ui'

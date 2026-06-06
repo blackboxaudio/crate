@@ -20,7 +20,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let result = conn.query_row(
             "SELECT content_type, file_size FROM discovery_audio_cache
@@ -47,7 +47,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         conn.execute(
@@ -129,7 +129,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         conn.execute("DELETE FROM discovery_audio_cache", [])?;
 

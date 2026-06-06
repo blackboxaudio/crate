@@ -17,7 +17,7 @@ impl LibraryService {
                 let conn = self
                     .conn
                     .lock()
-                    .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+                    .map_err(|_| CrateError::LockPoisoned)?;
 
                 let hlc = dirty::next_hlc(&conn)?;
                 conn.execute(
@@ -38,7 +38,7 @@ impl LibraryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         // Get all tracks without artwork
         let mut stmt =
@@ -106,7 +106,7 @@ impl LibraryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -130,7 +130,7 @@ impl LibraryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -162,7 +162,7 @@ impl LibraryService {
                 let conn = self
                     .conn
                     .lock()
-                    .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+                    .map_err(|_| CrateError::LockPoisoned)?;
 
                 let now = chrono::Utc::now().to_rfc3339();
 
@@ -193,7 +193,7 @@ impl LibraryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut artwork_paths: Vec<String> = Vec::new();
 

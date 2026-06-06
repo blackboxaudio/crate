@@ -180,7 +180,7 @@
 						<span class="h-3 w-3 rounded-full border border-black/10" style="background-color: {item.colorDot};"></span>
 					{/if}
 					{#if item.icon}
-						<Icon name={item.icon} />
+						<Icon name={item.icon} fill={item.iconFill} />
 					{/if}
 					<span class="flex-1 whitespace-nowrap">{item.label}</span>
 					{#if item.selected}

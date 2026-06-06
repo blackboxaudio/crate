@@ -3,7 +3,15 @@
 	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import { AlbumArt, AlbumArtModal, Icon, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
-	import { language, dateFormat, dragStore, isDraggingTag, refreshingReleaseIds, discoveryStore } from '$lib/stores'
+	import {
+		language,
+		dateFormat,
+		dragStore,
+		isDraggingTag,
+		refreshingReleaseIds,
+		discoveryStore,
+		contextMenuDiscoveryTrackId,
+	} from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$lib/stores/player'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
@@ -25,6 +33,7 @@
 		onToggleExpand?: () => void
 		onTrackPlay?: (trackIndex: number) => void
 		onTrackLikeToggle?: (trackId: string) => void
+		onTrackContextMenu?: (trackIndex: number, canPlay: boolean, e: MouseEvent) => void
 		likedOnly?: boolean
 	}
 
@@ -44,6 +53,7 @@
 		onToggleExpand,
 		onTrackPlay,
 		onTrackLikeToggle,
+		onTrackContextMenu,
 		likedOnly = false,
 	}: Props = $props()
 
@@ -273,11 +283,14 @@
 					{#if !likedOnly || track.is_liked}
 						{@const canPlay = trackCanPlay(idx)}
 						{@const playing = canPlay && isTrackPlaying(idx)}
+						{@const isContextActive = track.id === $contextMenuDiscoveryTrackId}
 						<!-- svelte-ignore a11y_no_static_element_interactions -->
 						<div
 							class="group/track grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
 								? 'cursor-pointer hover:bg-surface-2/50'
-								: 'cursor-default opacity-60'} {track.position > 1 ? 'border-t border-stroke-subtle/50' : ''}"
+								: 'cursor-default opacity-60'} {isContextActive ? 'bg-surface-2/50' : ''} {track.position > 1
+								? 'border-t border-stroke-subtle/50'
+								: ''}"
 							ondblclick={canPlay
 								? (e) => {
 										e.stopPropagation()
@@ -289,12 +302,19 @@
 										discoveryApi.fetchPreviewStream(release.id, track.position).catch(() => {})
 									}
 								: undefined}
+							oncontextmenu={(e) => {
+								e.preventDefault()
+								e.stopPropagation()
+								onTrackContextMenu?.(idx, canPlay, e)
+							}}
 						>
 							<div class="flex items-center justify-center">
 								<button
 									class="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors {track.is_liked
 										? 'text-brand-primary'
-										: 'text-text-tertiary opacity-0 group-hover/track:opacity-100 hover:opacity-100'}"
+										: isContextActive
+											? 'text-text-tertiary opacity-100'
+											: 'text-text-tertiary opacity-0 group-hover/track:opacity-100 hover:opacity-100'}"
 									onclick={(e) => {
 										e.stopPropagation()
 										e.currentTarget.animate(
