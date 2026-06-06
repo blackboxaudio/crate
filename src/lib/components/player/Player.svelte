@@ -3,6 +3,7 @@
 		playerStore,
 		currentTrack,
 		isPlaying,
+		shuffleEnabled,
 		playbackPosition,
 		playbackDuration,
 		volume,
@@ -74,8 +75,10 @@
 		<PlaybackControls
 			isPlaying={$isPlaying}
 			{hasTrack}
+			shuffleEnabled={$shuffleEnabled}
 			onPlayPause={handlePlayPause}
 			onStop={handleStop}
+			onToggleShuffle={() => playerStore.toggleShuffle()}
 			{onPrevious}
 			{onNext}
 		/>

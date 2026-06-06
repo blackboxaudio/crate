@@ -219,6 +219,7 @@
 		"stop": "停止",
 		"previous": "前へ",
 		"next": "次へ",
+		"shuffle": "シャッフル",
 		"mute": "ミュート",
 		"unmute": "ミュート解除",
 		"noTrackSelected": "トラックが選択されていません",

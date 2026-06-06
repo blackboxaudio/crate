@@ -219,6 +219,7 @@
 		"stop": "Detener",
 		"previous": "Anterior",
 		"next": "Siguiente",
+		"shuffle": "Aleatorio",
 		"mute": "Silenciar",
 		"unmute": "Activar sonido",
 		"noTrackSelected": "Ninguna pista seleccionada",

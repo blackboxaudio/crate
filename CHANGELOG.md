@@ -9,12 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added shuffle mode to the audio player
 - Added opt-in cross-device cloud sync for libraries, playlists, tags, cues, and discovery releases (audio files stay local)
 - Added macOS keyboard shortcuts for hide/hide others/show all
 
 ### Fixed
 
-- Fixed locate track functionality to check current playßlist first
+- Fixed backup progress bar not visible due to invalid Tailwind color classes
+- Fixed locate track functionality to check current playlist first
 - Fixed continuous playback selecting next track from wrong context when navigating between views
 - Fixed discovery row buttons (import and open URL) not working in playlist view
 

@@ -17,6 +17,7 @@ import {
 	displayedTracks,
 	playerStore,
 	currentTrack,
+	shuffleEnabled,
 	tagsStore,
 	playlistsStore,
 	uiStore,
@@ -180,6 +181,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			libraryQueueContextActiveView = get(activeView)
 			libraryQueueContextPlaylistId = get(libraryStore).selectedPlaylistId
 			libraryQueueTracks = get(displayedTracks)
+			if (get(shuffleEnabled)) resetShuffleSession(track.id)
 			rawTrackController.play(track)
 		},
 	}
@@ -262,6 +264,23 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	let hasDiscoveryQueueContext = false
 	let discoveryQueueContextPlaylistId: string | null = null
 	let discoveryQueueReleases: DiscoveryRelease[] = []
+
+	// Shuffle playback bookkeeping (library track queue only). The played-set gives
+	// no-repeat-until-exhausted ordering; the history enables a stable "previous".
+	let shuffleHistory: string[] = []
+	let shufflePos = -1
+	let shufflePlayed = new Set<string>()
+
+	function resetShuffleSession(id: string | null) {
+		shuffleHistory = id ? [id] : []
+		shufflePos = id ? 0 : -1
+		shufflePlayed = new Set(id ? [id] : [])
+	}
+
+	// Re-anchor the shuffle session on the current track whenever shuffle is switched on.
+	shuffleEnabled.subscribe((on) => {
+		if (on) resetShuffleSession(get(currentTrack)?.id ?? null)
+	})
 
 	// Keep the frozen queue snapshot up-to-date while the context view is active.
 	// When the user navigates away, the snapshot freezes at the last known state.
@@ -369,6 +388,33 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		if (!id) return
 		const tracks = getLibraryQueue()
 		if (tracks.length === 0) return
+
+		if (get(shuffleEnabled)) {
+			// Replay forward through history if the user previously went back.
+			if (shufflePos < shuffleHistory.length - 1) {
+				const fwd = tracks.find((t) => t.id === shuffleHistory[shufflePos + 1])
+				if (fwd) {
+					shufflePos++
+					playerStore.play(fwd)
+					return
+				}
+			}
+			// Fresh pick from the current bag (never the current track).
+			let pool = tracks.filter((t) => t.id !== id && !shufflePlayed.has(t.id))
+			if (pool.length === 0) {
+				// Bag exhausted — reshuffle, excluding only the current track.
+				shufflePlayed = new Set([id])
+				pool = tracks.filter((t) => t.id !== id)
+			}
+			if (pool.length === 0) return
+			const pick = pool[Math.floor(Math.random() * pool.length)]
+			shufflePlayed.add(pick.id)
+			shuffleHistory.push(pick.id)
+			shufflePos = shuffleHistory.length - 1
+			playerStore.play(pick)
+			return
+		}
+
 		const idx = tracks.findIndex((t) => t.id === id)
 		if (idx >= 0) playerStore.play(tracks[(idx + 1) % tracks.length])
 	}
@@ -405,6 +451,20 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		if (!id) return
 		const tracks = getLibraryQueue()
 		if (tracks.length === 0) return
+
+		if (get(shuffleEnabled)) {
+			// Walk back through the actual play history.
+			if (shufflePos > 0) {
+				const prev = tracks.find((t) => t.id === shuffleHistory[shufflePos - 1])
+				if (prev) {
+					shufflePos--
+					playerStore.play(prev)
+					return
+				}
+			}
+			return
+		}
+
 		const idx = tracks.findIndex((t) => t.id === id)
 		if (idx >= 0) playerStore.play(tracks[(idx - 1 + tracks.length) % tracks.length])
 	}

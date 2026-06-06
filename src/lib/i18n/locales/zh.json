@@ -219,6 +219,7 @@
 		"stop": "停止",
 		"previous": "上一首",
 		"next": "下一首",
+		"shuffle": "随机播放",
 		"mute": "静音",
 		"unmute": "取消静音",
 		"noTrackSelected": "未选择曲目",

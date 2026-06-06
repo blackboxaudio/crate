@@ -27,6 +27,7 @@ interface PlayerState {
 	error: string | null
 	isMuted: boolean
 	volumeBeforeMute: number
+	shuffleEnabled: boolean
 	playbackSource: PlaybackSource
 	previewInfo: PreviewInfo | null
 	previewTrackIndex: number
@@ -57,6 +58,7 @@ const initialState: PlayerState = {
 	error: null,
 	isMuted: getStoredBoolean('player.isMuted', false),
 	volumeBeforeMute: getStoredNumber('player.volumeBeforeMute', 1.0),
+	shuffleEnabled: getStoredBoolean('player.shuffleEnabled', false),
 	playbackSource: 'library',
 	previewInfo: null,
 	previewTrackIndex: 0,
@@ -725,6 +727,17 @@ function createPlayerStore() {
 		},
 
 		/**
+		 * Toggle shuffle mode. Persisted device-locally; affects playback order only.
+		 */
+		toggleShuffle() {
+			update((s) => {
+				const next = !s.shuffleEnabled
+				setStoredBoolean('player.shuffleEnabled', next)
+				return { ...s, shuffleEnabled: next }
+			})
+		},
+
+		/**
 		 * Register a callback for when a track finishes playing
 		 */
 		onTrackEnd(callback: (() => void) | null) {
@@ -840,6 +853,8 @@ export const playbackProgress = derived(playerStore, ($player) => {
 })
 
 export const isMuted = derived(playerStore, ($player) => $player.isMuted)
+
+export const shuffleEnabled = derived(playerStore, ($player) => $player.shuffleEnabled)
 
 export const playbackSource = derived(playerStore, ($player) => $player.playbackSource)
 
