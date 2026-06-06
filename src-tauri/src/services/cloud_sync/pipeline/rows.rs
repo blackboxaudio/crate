@@ -90,12 +90,39 @@ pub struct DiscoveryReleaseRow {
     pub parent_url: Option<String>,
     pub date_added: String,
     pub date_modified: String,
+    #[serde(default)]
+    pub is_new: bool,
+    #[serde(default)]
+    pub surfaced_at: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LibraryRootRow {
     pub id: String,
     pub name: String,
+}
+
+/// `followed_sources` wire row — only the synced columns (the per-device watch state
+/// in `followed_source_state`/`followed_source_releases` is never serialized).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FollowedSourceRow {
+    pub id: String,
+    pub url: String,
+    pub source_type: String,
+    pub follow_type: String,
+    pub name: Option<String>,
+    pub artwork_url: Option<String>,
+    pub artwork_path: Option<String>,
+    pub enabled: bool,
+    pub date_added: String,
+    pub date_modified: String,
+}
+
+/// `discovery_release_sources` junction wire row (release ↔ followed source).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiscoveryReleaseSourceRow {
+    pub release_id: String,
+    pub source_id: String,
 }
 
 /// `settings` wire row — `{ key, value, _hlc }`. Settings are never deleted, so
@@ -173,6 +200,16 @@ struct PlaylistDiscoveryReleaseTombstone<'a> {
     deleted: bool,
 }
 
+#[derive(Serialize)]
+struct DiscoveryReleaseSourceTombstone<'a> {
+    release_id: &'a str,
+    source_id: &'a str,
+    #[serde(rename = "_hlc")]
+    hlc: &'a str,
+    #[serde(rename = "_deleted")]
+    deleted: bool,
+}
+
 /// One parsed wire row. The full object is kept as a `serde_json::Value` so the
 /// merge writer can lazily deserialize only the live rows it actually applies.
 pub struct ParsedRow {
@@ -221,6 +258,10 @@ pub fn serialize_bucket(conn: &Connection, bucket: &Bucket) -> Result<Vec<u8>> {
             emit(bucket, read_live_playlist_discovery_releases(conn)?, tombs)
         }
         Bucket::LibraryRoots => emit(bucket, read_live_library_roots(conn)?, tombs),
+        Bucket::FollowedSources => emit(bucket, read_live_followed_sources(conn)?, tombs),
+        Bucket::DiscoveryReleaseSources => {
+            emit(bucket, read_live_discovery_release_sources(conn)?, tombs)
+        }
         Bucket::Settings => unreachable!("handled above"),
     }
 }
@@ -426,6 +467,15 @@ fn write_tombstone(buf: &mut Vec<u8>, bucket: &Bucket, cid: &str, hlc: &str) -> 
                     &PlaylistDiscoveryReleaseTombstone {
                         playlist_id: a,
                         release_id: b,
+                        hlc,
+                        deleted: true,
+                    },
+                ),
+                Bucket::DiscoveryReleaseSources => serde_json::to_writer(
+                    &mut *buf,
+                    &DiscoveryReleaseSourceTombstone {
+                        release_id: a,
+                        source_id: b,
                         hlc,
                         deleted: true,
                     },
@@ -670,7 +720,8 @@ fn read_live_discovery_releases(
 ) -> Result<Vec<(String, DiscoveryReleaseRow, String)>> {
     let mut stmt = conn.prepare(
         "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, \
-         artwork_path, notes, parent_url, date_added, date_modified, _hlc FROM discovery_releases",
+         artwork_path, notes, parent_url, date_added, date_modified, is_new, surfaced_at, _hlc \
+         FROM discovery_releases",
     )?;
     let rows = stmt.query_map([], |r| {
         let d = DiscoveryReleaseRow {
@@ -687,8 +738,10 @@ fn read_live_discovery_releases(
             parent_url: r.get(10)?,
             date_added: r.get(11)?,
             date_modified: r.get(12)?,
+            is_new: r.get(13)?,
+            surfaced_at: r.get(14)?,
         };
-        let hlc: String = r.get(13)?;
+        let hlc: String = r.get(15)?;
         Ok((d.id.clone(), d, hlc))
     })?;
     rows.collect::<std::result::Result<Vec<_>, _>>()
@@ -800,6 +853,55 @@ fn read_live_library_roots(conn: &Connection) -> Result<Vec<(String, LibraryRoot
     })?;
     rows.collect::<std::result::Result<Vec<_>, _>>()
         .map_err(Into::into)
+}
+
+fn read_live_followed_sources(
+    conn: &Connection,
+) -> Result<Vec<(String, FollowedSourceRow, String)>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, url, source_type, follow_type, name, artwork_url, artwork_path, enabled, \
+         date_added, date_modified, _hlc FROM followed_sources",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        let f = FollowedSourceRow {
+            id: r.get(0)?,
+            url: r.get(1)?,
+            source_type: r.get(2)?,
+            follow_type: r.get(3)?,
+            name: r.get(4)?,
+            artwork_url: r.get(5)?,
+            artwork_path: r.get(6)?,
+            enabled: r.get(7)?,
+            date_added: r.get(8)?,
+            date_modified: r.get(9)?,
+        };
+        let hlc: String = r.get(10)?;
+        Ok((f.id.clone(), f, hlc))
+    })?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Into::into)
+}
+
+fn read_live_discovery_release_sources(
+    conn: &Connection,
+) -> Result<Vec<(String, DiscoveryReleaseSourceRow, String)>> {
+    let mut stmt =
+        conn.prepare("SELECT release_id, source_id, _hlc FROM discovery_release_sources")?;
+    let rows = stmt.query_map([], |r| {
+        let s = DiscoveryReleaseSourceRow {
+            release_id: r.get(0)?,
+            source_id: r.get(1)?,
+        };
+        let hlc: String = r.get(2)?;
+        Ok((s, hlc))
+    })?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (s, hlc) = row?;
+        let cid = dirty::junction_entity_id(&s.release_id, &s.source_id);
+        out.push((cid, s, hlc));
+    }
+    Ok(out)
 }
 
 #[cfg(test)]

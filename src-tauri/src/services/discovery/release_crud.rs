@@ -73,6 +73,9 @@ impl DiscoveryService {
             parent_url: create.parent_url,
             date_added: now.clone(),
             date_modified: now,
+            is_new: false,
+            surfaced_at: None,
+            source_ids: Vec::new(),
             tracks,
             tags: Vec::new(),
         })
@@ -85,7 +88,7 @@ impl DiscoveryService {
             .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut release = conn.query_row(
-            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, date_added, date_modified
+            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, date_added, date_modified, is_new, surfaced_at
              FROM discovery_releases WHERE id = ?1",
             [id],
             |row| {
@@ -103,6 +106,9 @@ impl DiscoveryService {
                     parent_url: row.get(10)?,
                     date_added: row.get(11)?,
                     date_modified: row.get(12)?,
+                    is_new: row.get::<_, i32>(13).map(|v| v != 0)?,
+                    surfaced_at: row.get(14)?,
+                    source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -152,6 +158,13 @@ impl DiscoveryService {
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
+        // Load provenance: ids of the followed sources that surfaced this release.
+        let mut stmt =
+            conn.prepare("SELECT source_id FROM discovery_release_sources WHERE release_id = ?1")?;
+        release.source_ids = stmt
+            .query_map([id], |row| row.get::<_, String>(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
         Ok(release)
     }
 
@@ -165,7 +178,7 @@ impl DiscoveryService {
 
         // Build query with optional filters
         let mut sql = String::from(
-            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.parent_url, dr.date_added, dr.date_modified
+            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.parent_url, dr.date_added, dr.date_modified, dr.is_new, dr.surfaced_at
              FROM discovery_releases dr",
         );
 
@@ -264,6 +277,9 @@ impl DiscoveryService {
                     parent_url: row.get(10)?,
                     date_added: row.get(11)?,
                     date_modified: row.get(12)?,
+                    is_new: row.get::<_, i32>(13).map(|v| v != 0)?,
+                    surfaced_at: row.get(14)?,
+                    source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -327,7 +343,17 @@ impl DiscoveryService {
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
-        // Merge tracks and tags into releases
+        // Batch load provenance (followed sources that surfaced each release).
+        let mut stmt = conn.prepare(&format!(
+            "SELECT release_id, source_id FROM discovery_release_sources WHERE release_id IN ({placeholders})"
+        ))?;
+        let all_sources: Vec<(String, String)> = stmt
+            .query_map(track_params.as_slice(), |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        // Merge tracks, tags, and provenance into releases
         for release in &mut releases {
             release.tracks = all_tracks
                 .iter()
@@ -338,6 +364,11 @@ impl DiscoveryService {
                 .iter()
                 .filter(|(rid, _)| *rid == release.id)
                 .map(|(_, tag)| tag.clone())
+                .collect();
+            release.source_ids = all_sources
+                .iter()
+                .filter(|(rid, _)| *rid == release.id)
+                .map(|(_, sid)| sid.clone())
                 .collect();
         }
 
@@ -474,6 +505,15 @@ impl DiscoveryService {
             .lock()
             .map_err(|_| CrateError::LockPoisoned)?;
 
+        // Delete = dismiss: tombstone this release's followed-source record so the watch
+        // loop never re-adds it. Runs before the DELETE so the URL is still resolvable;
+        // best-effort (a hiccup must never block the delete).
+        let _ = conn.execute(
+            "UPDATE followed_source_releases SET status = 'dismissed' \
+             WHERE seen_url = (SELECT url FROM discovery_releases WHERE id = ?1)",
+            [id],
+        );
+
         let hlc = dirty::next_hlc(&conn)?;
         dirty::record_tombstone(&conn, buckets::DISCOVERY_RELEASES, id, &hlc)?;
         conn.execute("DELETE FROM discovery_releases WHERE id = ?1", [id])?;
@@ -547,6 +587,16 @@ impl DiscoveryService {
             .iter()
             .map(|id| id as &dyn rusqlite::types::ToSql)
             .collect();
+
+        // Delete = dismiss: tombstone these releases' followed-source records before the
+        // DELETE so the watch loop never re-adds them. Best-effort.
+        let _ = conn.execute(
+            &format!(
+                "UPDATE followed_source_releases SET status = 'dismissed' \
+                 WHERE seen_url IN (SELECT url FROM discovery_releases WHERE id IN ({placeholders}))"
+            ),
+            params.as_slice(),
+        );
 
         let hlc = dirty::next_hlc(&conn)?;
         for id in &ids {

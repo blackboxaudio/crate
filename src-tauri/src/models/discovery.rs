@@ -27,6 +27,17 @@ pub struct DiscoveryRelease {
     pub parent_url: Option<String>,
     pub date_added: String,
     pub date_modified: String,
+    /// "New/unreviewed" flag — set when a followed source surfaces the release,
+    /// cleared on preview-play or a decisive action. Synced.
+    #[serde(default)]
+    pub is_new: bool,
+    /// When the watcher surfaced this release (RFC3339); `None` for manually-added.
+    #[serde(default)]
+    pub surfaced_at: Option<String>,
+    /// Provenance: ids of the followed sources that surfaced this release (may be
+    /// two — an artist follow and a label follow). Empty for manually-added.
+    #[serde(default)]
+    pub source_ids: Vec<String>,
     #[serde(default)]
     pub tracks: Vec<DiscoveryTrack>,
     #[serde(default)]

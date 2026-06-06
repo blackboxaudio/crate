@@ -236,6 +236,9 @@ impl PlaylistService {
                     parent_url: row.get(10)?,
                     date_added: row.get(11)?,
                     date_modified: row.get(12)?,
+                    is_new: false,
+                    surfaced_at: None,
+                    source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })

@@ -311,5 +311,69 @@ CREATE TABLE IF NOT EXISTS sync_state (
     value TEXT NOT NULL
 );
 "#,
+        // Migration 5: Follow artists & labels.
+        // `followed_sources`, `discovery_release_sources`, and the new
+        // `discovery_releases` columns (`is_new`, `surfaced_at`) SYNC — they carry
+        // `_hlc` and are registered as sync buckets (see pipeline::buckets). The
+        // per-device watch bookkeeping (`followed_source_state`,
+        // `followed_source_releases`) stays LOCAL and is never serialized as a bucket.
+        r#"
+-- SYNCED: the artists/labels the user follows.
+CREATE TABLE followed_sources (
+    id            TEXT PRIMARY KEY,
+    url           TEXT NOT NULL UNIQUE,         -- normalize_url()'d page URL
+    source_type   TEXT NOT NULL,                -- 'bandcamp' | 'soundcloud' | 'discogs'
+    follow_type   TEXT NOT NULL DEFAULT 'artist', -- 'artist' | 'label'
+    name          TEXT,
+    artwork_url   TEXT,
+    artwork_path  TEXT,
+    enabled       INTEGER NOT NULL DEFAULT 1,    -- 0 = paused (syncs)
+    date_added    TEXT NOT NULL,
+    date_modified TEXT NOT NULL,
+    _hlc          TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_followed_sources_hlc ON followed_sources(_hlc);
+
+-- LOCAL ONLY: per-device watch bookkeeping for each followed source.
+CREATE TABLE followed_source_state (
+    source_id            TEXT PRIMARY KEY REFERENCES followed_sources(id) ON DELETE CASCADE,
+    last_checked_at      TEXT,
+    last_success_at      TEXT,
+    health               TEXT NOT NULL DEFAULT 'unknown', -- 'ok'|'error'|'rate_limited'|'unknown'
+    last_error           TEXT,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    baseline_established INTEGER NOT NULL DEFAULT 0
+);
+
+-- LOCAL ONLY: every release URL ever seen under a source, with its disposition.
+-- status: 'baseline' (present at follow-time, never surfaced),
+--         'surfaced' (auto-added to discovery as new),
+--         'dismissed' (user deleted it — tombstone so the watch loop never re-adds).
+CREATE TABLE followed_source_releases (
+    source_id            TEXT NOT NULL REFERENCES followed_sources(id) ON DELETE CASCADE,
+    seen_url             TEXT NOT NULL,          -- normalize_url()'d release URL
+    status               TEXT NOT NULL DEFAULT 'baseline',
+    release_id           TEXT,                   -- discovery_releases.id when status='surfaced'
+    release_day_notified INTEGER NOT NULL DEFAULT 0,
+    first_seen_at        TEXT NOT NULL,
+    PRIMARY KEY (source_id, seen_url)
+);
+CREATE INDEX idx_followed_source_releases_status ON followed_source_releases(source_id, status);
+
+-- SYNCED: provenance (many-to-many). A release can be surfaced by an artist follow
+-- AND a label follow; it appears once and cites both.
+CREATE TABLE discovery_release_sources (
+    release_id TEXT NOT NULL REFERENCES discovery_releases(id) ON DELETE CASCADE,
+    source_id  TEXT NOT NULL REFERENCES followed_sources(id) ON DELETE CASCADE,
+    _hlc       TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (release_id, source_id)
+);
+CREATE INDEX idx_discovery_release_sources_hlc ON discovery_release_sources(_hlc);
+
+-- SYNCED columns on the existing discovery_releases table: 'new/unreviewed' flag
+-- and when the watcher surfaced it (NULL for manually-added releases).
+ALTER TABLE discovery_releases ADD COLUMN is_new INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE discovery_releases ADD COLUMN surfaced_at TEXT;
+"#,
     ]
 }
