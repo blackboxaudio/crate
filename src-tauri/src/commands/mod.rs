@@ -6,6 +6,7 @@ pub mod device;
 pub mod diagnostics;
 pub mod discovery;
 pub mod export;
+pub mod follow;
 pub mod library;
 pub mod media_controls;
 pub mod playback;

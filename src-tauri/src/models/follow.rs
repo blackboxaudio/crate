@@ -119,3 +119,26 @@ pub struct FollowedSourceCreate {
     #[serde(default)]
     pub artwork_url: Option<String>,
 }
+
+/// Result of checking one followed source.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourceCheckResult {
+    pub source_id: String,
+    pub name: Option<String>,
+    pub new_count: usize,
+    pub health: String,
+    pub error: Option<String>,
+}
+
+/// Aggregate payload emitted as the `followed-releases-found` event after a check
+/// sweep (and returned by "check all now").
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct FollowedReleasesFound {
+    pub total_new: usize,
+    pub by_source: Vec<SourceCheckResult>,
+    /// Ids of the discovery releases newly surfaced this sweep.
+    pub release_ids: Vec<String>,
+    pub checked_at: String,
+}

@@ -55,7 +55,7 @@ impl PrefetchTracker {
 use services::{
     discovery::n_transform::NsigSolverState, export::CheckpointService, AnalysisService,
     AudioService, BackupService, DeviceService, DiagnosticsService, DiscoveryService,
-    ExportService, LibraryService, MediaControlsService, PlaylistService, SettingsService,
+    ExportService, FollowService, LibraryService, MediaControlsService, PlaylistService, SettingsService,
     SyncService, TagService,
 };
 use tauri::Manager;
@@ -227,6 +227,15 @@ pub fn run() {
             commands::discovery::cancel_bulk_import,
             commands::discovery::cancel_scan_page,
             commands::discovery::skip_enrichment,
+            // Follow commands
+            commands::follow::follow_source,
+            commands::follow::follow_from_entity,
+            commands::follow::unfollow_source,
+            commands::follow::set_follow_enabled,
+            commands::follow::get_followed_sources,
+            commands::follow::check_followed_source,
+            commands::follow::check_all_followed_sources,
+            commands::follow::set_release_new_flag,
             // Backup commands
             commands::backup::get_backup_info,
             commands::backup::create_backup,
@@ -285,6 +294,7 @@ pub fn run() {
             let analysis_service = AnalysisService::new(conn.clone());
             let backup_service = BackupService::new(conn.clone());
             let discovery_service = DiscoveryService::new(conn.clone(), app_data_dir.clone());
+            let follow_service = FollowService::new(conn.clone(), app_data_dir.clone());
 
             // Load saved audio device setting
             if let Ok(settings) = settings_service.get_settings() {
@@ -328,6 +338,7 @@ pub fn run() {
             app.manage(diagnostics_service);
             app.manage(analysis_service);
             app.manage(discovery_service);
+            app.manage(follow_service);
             app.manage(NsigSolverState::new());
             app.manage(PrefetchTracker::new());
             app.manage(BulkImportCancelFlag(Arc::new(
