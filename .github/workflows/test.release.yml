@@ -63,11 +63,11 @@ jobs:
         env:
           CRATE_ENV: ${{ inputs.channel }}
           # Cloud sync config — public client identifiers, baked in at compile time
-          CRATE_CLOUD_PROJECT_ID: ${{ secrets.CRATE_CLOUD_PROJECT_ID }}
-          CRATE_CLOUD_WEB_API_KEY: ${{ secrets.CRATE_CLOUD_WEB_API_KEY }}
-          CRATE_CLOUD_STORAGE_BUCKET: ${{ secrets.CRATE_CLOUD_STORAGE_BUCKET }}
-          CRATE_CLOUD_OAUTH_CLIENT_ID: ${{ secrets.CRATE_CLOUD_OAUTH_CLIENT_ID }}
-          CRATE_CLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.CRATE_CLOUD_OAUTH_CLIENT_SECRET }}
+          GCLOUD_PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+          GCLOUD_WEB_API_KEY: ${{ secrets.GCLOUD_WEB_API_KEY }}
+          GCLOUD_STORAGE_BUCKET: ${{ secrets.GCLOUD_STORAGE_BUCKET }}
+          GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
+          GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
           # Tauri updater signing
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
@@ -86,11 +86,11 @@ jobs:
         env:
           CRATE_ENV: ${{ inputs.channel }}
           # Cloud sync config — public client identifiers, baked in at compile time
-          CRATE_CLOUD_PROJECT_ID: ${{ secrets.CRATE_CLOUD_PROJECT_ID }}
-          CRATE_CLOUD_WEB_API_KEY: ${{ secrets.CRATE_CLOUD_WEB_API_KEY }}
-          CRATE_CLOUD_STORAGE_BUCKET: ${{ secrets.CRATE_CLOUD_STORAGE_BUCKET }}
-          CRATE_CLOUD_OAUTH_CLIENT_ID: ${{ secrets.CRATE_CLOUD_OAUTH_CLIENT_ID }}
-          CRATE_CLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.CRATE_CLOUD_OAUTH_CLIENT_SECRET }}
+          GCLOUD_PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+          GCLOUD_WEB_API_KEY: ${{ secrets.GCLOUD_WEB_API_KEY }}
+          GCLOUD_STORAGE_BUCKET: ${{ secrets.GCLOUD_STORAGE_BUCKET }}
+          GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
+          GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
 

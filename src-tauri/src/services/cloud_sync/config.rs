@@ -52,23 +52,23 @@ impl CloudConfig {
     /// Compile-time fallback for release builds, which don't ship a config file. The five
     /// values are public client identifiers (security rests on PKCE + Firebase Auth +
     /// Security Rules), so baking them into the binary is expected. Injected via
-    /// `CRATE_CLOUD_*` env vars at build time (see `.github/workflows/cd.release.yml`).
+    /// `GCLOUD_*` env vars at build time (see `.github/workflows/cd.release.yml`).
     /// Returns `None` unless all five are present and non-blank.
     fn from_compiled_env() -> Option<Self> {
         let config = CloudConfig {
-            project_id: option_env!("CRATE_CLOUD_PROJECT_ID")
+            project_id: option_env!("GCLOUD_PROJECT_ID")
                 .unwrap_or_default()
                 .to_string(),
-            web_api_key: option_env!("CRATE_CLOUD_WEB_API_KEY")
+            web_api_key: option_env!("GCLOUD_WEB_API_KEY")
                 .unwrap_or_default()
                 .to_string(),
-            storage_bucket: option_env!("CRATE_CLOUD_STORAGE_BUCKET")
+            storage_bucket: option_env!("GCLOUD_STORAGE_BUCKET")
                 .unwrap_or_default()
                 .to_string(),
-            oauth_client_id: option_env!("CRATE_CLOUD_OAUTH_CLIENT_ID")
+            oauth_client_id: option_env!("GCLOUD_OAUTH_CLIENT_ID")
                 .unwrap_or_default()
                 .to_string(),
-            oauth_client_secret: option_env!("CRATE_CLOUD_OAUTH_CLIENT_SECRET")
+            oauth_client_secret: option_env!("GCLOUD_OAUTH_CLIENT_SECRET")
                 .unwrap_or_default()
                 .to_string(),
         };
@@ -82,7 +82,7 @@ impl CloudConfig {
 /// 1. The current working directory — this is `src-tauri/` during `yarn dev`.
 /// 2. `app_config_dir`, if provided — lets a packaged build drop the file alongside
 ///    the app's other config.
-/// 3. Compile-time `CRATE_CLOUD_*` env vars baked in by the release workflow — the path
+/// 3. Compile-time `GCLOUD_*` env vars baked in by the release workflow — the path
 ///    distributed builds take, since they ship no config file.
 ///
 /// A missing file is not an error; a present-but-malformed file is.
@@ -117,7 +117,7 @@ pub fn load_cloud_config(app_config_dir: Option<&Path>) -> Result<Option<CloudCo
 
     // Release builds ship no config file — fall back to values baked in at compile time.
     if let Some(config) = CloudConfig::from_compiled_env() {
-        log::info!("cloud_sync: loaded config from compile-time env (CRATE_CLOUD_*)");
+        log::info!("cloud_sync: loaded config from compile-time env (GCLOUD_*)");
         return Ok(Some(config));
     }
 
