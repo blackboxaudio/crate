@@ -113,9 +113,16 @@
 					})}
 				</Text>
 			{/if}
-			{#if $syncStatus.last_error}
-				<div class="mt-2 rounded-md bg-red-500/10 px-3 py-2 text-sm text-red-500">
-					{$syncStatus.last_error}
+			{#if $syncPhase === 'offline' || $syncPhase === 'error'}
+				{@const isOffline = $syncPhase === 'offline'}
+				<!-- Show a friendly, phase-appropriate message rather than the raw `last_error`:
+				     the backend error embeds a request URL that carries a secret API key. -->
+				<div
+					class="mt-2 rounded-md px-3 py-2 text-sm {isOffline
+						? 'bg-amber-500/10 text-amber-500'
+						: 'bg-red-500/10 text-red-500'}"
+				>
+					{isOffline ? $translate('cloudSync.status.offline') : $translate('cloudSync.status.error')}
 				</div>
 			{/if}
 		</section>

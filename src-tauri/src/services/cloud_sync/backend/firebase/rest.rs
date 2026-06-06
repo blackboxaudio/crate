@@ -65,7 +65,13 @@ pub(crate) async fn http_error(context: &str, resp: reqwest::Response) -> CrateE
 /// timeout/request failure means no usable response came back → transient
 /// `CloudSyncNetwork`; anything else falls back to a generic `CloudSync`. Use at every
 /// `.send().await` site so a dropped connection surfaces as `Offline`, not `Error`.
+///
+/// The URL is stripped first: the Firebase auth endpoints carry the Web API key as a
+/// `?key=…` query param, and reqwest's `Display` embeds the failing URL — so an
+/// unsanitized error would leak that key into logs, IPC, and `last_error` (shown in the
+/// UI). `without_url` preserves the error kind, so the transient-vs-hard split still holds.
 pub(crate) fn send_error(context: &str, e: reqwest::Error) -> CrateError {
+    let e = e.without_url();
     let msg = format!("{context}: {e}");
     if e.is_connect() || e.is_timeout() || e.is_request() {
         CrateError::CloudSyncNetwork(msg)
