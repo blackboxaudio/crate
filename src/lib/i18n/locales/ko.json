@@ -35,6 +35,7 @@
 			"discovery": "발견",
 			"appearance": "모양",
 			"sound": "사운드",
+			"cloudSync": "클라우드 동기화",
 			"diagnostics": "진단",
 			"about": "정보"
 		},
@@ -160,6 +161,56 @@
 			"checkForUpdates": "업데이트 확인",
 			"upToDate": "최신 상태",
 			"updateAvailable": "{version} 사용 가능"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "라이브러리를 동기화하려면 로그인하세요",
+			"description": "모든 디바이스에서 트랙, 재생목록, 태그를 동기화하세요.",
+			"button": "{provider}로 로그인"
+		},
+		"status": {
+			"idle": "모든 변경 사항이 동기화됨",
+			"syncing": "동기화 중…",
+			"offline": "오프라인 — 다시 연결되면 변경 사항이 동기화됨",
+			"error": "동기화 오류",
+			"signedOut": "로그인하지 않음"
+		},
+		"account": {
+			"title": "계정",
+			"syncNow": "지금 동기화",
+			"syncing": "동기화 중…",
+			"signOut": "로그아웃",
+			"lastSynced": "마지막 동기화 {time}"
+		},
+		"devices": {
+			"title": "디바이스",
+			"description": "이 계정에 로그인한 디바이스는 라이브러리를 공유합니다.",
+			"thisDevice": "이 디바이스",
+			"lastSeen": "마지막 확인 {time}",
+			"revoke": "취소",
+			"revokeTitle": "디바이스를 취소하시겠습니까?",
+			"revokeMessage": "이 디바이스는 동기화를 중지하며 다시 연결하려면 로그인해야 합니다.",
+			"renameFailed": "디바이스 이름을 변경할 수 없습니다"
+		},
+		"roots": {
+			"title": "라이브러리 루트",
+			"description": "동기화된 각 라이브러리 루트를 이 디바이스의 폴더에 매핑하여 트랙을 재생 가능하게 합니다.",
+			"map": "폴더 매핑",
+			"remap": "다시 매핑",
+			"unmapped": "이 디바이스에서 매핑되지 않음",
+			"none": "라이브러리 루트가 아직 없습니다."
+		},
+		"conflicts": {
+			"overridden": "‘{label}’이(가) {device}에서 변경됨 — 편집 내용이 대체됨"
+		},
+		"danger": {
+			"title": "위험 영역",
+			"deleteVault": "클라우드 저장소 삭제",
+			"deleteVaultDescription": "동기화된 모든 데이터를 클라우드에서 영구적으로 삭제합니다. 로컬 라이브러리는 영향을 받지 않습니다.",
+			"confirmTitle": "클라우드 저장소를 삭제하시겠습니까?",
+			"confirmMessage": "동기화된 모든 데이터를 클라우드에서 영구적으로 삭제하고 로그아웃합니다. 로컬 라이브러리는 그대로 유지됩니다. 이 작업은 실행 취소할 수 없습니다.",
+			"error": "클라우드 저장소를 삭제할 수 없습니다"
 		}
 	},
 	"player": {

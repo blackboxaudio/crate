@@ -240,5 +240,76 @@ CREATE TABLE discovery_audio_cache (
         r#"
 ALTER TABLE discovery_tracks ADD COLUMN is_liked INTEGER NOT NULL DEFAULT 0;
 "#,
+        // Migration 3: Cloud-sync foundations — HLC columns, track rooting, indexes.
+        // `library_roots` is created first so the `tracks.library_root_id` FK resolves.
+        // `_hlc TEXT NOT NULL DEFAULT ''` back-fills existing rows with the "never stamped"
+        // sentinel (which sorts below every real HLC). A REFERENCES column added via
+        // ALTER TABLE must default to NULL (it does), which SQLite permits.
+        r#"
+CREATE TABLE library_roots (
+    id   TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    _hlc TEXT NOT NULL DEFAULT ''
+);
+
+ALTER TABLE tracks                      ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE playlists                   ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE playlist_tracks             ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE cues                        ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE tag_categories              ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE tags                        ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE track_tags                  ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE discovery_releases          ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE discovery_tracks            ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE discovery_release_tags      ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+ALTER TABLE playlist_discovery_releases ADD COLUMN _hlc TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE tracks ADD COLUMN library_root_id TEXT REFERENCES library_roots(id) ON DELETE SET NULL;
+ALTER TABLE tracks ADD COLUMN relative_path   TEXT;
+
+CREATE INDEX idx_tracks_hlc                      ON tracks(_hlc);
+CREATE INDEX idx_playlists_hlc                   ON playlists(_hlc);
+CREATE INDEX idx_playlist_tracks_hlc             ON playlist_tracks(_hlc);
+CREATE INDEX idx_cues_hlc                        ON cues(_hlc);
+CREATE INDEX idx_tag_categories_hlc              ON tag_categories(_hlc);
+CREATE INDEX idx_tags_hlc                        ON tags(_hlc);
+CREATE INDEX idx_track_tags_hlc                  ON track_tags(_hlc);
+CREATE INDEX idx_discovery_releases_hlc          ON discovery_releases(_hlc);
+CREATE INDEX idx_discovery_tracks_hlc            ON discovery_tracks(_hlc);
+CREATE INDEX idx_discovery_release_tags_hlc      ON discovery_release_tags(_hlc);
+CREATE INDEX idx_playlist_discovery_releases_hlc ON playlist_discovery_releases(_hlc);
+CREATE INDEX idx_library_roots_hlc               ON library_roots(_hlc);
+"#,
+        // Migration 4: Cloud-sync bookkeeping. These tables are device-local — they are
+        // never themselves serialized as sync buckets.
+        r#"
+-- Per-device mapping from a synced library_root to its local absolute folder.
+CREATE TABLE IF NOT EXISTS sync_root_mappings (
+    library_root_id     TEXT PRIMARY KEY,
+    local_absolute_path TEXT NOT NULL
+);
+
+-- Hard-deleted rows to propagate. `entity_id` is the row's PK; composite junction
+-- keys are encoded "a|b" in PK-declaration column order (see pipeline::dirty).
+CREATE TABLE IF NOT EXISTS sync_tombstones (
+    entity_type TEXT NOT NULL,
+    entity_id   TEXT NOT NULL,
+    _hlc        TEXT NOT NULL,
+    PRIMARY KEY (entity_type, entity_id)
+);
+CREATE INDEX IF NOT EXISTS idx_sync_tombstones_hlc ON sync_tombstones(_hlc);
+
+-- Buckets changed locally since the last successful push (drained on push).
+CREATE TABLE IF NOT EXISTS sync_dirty_buckets (
+    bucket    TEXT PRIMARY KEY,
+    marked_at TEXT NOT NULL
+);
+
+-- Singleton key/value store for the sync engine (node_id, HLC clock, cursors, flags).
+CREATE TABLE IF NOT EXISTS sync_state (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+"#,
     ]
 }

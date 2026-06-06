@@ -1,11 +1,26 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
+use crate::services::cloud_sync::resolution;
 
 impl LibraryService {
-    /// Check if a track's file still exists on disk
+    /// Check if a track's file resolves to a playable location on this device.
+    ///
+    /// For cloud-synced tracks (with `library_root_id` + `relative_path`), this
+    /// joins the logical relative path against the device-local mapping; for
+    /// device-local tracks it falls back to the absolute `file_path`.
     pub fn check_track_file_exists(&self, id: &str) -> Result<bool> {
         let track = self.get_track(id)?;
-        let path = std::path::Path::new(&track.file_path);
-        Ok(path.exists())
+        let conn = self
+            .conn
+            .lock()
+            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+        let resolved = resolution::resolve_track_path(
+            &conn,
+            track.library_root_id.as_deref(),
+            track.relative_path.as_deref(),
+            &track.file_path,
+        )?;
+        Ok(matches!(resolved, resolution::ResolvedPath::Playable(_)))
     }
 
     /// Validate if a replacement file matches the original track
@@ -80,10 +95,24 @@ impl LibraryService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
+        let (library_root_id, relative_path) =
+            resolution::assign_root_for_import(&conn, &new_path_str)?;
+
         conn.execute(
-            "UPDATE tracks SET file_path = ?1, file_hash = ?2, date_modified = ?3 WHERE id = ?4",
-            rusqlite::params![new_path_str, validation.new_hash, now, id],
+            "UPDATE tracks SET file_path = ?1, file_hash = ?2, date_modified = ?3, \
+                _hlc = ?4, library_root_id = ?5, relative_path = ?6 WHERE id = ?7",
+            rusqlite::params![
+                new_path_str,
+                validation.new_hash,
+                now,
+                hlc,
+                library_root_id,
+                relative_path,
+                id
+            ],
         )?;
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(id))?;
 
         drop(conn);
         self.get_track(id)

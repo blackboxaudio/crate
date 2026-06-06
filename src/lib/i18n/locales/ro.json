@@ -35,6 +35,7 @@
 			"discovery": "Descoperiri",
 			"appearance": "Aspect",
 			"sound": "Sunet",
+			"cloudSync": "Sincronizare în cloud",
 			"diagnostics": "Diagnosticare",
 			"about": "Despre"
 		},
@@ -160,6 +161,56 @@
 			"checkForUpdates": "Caută Actualizări",
 			"upToDate": "Actualizat",
 			"updateAvailable": "{version} disponibil"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Conectați-vă pentru a sincroniza biblioteca dvs.",
+			"description": "Sincronizați piesele, listele de redare și etichetele pe toate dispozitivele.",
+			"button": "Conectați-vă cu {provider}"
+		},
+		"status": {
+			"idle": "Toate modificările sincronizate",
+			"syncing": "Se sincronizează…",
+			"offline": "Offline — modificările vor fi sincronizate la reconectare",
+			"error": "Eroare de sincronizare",
+			"signedOut": "Nu sunteți conectat"
+		},
+		"account": {
+			"title": "Cont",
+			"syncNow": "Sincronizați acum",
+			"syncing": "Se sincronizează…",
+			"signOut": "Deconectați-vă",
+			"lastSynced": "Ultima sincronizare {time}"
+		},
+		"devices": {
+			"title": "Dispozitive",
+			"description": "Dispozitivele conectate la acest cont partajează biblioteca dvs.",
+			"thisDevice": "Acest dispozitiv",
+			"lastSeen": "Seen ultima dată {time}",
+			"revoke": "Revocare",
+			"revokeTitle": "Revocare dispozitiv?",
+			"revokeMessage": "Acest dispozitiv va înceta sincronizarea și va trebui să se conecteze din nou pentru a se reconecta.",
+			"renameFailed": "Nu s-a putut redenumi dispozitivul"
+		},
+		"roots": {
+			"title": "Rădăcinile bibliotecii",
+			"description": "Mapați fiecare rădăcină a bibliotecii sincronizate la un folder pe acest dispozitiv, astfel încât piesele sale să fie redabile.",
+			"map": "Mapați folder",
+			"remap": "Remapați",
+			"unmapped": "Nu este mapat pe acest dispozitiv",
+			"none": "Nicio rădăcină a bibliotecii încă."
+		},
+		"conflicts": {
+			"overridden": "‘{label}’ a fost modificat pe {device} — editarea dvs. a fost înlocuită"
+		},
+		"danger": {
+			"title": "Zona de Pericol",
+			"deleteVault": "Ștergeți seiful cloud",
+			"deleteVaultDescription": "Ștergeți permanent toate datele sincronizate din cloud. Biblioteca dvs. locală nu este afectată.",
+			"confirmTitle": "Ștergeți seiful cloud?",
+			"confirmMessage": "Aceasta șterge permanent toate datele sincronizate din cloud și vă deconectează. Biblioteca dvs. locală rămâne intactă. Această acțiune nu poate fi anulată.",
+			"error": "Nu s-a putut șterge seiful dvs. cloud"
 		}
 	},
 	"player": {

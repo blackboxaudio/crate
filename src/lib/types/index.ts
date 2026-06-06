@@ -136,6 +136,10 @@ export interface Track {
 	// Track color (Rekordbox-compatible)
 	color: TrackColor | null
 
+	// Cloud sync: library root association
+	library_root_id: string | null
+	relative_path: string | null
+
 	// Related data
 	tags: Tag[]
 }
@@ -489,7 +493,15 @@ export type ExportFormat = 'pdb' | 'device_library_plus'
 
 export type BackupFrequency = 'daily' | 'weekly' | 'monthly' | 'never'
 
-export type SettingsPage = 'general' | 'appearance' | 'discovery' | 'library' | 'sound' | 'diagnostics' | 'about'
+export type SettingsPage =
+	| 'general'
+	| 'appearance'
+	| 'discovery'
+	| 'library'
+	| 'sound'
+	| 'cloudSync'
+	| 'diagnostics'
+	| 'about'
 
 export interface AppSettings {
 	theme: Theme
@@ -826,4 +838,38 @@ export type DiscoverySortField = 'artist' | 'title' | 'label' | 'release_date' |
 export interface DiscoverySortConfig {
 	field: DiscoverySortField
 	direction: SortDirection
+}
+
+// =============================================================================
+// Cloud Sync Types
+// =============================================================================
+
+export type CloudSyncPhase = 'disabled' | 'signedout' | 'idle' | 'syncing' | 'offline' | 'error'
+
+/** First-sign-in onboarding hint — only present on the sign-in response. */
+export type CloudSyncOnboarding = 'initial' | 'restore'
+
+export interface CloudSyncStatus {
+	phase: CloudSyncPhase
+	email: string | null
+	display_name: string | null
+	photo_url: string | null
+	device_id: string
+	device_name: string
+	last_error: string | null
+	last_synced_at: string | null
+	onboarding: CloudSyncOnboarding | null
+}
+
+export interface CloudDeviceRecord {
+	device_id: string
+	name: string
+	last_seen: { secs_since_epoch: number; nanos_since_epoch: number }
+	app_version: string
+}
+
+export interface LibraryRoot {
+	id: string
+	name: string
+	local_path: string | null
 }

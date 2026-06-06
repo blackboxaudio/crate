@@ -35,6 +35,7 @@
 			"discovery": "Odkrywanie",
 			"appearance": "Wygląd",
 			"sound": "Dźwięk",
+			"cloudSync": "Synchronizacja w chmurze",
 			"diagnostics": "Diagnostyka",
 			"about": "Informacje"
 		},
@@ -160,6 +161,56 @@
 			"checkForUpdates": "Sprawdź dostępne aktualizacje",
 			"upToDate": "Aktualna",
 			"updateAvailable": "Dostępna wersja {version}"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Zaloguj się, aby zsynchronizować bibliotekę",
+			"description": "Synchronizuj swoje utwory, playlisty i tagi na wszystkich urządzeniach.",
+			"button": "Zaloguj się za pomocą {provider}"
+		},
+		"status": {
+			"idle": "Wszystkie zmiany zsynchronizowane",
+			"syncing": "Synchronizowanie…",
+			"offline": "Offline — zmiany będą synchronizowane po ponownym połączeniu",
+			"error": "Błąd synchronizacji",
+			"signedOut": "Niezalogowany"
+		},
+		"account": {
+			"title": "Konto",
+			"syncNow": "Synchronizuj teraz",
+			"syncing": "Synchronizowanie…",
+			"signOut": "Wyloguj",
+			"lastSynced": "Ostatnia synchronizacja {time}"
+		},
+		"devices": {
+			"title": "Urządzenia",
+			"description": "Urządzenia zalogowane na tym koncie dzielą się biblioteką.",
+			"thisDevice": "To urządzenie",
+			"lastSeen": "Ostatnio widoczne {time}",
+			"revoke": "Odwołaj",
+			"revokeTitle": "Odwołać urządzenie?",
+			"revokeMessage": "To urządzenie przestanie się synchronizować i będzie musiało zalogować się ponownie, aby się ponownie połączyć.",
+			"renameFailed": "Nie udało się zmienić nazwy urządzenia"
+		},
+		"roots": {
+			"title": "Korzenie biblioteki",
+			"description": "Mapuj każdy zsynchronizowany korzeń biblioteki do folderu na tym urządzeniu, aby jego utwory były odtwarzalne.",
+			"map": "Mapuj folder",
+			"remap": "Mapuj ponownie",
+			"unmapped": "Nie zmapowane na tym urządzeniu",
+			"none": "Jeszcze bez korzeni biblioteki."
+		},
+		"conflicts": {
+			"overridden": "‘{label}’ został zmieniony na {device} — twoja edycja została zastąpiona"
+		},
+		"danger": {
+			"title": "Strefa Niebezpieczeństwa",
+			"deleteVault": "Usuń sejf w chmurze",
+			"deleteVaultDescription": "Trwale usuń wszystkie zsynchronizowane dane z chmury. Twoja lokalna biblioteka nie jest zagrożona.",
+			"confirmTitle": "Usunąć sejf w chmurze?",
+			"confirmMessage": "To trwale usuwa wszystkie twoje zsynchronizowane dane z chmury i wylogowuje cię. Twoja lokalna biblioteka pozostaje niezmieniona. Tej czynności nie można cofnąć.",
+			"error": "Nie udało się usunąć sejfu w chmurze"
 		}
 	},
 	"player": {

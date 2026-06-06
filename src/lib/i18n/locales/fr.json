@@ -35,6 +35,7 @@
 			"discovery": "Découvertes",
 			"appearance": "Apparence",
 			"sound": "Son",
+			"cloudSync": "Synchronisation cloud",
 			"diagnostics": "Diagnostics",
 			"about": "À propos"
 		},
@@ -160,6 +161,56 @@
 			"checkForUpdates": "Vérifier les mises à jour",
 			"upToDate": "À jour",
 			"updateAvailable": "{version} disponible"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Connectez-vous pour synchroniser votre bibliothèque",
+			"description": "Synchronisez vos pistes, playlists et tags sur tous vos appareils.",
+			"button": "Se connecter avec {provider}"
+		},
+		"status": {
+			"idle": "Tous les changements synchronisés",
+			"syncing": "Synchronisation…",
+			"offline": "Hors ligne — les changements seront synchronisés à la reconnexion",
+			"error": "Erreur de synchronisation",
+			"signedOut": "Non connecté"
+		},
+		"account": {
+			"title": "Compte",
+			"syncNow": "Synchroniser maintenant",
+			"syncing": "Synchronisation…",
+			"signOut": "Déconnexion",
+			"lastSynced": "Dernière synchronisation {time}"
+		},
+		"devices": {
+			"title": "Appareils",
+			"description": "Les appareils connectés à ce compte partagent votre bibliothèque.",
+			"thisDevice": "Cet appareil",
+			"lastSeen": "Vu pour la dernière fois {time}",
+			"revoke": "Révoquer",
+			"revokeTitle": "Révoquer l'appareil?",
+			"revokeMessage": "Cet appareil arrêtera de se synchroniser et devra se reconnecter pour fonctionner à nouveau.",
+			"renameFailed": "Impossible de renommer l'appareil"
+		},
+		"roots": {
+			"title": "Racines de la bibliothèque",
+			"description": "Associez chaque racine de bibliothèque synchronisée à un dossier sur cet appareil pour que ses pistes soient lisibles.",
+			"map": "Associer un dossier",
+			"remap": "Réassocier",
+			"unmapped": "Non associé sur cet appareil",
+			"none": "Pas encore de racines de bibliothèque."
+		},
+		"conflicts": {
+			"overridden": "‘{label}’ a été modifié sur {device} — votre modification a été remplacée"
+		},
+		"danger": {
+			"title": "Zone Dangereuse",
+			"deleteVault": "Supprimer le coffre cloud",
+			"deleteVaultDescription": "Supprimez définitivement toutes vos données synchronisées du cloud. Votre bibliothèque locale n'est pas affectée.",
+			"confirmTitle": "Supprimer le coffre cloud?",
+			"confirmMessage": "Cela supprime définitivement toutes vos données synchronisées du cloud et vous déconnecte. Votre bibliothèque locale reste intacte. Cette action ne peut pas être annulée.",
+			"error": "Impossible de supprimer votre coffre cloud"
 		}
 	},
 	"player": {

@@ -49,8 +49,38 @@ pub enum CrateError {
     #[error("Key storage error: {0}")]
     KeyStorage(String),
 
+    #[allow(dead_code)]
+    #[error("Cloud sync error: {0}")]
+    CloudSync(String),
+
+    #[allow(dead_code)]
+    #[error("Cloud sync conflict (manifest etag mismatch)")]
+    CloudSyncConflict,
+
+    #[allow(dead_code)]
+    #[error("Cloud sync blob not found: {0}")]
+    CloudSyncBlobNotFound(String),
+
+    #[allow(dead_code)]
+    #[error("Cloud sync auth error: {0}")]
+    CloudSyncAuth(String),
+
+    /// A transient connectivity failure (connect/timeout/DNS, HTTP 429, HTTP 5xx).
+    /// Distinct from [`CrateError::CloudSync`] so the runtime can surface `Offline`
+    /// (and recover) instead of a hard `Error`.
+    #[error("Cloud sync network error: {0}")]
+    CloudSyncNetwork(String),
+
     #[error("Internal lock error")]
     LockPoisoned,
+}
+
+impl CrateError {
+    /// Whether this is a transient connectivity failure worth surfacing as `Offline`
+    /// (and retrying) rather than a hard `Error`.
+    pub fn is_transient(&self) -> bool {
+        matches!(self, CrateError::CloudSyncNetwork(_))
+    }
 }
 
 impl serde::Serialize for CrateError {

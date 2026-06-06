@@ -35,6 +35,7 @@
 			"discovery": "Descubrimientos",
 			"appearance": "Apariencia",
 			"sound": "Sonido",
+			"cloudSync": "Sincronización en la nube",
 			"diagnostics": "Diagnósticos",
 			"about": "Acerca de"
 		},
@@ -160,6 +161,56 @@
 			"checkForUpdates": "Buscar actualizaciones",
 			"upToDate": "Al día",
 			"updateAvailable": "{version} disponible"
+		}
+	},
+	"cloudSync": {
+		"signIn": {
+			"title": "Inicia sesión para sincronizar tu biblioteca",
+			"description": "Sincroniza tus pistas, listas de reproducción y etiquetas en todos tus dispositivos.",
+			"button": "Iniciar sesión con {provider}"
+		},
+		"status": {
+			"idle": "Todos los cambios sincronizados",
+			"syncing": "Sincronizando…",
+			"offline": "Desconectado — los cambios se sincronizarán cuando te reconectes",
+			"error": "Error de sincronización",
+			"signedOut": "No conectado"
+		},
+		"account": {
+			"title": "Cuenta",
+			"syncNow": "Sincronizar ahora",
+			"syncing": "Sincronizando…",
+			"signOut": "Cerrar sesión",
+			"lastSynced": "Última sincronización {time}"
+		},
+		"devices": {
+			"title": "Dispositivos",
+			"description": "Los dispositivos conectados a esta cuenta comparten tu biblioteca.",
+			"thisDevice": "Este dispositivo",
+			"lastSeen": "Visto por última vez {time}",
+			"revoke": "Revocar",
+			"revokeTitle": "¿Revocar dispositivo?",
+			"revokeMessage": "Este dispositivo dejará de sincronizarse y tendrá que iniciar sesión de nuevo para reconectarse.",
+			"renameFailed": "No se pudo renombrar el dispositivo"
+		},
+		"roots": {
+			"title": "Raíces de la biblioteca",
+			"description": "Asigna cada raíz de biblioteca sincronizada a una carpeta en este dispositivo para que sus pistas sean reproducibles.",
+			"map": "Asignar carpeta",
+			"remap": "Reasignar",
+			"unmapped": "No asignado en este dispositivo",
+			"none": "Sin raíces de biblioteca aún."
+		},
+		"conflicts": {
+			"overridden": "‘{label}’ fue modificado en {device} — tu cambio fue reemplazado"
+		},
+		"danger": {
+			"title": "Zona de Peligro",
+			"deleteVault": "Eliminar bóveda en la nube",
+			"deleteVaultDescription": "Elimina permanentemente todos tus datos sincronizados de la nube. Tu biblioteca local no se verá afectada.",
+			"confirmTitle": "¿Eliminar bóveda en la nube?",
+			"confirmMessage": "Esto elimina permanentemente todos tus datos sincronizados de la nube y te desconecta. Tu biblioteca local permanecerá intacta. Esto no se puede deshacer.",
+			"error": "No se pudo eliminar tu bóveda en la nube"
 		}
 	},
 	"player": {

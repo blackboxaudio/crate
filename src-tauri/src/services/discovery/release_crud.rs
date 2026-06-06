@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl DiscoveryService {
     pub fn create_release(&self, create: DiscoveryReleaseCreate) -> Result<DiscoveryRelease> {
@@ -14,9 +15,10 @@ impl DiscoveryService {
             .source_type
             .unwrap_or_else(|| detect_source_type(&normalized_url));
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, parent_url, date_added, date_modified)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, parent_url, date_added, date_modified, _hlc)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
             rusqlite::params![
                 id,
                 normalized_url,
@@ -30,8 +32,10 @@ impl DiscoveryService {
                 create.parent_url,
                 now,
                 now,
+                hlc,
             ],
         )?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
 
         // Insert tracks if provided
         let mut tracks = Vec::new();
@@ -39,8 +43,8 @@ impl DiscoveryService {
             for tc in track_creates {
                 let track_id = uuid::Uuid::new_v4().to_string();
                 conn.execute(
-                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id) VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
-                    rusqlite::params![track_id, id, tc.name, tc.position, tc.duration_ms, tc.video_id],
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                    rusqlite::params![track_id, id, tc.name, tc.position, tc.duration_ms, tc.video_id, hlc],
                 )?;
                 tracks.push(DiscoveryTrack {
                     id: track_id,
@@ -53,6 +57,7 @@ impl DiscoveryService {
                 });
             }
         }
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
 
         Ok(DiscoveryRelease {
             id,
@@ -391,6 +396,10 @@ impl DiscoveryService {
             params.push(Box::new(str_or_null(notes)));
         }
 
+        let hlc = dirty::next_hlc(&conn)?;
+        set_clauses.push("_hlc = ?".to_string());
+        params.push(Box::new(hlc));
+
         params.push(Box::new(id.to_string()));
 
         let sql = format!(
@@ -401,6 +410,7 @@ impl DiscoveryService {
         let param_refs: Vec<&dyn rusqlite::types::ToSql> =
             params.iter().map(|p| p.as_ref()).collect();
         conn.execute(&sql, param_refs.as_slice())?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
 
         drop(conn);
         self.get_release(id)
@@ -422,10 +432,12 @@ impl DiscoveryService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "UPDATE discovery_releases SET artwork_path = ?1, date_modified = ?2 WHERE id = ?3",
-            rusqlite::params![relative_path, now, id],
+            "UPDATE discovery_releases SET artwork_path = ?1, date_modified = ?2, _hlc = ?3 WHERE id = ?4",
+            rusqlite::params![relative_path, now, hlc, id],
         )?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
 
         drop(conn);
         self.get_release(id)
@@ -440,10 +452,12 @@ impl DiscoveryService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "UPDATE discovery_releases SET artwork_path = NULL, date_modified = ?1 WHERE id = ?2",
-            rusqlite::params![now, id],
+            "UPDATE discovery_releases SET artwork_path = NULL, date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, id],
         )?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
 
         drop(conn);
         self.get_release(id)
@@ -460,7 +474,14 @@ impl DiscoveryService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
+        dirty::record_tombstone(&conn, buckets::DISCOVERY_RELEASES, id, &hlc)?;
         conn.execute("DELETE FROM discovery_releases WHERE id = ?1", [id])?;
+        // Cascade removes this release's tracks + tag/playlist links.
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
         Ok(())
     }
 
@@ -484,10 +505,12 @@ impl DiscoveryService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "UPDATE discovery_tracks SET is_liked = CASE WHEN is_liked = 0 THEN 1 ELSE 0 END WHERE id = ?1",
-            [track_id],
+            "UPDATE discovery_tracks SET is_liked = CASE WHEN is_liked = 0 THEN 1 ELSE 0 END, _hlc = ?2 WHERE id = ?1",
+            rusqlite::params![track_id, hlc],
         )?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
 
         let is_liked: bool = conn
             .query_row(
@@ -524,7 +547,18 @@ impl DiscoveryService {
             .iter()
             .map(|id| id as &dyn rusqlite::types::ToSql)
             .collect();
+
+        let hlc = dirty::next_hlc(&conn)?;
+        for id in &ids {
+            dirty::record_tombstone(&conn, buckets::DISCOVERY_RELEASES, id, &hlc)?;
+        }
+
         conn.execute(&sql, params.as_slice())?;
+
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
 
         Ok(())
     }

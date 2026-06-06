@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl PlaylistService {
     pub fn get_playlists(&self, context: &str) -> Result<Vec<Playlist>> {
@@ -121,10 +122,11 @@ impl PlaylistService {
             context: context.clone(),
         };
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
             r#"
-            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified, context)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified, context, _hlc)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
             "#,
             rusqlite::params![
                 playlist.id,
@@ -137,8 +139,10 @@ impl PlaylistService {
                 playlist.date_created,
                 playlist.date_modified,
                 context,
+                hlc,
             ],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         Ok(playlist)
     }
@@ -176,10 +180,11 @@ impl PlaylistService {
             context: context.clone(),
         };
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
             r#"
-            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified, context)
-            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)
+            INSERT INTO playlists (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, date_created, date_modified, context, _hlc)
+            VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
             "#,
             rusqlite::params![
                 folder.id,
@@ -192,8 +197,10 @@ impl PlaylistService {
                 folder.date_created,
                 folder.date_modified,
                 context,
+                hlc,
             ],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         Ok(folder)
     }
@@ -205,11 +212,13 @@ impl PlaylistService {
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
 
         conn.execute(
-            "UPDATE playlists SET name = ?1, date_modified = ?2 WHERE id = ?3",
-            rusqlite::params![name, now, id],
+            "UPDATE playlists SET name = ?1, date_modified = ?2, _hlc = ?3 WHERE id = ?4",
+            rusqlite::params![name, now, hlc, id],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         drop(conn);
         self.get_playlist(id)
@@ -278,8 +287,14 @@ impl PlaylistService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
-        // Foreign key cascade will delete playlist_tracks entries
+        // Foreign key cascade deletes child playlists + junction entries; the
+        // tombstone drives the same cascade on peers.
+        let hlc = dirty::next_hlc(&conn)?;
+        dirty::record_tombstone(&conn, buckets::PLAYLISTS, id, &hlc)?;
         conn.execute("DELETE FROM playlists WHERE id = ?1", [id])?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
 
         Ok(())
     }

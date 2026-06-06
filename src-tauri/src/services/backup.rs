@@ -560,6 +560,13 @@ impl BackupService {
 
             tx.commit()?;
 
+            // A wholesale restore replaces the library; force the next cloud-sync
+            // push to re-stamp every restored row by clearing the one-time guard.
+            let _ = conn.execute(
+                "DELETE FROM sync_state WHERE key = 'initial_stamp_done'",
+                [],
+            );
+
             // Post-commit verification
             let track_count: i64 =
                 conn.query_row("SELECT COUNT(*) FROM tracks", [], |r| r.get(0))?;

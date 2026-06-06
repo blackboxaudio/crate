@@ -1,6 +1,7 @@
 pub mod analysis;
 pub mod app;
 pub mod backup;
+pub mod cloud_sync;
 pub mod device;
 pub mod diagnostics;
 pub mod discovery;

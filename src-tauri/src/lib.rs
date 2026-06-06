@@ -235,6 +235,24 @@ pub fn run() {
             commands::media_controls::update_now_playing,
             commands::media_controls::update_playback_state,
             commands::media_controls::clear_now_playing,
+            // Cloud sync commands
+            commands::cloud_sync::sign_in,
+            commands::cloud_sync::sign_out,
+            commands::cloud_sync::get_sync_status,
+            commands::cloud_sync::sync_now,
+            commands::cloud_sync::pull_now,
+            commands::cloud_sync::get_recent_overrides,
+            commands::cloud_sync::list_devices,
+            commands::cloud_sync::rename_device,
+            commands::cloud_sync::revoke_device,
+            commands::cloud_sync::delete_cloud_vault,
+            commands::cloud_sync::list_library_roots,
+            commands::cloud_sync::create_library_root,
+            commands::cloud_sync::rename_library_root,
+            commands::cloud_sync::remove_library_root,
+            commands::cloud_sync::set_library_root_mapping,
+            commands::cloud_sync::suggest_library_roots,
+            commands::cloud_sync::locate_track,
         ])
         .setup(|app| {
             // Get Tauri's app data directory
@@ -320,6 +338,112 @@ pub fn run() {
             )));
             app.manage(ScanEnrichmentCache::new());
             app.manage(EnrichmentSkipIds::new());
+
+            // Cloud sync: build the Firebase backend if a config file is present
+            // (degrades gracefully to "unavailable" when it isn't), manage the runtime
+            // state, and spawn the session-restore + pull/push/GC sync task.
+            {
+                use crate::services::cloud_sync::{
+                    auth, backend, config, hlc, runtime::CloudSyncState,
+                };
+
+                let cloud_config =
+                    config::load_cloud_config(app.path().app_config_dir().ok().as_deref())
+                        .unwrap_or(None);
+
+                let cloud_backend = cloud_config.as_ref().and_then(|cfg| {
+                    match backend::build_default_backend(cfg) {
+                        Ok(b) => Some(b),
+                        Err(e) => {
+                            log::warn!("cloud_sync: backend init failed: {e}");
+                            None
+                        }
+                    }
+                });
+
+                let device_id = {
+                    let guard = conn.lock().expect("db mutex poisoned");
+                    hlc::load_node_id(&guard)
+                        .map(|n| format!("{n:08x}"))
+                        .unwrap_or_else(|_| "00000000".to_string())
+                };
+                let device_name = {
+                    let guard = conn.lock().expect("db mutex poisoned");
+                    auth::read_state(&guard, "device_name")
+                        .ok()
+                        .flatten()
+                        .filter(|s| !s.is_empty())
+                }
+                .unwrap_or_else(|| {
+                    sysinfo::System::host_name().unwrap_or_else(|| "Crate device".to_string())
+                });
+                let app_version = app.package_info().version.to_string();
+
+                let cloud_state = Arc::new(CloudSyncState::new(
+                    cloud_backend,
+                    cloud_config,
+                    conn.clone(),
+                    device_id,
+                    device_name,
+                    app_version,
+                    app.handle().clone(),
+                ));
+                app.manage(cloud_state.clone());
+
+                // Restore any persisted session, then run one serialized sync task:
+                // each tick pulls other devices' changes (polled every ~10s) and pushes
+                // ours once the dirty queue goes quiescent (~15s after the last
+                // mutation). "Sync now" pushes immediately via the command. A one-shot
+                // GC sweep at startup reclaims superseded blobs past their grace window.
+                tauri::async_runtime::spawn(async move {
+                    cloud_state.restore_session().await;
+                    if !cloud_state.is_available() {
+                        return;
+                    }
+                    // Best-effort GC sweep once per session (signed-in only).
+                    if cloud_state.is_signed_in().await {
+                        if let Err(e) = cloud_state.run_gc_sweep().await {
+                            log::warn!("cloud_sync: gc sweep failed: {e}");
+                        }
+                    }
+                    let quiescent = std::time::Duration::from_secs(15);
+                    let mut tick: u64 = 0;
+                    loop {
+                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                        tick += 1;
+                        if !cloud_state.is_signed_in().await {
+                            continue;
+                        }
+                        // Pull every other tick (~10s) to halve manifest reads; the
+                        // etag gate keeps an unchanged poll cheap.
+                        if tick.is_multiple_of(2) {
+                            if let Err(e) = cloud_state.run_pull().await {
+                                // A transient connectivity failure is expected while
+                                // offline (already surfaced as the `Offline` phase) —
+                                // don't spam warnings every poll.
+                                if e.is_transient() {
+                                    log::debug!("cloud_sync: pull offline: {e}");
+                                } else {
+                                    log::warn!("cloud_sync: pull failed: {e}");
+                                }
+                            }
+                        }
+                        match cloud_state.dirty_quiescent(quiescent) {
+                            Ok(true) => {
+                                if let Err(e) = cloud_state.run_push().await {
+                                    if e.is_transient() {
+                                        log::debug!("cloud_sync: push offline: {e}");
+                                    } else {
+                                        log::warn!("cloud_sync: debounced push failed: {e}");
+                                    }
+                                }
+                            }
+                            Ok(false) => {}
+                            Err(e) => log::warn!("cloud_sync: dirty check failed: {e}"),
+                        }
+                    }
+                });
+            }
 
             // Start device monitoring
             let device_service = app.state::<DeviceService>();

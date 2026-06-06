@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl LibraryService {
     /// Rescan artwork for a single track by re-reading the audio file
@@ -18,10 +19,12 @@ impl LibraryService {
                     .lock()
                     .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+                let hlc = dirty::next_hlc(&conn)?;
                 conn.execute(
-                    "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted' WHERE id = ?2",
-                    rusqlite::params![artwork_path, track_id],
+                    "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted', _hlc = ?2 WHERE id = ?3",
+                    rusqlite::params![artwork_path, hlc, track_id],
                 )?;
+                dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(track_id))?;
 
                 return Ok(true);
             }
@@ -61,13 +64,16 @@ impl LibraryService {
                 {
                     // Update database with artwork path and source
                     if let Ok(conn) = self.conn.lock() {
+                        let hlc = dirty::next_hlc(&conn).unwrap_or_default();
                         if conn
                             .execute(
-                                "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted' WHERE id = ?2",
-                                rusqlite::params![artwork_path, track_id],
+                                "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted', _hlc = ?2 WHERE id = ?3",
+                                rusqlite::params![artwork_path, hlc, track_id],
                             )
                             .is_ok()
                         {
+                            let _ =
+                                dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(&track_id));
                             updated_count += 1;
                             continue;
                         }
@@ -104,10 +110,12 @@ impl LibraryService {
 
         let now = chrono::Utc::now().to_rfc3339();
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "UPDATE tracks SET artwork_path = ?1, artwork_source = 'user_provided', date_modified = ?2 WHERE id = ?3",
-            rusqlite::params![artwork_path, now, id],
+            "UPDATE tracks SET artwork_path = ?1, artwork_source = 'user_provided', date_modified = ?2, _hlc = ?3 WHERE id = ?4",
+            rusqlite::params![artwork_path, now, hlc, id],
         )?;
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(id))?;
 
         drop(conn);
         self.get_track(id)
@@ -126,10 +134,12 @@ impl LibraryService {
 
         let now = chrono::Utc::now().to_rfc3339();
 
+        let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "UPDATE tracks SET artwork_path = NULL, artwork_source = NULL, date_modified = ?1 WHERE id = ?2",
-            rusqlite::params![now, id],
+            "UPDATE tracks SET artwork_path = NULL, artwork_source = NULL, date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, id],
         )?;
+        dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(id))?;
 
         drop(conn);
         self.get_track(id)
@@ -156,10 +166,12 @@ impl LibraryService {
 
                 let now = chrono::Utc::now().to_rfc3339();
 
+                let hlc = dirty::next_hlc(&conn)?;
                 conn.execute(
-                    "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted', date_modified = ?2 WHERE id = ?3",
-                    rusqlite::params![artwork_path, now, id],
+                    "UPDATE tracks SET artwork_path = ?1, artwork_source = 'extracted', date_modified = ?2, _hlc = ?3 WHERE id = ?4",
+                    rusqlite::params![artwork_path, now, hlc, id],
                 )?;
+                dirty::mark_dirty(&conn, &buckets::bucket_for_track_id(id))?;
 
                 drop(conn);
                 return self.get_track(id);

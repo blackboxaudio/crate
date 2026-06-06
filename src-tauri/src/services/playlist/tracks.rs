@@ -1,4 +1,5 @@
 use super::*;
+use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl PlaylistService {
     pub fn get_playlist_tracks(&self, playlist_id: &str) -> Result<Vec<Track>> {
@@ -16,7 +17,8 @@ impl PlaylistService {
                 t.analysis_source, t.waveform_data,
                 t.rating, t.play_count,
                 t.date_added, t.date_modified, t.last_played,
-                t.rekordbox_id, t.artwork_path, t.artwork_source, t.color
+                t.rekordbox_id, t.artwork_path, t.artwork_source, t.color,
+                t.library_root_id, t.relative_path
             FROM tracks t
             JOIN playlist_tracks pt ON t.id = pt.track_id
             WHERE pt.playlist_id = ?1
@@ -54,6 +56,8 @@ impl PlaylistService {
                     artwork_path: row.get(24)?,
                     artwork_source: row.get(25)?,
                     color: row.get(26)?,
+                    library_root_id: row.get(27)?,
+                    relative_path: row.get(28)?,
                     tags: Vec::new(),
                 })
             })?
@@ -144,20 +148,23 @@ impl PlaylistService {
             .unwrap_or(-1);
 
         let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
 
         for (i, track_id) in track_ids.iter().enumerate() {
             let position = max_position + 1 + i as i32;
             conn.execute(
-                "INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position, date_added) VALUES (?1, ?2, ?3, ?4)",
-                rusqlite::params![playlist_id, track_id, position, now],
+                "INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position, date_added, _hlc) VALUES (?1, ?2, ?3, ?4, ?5)",
+                rusqlite::params![playlist_id, track_id, position, now, hlc],
             )?;
         }
 
         // Update playlist modified date
         conn.execute(
-            "UPDATE playlists SET date_modified = ?1 WHERE id = ?2",
-            rusqlite::params![now, playlist_id],
+            "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, playlist_id],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         // Drop the lock before calling get_playlist which acquires its own lock
         drop(conn);
@@ -172,11 +179,20 @@ impl PlaylistService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         for track_id in &track_ids {
-            conn.execute(
+            let deleted = conn.execute(
                 "DELETE FROM playlist_tracks WHERE playlist_id = ?1 AND track_id = ?2",
                 rusqlite::params![playlist_id, track_id],
             )?;
+            if deleted > 0 {
+                dirty::record_tombstone(
+                    &conn,
+                    buckets::PLAYLIST_TRACKS,
+                    &dirty::junction_entity_id(playlist_id, track_id),
+                    &hlc,
+                )?;
+            }
         }
 
         // Reorder remaining tracks
@@ -192,17 +208,19 @@ impl PlaylistService {
 
         for (i, track_id) in remaining_tracks.iter().enumerate() {
             conn.execute(
-                "UPDATE playlist_tracks SET position = ?1 WHERE playlist_id = ?2 AND track_id = ?3",
-                rusqlite::params![i as i32, playlist_id, track_id],
+                "UPDATE playlist_tracks SET position = ?1, _hlc = ?2 WHERE playlist_id = ?3 AND track_id = ?4",
+                rusqlite::params![i as i32, hlc, playlist_id, track_id],
             )?;
         }
 
         // Update playlist modified date
         let now = chrono::Utc::now().to_rfc3339();
         conn.execute(
-            "UPDATE playlists SET date_modified = ?1 WHERE id = ?2",
-            rusqlite::params![now, playlist_id],
+            "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, playlist_id],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         // Drop the lock before calling get_playlist which acquires its own lock
         drop(conn);
@@ -217,19 +235,22 @@ impl PlaylistService {
             .lock()
             .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
 
+        let hlc = dirty::next_hlc(&conn)?;
         for (i, track_id) in track_ids.iter().enumerate() {
             conn.execute(
-                "UPDATE playlist_tracks SET position = ?1 WHERE playlist_id = ?2 AND track_id = ?3",
-                rusqlite::params![i as i32, playlist_id, track_id],
+                "UPDATE playlist_tracks SET position = ?1, _hlc = ?2 WHERE playlist_id = ?3 AND track_id = ?4",
+                rusqlite::params![i as i32, hlc, playlist_id, track_id],
             )?;
         }
 
         // Update playlist modified date
         let now = chrono::Utc::now().to_rfc3339();
         conn.execute(
-            "UPDATE playlists SET date_modified = ?1 WHERE id = ?2",
-            rusqlite::params![now, playlist_id],
+            "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, playlist_id],
         )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
 
         Ok(())
     }
