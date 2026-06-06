@@ -68,6 +68,9 @@ interface UIState {
 	// Context menu hover styling for playlist tree
 	contextMenuPlaylistId: string | null
 
+	// Context menu hover styling for discovery track sub-rows
+	contextMenuDiscoveryTrackId: string | null
+
 	// Navigation cache per view context
 	viewNavigationCache: ViewNavigationCache
 
@@ -105,6 +108,7 @@ const initialState: UIState = {
 	recentlyToggledMixedTags: new Set(),
 	selectedTreeIds: new Set(),
 	contextMenuPlaylistId: null,
+	contextMenuDiscoveryTrackId: null,
 	viewNavigationCache: {
 		library: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
 		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
@@ -570,6 +574,22 @@ function createUIStore() {
 		},
 
 		/**
+		 * Set context menu discovery track ID (for hover styling)
+		 */
+		setContextMenuDiscoveryTrackId(id: string | null) {
+			update((state) => ({ ...state, contextMenuDiscoveryTrackId: id }))
+		},
+
+		/**
+		 * Clear context menu discovery track ID
+		 */
+		clearContextMenuDiscoveryTrackId() {
+			update((state) =>
+				state.contextMenuDiscoveryTrackId !== null ? { ...state, contextMenuDiscoveryTrackId: null } : state
+			)
+		},
+
+		/**
 		 * Clear all recently toggled tags (call when selection changes)
 		 */
 		clearAllRecentlyToggledTags() {
@@ -631,6 +651,8 @@ export const rightSidebarWidth = derived(uiStore, ($ui) => $ui.rightSidebarWidth
 export const selectedTreeIds = derived(uiStore, ($ui) => $ui.selectedTreeIds)
 
 export const contextMenuPlaylistId = derived(uiStore, ($ui) => $ui.contextMenuPlaylistId)
+
+export const contextMenuDiscoveryTrackId = derived(uiStore, ($ui) => $ui.contextMenuDiscoveryTrackId)
 
 export const scrollOffset = derived(uiStore, ($ui) => $ui.viewNavigationCache[$ui.activeView].scrollOffset)
 

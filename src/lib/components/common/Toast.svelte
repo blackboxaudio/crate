@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Toast, ToastType } from '$lib/stores/toast'
 	import { fly } from 'svelte/transition'
+	import { cubicOut } from 'svelte/easing'
 	import Icon from './Icon.svelte'
 	import IconButton from './IconButton.svelte'
 	import Text from './Text.svelte'
@@ -29,8 +30,8 @@
 	}
 </script>
 
-<div class="bg-surface-0">
-	<div class="{baseStyles} {typeStyles[toast.type]}" role="alert" transition:fly={{ x: 100, duration: 200 }}>
+<div class="bg-surface-0" transition:fly|global={{ x: 40, duration: 250, easing: cubicOut }}>
+	<div class="{baseStyles} {typeStyles[toast.type]}" role="alert">
 		<!-- Icon -->
 		<Icon name={iconNames[toast.type]} class="h-5 w-5 flex-shrink-0" />
 

@@ -42,6 +42,7 @@
 		onToggleExpand?: (id: string) => void
 		onTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onTrackLikeToggle?: (releaseId: string, trackId: string) => void
+		onTrackContextMenu?: (release: DiscoveryRelease, trackIndex: number, canPlay: boolean, e: MouseEvent) => void
 		onScrollChange?: (offset: number) => void
 		likedOnly?: boolean
 	}
@@ -65,6 +66,7 @@
 		onToggleExpand,
 		onTrackPlay,
 		onTrackLikeToggle,
+		onTrackContextMenu,
 		onScrollChange,
 		likedOnly = false,
 	}: Props = $props()
@@ -223,6 +225,7 @@
 							onToggleExpand={() => onToggleExpand?.(release.id)}
 							onTrackPlay={(idx) => onTrackPlay?.(release, idx)}
 							onTrackLikeToggle={(trackId) => onTrackLikeToggle?.(release.id, trackId)}
+							onTrackContextMenu={(idx, canPlay, e) => onTrackContextMenu?.(release, idx, canPlay, e)}
 						/>
 					</div>
 				{/each}

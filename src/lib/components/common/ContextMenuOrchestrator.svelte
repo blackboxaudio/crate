@@ -19,6 +19,7 @@
 		| { type: 'tagsSidebar'; x: number; y: number }
 		| { type: 'device'; x: number; y: number; device: UsbDevice }
 		| { type: 'discoveryRelease'; x: number; y: number; releases: DiscoveryRelease[] }
+		| { type: 'discoveryTrack'; x: number; y: number; release: DiscoveryRelease; trackIndex: number; canPlay: boolean }
 		| { type: 'discoveryView'; x: number; y: number }
 </script>
 
@@ -29,6 +30,7 @@
 	import TagsSidebarContextMenu from '$lib/components/tags/TagsSidebarContextMenu.svelte'
 	import DeviceContextMenu from '$lib/components/devices/DeviceContextMenu.svelte'
 	import DiscoveryContextMenu from '$lib/components/discovery/DiscoveryContextMenu.svelte'
+	import DiscoveryTrackContextMenu from '$lib/components/discovery/DiscoveryTrackContextMenu.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { get } from 'svelte/store'
 	import { translate } from '$lib/i18n'
@@ -123,6 +125,10 @@
 		onDiscoveryReleaseMerge?: (releases: DiscoveryRelease[]) => void
 		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
+		// Discovery track callbacks
+		onDiscoveryTrackLikeToggle: (release: DiscoveryRelease, trackIndex: number) => void
+		onDiscoveryTrackPlayPreview: (release: DiscoveryRelease, trackIndex: number) => void
+
 		// Close callback
 		onClose?: () => void
 	}
@@ -180,6 +186,8 @@
 		onDiscoveryReleaseRemoveFromPlaylist,
 		onDiscoveryReleaseMerge,
 		onDiscoveryReleaseAddToPlaylist,
+		onDiscoveryTrackLikeToggle,
+		onDiscoveryTrackPlayPreview,
 		onClose,
 	}: Props = $props()
 
@@ -345,6 +353,25 @@
 			x: e.clientX,
 			y: e.clientY,
 			releases,
+		}
+		activeMenu = menu
+		visibleMenu = menu
+	}
+
+	export function openDiscoveryTrackMenu(
+		e: MouseEvent,
+		release: DiscoveryRelease,
+		trackIndex: number,
+		canPlay: boolean
+	) {
+		e.preventDefault()
+		const menu = {
+			type: 'discoveryTrack' as const,
+			x: e.clientX,
+			y: e.clientY,
+			release,
+			trackIndex,
+			canPlay,
 		}
 		activeMenu = menu
 		visibleMenu = menu
@@ -646,6 +673,23 @@
 		}
 	}
 
+	// Discovery track handlers
+	function handleDiscoveryTrackLikeToggle() {
+		if (activeMenu.type === 'discoveryTrack') {
+			const { release, trackIndex } = activeMenu
+			closeAll()
+			onDiscoveryTrackLikeToggle(release, trackIndex)
+		}
+	}
+
+	function handleDiscoveryTrackPlayPreview() {
+		if (activeMenu.type === 'discoveryTrack') {
+			const { release, trackIndex } = activeMenu
+			closeAll()
+			onDiscoveryTrackPlayPreview(release, trackIndex)
+		}
+	}
+
 	// Discovery playlists for the context menu submenu
 	const discoveryPlaylists = $derived(playlists.filter((p) => p.context === 'discovery'))
 </script>
@@ -846,5 +890,21 @@
 		onDelete={handleDiscoveryReleaseDelete}
 		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}
 		onRemoveFromPlaylist={currentPlaylistId ? handleDiscoveryReleaseRemoveFromPlaylist : undefined}
+	/>
+{/if}
+
+<!-- Discovery Track Context Menu -->
+{#if visibleMenu?.type === 'discoveryTrack'}
+	<DiscoveryTrackContextMenu
+		open={activeMenu.type === 'discoveryTrack'}
+		x={visibleMenu.x}
+		y={visibleMenu.y}
+		release={visibleMenu.release}
+		track={visibleMenu.release.tracks[visibleMenu.trackIndex]}
+		canPlay={visibleMenu.canPlay}
+		onClose={closeAll}
+		onClosed={handleMenuClosed}
+		onLikeToggle={handleDiscoveryTrackLikeToggle}
+		onPlayPreview={handleDiscoveryTrackPlayPreview}
 	/>
 {/if}

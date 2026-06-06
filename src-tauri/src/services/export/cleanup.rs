@@ -26,7 +26,7 @@ impl ExportService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         conn.execute(
             "DELETE FROM device_tracks WHERE device_id = ?1",

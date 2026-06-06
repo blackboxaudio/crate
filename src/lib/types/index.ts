@@ -391,6 +391,7 @@ export interface ContextMenuItem {
 	id: string
 	label: string
 	icon?: string
+	iconFill?: boolean
 	shortcut?: string
 	disabled?: boolean
 	divider?: boolean

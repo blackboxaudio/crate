@@ -61,6 +61,7 @@
 		deviceController: DeviceController
 		exportController: ExportController
 		playlistController: PlaylistController
+		onDiscoveryTrackPlayPreview: (release: DiscoveryRelease, trackIndex: number) => void
 		onEditorSave: () => void
 	}
 
@@ -75,6 +76,7 @@
 		deviceController,
 		exportController,
 		playlistController,
+		onDiscoveryTrackPlayPreview,
 		onEditorSave,
 	}: Props = $props()
 
@@ -270,8 +272,12 @@
 		const releaseIds = releases.map((r) => r.id)
 		await playlistsStore.addReleases(playlistId, releaseIds)
 	}}
+	onDiscoveryTrackLikeToggle={(release, trackIndex) =>
+		discoveryStore.toggleTrackLiked(release.id, release.tracks[trackIndex].id)}
+	{onDiscoveryTrackPlayPreview}
 	onClose={() => {
 		uiStore.clearContextMenuPlaylistId()
+		uiStore.clearContextMenuDiscoveryTrackId()
 	}}
 />
 

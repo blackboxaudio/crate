@@ -14,7 +14,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut matched_ids: Vec<String> = Vec::new();
 
@@ -79,7 +79,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         {
             // Get existing track names for deduplication
@@ -139,7 +139,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         {
             let now = chrono::Utc::now().to_rfc3339();
@@ -274,7 +274,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             "SELECT id, name FROM discovery_tracks WHERE release_id = ?1 AND duration_ms IS NULL",
@@ -309,7 +309,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let result = conn.query_row(
             "SELECT video_id FROM discovery_tracks WHERE release_id = ?1 AND position = ?2",
@@ -329,7 +329,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
         let mut stmt = conn.prepare(
             "SELECT position, video_id FROM discovery_tracks
              WHERE release_id = ?1 AND video_id IS NOT NULL ORDER BY position",
@@ -353,7 +353,7 @@ impl DiscoveryService {
         let conn = self
             .conn
             .lock()
-            .map_err(|_| CrateError::Database(rusqlite::Error::ExecuteReturnedResults))?;
+            .map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             "SELECT id, position FROM discovery_tracks WHERE release_id = ?1 AND video_id IS NULL",
