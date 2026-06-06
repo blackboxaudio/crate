@@ -3,4 +3,6 @@ ignore = [
     # glib unsoundness in VariantStrIter - transitive dep from Tauri's GTK/webkit2gtk on Linux.
     # Cannot upgrade independently; must wait for Tauri to update gtk-rs dependencies.
     "RUSTSEC-2024-0429",
+    # rand unsoundness with custom logger using `rand::rng()` - not applicable to this project.
+    "RUSTSEC-2026-0097",
 ]
