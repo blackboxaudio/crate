@@ -76,6 +76,8 @@
 		cloud: 'M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z',
 		'cloud-off': 'M2 2l20 20M17.5 21H9a7 7 0 01-5.2-11.8M22 16.7A5 5 0 0018 10h-1.3M7 4a7 7 0 018.2-1',
 		activity: 'M4 12h3l3-9 4 18 3-9h3',
+		rss: '<path d="M4 11a9 9 0 0 1 9 9" /><path d="M4 4a16 16 0 0 1 16 16" /><circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />',
+		user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />',
 		loader:
 			'M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-5.07l-2.83 2.83M9.76 14.24l-2.83 2.83m11.14 0l-2.83-2.83M9.76 9.76L6.93 6.93',
 		'eye-slash':

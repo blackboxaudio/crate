@@ -296,6 +296,79 @@ impl std::str::FromStr for BackupFrequency {
     }
 }
 
+/// How often the follow watch loop checks each source. "Daily" (the default) means on
+/// launch + every 24h; "On launch" is launch-only; "Manual" disables auto-checks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum FollowCheckCadence {
+    OnLaunch,
+    Hourly,
+    #[default]
+    Daily,
+    Manual,
+}
+
+impl std::fmt::Display for FollowCheckCadence {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FollowCheckCadence::OnLaunch => write!(f, "on-launch"),
+            FollowCheckCadence::Hourly => write!(f, "hourly"),
+            FollowCheckCadence::Daily => write!(f, "daily"),
+            FollowCheckCadence::Manual => write!(f, "manual"),
+        }
+    }
+}
+
+impl std::str::FromStr for FollowCheckCadence {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "on-launch" | "onlaunch" => Ok(FollowCheckCadence::OnLaunch),
+            "hourly" => Ok(FollowCheckCadence::Hourly),
+            "daily" => Ok(FollowCheckCadence::Daily),
+            "manual" => Ok(FollowCheckCadence::Manual),
+            _ => Err(format!("Unknown follow check cadence: {s}")),
+        }
+    }
+}
+
+/// Default for the import-modal "Also follow" checkboxes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum AutoFollowOnImport {
+    #[default]
+    Off,
+    Artist,
+    Label,
+    Both,
+}
+
+impl std::fmt::Display for AutoFollowOnImport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AutoFollowOnImport::Off => write!(f, "off"),
+            AutoFollowOnImport::Artist => write!(f, "artist"),
+            AutoFollowOnImport::Label => write!(f, "label"),
+            AutoFollowOnImport::Both => write!(f, "both"),
+        }
+    }
+}
+
+impl std::str::FromStr for AutoFollowOnImport {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "off" => Ok(AutoFollowOnImport::Off),
+            "artist" => Ok(AutoFollowOnImport::Artist),
+            "label" => Ok(AutoFollowOnImport::Label),
+            "both" => Ok(AutoFollowOnImport::Both),
+            _ => Err(format!("Unknown auto-follow-on-import value: {s}")),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AppSettings {
@@ -313,6 +386,10 @@ pub struct AppSettings {
     pub auto_fetch_metadata: bool,
     pub transfer_tags_on_import: bool,
     pub remove_release_after_import: bool,
+    pub follow_check_cadence: FollowCheckCadence,
+    pub auto_follow_on_import: AutoFollowOnImport,
+    pub release_day_reminders: bool,
+    pub new_releases_summary: bool,
     pub ignored_device_ids: Vec<String>,
     pub last_backup_at: Option<String>,
     pub backup_frequency: BackupFrequency,
@@ -338,6 +415,10 @@ impl Default for AppSettings {
             auto_fetch_metadata: true,
             transfer_tags_on_import: true,
             remove_release_after_import: true,
+            follow_check_cadence: FollowCheckCadence::default(),
+            auto_follow_on_import: AutoFollowOnImport::default(),
+            release_day_reminders: true,
+            new_releases_summary: true,
             ignored_device_ids: Vec::new(),
             last_backup_at: None,
             backup_frequency: BackupFrequency::default(),

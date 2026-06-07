@@ -504,6 +504,9 @@ export type SettingsPage =
 	| 'diagnostics'
 	| 'about'
 
+export type FollowCheckCadence = 'on-launch' | 'hourly' | 'daily' | 'manual'
+export type AutoFollowOnImport = 'off' | 'artist' | 'label' | 'both'
+
 export interface AppSettings {
 	theme: Theme
 	accentColor: AccentColor
@@ -520,6 +523,10 @@ export interface AppSettings {
 	autoFetchMetadata: boolean
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
+	followCheckCadence: FollowCheckCadence
+	autoFollowOnImport: AutoFollowOnImport
+	releaseDayReminders: boolean
+	newReleasesSummary: boolean
 	ignoredDeviceIds: string[]
 	lastBackupAt: string | null
 	backupFrequency: BackupFrequency
@@ -713,6 +720,9 @@ export interface DiscoveryRelease {
 	parent_url: string | null
 	date_added: string
 	date_modified: string
+	is_new: boolean
+	surfaced_at: string | null
+	source_ids: string[]
 	tracks: DiscoveryTrack[]
 	tags: Tag[]
 }
@@ -770,6 +780,53 @@ export interface DiscoveryFilter {
 	search?: string
 	tag_ids?: string[]
 	tag_filter_mode?: TagFilterMode
+}
+
+// =============================================================================
+// Follow (artists & labels)
+// =============================================================================
+
+export type FollowType = 'artist' | 'label'
+
+export interface FollowedSource {
+	id: string
+	url: string
+	sourceType: DiscoverySourceType
+	followType: FollowType
+	name: string | null
+	artworkUrl: string | null
+	artworkPath: string | null
+	enabled: boolean
+	dateAdded: string
+	dateModified: string
+	lastCheckedAt: string | null
+	health: string
+	lastError: string | null
+	newCount: number
+	lastReleaseAt: string | null
+}
+
+export interface FollowedSourceCreate {
+	url: string
+	sourceType?: DiscoverySourceType
+	followType?: FollowType
+	name?: string | null
+	artworkUrl?: string | null
+}
+
+export interface SourceCheckResult {
+	sourceId: string
+	name: string | null
+	newCount: number
+	health: string
+	error: string | null
+}
+
+export interface FollowedReleasesFound {
+	totalNew: number
+	bySource: SourceCheckResult[]
+	releaseIds: string[]
+	checkedAt: string
 }
 
 export interface PreviewInfo {

@@ -118,6 +118,24 @@
 			"clearCacheConfirmMessage": "キャッシュされたすべてのプレビュー オーディオをクリアしてもよろしいですか？",
 			"clearCacheWarning": "以前プレビューされたトラックは、次の再生時にソースから再度ストリーミングする必要があります。これはより遅くなり、一部のストリームは利用できなくなる可能性があります。"
 		},
+		"following": {
+			"title": "フォロー中",
+			"checkCadenceDescription": "フォロー中のアーティストとレーベルの新しいリリースをチェックする頻度。",
+			"cadenceLaunch": "起動時",
+			"cadenceHourly": "毎時間",
+			"cadenceDaily": "起動時と毎日",
+			"cadenceManual": "手動のみ",
+			"checkAllNow": "今すぐすべてチェック",
+			"autoFollowDescription": "リリースをインポートするときの「フォローも」オプションのデフォルト。",
+			"autoFollowOff": "オフ",
+			"autoFollowArtist": "アーティスト",
+			"autoFollowLabel": "レーベル",
+			"autoFollowBoth": "両方",
+			"releaseDayReminders": "リリース日のリマインダー",
+			"releaseDayRemindersHelper": "タイムゾーンの関係で、リマインダーは1日ずれる可能性があります。",
+			"newReleasesSummary": "新しいリリースの概要",
+			"discogsRateLimitNote": "Discogsはチェック頻度を制限しているため、フォローリストが大きい場合は段階的に更新される可能性があります。"
+		},
 		"appearance": {
 			"font": "フォント",
 			"fontDescription": "アプリケーション全体で使用するフォントを選択します。",
@@ -333,11 +351,62 @@
 			"alreadyInDiscoveryBadge": "ディスカバリーに既に含まれています",
 			"noReleasesFound": "このページにはリリースが見つかりません",
 			"cancelImport": "インポートをキャンセル"
+		},
+		"following": {
+			"title": "フォロー中",
+			"subtitle": "{count, plural, =0 {ソースなし} =1 {1つのソース} other {{count}個のソース}}が新しいリリースを監視しています",
+			"checkAll": "今すぐすべてチェック",
+			"followSource": "ソースをフォロー",
+			"footerNote": "フォローを解除しても、ディスカバリーに既にあるリリースは保持されます。今後のリリースのみを停止します。",
+			"searchPlaceholder": "名前またはURLで検索…",
+			"select": "選択",
+			"unfollowSelected": "フォロー解除",
+			"pauseSelected": "一時停止",
+			"unfollow": "フォロー解除",
+			"checkNow": "今すぐチェック",
+			"enabledToggle": "更新を切り替え",
+			"artist": "アーティスト",
+			"label": "レーベル",
+			"checkedAgo": "{time}にチェック済み",
+			"upToDate": "最新",
+			"paused": "一時停止中",
+			"newCount": "{count, plural, =1 {1つ新規} other {{count}個新規}}",
+			"sourceError": "このソースをチェックできませんでした",
+			"follow": "フォロー",
+			"following": "フォロー中",
+			"followForNewReleases": "新しいリリースをフォロー",
+			"followViaPaste": "フォロー中パネルからこのソースをフォロー",
+			"popoverTitle": "新しいリリースをフォロー",
+			"upcoming": "近日公開予定",
+			"daysUntil": "{days}日",
+			"surfacedVia": "{source}経由で表示",
+			"markNew": "新規としてマーク",
+			"markNotNew": "新規ではないとしてマーク",
+			"alsoFollow": "新しいリリースをフォロー",
+			"empty": {
+				"title": "まだ誰もフォローしていません",
+				"hint": "アーティストまたはレーベルをフォローすると、新しいリリースが自動的にここに表示されます。"
+			},
+			"sort": {
+				"newCount": "新規の数",
+				"name": "名前",
+				"recentlyReleased": "最近リリース"
+			},
+			"addSource": {
+				"title": "ソースをフォロー",
+				"tabUrl": "URLを貼り付け",
+				"tabSearch": "名前で検索",
+				"urlPlaceholder": "Bandcamp、SoundCloud、またはDiscogsのアーティスト/レーベルページのURLを貼り付け",
+				"urlInfo": "プラットフォームとそれがアーティストかレーベルかを検出し、新しいリリースを監視します。既存のカタログは氾濫しません。",
+				"searchComingSoon": "検索はまもなく利用可能になります",
+				"searchHint": "現在のところ、ページURLを貼り付けてフォローしてください。"
+			}
 		}
 	},
 	"filters": {
 		"title": "フィルター",
-		"liked": "いいね"
+		"liked": "いいね",
+		"new": "新着"
 	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",

@@ -93,6 +93,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::default().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
@@ -339,6 +340,13 @@ pub fn run() {
             app.manage(analysis_service);
             app.manage(discovery_service);
             app.manage(follow_service);
+            // Background watch loop: poll followed sources on the configured cadence.
+            // No-ops (and makes no network requests) when nothing is followed.
+            crate::services::follow::watch::start_watching(
+                app.handle().clone(),
+                conn.clone(),
+                app_data_dir.clone(),
+            );
             app.manage(NsigSolverState::new());
             app.manage(PrefetchTracker::new());
             app.manage(BulkImportCancelFlag(Arc::new(

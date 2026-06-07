@@ -110,6 +110,30 @@ pub async fn scan_page(
         });
     }
 
+    if soundcloud::is_soundcloud_page_url(url) {
+        let (mut releases, page_name) = soundcloud::scan_soundcloud_page(&client, url).await?;
+
+        let mut already_in_discovery = 0;
+        for r in &mut releases {
+            r.url = super::normalize_url(&r.url);
+            r.already_exists = existing_urls.contains(&r.url);
+            if r.already_exists {
+                already_in_discovery += 1;
+            }
+        }
+
+        let total_found = releases.len();
+
+        return Ok(crate::models::ScannedPage {
+            source_type: "soundcloud".to_string(),
+            page_artist: page_name.clone(),
+            page_label: page_name,
+            total_found,
+            already_in_discovery,
+            releases,
+        });
+    }
+
     if let Some(kind) = discogs::parse_discogs_url(url) {
         if matches!(
             kind,

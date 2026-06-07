@@ -28,6 +28,14 @@ pub struct SourceToCheck {
     pub baseline_established: bool,
 }
 
+/// A surfaced release hitting its release date today, for a release-day notification.
+pub struct ReleaseDayItem {
+    pub release_id: String,
+    pub artist: Option<String>,
+    pub title: Option<String>,
+    pub source_name: Option<String>,
+}
+
 pub struct FollowService {
     conn: Arc<Mutex<Connection>>,
     app_data_dir: PathBuf,

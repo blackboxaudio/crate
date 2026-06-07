@@ -1,4 +1,5 @@
 use crate::error::{CrateError, Result};
+use crate::models::ScannedRelease;
 
 use super::{is_compilation, FetchedMetadata, FetchedTrack};
 
@@ -310,4 +311,135 @@ async fn fetch_soundcloud_oembed(client: &reqwest::Client, url: &str) -> Result<
         parent_url: None,
         parent_album_title: None,
     })
+}
+
+/// SoundCloud paths that look like a one-segment profile but aren't user accounts.
+fn is_reserved_sc_path(seg: &str) -> bool {
+    matches!(
+        seg,
+        "discover"
+            | "stream"
+            | "you"
+            | "search"
+            | "upload"
+            | "settings"
+            | "notifications"
+            | "messages"
+            | "popular"
+            | "charts"
+            | "tags"
+            | "people"
+            | "pages"
+            | "jobs"
+            | "developers"
+            | "mobile"
+            | "terms-of-use"
+            | "imprint"
+    )
+}
+
+/// Whether a URL is a SoundCloud artist/label PROFILE page (one path segment), as
+/// opposed to a track (`/user/track`), a set (`/user/sets/...`), or a reserved path.
+pub(super) fn is_soundcloud_page_url(url: &str) -> bool {
+    let lower = url.to_lowercase();
+    if !lower.contains("soundcloud.com/") || lower.contains("/sets/") {
+        return false;
+    }
+    let Some((_, after_host)) = lower.split_once("soundcloud.com/") else {
+        return false;
+    };
+    let path = after_host.split(['?', '#']).next().unwrap_or("");
+    let segments: Vec<&str> = path.split('/').filter(|s| !s.is_empty()).collect();
+    segments.len() == 1 && !is_reserved_sc_path(segments[0])
+}
+
+/// Scan a SoundCloud profile for the artist/label's own uploads. Uses the api-v2
+/// `/users/{id}/tracks` endpoint, which returns only the profile's own tracks — reposts
+/// are excluded by construction, so the follow feed isn't polluted with reposts.
+pub(super) async fn scan_soundcloud_page(
+    client: &reqwest::Client,
+    url: &str,
+) -> Result<(Vec<ScannedRelease>, Option<String>)> {
+    let client_id = crate::services::discovery::streams::resolve_sc_client_id(client).await?;
+
+    // Resolve the profile URL to a user object.
+    let user: serde_json::Value = client
+        .get("https://api-v2.soundcloud.com/resolve")
+        .query(&[("url", url), ("client_id", client_id.as_str())])
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to resolve SoundCloud profile: {e}")))?
+        .json()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to parse SoundCloud profile: {e}")))?;
+
+    if user.get("kind").and_then(|k| k.as_str()) != Some("user") {
+        return Err(CrateError::Discovery(
+            "URL is not a SoundCloud user profile".into(),
+        ));
+    }
+    let user_id = user
+        .get("id")
+        .and_then(|i| i.as_i64())
+        .ok_or_else(|| CrateError::Discovery("SoundCloud user has no id".into()))?;
+    let page_name = user
+        .get("username")
+        .and_then(|u| u.as_str())
+        .map(|s| s.to_string());
+
+    // Own uploads only (this endpoint excludes reposts).
+    let resp: serde_json::Value = client
+        .get(format!(
+            "https://api-v2.soundcloud.com/users/{user_id}/tracks"
+        ))
+        .query(&[
+            ("client_id", client_id.as_str()),
+            ("limit", "50"),
+            ("linked_partitioning", "1"),
+        ])
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch SoundCloud tracks: {e}")))?
+        .json()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to parse SoundCloud tracks: {e}")))?;
+
+    let mut releases = Vec::new();
+    if let Some(items) = resp.get("collection").and_then(|c| c.as_array()) {
+        for item in items {
+            let Some(permalink) = item.get("permalink_url").and_then(|u| u.as_str()) else {
+                continue;
+            };
+            let title = item
+                .get("title")
+                .and_then(|t| t.as_str())
+                .map(|s| s.to_string());
+            let artist = item
+                .get("user")
+                .and_then(|u| u.get("username"))
+                .and_then(|n| n.as_str())
+                .map(|s| s.to_string())
+                .or_else(|| page_name.clone());
+            let artwork_url = item
+                .get("artwork_url")
+                .and_then(|a| a.as_str())
+                .map(|s| s.replace("-large", "-t500x500"));
+            let release_date = item
+                .get("display_date")
+                .or_else(|| item.get("created_at"))
+                .and_then(|d| d.as_str())
+                .and_then(|s| s.get(..10))
+                .map(|s| s.to_string());
+            releases.push(ScannedRelease {
+                url: permalink.to_string(),
+                artist,
+                title,
+                artwork_url,
+                release_date,
+                already_exists: false,
+            });
+        }
+    }
+
+    Ok((releases, page_name))
 }

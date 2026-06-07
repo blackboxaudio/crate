@@ -3,9 +3,10 @@
 	import { Modal, Button, Text, Checkbox, Spinner, Icon } from '$lib/components/common'
 	import { discoveryStore } from '$lib/stores/discovery'
 	import { transferTagsOnImport, removeReleaseAfterImport } from '$lib/stores/settings'
+	import { followStore, followedSources } from '$lib/stores'
 	import { translate } from '$lib/i18n'
 	import { open } from '@tauri-apps/plugin-dialog'
-	import { withNativeDialog } from '$lib/utils'
+	import { deriveFollowUrl, looseUrlEq, withNativeDialog } from '$lib/utils'
 	import { SvelteSet } from 'svelte/reactivity'
 
 	type Props = {
@@ -24,7 +25,11 @@
 	})
 	let importAll = $state(false)
 	let transferTags = $state($transferTagsOnImport)
+	let alsoFollow = $state(false)
 	let importing = $state(false)
+
+	const followUrl = $derived(deriveFollowUrl(release))
+	const alreadyFollowing = $derived(!!followUrl && $followedSources.some((s) => looseUrlEq(s.url, followUrl)))
 
 	let hasReleaseTags = $derived(release.tags.length > 0)
 	let hasReleaseTracks = $derived(release.tracks.length > 0)
@@ -77,6 +82,14 @@
 				$removeReleaseAfterImport
 			)
 			if (result) {
+				if (alsoFollow && followUrl && !alreadyFollowing) {
+					await followStore.followEntity({
+						url: followUrl,
+						name: release.artist,
+						sourceType: release.source_type,
+						followType: 'artist',
+					})
+				}
 				onComplete(result)
 			}
 		} finally {
@@ -287,6 +300,21 @@
 						: $translate('discovery.import.transferTags')}
 					disabled={importing || !hasReleaseTags}
 				/>
+				{#if followUrl}
+					{#if alreadyFollowing}
+						<div class="flex items-center gap-2 text-sm text-text-tertiary">
+							<Icon name="rss" class="h-3.5 w-3.5 text-brand-primary" />
+							{$translate('discovery.following.following')}
+						</div>
+					{:else}
+						<Checkbox
+							checked={alsoFollow}
+							onchange={(v) => (alsoFollow = v)}
+							label={$translate('discovery.following.alsoFollow')}
+							disabled={importing}
+						/>
+					{/if}
+				{/if}
 			</div>
 		{/if}
 	</div>

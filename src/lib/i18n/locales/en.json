@@ -118,6 +118,24 @@
 			"clearCacheConfirmMessage": "Are you sure you want to clear all cached preview audio?",
 			"clearCacheWarning": "Previously previewed tracks will need to be re-streamed from their source on next play. This may be slower and some streams may no longer be available."
 		},
+		"following": {
+			"title": "Following",
+			"checkCadenceDescription": "How often to check followed artists and labels for new releases.",
+			"cadenceLaunch": "On launch",
+			"cadenceHourly": "Hourly",
+			"cadenceDaily": "On launch and daily",
+			"cadenceManual": "Manual only",
+			"checkAllNow": "Check all now",
+			"autoFollowDescription": "Default for the \"Also follow\" option when importing a release.",
+			"autoFollowOff": "Off",
+			"autoFollowArtist": "Artist",
+			"autoFollowLabel": "Label",
+			"autoFollowBoth": "Both",
+			"releaseDayReminders": "Release-day reminders",
+			"releaseDayRemindersHelper": "Reminders may be a day off due to time zones.",
+			"newReleasesSummary": "New-releases summary",
+			"discogsRateLimitNote": "Discogs limits how often it can be checked, so large follow lists may update gradually."
+		},
 		"appearance": {
 			"font": "Font",
 			"fontDescription": "Choose the font used throughout the application.",
@@ -333,11 +351,62 @@
 			"alreadyInDiscoveryBadge": "Already in discovery",
 			"noReleasesFound": "No releases found on this page",
 			"cancelImport": "Cancel import"
+		},
+		"following": {
+			"title": "Following",
+			"subtitle": "{count, plural, =0 {No sources} =1 {1 source} other {{count} sources}} watched for new releases",
+			"checkAll": "Check All Now",
+			"followSource": "Follow Source",
+			"footerNote": "Unfollowing keeps releases already in Discovery — it only stops future ones.",
+			"searchPlaceholder": "Search by name or URL…",
+			"select": "Select",
+			"unfollowSelected": "Unfollow",
+			"pauseSelected": "Pause",
+			"unfollow": "Unfollow",
+			"checkNow": "Check now",
+			"enabledToggle": "Toggle updates",
+			"artist": "Artist",
+			"label": "Label",
+			"checkedAgo": "Checked {time}",
+			"upToDate": "Up to date",
+			"paused": "Paused",
+			"newCount": "{count, plural, =1 {1 new} other {{count} new}}",
+			"sourceError": "Couldn't check this source",
+			"follow": "Follow",
+			"following": "Following",
+			"followForNewReleases": "Follow for new releases",
+			"followViaPaste": "Follow this source from the Following panel",
+			"popoverTitle": "Follow for new releases",
+			"upcoming": "Upcoming",
+			"daysUntil": "{days} d",
+			"surfacedVia": "Surfaced via {source}",
+			"markNew": "Mark as new",
+			"markNotNew": "Mark as not new",
+			"alsoFollow": "Follow for new releases",
+			"empty": {
+				"title": "You're not following anyone yet",
+				"hint": "Follow an artist or label and new releases land here automatically."
+			},
+			"sort": {
+				"newCount": "New count",
+				"name": "Name",
+				"recentlyReleased": "Recently released"
+			},
+			"addSource": {
+				"title": "Follow a Source",
+				"tabUrl": "Paste a URL",
+				"tabSearch": "Search by name",
+				"urlPlaceholder": "Paste a Bandcamp, SoundCloud, or Discogs artist/label page URL",
+				"urlInfo": "We'll detect the platform and whether it's an artist or label, and watch it for new releases going forward — your existing catalog isn't flooded in.",
+				"searchComingSoon": "Search is coming soon",
+				"searchHint": "For now, follow by pasting a page URL."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filters",
-		"liked": "Liked"
+		"liked": "Liked",
+		"new": "New"
 	},
 	"playlists": {
 		"newPlaylist": "New Playlist",

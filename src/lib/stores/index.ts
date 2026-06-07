@@ -87,7 +87,10 @@ export {
 	releaseCount,
 	isDiscoveryLoading,
 	refreshingReleaseIds,
+	newOnly,
 } from './discovery'
+export { followStore, followedSources, followNewCount, followedEntityKeys, sortedFollowedSources } from './follow'
+export type { FollowSort } from './follow'
 export { updaterStore, updateStatus, updateAvailable } from './updater'
 export { expandedReleaseIds } from './expandedReleases'
 export { discoveryPlaylistStore, discoveryPlaylistReleases } from './discoveryPlaylist'

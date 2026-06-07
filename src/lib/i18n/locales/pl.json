@@ -118,6 +118,24 @@
 			"clearCacheConfirmMessage": "Czy na pewno chcesz wyczyścić wszystkie buforowane pliki audio z podglądem?",
 			"clearCacheWarning": "Poprzednio słuchane ścieżki będą musiały być ponownie przesyłane ze źródła przy następnym odtwarzaniu. Może to być wolniejsze i niektóre strumienie mogą już nie być dostępne."
 		},
+		"following": {
+			"title": "Obserwowani",
+			"checkCadenceDescription": "Jak często sprawdzać obserwowanych artystów i wydawnictwa pod kątem nowych wydań.",
+			"cadenceLaunch": "Przy uruchomieniu",
+			"cadenceHourly": "Co godzinę",
+			"cadenceDaily": "Przy uruchomieniu i codziennie",
+			"cadenceManual": "Tylko ręcznie",
+			"checkAllNow": "Sprawdź wszystko teraz",
+			"autoFollowDescription": "Domyślnie dla opcji \"Obserwuj także\" podczas importowania wydania.",
+			"autoFollowOff": "Wyłączone",
+			"autoFollowArtist": "Artysta",
+			"autoFollowLabel": "Wytwórnia",
+			"autoFollowBoth": "Oboje",
+			"releaseDayReminders": "Przypomnienia w dniu wydania",
+			"releaseDayRemindersHelper": "Przypomnienia mogą być przesunięte o jeden dzień z powodu stref czasowych.",
+			"newReleasesSummary": "Podsumowanie nowych wydań",
+			"discogsRateLimitNote": "Discogs ogranicza częstotliwość sprawdzania, więc duże listy obserwowanych mogą być aktualizowane stopniowo."
+		},
 		"appearance": {
 			"font": "Czcionka",
 			"fontDescription": "Wybierz czcionkę używaną w całej aplikacji.",
@@ -332,11 +350,62 @@
 			"alreadyInDiscoveryBadge": "Już w odkrywaniu",
 			"noReleasesFound": "Brak wydań na tej stronie",
 			"cancelImport": "Anuluj import"
+		},
+		"following": {
+			"title": "Obserwowani",
+			"subtitle": "{count, plural, =0 {Brak źródeł} =1 {1 źródło} other {{count} źródeł}} obserwowanych w poszukiwaniu nowych wydań",
+			"checkAll": "Sprawdź wszystko teraz",
+			"followSource": "Obserwuj źródło",
+			"footerNote": "Przestanie obserwowania zachowuje wydania już w Odkrywaniu — tylko zatrzymuje przyszłe.",
+			"searchPlaceholder": "Szukaj po nazwie lub adresie URL…",
+			"select": "Wybierz",
+			"unfollowSelected": "Przestań obserwować",
+			"pauseSelected": "Wstrzymaj",
+			"unfollow": "Przestań obserwować",
+			"checkNow": "Sprawdź teraz",
+			"enabledToggle": "Przełącz aktualizacje",
+			"artist": "Artysta",
+			"label": "Wytwórnia",
+			"checkedAgo": "Sprawdzono {time}",
+			"upToDate": "Na bieżąco",
+			"paused": "Wstrzymane",
+			"newCount": "{count, plural, =1 {1 nowe} other {{count} nowe}}",
+			"sourceError": "Nie można sprawdzić tego źródła",
+			"follow": "Obserwuj",
+			"following": "Obserwowani",
+			"followForNewReleases": "Obserwuj nowe wydania",
+			"followViaPaste": "Obserwuj to źródło z panelu Obserwowani",
+			"popoverTitle": "Obserwuj nowe wydania",
+			"upcoming": "Wkrótce",
+			"daysUntil": "{days} dni",
+			"surfacedVia": "Wyświetlane za pośrednictwem {source}",
+			"markNew": "Oznacz jako nowe",
+			"markNotNew": "Oznacz jako nie nowe",
+			"alsoFollow": "Obserwuj nowe wydania",
+			"empty": {
+				"title": "Nie obserwujesz jeszcze nikogo",
+				"hint": "Obserwuj artystę lub wydawnictwo, a nowe wydania pojawią się tu automatycznie."
+			},
+			"sort": {
+				"newCount": "Liczba nowych",
+				"name": "Nazwa",
+				"recentlyReleased": "Ostatnio wydane"
+			},
+			"addSource": {
+				"title": "Obserwuj źródło",
+				"tabUrl": "Wklej adres URL",
+				"tabSearch": "Szukaj po nazwie",
+				"urlPlaceholder": "Wklej adres URL strony artysty/wydawnictwa Bandcamp, SoundCloud lub Discogs",
+				"urlInfo": "Wykryjemy platformę i czy to artysta czy wydawnictwo, i obserwujemy je w poszukiwaniu nowych wydań — Twój istniejący katalog nie będzie zalany.",
+				"searchComingSoon": "Wyszukiwanie wkrótce",
+				"searchHint": "Na razie obserwuj, wklejając adres URL strony."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filtry",
-		"liked": "Polubione"
+		"liked": "Polubione",
+		"new": "Nowe"
 	},
 	"playlists": {
 		"newPlaylist": "Nowa playlista",

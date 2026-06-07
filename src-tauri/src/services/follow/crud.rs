@@ -5,7 +5,7 @@
 
 use rusqlite::OptionalExtension;
 
-use super::{FollowService, SourceToCheck};
+use super::{FollowService, ReleaseDayItem, SourceToCheck};
 use crate::error::{CrateError, Result};
 use crate::models::{FollowHealth, FollowedSource, FollowedSourceCreate};
 use crate::services::cloud_sync::pipeline::{buckets, dirty};
@@ -307,5 +307,42 @@ impl FollowService {
                 }
                 _ => CrateError::Database(e),
             })
+    }
+
+    /// Surfaced releases whose release date is today and that haven't had a release-day
+    /// notification yet (deduped to one row per release; year-only dates never match).
+    pub fn releases_due_today(&self, today: &str) -> Result<Vec<ReleaseDayItem>> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let mut stmt = conn.prepare(
+            "SELECT DISTINCT dr.id, dr.artist, dr.title, \
+             (SELECT fs.name FROM followed_sources fs \
+                JOIN followed_source_releases f2 ON f2.source_id = fs.id \
+                WHERE f2.release_id = dr.id LIMIT 1) \
+             FROM discovery_releases dr \
+             JOIN followed_source_releases fsr ON fsr.release_id = dr.id \
+             WHERE fsr.status = 'surfaced' AND fsr.release_day_notified = 0 \
+               AND substr(dr.release_date, 1, 10) = ?1",
+        )?;
+        let rows = stmt.query_map([today], |r| {
+            Ok(ReleaseDayItem {
+                release_id: r.get(0)?,
+                artist: r.get(1)?,
+                title: r.get(2)?,
+                source_name: r.get(3)?,
+            })
+        })?;
+        rows.collect::<std::result::Result<Vec<_>, _>>()
+            .map_err(Into::into)
+    }
+
+    /// Mark every followed-source record of a release as release-day-notified, so the
+    /// notification fires only once even when multiple follows surfaced it.
+    pub fn mark_release_day_notified(&self, release_id: &str) -> Result<()> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        conn.execute(
+            "UPDATE followed_source_releases SET release_day_notified = 1 WHERE release_id = ?1",
+            [release_id],
+        )?;
+        Ok(())
     }
 }

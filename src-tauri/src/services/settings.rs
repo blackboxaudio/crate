@@ -91,6 +91,26 @@ impl SettingsService {
             .map(|v| v != "false")
             .unwrap_or(true);
 
+        let follow_check_cadence = self
+            .get_setting_value(&conn, "follow_check_cadence")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
+        let auto_follow_on_import = self
+            .get_setting_value(&conn, "auto_follow_on_import")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
+        let release_day_reminders = self
+            .get_setting_value(&conn, "release_day_reminders")?
+            .map(|v| v != "false")
+            .unwrap_or(true);
+
+        let new_releases_summary = self
+            .get_setting_value(&conn, "new_releases_summary")?
+            .map(|v| v != "false")
+            .unwrap_or(true);
+
         // Parse ignored device IDs from JSON array, default to empty
         let ignored_device_ids = self
             .get_setting_value(&conn, "ignored_device_ids")?
@@ -148,6 +168,10 @@ impl SettingsService {
             auto_fetch_metadata,
             transfer_tags_on_import,
             remove_release_after_import,
+            follow_check_cadence,
+            auto_follow_on_import,
+            release_day_reminders,
+            new_releases_summary,
             ignored_device_ids,
             last_backup_at,
             backup_frequency,

@@ -118,6 +118,24 @@
 			"clearCacheConfirmMessage": "Sunteți sigur că doriți să goliți cache-ul cu tot audioformatul previzualizat?",
 			"clearCacheWarning": "Melodiile previzualizate anterior vor trebui să fie reîncărcate din sursa lor la următoarea redare. Aceasta poate fi mai lentă și unele fluxuri pot să nu mai fie disponibile."
 		},
+		"following": {
+			"title": "Urmărire",
+			"checkCadenceDescription": "Cât de des să verifici interpreții și etichetele urmărite pentru lansări noi.",
+			"cadenceLaunch": "La pornire",
+			"cadenceHourly": "Orar",
+			"cadenceDaily": "La pornire și zilnic",
+			"cadenceManual": "Doar manual",
+			"checkAllNow": "Verifică toate acum",
+			"autoFollowDescription": "Implicit pentru opțiunea \"De asemenea urmărire\" la importul unei lansări.",
+			"autoFollowOff": "Dezactivat",
+			"autoFollowArtist": "Interpret",
+			"autoFollowLabel": "Etichetă",
+			"autoFollowBoth": "Ambele",
+			"releaseDayReminders": "Reamintiri în ziua lansării",
+			"releaseDayRemindersHelper": "Reamintirile pot fi decalate cu o zi din cauza fusurilor orare.",
+			"newReleasesSummary": "Rezumat lansări noi",
+			"discogsRateLimitNote": "Discogs limitează cât de des poate fi verificat, deci listele mari de urmărire pot fi actualizate treptat."
+		},
 		"appearance": {
 			"font": "Font",
 			"fontDescription": "Alegeți fontul folosit în toată aplicația.",
@@ -332,11 +350,62 @@
 			"alreadyInDiscoveryBadge": "Deja în descoperiri",
 			"noReleasesFound": "Nicio lansare găsită pe această pagină",
 			"cancelImport": "Anulează import"
+		},
+		"following": {
+			"title": "Urmărire",
+			"subtitle": "{count, plural, =0 {Nici o sursă} =1 {1 sursă} other {{count} surse}} monitorizate pentru lansări noi",
+			"checkAll": "Verifică toate acum",
+			"followSource": "Urmărire sursă",
+			"footerNote": "Oprirea urmăririi păstrează lansările deja în Descoperiri — doar opreşte viitoarele.",
+			"searchPlaceholder": "Cauta după nume sau URL…",
+			"select": "Selectează",
+			"unfollowSelected": "Oprire urmărire",
+			"pauseSelected": "Pauza",
+			"unfollow": "Oprire urmărire",
+			"checkNow": "Verifică acum",
+			"enabledToggle": "Comutare actualizări",
+			"artist": "Interpret",
+			"label": "Etichetă",
+			"checkedAgo": "Verificat {time}",
+			"upToDate": "La zi",
+			"paused": "Pus în pauza",
+			"newCount": "{count, plural, =1 {1 nou} other {{count} nou}}",
+			"sourceError": "Nu s-a putut verifica această sursă",
+			"follow": "Urmărire",
+			"following": "Urmărire",
+			"followForNewReleases": "Urmărire pentru lansări noi",
+			"followViaPaste": "Urmărire această sursă din panoul Urmărire",
+			"popoverTitle": "Urmărire pentru lansări noi",
+			"upcoming": "În curând",
+			"daysUntil": "{days} z",
+			"surfacedVia": "Afişat prin {source}",
+			"markNew": "Marcați ca nou",
+			"markNotNew": "Marcați ca nu nou",
+			"alsoFollow": "Urmărire pentru lansări noi",
+			"empty": {
+				"title": "Nu urmărești pe nimeni încă",
+				"hint": "Urmărește un interpret sau etichetă și lansările noi vor ajunge aici automat."
+			},
+			"sort": {
+				"newCount": "Contul noului",
+				"name": "Nume",
+				"recentlyReleased": "Lansat recent"
+			},
+			"addSource": {
+				"title": "Urmărire o sursă",
+				"tabUrl": "Lipește URL",
+				"tabSearch": "Cauta după nume",
+				"urlPlaceholder": "Lipește URL-ul unei pagini de interpret/etichetă Bandcamp, SoundCloud sau Discogs",
+				"urlInfo": "Vom detecta platforma și dacă este un interpret sau etichetă, și o vom monitoriza pentru lansări noi — catalogul tău existent nu va fi inundat.",
+				"searchComingSoon": "Căutarea vine în curând",
+				"searchHint": "Pentru acum, urmărește lipind o URL de pagină."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filtre",
-		"liked": "Apreciate"
+		"liked": "Apreciate",
+		"new": "Nou"
 	},
 	"playlists": {
 		"newPlaylist": "Nou Playlist",

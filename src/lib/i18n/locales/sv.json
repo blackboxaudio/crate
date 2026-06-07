@@ -118,6 +118,24 @@
 			"clearCacheConfirmMessage": "Är du säker på att du vill rensa all cachelagrat förhandsgranskningsljud?",
 			"clearCacheWarning": "Tidigare förhandsgranskat spår måste strömmas igen från sin källa vid nästa uppspelning. Detta kan vara långsammare och vissa strömmar kanske inte längre är tillgängliga."
 		},
+		"following": {
+			"title": "Följar",
+			"checkCadenceDescription": "Hur ofta du kontrollerar följda artister och etiketter för nya utgåvor.",
+			"cadenceLaunch": "Vid start",
+			"cadenceHourly": "Varje timme",
+			"cadenceDaily": "Vid start och dagligen",
+			"cadenceManual": "Endast manuellt",
+			"checkAllNow": "Kontrollera allt nu",
+			"autoFollowDescription": "Standard för alternativet \"Följ också\" när du importerar en utgåva.",
+			"autoFollowOff": "Av",
+			"autoFollowArtist": "Artist",
+			"autoFollowLabel": "Etikett",
+			"autoFollowBoth": "Båda",
+			"releaseDayReminders": "Påminnelser på utgivningsdagen",
+			"releaseDayRemindersHelper": "Påminnelser kan vara förskjutna med en dag på grund av tidszoner.",
+			"newReleasesSummary": "Sammanfattning av nya utgåvor",
+			"discogsRateLimitNote": "Discogs begränsar hur ofta det kan kontrolleras, så stora följlistor kan uppdateras gradvis."
+		},
 		"appearance": {
 			"font": "Typsnitt",
 			"fontDescription": "Välj typsnitt som används i programmet.",
@@ -333,11 +351,62 @@
 			"alreadyInDiscoveryBadge": "Redan i upptäckningar",
 			"noReleasesFound": "Inga utgåvor hittades på denna sida",
 			"cancelImport": "Avbryt import"
+		},
+		"following": {
+			"title": "Följar",
+			"subtitle": "{count, plural, =0 {Inga källor} =1 {1 källa} other {{count} källor}} övervakas för nya utgåvor",
+			"checkAll": "Kontrollera allt nu",
+			"followSource": "Följ källa",
+			"footerNote": "Att sluta följa behåller utgåvor som redan är i Upptäckningar — det stoppar bara framtida.",
+			"searchPlaceholder": "Sök efter namn eller URL…",
+			"select": "Välj",
+			"unfollowSelected": "Sluta följa",
+			"pauseSelected": "Pausa",
+			"unfollow": "Sluta följa",
+			"checkNow": "Kontrollera nu",
+			"enabledToggle": "Slå uppdateringar på/av",
+			"artist": "Artist",
+			"label": "Etikett",
+			"checkedAgo": "Kontrollerad {time}",
+			"upToDate": "Uppdaterad",
+			"paused": "Pausad",
+			"newCount": "{count, plural, =1 {1 ny} other {{count} ny}}",
+			"sourceError": "Kunde inte kontrollera denna källa",
+			"follow": "Följ",
+			"following": "Följar",
+			"followForNewReleases": "Följ för nya utgåvor",
+			"followViaPaste": "Följ denna källa från panelen Följar",
+			"popoverTitle": "Följ för nya utgåvor",
+			"upcoming": "Kommande",
+			"daysUntil": "{days} d",
+			"surfacedVia": "Visas via {source}",
+			"markNew": "Markera som ny",
+			"markNotNew": "Markera som inte ny",
+			"alsoFollow": "Följ för nya utgåvor",
+			"empty": {
+				"title": "Du följer ingen än",
+				"hint": "Följ en artist eller etikett så kommer nya utgåvor här automatiskt."
+			},
+			"sort": {
+				"newCount": "Antal nya",
+				"name": "Namn",
+				"recentlyReleased": "Nyligen släppt"
+			},
+			"addSource": {
+				"title": "Följ en källa",
+				"tabUrl": "Klistra in URL",
+				"tabSearch": "Sök efter namn",
+				"urlPlaceholder": "Klistra in URL för artist-/etikettsida från Bandcamp, SoundCloud eller Discogs",
+				"urlInfo": "Vi detekterar plattformen och om det är en artist eller etikett, och övervakar den för nya utgåvor — din befintliga katalog översvämmas inte.",
+				"searchComingSoon": "Sökningen kommer snart",
+				"searchHint": "För nu, följ genom att klistra in en sidans URL."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filter",
-		"liked": "Gillad"
+		"liked": "Gillad",
+		"new": "Ny"
 	},
 	"playlists": {
 		"newPlaylist": "Ny spellista",

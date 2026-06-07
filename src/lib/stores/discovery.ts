@@ -8,6 +8,7 @@ import type {
 	ImportResultWithDuplicates,
 } from '$lib/types'
 import * as discoveryApi from '$lib/api/discovery'
+import * as followApi from '$lib/api/follow'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
@@ -26,6 +27,7 @@ interface DiscoveryState {
 	sort: DiscoverySortConfig
 	refreshingIds: Set<string>
 	likedOnly: boolean
+	newOnly: boolean
 }
 
 const initialState: DiscoveryState = {
@@ -39,6 +41,7 @@ const initialState: DiscoveryState = {
 	},
 	refreshingIds: new Set(),
 	likedOnly: false,
+	newOnly: false,
 }
 
 // =============================================================================
@@ -258,6 +261,40 @@ function createDiscoveryStore() {
 			update((state) => ({ ...state, likedOnly: !state.likedOnly }))
 		},
 
+		toggleNewFilter(value?: boolean) {
+			update((state) => ({ ...state, newOnly: value ?? !state.newOnly }))
+		},
+
+		/** Manual "mark as new / not-new" override (the auto-clear rule lives in clearNew). */
+		async markReleaseNew(id: string, isNew: boolean) {
+			try {
+				await followApi.setReleaseNewFlag(id, isNew)
+				update((state) => ({
+					...state,
+					releases: state.releases.map((r) => (r.id === id ? { ...r, is_new: isNew } : r)),
+				}))
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to update release'
+				)
+			}
+		},
+
+		/** Clear the "new" flag on preview-play or a decisive action. No-op if already not-new. */
+		clearNew(id: string) {
+			let wasNew = false
+			update((state) => {
+				const release = state.releases.find((r) => r.id === id)
+				if (!release?.is_new) return state
+				wasNew = true
+				return {
+					...state,
+					releases: state.releases.map((r) => (r.id === id ? { ...r, is_new: false } : r)),
+				}
+			})
+			if (wasNew) followApi.setReleaseNewFlag(id, false).catch(() => {})
+		},
+
 		setFilter(filter: DiscoveryFilter) {
 			update((state) => ({ ...state, filter }))
 		},
@@ -413,6 +450,8 @@ export const discoveryStore = createDiscoveryStore()
 
 export const likedOnly = derived(discoveryStore, ($discovery) => $discovery.likedOnly)
 
+export const newOnly = derived(discoveryStore, ($discovery) => $discovery.newOnly)
+
 function sortReleases(releases: DiscoveryRelease[], sort: DiscoverySortConfig): DiscoveryRelease[] {
 	const { field, direction } = sort
 	const dir = direction === 'asc' ? 1 : -1
@@ -448,6 +487,11 @@ export const sortedReleases = derived(discoveryStore, ($discovery) => {
 		releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
 	}
 
+	// Apply "new" filter (surfaced by a followed source, not yet reviewed)
+	if ($discovery.newOnly) {
+		releases = releases.filter((r) => r.is_new)
+	}
+
 	// Apply client-side search filter
 	if ($discovery.filter.search) {
 		const search = $discovery.filter.search.toLowerCase()
@@ -477,6 +521,10 @@ export const displayedReleases = derived(
 
 		if ($discovery.likedOnly) {
 			releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
+		}
+
+		if ($discovery.newOnly) {
+			releases = releases.filter((r) => r.is_new)
 		}
 
 		const discoveryFilters = $ui.viewFilters.discovery

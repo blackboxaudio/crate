@@ -1,11 +1,17 @@
 <script lang="ts">
-	import { Text, Checkbox, Button, ConfirmModal } from '$lib/components/common'
+	import { Text, Checkbox, Button, ConfirmModal, Select } from '$lib/components/common'
 	import {
 		settingsStore,
 		autoFetchMetadata,
 		transferTagsOnImport,
 		removeReleaseAfterImport,
+		followCheckCadence,
+		autoFollowOnImport,
+		releaseDayReminders,
+		newReleasesSummary,
 	} from '$lib/stores/settings'
+	import { followStore } from '$lib/stores'
+	import type { FollowCheckCadence, AutoFollowOnImport } from '$lib/types'
 	import { translate } from '$lib/i18n'
 	import * as discoveryApi from '$lib/api/discovery'
 	import { formatFileSize } from '$lib/utils/format'
@@ -44,6 +50,20 @@
 	function handleRemoveReleaseAfterImportChange(checked: boolean) {
 		settingsStore.setRemoveReleaseAfterImport(checked)
 	}
+
+	const cadenceOptions = $derived([
+		{ value: 'on-launch', label: $translate('settings.following.cadenceLaunch') },
+		{ value: 'hourly', label: $translate('settings.following.cadenceHourly') },
+		{ value: 'daily', label: $translate('settings.following.cadenceDaily') },
+		{ value: 'manual', label: $translate('settings.following.cadenceManual') },
+	])
+
+	const autoFollowOptions = $derived([
+		{ value: 'off', label: $translate('settings.following.autoFollowOff') },
+		{ value: 'artist', label: $translate('settings.following.autoFollowArtist') },
+		{ value: 'label', label: $translate('settings.following.autoFollowLabel') },
+		{ value: 'both', label: $translate('settings.following.autoFollowBoth') },
+	])
 
 	$effect(() => {
 		loadCacheSize()
@@ -89,6 +109,61 @@
 					label={$translate('settings.discovery.removeReleaseAfterImport')}
 				/>
 			</div>
+		</div>
+	</section>
+
+	<!-- Following Section -->
+	<section>
+		<Text variant="header-3" class="mb-2">{$translate('settings.following.title')}</Text>
+		<div class="space-y-4">
+			<div>
+				<Text variant="caption" as="p" class="mb-2 text-text-tertiary">
+					{$translate('settings.following.checkCadenceDescription')}
+				</Text>
+				<div class="flex items-center gap-3">
+					<Select
+						value={$followCheckCadence}
+						options={cadenceOptions}
+						onchange={(v) => settingsStore.setFollowCheckCadence(v as FollowCheckCadence)}
+						class="w-56"
+					/>
+					<Button variant="secondary" size="sm" onclick={() => followStore.checkAll()}>
+						{$translate('settings.following.checkAllNow')}
+					</Button>
+				</div>
+			</div>
+
+			<div>
+				<Text variant="caption" as="p" class="mb-2 text-text-tertiary">
+					{$translate('settings.following.autoFollowDescription')}
+				</Text>
+				<Select
+					value={$autoFollowOnImport}
+					options={autoFollowOptions}
+					onchange={(v) => settingsStore.setAutoFollowOnImport(v as AutoFollowOnImport)}
+					class="w-56"
+				/>
+			</div>
+
+			<div class="space-y-2">
+				<Checkbox
+					checked={$releaseDayReminders}
+					onchange={(c) => settingsStore.setReleaseDayReminders(c)}
+					label={$translate('settings.following.releaseDayReminders')}
+				/>
+				<Text variant="caption" as="p" class="text-text-tertiary">
+					{$translate('settings.following.releaseDayRemindersHelper')}
+				</Text>
+				<Checkbox
+					checked={$newReleasesSummary}
+					onchange={(c) => settingsStore.setNewReleasesSummary(c)}
+					label={$translate('settings.following.newReleasesSummary')}
+				/>
+			</div>
+
+			<Text variant="caption" as="p" class="text-text-tertiary">
+				{$translate('settings.following.discogsRateLimitNote')}
+			</Text>
 		</div>
 	</section>
 

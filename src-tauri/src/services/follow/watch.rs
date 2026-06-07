@@ -7,15 +7,19 @@ use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use rusqlite::Connection;
-use tauri::{AppHandle, Emitter};
+use tauri::{AppHandle, Emitter, Manager};
+use tauri_plugin_notification::NotificationExt;
 
 use crate::error::Result;
 use crate::models::{
-    DiscoveryReleaseCreate, FollowHealth, FollowedReleasesFound, ScannedPage, SourceCheckResult,
+    DiscoveryReleaseCreate, FollowCheckCadence, FollowHealth, FollowedReleasesFound, ScannedPage,
+    SourceCheckResult,
 };
 use crate::services::discovery::{metadata, DiscoveryService};
+use crate::services::SettingsService;
 
 use super::{diff, FollowService, SourceToCheck};
 
@@ -199,4 +203,110 @@ pub async fn check_all(
     };
     let _ = app.emit("followed-releases-found", &found);
     Ok(found)
+}
+
+/// Spawn the background watch loop — a long-lived task that mirrors the device monitor.
+/// The cadence is read from settings each iteration (so changes apply without a
+/// restart). It does zero work, and makes zero network requests, when nothing is
+/// followed (`check_all` early-returns over an empty enabled-source list).
+pub fn start_watching(app_handle: AppHandle, conn: Arc<Mutex<Connection>>, app_data_dir: PathBuf) {
+    tauri::async_runtime::spawn(async move {
+        // Let startup settle before the first sweep.
+        tokio::time::sleep(Duration::from_secs(30)).await;
+        let mut first = true;
+        loop {
+            let settings = SettingsService::new(conn.clone())
+                .get_settings()
+                .unwrap_or_default();
+            let (run_on_launch, interval) = cadence_schedule(settings.follow_check_cadence);
+
+            // Release-day reminders fire independently of the check cadence (even Manual),
+            // so an Upcoming release that hit its date while the app was closed still notifies.
+            if settings.release_day_reminders {
+                fire_release_day_notifications(conn.clone(), &app_handle, app_data_dir.clone())
+                    .await;
+            }
+
+            let should_check = if first { run_on_launch } else { interval.is_some() };
+            if should_check {
+                if let Ok(found) =
+                    check_all(conn.clone(), app_handle.clone(), app_data_dir.clone()).await
+                {
+                    // Foreground/background split: a backgrounded app gets a native
+                    // summary notification; a focused app gets the in-app toast that the
+                    // `followed-releases-found` event drives on the frontend.
+                    if settings.new_releases_summary
+                        && found.total_new > 0
+                        && !window_focused(&app_handle)
+                    {
+                        fire_summary_notification(&app_handle, &found);
+                    }
+                }
+            }
+            first = false;
+
+            // Sleep until the next sweep. Cadences with no interval (On launch / Manual)
+            // still loop slowly so release-day reminders fire and settings changes apply.
+            tokio::time::sleep(interval.unwrap_or(Duration::from_secs(3600))).await;
+        }
+    });
+}
+
+/// `(run_on_launch, periodic_interval)` for a cadence. "Daily" is on-launch + every 24h.
+fn cadence_schedule(cadence: FollowCheckCadence) -> (bool, Option<Duration>) {
+    match cadence {
+        FollowCheckCadence::Manual => (false, None),
+        FollowCheckCadence::OnLaunch => (true, None),
+        FollowCheckCadence::Hourly => (true, Some(Duration::from_secs(3600))),
+        FollowCheckCadence::Daily => (true, Some(Duration::from_secs(86_400))),
+    }
+}
+
+fn window_focused(app: &AppHandle) -> bool {
+    app.get_webview_window("main")
+        .and_then(|w| w.is_focused().ok())
+        .unwrap_or(false)
+}
+
+/// Fire one native notification per surfaced release that hits its release date today
+/// and hasn't been announced yet (idempotent via `release_day_notified`).
+async fn fire_release_day_notifications(
+    conn: Arc<Mutex<Connection>>,
+    app: &AppHandle,
+    app_data_dir: PathBuf,
+) {
+    let follow = FollowService::new(conn, app_data_dir);
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let due = match follow.releases_due_today(&today) {
+        Ok(d) => d,
+        Err(_) => return,
+    };
+    for item in due {
+        let artist = item.artist.as_deref().unwrap_or("New release");
+        let title = match &item.title {
+            Some(t) => format!("{artist} — {t} is out today"),
+            None => format!("{artist} is out today"),
+        };
+        let body = match &item.source_name {
+            Some(n) => format!("From {n}, who you follow"),
+            None => "From who you follow".to_string(),
+        };
+        let _ = app.notification().builder().title(title).body(body).show();
+        let _ = follow.mark_release_day_notified(&item.release_id);
+    }
+}
+
+fn fire_summary_notification(app: &AppHandle, found: &FollowedReleasesFound) {
+    let n = found.total_new;
+    let title = if n == 1 {
+        "1 new release from who you follow".to_string()
+    } else {
+        format!("{n} new releases from who you follow")
+    };
+    let _ = app
+        .notification()
+        .builder()
+        .title(title)
+        .body("Open Crate to review")
+        .show();
 }

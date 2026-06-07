@@ -118,6 +118,24 @@
 			"clearCacheConfirmMessage": "캐시된 모든 미리보기 오디오를 비우시겠습니까?",
 			"clearCacheWarning": "이전에 미리본 트랙은 다음 재생 시 소스에서 다시 스트리밍해야 합니다. 이것이 더 느릴 수 있고 일부 스트림은 더 이상 사용할 수 없을 수 있습니다."
 		},
+		"following": {
+			"title": "팔로잉",
+			"checkCadenceDescription": "팔로우하는 아티스트와 레이블의 새로운 릴리스를 확인하는 빈도.",
+			"cadenceLaunch": "시작 시",
+			"cadenceHourly": "시간별",
+			"cadenceDaily": "시작 및 일일",
+			"cadenceManual": "수동만",
+			"checkAllNow": "지금 모두 확인",
+			"autoFollowDescription": "릴리스를 가져올 때 \"또한 팔로우\" 옵션의 기본값입니다.",
+			"autoFollowOff": "끔",
+			"autoFollowArtist": "아티스트",
+			"autoFollowLabel": "레이블",
+			"autoFollowBoth": "둘 다",
+			"releaseDayReminders": "출시일 미리 알림",
+			"releaseDayRemindersHelper": "시간대로 인해 미리 알림이 하루 어긋날 수 있습니다.",
+			"newReleasesSummary": "새로운 릴리스 요약",
+			"discogsRateLimitNote": "Discogs는 확인 빈도를 제한하므로 팔로우 목록이 크면 점진적으로 업데이트될 수 있습니다."
+		},
 		"appearance": {
 			"font": "글꼴",
 			"fontDescription": "애플리케이션에서 사용할 글꼴을 선택하세요.",
@@ -333,11 +351,62 @@
 			"alreadyInDiscoveryBadge": "이미 발견 목록에 있음",
 			"noReleasesFound": "이 페이지에서 발견된 릴리스 없음",
 			"cancelImport": "가져오기 취소"
+		},
+		"following": {
+			"title": "팔로잉",
+			"subtitle": "{count, plural, =0 {소스 없음} =1 {1개의 소스} other {{count}개의 소스}}를 새로운 릴리스로 감시 중",
+			"checkAll": "지금 모두 확인",
+			"followSource": "소스 팔로우",
+			"footerNote": "팔로우 해제는 이미 발견에 있는 릴리스는 유지합니다. 향후 릴리스만 중지합니다.",
+			"searchPlaceholder": "이름 또는 URL로 검색…",
+			"select": "선택",
+			"unfollowSelected": "팔로우 해제",
+			"pauseSelected": "일시 중지",
+			"unfollow": "팔로우 해제",
+			"checkNow": "지금 확인",
+			"enabledToggle": "업데이트 전환",
+			"artist": "아티스트",
+			"label": "레이블",
+			"checkedAgo": "{time}에 확인됨",
+			"upToDate": "최신",
+			"paused": "일시 중지됨",
+			"newCount": "{count, plural, =1 {1개 신규} other {{count}개 신규}}",
+			"sourceError": "이 소스를 확인할 수 없습니다",
+			"follow": "팔로우",
+			"following": "팔로잉",
+			"followForNewReleases": "새로운 릴리스를 팔로우",
+			"followViaPaste": "팔로잉 패널에서 이 소스를 팔로우",
+			"popoverTitle": "새로운 릴리스를 팔로우",
+			"upcoming": "곧 출시",
+			"daysUntil": "{days}일",
+			"surfacedVia": "{source}를 통해 표시됨",
+			"markNew": "새로 표시",
+			"markNotNew": "새로 아님으로 표시",
+			"alsoFollow": "새로운 릴리스를 팔로우",
+			"empty": {
+				"title": "아직 아무도 팔로우하지 않음",
+				"hint": "아티스트 또는 레이블을 팔로우하면 새로운 릴리스가 자동으로 여기에 표시됩니다."
+			},
+			"sort": {
+				"newCount": "신규 수",
+				"name": "이름",
+				"recentlyReleased": "최근 출시"
+			},
+			"addSource": {
+				"title": "소스 팔로우",
+				"tabUrl": "URL 붙여넣기",
+				"tabSearch": "이름으로 검색",
+				"urlPlaceholder": "Bandcamp, SoundCloud 또는 Discogs 아티스트/레이블 페이지 URL을 붙여넣으세요",
+				"urlInfo": "플랫폼과 아티스트 또는 레이블 여부를 감지하고 새로운 릴리스를 감시합니다. 기존 카탈로그가 넘치지 않습니다.",
+				"searchComingSoon": "검색 기능이 곧 출시됩니다",
+				"searchHint": "지금은 페이지 URL을 붙여넣어 팔로우하세요."
+			}
 		}
 	},
 	"filters": {
 		"title": "필터",
-		"liked": "좋아요"
+		"liked": "좋아요",
+		"new": "새로운"
 	},
 	"playlists": {
 		"newPlaylist": "새 재생목록",

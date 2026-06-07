@@ -17,6 +17,9 @@
 		showLikedFilter?: boolean
 		likedOnly?: boolean
 		onToggleLikedFilter?: () => void
+		showNewFilter?: boolean
+		newOnly?: boolean
+		onToggleNewFilter?: () => void
 	}
 
 	let {
@@ -30,6 +33,9 @@
 		showLikedFilter = false,
 		likedOnly = false,
 		onToggleLikedFilter,
+		showNewFilter = false,
+		newOnly = false,
+		onToggleNewFilter,
 	}: Props = $props()
 
 	const allTags = $derived(tagCategories.flatMap((c) => c.tags))
@@ -45,7 +51,9 @@
 	let popoverEl: HTMLDivElement | undefined = $state()
 	let flyoutEl: HTMLDivElement | undefined = $state()
 
-	const badgeCount = $derived(activeFilterTags.length + (showLikedFilter && likedOnly ? 1 : 0))
+	const badgeCount = $derived(
+		activeFilterTags.length + (showLikedFilter && likedOnly ? 1 : 0) + (showNewFilter && newOnly ? 1 : 0)
+	)
 	const hasActiveFilters = $derived(badgeCount > 0)
 
 	// =========================================================================
@@ -314,8 +322,29 @@
 					</button>
 				{/if}
 
+				<!-- New filter (releases surfaced by a followed source, not yet reviewed) -->
+				{#if showNewFilter}
+					<button
+						type="button"
+						class="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:cursor-pointer hover:bg-surface-2"
+						onclick={() => onToggleNewFilter?.()}
+					>
+						<div class="flex items-center gap-2">
+							<Icon name="rss" class="h-3.5 w-3.5" />
+							<span class="text-xs text-text-tertiary">{$translate('filters.new')}</span>
+						</div>
+						<div
+							class="flex h-4 w-7 items-center rounded-full p-0.5 transition-colors {newOnly
+								? 'bg-brand-primary'
+								: 'bg-stroke'}"
+						>
+							<div class="h-3 w-3 rounded-full bg-white transition-transform {newOnly ? 'translate-x-3' : ''}"></div>
+						</div>
+					</button>
+				{/if}
+
 				{#if allTags.length > 0}
-					{#if showLikedFilter}
+					{#if showLikedFilter || showNewFilter}
 						<div class="my-1 border-t border-stroke"></div>
 					{/if}
 
