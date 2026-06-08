@@ -6,10 +6,7 @@ impl ExportService {
         &self,
         playlist_ids: &[String],
     ) -> Result<Vec<(Playlist, Vec<Track>)>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut result: Vec<(Playlist, Vec<Track>)> = Vec::new();
 

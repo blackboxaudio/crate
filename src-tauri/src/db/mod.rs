@@ -118,10 +118,7 @@ impl Database {
     }
 
     fn migrate(&self) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         run_migrations(&conn)
     }
 }

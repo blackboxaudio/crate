@@ -14,6 +14,7 @@
 		"developerTools": "Ontwikkelaarstools",
 		"submit": "Verzenden",
 		"confirm": "Bevestigen",
+		"done": "Klaar",
 		"untitled": "Naamloos",
 		"unknownArtist": "Onbekende Artiest",
 		"folder": "map",
@@ -383,6 +384,7 @@
 			"markNew": "Markeren als nieuw",
 			"markNotNew": "Markeren als niet nieuw",
 			"alsoFollow": "Volg voor nieuwe releases",
+			"sortBy": "Sorteren op",
 			"empty": {
 				"title": "Je volgt nog niemand",
 				"hint": "Volg een artiest of label en nieuwe releases verschijnen automatisch hier."
@@ -392,14 +394,13 @@
 				"name": "Naam",
 				"recentlyReleased": "Onlangs uitgebracht"
 			},
+			"review": "Beoordeling",
+			"foundToast": "{count, plural, =1 {1 nieuwe release} other {{count} nieuwe releases}} van je volgende",
+			"changeType": "Volg als {type} — klik om te wijzigen",
 			"addSource": {
 				"title": "Volg een bron",
-				"tabUrl": "URL plakken",
-				"tabSearch": "Zoeken op naam",
 				"urlPlaceholder": "Plak een Bandcamp-, SoundCloud- of Discogs-artiest-/labelpagina-URL",
-				"urlInfo": "We detecteren het platform en of het een artiest of label is, en controleren het op nieuwe releases — je bestaande catalogus wordt niet overspoeld.",
-				"searchComingSoon": "Zoeken komt binnenkort",
-				"searchHint": "Voor nu volg je door een paginaURL in te plakken."
+				"urlInfo": "We herkennen automatisch het platform en of het om een artiest of label gaat, en houden het vanaf nu in de gaten voor nieuwe releases. Oudere releases worden niet toegevoegd."
 			}
 		}
 	},

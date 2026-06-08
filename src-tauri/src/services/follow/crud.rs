@@ -26,7 +26,7 @@ const FOLLOW_SELECT: &str = "SELECT \
     FROM followed_sources fs \
     LEFT JOIN followed_source_state st ON st.source_id = fs.id";
 
-const SOURCE_CHECK_SELECT: &str = "SELECT fs.id, fs.url, fs.source_type, fs.follow_type, fs.name, \
+const SOURCE_CHECK_SELECT: &str = "SELECT fs.id, fs.url, fs.source_type, fs.name, \
     COALESCE(st.baseline_established, 0) \
     FROM followed_sources fs \
     LEFT JOIN followed_source_state st ON st.source_id = fs.id";
@@ -56,9 +56,8 @@ fn map_source_to_check(row: &rusqlite::Row<'_>) -> rusqlite::Result<SourceToChec
         id: row.get(0)?,
         url: row.get(1)?,
         source_type: row.get(2)?,
-        follow_type: row.get(3)?,
-        name: row.get(4)?,
-        baseline_established: row.get(5)?,
+        name: row.get(3)?,
+        baseline_established: row.get(4)?,
     })
 }
 
@@ -156,6 +155,39 @@ impl FollowService {
         self.get_follow(id)
     }
 
+    /// Change the artist-vs-label classification of a follow. The watch loop scans the page
+    /// identically regardless of type, so this only affects display/grouping — but it lets a
+    /// user correct a wrong pick in place rather than unfollow + re-follow (which would wipe
+    /// the baseline + surfaced-release history).
+    pub fn set_follow_type(&self, id: &str, follow_type: &str) -> Result<FollowedSource> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
+        conn.execute(
+            "UPDATE followed_sources SET follow_type = ?1, date_modified = ?2, _hlc = ?3 WHERE id = ?4",
+            rusqlite::params![follow_type, now, hlc, id],
+        )?;
+        dirty::mark_dirty(&conn, buckets::FOLLOWED_SOURCES)?;
+        drop(conn);
+        self.get_follow(id)
+    }
+
+    /// Backfill the source's profile picture once its page has been scanned. Popover/import
+    /// follows are created from a release before the page is fetched, so they start without
+    /// an avatar; the baseline scan fills it in.
+    pub fn set_artwork(&self, id: &str, artwork_url: Option<&str>) -> Result<FollowedSource> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
+        conn.execute(
+            "UPDATE followed_sources SET artwork_url = ?1, date_modified = ?2, _hlc = ?3 WHERE id = ?4",
+            rusqlite::params![artwork_url, now, hlc, id],
+        )?;
+        dirty::mark_dirty(&conn, buckets::FOLLOWED_SOURCES)?;
+        drop(conn);
+        self.get_follow(id)
+    }
+
     /// Record the forward-looking baseline: every URL currently on the page becomes
     /// "known" (surfacing nothing), and the source is flipped to baseline-established.
     pub fn record_baseline(&self, source_id: &str, urls: &[String]) -> Result<()> {
@@ -208,8 +240,9 @@ impl FollowService {
         source_id: &str,
     ) -> Result<std::collections::HashMap<String, String>> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        let mut stmt =
-            conn.prepare("SELECT seen_url, status FROM followed_source_releases WHERE source_id = ?1")?;
+        let mut stmt = conn.prepare(
+            "SELECT seen_url, status FROM followed_source_releases WHERE source_id = ?1",
+        )?;
         let rows = stmt.query_map([source_id], |r| {
             Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
         })?;

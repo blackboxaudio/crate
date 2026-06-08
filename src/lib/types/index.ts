@@ -848,6 +848,7 @@ export interface ScannedPage {
 	source_type: string
 	page_artist: string | null
 	page_label: string | null
+	avatar_url: string | null
 	releases: ScannedRelease[]
 	total_found: number
 	already_in_discovery: number

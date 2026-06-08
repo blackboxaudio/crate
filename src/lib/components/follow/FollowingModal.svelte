@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { openUrl } from '@tauri-apps/plugin-opener'
-	import { Modal, Button, Input, Select, Icon } from '$lib/components/common'
+	import { Modal, Button, Input, Select, Icon, Text } from '$lib/components/common'
 	import { followStore, followedSources, sortedFollowedSources, type FollowSort } from '$lib/stores'
 	import { translate } from '$lib/i18n'
 	import FollowingRow from './FollowingRow.svelte'
@@ -25,32 +25,34 @@
 <Modal {open} size="lg" flush {onClose}>
 	<!-- Header -->
 	<div class="flex items-center gap-2 border-b border-stroke-subtle px-4 py-3">
-		<Icon name="rss" class="h-4 w-4 shrink-0 text-brand-primary" />
 		<div class="min-w-0 flex-1">
-			<div class="text-sm font-medium text-text-primary">{$translate('discovery.following.title')}</div>
-			<div class="truncate text-[11px] text-text-tertiary">
-				{$translate('discovery.following.subtitle', { values: { count: $followedSources.length } })}
-			</div>
+			<Text variant="header-1" weight="medium" truncate>{$translate('discovery.following.title')}</Text>
 		</div>
 		{#if $followedSources.length > 0}
-			<Button variant="ghost" size="sm" onclick={() => followStore.checkAll()}>
+			<Button variant="ghost" onclick={() => followStore.checkAll()}>
 				{$translate('discovery.following.checkAll')}
 			</Button>
+			<Button variant="primary" onclick={() => (showAddSource = true)}>
+				{$translate('discovery.following.followSource')}
+			</Button>
 		{/if}
-		<Button variant="primary" size="sm" onclick={() => (showAddSource = true)}>
-			{$translate('discovery.following.followSource')}
-		</Button>
 	</div>
 
 	{#if $followedSources.length > 0}
 		<!-- Toolbar -->
 		<div class="flex items-center gap-2 border-b border-stroke-subtle px-4 py-2">
-			<Select
-				value={$followStore.sort}
-				options={sortOptions}
-				onchange={(v) => followStore.setSort(v as FollowSort)}
-				class="w-44"
-			/>
+			<Button variant={$followStore.selectMode ? 'primary' : 'ghost'} onclick={() => followStore.toggleSelectMode()}>
+				{$translate('discovery.following.select')}
+			</Button>
+			<div class="flex items-center gap-1.5">
+				<span class="shrink-0 text-[11px] text-text-tertiary">{$translate('discovery.following.sortBy')}</span>
+				<Select
+					value={$followStore.sort}
+					options={sortOptions}
+					onchange={(v) => followStore.setSort(v as FollowSort)}
+					class="w-44"
+				/>
+			</div>
 			<div class="flex-1">
 				<Input
 					value={$followStore.search}
@@ -58,31 +60,13 @@
 					oninput={(e) => followStore.setSearch((e.target as HTMLInputElement).value)}
 				/>
 			</div>
-			<Button
-				variant={$followStore.selectMode ? 'primary' : 'ghost'}
-				size="sm"
-				onclick={() => followStore.toggleSelectMode()}
-			>
-				{$translate('discovery.following.select')}
-			</Button>
 		</div>
 
 		{#if $followStore.selectMode && $followStore.selectedIds.size > 0}
 			<div class="flex items-center gap-2 border-b border-stroke-subtle bg-surface-2/40 px-4 py-1.5">
 				<span class="text-xs text-text-tertiary">{$followStore.selectedIds.size}</span>
 				<div class="flex-1"></div>
-				<Button
-					variant="ghost"
-					size="sm"
-					onclick={() => followStore.setEnabledMany([...$followStore.selectedIds], false)}
-				>
-					{$translate('discovery.following.pauseSelected')}
-				</Button>
-				<Button
-					variant="ghost-danger"
-					size="sm"
-					onclick={() => followStore.unfollowMany([...$followStore.selectedIds])}
-				>
+				<Button variant="ghost-danger" onclick={() => followStore.unfollowMany([...$followStore.selectedIds])}>
 					{$translate('discovery.following.unfollowSelected')}
 				</Button>
 			</div>
@@ -97,7 +81,7 @@
 				<div class="text-sm font-medium text-text-primary">{$translate('discovery.following.empty.title')}</div>
 				<div class="max-w-xs text-[11px] text-text-tertiary">{$translate('discovery.following.empty.hint')}</div>
 				<div class="mt-1">
-					<Button variant="primary" size="sm" onclick={() => (showAddSource = true)}>
+					<Button variant="primary" onclick={() => (showAddSource = true)}>
 						{$translate('discovery.following.followSource')}
 					</Button>
 				</div>
@@ -110,18 +94,17 @@
 					selected={$followStore.selectedIds.has(source.id)}
 					checking={$followStore.checkingIds.has(source.id)}
 					onToggleSelect={() => followStore.toggleSelected(source.id)}
-					onToggleEnabled={() => followStore.setEnabled(source.id, !source.enabled)}
 					onCheck={() => followStore.check(source.id)}
 					onUnfollow={() => followStore.unfollow(source.id)}
 					onOpen={() => openUrl(source.url).catch(() => {})}
+					onSetType={(type) => followStore.setType(source.id, type)}
 				/>
 			{/each}
 		{/if}
 	</div>
 
 	{#snippet footer()}
-		<span class="mr-auto text-[11px] text-text-tertiary">{$translate('discovery.following.footerNote')}</span>
-		<Button variant="secondary" size="sm" onclick={onClose}>{$translate('common.done')}</Button>
+		<Button variant="secondary" onclick={onClose}>{$translate('common.done')}</Button>
 	{/snippet}
 </Modal>
 

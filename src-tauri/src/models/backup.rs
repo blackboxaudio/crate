@@ -56,6 +56,54 @@ pub struct BackupPlaylistDiscoveryRelease {
     pub date_added: String,
 }
 
+/// A followed source (the synced follow list). `_hlc` is omitted — restore clears the
+/// initial-stamp guard so the next cloud-sync push re-stamps every restored row.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupFollowedSource {
+    pub id: String,
+    pub url: String,
+    pub source_type: String,
+    pub follow_type: String,
+    pub name: Option<String>,
+    pub artwork_url: Option<String>,
+    pub artwork_path: Option<String>,
+    pub enabled: bool,
+    pub date_added: String,
+    pub date_modified: String,
+}
+
+/// Per-device watch bookkeeping for a followed source (local table). Captured so a
+/// same-device restore preserves baseline + check health without re-flooding.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupFollowedSourceState {
+    pub source_id: String,
+    pub last_checked_at: Option<String>,
+    pub last_success_at: Option<String>,
+    pub health: String,
+    pub last_error: Option<String>,
+    pub consecutive_failures: i64,
+    pub baseline_established: bool,
+}
+
+/// Every release URL seen under a source, with its disposition (local table). Captured so
+/// `dismissed` tombstones survive a restore (deleted releases stay dismissed).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupFollowedSourceRelease {
+    pub source_id: String,
+    pub seen_url: String,
+    pub status: String,
+    pub release_id: Option<String>,
+    pub release_day_notified: bool,
+    pub first_seen_at: String,
+}
+
+/// Release ⇄ source provenance (synced m2m). `_hlc` omitted (see `BackupFollowedSource`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupDiscoveryReleaseSource {
+    pub release_id: String,
+    pub source_id: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupCounts {
     pub tracks: usize,
@@ -66,6 +114,8 @@ pub struct BackupCounts {
     pub discovery_releases: usize,
     #[serde(default)]
     pub artwork_files: usize,
+    #[serde(default)]
+    pub followed_sources: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -85,6 +135,16 @@ pub struct BackupData {
     pub discovery_tracks: Vec<DiscoveryTrack>,
     pub discovery_release_tags: Vec<BackupDiscoveryReleaseTag>,
     pub playlist_discovery_releases: Vec<BackupPlaylistDiscoveryRelease>,
+    /// Follow data. All `#[serde(default)]` so backups created before the follow feature
+    /// still deserialize (the Vecs default to empty).
+    #[serde(default)]
+    pub followed_sources: Vec<BackupFollowedSource>,
+    #[serde(default)]
+    pub followed_source_state: Vec<BackupFollowedSourceState>,
+    #[serde(default)]
+    pub followed_source_releases: Vec<BackupFollowedSourceRelease>,
+    #[serde(default)]
+    pub discovery_release_sources: Vec<BackupDiscoveryReleaseSource>,
     /// Base64-encoded artwork files keyed by relative path (e.g. "artwork/abc.webp").
     /// `None` for backups created before artwork support was added.
     #[serde(default)]

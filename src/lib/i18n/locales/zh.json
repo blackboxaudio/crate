@@ -14,6 +14,7 @@
 		"developerTools": "开发者工具",
 		"submit": "提交",
 		"confirm": "确认",
+		"done": "完成",
 		"untitled": "未命名",
 		"unknownArtist": "未知艺术家",
 		"folder": "文件夹",
@@ -383,6 +384,7 @@
 			"markNew": "标记为新",
 			"markNotNew": "标记为非新",
 			"alsoFollow": "关注以获取新发行",
+			"sortBy": "排序方式",
 			"empty": {
 				"title": "你还没有关注任何人",
 				"hint": "关注一位艺术家或厂牌，新发行会自动出现在这里。"
@@ -392,14 +394,13 @@
 				"name": "名称",
 				"recentlyReleased": "最近发布"
 			},
+			"review": "评论",
+			"foundToast": "{count, plural, =1 {1 个新发行} other {{count} 个新发行}}来自你的关注",
+			"changeType": "作为 {type} 关注 — 点击更改",
 			"addSource": {
 				"title": "关注来源",
-				"tabUrl": "粘贴 URL",
-				"tabSearch": "按名称搜索",
 				"urlPlaceholder": "粘贴 Bandcamp、SoundCloud 或 Discogs 艺术家/厂牌页面 URL",
-				"urlInfo": "我们将检测平台以及它是艺术家还是厂牌，并监控新发行 — 你现有的目录不会被淹没。",
-				"searchComingSoon": "搜索即将推出",
-				"searchHint": "目前，通过粘贴页面 URL 来关注。"
+				"urlInfo": "我们会自动识别平台以及它是艺术家还是厂牌，并从现在起留意新发行。更早的发行不会被添加进来。"
 			}
 		}
 	},

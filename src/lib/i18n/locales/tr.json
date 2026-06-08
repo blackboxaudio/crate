@@ -14,6 +14,7 @@
 		"developerTools": "Geliştirici Araçları",
 		"submit": "Gönder",
 		"confirm": "Onayla",
+		"done": "Bitti",
 		"untitled": "Başlıksız",
 		"unknownArtist": "Bilinmeyen Sanatçı",
 		"folder": "klasör",
@@ -382,6 +383,7 @@
 			"markNew": "Yeni olarak işaretle",
 			"markNotNew": "Yeni olarak işaretleme",
 			"alsoFollow": "Yeni yayınlar için izle",
+			"sortBy": "Şuna göre sırala",
 			"empty": {
 				"title": "Henüz hiç kimseyi izlemiyorsunuz",
 				"hint": "Bir sanatçıyı veya etiketi izleyin ve yeni yayınlar buraya otomatik olarak gelir."
@@ -391,14 +393,13 @@
 				"name": "Ad",
 				"recentlyReleased": "Son yayınlanan"
 			},
+			"review": "İnceleme",
+			"foundToast": "{count, plural, =1 {1 yeni yayın} other {{count} yeni yayın}} takipçilerinizden",
+			"changeType": "{type} olarak izleniyor — değiştirmek için tıkla",
 			"addSource": {
 				"title": "Kaynağı İzle",
-				"tabUrl": "URL'yi Yapıştır",
-				"tabSearch": "Ada Göre Ara",
 				"urlPlaceholder": "Bandcamp, SoundCloud veya Discogs sanatçısı/etiketi sayfası URL'sini yapıştırın",
-				"urlInfo": "Platformu ve bunun bir sanatçı mı yoksa etiket mi olduğunu algılayacağız ve yeni yayınlar için izleyeceğiz — mevcut kataloğunuz bunalım olmayacak.",
-				"searchComingSoon": "Arama yakında geliyor",
-				"searchHint": "Şimdilik, bir sayfa URL'si yapıştırarak izleyin."
+				"urlInfo": "Platformu ve bunun bir sanatçıya mı yoksa bir plak şirketine mi ait olduğunu otomatik olarak algılarız, ardından bundan sonraki yeni çıkışları takip ederiz. Daha eski çıkışlar eklenmez."
 			}
 		}
 	},

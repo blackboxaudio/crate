@@ -194,7 +194,8 @@ impl BackupService {
         // Discovery releases
         let mut stmt = conn.prepare(
             "SELECT id, url, source_type, artist, title, label, release_date,
-                    artwork_url, artwork_path, notes, parent_url, date_added, date_modified
+                    artwork_url, artwork_path, notes, parent_url, date_added, date_modified,
+                    is_new, surfaced_at
              FROM discovery_releases",
         )?;
         let discovery_releases = stmt
@@ -213,10 +214,9 @@ impl BackupService {
                     parent_url: row.get(10)?,
                     date_added: row.get(11)?,
                     date_modified: row.get(12)?,
-                    // Follow-feature fields aren't captured in local backups (follows
-                    // persist via cloud sync); default them on read/restore.
-                    is_new: false,
-                    surfaced_at: None,
+                    is_new: row.get(13)?,
+                    surfaced_at: row.get(14)?,
+                    // Provenance is captured via discovery_release_sources, not on the row.
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
@@ -272,6 +272,83 @@ impl BackupService {
             .collect::<std::result::Result<Vec<_>, _>>()?;
         drop(stmt);
 
+        // Followed sources (synced follow list)
+        let mut stmt = conn.prepare(
+            "SELECT id, url, source_type, follow_type, name, artwork_url, artwork_path,
+                    enabled, date_added, date_modified
+             FROM followed_sources",
+        )?;
+        let followed_sources = stmt
+            .query_map([], |row| {
+                Ok(BackupFollowedSource {
+                    id: row.get(0)?,
+                    url: row.get(1)?,
+                    source_type: row.get(2)?,
+                    follow_type: row.get(3)?,
+                    name: row.get(4)?,
+                    artwork_url: row.get(5)?,
+                    artwork_path: row.get(6)?,
+                    enabled: row.get(7)?,
+                    date_added: row.get(8)?,
+                    date_modified: row.get(9)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
+        // Followed source state (per-device watch bookkeeping)
+        let mut stmt = conn.prepare(
+            "SELECT source_id, last_checked_at, last_success_at, health, last_error,
+                    consecutive_failures, baseline_established
+             FROM followed_source_state",
+        )?;
+        let followed_source_state = stmt
+            .query_map([], |row| {
+                Ok(BackupFollowedSourceState {
+                    source_id: row.get(0)?,
+                    last_checked_at: row.get(1)?,
+                    last_success_at: row.get(2)?,
+                    health: row.get(3)?,
+                    last_error: row.get(4)?,
+                    consecutive_failures: row.get(5)?,
+                    baseline_established: row.get(6)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
+        // Followed source releases (seen URLs + dismissal tombstones)
+        let mut stmt = conn.prepare(
+            "SELECT source_id, seen_url, status, release_id, release_day_notified, first_seen_at
+             FROM followed_source_releases",
+        )?;
+        let followed_source_releases = stmt
+            .query_map([], |row| {
+                Ok(BackupFollowedSourceRelease {
+                    source_id: row.get(0)?,
+                    seen_url: row.get(1)?,
+                    status: row.get(2)?,
+                    release_id: row.get(3)?,
+                    release_day_notified: row.get(4)?,
+                    first_seen_at: row.get(5)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
+        // Discovery release sources (provenance m2m)
+        let mut stmt =
+            conn.prepare("SELECT release_id, source_id FROM discovery_release_sources")?;
+        let discovery_release_sources = stmt
+            .query_map([], |row| {
+                Ok(BackupDiscoveryReleaseSource {
+                    release_id: row.get(0)?,
+                    source_id: row.get(1)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
         let counts = BackupCounts {
             tracks: tracks.len(),
             cues: cues.len(),
@@ -280,6 +357,7 @@ impl BackupService {
             playlists: playlists.len(),
             discovery_releases: discovery_releases.len(),
             artwork_files: 0,
+            followed_sources: followed_sources.len(),
         };
 
         log::info!(
@@ -303,6 +381,10 @@ impl BackupService {
             discovery_tracks,
             discovery_release_tags,
             playlist_discovery_releases,
+            followed_sources,
+            followed_source_state,
+            followed_source_releases,
+            discovery_release_sources,
             artwork_files: None,
         })
     }
@@ -329,6 +411,10 @@ impl BackupService {
                  DELETE FROM discovery_audio_cache;
                  DELETE FROM device_exports;
                  DELETE FROM device_tracks;
+                 DELETE FROM discovery_release_sources;
+                 DELETE FROM followed_source_releases;
+                 DELETE FROM followed_source_state;
+                 DELETE FROM followed_sources;
                  DELETE FROM playlist_discovery_releases;
                  DELETE FROM discovery_release_tags;
                  DELETE FROM discovery_tracks;
@@ -477,8 +563,9 @@ impl BackupService {
             {
                 let mut stmt = tx.prepare(
                     "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date,
-                                                      artwork_url, artwork_path, notes, parent_url, date_added, date_modified)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                                                      artwork_url, artwork_path, notes, parent_url, date_added, date_modified,
+                                                      is_new, surfaced_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
                 )?;
                 for dr in &data.discovery_releases {
                     stmt.execute(params![
@@ -495,6 +582,8 @@ impl BackupService {
                         dr.parent_url,
                         dr.date_added,
                         dr.date_modified,
+                        dr.is_new,
+                        dr.surfaced_at,
                     ])?;
                 }
             }
@@ -541,6 +630,78 @@ impl BackupService {
                         pdr.position,
                         pdr.date_added,
                     ])?;
+                }
+            }
+
+            // 12. Followed sources (synced follow list)
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO followed_sources (id, url, source_type, follow_type, name, artwork_url,
+                                                   artwork_path, enabled, date_added, date_modified)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                )?;
+                for fs in &data.followed_sources {
+                    stmt.execute(params![
+                        fs.id,
+                        fs.url,
+                        fs.source_type,
+                        fs.follow_type,
+                        fs.name,
+                        fs.artwork_url,
+                        fs.artwork_path,
+                        fs.enabled,
+                        fs.date_added,
+                        fs.date_modified,
+                    ])?;
+                }
+            }
+
+            // 13. Followed source state (per-device watch bookkeeping)
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO followed_source_state (source_id, last_checked_at, last_success_at, health,
+                                                        last_error, consecutive_failures, baseline_established)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                )?;
+                for st in &data.followed_source_state {
+                    stmt.execute(params![
+                        st.source_id,
+                        st.last_checked_at,
+                        st.last_success_at,
+                        st.health,
+                        st.last_error,
+                        st.consecutive_failures,
+                        st.baseline_established,
+                    ])?;
+                }
+            }
+
+            // 14. Followed source releases (seen URLs + dismissal tombstones)
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO followed_source_releases (source_id, seen_url, status, release_id,
+                                                           release_day_notified, first_seen_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6)",
+                )?;
+                for fsr in &data.followed_source_releases {
+                    stmt.execute(params![
+                        fsr.source_id,
+                        fsr.seen_url,
+                        fsr.status,
+                        fsr.release_id,
+                        fsr.release_day_notified,
+                        fsr.first_seen_at,
+                    ])?;
+                }
+            }
+
+            // 15. Discovery release sources (provenance m2m — FKs discovery_releases + followed_sources)
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO discovery_release_sources (release_id, source_id) VALUES (?1, ?2)",
+                )?;
+                for drs in &data.discovery_release_sources {
+                    stmt.execute(params![drs.release_id, drs.source_id])?;
                 }
             }
 

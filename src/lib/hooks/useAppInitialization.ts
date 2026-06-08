@@ -11,6 +11,9 @@ import type { syncStore as SyncStoreType } from '$lib/stores/sync'
 import type { toastStore as ToastStoreType } from '$lib/stores/toast'
 import type { discoveryStore as DiscoveryStoreType } from '$lib/stores/discovery'
 import { followStore } from '$lib/stores/follow'
+import { uiStore } from '$lib/stores/ui'
+import { translate } from '$lib/i18n'
+import { get } from 'svelte/store'
 
 // =============================================================================
 // Types
@@ -192,14 +195,25 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	}
 
 	// Set up followed-releases listener: a background check surfaced new releases. Bump
-	// the per-source new counts and reload Discovery so the new rows appear. (The native
-	// summary notification when backgrounded is the backend's job; the focused in-app
-	// toast is wired by the toast layer.)
+	// the per-source new counts and reload Discovery so the new rows appear. When the window
+	// is focused, show an in-app "Review" toast (the backend suppresses its native summary
+	// notification while focused, so this is the only surface — no double-notify); when
+	// backgrounded, the native notification is the backend's job and we stay quiet.
 	async function setupFollowedReleasesListener(): Promise<void> {
 		unlistenFollowed = await listen<FollowedReleasesFound>('followed-releases-found', (event) => {
 			followStore.applyAggregate(event.payload)
-			if (event.payload.totalNew > 0) {
+			const { totalNew } = event.payload
+			if (totalNew > 0) {
 				discoveryStore.loadReleases()
+				if (document.hasFocus()) {
+					toastStore.info(get(translate)('discovery.following.foundToast', { values: { count: totalNew } }), 8000, {
+						label: get(translate)('discovery.following.review'),
+						onClick: () => {
+							uiStore.setActiveView('discovery')
+							discoveryStore.toggleNewFilter(true)
+						},
+					})
+				}
 			}
 		})
 	}

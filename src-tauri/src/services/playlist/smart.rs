@@ -14,10 +14,7 @@ impl PlaylistService {
 
         smart_rules::validate_smart_rules(&rules, &context)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let max_order: i32 = conn
             .query_row(
@@ -82,10 +79,7 @@ impl PlaylistService {
 
         smart_rules::validate_smart_rules(&rules, &playlist.context)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -117,10 +111,7 @@ impl PlaylistService {
 
         let (where_clause, params) = smart_rules::build_smart_query_library(&rules)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let sql = format!(
             r#"
@@ -200,10 +191,7 @@ impl PlaylistService {
 
         let (where_clause, params) = smart_rules::build_smart_query_discovery(&rules)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let sql = format!(
             r#"
@@ -322,10 +310,7 @@ impl PlaylistService {
 
         smart_rules::validate_smart_rules(&rules, context)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         self.count_smart_playlist_items_with_conn(&conn, &rules, context)
     }

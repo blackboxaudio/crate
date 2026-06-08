@@ -14,6 +14,7 @@
 		"developerTools": "Outils de développement",
 		"submit": "Soumettre",
 		"confirm": "Confirmer",
+		"done": "Terminé",
 		"untitled": "Sans titre",
 		"unknownArtist": "Artiste inconnu",
 		"folder": "dossier",
@@ -383,6 +384,7 @@
 			"markNew": "Marquer comme nouveau",
 			"markNotNew": "Marquer comme non nouveau",
 			"alsoFollow": "Suivre pour les nouvelles sorties",
+			"sortBy": "Trier par",
 			"empty": {
 				"title": "Vous ne suivez personne pour le moment",
 				"hint": "Suivez un artiste ou un label et les nouvelles sorties arriveront automatiquement ici."
@@ -392,14 +394,13 @@
 				"name": "Nom",
 				"recentlyReleased": "Récemment sorti"
 			},
+			"review": "Examiner",
+			"foundToast": "{count, plural, =1 {1 nouvelle sortie} other {{count} nouvelles sorties}} de vos abonnements",
+			"changeType": "Suivi en tant que {type} — cliquez pour changer",
 			"addSource": {
 				"title": "Suivre une source",
-				"tabUrl": "Coller une URL",
-				"tabSearch": "Rechercher par nom",
 				"urlPlaceholder": "Coller l'URL d'une page artiste/label Bandcamp, SoundCloud ou Discogs",
-				"urlInfo": "Nous détecterons la plateforme et s'il s'agit d'un artiste ou d'un label, et l'observerons pour les nouvelles sorties — votre catalogue existant ne sera pas inondé.",
-				"searchComingSoon": "La recherche arrive bientôt",
-				"searchHint": "Pour l'instant, suivez en collant une URL de page."
+				"urlInfo": "On détecte automatiquement la plateforme et s'il s'agit d'un artiste ou d'un label, puis on guette ses nouvelles sorties à partir de maintenant. Les sorties plus anciennes ne seront pas ajoutées."
 			}
 		}
 	},

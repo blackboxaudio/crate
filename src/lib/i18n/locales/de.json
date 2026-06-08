@@ -14,6 +14,7 @@
 		"developerTools": "Entwicklertools",
 		"submit": "Absenden",
 		"confirm": "Bestätigen",
+		"done": "Fertig",
 		"untitled": "Unbenannt",
 		"unknownArtist": "Unbekannter Künstler",
 		"folder": "Ordner",
@@ -383,6 +384,7 @@
 			"markNew": "Als neu markieren",
 			"markNotNew": "Als nicht neu markieren",
 			"alsoFollow": "Folgen für neue Releases",
+			"sortBy": "Sortieren nach",
 			"empty": {
 				"title": "Sie folgen noch niemandem",
 				"hint": "Folgen Sie einem Künstler oder Label und neue Releases erscheinen automatisch hier."
@@ -392,14 +394,13 @@
 				"name": "Name",
 				"recentlyReleased": "Kürzlich veröffentlicht"
 			},
+			"review": "Überprüfen",
+			"foundToast": "{count, plural, =1 {1 neues Release} other {{count} neue Releases}} von deinen Follows",
+			"changeType": "Folge als {type} — zum Ändern anklicken",
 			"addSource": {
 				"title": "Quelle folgen",
-				"tabUrl": "URL einfügen",
-				"tabSearch": "Nach Name suchen",
 				"urlPlaceholder": "URL einer Bandcamp-, SoundCloud- oder Discogs-Künstler-/Label-Seite einfügen",
-				"urlInfo": "Wir erkennen die Plattform und ob es sich um einen Künstler oder ein Label handelt, und überwachen es auf neue Releases — Ihr vorhandener Katalog wird nicht überflutet.",
-				"searchComingSoon": "Die Suche kommt bald",
-				"searchHint": "Vorerst können Sie folgen, indem Sie eine Seiten-URL einfügen."
+				"urlInfo": "Wir erkennen automatisch die Plattform und ob es sich um einen Künstler oder ein Label handelt, und halten ab jetzt nach neuen Releases Ausschau. Ältere Releases werden nicht übernommen."
 			}
 		}
 	},

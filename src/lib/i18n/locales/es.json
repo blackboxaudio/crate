@@ -14,6 +14,7 @@
 		"developerTools": "Herramientas de desarrollador",
 		"submit": "Enviar",
 		"confirm": "Confirmar",
+		"done": "Hecho",
 		"untitled": "Sin título",
 		"unknownArtist": "Artista desconocido",
 		"folder": "carpeta",
@@ -383,6 +384,7 @@
 			"markNew": "Marcar como nuevo",
 			"markNotNew": "Marcar como no nuevo",
 			"alsoFollow": "Seguir para nuevos lanzamientos",
+			"sortBy": "Ordenar por",
 			"empty": {
 				"title": "Aún no sigues a nadie",
 				"hint": "Sigue a un artista o sello y los nuevos lanzamientos llegarán aquí automáticamente."
@@ -392,14 +394,13 @@
 				"name": "Nombre",
 				"recentlyReleased": "Recientemente lanzado"
 			},
+			"review": "Revisar",
+			"foundToast": "{count, plural, =1 {1 nuevo lanzamiento} other {{count} nuevos lanzamientos}} de tus follows",
+			"changeType": "Siguiendo como {type} — haz clic para cambiar",
 			"addSource": {
 				"title": "Seguir una fuente",
-				"tabUrl": "Pegar URL",
-				"tabSearch": "Buscar por nombre",
 				"urlPlaceholder": "Pegar URL de página de artista/sello de Bandcamp, SoundCloud o Discogs",
-				"urlInfo": "Detectaremos la plataforma y si es un artista o sello, y lo observaremos para nuevos lanzamientos — tu catálogo existente no se inundará.",
-				"searchComingSoon": "La búsqueda llegará pronto",
-				"searchHint": "Por ahora, sigue pegando una URL de página."
+				"urlInfo": "Detectamos automáticamente la plataforma y si se trata de un artista o un sello, y a partir de ahora estaremos atentos a sus nuevos lanzamientos. Los lanzamientos antiguos no se añadirán."
 			}
 		}
 	},

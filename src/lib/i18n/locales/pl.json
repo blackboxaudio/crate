@@ -14,6 +14,7 @@
 		"developerTools": "Narzędzia deweloperskie",
 		"submit": "Wyślij",
 		"confirm": "Potwierdź",
+		"done": "Gotowe",
 		"untitled": "Bez tytułu",
 		"unknownArtist": "Nieznany artysta",
 		"folder": "folder",
@@ -382,6 +383,7 @@
 			"markNew": "Oznacz jako nowe",
 			"markNotNew": "Oznacz jako nie nowe",
 			"alsoFollow": "Obserwuj nowe wydania",
+			"sortBy": "Sortuj wg.",
 			"empty": {
 				"title": "Nie obserwujesz jeszcze nikogo",
 				"hint": "Obserwuj artystę lub wydawnictwo, a nowe wydania pojawią się tu automatycznie."
@@ -391,14 +393,13 @@
 				"name": "Nazwa",
 				"recentlyReleased": "Ostatnio wydane"
 			},
+			"review": "Przegląd",
+			"foundToast": "{count, plural, =1 {1 nowe wydanie} other {{count} nowych wydań}} od obserwowanych",
+			"changeType": "Obserwujesz jako {type} — kliknij, aby zmienić",
 			"addSource": {
 				"title": "Obserwuj źródło",
-				"tabUrl": "Wklej adres URL",
-				"tabSearch": "Szukaj po nazwie",
 				"urlPlaceholder": "Wklej adres URL strony artysty/wydawnictwa Bandcamp, SoundCloud lub Discogs",
-				"urlInfo": "Wykryjemy platformę i czy to artysta czy wydawnictwo, i obserwujemy je w poszukiwaniu nowych wydań — Twój istniejący katalog nie będzie zalany.",
-				"searchComingSoon": "Wyszukiwanie wkrótce",
-				"searchHint": "Na razie obserwuj, wklejając adres URL strony."
+				"urlInfo": "Automatycznie rozpoznamy platformę oraz to, czy to artysta czy wytwórnia, i od teraz będziemy wypatrywać nowych wydań. Starsze wydania nie zostaną dodane."
 			}
 		}
 	},

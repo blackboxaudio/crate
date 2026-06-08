@@ -19,6 +19,11 @@ export async function setFollowEnabled(id: string, enabled: boolean): Promise<Fo
 	return invoke<FollowedSource>('set_follow_enabled', { id, enabled })
 }
 
+/** Correct a follow's artist-vs-label classification after following. */
+export async function setFollowType(id: string, followType: 'artist' | 'label'): Promise<FollowedSource> {
+	return invoke<FollowedSource>('set_follow_type', { id, followType })
+}
+
 export async function getFollowedSources(): Promise<FollowedSource[]> {
 	return invoke<FollowedSource[]>('get_followed_sources')
 }

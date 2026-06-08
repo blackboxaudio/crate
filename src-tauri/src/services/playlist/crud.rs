@@ -3,10 +3,7 @@ use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl PlaylistService {
     pub fn get_playlists(&self, context: &str) -> Result<Vec<Playlist>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"
@@ -65,10 +62,7 @@ impl PlaylistService {
     }
 
     pub fn get_playlist(&self, id: &str) -> Result<Playlist> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut playlist = self.get_playlist_with_conn(&conn, id)?;
 
@@ -94,10 +88,7 @@ impl PlaylistService {
         parent_id: Option<String>,
         context: String,
     ) -> Result<Playlist> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get next sort order
         let max_order: i32 = conn
@@ -153,10 +144,7 @@ impl PlaylistService {
         parent_id: Option<String>,
         context: String,
     ) -> Result<Playlist> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let max_order: i32 = conn
             .query_row(
@@ -206,10 +194,7 @@ impl PlaylistService {
     }
 
     pub fn rename_playlist(&self, id: &str, name: String) -> Result<Playlist> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -228,10 +213,7 @@ impl PlaylistService {
     /// Must be called BEFORE delete_playlist since CASCADE deletes junction table entries.
     /// Returns (track_ids, release_ids) — one will be empty depending on context.
     pub fn collect_associated_item_ids(&self, id: &str) -> Result<(Vec<String>, Vec<String>)> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Use recursive CTE to find all playlist IDs in the subtree (handles folders)
         let mut stmt = conn.prepare(
@@ -282,10 +264,7 @@ impl PlaylistService {
     }
 
     pub fn delete_playlist(&self, id: &str) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Foreign key cascade deletes child playlists + junction entries; the
         // tombstone drives the same cascade on peers.
@@ -301,10 +280,7 @@ impl PlaylistService {
 
     /// Get direct children of a folder
     pub fn get_children(&self, parent_id: &str) -> Result<Vec<Playlist>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"

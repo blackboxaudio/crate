@@ -55,8 +55,8 @@ impl PrefetchTracker {
 use services::{
     discovery::n_transform::NsigSolverState, export::CheckpointService, AnalysisService,
     AudioService, BackupService, DeviceService, DiagnosticsService, DiscoveryService,
-    ExportService, FollowService, LibraryService, MediaControlsService, PlaylistService, SettingsService,
-    SyncService, TagService,
+    ExportService, FollowService, LibraryService, MediaControlsService, PlaylistService,
+    SettingsService, SyncService, TagService,
 };
 use tauri::Manager;
 
@@ -233,6 +233,7 @@ pub fn run() {
             commands::follow::follow_from_entity,
             commands::follow::unfollow_source,
             commands::follow::set_follow_enabled,
+            commands::follow::set_follow_type,
             commands::follow::get_followed_sources,
             commands::follow::check_followed_source,
             commands::follow::check_all_followed_sources,

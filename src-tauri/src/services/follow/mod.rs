@@ -18,12 +18,12 @@ use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
 
-/// A followed source reduced to what the watch loop needs to check it.
+/// A followed source reduced to what the watch loop needs to check it. (The watch loop
+/// scans a page identically regardless of artist/label, so `follow_type` isn't carried.)
 pub struct SourceToCheck {
     pub id: String,
     pub url: String,
     pub source_type: String,
-    pub follow_type: String,
     pub name: Option<String>,
     pub baseline_established: bool,
 }

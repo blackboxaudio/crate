@@ -145,21 +145,22 @@
 				/>
 			</div>
 
-			<div class="space-y-2">
+			<div>
 				<Checkbox
 					checked={$releaseDayReminders}
 					onchange={(c) => settingsStore.setReleaseDayReminders(c)}
 					label={$translate('settings.following.releaseDayReminders')}
 				/>
-				<Text variant="caption" as="p" class="text-text-tertiary">
+				<Text variant="caption" as="p" class="mt-2 text-text-tertiary">
 					{$translate('settings.following.releaseDayRemindersHelper')}
 				</Text>
-				<Checkbox
-					checked={$newReleasesSummary}
-					onchange={(c) => settingsStore.setNewReleasesSummary(c)}
-					label={$translate('settings.following.newReleasesSummary')}
-				/>
 			</div>
+
+			<Checkbox
+				checked={$newReleasesSummary}
+				onchange={(c) => settingsStore.setNewReleasesSummary(c)}
+				label={$translate('settings.following.newReleasesSummary')}
+			/>
 
 			<Text variant="caption" as="p" class="text-text-tertiary">
 				{$translate('settings.following.discogsRateLimitNote')}

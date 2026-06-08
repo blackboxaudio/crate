@@ -5,10 +5,7 @@ use super::*;
 impl ExportService {
     /// Record export state in the database
     pub(super) fn record_export_state(&self, request: &ExportRequest) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -38,10 +35,7 @@ impl ExportService {
 
     /// Save device tracks to database
     pub(super) fn save_device_tracks(&self, device_tracks: &[DeviceTrack]) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         for dt in device_tracks {
             conn.execute(
@@ -73,10 +67,7 @@ impl ExportService {
         &self,
         track_pdb_ids: &HashMap<String, u32>,
     ) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         for (track_id, pdb_id) in track_pdb_ids {
             conn.execute(
@@ -90,10 +81,7 @@ impl ExportService {
 
     /// Get all exports for a device
     pub fn get_device_exports(&self, device_id: &str) -> Result<Vec<DeviceExport>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"
@@ -121,10 +109,7 @@ impl ExportService {
 
     /// Get all tracks exported to a device
     pub fn get_device_tracks(&self, device_id: &str) -> Result<Vec<DeviceTrack>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"

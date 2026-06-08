@@ -14,10 +14,7 @@ impl LibraryService {
                 .extract_and_save(&tagged_file, track_id)
             {
                 // Update database with new artwork path and source
-                let conn = self
-                    .conn
-                    .lock()
-                    .map_err(|_| CrateError::LockPoisoned)?;
+                let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
                 let hlc = dirty::next_hlc(&conn)?;
                 conn.execute(
@@ -35,10 +32,7 @@ impl LibraryService {
 
     /// Rescan artwork for all tracks that don't have artwork yet
     pub fn rescan_all_artwork(&self) -> Result<RescanResult> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get all tracks without artwork
         let mut stmt =
@@ -103,10 +97,7 @@ impl LibraryService {
             .ok_or_else(|| CrateError::Artwork("Failed to save artwork".to_string()))?;
 
         // Update database with new artwork path and source
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -127,10 +118,7 @@ impl LibraryService {
         self.artwork_service.delete(id);
 
         // Update database to clear artwork columns
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -159,10 +147,7 @@ impl LibraryService {
         if let Some(tagged_file) = self.read_metadata_lenient(&path) {
             if let Some(artwork_path) = self.artwork_service.extract_and_save(&tagged_file, id) {
                 // Update database with new artwork path and source
-                let conn = self
-                    .conn
-                    .lock()
-                    .map_err(|_| CrateError::LockPoisoned)?;
+                let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
                 let now = chrono::Utc::now().to_rfc3339();
 
@@ -190,10 +175,7 @@ impl LibraryService {
             return Ok(None);
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut artwork_paths: Vec<String> = Vec::new();
 

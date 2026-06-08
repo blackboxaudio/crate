@@ -26,10 +26,16 @@
 	let importAll = $state(false)
 	let transferTags = $state($transferTagsOnImport)
 	let alsoFollow = $state(false)
+	// Defaults to Label (the common case); a user pick (`typeOverride`) wins.
+	let typeOverride = $state<'artist' | 'label' | null>(null)
 	let importing = $state(false)
 
 	const followUrl = $derived(deriveFollowUrl(release))
 	const alreadyFollowing = $derived(!!followUrl && $followedSources.some((s) => looseUrlEq(s.url, followUrl)))
+	const followType = $derived(typeOverride ?? 'label')
+	const followName = $derived(
+		followType === 'label' ? (release.label ?? release.artist) : (release.artist ?? release.label)
+	)
 
 	let hasReleaseTags = $derived(release.tags.length > 0)
 	let hasReleaseTracks = $derived(release.tracks.length > 0)
@@ -85,9 +91,9 @@
 				if (alsoFollow && followUrl && !alreadyFollowing) {
 					await followStore.followEntity({
 						url: followUrl,
-						name: release.artist,
+						name: followName ?? null,
 						sourceType: release.source_type,
-						followType: 'artist',
+						followType,
 					})
 				}
 				onComplete(result)
@@ -313,6 +319,38 @@
 							label={$translate('discovery.following.alsoFollow')}
 							disabled={importing}
 						/>
+						{#if alsoFollow}
+							<div
+								class="relative ml-6 inline-grid grid-cols-2 rounded-md border border-stroke bg-surface-2 p-0.5 text-[11px] font-medium"
+							>
+								<div
+									class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded bg-surface-1 shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
+									style="transform: translateX({followType === 'artist' ? '100%' : '0%'})"
+								></div>
+								<button
+									type="button"
+									class="relative z-10 rounded px-3 py-1 text-center transition-colors hover:cursor-pointer {followType ===
+									'label'
+										? 'text-text-primary'
+										: 'text-text-tertiary hover:text-text-secondary'}"
+									onclick={() => (typeOverride = 'label')}
+									disabled={importing}
+								>
+									{$translate('discovery.following.label')}
+								</button>
+								<button
+									type="button"
+									class="relative z-10 rounded px-3 py-1 text-center transition-colors hover:cursor-pointer {followType ===
+									'artist'
+										? 'text-text-primary'
+										: 'text-text-tertiary hover:text-text-secondary'}"
+									onclick={() => (typeOverride = 'artist')}
+									disabled={importing}
+								>
+									{$translate('discovery.following.artist')}
+								</button>
+							</div>
+						{/if}
 					{/if}
 				{/if}
 			</div>

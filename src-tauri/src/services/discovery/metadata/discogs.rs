@@ -428,6 +428,7 @@ pub(super) async fn scan_discogs_page(
     Vec<crate::models::ScannedRelease>,
     Option<String>,
     Option<String>,
+    Option<String>,
 )> {
     use super::jittered_delay;
     use tauri::Emitter;
@@ -460,6 +461,23 @@ pub(super) async fn scan_discogs_page(
         .map(|s| s.to_string());
 
     log::info!("Discogs scan: entity name = {:?}", entity_name);
+
+    // Prefer the primary image, fallback to first — used as the followed source avatar.
+    let avatar_url = entity_resp
+        .get("images")
+        .and_then(|i| i.as_array())
+        .and_then(|images| {
+            images
+                .iter()
+                .find(|img| img.get("type").and_then(|t| t.as_str()) == Some("primary"))
+                .or_else(|| images.first())
+        })
+        .and_then(|img| {
+            img.get("uri150")
+                .and_then(|u| u.as_str())
+                .or_else(|| img.get("uri").and_then(|u| u.as_str()))
+        })
+        .map(|s| s.to_string());
 
     if let Some(app) = app_handle {
         let _ = app.emit(
@@ -653,5 +671,5 @@ pub(super) async fn scan_discogs_page(
         all_releases.len()
     );
 
-    Ok((all_releases, page_artist, page_label))
+    Ok((all_releases, page_artist, page_label, avatar_url))
 }

@@ -99,6 +99,10 @@ pub struct ScannedPage {
     pub source_type: String,
     pub page_artist: Option<String>,
     pub page_label: Option<String>,
+    /// Profile picture for the artist/label page (Bandcamp og:image, SoundCloud
+    /// user avatar, Discogs entity image) — used as the followed source's artwork.
+    #[serde(default)]
+    pub avatar_url: Option<String>,
     pub releases: Vec<ScannedRelease>,
     pub total_found: usize,
     pub already_in_discovery: usize,

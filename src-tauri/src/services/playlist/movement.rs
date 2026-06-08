@@ -4,10 +4,7 @@ use crate::services::cloud_sync::pipeline::{buckets, dirty};
 impl PlaylistService {
     /// Find a playlist/folder with the same name in the target location (excluding the item being moved)
     pub fn find_conflict(&self, id: &str, parent_id: Option<&str>) -> Result<Option<Playlist>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let moving = self.get_playlist_with_conn(&conn, id)?;
 
@@ -51,10 +48,7 @@ impl PlaylistService {
 
     /// Internal helper to perform the actual move operation
     fn do_move(&self, id: &str, parent_id: Option<String>) -> Result<Playlist> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 

@@ -60,10 +60,7 @@ impl DiscoveryService {
     }
 
     pub fn assign_tags(&self, release_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for release_id in &release_ids {
@@ -80,10 +77,7 @@ impl DiscoveryService {
     }
 
     pub fn remove_tags(&self, release_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for release_id in &release_ids {

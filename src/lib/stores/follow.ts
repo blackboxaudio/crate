@@ -110,6 +110,16 @@ function createFollowStore() {
 			}
 		},
 
+		/** Correct a follow's artist-vs-label type in place (avoids unfollow + re-follow). */
+		async setType(id: string, followType: 'artist' | 'label') {
+			try {
+				const source = await followApi.setFollowType(id, followType)
+				update((s) => ({ ...s, sources: s.sources.map((x) => (x.id === id ? source : x)) }))
+			} catch (error) {
+				toastStore.error(errMsg(error, 'Failed to update follow'))
+			}
+		},
+
 		async setEnabledMany(ids: string[], enabled: boolean) {
 			await Promise.all(ids.map((id) => followApi.setFollowEnabled(id, enabled).catch(() => null)))
 			await this.load()

@@ -3,10 +3,7 @@ use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl PlaylistService {
     pub fn add_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<Playlist> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get current max position
         let max_position: i32 = conn
@@ -41,10 +38,7 @@ impl PlaylistService {
     }
 
     pub fn remove_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<Playlist> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for release_id in &release_ids {
@@ -94,10 +88,7 @@ impl PlaylistService {
     }
 
     pub fn get_playlist_releases(&self, playlist_id: &str) -> Result<Vec<DiscoveryRelease>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"

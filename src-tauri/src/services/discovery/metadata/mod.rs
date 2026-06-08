@@ -86,7 +86,8 @@ pub async fn scan_page(
     let client = build_client()?;
 
     if bandcamp::is_bandcamp_page_url(url) {
-        let (mut releases, page_name) = bandcamp::scan_bandcamp_page(&client, url).await?;
+        let (mut releases, page_name, avatar_url) =
+            bandcamp::scan_bandcamp_page(&client, url).await?;
 
         // Normalize URLs and check existing
         let mut already_in_discovery = 0;
@@ -104,6 +105,7 @@ pub async fn scan_page(
             source_type: "bandcamp".to_string(),
             page_artist: page_name.clone(),
             page_label: page_name,
+            avatar_url,
             total_found,
             already_in_discovery,
             releases,
@@ -111,7 +113,8 @@ pub async fn scan_page(
     }
 
     if soundcloud::is_soundcloud_page_url(url) {
-        let (mut releases, page_name) = soundcloud::scan_soundcloud_page(&client, url).await?;
+        let (mut releases, page_name, avatar_url) =
+            soundcloud::scan_soundcloud_page(&client, url).await?;
 
         let mut already_in_discovery = 0;
         for r in &mut releases {
@@ -128,6 +131,7 @@ pub async fn scan_page(
             source_type: "soundcloud".to_string(),
             page_artist: page_name.clone(),
             page_label: page_name,
+            avatar_url,
             total_found,
             already_in_discovery,
             releases,
@@ -139,7 +143,7 @@ pub async fn scan_page(
             kind,
             discogs::DiscogsUrlKind::Artist(_) | discogs::DiscogsUrlKind::Label(_)
         ) {
-            let (mut releases, page_artist, page_label) =
+            let (mut releases, page_artist, page_label, avatar_url) =
                 discogs::scan_discogs_page(&client, &kind, cancel_flag, app_handle).await?;
 
             let mut already_in_discovery = 0;
@@ -157,6 +161,7 @@ pub async fn scan_page(
                 source_type: "discogs".to_string(),
                 page_artist,
                 page_label,
+                avatar_url,
                 total_found,
                 already_in_discovery,
                 releases,

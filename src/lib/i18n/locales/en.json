@@ -14,6 +14,7 @@
 		"developerTools": "Developer Tools",
 		"submit": "Submit",
 		"confirm": "Confirm",
+		"done": "Done",
 		"untitled": "Untitled",
 		"unknownArtist": "Unknown Artist",
 		"folder": "folder",
@@ -383,6 +384,7 @@
 			"markNew": "Mark as new",
 			"markNotNew": "Mark as not new",
 			"alsoFollow": "Follow for new releases",
+			"sortBy": "Sort by",
 			"empty": {
 				"title": "You're not following anyone yet",
 				"hint": "Follow an artist or label and new releases land here automatically."
@@ -392,14 +394,13 @@
 				"name": "Name",
 				"recentlyReleased": "Recently released"
 			},
+			"review": "Review",
+			"foundToast": "{count, plural, =1 {1 new release} other {{count} new releases}} from your follows",
+			"changeType": "Following as {type} — click to change",
 			"addSource": {
 				"title": "Follow a Source",
-				"tabUrl": "Paste a URL",
-				"tabSearch": "Search by name",
 				"urlPlaceholder": "Paste a Bandcamp, SoundCloud, or Discogs artist/label page URL",
-				"urlInfo": "We'll detect the platform and whether it's an artist or label, and watch it for new releases going forward — your existing catalog isn't flooded in.",
-				"searchComingSoon": "Search is coming soon",
-				"searchHint": "For now, follow by pasting a page URL."
+				"urlInfo": "We'll detect the platform and whether it's an artist or label, then watch for new releases from now on. Older releases won't be added."
 			}
 		}
 	},

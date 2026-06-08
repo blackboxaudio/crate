@@ -14,6 +14,7 @@
 		"developerTools": "Instrumente pentru Dezvoltatori",
 		"submit": "Trimite",
 		"confirm": "Confirmare",
+		"done": "Gata",
 		"untitled": "Fără titlu",
 		"unknownArtist": "Artist Necunoscut",
 		"folder": "folder",
@@ -382,6 +383,7 @@
 			"markNew": "Marcați ca nou",
 			"markNotNew": "Marcați ca nu nou",
 			"alsoFollow": "Urmărire pentru lansări noi",
+			"sortBy": "Sortează după",
 			"empty": {
 				"title": "Nu urmărești pe nimeni încă",
 				"hint": "Urmărește un interpret sau etichetă și lansările noi vor ajunge aici automat."
@@ -391,14 +393,13 @@
 				"name": "Nume",
 				"recentlyReleased": "Lansat recent"
 			},
+			"review": "Examinare",
+			"foundToast": "{count, plural, =1 {1 lansare noua} other {{count} lansari noi}} de la urmărire",
+			"changeType": "Urmărire ca {type} — faceți clic pentru a schimba",
 			"addSource": {
 				"title": "Urmărire o sursă",
-				"tabUrl": "Lipește URL",
-				"tabSearch": "Cauta după nume",
 				"urlPlaceholder": "Lipește URL-ul unei pagini de interpret/etichetă Bandcamp, SoundCloud sau Discogs",
-				"urlInfo": "Vom detecta platforma și dacă este un interpret sau etichetă, și o vom monitoriza pentru lansări noi — catalogul tău existent nu va fi inundat.",
-				"searchComingSoon": "Căutarea vine în curând",
-				"searchHint": "Pentru acum, urmărește lipind o URL de pagină."
+				"urlInfo": "Detectăm automat platforma și dacă este vorba de un artist sau o casă de discuri, iar de acum înainte urmărim noile lansări. Lansările mai vechi nu vor fi adăugate."
 			}
 		}
 	},

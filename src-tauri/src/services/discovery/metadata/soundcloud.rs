@@ -359,7 +359,7 @@ pub(super) fn is_soundcloud_page_url(url: &str) -> bool {
 pub(super) async fn scan_soundcloud_page(
     client: &reqwest::Client,
     url: &str,
-) -> Result<(Vec<ScannedRelease>, Option<String>)> {
+) -> Result<(Vec<ScannedRelease>, Option<String>, Option<String>)> {
     let client_id = crate::services::discovery::streams::resolve_sc_client_id(client).await?;
 
     // Resolve the profile URL to a user object.
@@ -386,6 +386,11 @@ pub(super) async fn scan_soundcloud_page(
         .get("username")
         .and_then(|u| u.as_str())
         .map(|s| s.to_string());
+    // Profile avatar — upgrade the default "-large" (100px) variant to a larger one.
+    let avatar_url = user
+        .get("avatar_url")
+        .and_then(|a| a.as_str())
+        .map(|s| s.replace("-large", "-t500x500"));
 
     // Own uploads only (this endpoint excludes reposts).
     let resp: serde_json::Value = client
@@ -441,5 +446,5 @@ pub(super) async fn scan_soundcloud_page(
         }
     }
 
-    Ok((releases, page_name))
+    Ok((releases, page_name, avatar_url))
 }

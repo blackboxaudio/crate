@@ -3,10 +3,7 @@ use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl DiscoveryService {
     pub fn create_release(&self, create: DiscoveryReleaseCreate) -> Result<DiscoveryRelease> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let id = uuid::Uuid::new_v4().to_string();
@@ -82,10 +79,7 @@ impl DiscoveryService {
     }
 
     pub fn get_release(&self, id: &str) -> Result<DiscoveryRelease> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut release = conn.query_row(
             "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, date_added, date_modified, is_new, surfaced_at
@@ -169,10 +163,7 @@ impl DiscoveryService {
     }
 
     pub fn get_releases(&self, filter: Option<DiscoveryFilter>) -> Result<Vec<DiscoveryRelease>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let filter = filter.unwrap_or_default();
 
@@ -380,10 +371,7 @@ impl DiscoveryService {
         id: &str,
         update: DiscoveryReleaseUpdate,
     ) -> Result<DiscoveryRelease> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let mut set_clauses = vec!["date_modified = ?".to_string()];
@@ -457,10 +445,7 @@ impl DiscoveryService {
             .save_from_file(file_path, id)
             .ok_or_else(|| CrateError::Artwork("Failed to save artwork".to_string()))?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -477,10 +462,7 @@ impl DiscoveryService {
     pub fn delete_release_artwork(&self, id: &str) -> Result<DiscoveryRelease> {
         self.artwork_service.delete(id);
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -500,10 +482,7 @@ impl DiscoveryService {
             log::warn!("Failed to clean up cached audio for release {id}: {e}");
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Delete = dismiss: tombstone this release's followed-source record so the watch
         // loop never re-adds it. Runs before the DELETE so the URL is still resolvable;
@@ -526,10 +505,7 @@ impl DiscoveryService {
     }
 
     pub fn get_all_release_urls(&self) -> Result<std::collections::HashSet<String>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare("SELECT url FROM discovery_releases")?;
         let urls = stmt
@@ -540,10 +516,7 @@ impl DiscoveryService {
     }
 
     pub fn toggle_track_liked(&self, track_id: &str) -> Result<bool> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
@@ -576,10 +549,7 @@ impl DiscoveryService {
             }
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
         let sql = format!("DELETE FROM discovery_releases WHERE id IN ({placeholders})");

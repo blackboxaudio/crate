@@ -14,6 +14,7 @@
 		"developerTools": "개발자 도구",
 		"submit": "제출",
 		"confirm": "확인",
+		"done": "완료",
 		"untitled": "제목 없음",
 		"unknownArtist": "알 수 없는 아티스트",
 		"folder": "폴더",
@@ -383,6 +384,7 @@
 			"markNew": "새로 표시",
 			"markNotNew": "새로 아님으로 표시",
 			"alsoFollow": "새로운 릴리스를 팔로우",
+			"sortBy": "정렬 기준",
 			"empty": {
 				"title": "아직 아무도 팔로우하지 않음",
 				"hint": "아티스트 또는 레이블을 팔로우하면 새로운 릴리스가 자동으로 여기에 표시됩니다."
@@ -392,14 +394,13 @@
 				"name": "이름",
 				"recentlyReleased": "최근 출시"
 			},
+			"review": "검토",
+			"foundToast": "{count, plural, =1 {1개의 새로운 릴리스} other {{count}개의 새로운 릴리스}}를 팔로우 중에서 발견했습니다",
+			"changeType": "{type}(으)로 팔로우 중 — 클릭하여 변경",
 			"addSource": {
 				"title": "소스 팔로우",
-				"tabUrl": "URL 붙여넣기",
-				"tabSearch": "이름으로 검색",
 				"urlPlaceholder": "Bandcamp, SoundCloud 또는 Discogs 아티스트/레이블 페이지 URL을 붙여넣으세요",
-				"urlInfo": "플랫폼과 아티스트 또는 레이블 여부를 감지하고 새로운 릴리스를 감시합니다. 기존 카탈로그가 넘치지 않습니다.",
-				"searchComingSoon": "검색 기능이 곧 출시됩니다",
-				"searchHint": "지금은 페이지 URL을 붙여넣어 팔로우하세요."
+				"urlInfo": "플랫폼과 아티스트인지 레이블인지를 자동으로 감지한 뒤, 지금부터 올라오는 새 릴리스를 지켜봅니다. 이전 릴리스는 추가되지 않습니다."
 			}
 		}
 	},

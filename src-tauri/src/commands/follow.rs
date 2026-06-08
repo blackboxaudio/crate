@@ -3,9 +3,9 @@
 
 use tauri::{AppHandle, State};
 
-use crate::error::Result;
+use crate::error::{CrateError, Result};
 use crate::models::{
-    FollowedReleasesFound, FollowedSource, FollowedSourceCreate, SourceCheckResult,
+    FollowType, FollowedReleasesFound, FollowedSource, FollowedSourceCreate, SourceCheckResult,
 };
 use crate::services::discovery::{metadata, normalize_url};
 use crate::services::follow::watch;
@@ -27,16 +27,19 @@ pub async fn follow_source(
 
     // Only Discogs pages reliably distinguish artist vs label; Bandcamp can't, so default
     // to artist (the page is watched correctly either way).
-    let follow_type = if page.source_type == "discogs"
-        && page.page_label.is_some()
-        && page.page_artist.is_none()
-    {
-        "label"
-    } else {
-        "artist"
-    };
+    let follow_type =
+        if page.source_type == "discogs" && page.page_label.is_some() && page.page_artist.is_none()
+        {
+            "label"
+        } else {
+            "artist"
+        };
     let name = page.page_artist.clone().or_else(|| page.page_label.clone());
-    let artwork_url = page.releases.first().and_then(|r| r.artwork_url.clone());
+    // Prefer the page's profile picture; fall back to the first release's artwork.
+    let artwork_url = page
+        .avatar_url
+        .clone()
+        .or_else(|| page.releases.first().and_then(|r| r.artwork_url.clone()));
 
     let created = follow.create_follow(FollowedSourceCreate {
         url: normalized,
@@ -87,6 +90,19 @@ pub async fn set_follow_enabled(
     follow: State<'_, FollowService>,
 ) -> Result<FollowedSource> {
     follow.set_enabled(&id, enabled)
+}
+
+/// Correct a follow's artist-vs-label classification after the fact (the Following row's
+/// type toggle), avoiding a destructive unfollow + re-follow.
+#[tauri::command]
+pub async fn set_follow_type(
+    id: String,
+    follow_type: String,
+    follow: State<'_, FollowService>,
+) -> Result<FollowedSource> {
+    // Validate + normalize (e.g. "Artist" → "artist") against the known variants.
+    let parsed: FollowType = follow_type.parse().map_err(CrateError::Discovery)?;
+    follow.set_follow_type(&id, &parsed.to_string())
 }
 
 #[tauri::command]

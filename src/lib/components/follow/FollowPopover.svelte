@@ -23,9 +23,22 @@
 	}
 
 	const sourceUrl = $derived(deriveFollowUrl(release))
-	const entityName = $derived(release.artist || $translate('common.unknownArtist'))
-
 	const followed = $derived(sourceUrl ? $followedSources.find((s) => looseUrlEq(s.url, sourceUrl)) : undefined)
+
+	// We can derive only one page from a release and can't reliably tell artist from label
+	// (see #126 polish), so the user picks. Defaults to Label (the common case); a user pick
+	// (`typeOverride`) wins. Kept as an override so the derived default stays reactive.
+	let typeOverride = $state<'artist' | 'label' | null>(null)
+	const selectedType = $derived(typeOverride ?? 'label')
+	// Once followed, reflect the stored classification; otherwise the live selection.
+	const effectiveType = $derived(followed ? (followed.followType === 'label' ? 'label' : 'artist') : selectedType)
+	const rawName = $derived(
+		effectiveType === 'label' ? (release.label ?? release.artist) : (release.artist ?? release.label)
+	)
+	const displayName = $derived(followed?.name ?? rawName ?? $translate('common.unknownArtist'))
+	const typeLabel = $derived(
+		effectiveType === 'label' ? $translate('discovery.following.label') : $translate('discovery.following.artist')
+	)
 
 	let popoverEl: HTMLDivElement | undefined = $state()
 	let style = $state('')
@@ -79,9 +92,9 @@
 		} else {
 			await followStore.followEntity({
 				url: sourceUrl,
-				name: entityName,
+				name: rawName ?? null,
 				sourceType: release.source_type,
-				followType: 'artist',
+				followType: selectedType,
 			})
 		}
 		busy = false
@@ -102,11 +115,11 @@
 	</div>
 	{#if sourceUrl}
 		<div class="flex items-center gap-2 rounded px-1 py-1.5">
-			<Icon name="user" class="h-4 w-4 shrink-0 text-text-tertiary" />
+			<Icon name={effectiveType === 'label' ? 'disc' : 'user'} class="h-4 w-4 shrink-0 text-text-tertiary" />
 			<div class="min-w-0 flex-1">
-				<div class="truncate text-sm text-text-primary">{entityName}</div>
+				<div class="truncate text-sm text-text-primary">{displayName}</div>
 				<div class="truncate text-[11px] text-text-tertiary">
-					{$translate('discovery.following.artist')} · {platformLabels[release.source_type] ?? release.source_type}
+					{typeLabel} · {platformLabels[release.source_type] ?? release.source_type}
 				</div>
 			</div>
 			<button
@@ -120,6 +133,36 @@
 				{followed ? $translate('discovery.following.following') : $translate('discovery.following.follow')}
 			</button>
 		</div>
+		{#if !followed}
+			<div
+				class="relative mt-1 grid grid-cols-2 rounded-md border border-stroke bg-surface-2 p-0.5 text-[11px] font-medium"
+			>
+				<div
+					class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded bg-surface-1 shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
+					style="transform: translateX({selectedType === 'artist' ? '100%' : '0%'})"
+				></div>
+				<button
+					type="button"
+					class="relative z-10 rounded px-2 py-1 text-center transition-colors hover:cursor-pointer {selectedType ===
+					'label'
+						? 'text-text-primary'
+						: 'text-text-tertiary hover:text-text-secondary'}"
+					onclick={() => (typeOverride = 'label')}
+				>
+					{$translate('discovery.following.label')}
+				</button>
+				<button
+					type="button"
+					class="relative z-10 rounded px-2 py-1 text-center transition-colors hover:cursor-pointer {selectedType ===
+					'artist'
+						? 'text-text-primary'
+						: 'text-text-tertiary hover:text-text-secondary'}"
+					onclick={() => (typeOverride = 'artist')}
+				>
+					{$translate('discovery.following.artist')}
+				</button>
+			</div>
+		{/if}
 	{:else}
 		<div class="px-1 py-1.5 text-xs text-text-tertiary">
 			{$translate('discovery.following.followViaPaste')}

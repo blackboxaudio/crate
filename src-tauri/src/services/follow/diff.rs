@@ -20,17 +20,6 @@ pub fn compute_new_urls(
         .collect()
 }
 
-/// Whether a release date parses to a future calendar day (an "Upcoming" release).
-/// Year-only / year-month / unparseable dates are never "upcoming" — they degrade
-/// gracefully rather than showing a misleading countdown.
-pub fn is_upcoming(release_date: &Option<String>, today: chrono::NaiveDate) -> bool {
-    let Some(s) = release_date else { return false };
-    match chrono::NaiveDate::parse_from_str(s.trim(), "%Y-%m-%d") {
-        Ok(d) => d > today,
-        Err(_) => false,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -71,16 +60,5 @@ mod tests {
         seen.insert("a".to_string(), "surfaced".to_string());
         seen.insert("b".to_string(), "baseline".to_string());
         assert!(compute_new_urls(&found, &seen).is_empty());
-    }
-
-    #[test]
-    fn upcoming_detection() {
-        let today = chrono::NaiveDate::from_ymd_opt(2026, 6, 6).unwrap();
-        assert!(is_upcoming(&Some("2026-06-20".into()), today)); // future
-        assert!(!is_upcoming(&Some("2026-06-06".into()), today)); // today is not upcoming
-        assert!(!is_upcoming(&Some("2026-01-01".into()), today)); // past
-        assert!(!is_upcoming(&Some("2026".into()), today)); // year-only
-        assert!(!is_upcoming(&Some("2026-06".into()), today)); // year-month
-        assert!(!is_upcoming(&None, today)); // no date
     }
 }

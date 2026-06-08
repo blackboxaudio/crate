@@ -7,11 +7,18 @@ import * as diagnosticsApi from '$lib/api/diagnostics'
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 
+/** Optional action button rendered inside a toast (e.g. "Review" → jump to a view). */
+export interface ToastAction {
+	label: string
+	onClick: () => void
+}
+
 export interface Toast {
 	id: string
 	type: ToastType
 	message: string
 	duration: number
+	action?: ToastAction
 }
 
 interface ToastState {
@@ -66,9 +73,9 @@ function createToastStore() {
 		/**
 		 * Show a toast notification
 		 */
-		show(type: ToastType, message: string, duration: number = DEFAULT_DURATION) {
+		show(type: ToastType, message: string, duration: number = DEFAULT_DURATION, action?: ToastAction) {
 			const id = generateId()
-			const toast: Toast = { id, type, message, duration }
+			const toast: Toast = { id, type, message, duration, action }
 
 			update((state) => ({
 				...state,
@@ -110,8 +117,8 @@ function createToastStore() {
 		/**
 		 * Show an info toast
 		 */
-		info(message: string, duration?: number) {
-			return this.show('info', message, duration)
+		info(message: string, duration?: number, action?: ToastAction) {
+			return this.show('info', message, duration, action)
 		},
 
 		/**

@@ -38,6 +38,20 @@
 		<!-- Message -->
 		<Text as="span" class="flex-1">{toast.message}</Text>
 
+		<!-- Action button -->
+		{#if toast.action}
+			<button
+				type="button"
+				class="flex-shrink-0 rounded px-2 py-0.5 text-sm font-semibold underline-offset-2 hover:cursor-pointer hover:underline"
+				onclick={() => {
+					toast.action?.onClick()
+					onDismiss()
+				}}
+			>
+				{toast.action.label}
+			</button>
+		{/if}
+
 		<!-- Close button -->
 		<IconButton icon="x" size="sm" class="flex-shrink-0 opacity-70 hover:opacity-100" onclick={onDismiss} />
 	</div>

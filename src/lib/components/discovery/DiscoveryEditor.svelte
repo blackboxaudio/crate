@@ -233,30 +233,19 @@
 			/>
 		</div>
 
-		<!-- Provenance + mark new/not-new (single select) -->
-		{#if selectedReleases.length === 1}
-			{@const r = selectedReleases[0]}
-			<div class="space-y-2 border-t border-stroke pt-4">
-				{#if r.source_ids.length > 0}
-					{@const names = r.source_ids
-						.map((id) => $followedSources.find((s) => s.id === id)?.name)
-						.filter((n): n is string => !!n)}
-					{#if names.length > 0}
-						<div class="flex items-center gap-2 text-[11px] text-text-tertiary">
-							<Icon name="rss" class="h-3.5 w-3.5 shrink-0" />
-							<span>{$translate('discovery.following.surfacedVia', { values: { source: names.join(', ') } })}</span>
-						</div>
-					{/if}
-				{/if}
-				<button
-					type="button"
-					class="flex items-center gap-1.5 text-xs text-text-secondary transition-colors hover:cursor-pointer hover:text-text-primary"
-					onclick={() => discoveryStore.markReleaseNew(r.id, !r.is_new)}
-				>
-					<Icon name={r.is_new ? 'eye-slash' : 'rss'} class="h-3.5 w-3.5" />
-					{r.is_new ? $translate('discovery.following.markNotNew') : $translate('discovery.following.markNew')}
-				</button>
-			</div>
+		<!-- Provenance: which followed source(s) surfaced this release (single select) -->
+		{#if selectedReleases.length === 1 && selectedReleases[0].source_ids.length > 0}
+			{@const names = selectedReleases[0].source_ids
+				.map((id) => $followedSources.find((s) => s.id === id)?.name)
+				.filter((n): n is string => !!n)}
+			{#if names.length > 0}
+				<div class="space-y-2 border-t border-stroke pt-4">
+					<div class="flex items-center gap-2 text-[11px] text-text-tertiary">
+						<Icon name="rss" class="h-3.5 w-3.5 shrink-0" />
+						<span>{$translate('discovery.following.surfacedVia', { values: { source: names.join(', ') } })}</span>
+					</div>
+				</div>
+			{/if}
 		{/if}
 
 		<!-- Import button -->

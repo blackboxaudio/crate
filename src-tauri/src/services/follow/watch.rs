@@ -44,6 +44,15 @@ pub async fn establish_baseline(
     let follow = FollowService::new(conn, app_data_dir);
     match scan_for_baseline(&url, &app).await {
         Ok(page) => {
+            // Backfill the profile picture for follows created without one (popover/import),
+            // now that we've scanned the page — but never clobber an avatar already set.
+            if let Some(avatar) = page.avatar_url.as_deref() {
+                if let Ok(source) = follow.get_follow(&source_id) {
+                    if source.artwork_url.is_none() && source.artwork_path.is_none() {
+                        let _ = follow.set_artwork(&source_id, Some(avatar));
+                    }
+                }
+            }
             let urls: Vec<String> = page.releases.into_iter().map(|r| r.url).collect();
             follow.record_baseline(&source_id, &urls)
         }
@@ -227,7 +236,11 @@ pub fn start_watching(app_handle: AppHandle, conn: Arc<Mutex<Connection>>, app_d
                     .await;
             }
 
-            let should_check = if first { run_on_launch } else { interval.is_some() };
+            let should_check = if first {
+                run_on_launch
+            } else {
+                interval.is_some()
+            };
             if should_check {
                 if let Ok(found) =
                     check_all(conn.clone(), app_handle.clone(), app_data_dir.clone()).await

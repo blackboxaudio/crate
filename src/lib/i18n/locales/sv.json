@@ -14,6 +14,7 @@
 		"developerTools": "Utvecklarverktyg",
 		"submit": "Skicka",
 		"confirm": "Bekräfta",
+		"done": "Klar",
 		"untitled": "Namnlös",
 		"unknownArtist": "Okänd artist",
 		"folder": "mapp",
@@ -383,6 +384,7 @@
 			"markNew": "Markera som ny",
 			"markNotNew": "Markera som inte ny",
 			"alsoFollow": "Följ för nya utgåvor",
+			"sortBy": "Sortera efter",
 			"empty": {
 				"title": "Du följer ingen än",
 				"hint": "Följ en artist eller etikett så kommer nya utgåvor här automatiskt."
@@ -392,14 +394,13 @@
 				"name": "Namn",
 				"recentlyReleased": "Nyligen släppt"
 			},
+			"review": "Granskning",
+			"foundToast": "{count, plural, =1 {1 ny utgåva} other {{count} nya utgåvor}} från dina följde",
+			"changeType": "Följer som {type} — klicka för att ändra",
 			"addSource": {
 				"title": "Följ en källa",
-				"tabUrl": "Klistra in URL",
-				"tabSearch": "Sök efter namn",
 				"urlPlaceholder": "Klistra in URL för artist-/etikettsida från Bandcamp, SoundCloud eller Discogs",
-				"urlInfo": "Vi detekterar plattformen och om det är en artist eller etikett, och övervakar den för nya utgåvor — din befintliga katalog översvämmas inte.",
-				"searchComingSoon": "Sökningen kommer snart",
-				"searchHint": "För nu, följ genom att klistra in en sidans URL."
+				"urlInfo": "Vi känner automatiskt av plattformen och om det är en artist eller ett skivbolag, och håller från och med nu utkik efter nya släpp. Äldre släpp läggs inte till."
 			}
 		}
 	},

@@ -10,10 +10,7 @@ impl LibraryService {
     /// device-local tracks it falls back to the absolute `file_path`.
     pub fn check_track_file_exists(&self, id: &str) -> Result<bool> {
         let track = self.get_track(id)?;
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         let resolved = resolution::resolve_track_path(
             &conn,
             track.library_root_id.as_deref(),
@@ -90,10 +87,7 @@ impl LibraryService {
         let new_path_str = new_path.to_string_lossy().to_string();
 
         // Update the database with new path and hash
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         let (library_root_id, relative_path) =

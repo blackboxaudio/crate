@@ -14,6 +14,7 @@
 		"developerTools": "開発者ツール",
 		"submit": "送信",
 		"confirm": "確認",
+		"done": "完了",
 		"untitled": "無題",
 		"unknownArtist": "不明なアーティスト",
 		"folder": "フォルダ",
@@ -383,6 +384,7 @@
 			"markNew": "新規としてマーク",
 			"markNotNew": "新規ではないとしてマーク",
 			"alsoFollow": "新しいリリースをフォロー",
+			"sortBy": "並び替え",
 			"empty": {
 				"title": "まだ誰もフォローしていません",
 				"hint": "アーティストまたはレーベルをフォローすると、新しいリリースが自動的にここに表示されます。"
@@ -392,14 +394,13 @@
 				"name": "名前",
 				"recentlyReleased": "最近リリース"
 			},
+			"review": "レビュー",
+			"foundToast": "{count, plural, =1 {1つの新しいリリース} other {{count}個の新しいリリース}}があなたのフォロー中から見つかりました",
+			"changeType": "{type}としてフォロー中 — クリックして変更",
 			"addSource": {
 				"title": "ソースをフォロー",
-				"tabUrl": "URLを貼り付け",
-				"tabSearch": "名前で検索",
 				"urlPlaceholder": "Bandcamp、SoundCloud、またはDiscogsのアーティスト/レーベルページのURLを貼り付け",
-				"urlInfo": "プラットフォームとそれがアーティストかレーベルかを検出し、新しいリリースを監視します。既存のカタログは氾濫しません。",
-				"searchComingSoon": "検索はまもなく利用可能になります",
-				"searchHint": "現在のところ、ページURLを貼り付けてフォローしてください。"
+				"urlInfo": "プラットフォームと、それがアーティストかレーベルかを自動で判別し、これ以降の新しいリリースを見張ります。それより前のリリースは追加されません。"
 			}
 		}
 	},

@@ -16,7 +16,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 use crate::error::{CrateError, Result};
 use crate::services::cloud_sync::backend::mock::MockCloudBackend;
 use crate::services::cloud_sync::backend::types::{GcEntry, Manifest};
-use crate::services::cloud_sync::backend::{BlobStore, CloudBackend, ManifestStore};
+use crate::services::cloud_sync::backend::CloudBackend;
 use crate::services::cloud_sync::hlc::Hlc;
 use crate::services::cloud_sync::pipeline::buckets::{self, Bucket};
 use crate::services::cloud_sync::pipeline::dirty;
