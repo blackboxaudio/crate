@@ -397,6 +397,9 @@
 			"review": "Überprüfen",
 			"foundToast": "{count, plural, =1 {1 neues Release} other {{count} neue Releases}} von deinen Follows",
 			"changeType": "Folge als {type} — zum Ändern anklicken",
+			"relink": "Releases erneut verknüpfen",
+			"relinkHint": "Diese Seite erneut scannen und die Releases mit bereits importierten verknüpfen — behebt den Folgezustand bei Zeilen, die vor dieser Funktion importiert wurden.",
+			"relinkResult": "{count, plural, =0 {Keine Releases zum Verknüpfen} =1 {1 Release erneut verknüpft} other {{count} Releases erneut verknüpft}}",
 			"addSource": {
 				"title": "Quelle folgen",
 				"urlPlaceholder": "URL einer Bandcamp-, SoundCloud- oder Discogs-Künstler-/Label-Seite einfügen",

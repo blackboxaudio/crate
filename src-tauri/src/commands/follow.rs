@@ -7,7 +7,7 @@ use crate::error::{CrateError, Result};
 use crate::models::{
     FollowType, FollowedReleasesFound, FollowedSource, FollowedSourceCreate, SourceCheckResult,
 };
-use crate::services::discovery::{metadata, normalize_url};
+use crate::services::discovery::{followable_page_url, metadata, normalize_url};
 use crate::services::follow::watch;
 use crate::services::FollowService;
 
@@ -41,8 +41,11 @@ pub async fn follow_source(
         .clone()
         .or_else(|| page.releases.first().and_then(|r| r.artwork_url.clone()));
 
+    // Store the canonical followable page (Bandcamp origin, SoundCloud profile) so the
+    // stored follow URL matches releases' `source_page_url` (and dedupes consistently),
+    // regardless of the exact page URL the user pasted (e.g. a trailing `/music`).
     let created = follow.create_follow(FollowedSourceCreate {
-        url: normalized,
+        url: followable_page_url(&normalized, &page.source_type).unwrap_or(normalized),
         source_type: Some(page.source_type.clone()),
         follow_type: Some(follow_type.to_string()),
         name,
@@ -81,6 +84,20 @@ pub async fn follow_from_entity(
 #[tauri::command]
 pub async fn unfollow_source(id: String, follow: State<'_, FollowService>) -> Result<()> {
     follow.unfollow(&id)
+}
+
+/// Re-link a followed source to existing Discovery releases (bandaid for libraries
+/// imported before `source_page_url` existed). Scans the source's page and stamps
+/// `source_page_url` onto matching releases. Returns the number of releases linked.
+#[tauri::command]
+pub async fn relink_followed_source(
+    id: String,
+    app: AppHandle,
+    follow: State<'_, FollowService>,
+) -> Result<usize> {
+    let conn = follow.connection();
+    let app_data_dir = follow.app_data_dir();
+    watch::relink_source(conn, app, app_data_dir, id).await
 }
 
 #[tauri::command]

@@ -2,7 +2,8 @@
 	import type { DiscoveryRelease } from '$lib/types'
 	import {
 		daysUntilRelease,
-		deriveFollowUrl,
+		deriveArtistUrl,
+		deriveLabelUrl,
 		formatDate,
 		formatDuration,
 		formatRelativeDate,
@@ -24,7 +25,7 @@
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
 	import * as discoveryApi from '$lib/api/discovery'
-	import { FollowPopover } from '$lib/components/follow'
+	import { FollowPopover, openFollowPopoverId } from '$lib/components/follow'
 
 	type Props = {
 		release: DiscoveryRelease
@@ -73,11 +74,18 @@
 	// Computed at render, so the badge clears automatically when the date passes.
 	const upcomingDays = $derived(daysUntilRelease(release.release_date))
 
-	// Follow button + quick-follow popover.
-	let showFollowPopover = $state(false)
+	// Follow button + quick-follow popover. The open popover is tracked globally so opening
+	// one dismisses any other (only one visible at a time).
+	const showFollowPopover = $derived($openFollowPopoverId === release.id)
 	let followTriggerEl: HTMLElement | undefined = $state()
-	const followUrl = $derived(deriveFollowUrl(release))
-	const rowFollowing = $derived(!!followUrl && $followedSources.some((s) => looseUrlEq(s.url, followUrl)))
+	const artistUrl = $derived(deriveArtistUrl(release))
+	const labelUrl = $derived(deriveLabelUrl(release))
+	// Active when either the release's artist or its label is followed.
+	const rowFollowing = $derived(
+		$followedSources.some(
+			(s) => (!!artistUrl && looseUrlEq(s.url, artistUrl)) || (!!labelUrl && looseUrlEq(s.url, labelUrl))
+		)
+	)
 
 	function handleArtworkClick() {
 		if (release.artwork_path || release.artwork_url) {
@@ -281,7 +289,7 @@
 				onclick={(e) => {
 					e.stopPropagation()
 					followTriggerEl = e.currentTarget as HTMLElement
-					showFollowPopover = !showFollowPopover
+					openFollowPopoverId.set(showFollowPopover ? null : release.id)
 				}}
 			/>
 		</Tooltip>
@@ -319,7 +327,7 @@
 {/if}
 
 {#if showFollowPopover && followTriggerEl}
-	<FollowPopover {release} triggerEl={followTriggerEl} onClose={() => (showFollowPopover = false)} />
+	<FollowPopover {release} triggerEl={followTriggerEl} onClose={() => openFollowPopoverId.set(null)} />
 {/if}
 
 <!-- Track sub-rows (CSS grid-template-rows transition for smooth expand/collapse) -->

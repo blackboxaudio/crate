@@ -190,18 +190,18 @@ fn upsert_discovery_release(tx: &Connection, d: &DiscoveryReleaseRow, hlc: &str)
     tx.execute(
         "INSERT INTO discovery_releases \
             (id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, \
-             notes, parent_url, date_added, date_modified, is_new, surfaced_at, _hlc) \
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16) \
+             notes, parent_url, source_page_url, date_added, date_modified, is_new, surfaced_at, _hlc) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17) \
          ON CONFLICT(id) DO UPDATE SET \
             url=excluded.url, source_type=excluded.source_type, artist=excluded.artist, \
             title=excluded.title, label=excluded.label, release_date=excluded.release_date, \
             artwork_url=excluded.artwork_url, artwork_path=excluded.artwork_path, notes=excluded.notes, \
-            parent_url=excluded.parent_url, date_added=excluded.date_added, \
+            parent_url=excluded.parent_url, source_page_url=excluded.source_page_url, date_added=excluded.date_added, \
             date_modified=excluded.date_modified, is_new=excluded.is_new, \
             surfaced_at=excluded.surfaced_at, _hlc=excluded._hlc",
         params![
             d.id, d.url, d.source_type, d.artist, d.title, d.label, d.release_date, d.artwork_url,
-            d.artwork_path, d.notes, d.parent_url, d.date_added, d.date_modified, d.is_new,
+            d.artwork_path, d.notes, d.parent_url, d.source_page_url, d.date_added, d.date_modified, d.is_new,
             d.surfaced_at, hlc,
         ],
     )?;

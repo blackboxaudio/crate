@@ -88,6 +88,8 @@ pub struct DiscoveryReleaseRow {
     pub artwork_path: Option<String>,
     pub notes: Option<String>,
     pub parent_url: Option<String>,
+    #[serde(default)]
+    pub source_page_url: Option<String>,
     pub date_added: String,
     pub date_modified: String,
     #[serde(default)]
@@ -720,7 +722,7 @@ fn read_live_discovery_releases(
 ) -> Result<Vec<(String, DiscoveryReleaseRow, String)>> {
     let mut stmt = conn.prepare(
         "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, \
-         artwork_path, notes, parent_url, date_added, date_modified, is_new, surfaced_at, _hlc \
+         artwork_path, notes, parent_url, source_page_url, date_added, date_modified, is_new, surfaced_at, _hlc \
          FROM discovery_releases",
     )?;
     let rows = stmt.query_map([], |r| {
@@ -736,12 +738,13 @@ fn read_live_discovery_releases(
             artwork_path: r.get(8)?,
             notes: r.get(9)?,
             parent_url: r.get(10)?,
-            date_added: r.get(11)?,
-            date_modified: r.get(12)?,
-            is_new: r.get(13)?,
-            surfaced_at: r.get(14)?,
+            source_page_url: r.get(11)?,
+            date_added: r.get(12)?,
+            date_modified: r.get(13)?,
+            is_new: r.get(14)?,
+            surfaced_at: r.get(15)?,
         };
-        let hlc: String = r.get(15)?;
+        let hlc: String = r.get(16)?;
         Ok((d.id.clone(), d, hlc))
     })?;
     rows.collect::<std::result::Result<Vec<_>, _>>()

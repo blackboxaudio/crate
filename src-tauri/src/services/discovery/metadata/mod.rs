@@ -76,6 +76,21 @@ pub async fn fetch_metadata(url: &str) -> Result<FetchedMetadata> {
 }
 
 /// Scan an artist/label page URL and return all releases found on it.
+/// Fetch just the profile/avatar image (og:image) for an artist/label page, without
+/// scanning its releases — for previewing a follow target before following.
+pub async fn fetch_page_avatar(url: &str) -> Result<Option<String>> {
+    let client = build_client()?;
+    let html = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch page: {e}")))?
+        .text()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to read page: {e}")))?;
+    Ok(common::extract_meta_content(&html, "og:image"))
+}
+
 pub async fn scan_page(
     url: &str,
     existing_urls: &std::collections::HashSet<String>,
@@ -103,6 +118,7 @@ pub async fn scan_page(
 
         return Ok(crate::models::ScannedPage {
             source_type: "bandcamp".to_string(),
+            page_url: super::followable_page_url(url, "bandcamp"),
             page_artist: page_name.clone(),
             page_label: page_name,
             avatar_url,
@@ -129,6 +145,7 @@ pub async fn scan_page(
 
         return Ok(crate::models::ScannedPage {
             source_type: "soundcloud".to_string(),
+            page_url: super::followable_page_url(url, "soundcloud"),
             page_artist: page_name.clone(),
             page_label: page_name,
             avatar_url,
@@ -159,6 +176,7 @@ pub async fn scan_page(
 
             return Ok(crate::models::ScannedPage {
                 source_type: "discogs".to_string(),
+                page_url: super::followable_page_url(url, "discogs"),
                 page_artist,
                 page_label,
                 avatar_url,

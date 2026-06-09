@@ -396,6 +396,9 @@
 			"review": "İnceleme",
 			"foundToast": "{count, plural, =1 {1 yeni yayın} other {{count} yeni yayın}} takipçilerinizden",
 			"changeType": "{type} olarak izleniyor — değiştirmek için tıkla",
+			"relink": "Yayınları yeniden bağla",
+			"relinkHint": "Bu sayfayı yeniden tarayın ve zaten içe aktarılmış yayınlara bağlayın — bu özellik var olmadan önce içe aktarılan satırlarda takip durumunu düzeltir.",
+			"relinkResult": "{count, plural, =0 {Yeniden bağlanacak yayın yok} =1 {1 yayın yeniden bağlandı} other {{count} yayın yeniden bağlandı}}",
 			"addSource": {
 				"title": "Kaynağı İzle",
 				"urlPlaceholder": "Bandcamp, SoundCloud veya Discogs sanatçısı/etiketi sayfası URL'sini yapıştırın",

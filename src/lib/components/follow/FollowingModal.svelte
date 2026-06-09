@@ -1,10 +1,14 @@
 <script lang="ts">
 	import { openUrl } from '@tauri-apps/plugin-opener'
-	import { Modal, Button, Input, Select, Icon, Text } from '$lib/components/common'
+	import { Modal, Button, Input, Select, Icon, Text, Spinner } from '$lib/components/common'
 	import { followStore, followedSources, sortedFollowedSources, type FollowSort } from '$lib/stores'
 	import { translate } from '$lib/i18n'
+	import { slideFade } from '$lib/transitions'
 	import FollowingRow from './FollowingRow.svelte'
 	import FollowSourceModal from './FollowSourceModal.svelte'
+	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import { toastStore } from '$lib/stores/toast'
+	import type { ContextMenuItem, FollowedSource } from '$lib/types'
 
 	type Props = {
 		open: boolean
@@ -20,6 +24,40 @@
 		{ value: 'name', label: $translate('discovery.following.sort.name') },
 		{ value: 'recentlyReleased', label: $translate('discovery.following.sort.recentlyReleased') },
 	])
+
+	// Right-click context menu — home for the subtle "Re-link" bandaid action.
+	let menuOpen = $state(false)
+	let menuX = $state(0)
+	let menuY = $state(0)
+	let menuSource = $state<FollowedSource | null>(null)
+
+	const menuItems = $derived.by<ContextMenuItem[]>(() =>
+		menuSource
+			? [
+					{
+						id: 'relink',
+						label: $translate('discovery.following.relink'),
+						icon: 'refresh',
+						tooltip: $translate('discovery.following.relinkHint'),
+						action: () => {
+							if (menuSource) relink(menuSource)
+						},
+					},
+				]
+			: []
+	)
+
+	function openMenu(e: MouseEvent, source: FollowedSource) {
+		menuX = e.clientX
+		menuY = e.clientY
+		menuSource = source
+		menuOpen = true
+	}
+
+	async function relink(source: FollowedSource) {
+		const count = await followStore.relink(source.id)
+		toastStore.info($translate('discovery.following.relinkResult', { values: { count } }))
+	}
 </script>
 
 <Modal {open} size="lg" flush {onClose}>
@@ -29,8 +67,13 @@
 			<Text variant="header-1" weight="medium" truncate>{$translate('discovery.following.title')}</Text>
 		</div>
 		{#if $followedSources.length > 0}
-			<Button variant="ghost" onclick={() => followStore.checkAll()}>
-				{$translate('discovery.following.checkAll')}
+			<Button variant="ghost" disabled={$followStore.checkingAll} onclick={() => followStore.checkAll()}>
+				<span class="inline-flex items-center gap-1.5">
+					{#if $followStore.checkingAll}
+						<Spinner class="h-3.5 w-3.5" />
+					{/if}
+					{$translate('discovery.following.checkAll')}
+				</span>
 			</Button>
 			<Button variant="primary" onclick={() => (showAddSource = true)}>
 				{$translate('discovery.following.followSource')}
@@ -41,11 +84,12 @@
 	{#if $followedSources.length > 0}
 		<!-- Toolbar -->
 		<div class="flex items-center gap-2 border-b border-stroke-subtle px-4 py-2">
-			<Button variant={$followStore.selectMode ? 'primary' : 'ghost'} onclick={() => followStore.toggleSelectMode()}>
+			<Button variant="ghost" size="sm" onclick={() => followStore.toggleSelectMode()}>
 				{$translate('discovery.following.select')}
 			</Button>
 			<div class="flex items-center gap-1.5">
-				<span class="shrink-0 text-[11px] text-text-tertiary">{$translate('discovery.following.sortBy')}</span>
+				<span class="shrink-0 text-[12px] leading-5 text-text-tertiary">{$translate('discovery.following.sortBy')}</span
+				>
 				<Select
 					value={$followStore.sort}
 					options={sortOptions}
@@ -63,7 +107,10 @@
 		</div>
 
 		{#if $followStore.selectMode && $followStore.selectedIds.size > 0}
-			<div class="flex items-center gap-2 border-b border-stroke-subtle bg-surface-2/40 px-4 py-1.5">
+			<div
+				class="flex items-center gap-2 border-b border-stroke-subtle bg-surface-2/40 px-4 py-1.5"
+				transition:slideFade={{ duration: 200 }}
+			>
 				<span class="text-xs text-text-tertiary">{$followStore.selectedIds.size}</span>
 				<div class="flex-1"></div>
 				<Button variant="ghost-danger" onclick={() => followStore.unfollowMany([...$followStore.selectedIds])}>
@@ -92,12 +139,13 @@
 					{source}
 					selectMode={$followStore.selectMode}
 					selected={$followStore.selectedIds.has(source.id)}
-					checking={$followStore.checkingIds.has(source.id)}
+					checking={$followStore.checkingIds.has(source.id) || $followStore.checkingAll}
 					onToggleSelect={() => followStore.toggleSelected(source.id)}
 					onCheck={() => followStore.check(source.id)}
 					onUnfollow={() => followStore.unfollow(source.id)}
 					onOpen={() => openUrl(source.url).catch(() => {})}
 					onSetType={(type) => followStore.setType(source.id, type)}
+					onContextMenu={(e) => openMenu(e, source)}
 				/>
 			{/each}
 		{/if}
@@ -111,3 +159,5 @@
 {#if showAddSource}
 	<FollowSourceModal open={showAddSource} onClose={() => (showAddSource = false)} />
 {/if}
+
+<ContextMenu open={menuOpen} x={menuX} y={menuY} items={menuItems} onClose={() => (menuOpen = false)} />

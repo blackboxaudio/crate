@@ -174,6 +174,7 @@
 							: `text-text-primary hover:cursor-pointer hover:bg-surface-2 ${item.submenu && isSubmenuActive(item.id, depth) ? 'bg-surface-2' : ''}`}"
 					onclick={() => handleItemClick(item)}
 					disabled={item.disabled}
+					title={item.tooltip}
 					role="menuitem"
 				>
 					{#if item.colorDot}

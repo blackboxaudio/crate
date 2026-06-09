@@ -14,8 +14,8 @@ impl DiscoveryService {
 
         let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, parent_url, date_added, date_modified, _hlc)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, parent_url, source_page_url, date_added, date_modified, _hlc)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             rusqlite::params![
                 id,
                 normalized_url,
@@ -27,6 +27,7 @@ impl DiscoveryService {
                 create.artwork_url,
                 create.notes,
                 create.parent_url,
+                create.source_page_url,
                 now,
                 now,
                 hlc,
@@ -68,6 +69,7 @@ impl DiscoveryService {
             artwork_path: None,
             notes: create.notes,
             parent_url: create.parent_url,
+            source_page_url: create.source_page_url,
             date_added: now.clone(),
             date_modified: now,
             is_new: false,
@@ -82,7 +84,7 @@ impl DiscoveryService {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut release = conn.query_row(
-            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, date_added, date_modified, is_new, surfaced_at
+            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, source_page_url, date_added, date_modified, is_new, surfaced_at
              FROM discovery_releases WHERE id = ?1",
             [id],
             |row| {
@@ -98,10 +100,11 @@ impl DiscoveryService {
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
-                    date_added: row.get(11)?,
-                    date_modified: row.get(12)?,
-                    is_new: row.get::<_, i32>(13).map(|v| v != 0)?,
-                    surfaced_at: row.get(14)?,
+                    source_page_url: row.get(11)?,
+                    date_added: row.get(12)?,
+                    date_modified: row.get(13)?,
+                    is_new: row.get::<_, i32>(14).map(|v| v != 0)?,
+                    surfaced_at: row.get(15)?,
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
@@ -169,7 +172,7 @@ impl DiscoveryService {
 
         // Build query with optional filters
         let mut sql = String::from(
-            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.parent_url, dr.date_added, dr.date_modified, dr.is_new, dr.surfaced_at
+            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.parent_url, dr.source_page_url, dr.date_added, dr.date_modified, dr.is_new, dr.surfaced_at
              FROM discovery_releases dr",
         );
 
@@ -266,10 +269,11 @@ impl DiscoveryService {
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
-                    date_added: row.get(11)?,
-                    date_modified: row.get(12)?,
-                    is_new: row.get::<_, i32>(13).map(|v| v != 0)?,
-                    surfaced_at: row.get(14)?,
+                    source_page_url: row.get(11)?,
+                    date_added: row.get(12)?,
+                    date_modified: row.get(13)?,
+                    is_new: row.get::<_, i32>(14).map(|v| v != 0)?,
+                    surfaced_at: row.get(15)?,
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
@@ -433,6 +437,29 @@ impl DiscoveryService {
 
         drop(conn);
         self.get_release(id)
+    }
+
+    /// Backfill `source_page_url` for the release with this URL, only when it's unset.
+    /// Used when re-scanning/re-importing a page so releases imported before the page
+    /// was recorded (e.g. existing rows skipped on the UNIQUE(url) conflict) get linked
+    /// to the followed page. Bumps `_hlc` so the change syncs.
+    pub fn set_source_page_url_if_absent(
+        &self,
+        release_url: &str,
+        page_url: &str,
+    ) -> Result<usize> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let normalized = normalize_url(release_url);
+        let hlc = dirty::next_hlc(&conn)?;
+        let changed = conn.execute(
+            "UPDATE discovery_releases SET source_page_url = ?1, _hlc = ?2 \
+             WHERE url = ?3 AND (source_page_url IS NULL OR source_page_url = '')",
+            rusqlite::params![page_url, hlc, normalized],
+        )?;
+        if changed > 0 {
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
+        }
+        Ok(changed)
     }
 
     pub fn set_release_artwork(

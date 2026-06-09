@@ -194,7 +194,7 @@ impl BackupService {
         // Discovery releases
         let mut stmt = conn.prepare(
             "SELECT id, url, source_type, artist, title, label, release_date,
-                    artwork_url, artwork_path, notes, parent_url, date_added, date_modified,
+                    artwork_url, artwork_path, notes, parent_url, source_page_url, date_added, date_modified,
                     is_new, surfaced_at
              FROM discovery_releases",
         )?;
@@ -212,10 +212,11 @@ impl BackupService {
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
-                    date_added: row.get(11)?,
-                    date_modified: row.get(12)?,
-                    is_new: row.get(13)?,
-                    surfaced_at: row.get(14)?,
+                    source_page_url: row.get(11)?,
+                    date_added: row.get(12)?,
+                    date_modified: row.get(13)?,
+                    is_new: row.get(14)?,
+                    surfaced_at: row.get(15)?,
                     // Provenance is captured via discovery_release_sources, not on the row.
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
@@ -563,9 +564,9 @@ impl BackupService {
             {
                 let mut stmt = tx.prepare(
                     "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date,
-                                                      artwork_url, artwork_path, notes, parent_url, date_added, date_modified,
+                                                      artwork_url, artwork_path, notes, parent_url, source_page_url, date_added, date_modified,
                                                       is_new, surfaced_at)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15, ?16)",
                 )?;
                 for dr in &data.discovery_releases {
                     stmt.execute(params![
@@ -580,6 +581,7 @@ impl BackupService {
                         dr.artwork_path,
                         dr.notes,
                         dr.parent_url,
+                        dr.source_page_url,
                         dr.date_added,
                         dr.date_modified,
                         dr.is_new,

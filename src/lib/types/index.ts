@@ -390,6 +390,8 @@ export interface ColumnConfig {
 export interface ContextMenuItem {
 	id: string
 	label: string
+	/** Native hover tooltip (title attribute) — a hint shown on the menu item. */
+	tooltip?: string
 	icon?: string
 	iconFill?: boolean
 	shortcut?: string
@@ -718,6 +720,7 @@ export interface DiscoveryRelease {
 	artwork_path: string | null
 	notes: string | null
 	parent_url: string | null
+	source_page_url: string | null
 	date_added: string
 	date_modified: string
 	is_new: boolean
@@ -737,6 +740,7 @@ export interface DiscoveryReleaseCreate {
 	artwork_url?: string
 	notes?: string
 	parent_url?: string
+	source_page_url?: string
 	tracks?: DiscoveryTrackCreate[]
 }
 
@@ -846,6 +850,7 @@ export interface ScannedRelease {
 
 export interface ScannedPage {
 	source_type: string
+	page_url: string | null
 	page_artist: string | null
 	page_label: string | null
 	avatar_url: string | null

@@ -102,6 +102,28 @@ impl DiscoveryService {
     }
 }
 
+/// Derive the canonical "followable page" URL from a scanned artist/label page URL,
+/// mirroring the frontend `deriveFollowUrl` host logic. Bandcamp → the subdomain
+/// origin; SoundCloud → the profile (first path segment); everything else → the
+/// normalized URL. Stored on imported releases as `source_page_url` so a label follow
+/// matches every release scanned from the page, even those on other artist subdomains.
+pub(crate) fn followable_page_url(page_url: &str, source_type: &str) -> Option<String> {
+    let normalized = normalize_url(page_url);
+    let (scheme, rest) = normalized.split_once("://")?;
+    let (authority, path) = match rest.split_once('/') {
+        Some((a, p)) => (a, p),
+        None => (rest, ""),
+    };
+    match source_type {
+        "bandcamp" => Some(format!("{scheme}://{authority}")),
+        "soundcloud" => {
+            let seg = path.split('/').find(|s| !s.is_empty())?;
+            Some(format!("{scheme}://{authority}/{seg}"))
+        }
+        _ => Some(normalized),
+    }
+}
+
 /// Normalize a URL for consistent storage and deduplication.
 /// - Lowercases the domain (not path)
 /// - Strips trailing slashes

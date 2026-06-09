@@ -25,6 +25,12 @@ pub struct DiscoveryRelease {
     pub artwork_path: Option<String>,
     pub notes: Option<String>,
     pub parent_url: Option<String>,
+    /// The artist/label page this release was discovered from (the scanned page, or a
+    /// followed source's URL). Drives one-click "follow this source" so following a
+    /// label matches all its releases — even when they live on separate artist
+    /// subdomains (the Bandcamp norm). Synced.
+    #[serde(default)]
+    pub source_page_url: Option<String>,
     pub date_added: String,
     pub date_modified: String,
     /// "New/unreviewed" flag — set when a followed source surfaces the release,
@@ -55,6 +61,8 @@ pub struct DiscoveryReleaseCreate {
     pub artwork_url: Option<String>,
     pub notes: Option<String>,
     pub parent_url: Option<String>,
+    #[serde(default)]
+    pub source_page_url: Option<String>,
     pub tracks: Option<Vec<DiscoveryTrackCreate>>,
 }
 
@@ -97,6 +105,11 @@ pub struct ScannedRelease {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScannedPage {
     pub source_type: String,
+    /// Canonical followable page URL (Bandcamp subdomain origin, SoundCloud profile,
+    /// Discogs entity page) for the scanned page; stamped onto imported releases as
+    /// `source_page_url` so a label follow matches them all.
+    #[serde(default)]
+    pub page_url: Option<String>,
     pub page_artist: Option<String>,
     pub page_label: Option<String>,
     /// Profile picture for the artist/label page (Bandcamp og:image, SoundCloud

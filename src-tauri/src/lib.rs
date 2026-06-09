@@ -34,6 +34,16 @@ impl EnrichmentSkipIds {
     }
 }
 
+/// Session cache of artist/label page avatars (og:image), keyed by page URL, so the follow
+/// popover can show a profile picture without re-scraping on every open. Local + ephemeral.
+pub(crate) struct AvatarCache(pub Arc<tokio::sync::Mutex<HashMap<String, Option<String>>>>);
+
+impl AvatarCache {
+    pub fn new() -> Self {
+        Self(Arc::new(tokio::sync::Mutex::new(HashMap::new())))
+    }
+}
+
 /// Cache for pre-fetched release metadata populated during background enrichment after a page scan.
 /// Keyed by release URL. Entries are consumed (removed) by `bulk_create_discovery_releases`.
 pub(crate) struct ScanEnrichmentCache(
@@ -228,10 +238,12 @@ pub fn run() {
             commands::discovery::cancel_bulk_import,
             commands::discovery::cancel_scan_page,
             commands::discovery::skip_enrichment,
+            commands::discovery::fetch_source_avatar,
             // Follow commands
             commands::follow::follow_source,
             commands::follow::follow_from_entity,
             commands::follow::unfollow_source,
+            commands::follow::relink_followed_source,
             commands::follow::set_follow_enabled,
             commands::follow::set_follow_type,
             commands::follow::get_followed_sources,
@@ -358,6 +370,7 @@ pub fn run() {
             )));
             app.manage(ScanEnrichmentCache::new());
             app.manage(EnrichmentSkipIds::new());
+            app.manage(AvatarCache::new());
 
             // Cloud sync: build the Firebase backend if a config file is present
             // (degrades gracefully to "unavailable" when it isn't), manage the runtime

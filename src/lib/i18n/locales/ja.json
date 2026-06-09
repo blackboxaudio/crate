@@ -397,6 +397,9 @@
 			"review": "レビュー",
 			"foundToast": "{count, plural, =1 {1つの新しいリリース} other {{count}個の新しいリリース}}があなたのフォロー中から見つかりました",
 			"changeType": "{type}としてフォロー中 — クリックして変更",
+			"relink": "リリースを再リンク",
+			"relinkHint": "このページを再スキャンし、既にインポート済みのリリースにリンク — この機能が存在する前にインポートされた行のフォロー状態を修正します。",
+			"relinkResult": "{count, plural, =0 {再リンクするリリースなし} =1 {1つのリリースを再リンク} other {{count}個のリリースを再リンク}}",
 			"addSource": {
 				"title": "ソースをフォロー",
 				"urlPlaceholder": "Bandcamp、SoundCloud、またはDiscogsのアーティスト/レーベルページのURLを貼り付け",

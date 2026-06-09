@@ -397,6 +397,9 @@
 			"review": "Examiner",
 			"foundToast": "{count, plural, =1 {1 nouvelle sortie} other {{count} nouvelles sorties}} de vos abonnements",
 			"changeType": "Suivi en tant que {type} — cliquez pour changer",
+			"relink": "Réassocier les sorties",
+			"relinkHint": "Analysez à nouveau cette page et associez-la aux sorties déjà importées — corrige l'état du suivi des lignes importées avant que cette fonctionnalité existe.",
+			"relinkResult": "{count, plural, =0 {Aucune sortie à réassocier} =1 {1 sortie réassociée} other {{count} sorties réassociées}}",
 			"addSource": {
 				"title": "Suivre une source",
 				"urlPlaceholder": "Coller l'URL d'une page artiste/label Bandcamp, SoundCloud ou Discogs",

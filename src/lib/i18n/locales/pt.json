@@ -397,6 +397,9 @@
 			"review": "Revisar",
 			"foundToast": "{count, plural, =1 {1 novo lançamento} other {{count} novos lançamentos}} de seus seguidores",
 			"changeType": "Seguindo como {type} — clique para alterar",
+			"relink": "Revincar lançamentos",
+			"relinkHint": "Rescaneie esta página e vincule-a aos lançamentos já importados — corrige o estado de acompanhamento nas linhas importadas antes de esta funcionalidade existir.",
+			"relinkResult": "{count, plural, =0 {Nenhum lançamento para revincar} =1 {1 lançamento revincado} other {{count} lançamentos revincados}}",
 			"addSource": {
 				"title": "Seguir uma fonte",
 				"urlPlaceholder": "Cole a URL de uma página de artista/gravadora Bandcamp, SoundCloud ou Discogs",

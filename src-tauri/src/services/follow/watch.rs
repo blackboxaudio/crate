@@ -44,12 +44,27 @@ pub async fn establish_baseline(
     let follow = FollowService::new(conn, app_data_dir);
     match scan_for_baseline(&url, &app).await {
         Ok(page) => {
-            // Backfill the profile picture for follows created without one (popover/import),
-            // now that we've scanned the page — but never clobber an avatar already set.
-            if let Some(avatar) = page.avatar_url.as_deref() {
-                if let Ok(source) = follow.get_follow(&source_id) {
-                    if source.artwork_url.is_none() && source.artwork_path.is_none() {
-                        let _ = follow.set_artwork(&source_id, Some(avatar));
+            // Popover/import follows are created from a single release before the page is
+            // fetched, so backfill from the now-scanned page. Fetch the source once.
+            let source = follow.get_follow(&source_id).ok();
+            // Profile picture — but never clobber an avatar already set.
+            if let (Some(src), Some(avatar)) = (source.as_ref(), page.avatar_url.as_deref()) {
+                if src.artwork_url.is_none() && src.artwork_path.is_none() {
+                    let _ = follow.set_artwork(&source_id, Some(avatar));
+                }
+            }
+            // Display name — the release-derived name can be the artist instead of the
+            // label, or missing when metadata wasn't fetched. Prefer the page name that
+            // matches the follow's type; only overwrite when it actually differs.
+            if let Some(src) = source.as_ref() {
+                let scanned_name = if src.follow_type == "label" {
+                    page.page_label.as_deref().or(page.page_artist.as_deref())
+                } else {
+                    page.page_artist.as_deref().or(page.page_label.as_deref())
+                };
+                if let Some(name) = scanned_name {
+                    if !name.is_empty() && src.name.as_deref() != Some(name) {
+                        let _ = follow.set_name(&source_id, name);
                     }
                 }
             }
@@ -61,6 +76,62 @@ pub async fn establish_baseline(
             Err(e)
         }
     }
+}
+
+/// Re-link a followed source's page to existing Discovery releases — a bandaid for
+/// libraries imported before `source_page_url` existed. Scans the page and stamps
+/// `source_page_url` onto already-imported releases found on it (so the row's Label/Artist
+/// follow state reflects this source), refreshes the follow's own name + avatar from the
+/// page, and emits `discovery-release-updated` so the view patches live. Returns the
+/// number of releases newly linked.
+pub async fn relink_source(
+    conn: Arc<Mutex<Connection>>,
+    app: AppHandle,
+    app_data_dir: PathBuf,
+    source_id: String,
+) -> Result<usize> {
+    let follow = FollowService::new(conn.clone(), app_data_dir.clone());
+    let discovery = DiscoveryService::new(conn, app_data_dir);
+    let source = follow.get_follow(&source_id)?;
+
+    let page = scan_for_baseline(&source.url, &app).await?;
+
+    // Refresh the follow's name + avatar from the authoritative page (matched to type).
+    let scanned_name = if source.follow_type == "label" {
+        page.page_label.as_deref().or(page.page_artist.as_deref())
+    } else {
+        page.page_artist.as_deref().or(page.page_label.as_deref())
+    };
+    if let Some(name) = scanned_name {
+        if !name.is_empty() && source.name.as_deref() != Some(name) {
+            let _ = follow.set_name(&source_id, name);
+        }
+    }
+    if let Some(avatar) = page.avatar_url.as_deref() {
+        if source.artwork_url.is_none() && source.artwork_path.is_none() {
+            let _ = follow.set_artwork(&source_id, Some(avatar));
+        }
+    }
+
+    // Stamp the source page onto matching existing releases; emit each so rows refresh.
+    let mut linked = 0usize;
+    for scanned in &page.releases {
+        match discovery.set_source_page_url_if_absent(&scanned.url, &source.url) {
+            Ok(0) => {}
+            Ok(_) => {
+                linked += 1;
+                if let Ok(Some(rid)) = follow.release_id_for_url(&scanned.url) {
+                    if let Ok(updated) = discovery.get_release(&rid) {
+                        let _ = app.emit("discovery-release-updated", &updated);
+                    }
+                }
+            }
+            Err(e) => log::warn!("relink: failed to link {}: {e}", scanned.url),
+        }
+    }
+
+    let _ = follow.mark_checked(&source_id, FollowHealth::Ok, None);
+    Ok(linked)
 }
 
 /// Check one source. If it has no baseline yet, establish it (surfacing nothing).
@@ -144,6 +215,9 @@ pub async fn check_one(
                     artwork_url: scanned.artwork_url.clone(),
                     notes: None,
                     parent_url: None,
+                    // Discovered via this followed source — stamp its page so the row
+                    // reflects the follow and re-imports stay linked.
+                    source_page_url: Some(source.url.clone()),
                     tracks: None,
                 };
                 match discovery.create_release(create) {

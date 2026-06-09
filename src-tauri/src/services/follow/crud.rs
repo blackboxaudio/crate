@@ -188,6 +188,23 @@ impl FollowService {
         self.get_follow(id)
     }
 
+    /// Correct the source's display name from its scanned page. Popover/import follows
+    /// derive the name from a single release, which can be wrong — a label release hosted
+    /// on an artist subdomain, or one whose metadata wasn't fetched yet — so the baseline
+    /// scan resolves the authoritative page name (matched to the follow's type).
+    pub fn set_name(&self, id: &str, name: &str) -> Result<FollowedSource> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let now = chrono::Utc::now().to_rfc3339();
+        let hlc = dirty::next_hlc(&conn)?;
+        conn.execute(
+            "UPDATE followed_sources SET name = ?1, date_modified = ?2, _hlc = ?3 WHERE id = ?4",
+            rusqlite::params![name, now, hlc, id],
+        )?;
+        dirty::mark_dirty(&conn, buckets::FOLLOWED_SOURCES)?;
+        drop(conn);
+        self.get_follow(id)
+    }
+
     /// Record the forward-looking baseline: every URL currently on the page becomes
     /// "known" (surfacing nothing), and the source is flipped to baseline-established.
     pub fn record_baseline(&self, source_id: &str, urls: &[String]) -> Result<()> {

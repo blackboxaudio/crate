@@ -142,6 +142,26 @@ function createFollowStore() {
 			}
 		},
 
+		/** Re-link a source to already-imported releases (bandaid: backfills source_page_url).
+		 *  Returns the count linked; discovery rows refresh live via `discovery-release-updated`. */
+		async relink(id: string): Promise<number> {
+			update((s) => ({ ...s, checkingIds: new Set([...s.checkingIds, id]) }))
+			try {
+				const count = await followApi.relinkSource(id)
+				await this.load()
+				return count
+			} catch (error) {
+				toastStore.error(errMsg(error, 'Failed to re-link source'))
+				return 0
+			} finally {
+				update((s) => {
+					const next = new Set(s.checkingIds)
+					next.delete(id)
+					return { ...s, checkingIds: next }
+				})
+			}
+		},
+
 		async checkAll(): Promise<FollowedReleasesFound | null> {
 			update((s) => ({ ...s, checkingAll: true }))
 			try {

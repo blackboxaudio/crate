@@ -397,6 +397,9 @@
 			"review": "Granskning",
 			"foundToast": "{count, plural, =1 {1 ny utgåva} other {{count} nya utgåvor}} från dina följde",
 			"changeType": "Följer som {type} — klicka för att ändra",
+			"relink": "Länka om utgåvor",
+			"relinkHint": "Skanna denna sida igen och länka den till redan importerade utgåvor — åtgärdar följtillståndet på rader som importerades innan den här funktionen fanns.",
+			"relinkResult": "{count, plural, =0 {Inga utgåvor att länka om} =1 {1 utgåva länkad om} other {{count} utgåvor länkade om}}",
 			"addSource": {
 				"title": "Följ en källa",
 				"urlPlaceholder": "Klistra in URL för artist-/etikettsida från Bandcamp, SoundCloud eller Discogs",

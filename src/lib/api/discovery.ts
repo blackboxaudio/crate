@@ -70,6 +70,11 @@ export async function fetchMetadata(url: string): Promise<FetchedMetadata> {
 	return invoke<FetchedMetadata>('fetch_release_metadata', { url })
 }
 
+/** Fetch (session-cached) the profile/avatar image URL for an artist/label page. */
+export async function fetchSourceAvatar(url: string): Promise<string | null> {
+	return invoke<string | null>('fetch_source_avatar', { url })
+}
+
 export async function refreshMetadata(id: string): Promise<DiscoveryRelease> {
 	return invoke<DiscoveryRelease>('refresh_release_metadata', { id })
 }
@@ -107,7 +112,8 @@ export async function bulkCreateReleases(
 	pageLabel?: string | null,
 	pageArtist?: string | null,
 	scannedReleases?: ScannedRelease[] | null,
-	sourceType?: string | null
+	sourceType?: string | null,
+	pageUrl?: string | null
 ): Promise<BulkImportResult> {
 	return invoke<BulkImportResult>('bulk_create_discovery_releases', {
 		urls,
@@ -115,6 +121,7 @@ export async function bulkCreateReleases(
 		pageLabel: pageLabel ?? null,
 		pageArtist: pageArtist ?? null,
 		sourceType: sourceType ?? null,
+		pageUrl: pageUrl ?? null,
 	})
 }
 

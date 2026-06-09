@@ -396,6 +396,9 @@
 			"review": "Examinare",
 			"foundToast": "{count, plural, =1 {1 lansare noua} other {{count} lansari noi}} de la urmărire",
 			"changeType": "Urmărire ca {type} — faceți clic pentru a schimba",
+			"relink": "Reconectare lansări",
+			"relinkHint": "Rescanează această pagină și conecteaz-o la lansările deja importate — remediază starea de urmărire pe rândurile importate înainte ca aceasta să existe.",
+			"relinkResult": "{count, plural, =0 {Nicio lansare de reconectat} =1 {1 lansare reconectată} other {{count} lansări reconectate}}",
 			"addSource": {
 				"title": "Urmărire o sursă",
 				"urlPlaceholder": "Lipește URL-ul unei pagini de interpret/etichetă Bandcamp, SoundCloud sau Discogs",

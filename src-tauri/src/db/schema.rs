@@ -375,5 +375,12 @@ CREATE INDEX idx_discovery_release_sources_hlc ON discovery_release_sources(_hlc
 ALTER TABLE discovery_releases ADD COLUMN is_new INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE discovery_releases ADD COLUMN surfaced_at TEXT;
 "#,
+        // discovery_releases.source_page_url — the artist/label page a release was
+        // discovered from. Bandcamp label discographies span many artist subdomains, so a
+        // release's own URL host isn't the followed page; recording the scanned page lets a
+        // label follow match every release imported from it. Synced.
+        r#"
+ALTER TABLE discovery_releases ADD COLUMN source_page_url TEXT;
+"#,
     ]
 }

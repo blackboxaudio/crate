@@ -6,7 +6,7 @@
 	import { followStore, followedSources } from '$lib/stores'
 	import { translate } from '$lib/i18n'
 	import { open } from '@tauri-apps/plugin-dialog'
-	import { deriveFollowUrl, looseUrlEq, withNativeDialog } from '$lib/utils'
+	import { deriveArtistUrl, deriveLabelUrl, looseUrlEq, withNativeDialog } from '$lib/utils'
 	import { SvelteSet } from 'svelte/reactivity'
 
 	type Props = {
@@ -25,17 +25,18 @@
 	})
 	let importAll = $state(false)
 	let transferTags = $state($transferTagsOnImport)
-	let alsoFollow = $state(false)
-	// Defaults to Label (the common case); a user pick (`typeOverride`) wins.
-	let typeOverride = $state<'artist' | 'label' | null>(null)
+	// Independent "also follow" opt-ins for the two derivable targets: the label (the page
+	// the release was discovered from) and the artist (its own subdomain/profile).
+	let followLabel = $state(false)
+	let followArtist = $state(false)
 	let importing = $state(false)
 
-	const followUrl = $derived(deriveFollowUrl(release))
-	const alreadyFollowing = $derived(!!followUrl && $followedSources.some((s) => looseUrlEq(s.url, followUrl)))
-	const followType = $derived(typeOverride ?? 'label')
-	const followName = $derived(
-		followType === 'label' ? (release.label ?? release.artist) : (release.artist ?? release.label)
-	)
+	const artistUrl = $derived(deriveArtistUrl(release))
+	const labelUrl = $derived(deriveLabelUrl(release))
+	const artistFollowing = $derived(!!artistUrl && $followedSources.some((s) => looseUrlEq(s.url, artistUrl)))
+	const labelFollowing = $derived(!!labelUrl && $followedSources.some((s) => looseUrlEq(s.url, labelUrl)))
+	const artistName = $derived(release.artist ?? release.label)
+	const labelName = $derived(release.label ?? release.artist)
 
 	let hasReleaseTags = $derived(release.tags.length > 0)
 	let hasReleaseTracks = $derived(release.tracks.length > 0)
@@ -88,12 +89,20 @@
 				$removeReleaseAfterImport
 			)
 			if (result) {
-				if (alsoFollow && followUrl && !alreadyFollowing) {
+				if (followLabel && labelUrl && !labelFollowing) {
 					await followStore.followEntity({
-						url: followUrl,
-						name: followName ?? null,
+						url: labelUrl,
+						name: labelName ?? null,
 						sourceType: release.source_type,
-						followType,
+						followType: 'label',
+					})
+				}
+				if (followArtist && artistUrl && !artistFollowing) {
+					await followStore.followEntity({
+						url: artistUrl,
+						name: artistName ?? null,
+						sourceType: release.source_type,
+						followType: 'artist',
 					})
 				}
 				onComplete(result)
@@ -306,52 +315,40 @@
 						: $translate('discovery.import.transferTags')}
 					disabled={importing || !hasReleaseTags}
 				/>
-				{#if followUrl}
-					{#if alreadyFollowing}
-						<div class="flex items-center gap-2 text-sm text-text-tertiary">
-							<Icon name="rss" class="h-3.5 w-3.5 text-brand-primary" />
-							{$translate('discovery.following.following')}
-						</div>
-					{:else}
-						<Checkbox
-							checked={alsoFollow}
-							onchange={(v) => (alsoFollow = v)}
-							label={$translate('discovery.following.alsoFollow')}
-							disabled={importing}
-						/>
-						{#if alsoFollow}
-							<div
-								class="relative ml-6 inline-grid grid-cols-2 rounded-md border border-stroke bg-surface-2 p-0.5 text-[11px] font-medium"
-							>
-								<div
-									class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded bg-surface-1 shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
-									style="transform: translateX({followType === 'artist' ? '100%' : '0%'})"
-								></div>
-								<button
-									type="button"
-									class="relative z-10 rounded px-3 py-1 text-center transition-colors hover:cursor-pointer {followType ===
-									'label'
-										? 'text-text-primary'
-										: 'text-text-tertiary hover:text-text-secondary'}"
-									onclick={() => (typeOverride = 'label')}
+				{#if artistUrl || labelUrl}
+					<div class="flex flex-col gap-1.5">
+						<Text size="xs" color="tertiary">{$translate('discovery.following.alsoFollow')}</Text>
+						{#if labelUrl}
+							{#if labelFollowing}
+								<div class="flex items-center gap-2 pl-1 text-sm text-text-tertiary">
+									<Icon name="rss" class="h-3.5 w-3.5 text-brand-primary" />
+									{$translate('discovery.following.label')} · {$translate('discovery.following.following')}
+								</div>
+							{:else}
+								<Checkbox
+									checked={followLabel}
+									onchange={(v) => (followLabel = v)}
+									label={$translate('discovery.following.label')}
 									disabled={importing}
-								>
-									{$translate('discovery.following.label')}
-								</button>
-								<button
-									type="button"
-									class="relative z-10 rounded px-3 py-1 text-center transition-colors hover:cursor-pointer {followType ===
-									'artist'
-										? 'text-text-primary'
-										: 'text-text-tertiary hover:text-text-secondary'}"
-									onclick={() => (typeOverride = 'artist')}
-									disabled={importing}
-								>
-									{$translate('discovery.following.artist')}
-								</button>
-							</div>
+								/>
+							{/if}
 						{/if}
-					{/if}
+						{#if artistUrl}
+							{#if artistFollowing}
+								<div class="flex items-center gap-2 pl-1 text-sm text-text-tertiary">
+									<Icon name="rss" class="h-3.5 w-3.5 text-brand-primary" />
+									{$translate('discovery.following.artist')} · {$translate('discovery.following.following')}
+								</div>
+							{:else}
+								<Checkbox
+									checked={followArtist}
+									onchange={(v) => (followArtist = v)}
+									label={$translate('discovery.following.artist')}
+									disabled={importing}
+								/>
+							{/if}
+						{/if}
+					</div>
 				{/if}
 			</div>
 		{/if}

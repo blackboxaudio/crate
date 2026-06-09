@@ -15,8 +15,8 @@ use crate::services::discovery::streams::{self, StreamInfo};
 use crate::services::discovery::CachedStream;
 use crate::services::{DiscoveryService, LibraryService, TagService};
 use crate::{
-    BulkImportCancelFlag, EnrichmentSkipIds, PrefetchTracker, ProxyServerPort, ScanEnrichmentCache,
-    ScanPageCancelFlag,
+    AvatarCache, BulkImportCancelFlag, EnrichmentSkipIds, PrefetchTracker, ProxyServerPort,
+    ScanEnrichmentCache, ScanPageCancelFlag,
 };
 
 /// Spawn background stream prefetch for a release. Shared by single-create and bulk-create.
@@ -460,6 +460,31 @@ pub async fn fetch_release_metadata(url: String) -> Result<FetchedMetadata> {
     metadata::fetch_metadata(&url).await
 }
 
+/// Fetch (and session-cache) the profile/avatar image URL for an artist/label page, so the
+/// follow popover can preview who you're about to follow without a follow + scan.
+#[tauri::command]
+pub async fn fetch_source_avatar(
+    url: String,
+    cache: State<'_, AvatarCache>,
+) -> Result<Option<String>> {
+    {
+        let map = cache.0.lock().await;
+        if let Some(cached) = map.get(&url) {
+            return Ok(cached.clone());
+        }
+    }
+    match metadata::fetch_page_avatar(&url).await {
+        Ok(avatar) => {
+            cache.0.lock().await.insert(url, avatar.clone());
+            Ok(avatar)
+        }
+        Err(e) => {
+            log::warn!("fetch_source_avatar failed for {url}: {e}");
+            Ok(None)
+        }
+    }
+}
+
 #[tauri::command]
 pub async fn refresh_release_metadata(
     id: String,
@@ -647,6 +672,7 @@ pub async fn bulk_create_discovery_releases(
     page_label: Option<String>,
     page_artist: Option<String>,
     source_type: Option<String>,
+    page_url: Option<String>,
     app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
     tracker: State<'_, PrefetchTracker>,
@@ -707,6 +733,7 @@ pub async fn bulk_create_discovery_releases(
                     artwork_url: fetched.artwork_url.or(scanned.artwork_url.clone()),
                     notes: None,
                     parent_url: fetched.parent_url,
+                    source_page_url: page_url.clone(),
                     tracks: if fetched.tracks.is_empty() {
                         None
                     } else {
@@ -737,6 +764,7 @@ pub async fn bulk_create_discovery_releases(
                     artwork_url: scanned.artwork_url.clone(),
                     notes: None,
                     parent_url: None,
+                    source_page_url: page_url.clone(),
                     tracks: None,
                 };
                 (Ok(create), scanned.title.clone())
@@ -765,6 +793,7 @@ pub async fn bulk_create_discovery_releases(
                         artwork_url: fetched.artwork_url.clone(),
                         notes: None,
                         parent_url: fetched.parent_url.clone(),
+                        source_page_url: page_url.clone(),
                         tracks: if fetched.tracks.is_empty() {
                             None
                         } else {
@@ -811,7 +840,12 @@ pub async fn bulk_create_discovery_releases(
                     Err(CrateError::Database(rusqlite::Error::SqliteFailure(err, _)))
                         if err.code == rusqlite::ffi::ErrorCode::ConstraintViolation =>
                     {
-                        // Already exists — treat as skipped, not failed
+                        // Already exists — treat as skipped, not failed. Backfill the
+                        // discovered-from page so re-scanning a label repairs releases
+                        // imported before this column existed.
+                        if let Some(ref page) = page_url {
+                            let _ = discovery.set_source_page_url_if_absent(url, page);
+                        }
                         succeeded += 1;
                     }
                     Err(e) => {

@@ -396,6 +396,9 @@
 			"review": "Przegląd",
 			"foundToast": "{count, plural, =1 {1 nowe wydanie} other {{count} nowych wydań}} od obserwowanych",
 			"changeType": "Obserwujesz jako {type} — kliknij, aby zmienić",
+			"relink": "Ponownie połącz wydania",
+			"relinkHint": "Ponownie zeskanuj tę stronę i połącz ją ze zaimportowanymi już wydaniami — naprawia stan obserwowania w wierszach zaimportowanych przed istnieniem tej funkcji.",
+			"relinkResult": "{count, plural, =0 {Brak wydań do ponownego połączenia} =1 {Ponownie połączone 1 wydanie} other {Ponownie połączone {count} wydań}}",
 			"addSource": {
 				"title": "Obserwuj źródło",
 				"urlPlaceholder": "Wklej adres URL strony artysty/wydawnictwa Bandcamp, SoundCloud lub Discogs",

@@ -397,6 +397,9 @@
 			"review": "评论",
 			"foundToast": "{count, plural, =1 {1 个新发行} other {{count} 个新发行}}来自你的关注",
 			"changeType": "作为 {type} 关注 — 点击更改",
+			"relink": "重新链接发行版",
+			"relinkHint": "重新扫描此页面并将其链接到已导入的发行版 — 修复此功能存在之前导入的行上的关注状态。",
+			"relinkResult": "{count, plural, =0 {没有要重新链接的发行版} =1 {重新链接了 1 个发行版} other {重新链接了 {count} 个发行版}}",
 			"addSource": {
 				"title": "关注来源",
 				"urlPlaceholder": "粘贴 Bandcamp、SoundCloud 或 Discogs 艺术家/厂牌页面 URL",

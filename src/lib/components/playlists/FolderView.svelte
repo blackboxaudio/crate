@@ -3,6 +3,7 @@
 	import { getPlaylistChildren } from '$lib/stores/playlists'
 	import FolderCard from './FolderCard.svelte'
 	import { SearchBar, FilterDropdown } from '$lib/components/library'
+	import { FollowingButton } from '$lib/components/follow'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
@@ -97,6 +98,9 @@
 							placeholder={isDiscoveryContext ? $translate('discovery.searchPlaceholder') : undefined}
 						/>
 					</div>
+				{/if}
+				{#if isDiscoveryContext}
+					<FollowingButton />
 				{/if}
 				<FilterDropdown
 					{activeFilterTags}

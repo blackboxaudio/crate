@@ -397,6 +397,9 @@
 			"review": "검토",
 			"foundToast": "{count, plural, =1 {1개의 새로운 릴리스} other {{count}개의 새로운 릴리스}}를 팔로우 중에서 발견했습니다",
 			"changeType": "{type}(으)로 팔로우 중 — 클릭하여 변경",
+			"relink": "릴리스 다시 연결",
+			"relinkHint": "이 페이지를 다시 스캔하고 이미 임포트된 릴리스에 연결 — 이 기능이 있기 전에 임포트된 행의 팔로우 상태 수정",
+			"relinkResult": "{count, plural, =0 {다시 연결할 릴리스 없음} =1 {1개 릴리스 다시 연결됨} other {{count}개 릴리스 다시 연결됨}}",
 			"addSource": {
 				"title": "소스 팔로우",
 				"urlPlaceholder": "Bandcamp, SoundCloud 또는 Discogs 아티스트/레이블 페이지 URL을 붙여넣으세요",

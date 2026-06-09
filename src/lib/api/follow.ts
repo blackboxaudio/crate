@@ -15,6 +15,11 @@ export async function unfollowSource(id: string): Promise<void> {
 	return invoke<void>('unfollow_source', { id })
 }
 
+/** Re-link a followed source to existing releases (backfills source_page_url). Returns count linked. */
+export async function relinkSource(id: string): Promise<number> {
+	return invoke<number>('relink_followed_source', { id })
+}
+
 export async function setFollowEnabled(id: string, enabled: boolean): Promise<FollowedSource> {
 	return invoke<FollowedSource>('set_follow_enabled', { id, enabled })
 }

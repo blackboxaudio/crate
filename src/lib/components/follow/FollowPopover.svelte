@@ -1,9 +1,19 @@
+<script module lang="ts">
+	import { writable } from 'svelte/store'
+
+	/** The release id whose follow popover is open. Setting it opens that row's popover and
+	 *  closes any other — only one quick-follow popover is visible at a time. */
+	export const openFollowPopoverId = writable<string | null>(null)
+</script>
+
 <script lang="ts">
 	import type { DiscoveryRelease } from '$lib/types'
-	import { Icon } from '$lib/components/common'
+	import { AlbumArt, Icon } from '$lib/components/common'
 	import { followStore, followedSources } from '$lib/stores'
-	import { deriveFollowUrl, looseUrlEq } from '$lib/utils'
+	import { deriveArtistUrl, deriveLabelUrl, isCompilation, looseUrlEq } from '$lib/utils'
+	import { fetchSourceAvatar } from '$lib/api/discovery'
 	import { translate } from '$lib/i18n'
+	import { untrack } from 'svelte'
 	import { scale } from 'svelte/transition'
 
 	type Props = {
@@ -22,23 +32,65 @@
 		other: 'Other',
 	}
 
-	const sourceUrl = $derived(deriveFollowUrl(release))
-	const followed = $derived(sourceUrl ? $followedSources.find((s) => looseUrlEq(s.url, sourceUrl)) : undefined)
+	// A release yields two independent follow targets: the artist (its own Bandcamp
+	// subdomain / SoundCloud profile) and the label (the page it was discovered from,
+	// `source_page_url`). Each is followed separately, so the toggle stays visible and the
+	// user can follow both. The label is only known for releases imported from a label
+	// page; otherwise its tab is a non-interactive indicator.
+	// A Various-Artists compilation is a label release, not an artist's: disable the Artist
+	// tab and treat the release's own page as the label when no separate label page is known.
+	const isComp = $derived(isCompilation(release.artist))
+	const artistUrl = $derived(isComp ? null : deriveArtistUrl(release))
+	const labelUrl = $derived(isComp ? (deriveLabelUrl(release) ?? deriveArtistUrl(release)) : deriveLabelUrl(release))
+	const labelAvailable = $derived(!!labelUrl)
+	const artistAvailable = $derived(!!artistUrl)
+	const hasFollowable = $derived(!!artistUrl || !!labelUrl)
 
-	// We can derive only one page from a release and can't reliably tell artist from label
-	// (see #126 polish), so the user picks. Defaults to Label (the common case); a user pick
-	// (`typeOverride`) wins. Kept as an override so the derived default stays reactive.
-	let typeOverride = $state<'artist' | 'label' | null>(null)
-	const selectedType = $derived(typeOverride ?? 'label')
-	// Once followed, reflect the stored classification; otherwise the live selection.
-	const effectiveType = $derived(followed ? (followed.followType === 'label' ? 'label' : 'artist') : selectedType)
-	const rawName = $derived(
-		effectiveType === 'label' ? (release.label ?? release.artist) : (release.artist ?? release.label)
+	// Selected tab. Honors the user's pick when that side is available, else defaults to
+	// Label (the common discovery case) when present, otherwise Artist.
+	let selectedOverride = $state<'artist' | 'label' | null>(null)
+	const selected = $derived(
+		selectedOverride === 'artist' && artistAvailable
+			? 'artist'
+			: selectedOverride === 'label' && labelAvailable
+				? 'label'
+				: labelAvailable
+					? 'label'
+					: 'artist'
 	)
-	const displayName = $derived(followed?.name ?? rawName ?? $translate('common.unknownArtist'))
+
+	const artistFollow = $derived(artistUrl ? $followedSources.find((s) => looseUrlEq(s.url, artistUrl)) : undefined)
+	const labelFollow = $derived(labelUrl ? $followedSources.find((s) => looseUrlEq(s.url, labelUrl)) : undefined)
+
+	const currentUrl = $derived(selected === 'label' ? labelUrl : artistUrl)
+	const currentFollow = $derived(selected === 'label' ? labelFollow : artistFollow)
+	const currentName = $derived(
+		selected === 'label' ? (release.label ?? release.artist) : (release.artist ?? release.label)
+	)
+	const displayName = $derived(currentFollow?.name ?? currentName ?? $translate('common.unknownArtist'))
 	const typeLabel = $derived(
-		effectiveType === 'label' ? $translate('discovery.following.label') : $translate('discovery.following.artist')
+		selected === 'label' ? $translate('discovery.following.label') : $translate('discovery.following.artist')
 	)
+
+	// Profile-picture preview. Followed sources already carry an avatar; otherwise fetch the
+	// page's og:image on the fly (session-cached on the backend) so the user sees who they're
+	// about to follow without any extra click.
+	let fetchedAvatars = $state<Record<string, string | null>>({})
+	const avatarPath = $derived(currentFollow?.artworkPath ?? null)
+	const avatarUrl = $derived(currentFollow?.artworkUrl ?? (currentUrl ? (fetchedAvatars[currentUrl] ?? null) : null))
+
+	$effect(() => {
+		const url = currentUrl
+		const follow = currentFollow
+		if (!url || follow?.artworkUrl || follow?.artworkPath) return
+		untrack(() => {
+			if (url in fetchedAvatars) return
+			fetchedAvatars[url] = null
+			fetchSourceAvatar(url)
+				.then((a) => (fetchedAvatars[url] = a))
+				.catch(() => {})
+		})
+	})
 
 	let popoverEl: HTMLDivElement | undefined = $state()
 	let style = $state('')
@@ -85,16 +137,19 @@
 	})
 
 	async function toggle() {
-		if (busy || !sourceUrl) return
+		if (busy || !currentUrl) return
 		busy = true
-		if (followed) {
-			await followStore.unfollow(followed.id)
+		if (currentFollow) {
+			await followStore.unfollow(currentFollow.id)
 		} else {
 			await followStore.followEntity({
-				url: sourceUrl,
-				name: rawName ?? null,
+				url: currentUrl,
+				name: currentName ?? null,
 				sourceType: release.source_type,
-				followType: selectedType,
+				followType: selected,
+				// Hand off the avatar we already fetched so it shows in the Following manager
+				// immediately, instead of waiting on the background baseline scan to backfill it.
+				artworkUrl: avatarUrl ?? undefined,
 			})
 		}
 		busy = false
@@ -113,9 +168,13 @@
 	<div class="px-1 pb-1.5 text-[10px] font-semibold tracking-wide text-text-tertiary uppercase">
 		{$translate('discovery.following.popoverTitle')}
 	</div>
-	{#if sourceUrl}
+	{#if hasFollowable}
 		<div class="flex items-center gap-2 rounded px-1 py-1.5">
-			<Icon name={effectiveType === 'label' ? 'disc' : 'user'} class="h-4 w-4 shrink-0 text-text-tertiary" />
+			{#if avatarPath || avatarUrl}
+				<AlbumArt artworkPath={avatarPath} artworkUrl={avatarUrl} size="xs" />
+			{:else}
+				<Icon name={selected === 'label' ? 'disc' : 'user'} class="h-4 w-4 shrink-0 text-text-tertiary" />
+			{/if}
 			<div class="min-w-0 flex-1">
 				<div class="truncate text-sm text-text-primary">{displayName}</div>
 				<div class="truncate text-[11px] text-text-tertiary">
@@ -124,45 +183,49 @@
 			</div>
 			<button
 				type="button"
-				class="shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:cursor-pointer disabled:opacity-60 {followed
+				class="shrink-0 rounded-md px-2 py-1 text-xs font-medium transition-colors hover:cursor-pointer disabled:opacity-60 {currentFollow
 					? 'bg-brand-muted text-brand-primary'
 					: 'bg-surface-2 text-text-secondary hover:text-text-primary'}"
 				onclick={toggle}
-				disabled={busy}
+				disabled={busy || !currentUrl}
 			>
-				{followed ? $translate('discovery.following.following') : $translate('discovery.following.follow')}
+				{currentFollow ? $translate('discovery.following.following') : $translate('discovery.following.follow')}
 			</button>
 		</div>
-		{#if !followed}
+		<!-- Always-visible Label｜Artist toggle so the user can follow both. When the release
+		     has no known label page, the Label side is a non-interactive indicator. -->
+		<div
+			class="relative mt-1 grid grid-cols-2 rounded-md border border-stroke bg-surface-2 p-0.5 text-[11px] font-medium"
+		>
 			<div
-				class="relative mt-1 grid grid-cols-2 rounded-md border border-stroke bg-surface-2 p-0.5 text-[11px] font-medium"
+				class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded bg-surface-1 shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
+				style="transform: translateX({selected === 'artist' ? '100%' : '0%'})"
+			></div>
+			<button
+				type="button"
+				disabled={!labelAvailable}
+				class="relative z-10 rounded px-2 py-1 text-center transition-colors {!labelAvailable
+					? 'cursor-default text-text-tertiary/40'
+					: selected === 'label'
+						? 'text-text-primary hover:cursor-pointer'
+						: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+				onclick={() => labelAvailable && (selectedOverride = 'label')}
 			>
-				<div
-					class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded bg-surface-1 shadow-sm transition-transform duration-200 ease-out motion-reduce:transition-none"
-					style="transform: translateX({selectedType === 'artist' ? '100%' : '0%'})"
-				></div>
-				<button
-					type="button"
-					class="relative z-10 rounded px-2 py-1 text-center transition-colors hover:cursor-pointer {selectedType ===
-					'label'
-						? 'text-text-primary'
-						: 'text-text-tertiary hover:text-text-secondary'}"
-					onclick={() => (typeOverride = 'label')}
-				>
-					{$translate('discovery.following.label')}
-				</button>
-				<button
-					type="button"
-					class="relative z-10 rounded px-2 py-1 text-center transition-colors hover:cursor-pointer {selectedType ===
-					'artist'
-						? 'text-text-primary'
-						: 'text-text-tertiary hover:text-text-secondary'}"
-					onclick={() => (typeOverride = 'artist')}
-				>
-					{$translate('discovery.following.artist')}
-				</button>
-			</div>
-		{/if}
+				{$translate('discovery.following.label')}
+			</button>
+			<button
+				type="button"
+				disabled={!artistAvailable}
+				class="relative z-10 rounded px-2 py-1 text-center transition-colors {!artistAvailable
+					? 'cursor-default text-text-tertiary/40'
+					: selected === 'artist'
+						? 'text-text-primary hover:cursor-pointer'
+						: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+				onclick={() => artistAvailable && (selectedOverride = 'artist')}
+			>
+				{$translate('discovery.following.artist')}
+			</button>
+		</div>
 	{:else}
 		<div class="px-1 py-1.5 text-xs text-text-tertiary">
 			{$translate('discovery.following.followViaPaste')}
