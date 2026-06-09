@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.2.9] - 2026-06-09
+
 ### Added
 
 - Added shuffle mode to the audio player
@@ -150,7 +152,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.8...HEAD
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/blackboxaudio/crate/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/blackboxaudio/crate/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/blackboxaudio/crate/compare/v0.2.6...v0.2.7
 [0.2.6]: https://github.com/blackboxaudio/crate/compare/v0.2.5...v0.2.6
