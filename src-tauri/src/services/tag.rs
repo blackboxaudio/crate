@@ -16,10 +16,7 @@ impl TagService {
     }
 
     pub fn get_categories(&self) -> Result<Vec<TagCategory>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get categories
         let mut stmt = conn.prepare(
@@ -67,10 +64,7 @@ impl TagService {
     }
 
     pub fn create_category(&self, name: String, color: Option<String>) -> Result<TagCategory> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Check category count (max 4)
         let count: i32 =
@@ -124,10 +118,7 @@ impl TagService {
         name: Option<String>,
         color: Option<String>,
     ) -> Result<TagCategory> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         if let Some(ref n) = name {
@@ -150,10 +141,7 @@ impl TagService {
     }
 
     pub fn delete_category(&self, id: &str) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         dirty::record_tombstone(&conn, buckets::TAG_CATEGORIES, id, &hlc)?;
@@ -168,10 +156,7 @@ impl TagService {
     }
 
     fn get_category(&self, id: &str) -> Result<TagCategory> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut category = conn.query_row(
             "SELECT id, name, color, sort_order FROM tag_categories WHERE id = ?1",
@@ -213,10 +198,7 @@ impl TagService {
         name: String,
         color: Option<String>,
     ) -> Result<Tag> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get next sort order
         let max_order: i32 = conn
@@ -246,10 +228,7 @@ impl TagService {
     }
 
     pub fn update_tag(&self, id: &str, name: Option<String>, color: Option<String>) -> Result<Tag> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         if let Some(ref n) = name {
@@ -284,10 +263,7 @@ impl TagService {
     }
 
     pub fn move_tag(&self, tag_id: &str, target_category_id: &str) -> Result<Tag> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get current tag
         let (current_category_id, tag_name): (String, String) = conn.query_row(
@@ -363,10 +339,7 @@ impl TagService {
     }
 
     pub fn delete_tag(&self, id: &str) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         dirty::record_tombstone(&conn, buckets::TAGS, id, &hlc)?;
@@ -379,10 +352,7 @@ impl TagService {
     }
 
     pub fn assign_tags(&self, track_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for track_id in &track_ids {
@@ -400,10 +370,7 @@ impl TagService {
     }
 
     pub fn remove_tags(&self, track_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for track_id in &track_ids {
@@ -429,10 +396,7 @@ impl TagService {
 
     #[allow(dead_code)]
     pub fn get_tracks_by_tag(&self, tag_id: &str) -> Result<Vec<String>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare("SELECT track_id FROM track_tags WHERE tag_id = ?1")?;
 

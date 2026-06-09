@@ -14,6 +14,7 @@
 		"developerTools": "开发者工具",
 		"submit": "提交",
 		"confirm": "确认",
+		"done": "完成",
 		"untitled": "未命名",
 		"unknownArtist": "未知艺术家",
 		"folder": "文件夹",
@@ -117,6 +118,24 @@
 			"clearCache": "清除缓存",
 			"clearCacheConfirmMessage": "确定要清除所有缓存的预览音频吗？",
 			"clearCacheWarning": "之前预览的曲目需要在下次播放时从其来源重新流式传输。这可能会更慢，某些流可能不再可用。"
+		},
+		"following": {
+			"title": "关注中",
+			"checkCadenceDescription": "检查关注中的艺术家和厂牌新发行的频率。",
+			"cadenceLaunch": "启动时",
+			"cadenceHourly": "每小时",
+			"cadenceDaily": "启动时和每天",
+			"cadenceManual": "仅手动",
+			"checkAllNow": "现在检查全部",
+			"autoFollowDescription": "导入发行时\"也关注\"选项的默认值。",
+			"autoFollowOff": "关闭",
+			"autoFollowArtist": "艺术家",
+			"autoFollowLabel": "厂牌",
+			"autoFollowBoth": "两者",
+			"releaseDayReminders": "发布日提醒",
+			"releaseDayRemindersHelper": "由于时区原因，提醒可能相差一天。",
+			"newReleasesSummary": "新发行摘要",
+			"discogsRateLimitNote": "Discogs 限制检查频率，因此大型关注列表可能会逐步更新。"
 		},
 		"appearance": {
 			"font": "字体",
@@ -333,11 +352,65 @@
 			"alreadyInDiscoveryBadge": "已在发现中",
 			"noReleasesFound": "此页面上未找到发行",
 			"cancelImport": "取消导入"
+		},
+		"following": {
+			"title": "关注中",
+			"subtitle": "{count, plural, =0 {没有来源} =1 {1 个来源} other {{count} 个来源}}被监控以获得新发行",
+			"checkAll": "现在检查全部",
+			"followSource": "关注来源",
+			"footerNote": "取消关注会保留已在发现中的发行 — 它只停止未来的发行。",
+			"searchPlaceholder": "按名称或 URL 搜索…",
+			"select": "选择",
+			"unfollowSelected": "取消关注",
+			"pauseSelected": "暂停",
+			"unfollow": "取消关注",
+			"checkNow": "立即检查",
+			"enabledToggle": "切换更新",
+			"artist": "艺术家",
+			"label": "厂牌",
+			"checkedAgo": "已检查 {time}",
+			"upToDate": "最新",
+			"paused": "已暂停",
+			"newCount": "{count, plural, =1 {1 个新} other {{count} 个新}}",
+			"sourceError": "无法检查此来源",
+			"follow": "关注",
+			"following": "关注中",
+			"followForNewReleases": "关注以获取新发行",
+			"followViaPaste": "从关注中面板关注此来源",
+			"popoverTitle": "关注以获取新发行",
+			"upcoming": "即将推出",
+			"daysUntil": "{days} 天",
+			"surfacedVia": "通过 {source} 展示",
+			"markNew": "标记为新",
+			"markNotNew": "标记为非新",
+			"alsoFollow": "关注以获取新发行",
+			"sortBy": "排序方式",
+			"empty": {
+				"title": "你还没有关注任何人",
+				"hint": "关注一位艺术家或厂牌，新发行会自动出现在这里。"
+			},
+			"sort": {
+				"newCount": "新项目数",
+				"name": "名称",
+				"recentlyReleased": "最近发布"
+			},
+			"review": "评论",
+			"foundToast": "{count, plural, =1 {1 个新发行} other {{count} 个新发行}}来自你的关注",
+			"changeType": "作为 {type} 关注 — 点击更改",
+			"relink": "重新链接发行版",
+			"relinkHint": "重新扫描此页面并将其链接到已导入的发行版 — 修复此功能存在之前导入的行上的关注状态。",
+			"relinkResult": "{count, plural, =0 {没有要重新链接的发行版} =1 {重新链接了 1 个发行版} other {重新链接了 {count} 个发行版}}",
+			"addSource": {
+				"title": "关注来源",
+				"urlPlaceholder": "粘贴 Bandcamp、SoundCloud 或 Discogs 艺术家/厂牌页面 URL",
+				"urlInfo": "我们会自动识别平台以及它是艺术家还是厂牌，并从现在起留意新发行。更早的发行不会被添加进来。"
+			}
 		}
 	},
 	"filters": {
 		"title": "筛选",
-		"liked": "已喜欢"
+		"liked": "已喜欢",
+		"new": "新"
 	},
 	"playlists": {
 		"newPlaylist": "新建播放列表",

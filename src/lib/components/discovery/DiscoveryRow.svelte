@@ -1,6 +1,14 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$lib/types'
-	import { formatDate, formatDuration, formatRelativeDate } from '$lib/utils'
+	import {
+		daysUntilRelease,
+		deriveArtistUrl,
+		deriveLabelUrl,
+		formatDate,
+		formatDuration,
+		formatRelativeDate,
+		looseUrlEq,
+	} from '$lib/utils'
 	import { TagChip } from '$lib/components/tags'
 	import { AlbumArt, AlbumArtModal, Icon, IconButton, Spinner, Text, Tooltip } from '$lib/components/common'
 	import {
@@ -11,11 +19,13 @@
 		refreshingReleaseIds,
 		discoveryStore,
 		contextMenuDiscoveryTrackId,
+		followedSources,
 	} from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$lib/stores/player'
 	import { DRAG_THRESHOLD, getDistance } from '$lib/utils/drag'
 	import { translate } from '$lib/i18n'
 	import * as discoveryApi from '$lib/api/discovery'
+	import { FollowPopover, openFollowPopoverId } from '$lib/components/follow'
 
 	type Props = {
 		release: DiscoveryRelease
@@ -59,6 +69,23 @@
 
 	let isTagDragHovered = $state(false)
 	let showArtworkModal = $state(false)
+
+	// Days until release for the "Upcoming" badge + countdown (null once out / unknown).
+	// Computed at render, so the badge clears automatically when the date passes.
+	const upcomingDays = $derived(daysUntilRelease(release.release_date))
+
+	// Follow button + quick-follow popover. The open popover is tracked globally so opening
+	// one dismisses any other (only one visible at a time).
+	const showFollowPopover = $derived($openFollowPopoverId === release.id)
+	let followTriggerEl: HTMLElement | undefined = $state()
+	const artistUrl = $derived(deriveArtistUrl(release))
+	const labelUrl = $derived(deriveLabelUrl(release))
+	// Active when either the release's artist or its label is followed.
+	const rowFollowing = $derived(
+		$followedSources.some(
+			(s) => (!!artistUrl && looseUrlEq(s.url, artistUrl)) || (!!labelUrl && looseUrlEq(s.url, labelUrl))
+		)
+	)
 
 	function handleArtworkClick() {
 		if (release.artwork_path || release.artwork_url) {
@@ -130,7 +157,7 @@
 	tabindex="0"
 	data-release-row
 	data-release-id={release.id}
-	class="grid cursor-pointer grid-cols-[24px_40px_1.25fr_0.6fr_1fr_90px_110px_100px_64px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+	class="grid cursor-pointer grid-cols-[24px_40px_1.25fr_0.6fr_1fr_90px_110px_100px_92px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
 	{onclick}
@@ -196,6 +223,13 @@
 					{$translate('discovery.trackCount', { values: { count: release.tracks.length } })}
 				</Text>
 			{/if}
+			{#if upcomingDays !== null}
+				<span
+					class="shrink-0 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] leading-none font-medium text-orange-500"
+				>
+					{$translate('discovery.following.upcoming')}
+				</span>
+			{/if}
 		</div>
 		<Text as="span" variant="caption" truncate>
 			{release.artist || $translate('common.unknownArtist')}
@@ -231,7 +265,13 @@
 
 	<!-- Release Date -->
 	<div class="truncate text-left text-text-tertiary">
-		{release.release_date ? formatDate(release.release_date, $dateFormat, $language) : ''}
+		{#if upcomingDays !== null}
+			<span class="text-orange-500"
+				>{$translate('discovery.following.daysUntil', { values: { days: upcomingDays } })}</span
+			>
+		{:else if release.release_date}
+			{formatDate(release.release_date, $dateFormat, $language)}
+		{/if}
 	</div>
 
 	<!-- Date Added -->
@@ -241,6 +281,18 @@
 
 	<!-- Actions -->
 	<div class="flex items-center justify-end gap-1 pr-1">
+		<Tooltip text={$translate('discovery.following.followForNewReleases')} position="left" delay={250}>
+			<IconButton
+				icon="rss"
+				size="sm"
+				active={rowFollowing}
+				onclick={(e) => {
+					e.stopPropagation()
+					followTriggerEl = e.currentTarget as HTMLElement
+					openFollowPopoverId.set(showFollowPopover ? null : release.id)
+				}}
+			/>
+		</Tooltip>
 		<Tooltip text={$translate('discovery.importToLibrary')} position="left" delay={250}>
 			<IconButton
 				icon="upload"
@@ -272,6 +324,10 @@
 		trackTitle={release.title ?? ''}
 		onClose={() => (showArtworkModal = false)}
 	/>
+{/if}
+
+{#if showFollowPopover && followTriggerEl}
+	<FollowPopover {release} triggerEl={followTriggerEl} onClose={() => openFollowPopoverId.set(null)} />
 {/if}
 
 <!-- Track sub-rows (CSS grid-template-rows transition for smooth expand/collapse) -->

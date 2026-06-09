@@ -448,9 +448,7 @@ impl AnalysisService {
         bpm: Option<f64>,
         key: Option<&str>,
     ) -> Result<()> {
-        let conn = conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -466,9 +464,7 @@ impl AnalysisService {
 
     /// Static version of get_track for use in blocking context
     fn get_track_static(conn: &Arc<Mutex<Connection>>, id: &str) -> Result<Track> {
-        let conn = conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"
@@ -559,10 +555,7 @@ impl AnalysisService {
 
     /// Get a track by ID
     fn get_track(&self, id: &str) -> Result<Track> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"

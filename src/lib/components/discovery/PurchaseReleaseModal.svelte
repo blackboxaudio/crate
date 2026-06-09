@@ -3,9 +3,10 @@
 	import { Modal, Button, Text, Checkbox, Spinner, Icon } from '$lib/components/common'
 	import { discoveryStore } from '$lib/stores/discovery'
 	import { transferTagsOnImport, removeReleaseAfterImport } from '$lib/stores/settings'
+	import { followStore, followedSources } from '$lib/stores'
 	import { translate } from '$lib/i18n'
 	import { open } from '@tauri-apps/plugin-dialog'
-	import { withNativeDialog } from '$lib/utils'
+	import { deriveArtistUrl, deriveLabelUrl, looseUrlEq, withNativeDialog } from '$lib/utils'
 	import { SvelteSet } from 'svelte/reactivity'
 
 	type Props = {
@@ -24,7 +25,18 @@
 	})
 	let importAll = $state(false)
 	let transferTags = $state($transferTagsOnImport)
+	// Independent "also follow" opt-ins for the two derivable targets: the label (the page
+	// the release was discovered from) and the artist (its own subdomain/profile).
+	let followLabel = $state(false)
+	let followArtist = $state(false)
 	let importing = $state(false)
+
+	const artistUrl = $derived(deriveArtistUrl(release))
+	const labelUrl = $derived(deriveLabelUrl(release))
+	const artistFollowing = $derived(!!artistUrl && $followedSources.some((s) => looseUrlEq(s.url, artistUrl)))
+	const labelFollowing = $derived(!!labelUrl && $followedSources.some((s) => looseUrlEq(s.url, labelUrl)))
+	const artistName = $derived(release.artist ?? release.label)
+	const labelName = $derived(release.label ?? release.artist)
 
 	let hasReleaseTags = $derived(release.tags.length > 0)
 	let hasReleaseTracks = $derived(release.tracks.length > 0)
@@ -77,6 +89,22 @@
 				$removeReleaseAfterImport
 			)
 			if (result) {
+				if (followLabel && labelUrl && !labelFollowing) {
+					await followStore.followEntity({
+						url: labelUrl,
+						name: labelName ?? null,
+						sourceType: release.source_type,
+						followType: 'label',
+					})
+				}
+				if (followArtist && artistUrl && !artistFollowing) {
+					await followStore.followEntity({
+						url: artistUrl,
+						name: artistName ?? null,
+						sourceType: release.source_type,
+						followType: 'artist',
+					})
+				}
 				onComplete(result)
 			}
 		} finally {
@@ -287,6 +315,41 @@
 						: $translate('discovery.import.transferTags')}
 					disabled={importing || !hasReleaseTags}
 				/>
+				{#if artistUrl || labelUrl}
+					<div class="flex flex-col gap-1.5">
+						<Text size="xs" color="tertiary">{$translate('discovery.following.alsoFollow')}</Text>
+						{#if labelUrl}
+							{#if labelFollowing}
+								<div class="flex items-center gap-2 pl-1 text-sm text-text-tertiary">
+									<Icon name="rss" class="h-3.5 w-3.5 text-brand-primary" />
+									{$translate('discovery.following.label')} · {$translate('discovery.following.following')}
+								</div>
+							{:else}
+								<Checkbox
+									checked={followLabel}
+									onchange={(v) => (followLabel = v)}
+									label={$translate('discovery.following.label')}
+									disabled={importing}
+								/>
+							{/if}
+						{/if}
+						{#if artistUrl}
+							{#if artistFollowing}
+								<div class="flex items-center gap-2 pl-1 text-sm text-text-tertiary">
+									<Icon name="rss" class="h-3.5 w-3.5 text-brand-primary" />
+									{$translate('discovery.following.artist')} · {$translate('discovery.following.following')}
+								</div>
+							{:else}
+								<Checkbox
+									checked={followArtist}
+									onchange={(v) => (followArtist = v)}
+									label={$translate('discovery.following.artist')}
+									disabled={importing}
+								/>
+							{/if}
+						{/if}
+					</div>
+				{/if}
 			</div>
 		{/if}
 	</div>

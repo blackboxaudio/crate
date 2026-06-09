@@ -27,6 +27,8 @@ pub const DISCOVERY_RELEASE_TAGS: &str = "discovery_release_tags";
 pub const PLAYLIST_DISCOVERY_RELEASES: &str = "playlist_discovery_releases";
 pub const LIBRARY_ROOTS: &str = "library_roots";
 pub const SETTINGS: &str = "settings";
+pub const FOLLOWED_SOURCES: &str = "followed_sources";
+pub const DISCOVERY_RELEASE_SOURCES: &str = "discovery_release_sources";
 
 /// Canonical bucket name for a track id, e.g. `"tracks/3"`. Sharded by the first
 /// hex char of the (UUID) id so a single-track edit re-uploads ~1/16th of the
@@ -82,6 +84,8 @@ pub enum Bucket {
     DiscoveryReleaseTags,
     PlaylistDiscoveryReleases,
     LibraryRoots,
+    FollowedSources,
+    DiscoveryReleaseSources,
     Settings,
 }
 
@@ -107,6 +111,8 @@ impl Bucket {
             Bucket::DiscoveryReleaseTags => DISCOVERY_RELEASE_TAGS.to_string(),
             Bucket::PlaylistDiscoveryReleases => PLAYLIST_DISCOVERY_RELEASES.to_string(),
             Bucket::LibraryRoots => LIBRARY_ROOTS.to_string(),
+            Bucket::FollowedSources => FOLLOWED_SOURCES.to_string(),
+            Bucket::DiscoveryReleaseSources => DISCOVERY_RELEASE_SOURCES.to_string(),
             Bucket::Settings => SETTINGS.to_string(),
         }
     }
@@ -134,6 +140,8 @@ impl Bucket {
             DISCOVERY_RELEASE_TAGS => Bucket::DiscoveryReleaseTags,
             PLAYLIST_DISCOVERY_RELEASES => Bucket::PlaylistDiscoveryReleases,
             LIBRARY_ROOTS => Bucket::LibraryRoots,
+            FOLLOWED_SOURCES => Bucket::FollowedSources,
+            DISCOVERY_RELEASE_SOURCES => Bucket::DiscoveryReleaseSources,
             SETTINGS => Bucket::Settings,
             _ => return None,
         })
@@ -156,6 +164,8 @@ impl Bucket {
             Bucket::DiscoveryReleaseTags,
             Bucket::PlaylistDiscoveryReleases,
             Bucket::LibraryRoots,
+            Bucket::FollowedSources,
+            Bucket::DiscoveryReleaseSources,
             Bucket::Settings,
         ]);
         v
@@ -169,6 +179,7 @@ impl Bucket {
             Bucket::TagCategories,
             Bucket::LibraryRoots,
             Bucket::DiscoveryReleases,
+            Bucket::FollowedSources,
         ];
         // rank 1 — depend only on rank 0
         v.extend((0u8..TRACK_SHARDS as u8).map(Bucket::Tracks));
@@ -180,6 +191,8 @@ impl Bucket {
             Bucket::PlaylistTracks,
             Bucket::DiscoveryReleaseTags,
             Bucket::PlaylistDiscoveryReleases,
+            // discovery_release_sources depends on discovery_releases + followed_sources (both rank 0)
+            Bucket::DiscoveryReleaseSources,
         ]);
         // rank 3 — independent
         v.push(Bucket::Settings);
@@ -191,7 +204,8 @@ impl Bucket {
             Bucket::PlaylistTracks
             | Bucket::TrackTags
             | Bucket::DiscoveryReleaseTags
-            | Bucket::PlaylistDiscoveryReleases => BucketKind::Junction,
+            | Bucket::PlaylistDiscoveryReleases
+            | Bucket::DiscoveryReleaseSources => BucketKind::Junction,
             Bucket::Settings => BucketKind::Settings,
             _ => BucketKind::Entity,
         }
@@ -212,6 +226,8 @@ impl Bucket {
             Bucket::DiscoveryReleaseTags => "discovery_release_tags",
             Bucket::PlaylistDiscoveryReleases => "playlist_discovery_releases",
             Bucket::LibraryRoots => "library_roots",
+            Bucket::FollowedSources => "followed_sources",
+            Bucket::DiscoveryReleaseSources => "discovery_release_sources",
             Bucket::Settings => "settings",
         }
     }
@@ -233,6 +249,8 @@ impl Bucket {
             Bucket::DiscoveryReleaseTags => DISCOVERY_RELEASE_TAGS,
             Bucket::PlaylistDiscoveryReleases => PLAYLIST_DISCOVERY_RELEASES,
             Bucket::LibraryRoots => LIBRARY_ROOTS,
+            Bucket::FollowedSources => FOLLOWED_SOURCES,
+            Bucket::DiscoveryReleaseSources => DISCOVERY_RELEASE_SOURCES,
             Bucket::Settings => SETTINGS,
         }
     }
@@ -256,6 +274,7 @@ impl Bucket {
             Bucket::TrackTags => &["track_id", "tag_id"],
             Bucket::DiscoveryReleaseTags => &["release_id", "tag_id"],
             Bucket::PlaylistDiscoveryReleases => &["playlist_id", "release_id"],
+            Bucket::DiscoveryReleaseSources => &["release_id", "source_id"],
             Bucket::Settings => &["key"],
             _ => &["id"],
         }
@@ -305,9 +324,9 @@ mod tests {
     }
 
     #[test]
-    fn bucket_count_is_28() {
-        assert_eq!(Bucket::all().len(), 28); // 16 shards + 12
-        assert_eq!(Bucket::merge_order().len(), 28);
+    fn bucket_count_is_30() {
+        assert_eq!(Bucket::all().len(), 30); // 16 shards + 14
+        assert_eq!(Bucket::merge_order().len(), 30);
     }
 
     #[test]

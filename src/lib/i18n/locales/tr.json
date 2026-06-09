@@ -14,6 +14,7 @@
 		"developerTools": "Geliştirici Araçları",
 		"submit": "Gönder",
 		"confirm": "Onayla",
+		"done": "Bitti",
 		"untitled": "Başlıksız",
 		"unknownArtist": "Bilinmeyen Sanatçı",
 		"folder": "klasör",
@@ -117,6 +118,24 @@
 			"clearCache": "Önbelleği Temizle",
 			"clearCacheConfirmMessage": "Tüm önbelleğe alınan önizleme sesini temizlemek istediğinizden emin misiniz?",
 			"clearCacheWarning": "Önceden önizlenmiş şarkılar bir sonraki oynatmada kaynağından yeniden akışla getirilmesi gerekecektir. Bu daha yavaş olabilir ve bazı akışlar artık mevcut olmayabilir."
+		},
+		"following": {
+			"title": "İzleniyor",
+			"checkCadenceDescription": "İzlenen sanatçılar ve etiketlerin yeni yayınları kontrol etme sıklığı.",
+			"cadenceLaunch": "Başlatma sırasında",
+			"cadenceHourly": "Saatlik",
+			"cadenceDaily": "Başlatma sırasında ve günlük",
+			"cadenceManual": "Yalnız manuel",
+			"checkAllNow": "Tümünü Şimdi Kontrol Et",
+			"autoFollowDescription": "Yayın içe aktarırken \"Ayrıca İzle\" seçeneğinin varsayılanı.",
+			"autoFollowOff": "Kapalı",
+			"autoFollowArtist": "Sanatçı",
+			"autoFollowLabel": "Etiket",
+			"autoFollowBoth": "Her ikisi",
+			"releaseDayReminders": "Yayın gün hatırlatıcıları",
+			"releaseDayRemindersHelper": "Hatırlatıcılar saat dilimleri nedeniyle bir gün kaymış olabilir.",
+			"newReleasesSummary": "Yeni yayınlar özeti",
+			"discogsRateLimitNote": "Discogs kontrol sıklığını sınırlandırır, bu nedenle büyük takip listeleri kademeli olarak güncellenebilir."
 		},
 		"appearance": {
 			"font": "Yazı Tipi",
@@ -332,11 +351,65 @@
 			"alreadyInDiscoveryBadge": "Zaten keşfette var",
 			"noReleasesFound": "Bu sayfada yayın bulunamadı",
 			"cancelImport": "İçe aktarmayı İptal Et"
+		},
+		"following": {
+			"title": "İzleniyor",
+			"subtitle": "{count, plural, =0 {Kaynak yok} =1 {1 kaynak} other {{count} kaynak}} yeni yayınlar için izleniyor",
+			"checkAll": "Tümünü Şimdi Kontrol Et",
+			"followSource": "Kaynağı İzle",
+			"footerNote": "İzlemeyi bırakmak, Keşfette zaten olan yayınları tutar — sadece gelecek olanları durdurur.",
+			"searchPlaceholder": "Ad veya URL'ye göre ara…",
+			"select": "Seç",
+			"unfollowSelected": "İzlemeyi Bırak",
+			"pauseSelected": "Durakla",
+			"unfollow": "İzlemeyi Bırak",
+			"checkNow": "Şimdi Kontrol Et",
+			"enabledToggle": "Güncellemeleri Aç/Kapat",
+			"artist": "Sanatçı",
+			"label": "Etiket",
+			"checkedAgo": "{time} kontrol edildi",
+			"upToDate": "Güncel",
+			"paused": "Duraklatıldı",
+			"newCount": "{count, plural, =1 {1 yeni} other {{count} yeni}}",
+			"sourceError": "Bu kaynak kontrol edilemedi",
+			"follow": "İzle",
+			"following": "İzleniyor",
+			"followForNewReleases": "Yeni yayınlar için izle",
+			"followViaPaste": "İzleniyor panelinden bu kaynağı izle",
+			"popoverTitle": "Yeni yayınlar için izle",
+			"upcoming": "Yakında",
+			"daysUntil": "{days} g",
+			"surfacedVia": "{source} aracılığıyla görüntülendi",
+			"markNew": "Yeni olarak işaretle",
+			"markNotNew": "Yeni olarak işaretleme",
+			"alsoFollow": "Yeni yayınlar için izle",
+			"sortBy": "Şuna göre sırala",
+			"empty": {
+				"title": "Henüz hiç kimseyi izlemiyorsunuz",
+				"hint": "Bir sanatçıyı veya etiketi izleyin ve yeni yayınlar buraya otomatik olarak gelir."
+			},
+			"sort": {
+				"newCount": "Yeni sayısı",
+				"name": "Ad",
+				"recentlyReleased": "Son yayınlanan"
+			},
+			"review": "İnceleme",
+			"foundToast": "{count, plural, =1 {1 yeni yayın} other {{count} yeni yayın}} takipçilerinizden",
+			"changeType": "{type} olarak izleniyor — değiştirmek için tıkla",
+			"relink": "Yayınları yeniden bağla",
+			"relinkHint": "Bu sayfayı yeniden tarayın ve zaten içe aktarılmış yayınlara bağlayın — bu özellik var olmadan önce içe aktarılan satırlarda takip durumunu düzeltir.",
+			"relinkResult": "{count, plural, =0 {Yeniden bağlanacak yayın yok} =1 {1 yayın yeniden bağlandı} other {{count} yayın yeniden bağlandı}}",
+			"addSource": {
+				"title": "Kaynağı İzle",
+				"urlPlaceholder": "Bandcamp, SoundCloud veya Discogs sanatçısı/etiketi sayfası URL'sini yapıştırın",
+				"urlInfo": "Platformu ve bunun bir sanatçıya mı yoksa bir plak şirketine mi ait olduğunu otomatik olarak algılarız, ardından bundan sonraki yeni çıkışları takip ederiz. Daha eski çıkışlar eklenmez."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filtreler",
-		"liked": "Beğenilen"
+		"liked": "Beğenilen",
+		"new": "Yeni"
 	},
 	"playlists": {
 		"newPlaylist": "Yeni Çalma Listesi",

@@ -11,10 +11,7 @@ impl DiscoveryService {
         title: Option<&str>,
         parent_url: Option<&str>,
     ) -> Result<Vec<DiscoveryRelease>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut matched_ids: Vec<String> = Vec::new();
 
@@ -76,10 +73,7 @@ impl DiscoveryService {
         release_id: &str,
         tracks: Vec<DiscoveryTrackCreate>,
     ) -> Result<DiscoveryRelease> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         {
             // Get existing track names for deduplication
@@ -136,10 +130,7 @@ impl DiscoveryService {
         target_id: &str,
         source_ids: Vec<String>,
     ) -> Result<DiscoveryRelease> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         {
             let now = chrono::Utc::now().to_rfc3339();
@@ -271,10 +262,7 @@ impl DiscoveryService {
             return Ok(());
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             "SELECT id, name FROM discovery_tracks WHERE release_id = ?1 AND duration_ms IS NULL",
@@ -306,10 +294,7 @@ impl DiscoveryService {
         release_id: &str,
         track_position: i32,
     ) -> Result<Option<String>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let result = conn.query_row(
             "SELECT video_id FROM discovery_tracks WHERE release_id = ?1 AND position = ?2",
@@ -326,10 +311,7 @@ impl DiscoveryService {
 
     /// Get all stored `(position, video_id)` pairs for a release, ordered by position.
     pub fn get_all_video_ids_for_release(&self, release_id: &str) -> Result<Vec<(i32, String)>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         let mut stmt = conn.prepare(
             "SELECT position, video_id FROM discovery_tracks
              WHERE release_id = ?1 AND video_id IS NOT NULL ORDER BY position",
@@ -350,10 +332,7 @@ impl DiscoveryService {
             return Ok(());
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             "SELECT id, position FROM discovery_tracks WHERE release_id = ?1 AND video_id IS NULL",

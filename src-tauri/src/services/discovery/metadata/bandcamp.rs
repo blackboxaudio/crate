@@ -20,7 +20,11 @@ pub(super) fn is_bandcamp_page_url(url: &str) -> bool {
 pub(super) async fn scan_bandcamp_page(
     client: &reqwest::Client,
     url: &str,
-) -> Result<(Vec<crate::models::ScannedRelease>, Option<String>)> {
+) -> Result<(
+    Vec<crate::models::ScannedRelease>,
+    Option<String>,
+    Option<String>,
+)> {
     let response = client
         .get(url)
         .send()
@@ -43,19 +47,20 @@ pub(super) async fn scan_bandcamp_page(
     );
 
     let page_name = extract_meta_content(&html, "og:site_name");
+    // The page's og:image is the band/label photo — used as the followed source avatar.
+    let avatar_url = extract_meta_content(&html, "og:image");
 
     if redirected_to_release {
         let title = extract_meta_content(&html, "og:title");
-        let artwork_url = extract_meta_content(&html, "og:image");
         let release = crate::models::ScannedRelease {
             url: final_url,
             artist: page_name.clone(),
             title,
-            artwork_url,
+            artwork_url: avatar_url.clone(),
             release_date: None,
             already_exists: false,
         };
-        return Ok((vec![release], page_name));
+        return Ok((vec![release], page_name, avatar_url));
     }
 
     // Determine base URL for constructing absolute URLs
@@ -113,7 +118,7 @@ pub(super) async fn scan_bandcamp_page(
         releases.len()
     );
 
-    Ok((releases, page_name))
+    Ok((releases, page_name, avatar_url))
 }
 
 /// Extract the value of an HTML attribute from a tag string.

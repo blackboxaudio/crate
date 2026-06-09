@@ -7,7 +7,8 @@
 	import Text from '$lib/components/common/Text.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$lib/i18n'
-	import { expandedReleaseIds } from '$lib/stores'
+	import { expandedReleaseIds, newOnly, discoveryStore } from '$lib/stores'
+	import { FollowingButton } from '$lib/components/follow'
 
 	type Props = {
 		releases: DiscoveryRelease[]
@@ -169,6 +170,7 @@
 					/>
 				</div>
 			{/if}
+			<FollowingButton />
 			<FilterDropdown
 				{activeFilterTags}
 				{tagCategories}
@@ -180,6 +182,9 @@
 				showLikedFilter
 				{likedOnly}
 				{onToggleLikedFilter}
+				showNewFilter
+				newOnly={$newOnly}
+				onToggleNewFilter={() => discoveryStore.toggleNewFilter()}
 			/>
 			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />

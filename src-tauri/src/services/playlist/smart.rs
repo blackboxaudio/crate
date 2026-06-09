@@ -14,10 +14,7 @@ impl PlaylistService {
 
         smart_rules::validate_smart_rules(&rules, &context)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let max_order: i32 = conn
             .query_row(
@@ -82,10 +79,7 @@ impl PlaylistService {
 
         smart_rules::validate_smart_rules(&rules, &playlist.context)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -117,10 +111,7 @@ impl PlaylistService {
 
         let (where_clause, params) = smart_rules::build_smart_query_library(&rules)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let sql = format!(
             r#"
@@ -200,17 +191,14 @@ impl PlaylistService {
 
         let (where_clause, params) = smart_rules::build_smart_query_discovery(&rules)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let sql = format!(
             r#"
             SELECT
                 dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label,
                 dr.release_date, dr.artwork_url, dr.artwork_path,
-                dr.notes, dr.parent_url, dr.date_added, dr.date_modified
+                dr.notes, dr.parent_url, dr.source_page_url, dr.date_added, dr.date_modified
             FROM discovery_releases dr
             WHERE {where_clause}
             "#,
@@ -234,8 +222,12 @@ impl PlaylistService {
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
-                    date_added: row.get(11)?,
-                    date_modified: row.get(12)?,
+                    source_page_url: row.get(11)?,
+                    date_added: row.get(12)?,
+                    date_modified: row.get(13)?,
+                    is_new: false,
+                    surfaced_at: None,
+                    source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -319,10 +311,7 @@ impl PlaylistService {
 
         smart_rules::validate_smart_rules(&rules, context)?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         self.count_smart_playlist_items_with_conn(&conn, &rules, context)
     }

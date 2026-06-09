@@ -25,8 +25,25 @@ pub struct DiscoveryRelease {
     pub artwork_path: Option<String>,
     pub notes: Option<String>,
     pub parent_url: Option<String>,
+    /// The artist/label page this release was discovered from (the scanned page, or a
+    /// followed source's URL). Drives one-click "follow this source" so following a
+    /// label matches all its releases — even when they live on separate artist
+    /// subdomains (the Bandcamp norm). Synced.
+    #[serde(default)]
+    pub source_page_url: Option<String>,
     pub date_added: String,
     pub date_modified: String,
+    /// "New/unreviewed" flag — set when a followed source surfaces the release,
+    /// cleared on preview-play or a decisive action. Synced.
+    #[serde(default)]
+    pub is_new: bool,
+    /// When the watcher surfaced this release (RFC3339); `None` for manually-added.
+    #[serde(default)]
+    pub surfaced_at: Option<String>,
+    /// Provenance: ids of the followed sources that surfaced this release (may be
+    /// two — an artist follow and a label follow). Empty for manually-added.
+    #[serde(default)]
+    pub source_ids: Vec<String>,
     #[serde(default)]
     pub tracks: Vec<DiscoveryTrack>,
     #[serde(default)]
@@ -44,6 +61,8 @@ pub struct DiscoveryReleaseCreate {
     pub artwork_url: Option<String>,
     pub notes: Option<String>,
     pub parent_url: Option<String>,
+    #[serde(default)]
+    pub source_page_url: Option<String>,
     pub tracks: Option<Vec<DiscoveryTrackCreate>>,
 }
 
@@ -86,8 +105,17 @@ pub struct ScannedRelease {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScannedPage {
     pub source_type: String,
+    /// Canonical followable page URL (Bandcamp subdomain origin, SoundCloud profile,
+    /// Discogs entity page) for the scanned page; stamped onto imported releases as
+    /// `source_page_url` so a label follow matches them all.
+    #[serde(default)]
+    pub page_url: Option<String>,
     pub page_artist: Option<String>,
     pub page_label: Option<String>,
+    /// Profile picture for the artist/label page (Bandcamp og:image, SoundCloud
+    /// user avatar, Discogs entity image) — used as the followed source's artwork.
+    #[serde(default)]
+    pub avatar_url: Option<String>,
     pub releases: Vec<ScannedRelease>,
     pub total_found: usize,
     pub already_in_discovery: usize,

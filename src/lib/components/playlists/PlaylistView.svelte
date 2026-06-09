@@ -13,6 +13,7 @@
 	} from '$lib/types'
 	import { TrackList, SearchBar, FilterDropdown } from '$lib/components/library'
 	import { DiscoveryList } from '$lib/components/discovery'
+	import { FollowingButton } from '$lib/components/follow'
 	import { IconButton } from '$lib/components/common'
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
@@ -194,6 +195,9 @@
 							placeholder={isDiscovery ? $translate('discovery.searchPlaceholder') : undefined}
 						/>
 					</div>
+				{/if}
+				{#if isDiscovery}
+					<FollowingButton />
 				{/if}
 				<FilterDropdown
 					{activeFilterTags}

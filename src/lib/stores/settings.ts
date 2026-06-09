@@ -10,6 +10,8 @@ import type {
 	DateFormat,
 	ExportFormat,
 	BackupFrequency,
+	FollowCheckCadence,
+	AutoFollowOnImport,
 } from '$lib/types'
 import * as settingsApi from '$lib/api/settings'
 import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
@@ -38,6 +40,10 @@ interface SettingsState {
 	autoFetchMetadata: boolean
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
+	followCheckCadence: FollowCheckCadence
+	autoFollowOnImport: AutoFollowOnImport
+	releaseDayReminders: boolean
+	newReleasesSummary: boolean
 	ignoredDeviceIds: string[]
 	lastBackupAt: string | null
 	backupFrequency: BackupFrequency
@@ -66,6 +72,10 @@ const initialState: SettingsState = {
 	autoFetchMetadata: true,
 	transferTagsOnImport: true,
 	removeReleaseAfterImport: true,
+	followCheckCadence: 'daily',
+	autoFollowOnImport: 'off',
+	releaseDayReminders: true,
+	newReleasesSummary: true,
 	ignoredDeviceIds: [],
 	lastBackupAt: null,
 	backupFrequency: 'monthly',
@@ -278,6 +288,10 @@ function createSettingsStore() {
 					autoFetchMetadata: settings.autoFetchMetadata,
 					transferTagsOnImport: settings.transferTagsOnImport,
 					removeReleaseAfterImport: settings.removeReleaseAfterImport,
+					followCheckCadence: settings.followCheckCadence ?? 'daily',
+					autoFollowOnImport: settings.autoFollowOnImport ?? 'off',
+					releaseDayReminders: settings.releaseDayReminders ?? true,
+					newReleasesSummary: settings.newReleasesSummary ?? true,
 					ignoredDeviceIds: settings.ignoredDeviceIds,
 					lastBackupAt: settings.lastBackupAt ?? null,
 					backupFrequency: settings.backupFrequency ?? 'monthly',
@@ -528,6 +542,42 @@ function createSettingsStore() {
 			}
 		},
 
+		async setFollowCheckCadence(cadence: FollowCheckCadence) {
+			update((s) => ({ ...s, followCheckCadence: cadence }))
+			try {
+				await settingsApi.setSetting('follow_check_cadence', cadence)
+			} catch (error) {
+				console.error('Failed to save follow check cadence setting:', error)
+			}
+		},
+
+		async setAutoFollowOnImport(value: AutoFollowOnImport) {
+			update((s) => ({ ...s, autoFollowOnImport: value }))
+			try {
+				await settingsApi.setSetting('auto_follow_on_import', value)
+			} catch (error) {
+				console.error('Failed to save auto-follow on import setting:', error)
+			}
+		},
+
+		async setReleaseDayReminders(enabled: boolean) {
+			update((s) => ({ ...s, releaseDayReminders: enabled }))
+			try {
+				await settingsApi.setSetting('release_day_reminders', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save release-day reminders setting:', error)
+			}
+		},
+
+		async setNewReleasesSummary(enabled: boolean) {
+			update((s) => ({ ...s, newReleasesSummary: enabled }))
+			try {
+				await settingsApi.setSetting('new_releases_summary', enabled ? 'true' : 'false')
+			} catch (error) {
+				console.error('Failed to save new-releases summary setting:', error)
+			}
+		},
+
 		/**
 		 * Add a device to the ignore list
 		 */
@@ -647,6 +697,14 @@ export const autoFetchMetadata = derived(settingsStore, ($s) => $s.autoFetchMeta
 export const transferTagsOnImport = derived(settingsStore, ($s) => $s.transferTagsOnImport)
 
 export const removeReleaseAfterImport = derived(settingsStore, ($s) => $s.removeReleaseAfterImport)
+
+export const followCheckCadence = derived(settingsStore, ($s) => $s.followCheckCadence)
+
+export const autoFollowOnImport = derived(settingsStore, ($s) => $s.autoFollowOnImport)
+
+export const releaseDayReminders = derived(settingsStore, ($s) => $s.releaseDayReminders)
+
+export const newReleasesSummary = derived(settingsStore, ($s) => $s.newReleasesSummary)
 
 export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceIds)
 

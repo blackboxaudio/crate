@@ -13,7 +13,7 @@ use crate::db::schema::get_migrations;
 use crate::error::Result;
 use crate::services::cloud_sync::backend::mock::MockCloudBackend;
 use crate::services::cloud_sync::backend::types::{AuthSession, Manifest};
-use crate::services::cloud_sync::backend::{BlobStore, CloudBackend, ManifestStore};
+use crate::services::cloud_sync::backend::CloudBackend;
 use crate::services::cloud_sync::pipeline::buckets::Bucket;
 use crate::services::cloud_sync::pipeline::dirty::stamp_unstamped_rows;
 use crate::services::cloud_sync::pipeline::manifest::{compute_local_manifest, diff_manifest};

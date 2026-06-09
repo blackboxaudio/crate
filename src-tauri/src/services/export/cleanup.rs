@@ -23,10 +23,7 @@ impl ExportService {
         cleanup_empty_dirs(&contents_path);
 
         // Remove from database
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         conn.execute(
             "DELETE FROM device_tracks WHERE device_id = ?1",

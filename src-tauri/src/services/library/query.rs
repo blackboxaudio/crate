@@ -2,10 +2,7 @@ use super::*;
 
 impl LibraryService {
     pub fn get_tracks(&self, filter: Option<TrackFilter>) -> Result<Vec<Track>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut sql = String::from(
             r#"
@@ -214,10 +211,7 @@ impl LibraryService {
     }
 
     pub fn get_track(&self, id: &str) -> Result<Track> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let track = conn.query_row(
             r#"
@@ -279,10 +273,7 @@ impl LibraryService {
 
     /// Find an existing track by its file hash
     pub fn find_track_by_hash(&self, file_hash: &str) -> Result<Option<Track>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let result = conn.query_row(
             r#"

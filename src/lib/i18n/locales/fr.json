@@ -14,6 +14,7 @@
 		"developerTools": "Outils de développement",
 		"submit": "Soumettre",
 		"confirm": "Confirmer",
+		"done": "Terminé",
 		"untitled": "Sans titre",
 		"unknownArtist": "Artiste inconnu",
 		"folder": "dossier",
@@ -117,6 +118,24 @@
 			"clearCache": "Effacer le cache",
 			"clearCacheConfirmMessage": "Êtes-vous sûr de vouloir effacer tous les fichiers audio d'aperçu en cache?",
 			"clearCacheWarning": "Les pistes précédemment prévisualisées devront être à nouveau diffusées en continu à partir de leur source lors de la lecture suivante. Cela peut être plus lent et certains flux peuvent ne plus être disponibles."
+		},
+		"following": {
+			"title": "Suivi",
+			"checkCadenceDescription": "Fréquence de vérification des artistes et labels suivis pour les nouvelles sorties.",
+			"cadenceLaunch": "Au lancement",
+			"cadenceHourly": "Toutes les heures",
+			"cadenceDaily": "Au lancement et quotidiennement",
+			"cadenceManual": "Manuel uniquement",
+			"checkAllNow": "Vérifier tout maintenant",
+			"autoFollowDescription": "Par défaut pour l'option \"Suivre aussi\" lors de l'importation d'une sortie.",
+			"autoFollowOff": "Désactivé",
+			"autoFollowArtist": "Artiste",
+			"autoFollowLabel": "Label",
+			"autoFollowBoth": "Les deux",
+			"releaseDayReminders": "Rappels du jour de sortie",
+			"releaseDayRemindersHelper": "Les rappels peuvent être décalés d'un jour en raison des fuseaux horaires.",
+			"newReleasesSummary": "Résumé des nouvelles sorties",
+			"discogsRateLimitNote": "Discogs limite la fréquence de vérification, donc les listes de suivi volumineux peuvent être mises à jour progressivement."
 		},
 		"appearance": {
 			"font": "Police",
@@ -333,11 +352,65 @@
 			"alreadyInDiscoveryBadge": "Déjà dans découvertes",
 			"noReleasesFound": "Aucune sortie trouvée sur cette page",
 			"cancelImport": "Annuler l'importation"
+		},
+		"following": {
+			"title": "Suivi",
+			"subtitle": "{count, plural, =0 {Aucune source} =1 {1 source} other {{count} sources}} observée(s) pour les nouvelles sorties",
+			"checkAll": "Vérifier tout maintenant",
+			"followSource": "Suivre la source",
+			"footerNote": "Ne plus suivre conserve les sorties déjà dans Découvertes — cela ne fait que cesser les futures.",
+			"searchPlaceholder": "Rechercher par nom ou URL…",
+			"select": "Sélectionner",
+			"unfollowSelected": "Ne plus suivre",
+			"pauseSelected": "Pause",
+			"unfollow": "Ne plus suivre",
+			"checkNow": "Vérifier maintenant",
+			"enabledToggle": "Basculer les mises à jour",
+			"artist": "Artiste",
+			"label": "Label",
+			"checkedAgo": "Vérifié {time}",
+			"upToDate": "À jour",
+			"paused": "Suspendu",
+			"newCount": "{count, plural, =1 {1 nouveau} other {{count} nouveau(x)}}",
+			"sourceError": "Impossible de vérifier cette source",
+			"follow": "Suivre",
+			"following": "Suivi",
+			"followForNewReleases": "Suivre pour les nouvelles sorties",
+			"followViaPaste": "Suivre cette source depuis le panneau Suivi",
+			"popoverTitle": "Suivre pour les nouvelles sorties",
+			"upcoming": "À venir",
+			"daysUntil": "{days} j",
+			"surfacedVia": "Affiché via {source}",
+			"markNew": "Marquer comme nouveau",
+			"markNotNew": "Marquer comme non nouveau",
+			"alsoFollow": "Suivre pour les nouvelles sorties",
+			"sortBy": "Trier par",
+			"empty": {
+				"title": "Vous ne suivez personne pour le moment",
+				"hint": "Suivez un artiste ou un label et les nouvelles sorties arriveront automatiquement ici."
+			},
+			"sort": {
+				"newCount": "Nombre de nouveaux",
+				"name": "Nom",
+				"recentlyReleased": "Récemment sorti"
+			},
+			"review": "Examiner",
+			"foundToast": "{count, plural, =1 {1 nouvelle sortie} other {{count} nouvelles sorties}} de vos abonnements",
+			"changeType": "Suivi en tant que {type} — cliquez pour changer",
+			"relink": "Réassocier les sorties",
+			"relinkHint": "Analysez à nouveau cette page et associez-la aux sorties déjà importées — corrige l'état du suivi des lignes importées avant que cette fonctionnalité existe.",
+			"relinkResult": "{count, plural, =0 {Aucune sortie à réassocier} =1 {1 sortie réassociée} other {{count} sorties réassociées}}",
+			"addSource": {
+				"title": "Suivre une source",
+				"urlPlaceholder": "Coller l'URL d'une page artiste/label Bandcamp, SoundCloud ou Discogs",
+				"urlInfo": "On détecte automatiquement la plateforme et s'il s'agit d'un artiste ou d'un label, puis on guette ses nouvelles sorties à partir de maintenant. Les sorties plus anciennes ne seront pas ajoutées."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filtres",
-		"liked": "Aimés"
+		"liked": "Aimés",
+		"new": "Nouveau"
 	},
 	"playlists": {
 		"newPlaylist": "Nouvelle playlist",

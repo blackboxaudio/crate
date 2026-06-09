@@ -3,10 +3,7 @@ use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl LibraryService {
     pub fn update_track(&self, id: &str, update: TrackUpdate) -> Result<Track> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -89,10 +86,7 @@ impl LibraryService {
             return Ok(Vec::new());
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -191,10 +185,7 @@ impl LibraryService {
             return Ok(());
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -230,10 +221,7 @@ impl LibraryService {
             self.artwork_service.delete(id);
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let placeholders: Vec<String> = ids
             .iter()

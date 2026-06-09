@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { discoveryStore, refreshingReleaseIds } from '$lib/stores/discovery'
+	import { followedSources } from '$lib/stores'
 	import { uiStore } from '$lib/stores/ui'
 	import { toastStore } from '$lib/stores/toast'
 	import type { DiscoveryRelease, DiscoveryReleaseUpdate } from '$lib/types'
 	import Button from '$lib/components/common/Button.svelte'
 	import IconButton from '$lib/components/common/IconButton.svelte'
+	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import EditorField from '$lib/components/editor/EditorField.svelte'
@@ -230,6 +232,21 @@
 				onblur={handleSave}
 			/>
 		</div>
+
+		<!-- Provenance: which followed source(s) surfaced this release (single select) -->
+		{#if selectedReleases.length === 1 && selectedReleases[0].source_ids.length > 0}
+			{@const names = selectedReleases[0].source_ids
+				.map((id) => $followedSources.find((s) => s.id === id)?.name)
+				.filter((n): n is string => !!n)}
+			{#if names.length > 0}
+				<div class="space-y-2 border-t border-stroke pt-4">
+					<div class="flex items-center gap-2 text-[11px] text-text-tertiary">
+						<Icon name="rss" class="h-3.5 w-3.5 shrink-0" />
+						<span>{$translate('discovery.following.surfacedVia', { values: { source: names.join(', ') } })}</span>
+					</div>
+				</div>
+			{/if}
+		{/if}
 
 		<!-- Import button -->
 		{#if selectedReleases.length === 1 && onImport}

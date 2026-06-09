@@ -14,6 +14,7 @@
 		"developerTools": "Entwicklertools",
 		"submit": "Absenden",
 		"confirm": "Bestätigen",
+		"done": "Fertig",
 		"untitled": "Unbenannt",
 		"unknownArtist": "Unbekannter Künstler",
 		"folder": "Ordner",
@@ -117,6 +118,24 @@
 			"clearCache": "Cache löschen",
 			"clearCacheConfirmMessage": "Möchten Sie alle zwischengespeicherten Audio-Vorschaudateien wirklich löschen?",
 			"clearCacheWarning": "Zuvor angehörte Tracks müssen beim nächsten Abspielen erneut von ihrer Quelle gestreamt werden. Dies kann langsamer sein und einige Streams sind möglicherweise nicht mehr verfügbar."
+		},
+		"following": {
+			"title": "Folgt",
+			"checkCadenceDescription": "Wie oft sollen gefolgte Künstler und Label auf neue Releases überprüft werden.",
+			"cadenceLaunch": "Beim Starten",
+			"cadenceHourly": "Stündlich",
+			"cadenceDaily": "Beim Starten und täglich",
+			"cadenceManual": "Nur manuell",
+			"checkAllNow": "Alles jetzt prüfen",
+			"autoFollowDescription": "Standard für die Option \"Auch folgen\" beim Importieren eines Releases.",
+			"autoFollowOff": "Aus",
+			"autoFollowArtist": "Künstler",
+			"autoFollowLabel": "Label",
+			"autoFollowBoth": "Beides",
+			"releaseDayReminders": "Erinnerungen am Release-Tag",
+			"releaseDayRemindersHelper": "Erinnerungen können aufgrund von Zeitzonen um einen Tag abweichen.",
+			"newReleasesSummary": "Zusammenfassung neuer Releases",
+			"discogsRateLimitNote": "Discogs beschränkt, wie oft es geprüft werden kann, daher können große Follow-Listen schrittweise aktualisiert werden."
 		},
 		"appearance": {
 			"font": "Schriftart",
@@ -333,11 +352,65 @@
 			"alreadyInDiscoveryBadge": "Bereits in Discovery",
 			"noReleasesFound": "Keine Releases auf dieser Seite gefunden",
 			"cancelImport": "Import abbrechen"
+		},
+		"following": {
+			"title": "Folgt",
+			"subtitle": "{count, plural, =0 {Keine Quellen} =1 {1 Quelle} other {{count} Quellen}} werden auf neue Releases überwacht",
+			"checkAll": "Jetzt alles prüfen",
+			"followSource": "Quelle folgen",
+			"footerNote": "Durch das Entfernen aus der Verfolgung bleiben Releases in Discovery — es stoppt nur zukünftige.",
+			"searchPlaceholder": "Nach Name oder URL suchen…",
+			"select": "Auswählen",
+			"unfollowSelected": "Nicht mehr folgen",
+			"pauseSelected": "Pausieren",
+			"unfollow": "Nicht mehr folgen",
+			"checkNow": "Jetzt prüfen",
+			"enabledToggle": "Updates umschalten",
+			"artist": "Künstler",
+			"label": "Label",
+			"checkedAgo": "Geprüft {time}",
+			"upToDate": "Aktuell",
+			"paused": "Pausiert",
+			"newCount": "{count, plural, =1 {1 neu} other {{count} neu}}",
+			"sourceError": "Diese Quelle konnte nicht geprüft werden",
+			"follow": "Folgen",
+			"following": "Folgt",
+			"followForNewReleases": "Folgen für neue Releases",
+			"followViaPaste": "Folgen Sie dieser Quelle vom Panel \"Following\"",
+			"popoverTitle": "Folgen für neue Releases",
+			"upcoming": "Bevorstehend",
+			"daysUntil": "{days} T",
+			"surfacedVia": "Über {source} angezeigt",
+			"markNew": "Als neu markieren",
+			"markNotNew": "Als nicht neu markieren",
+			"alsoFollow": "Folgen für neue Releases",
+			"sortBy": "Sortieren nach",
+			"empty": {
+				"title": "Sie folgen noch niemandem",
+				"hint": "Folgen Sie einem Künstler oder Label und neue Releases erscheinen automatisch hier."
+			},
+			"sort": {
+				"newCount": "Anzahl der neuen",
+				"name": "Name",
+				"recentlyReleased": "Kürzlich veröffentlicht"
+			},
+			"review": "Überprüfen",
+			"foundToast": "{count, plural, =1 {1 neues Release} other {{count} neue Releases}} von deinen Follows",
+			"changeType": "Folge als {type} — zum Ändern anklicken",
+			"relink": "Releases erneut verknüpfen",
+			"relinkHint": "Diese Seite erneut scannen und die Releases mit bereits importierten verknüpfen — behebt den Folgezustand bei Zeilen, die vor dieser Funktion importiert wurden.",
+			"relinkResult": "{count, plural, =0 {Keine Releases zum Verknüpfen} =1 {1 Release erneut verknüpft} other {{count} Releases erneut verknüpft}}",
+			"addSource": {
+				"title": "Quelle folgen",
+				"urlPlaceholder": "URL einer Bandcamp-, SoundCloud- oder Discogs-Künstler-/Label-Seite einfügen",
+				"urlInfo": "Wir erkennen automatisch die Plattform und ob es sich um einen Künstler oder ein Label handelt, und halten ab jetzt nach neuen Releases Ausschau. Ältere Releases werden nicht übernommen."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filter",
-		"liked": "Gefällt mir"
+		"liked": "Gefällt mir",
+		"new": "Neu"
 	},
 	"playlists": {
 		"newPlaylist": "Neue Playlist",

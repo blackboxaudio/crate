@@ -43,10 +43,7 @@ impl LibraryService {
         existing_track_id: &str,
         new_path: &str,
     ) -> Result<Track> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -78,10 +75,7 @@ impl LibraryService {
         new_path: &PathBuf,
         new_file_hash: &str,
     ) -> Result<Track> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // 1. Get existing playlist memberships
         let playlist_memberships: Vec<(String, i32, String)> = {
@@ -131,10 +125,7 @@ impl LibraryService {
         let track = self.import_single_track_with_hash(new_path, new_file_hash.to_string())?;
 
         // 6. Restore playlist memberships with the new track ID
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         for (playlist_id, position, date_added) in playlist_memberships {

@@ -239,6 +239,8 @@ mod tests {
             artwork_path: None,
             artwork_source: None,
             color: None,
+            library_root_id: None,
+            relative_path: None,
             tags: vec![],
         }
     }

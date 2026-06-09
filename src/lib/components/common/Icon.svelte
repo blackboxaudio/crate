@@ -67,6 +67,8 @@
 			'M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z',
 		'music-note':
 			'M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3',
+		// Vinyl/disc — represents a followed "label" (paired with `user` for an artist)
+		disc: '<circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="4" />',
 		clipboard:
 			'M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3',
 		download: 'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4',
@@ -76,6 +78,8 @@
 		cloud: 'M18 10h-1.26A8 8 0 109 20h9a5 5 0 000-10z',
 		'cloud-off': 'M2 2l20 20M17.5 21H9a7 7 0 01-5.2-11.8M22 16.7A5 5 0 0018 10h-1.3M7 4a7 7 0 018.2-1',
 		activity: 'M4 12h3l3-9 4 18 3-9h3',
+		rss: '<path d="M4 11a9 9 0 0 1 9 9" /><path d="M4 4a16 16 0 0 1 16 16" /><circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />',
+		user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />',
 		loader:
 			'M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-5.07l-2.83 2.83M9.76 14.24l-2.83 2.83m11.14 0l-2.83-2.83M9.76 9.76L6.93 6.93',
 		'eye-slash':

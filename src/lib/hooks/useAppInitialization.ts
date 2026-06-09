@@ -1,6 +1,6 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import type { DiscoveryRelease, UsbDevice } from '$lib/types'
+import type { DiscoveryRelease, FollowedReleasesFound, UsbDevice } from '$lib/types'
 import type { appStore as AppStoreType } from '$lib/stores/app'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
 import type { tagsStore as TagsStoreType } from '$lib/stores/tags'
@@ -10,6 +10,10 @@ import type { devicesStore as DevicesStoreType } from '$lib/stores/devices'
 import type { syncStore as SyncStoreType } from '$lib/stores/sync'
 import type { toastStore as ToastStoreType } from '$lib/stores/toast'
 import type { discoveryStore as DiscoveryStoreType } from '$lib/stores/discovery'
+import { followStore } from '$lib/stores/follow'
+import { uiStore } from '$lib/stores/ui'
+import { translate } from '$lib/i18n'
+import { get } from 'svelte/store'
 
 // =============================================================================
 // Types
@@ -60,6 +64,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenDiscoveryUpdate: UnlistenFn | undefined
 	let unlistenEnrichmentQueued: UnlistenFn | undefined
 	let unlistenCloudSyncMerge: UnlistenFn | undefined
+	let unlistenFollowed: UnlistenFn | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -69,6 +74,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		playlistsStore.load(),
 		settingsStore.load(),
 		devicesStore.loadDevices(),
+		followStore.load(),
 	])
 
 	// Set up Tauri's native drag-drop event listener for external file drops
@@ -188,6 +194,30 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		})
 	}
 
+	// Set up followed-releases listener: a background check surfaced new releases. Bump
+	// the per-source new counts and reload Discovery so the new rows appear. When the window
+	// is focused, show an in-app "Review" toast (the backend suppresses its native summary
+	// notification while focused, so this is the only surface — no double-notify); when
+	// backgrounded, the native notification is the backend's job and we stay quiet.
+	async function setupFollowedReleasesListener(): Promise<void> {
+		unlistenFollowed = await listen<FollowedReleasesFound>('followed-releases-found', (event) => {
+			followStore.applyAggregate(event.payload)
+			const { totalNew } = event.payload
+			if (totalNew > 0) {
+				discoveryStore.loadReleases()
+				if (document.hasFocus()) {
+					toastStore.info(get(translate)('discovery.following.foundToast', { values: { count: totalNew } }), 8000, {
+						label: get(translate)('discovery.following.review'),
+						onClick: () => {
+							uiStore.setActiveView('discovery')
+							discoveryStore.toggleNewFilter(true)
+						},
+					})
+				}
+			}
+		})
+	}
+
 	// Map merged sync buckets to the stores that must reload. Tag name/color and track-tag
 	// links are embedded on tracks and discovery releases, so a tag-related merge reloads
 	// those stores too.
@@ -197,6 +227,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		let tags = false
 		let discovery = false
 		let settings = false
+		let follow = false
 
 		for (const bucket of buckets) {
 			if (bucket.startsWith('tracks/') || bucket === 'cues' || bucket === 'library_roots') {
@@ -218,6 +249,11 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 				discovery = true
 			} else if (bucket === 'discovery_releases' || bucket === 'discovery_tracks') {
 				discovery = true
+			} else if (bucket === 'followed_sources') {
+				follow = true
+			} else if (bucket === 'discovery_release_sources') {
+				follow = true
+				discovery = true
 			} else if (bucket === 'settings') {
 				settings = true
 			}
@@ -228,6 +264,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		if (tags) tagsStore.load()
 		if (discovery) discoveryStore.loadReleases()
 		if (settings) settingsStore.load()
+		if (follow) followStore.load()
 	}
 
 	// Initialize listeners
@@ -236,6 +273,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	await setupDiscoveryUpdateListener()
 	await setupEnrichmentQueuedListener()
 	await setupCloudSyncMergeListener()
+	await setupFollowedReleasesListener()
 
 	// Return cleanup function
 	return () => {
@@ -244,5 +282,6 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenDiscoveryUpdate?.()
 		unlistenEnrichmentQueued?.()
 		unlistenCloudSyncMerge?.()
+		unlistenFollowed?.()
 	}
 }

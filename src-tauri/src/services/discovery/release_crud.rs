@@ -3,10 +3,7 @@ use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
 impl DiscoveryService {
     pub fn create_release(&self, create: DiscoveryReleaseCreate) -> Result<DiscoveryRelease> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let id = uuid::Uuid::new_v4().to_string();
@@ -17,8 +14,8 @@ impl DiscoveryService {
 
         let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
-            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, parent_url, date_added, date_modified, _hlc)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+            "INSERT INTO discovery_releases (id, url, source_type, artist, title, label, release_date, artwork_url, notes, parent_url, source_page_url, date_added, date_modified, _hlc)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14)",
             rusqlite::params![
                 id,
                 normalized_url,
@@ -30,6 +27,7 @@ impl DiscoveryService {
                 create.artwork_url,
                 create.notes,
                 create.parent_url,
+                create.source_page_url,
                 now,
                 now,
                 hlc,
@@ -71,21 +69,22 @@ impl DiscoveryService {
             artwork_path: None,
             notes: create.notes,
             parent_url: create.parent_url,
+            source_page_url: create.source_page_url,
             date_added: now.clone(),
             date_modified: now,
+            is_new: false,
+            surfaced_at: None,
+            source_ids: Vec::new(),
             tracks,
             tags: Vec::new(),
         })
     }
 
     pub fn get_release(&self, id: &str) -> Result<DiscoveryRelease> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut release = conn.query_row(
-            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, date_added, date_modified
+            "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, source_page_url, date_added, date_modified, is_new, surfaced_at
              FROM discovery_releases WHERE id = ?1",
             [id],
             |row| {
@@ -101,8 +100,12 @@ impl DiscoveryService {
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
-                    date_added: row.get(11)?,
-                    date_modified: row.get(12)?,
+                    source_page_url: row.get(11)?,
+                    date_added: row.get(12)?,
+                    date_modified: row.get(13)?,
+                    is_new: row.get::<_, i32>(14).map(|v| v != 0)?,
+                    surfaced_at: row.get(15)?,
+                    source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -152,20 +155,24 @@ impl DiscoveryService {
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
+        // Load provenance: ids of the followed sources that surfaced this release.
+        let mut stmt =
+            conn.prepare("SELECT source_id FROM discovery_release_sources WHERE release_id = ?1")?;
+        release.source_ids = stmt
+            .query_map([id], |row| row.get::<_, String>(0))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
         Ok(release)
     }
 
     pub fn get_releases(&self, filter: Option<DiscoveryFilter>) -> Result<Vec<DiscoveryRelease>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let filter = filter.unwrap_or_default();
 
         // Build query with optional filters
         let mut sql = String::from(
-            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.parent_url, dr.date_added, dr.date_modified
+            "SELECT DISTINCT dr.id, dr.url, dr.source_type, dr.artist, dr.title, dr.label, dr.release_date, dr.artwork_url, dr.artwork_path, dr.notes, dr.parent_url, dr.source_page_url, dr.date_added, dr.date_modified, dr.is_new, dr.surfaced_at
              FROM discovery_releases dr",
         );
 
@@ -262,8 +269,12 @@ impl DiscoveryService {
                     artwork_path: row.get(8)?,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
-                    date_added: row.get(11)?,
-                    date_modified: row.get(12)?,
+                    source_page_url: row.get(11)?,
+                    date_added: row.get(12)?,
+                    date_modified: row.get(13)?,
+                    is_new: row.get::<_, i32>(14).map(|v| v != 0)?,
+                    surfaced_at: row.get(15)?,
+                    source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
                 })
@@ -327,7 +338,17 @@ impl DiscoveryService {
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
-        // Merge tracks and tags into releases
+        // Batch load provenance (followed sources that surfaced each release).
+        let mut stmt = conn.prepare(&format!(
+            "SELECT release_id, source_id FROM discovery_release_sources WHERE release_id IN ({placeholders})"
+        ))?;
+        let all_sources: Vec<(String, String)> = stmt
+            .query_map(track_params.as_slice(), |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        // Merge tracks, tags, and provenance into releases
         for release in &mut releases {
             release.tracks = all_tracks
                 .iter()
@@ -339,6 +360,11 @@ impl DiscoveryService {
                 .filter(|(rid, _)| *rid == release.id)
                 .map(|(_, tag)| tag.clone())
                 .collect();
+            release.source_ids = all_sources
+                .iter()
+                .filter(|(rid, _)| *rid == release.id)
+                .map(|(_, sid)| sid.clone())
+                .collect();
         }
 
         Ok(releases)
@@ -349,10 +375,7 @@ impl DiscoveryService {
         id: &str,
         update: DiscoveryReleaseUpdate,
     ) -> Result<DiscoveryRelease> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let mut set_clauses = vec!["date_modified = ?".to_string()];
@@ -416,6 +439,29 @@ impl DiscoveryService {
         self.get_release(id)
     }
 
+    /// Backfill `source_page_url` for the release with this URL, only when it's unset.
+    /// Used when re-scanning/re-importing a page so releases imported before the page
+    /// was recorded (e.g. existing rows skipped on the UNIQUE(url) conflict) get linked
+    /// to the followed page. Bumps `_hlc` so the change syncs.
+    pub fn set_source_page_url_if_absent(
+        &self,
+        release_url: &str,
+        page_url: &str,
+    ) -> Result<usize> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let normalized = normalize_url(release_url);
+        let hlc = dirty::next_hlc(&conn)?;
+        let changed = conn.execute(
+            "UPDATE discovery_releases SET source_page_url = ?1, _hlc = ?2 \
+             WHERE url = ?3 AND (source_page_url IS NULL OR source_page_url = '')",
+            rusqlite::params![page_url, hlc, normalized],
+        )?;
+        if changed > 0 {
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
+        }
+        Ok(changed)
+    }
+
     pub fn set_release_artwork(
         &self,
         id: &str,
@@ -426,10 +472,7 @@ impl DiscoveryService {
             .save_from_file(file_path, id)
             .ok_or_else(|| CrateError::Artwork("Failed to save artwork".to_string()))?;
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -446,10 +489,7 @@ impl DiscoveryService {
     pub fn delete_release_artwork(&self, id: &str) -> Result<DiscoveryRelease> {
         self.artwork_service.delete(id);
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -469,10 +509,16 @@ impl DiscoveryService {
             log::warn!("Failed to clean up cached audio for release {id}: {e}");
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+
+        // Delete = dismiss: tombstone this release's followed-source record so the watch
+        // loop never re-adds it. Runs before the DELETE so the URL is still resolvable;
+        // best-effort (a hiccup must never block the delete).
+        let _ = conn.execute(
+            "UPDATE followed_source_releases SET status = 'dismissed' \
+             WHERE seen_url = (SELECT url FROM discovery_releases WHERE id = ?1)",
+            [id],
+        );
 
         let hlc = dirty::next_hlc(&conn)?;
         dirty::record_tombstone(&conn, buckets::DISCOVERY_RELEASES, id, &hlc)?;
@@ -486,10 +532,7 @@ impl DiscoveryService {
     }
 
     pub fn get_all_release_urls(&self) -> Result<std::collections::HashSet<String>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare("SELECT url FROM discovery_releases")?;
         let urls = stmt
@@ -500,10 +543,7 @@ impl DiscoveryService {
     }
 
     pub fn toggle_track_liked(&self, track_id: &str) -> Result<bool> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
         conn.execute(
@@ -536,10 +576,7 @@ impl DiscoveryService {
             }
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let placeholders = ids.iter().map(|_| "?").collect::<Vec<_>>().join(", ");
         let sql = format!("DELETE FROM discovery_releases WHERE id IN ({placeholders})");
@@ -547,6 +584,16 @@ impl DiscoveryService {
             .iter()
             .map(|id| id as &dyn rusqlite::types::ToSql)
             .collect();
+
+        // Delete = dismiss: tombstone these releases' followed-source records before the
+        // DELETE so the watch loop never re-adds them. Best-effort.
+        let _ = conn.execute(
+            &format!(
+                "UPDATE followed_source_releases SET status = 'dismissed' \
+                 WHERE seen_url IN (SELECT url FROM discovery_releases WHERE id IN ({placeholders}))"
+            ),
+            params.as_slice(),
+        );
 
         let hlc = dirty::next_hlc(&conn)?;
         for id in &ids {

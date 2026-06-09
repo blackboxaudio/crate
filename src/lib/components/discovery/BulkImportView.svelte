@@ -1,9 +1,12 @@
 <script lang="ts">
-	import type { ScannedPage, BulkImportProgress, BulkImportResult } from '$lib/types'
-	import { Button, Checkbox, Text, Spinner } from '$lib/components/common'
+	import type { ScannedPage, BulkImportProgress, BulkImportResult, DiscoverySourceType, FollowType } from '$lib/types'
+	import { Button, Checkbox, Text, Spinner, Icon } from '$lib/components/common'
 	import { translate } from '$lib/i18n'
+	import { followStore, followedSources } from '$lib/stores'
+	import { autoFollowOnImport } from '$lib/stores/settings'
+	import { looseUrlEq } from '$lib/utils'
 	import { listen } from '@tauri-apps/api/event'
-	import { onMount } from 'svelte'
+	import { onMount, untrack } from 'svelte'
 	import * as discoveryApi from '$lib/api/discovery'
 	import { SvelteSet } from 'svelte/reactivity'
 
@@ -34,6 +37,22 @@
 
 	let selectableCount = $derived(scannedPage.releases.filter((r) => !r.already_exists).length)
 	let selectedCount = $derived(selectedUrls.size)
+
+	// "Also follow" the scanned page (the label — or the artist, when an artist page was
+	// scanned) for future releases. The page URL is the only reliably-followable entity in
+	// bulk import; a release URL alone can't recover its label's page.
+	const followUrl = $derived(scannedPage.page_url)
+	const followName = $derived(scannedPage.page_label ?? scannedPage.page_artist)
+	const followType = $derived<FollowType>(scannedPage.page_label ? 'label' : 'artist')
+	const alreadyFollowing = $derived(!!followUrl && $followedSources.some((s) => looseUrlEq(s.url, followUrl)))
+	// Seed the opt-in from the user's "auto-follow on import" preference (Off by default).
+	// `untrack` because this is a one-time seed of mutable checkbox state — the user toggles
+	// it afterward, so it should capture the initial value, not react to later changes.
+	let followSource = $state(
+		untrack(
+			() => $autoFollowOnImport === 'both' || $autoFollowOnImport === (scannedPage.page_label ? 'label' : 'artist')
+		)
+	)
 
 	onMount(() => {
 		listen<BulkImportProgress>('bulk-import-progress', (event) => {
@@ -87,9 +106,19 @@
 				scannedPage.page_label,
 				scannedPage.page_artist,
 				selectedReleases,
-				scannedPage.source_type
+				scannedPage.source_type,
+				scannedPage.page_url
 			)
 			result = importResult
+			// Follow before onImportComplete — that callback closes/unmounts this modal.
+			if (followSource && followUrl && !alreadyFollowing) {
+				await followStore.followEntity({
+					url: followUrl,
+					name: followName ?? null,
+					sourceType: scannedPage.source_type as DiscoverySourceType,
+					followType,
+				})
+			}
 			onImportComplete(importResult)
 		} catch (error) {
 			// If cancelled or errored, still show partial results if we have progress
@@ -220,7 +249,25 @@
 				{$translate('discovery.bulkImport.cancelImport')}
 			</Button>
 		{:else}
-			<div></div>
+			{#if followUrl}
+				{#if alreadyFollowing}
+					<div class="flex items-center gap-2 text-sm text-text-tertiary">
+						<Icon name="rss" class="h-3.5 w-3.5 text-brand-primary" />
+						{followType === 'label'
+							? $translate('discovery.following.label')
+							: $translate('discovery.following.artist')} · {$translate('discovery.following.following')}
+					</div>
+				{:else}
+					<Checkbox
+						checked={followSource}
+						onchange={(v) => (followSource = v)}
+						label={$translate('discovery.following.alsoFollow')}
+						disabled={importing}
+					/>
+				{/if}
+			{:else}
+				<div></div>
+			{/if}
 			<div class="flex gap-2">
 				<Button variant="ghost" onclick={onCancel}>
 					{$translate('common.cancel')}

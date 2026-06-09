@@ -333,10 +333,7 @@ impl ExportService {
 
     /// Get all cue points for a track
     pub(super) fn get_track_cues(&self, track_id: &str) -> Result<Vec<Cue>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"

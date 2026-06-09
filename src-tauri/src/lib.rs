@@ -34,6 +34,16 @@ impl EnrichmentSkipIds {
     }
 }
 
+/// Session cache of artist/label page avatars (og:image), keyed by page URL, so the follow
+/// popover can show a profile picture without re-scraping on every open. Local + ephemeral.
+pub(crate) struct AvatarCache(pub Arc<tokio::sync::Mutex<HashMap<String, Option<String>>>>);
+
+impl AvatarCache {
+    pub fn new() -> Self {
+        Self(Arc::new(tokio::sync::Mutex::new(HashMap::new())))
+    }
+}
+
 /// Cache for pre-fetched release metadata populated during background enrichment after a page scan.
 /// Keyed by release URL. Entries are consumed (removed) by `bulk_create_discovery_releases`.
 pub(crate) struct ScanEnrichmentCache(
@@ -55,8 +65,8 @@ impl PrefetchTracker {
 use services::{
     discovery::n_transform::NsigSolverState, export::CheckpointService, AnalysisService,
     AudioService, BackupService, DeviceService, DiagnosticsService, DiscoveryService,
-    ExportService, LibraryService, MediaControlsService, PlaylistService, SettingsService,
-    SyncService, TagService,
+    ExportService, FollowService, LibraryService, MediaControlsService, PlaylistService,
+    SettingsService, SyncService, TagService,
 };
 use tauri::Manager;
 
@@ -93,6 +103,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::default().build())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::default().build())
+        .plugin(tauri_plugin_notification::init())
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
@@ -227,6 +238,18 @@ pub fn run() {
             commands::discovery::cancel_bulk_import,
             commands::discovery::cancel_scan_page,
             commands::discovery::skip_enrichment,
+            commands::discovery::fetch_source_avatar,
+            // Follow commands
+            commands::follow::follow_source,
+            commands::follow::follow_from_entity,
+            commands::follow::unfollow_source,
+            commands::follow::relink_followed_source,
+            commands::follow::set_follow_enabled,
+            commands::follow::set_follow_type,
+            commands::follow::get_followed_sources,
+            commands::follow::check_followed_source,
+            commands::follow::check_all_followed_sources,
+            commands::follow::set_release_new_flag,
             // Backup commands
             commands::backup::get_backup_info,
             commands::backup::create_backup,
@@ -285,6 +308,7 @@ pub fn run() {
             let analysis_service = AnalysisService::new(conn.clone());
             let backup_service = BackupService::new(conn.clone());
             let discovery_service = DiscoveryService::new(conn.clone(), app_data_dir.clone());
+            let follow_service = FollowService::new(conn.clone(), app_data_dir.clone());
 
             // Load saved audio device setting
             if let Ok(settings) = settings_service.get_settings() {
@@ -328,6 +352,14 @@ pub fn run() {
             app.manage(diagnostics_service);
             app.manage(analysis_service);
             app.manage(discovery_service);
+            app.manage(follow_service);
+            // Background watch loop: poll followed sources on the configured cadence.
+            // No-ops (and makes no network requests) when nothing is followed.
+            crate::services::follow::watch::start_watching(
+                app.handle().clone(),
+                conn.clone(),
+                app_data_dir.clone(),
+            );
             app.manage(NsigSolverState::new());
             app.manage(PrefetchTracker::new());
             app.manage(BulkImportCancelFlag(Arc::new(
@@ -338,6 +370,7 @@ pub fn run() {
             )));
             app.manage(ScanEnrichmentCache::new());
             app.manage(EnrichmentSkipIds::new());
+            app.manage(AvatarCache::new());
 
             // Cloud sync: build the Firebase backend if a config file is present
             // (degrades gracefully to "unavailable" when it isn't), manage the runtime

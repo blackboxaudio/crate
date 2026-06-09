@@ -14,6 +14,7 @@
 		"developerTools": "Ferramentas de desenvolvedor",
 		"submit": "Enviar",
 		"confirm": "Confirmar",
+		"done": "Concluído",
 		"untitled": "Sem título",
 		"unknownArtist": "Artista desconhecido",
 		"folder": "pasta",
@@ -117,6 +118,24 @@
 			"clearCache": "Limpar cache",
 			"clearCacheConfirmMessage": "Tem certeza de que deseja limpar todo o áudio de visualização em cache?",
 			"clearCacheWarning": "As faixas visualizadas anteriormente precisarão ser transmitidas novamente de sua fonte na próxima reprodução. Isso pode ser mais lento e alguns fluxos podem não estar mais disponíveis."
+		},
+		"following": {
+			"title": "Seguindo",
+			"checkCadenceDescription": "Com que frequência verificar artistas e gravadoras seguidas para novos lançamentos.",
+			"cadenceLaunch": "Ao iniciar",
+			"cadenceHourly": "A cada hora",
+			"cadenceDaily": "Ao iniciar e diariamente",
+			"cadenceManual": "Apenas manualmente",
+			"checkAllNow": "Verificar tudo agora",
+			"autoFollowDescription": "Padrão para a opção \"Também seguir\" ao importar um lançamento.",
+			"autoFollowOff": "Desativado",
+			"autoFollowArtist": "Artista",
+			"autoFollowLabel": "Gravadora",
+			"autoFollowBoth": "Ambos",
+			"releaseDayReminders": "Lembretes do dia do lançamento",
+			"releaseDayRemindersHelper": "Os lembretes podem estar deslocados em um dia devido a fusos horários.",
+			"newReleasesSummary": "Resumo de novos lançamentos",
+			"discogsRateLimitNote": "O Discogs limita a frequência de verificação, portanto, listas de seguimento grandes podem ser atualizadas gradualmente."
 		},
 		"appearance": {
 			"font": "Fonte",
@@ -333,11 +352,65 @@
 			"alreadyInDiscoveryBadge": "Já em descobertas",
 			"noReleasesFound": "Nenhum lançamento encontrado nesta página",
 			"cancelImport": "Cancelar importação"
+		},
+		"following": {
+			"title": "Seguindo",
+			"subtitle": "{count, plural, =0 {Sem fontes} =1 {1 fonte} other {{count} fontes}} sendo monitoradas para novos lançamentos",
+			"checkAll": "Verificar tudo agora",
+			"followSource": "Seguir fonte",
+			"footerNote": "Parar de seguir mantém lançamentos já em Descoberta — apenas interrompe os futuros.",
+			"searchPlaceholder": "Pesquisar por nome ou URL…",
+			"select": "Selecionar",
+			"unfollowSelected": "Deixar de seguir",
+			"pauseSelected": "Pausar",
+			"unfollow": "Deixar de seguir",
+			"checkNow": "Verificar agora",
+			"enabledToggle": "Alternar atualizações",
+			"artist": "Artista",
+			"label": "Gravadora",
+			"checkedAgo": "Verificado {time}",
+			"upToDate": "Atualizado",
+			"paused": "Pausado",
+			"newCount": "{count, plural, =1 {1 novo} other {{count} novo(s)}}",
+			"sourceError": "Não foi possível verificar esta fonte",
+			"follow": "Seguir",
+			"following": "Seguindo",
+			"followForNewReleases": "Seguir novos lançamentos",
+			"followViaPaste": "Seguir esta fonte do painel Seguindo",
+			"popoverTitle": "Seguir novos lançamentos",
+			"upcoming": "Em breve",
+			"daysUntil": "{days} d",
+			"surfacedVia": "Exibido via {source}",
+			"markNew": "Marcar como novo",
+			"markNotNew": "Marcar como não novo",
+			"alsoFollow": "Seguir novos lançamentos",
+			"sortBy": "Classificar por",
+			"empty": {
+				"title": "Você ainda não segue ninguém",
+				"hint": "Siga um artista ou gravadora e os novos lançamentos chegam aqui automaticamente."
+			},
+			"sort": {
+				"newCount": "Contagem de novos",
+				"name": "Nome",
+				"recentlyReleased": "Lançado recentemente"
+			},
+			"review": "Revisar",
+			"foundToast": "{count, plural, =1 {1 novo lançamento} other {{count} novos lançamentos}} de seus seguidores",
+			"changeType": "Seguindo como {type} — clique para alterar",
+			"relink": "Revincar lançamentos",
+			"relinkHint": "Rescaneie esta página e vincule-a aos lançamentos já importados — corrige o estado de acompanhamento nas linhas importadas antes de esta funcionalidade existir.",
+			"relinkResult": "{count, plural, =0 {Nenhum lançamento para revincar} =1 {1 lançamento revincado} other {{count} lançamentos revincados}}",
+			"addSource": {
+				"title": "Seguir uma fonte",
+				"urlPlaceholder": "Cole a URL de uma página de artista/gravadora Bandcamp, SoundCloud ou Discogs",
+				"urlInfo": "Detectamos automaticamente a plataforma e se é um artista ou uma gravadora, e a partir de agora ficamos de olho nos novos lançamentos. Lançamentos mais antigos não serão adicionados."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filtros",
-		"liked": "Curtidos"
+		"liked": "Curtidos",
+		"new": "Novo"
 	},
 	"playlists": {
 		"newPlaylist": "Nova playlist",

@@ -54,10 +54,7 @@ impl SyncService {
     /// 1. It's exported to the device with sync_enabled = true
     /// 2. Either the playlist or any of its tracks have been modified since last_sync_at
     pub fn get_pending_playlists_for_device(&self, device_id: &str) -> Result<Vec<String>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get all exports for this device that have sync enabled
         let mut stmt = conn.prepare(
@@ -197,10 +194,7 @@ impl SyncService {
 
     /// Update last_sync_at timestamp for playlists
     fn update_last_sync_at(&self, device_id: &str, playlist_ids: &[String]) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
 
@@ -216,10 +210,7 @@ impl SyncService {
 
     /// Get all playlists containing a specific track
     pub fn get_playlists_containing_track(&self, track_id: &str) -> Result<Vec<String>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt =
             conn.prepare("SELECT DISTINCT playlist_id FROM playlist_tracks WHERE track_id = ?1")?;
@@ -237,10 +228,7 @@ impl SyncService {
             return Ok(vec![]);
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let placeholders: Vec<String> = (1..=track_ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(
@@ -264,10 +252,7 @@ impl SyncService {
 
     /// Get devices that have exported a specific playlist with sync enabled
     pub fn get_devices_for_playlist(&self, playlist_id: &str) -> Result<Vec<DeviceInfo>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let mut stmt = conn.prepare(
             r#"
@@ -295,10 +280,7 @@ impl SyncService {
             return Ok(vec![]);
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let placeholders: Vec<String> = (1..=playlist_ids.len()).map(|i| format!("?{i}")).collect();
         let sql = format!(

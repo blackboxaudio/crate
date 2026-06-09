@@ -202,7 +202,7 @@
 	<button
 		bind:this={triggerEl}
 		type="button"
-		class="flex w-full items-center justify-between rounded-lg border bg-surface-2 px-4 py-2.5 text-left
+		class="flex w-full items-center justify-between rounded-md border bg-surface-2 px-3 py-2 text-left
 			text-sm transition-colors hover:cursor-pointer
 			{disabled
 			? 'cursor-not-allowed border-stroke opacity-50'

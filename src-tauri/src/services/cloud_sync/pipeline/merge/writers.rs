@@ -21,7 +21,8 @@ use crate::models::{
 use super::super::buckets::Bucket;
 use super::super::dirty;
 use super::super::rows::{
-    CueRow, DiscoveryReleaseRow, LibraryRootRow, ParsedRow, PlaylistRow, TagCategoryRow,
+    CueRow, DiscoveryReleaseRow, DiscoveryReleaseSourceRow, FollowedSourceRow, LibraryRootRow,
+    ParsedRow, PlaylistRow, TagCategoryRow,
 };
 
 // SQLite extended result codes for the constraint violations we tolerate.
@@ -85,6 +86,7 @@ fn upsert_entity_inner(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Res
         Bucket::Tags => upsert_tag(tx, &de(v)?, hlc),
         Bucket::DiscoveryReleases => upsert_discovery_release(tx, &de(v)?, hlc),
         Bucket::DiscoveryTracks => upsert_discovery_track(tx, &de(v)?, hlc),
+        Bucket::FollowedSources => upsert_followed_source(tx, &de(v)?, hlc),
         Bucket::LibraryRoots => upsert_library_root(tx, &de(v)?, hlc),
         _ => Err(CrateError::CloudSync(format!(
             "upsert_entity on non-entity bucket {}",
@@ -188,17 +190,19 @@ fn upsert_discovery_release(tx: &Connection, d: &DiscoveryReleaseRow, hlc: &str)
     tx.execute(
         "INSERT INTO discovery_releases \
             (id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, \
-             notes, parent_url, date_added, date_modified, _hlc) \
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14) \
+             notes, parent_url, source_page_url, date_added, date_modified, is_new, surfaced_at, _hlc) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16,?17) \
          ON CONFLICT(id) DO UPDATE SET \
             url=excluded.url, source_type=excluded.source_type, artist=excluded.artist, \
             title=excluded.title, label=excluded.label, release_date=excluded.release_date, \
             artwork_url=excluded.artwork_url, artwork_path=excluded.artwork_path, notes=excluded.notes, \
-            parent_url=excluded.parent_url, date_added=excluded.date_added, \
-            date_modified=excluded.date_modified, _hlc=excluded._hlc",
+            parent_url=excluded.parent_url, source_page_url=excluded.source_page_url, date_added=excluded.date_added, \
+            date_modified=excluded.date_modified, is_new=excluded.is_new, \
+            surfaced_at=excluded.surfaced_at, _hlc=excluded._hlc",
         params![
             d.id, d.url, d.source_type, d.artist, d.title, d.label, d.release_date, d.artwork_url,
-            d.artwork_path, d.notes, d.parent_url, d.date_added, d.date_modified, hlc,
+            d.artwork_path, d.notes, d.parent_url, d.source_page_url, d.date_added, d.date_modified, d.is_new,
+            d.surfaced_at, hlc,
         ],
     )?;
     Ok(())
@@ -225,6 +229,33 @@ fn upsert_library_root(tx: &Connection, l: &LibraryRootRow, hlc: &str) -> Result
         "INSERT INTO library_roots (id, name, _hlc) VALUES (?1,?2,?3) \
          ON CONFLICT(id) DO UPDATE SET name=excluded.name, _hlc=excluded._hlc",
         params![l.id, l.name, hlc],
+    )?;
+    Ok(())
+}
+
+fn upsert_followed_source(tx: &Connection, f: &FollowedSourceRow, hlc: &str) -> Result<()> {
+    tx.execute(
+        "INSERT INTO followed_sources \
+            (id, url, source_type, follow_type, name, artwork_url, artwork_path, enabled, \
+             date_added, date_modified, _hlc) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11) \
+         ON CONFLICT(id) DO UPDATE SET \
+            url=excluded.url, source_type=excluded.source_type, follow_type=excluded.follow_type, \
+            name=excluded.name, artwork_url=excluded.artwork_url, artwork_path=excluded.artwork_path, \
+            enabled=excluded.enabled, date_added=excluded.date_added, \
+            date_modified=excluded.date_modified, _hlc=excluded._hlc",
+        params![
+            f.id, f.url, f.source_type, f.follow_type, f.name, f.artwork_url, f.artwork_path,
+            f.enabled, f.date_added, f.date_modified, hlc,
+        ],
+    )?;
+    // A source synced in from another device has no local watch state yet. Seed a
+    // default row (baseline_established=0) so the watch loop establishes a baseline on
+    // first sight and does NOT flood Discovery with the back catalog. OR IGNORE leaves
+    // any existing local state untouched.
+    tx.execute(
+        "INSERT OR IGNORE INTO followed_source_state (source_id) VALUES (?1)",
+        params![f.id],
     )?;
     Ok(())
 }
@@ -279,6 +310,14 @@ pub(super) fn insert_junction(tx: &Connection, bucket: &Bucket, row: &ParsedRow)
                 "INSERT INTO discovery_release_tags (release_id, tag_id, _hlc) VALUES (?1,?2,?3) \
                  ON CONFLICT(release_id, tag_id) DO UPDATE SET _hlc=excluded._hlc",
                 params![t.release_id, t.tag_id, hlc],
+            )?;
+        }
+        Bucket::DiscoveryReleaseSources => {
+            let s: DiscoveryReleaseSourceRow = de(v)?;
+            tx.execute(
+                "INSERT INTO discovery_release_sources (release_id, source_id, _hlc) VALUES (?1,?2,?3) \
+                 ON CONFLICT(release_id, source_id) DO UPDATE SET _hlc=excluded._hlc",
+                params![s.release_id, s.source_id, hlc],
             )?;
         }
         _ => {
@@ -379,6 +418,12 @@ pub(super) fn junction_endpoints_exist(
             "playlist_id",
             "discovery_releases",
             "release_id",
+        ),
+        Bucket::DiscoveryReleaseSources => (
+            "discovery_releases",
+            "release_id",
+            "followed_sources",
+            "source_id",
         ),
         _ => return Ok(true),
     };

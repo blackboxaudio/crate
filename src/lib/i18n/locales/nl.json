@@ -14,6 +14,7 @@
 		"developerTools": "Ontwikkelaarstools",
 		"submit": "Verzenden",
 		"confirm": "Bevestigen",
+		"done": "Klaar",
 		"untitled": "Naamloos",
 		"unknownArtist": "Onbekende Artiest",
 		"folder": "map",
@@ -117,6 +118,24 @@
 			"clearCache": "Cache wissen",
 			"clearCacheConfirmMessage": "Weet je zeker dat je alle cachegeheugen voor voorbeeldaudio wilt wissen?",
 			"clearCacheWarning": "Eerder bekeken nummers moeten bij volgende afspeling opnieuw van hun bron worden gestreamd. Dit kan trager zijn en sommige streams zijn mogelijk niet meer beschikbaar."
+		},
+		"following": {
+			"title": "Volgend",
+			"checkCadenceDescription": "Hoe vaak moet worden gecontroleerd of gevolgde artiesten en labels nieuwe releases hebben.",
+			"cadenceLaunch": "Bij opstarten",
+			"cadenceHourly": "Elk uur",
+			"cadenceDaily": "Bij opstarten en dagelijks",
+			"cadenceManual": "Alleen handmatig",
+			"checkAllNow": "Controleer alles nu",
+			"autoFollowDescription": "Standaard voor de optie \"Ook volgen\" bij het importeren van een release.",
+			"autoFollowOff": "Uit",
+			"autoFollowArtist": "Artiest",
+			"autoFollowLabel": "Label",
+			"autoFollowBoth": "Beide",
+			"releaseDayReminders": "Herinneringen op releasedatum",
+			"releaseDayRemindersHelper": "Herinneringen kunnen vanwege tijdzones één dag verdeeld zijn.",
+			"newReleasesSummary": "Samenvatting nieuwe releases",
+			"discogsRateLimitNote": "Discogs beperkt hoe vaak het kan worden gecontroleerd, dus grote volgende lijsten kunnen geleidelijk worden bijgewerkt."
 		},
 		"appearance": {
 			"font": "Lettertype",
@@ -333,11 +352,65 @@
 			"alreadyInDiscoveryBadge": "Al in ontdekkingen",
 			"noReleasesFound": "Geen releases gevonden op deze pagina",
 			"cancelImport": "Importeren annuleren"
+		},
+		"following": {
+			"title": "Volgend",
+			"subtitle": "{count, plural, =0 {Geen bronnen} =1 {1 bron} other {{count} bronnen}} gecontroleerd op nieuwe releases",
+			"checkAll": "Controleer alles nu",
+			"followSource": "Volg bron",
+			"footerNote": "Het stoppen met volgen behoudt releases die al in Discovery staan — het stopt alleen toekomstige.",
+			"searchPlaceholder": "Zoeken op naam of URL…",
+			"select": "Selecteren",
+			"unfollowSelected": "Niet meer volgen",
+			"pauseSelected": "Pauzeren",
+			"unfollow": "Niet meer volgen",
+			"checkNow": "Nu controleren",
+			"enabledToggle": "Updates in-/uitschakelen",
+			"artist": "Artiest",
+			"label": "Label",
+			"checkedAgo": "Gecontroleerd {time}",
+			"upToDate": "Bijgewerkt",
+			"paused": "Gepauzeerd",
+			"newCount": "{count, plural, =1 {1 nieuw} other {{count} nieuw}}",
+			"sourceError": "Kon deze bron niet controleren",
+			"follow": "Volgen",
+			"following": "Volgend",
+			"followForNewReleases": "Volg voor nieuwe releases",
+			"followViaPaste": "Volg deze bron vanuit het volgende paneel",
+			"popoverTitle": "Volg voor nieuwe releases",
+			"upcoming": "Binnenkort",
+			"daysUntil": "{days} d",
+			"surfacedVia": "Weergegeven via {source}",
+			"markNew": "Markeren als nieuw",
+			"markNotNew": "Markeren als niet nieuw",
+			"alsoFollow": "Volg voor nieuwe releases",
+			"sortBy": "Sorteren op",
+			"empty": {
+				"title": "Je volgt nog niemand",
+				"hint": "Volg een artiest of label en nieuwe releases verschijnen automatisch hier."
+			},
+			"sort": {
+				"newCount": "Aantal nieuw",
+				"name": "Naam",
+				"recentlyReleased": "Onlangs uitgebracht"
+			},
+			"review": "Beoordeling",
+			"foundToast": "{count, plural, =1 {1 nieuwe release} other {{count} nieuwe releases}} van je volgende",
+			"changeType": "Volg als {type} — klik om te wijzigen",
+			"relink": "Releases opnieuw koppelen",
+			"relinkHint": "Scan deze pagina opnieuw en koppel deze aan reeds geïmporteerde releases — corrigeert de volgstatus op rijen die vóór deze functie zijn geïmporteerd.",
+			"relinkResult": "{count, plural, =0 {Geen releases om opnieuw te koppelen} =1 {1 release opnieuw gekoppeld} other {{count} releases opnieuw gekoppeld}}",
+			"addSource": {
+				"title": "Volg een bron",
+				"urlPlaceholder": "Plak een Bandcamp-, SoundCloud- of Discogs-artiest-/labelpagina-URL",
+				"urlInfo": "We herkennen automatisch het platform en of het om een artiest of label gaat, en houden het vanaf nu in de gaten voor nieuwe releases. Oudere releases worden niet toegevoegd."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filters",
-		"liked": "Geliked"
+		"liked": "Geliked",
+		"new": "Nieuw"
 	},
 	"playlists": {
 		"newPlaylist": "Nieuwe afspeellijst",

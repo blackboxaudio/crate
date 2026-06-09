@@ -167,6 +167,23 @@ export function formatDate(
 }
 
 /**
+ * Whole days until a future release date, or `null` if it's already out, has no date,
+ * or is too imprecise (year-only / year-month) for a countdown. UTC math mirrors
+ * `formatDate` to avoid timezone day-shift. Computed at render time, so an "Upcoming"
+ * badge driven by this clears automatically once the date passes.
+ */
+export function daysUntilRelease(dateStr: string | null): number | null {
+	if (!dateStr || !/^\d{4}-\d{2}-\d{2}/.test(dateStr)) return null
+	const [y, mm, dd] = dateStr.slice(0, 10).split('-')
+	const target = Date.UTC(parseInt(y), parseInt(mm) - 1, parseInt(dd))
+	if (isNaN(target)) return null
+	const now = new Date()
+	const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
+	const diff = Math.ceil((target - today) / 86_400_000)
+	return diff > 0 ? diff : null
+}
+
+/**
  * Format date string to relative time (e.g., "2 days ago")
  */
 type TranslateFn = (

@@ -14,6 +14,7 @@
 		"developerTools": "Strumenti sviluppatore",
 		"submit": "Invia",
 		"confirm": "Conferma",
+		"done": "Fatto",
 		"untitled": "Senza titolo",
 		"unknownArtist": "Artista sconosciuto",
 		"folder": "cartella",
@@ -117,6 +118,24 @@
 			"clearCache": "Cancella cache",
 			"clearCacheConfirmMessage": "Sei sicuro di voler cancellare tutto l'audio di anteprima memorizzato nella cache?",
 			"clearCacheWarning": "I brani precedentemente visualizzati in anteprima dovranno essere trasmessi nuovamente dalla loro fonte alla prossima riproduzione. Questo potrebbe essere più lento e alcuni flussi potrebbero non essere più disponibili."
+		},
+		"following": {
+			"title": "Seguiti",
+			"checkCadenceDescription": "Frequenza di controllo degli artisti e delle etichette seguite per i nuovi rilasci.",
+			"cadenceLaunch": "All'avvio",
+			"cadenceHourly": "Orariamente",
+			"cadenceDaily": "All'avvio e quotidianamente",
+			"cadenceManual": "Solo manuale",
+			"checkAllNow": "Controlla tutto ora",
+			"autoFollowDescription": "Predefinito per l'opzione \"Segui anche\" durante l'importazione di un rilascio.",
+			"autoFollowOff": "Disattivato",
+			"autoFollowArtist": "Artista",
+			"autoFollowLabel": "Etichetta",
+			"autoFollowBoth": "Entrambi",
+			"releaseDayReminders": "Promemoria del giorno di rilascio",
+			"releaseDayRemindersHelper": "I promemoria potrebbero essere decalati di un giorno a causa dei fusi orari.",
+			"newReleasesSummary": "Riepilogo nuovi rilasci",
+			"discogsRateLimitNote": "Discogs limita la frequenza di controllo, quindi gli elenchi di seguiti voluminosi potrebbero essere aggiornati gradualmente."
 		},
 		"appearance": {
 			"font": "Carattere",
@@ -333,11 +352,65 @@
 			"alreadyInDiscoveryBadge": "Già nella scoperta",
 			"noReleasesFound": "Nessun rilascio trovato in questa pagina",
 			"cancelImport": "Annulla importazione"
+		},
+		"following": {
+			"title": "Seguiti",
+			"subtitle": "{count, plural, =0 {Nessuna fonte} =1 {1 fonte} other {{count} fonti}} osservate per nuovi rilasci",
+			"checkAll": "Controlla tutto ora",
+			"followSource": "Segui fonte",
+			"footerNote": "Smettere di seguire mantiene i rilasci già in Scoperta — arresta solo i futuri.",
+			"searchPlaceholder": "Cerca per nome o URL…",
+			"select": "Seleziona",
+			"unfollowSelected": "Smetti di seguire",
+			"pauseSelected": "Pausa",
+			"unfollow": "Smetti di seguire",
+			"checkNow": "Controlla ora",
+			"enabledToggle": "Attiva/disattiva aggiornamenti",
+			"artist": "Artista",
+			"label": "Etichetta",
+			"checkedAgo": "Controllato {time}",
+			"upToDate": "Aggiornato",
+			"paused": "In pausa",
+			"newCount": "{count, plural, =1 {1 nuovo} other {{count} nuovo(i)}}",
+			"sourceError": "Impossibile controllare questa fonte",
+			"follow": "Segui",
+			"following": "Seguiti",
+			"followForNewReleases": "Segui per nuovi rilasci",
+			"followViaPaste": "Segui questa fonte dal pannello Seguiti",
+			"popoverTitle": "Segui per nuovi rilasci",
+			"upcoming": "Prossimamente",
+			"daysUntil": "{days} g",
+			"surfacedVia": "Visualizzato tramite {source}",
+			"markNew": "Segna come nuovo",
+			"markNotNew": "Segna come non nuovo",
+			"alsoFollow": "Segui per nuovi rilasci",
+			"sortBy": "Ordina per",
+			"empty": {
+				"title": "Non stai seguendo nessuno ancora",
+				"hint": "Segui un artista o un'etichetta e i nuovi rilasci arriveranno qui automaticamente."
+			},
+			"sort": {
+				"newCount": "Conteggio nuovi",
+				"name": "Nome",
+				"recentlyReleased": "Rilasciato di recente"
+			},
+			"review": "Rivedi",
+			"foundToast": "{count, plural, =1 {1 nuovo rilascio} other {{count} nuovi rilasci}} dai tuoi seguiti",
+			"changeType": "Segui come {type} — fai clic per modificare",
+			"relink": "Ricollega i rilasci",
+			"relinkHint": "Esegui di nuovo la scansione di questa pagina e collegala ai rilasci già importati — corregge lo stato di seguimento nelle righe importate prima che questa funzione esistesse.",
+			"relinkResult": "{count, plural, =0 {Nessun rilascio da ricollegate} =1 {1 rilascio ricollegate} other {{count} rilasci ricollegate}}",
+			"addSource": {
+				"title": "Segui una fonte",
+				"urlPlaceholder": "Incolla URL della pagina artista/etichetta Bandcamp, SoundCloud o Discogs",
+				"urlInfo": "Rileviamo in automatico la piattaforma e se si tratta di un artista o di un'etichetta, e da ora in poi teniamo d'occhio le nuove uscite. Le uscite più vecchie non verranno aggiunte."
+			}
 		}
 	},
 	"filters": {
 		"title": "Filtri",
-		"liked": "Preferiti"
+		"liked": "Preferiti",
+		"new": "Nuovo"
 	},
 	"playlists": {
 		"newPlaylist": "Nuova playlist",

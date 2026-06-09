@@ -76,6 +76,21 @@ pub async fn fetch_metadata(url: &str) -> Result<FetchedMetadata> {
 }
 
 /// Scan an artist/label page URL and return all releases found on it.
+/// Fetch just the profile/avatar image (og:image) for an artist/label page, without
+/// scanning its releases — for previewing a follow target before following.
+pub async fn fetch_page_avatar(url: &str) -> Result<Option<String>> {
+    let client = build_client()?;
+    let html = client
+        .get(url)
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch page: {e}")))?
+        .text()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to read page: {e}")))?;
+    Ok(common::extract_meta_content(&html, "og:image"))
+}
+
 pub async fn scan_page(
     url: &str,
     existing_urls: &std::collections::HashSet<String>,
@@ -86,7 +101,8 @@ pub async fn scan_page(
     let client = build_client()?;
 
     if bandcamp::is_bandcamp_page_url(url) {
-        let (mut releases, page_name) = bandcamp::scan_bandcamp_page(&client, url).await?;
+        let (mut releases, page_name, avatar_url) =
+            bandcamp::scan_bandcamp_page(&client, url).await?;
 
         // Normalize URLs and check existing
         let mut already_in_discovery = 0;
@@ -102,8 +118,37 @@ pub async fn scan_page(
 
         return Ok(crate::models::ScannedPage {
             source_type: "bandcamp".to_string(),
+            page_url: super::followable_page_url(url, "bandcamp"),
             page_artist: page_name.clone(),
             page_label: page_name,
+            avatar_url,
+            total_found,
+            already_in_discovery,
+            releases,
+        });
+    }
+
+    if soundcloud::is_soundcloud_page_url(url) {
+        let (mut releases, page_name, avatar_url) =
+            soundcloud::scan_soundcloud_page(&client, url).await?;
+
+        let mut already_in_discovery = 0;
+        for r in &mut releases {
+            r.url = super::normalize_url(&r.url);
+            r.already_exists = existing_urls.contains(&r.url);
+            if r.already_exists {
+                already_in_discovery += 1;
+            }
+        }
+
+        let total_found = releases.len();
+
+        return Ok(crate::models::ScannedPage {
+            source_type: "soundcloud".to_string(),
+            page_url: super::followable_page_url(url, "soundcloud"),
+            page_artist: page_name.clone(),
+            page_label: page_name,
+            avatar_url,
             total_found,
             already_in_discovery,
             releases,
@@ -115,7 +160,7 @@ pub async fn scan_page(
             kind,
             discogs::DiscogsUrlKind::Artist(_) | discogs::DiscogsUrlKind::Label(_)
         ) {
-            let (mut releases, page_artist, page_label) =
+            let (mut releases, page_artist, page_label, avatar_url) =
                 discogs::scan_discogs_page(&client, &kind, cancel_flag, app_handle).await?;
 
             let mut already_in_discovery = 0;
@@ -131,8 +176,10 @@ pub async fn scan_page(
 
             return Ok(crate::models::ScannedPage {
                 source_type: "discogs".to_string(),
+                page_url: super::followable_page_url(url, "discogs"),
                 page_artist,
                 page_label,
+                avatar_url,
                 total_found,
                 already_in_discovery,
                 releases,

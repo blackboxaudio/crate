@@ -7,10 +7,7 @@ impl DiscoveryService {
         release_id: &str,
         track_position: i32,
     ) -> Result<Option<CachedStream>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         let result = conn.query_row(
@@ -34,10 +31,7 @@ impl DiscoveryService {
 
     /// Cache stream URLs for a release, replacing any existing entries.
     pub fn cache_streams(&self, release_id: &str, streams: &[StreamInfo]) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         for stream in streams {
             conn.execute(
@@ -58,10 +52,7 @@ impl DiscoveryService {
 
     /// Get the cached SoundCloud client_id, if one exists and was fetched within the last 24 hours.
     pub fn get_cached_sc_client_id(&self) -> Result<Option<String>> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let cutoff = (chrono::Utc::now() - chrono::Duration::hours(24)).to_rfc3339();
         let result = conn.query_row(
@@ -84,10 +75,7 @@ impl DiscoveryService {
             log::warn!("Failed to clean up cached audio during invalidation for {release_id}: {e}");
         }
 
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         conn.execute(
             "DELETE FROM discovery_stream_cache WHERE release_id = ?1",
@@ -99,10 +87,7 @@ impl DiscoveryService {
 
     /// Cache a SoundCloud client_id.
     pub fn cache_sc_client_id(&self, client_id: &str) -> Result<()> {
-        let conn = self
-            .conn
-            .lock()
-            .map_err(|_| CrateError::LockPoisoned)?;
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
         conn.execute(
