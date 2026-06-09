@@ -37,15 +37,26 @@
 		return `background: linear-gradient(to right, var(--brand-primary) 0%, var(--brand-primary) ${percentage}%, var(--stroke) ${percentage}%, var(--stroke) 100%)`
 	})
 
-	function handleInput(e: Event) {
+	function applySnap(e: Event): void {
 		if (snapToCenter !== undefined) {
+			const target = e.target as HTMLInputElement
+			const raw = parseFloat(target.value)
 			const mid = (min + max) / 2
-			if (Math.abs(value - mid) <= snapToCenter) {
+			if (Math.abs(raw - mid) <= snapToCenter) {
 				value = mid
-				;(e.target as HTMLInputElement).value = String(mid)
+				target.value = String(mid)
 			}
 		}
+	}
+
+	function handleInput(e: Event) {
+		applySnap(e)
 		oninput?.(e)
+	}
+
+	function handleChange(e: Event) {
+		applySnap(e)
+		onchange?.(e)
 	}
 </script>
 
@@ -59,7 +70,7 @@
 	class="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50 {className}"
 	style={backgroundStyle}
 	oninput={handleInput}
-	{onchange}
+	onchange={handleChange}
 />
 
 <style>

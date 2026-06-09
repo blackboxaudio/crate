@@ -613,6 +613,7 @@ function createPlayerStore() {
 			setStoredNumber('player.speed', speed)
 
 			if (state.playbackSource === 'preview') {
+				previewPlayer.setPlaybackRate(speed)
 				update((s) => ({
 					...s,
 					playbackState: { ...s.playbackState, speed },
