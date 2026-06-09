@@ -153,6 +153,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Search and filter across entire collection
 
 [Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.9...HEAD
+[0.2.9]: https://github.com/blackboxaudio/crate/compare/v0.2.9...v0.2.9
 [0.2.9]: https://github.com/blackboxaudio/crate/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/blackboxaudio/crate/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/blackboxaudio/crate/compare/v0.2.6...v0.2.7
