@@ -24,9 +24,6 @@
     "fs:allow-appdata-write-recursive",
     "fs:allow-mkdir",
     "clipboard-manager:allow-write-text",
-    "updater:default",
-    "process:default",
-    "window-state:default",
     "notification:default"
   ]
 }

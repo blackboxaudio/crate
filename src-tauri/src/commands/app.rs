@@ -1,3 +1,5 @@
+// The native menu is desktop-only; its commands and import are gated accordingly.
+#[cfg(feature = "desktop")]
 use crate::menu::{self, update_menu_translations, MenuTranslations};
 use tauri::Manager;
 
@@ -60,6 +62,7 @@ pub fn close_dev_tools(app: tauri::AppHandle) {
     }
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub fn set_menu_item_enabled(
     app: tauri::AppHandle,
@@ -69,6 +72,7 @@ pub fn set_menu_item_enabled(
     menu::set_menu_item_enabled(&app, &id, enabled).map_err(|e| e.to_string())
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub fn set_dialog_conflicting_items_enabled(
     app: tauri::AppHandle,
@@ -77,11 +81,13 @@ pub fn set_dialog_conflicting_items_enabled(
     menu::set_dialog_conflicting_items_enabled(&app, enabled).map_err(|e| e.to_string())
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub fn set_onboarding_items_enabled(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
     menu::set_onboarding_items_enabled(&app, enabled).map_err(|e| e.to_string())
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub fn rebuild_menu(app: tauri::AppHandle, translations: MenuTranslations) -> Result<(), String> {
     // Use in-place text updates instead of rebuilding the entire menu
