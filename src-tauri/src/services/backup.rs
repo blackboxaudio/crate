@@ -744,8 +744,7 @@ impl BackupService {
             let discovery_count: i64 =
                 conn.query_row("SELECT COUNT(*) FROM discovery_releases", [], |r| r.get(0))?;
             log::info!(
-                "Restore post-commit: {} tracks, {} playlists, {} tags, {} discovery_releases in DB",
-                track_count, playlist_count, tag_count, discovery_count
+                "Restore post-commit: {track_count} tracks, {playlist_count} playlists, {tag_count} tags, {discovery_count} discovery_releases in DB"
             );
 
             if data.counts.tracks > 0 && track_count == 0 {

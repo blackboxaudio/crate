@@ -44,7 +44,6 @@ export default defineConfig(
 	},
 	{
 		files: ['**/*.svelte', '**/*.svelte.ts', '**/*.svelte.js'],
-		basePath: 'src',
 		languageOptions: {
 			parserOptions: {
 				projectService: true,

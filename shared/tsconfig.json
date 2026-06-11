@@ -1,0 +1,22 @@
+{
+	// This config exists so tooling that resolves a file's project by walking up the directory tree
+	// — notably typescript-eslint's `projectService` — can find a project for the shared sources
+	// (e.g. utils/virtualizer.svelte.ts). The apps build/type-check shared code via their own
+	// tsconfigs (which `include` ../../shared/**); this one is for editor/lint project discovery.
+	"compilerOptions": {
+		"moduleResolution": "bundler",
+		"module": "esnext",
+		"target": "esnext",
+		"lib": ["esnext", "DOM", "DOM.Iterable"],
+		"allowJs": true,
+		"checkJs": false,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"strict": true,
+		"isolatedModules": true,
+		"noEmit": true
+	},
+	"include": ["**/*.ts", "**/*.js", "**/*.svelte"]
+}
