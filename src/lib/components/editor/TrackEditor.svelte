@@ -2,7 +2,7 @@
 	import { toastStore } from '$lib/stores/toast'
 	import { libraryStore } from '$lib/stores/library'
 	import { syncStore } from '$lib/stores/sync'
-	import { uiStore } from '$lib/stores/ui'
+	import { uiLayoutStore } from '$lib/stores/uiLayout'
 	import { computeBulkTrackInfo } from '$lib/utils'
 	import * as libraryApi from '$lib/api/library'
 	import type { Track, TrackUpdate } from '$lib/types'
@@ -180,7 +180,7 @@
 	}
 
 	function handleClose() {
-		uiStore.setRightSidebarVisible(false)
+		uiLayoutStore.setRightSidebarVisible(false)
 	}
 </script>
 

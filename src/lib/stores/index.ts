@@ -29,14 +29,17 @@ export {
 	recentlyToggledMixedTags,
 	selectedTagIds,
 	tagFilterMode,
+	scrollOffset,
+} from './ui'
+export {
+	uiLayoutStore,
 	rightSidebarVisible,
 	rightSidebarWidth,
 	selectedTreeIds,
 	contextMenuPlaylistId,
 	contextMenuDiscoveryTrackId,
-	scrollOffset,
 	playlistScrollOffsets,
-} from './ui'
+} from './uiLayout'
 export { toastStore, toasts, hasToasts } from './toast'
 export type { Toast, ToastType } from './toast'
 export {

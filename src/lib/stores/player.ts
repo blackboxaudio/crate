@@ -3,7 +3,6 @@ import type { Track, PlaybackState, PreviewInfo, DiscoveryRelease } from '$lib/t
 import * as playerApi from '$lib/api/player'
 import * as discoveryApi from '$lib/api/discovery'
 import * as previewPlayer from '$lib/services/previewPlayer'
-import { missingTracksStore } from './missingTracks'
 import { toastStore } from './toast'
 import { translate } from '$lib/i18n'
 import {
@@ -74,6 +73,10 @@ function createPlayerStore() {
 
 	let positionInterval: ReturnType<typeof setInterval> | null = null
 	let onTrackEndCallback: (() => void) | null = null
+	// Desktop registers this to flag a track as missing when playback fails with a
+	// file-not-found error. Injected so this shared store needs no dependency on the
+	// desktop-only missingTracks store.
+	let onTrackMissing: ((trackId: string) => void) | null = null
 	let previewRetryAttempted = false
 	let previewRetrying = false
 	let previewSpeedCommitTimeout: ReturnType<typeof setTimeout> | null = null
@@ -306,7 +309,7 @@ function createPlayerStore() {
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to play track'
 				if (errorMsg.toLowerCase().includes('file not found') || errorMsg.toLowerCase().includes('filenotfound')) {
-					missingTracksStore.markMissing(track.id)
+					onTrackMissing?.(track.id)
 				}
 				update((s) => ({ ...s, error: errorMsg }))
 			}
@@ -477,7 +480,7 @@ function createPlayerStore() {
 				} catch (error) {
 					const errorMsg = error instanceof Error ? error.message : 'Failed to play track'
 					if (errorMsg.toLowerCase().includes('file not found') || errorMsg.toLowerCase().includes('filenotfound')) {
-						missingTracksStore.markMissing(state.currentTrack.id)
+						onTrackMissing?.(state.currentTrack.id)
 					}
 					update((s) => ({ ...s, error: errorMsg }))
 				}
@@ -742,6 +745,14 @@ function createPlayerStore() {
 		 */
 		onTrackEnd(callback: (() => void) | null) {
 			onTrackEndCallback = callback
+		},
+
+		/**
+		 * Register a handler called when playback fails because the track file is missing.
+		 * Desktop wires this to the missingTracks store; mobile can leave it unset.
+		 */
+		setTrackMissingHandler(handler: ((trackId: string) => void) | null) {
+			onTrackMissing = handler
 		},
 
 		/**

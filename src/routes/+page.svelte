@@ -27,6 +27,7 @@
 		tagsStore,
 		playlistsStore,
 		uiStore,
+		uiLayoutStore,
 		activeView,
 		selectedTrackIds,
 		selectedReleaseIds,
@@ -237,7 +238,7 @@
 	}
 
 	function handleRightSidebarResize(delta: number) {
-		uiStore.setRightSidebarWidth($rightSidebarWidth + delta)
+		uiLayoutStore.setRightSidebarWidth($rightSidebarWidth + delta)
 	}
 
 	async function handleToggleDevTools() {
@@ -476,7 +477,7 @@
 		canPlay: boolean,
 		e: MouseEvent
 	) {
-		uiStore.setContextMenuDiscoveryTrackId(release.tracks[trackIndex].id)
+		uiLayoutStore.setContextMenuDiscoveryTrackId(release.tracks[trackIndex].id)
 		orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryTrackMenu(e, release, trackIndex, canPlay)
 	}
 
@@ -648,11 +649,11 @@
 					}}
 					onBreadcrumbNavigate={handleBreadcrumbNavigate}
 					onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
-					onToggleEditor={() => uiStore.toggleRightSidebar()}
+					onToggleEditor={() => uiLayoutStore.toggleRightSidebar()}
 					onReleaseImport={(release) => orchestratorLayer?.setPurchaseRelease(release)}
 					onReleaseOpenUrl={(release) => openUrl(release.url)}
 					scrollOffset={$playlistScrollOffsets.get(playlist.id) ?? 0}
-					onScrollChange={(offset) => uiStore.setPlaylistScrollOffset(playlist.id, offset)}
+					onScrollChange={(offset) => uiLayoutStore.setPlaylistScrollOffset(playlist.id, offset)}
 				/>
 			{:else}
 				<PlaylistView
@@ -686,9 +687,9 @@
 					onBreadcrumbContextMenu={handleBreadcrumbContextMenu}
 					onTrackColorChange={trackController.setColor}
 					onCancelAnalysis={handleCancelAnalysis}
-					onToggleEditor={() => uiStore.toggleRightSidebar()}
+					onToggleEditor={() => uiLayoutStore.toggleRightSidebar()}
 					scrollOffset={$playlistScrollOffsets.get(playlist.id) ?? 0}
-					onScrollChange={(offset) => uiStore.setPlaylistScrollOffset(playlist.id, offset)}
+					onScrollChange={(offset) => uiLayoutStore.setPlaylistScrollOffset(playlist.id, offset)}
 				/>
 			{/if}
 		{/if}
@@ -729,7 +730,7 @@
 			onUrlDrop={async (url) => {
 				await orchestratorLayer?.addRelease({ url })
 			}}
-			onToggleEditor={() => uiStore.toggleRightSidebar()}
+			onToggleEditor={() => uiLayoutStore.toggleRightSidebar()}
 			scrollOffset={$scrollOffset}
 			onScrollChange={(offset) => uiStore.setScrollOffset(offset)}
 		/>
@@ -761,7 +762,7 @@
 			onEmptySpaceContextMenu={(e) => orchestratorLayer?.getContextMenuOrchestrator()?.openLibraryViewMenu(e)}
 			onTrackColorChange={trackController.setColor}
 			onCancelAnalysis={handleCancelAnalysis}
-			onToggleEditor={() => uiStore.toggleRightSidebar()}
+			onToggleEditor={() => uiLayoutStore.toggleRightSidebar()}
 			scrollOffset={$scrollOffset}
 			onScrollChange={(offset) => uiStore.setScrollOffset(offset)}
 		/>

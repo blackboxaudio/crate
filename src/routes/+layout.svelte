@@ -23,6 +23,7 @@
 		playlistsStore,
 		tagsStore,
 		uiStore,
+		uiLayoutStore,
 		activeView,
 		selectedTrackIds,
 		selectedReleaseIds,
@@ -82,6 +83,8 @@
 			selectedPlaylistId = state.selectedPlaylistId
 			selectedFolderId = state.selectedFolderId
 			selectedTagIds = state.viewFilters[state.activeView].selectedTagIds
+		})
+		const unsubLayout = uiLayoutStore.subscribe((state) => {
 			sidebarWidth = state.sidebarWidth
 		})
 		const unsubDevices = visibleDevices.subscribe((visibleDevicesList) => {
@@ -92,6 +95,7 @@
 			unsubPlaylists()
 			unsubTags()
 			unsubUI()
+			unsubLayout()
 			unsubDevices()
 		}
 	})
@@ -150,7 +154,7 @@
 		if (pId !== prevNavPlaylistId || fId !== prevNavFolderId) {
 			prevNavPlaylistId = pId
 			prevNavFolderId = fId
-			uiStore.clearSelectedTreeIds()
+			uiLayoutStore.clearSelectedTreeIds()
 		}
 	})
 
@@ -198,20 +202,20 @@
 	// =========================================================================
 
 	function handleSidebarResize(delta: number) {
-		uiStore.setSidebarWidth(sidebarWidth + delta)
+		uiLayoutStore.setSidebarWidth(sidebarWidth + delta)
 	}
 
 	function handlePlaylistItemClick(playlist: Playlist, newSelectedIds: Set<string>, isModifierClick: boolean) {
-		uiStore.setSelectedTreeIds(newSelectedIds)
+		uiLayoutStore.setSelectedTreeIds(newSelectedIds)
 	}
 
 	function handlePlaylistContextMenu(e: MouseEvent, playlist: Playlist) {
-		uiStore.setContextMenuPlaylistId(playlist.id)
+		uiLayoutStore.setContextMenuPlaylistId(playlist.id)
 		$pageActions?.getContextMenuOrchestrator()?.openPlaylistMenu(e, playlist, 'tree')
 	}
 
 	function handlePlaylistMultiContextMenu(e: MouseEvent, playlists: Playlist[]) {
-		uiStore.clearContextMenuPlaylistId()
+		uiLayoutStore.clearContextMenuPlaylistId()
 		$pageActions?.getContextMenuOrchestrator()?.openPlaylistMenu(e, playlists, 'tree')
 	}
 
@@ -371,16 +375,16 @@
 						{devices}
 						{selectedPlaylistId}
 						{selectedFolderId}
-						contextMenuPlaylistId={$uiStore.contextMenuPlaylistId}
+						contextMenuPlaylistId={$uiLayoutStore.contextMenuPlaylistId}
 						{selectedTagIds}
 						selectedTrackIds={$activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds}
-						selectedTreeIds={$uiStore.selectedTreeIds}
+						selectedTreeIds={$uiLayoutStore.selectedTreeIds}
 						{tagStates}
 						{tagCounts}
 						trackCount={$activeView === 'discovery' ? $releaseCount : $trackCount}
 						showHeader={false}
 						onLibraryClick={() => {
-							uiStore.clearSelectedTreeIds()
+							uiLayoutStore.clearSelectedTreeIds()
 							$pageActions?.playlistController.handleLibraryClick()
 						}}
 						onPlaylistSelect={(p) => $pageActions?.playlistController.handlePlaylistSelect(p)}

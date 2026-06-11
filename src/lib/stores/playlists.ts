@@ -11,7 +11,6 @@ import type {
 } from '$lib/types'
 import * as playlistsApi from '$lib/api/playlists'
 import { toastStore } from './toast'
-import { syncStore } from './sync'
 
 // =============================================================================
 // State
@@ -36,8 +35,20 @@ const initialState: PlaylistsState = {
 function createPlaylistsStore() {
 	const { subscribe, set, update } = writable<PlaylistsState>(initialState)
 
+	// Desktop registers this to notify the USB sync store when playlists change. Injected
+	// so this shared store has no dependency on the desktop-only sync store.
+	let onPlaylistsChanged: ((playlistIds: string[]) => void) | null = null
+
 	return {
 		subscribe,
+
+		/**
+		 * Register a handler called when playlists are mutated (rename, track add/remove/reorder).
+		 * Desktop wires this to the USB sync store; mobile can leave it unset.
+		 */
+		setPlaylistsChangedHandler(handler: ((playlistIds: string[]) => void) | null) {
+			onPlaylistsChanged = handler
+		},
 
 		/**
 		 * Load all playlists from both contexts
@@ -118,7 +129,7 @@ function createPlaylistsStore() {
 				}))
 
 				// Notify sync store about playlist changes (for auto-sync)
-				syncStore.notifyPlaylistChanges([id])
+				onPlaylistsChanged?.([id])
 
 				return updated
 			} catch (error) {
@@ -234,7 +245,7 @@ function createPlaylistsStore() {
 				}))
 
 				// Notify sync store about playlist changes (for auto-sync)
-				syncStore.notifyPlaylistChanges([playlistId])
+				onPlaylistsChanged?.([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,
@@ -256,7 +267,7 @@ function createPlaylistsStore() {
 				}))
 
 				// Notify sync store about playlist changes (for auto-sync)
-				syncStore.notifyPlaylistChanges([playlistId])
+				onPlaylistsChanged?.([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,
@@ -273,7 +284,7 @@ function createPlaylistsStore() {
 				await playlistsApi.reorderPlaylist(playlistId, trackIds)
 
 				// Notify sync store about playlist changes (for auto-sync)
-				syncStore.notifyPlaylistChanges([playlistId])
+				onPlaylistsChanged?.([playlistId])
 			} catch (error) {
 				update((state) => ({
 					...state,

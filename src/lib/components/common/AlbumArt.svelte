@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { getArtworkUrl } from '$lib/utils'
+	import { appDataDir } from '$lib/stores/app'
 	import Icon from './Icon.svelte'
 
 	type Size = 'xs' | 'sm' | 'md' | 'lg'
@@ -28,7 +29,7 @@
 		lg: 'h-16 w-16',
 	}
 
-	let localUrl = $derived(getArtworkUrl(artworkPath))
+	let localUrl = $derived(getArtworkUrl(artworkPath, $appDataDir))
 	let localError = $state(false)
 	let externalError = $state(false)
 

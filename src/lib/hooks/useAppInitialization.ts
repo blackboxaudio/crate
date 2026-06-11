@@ -68,7 +68,10 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 
 	// Load all stores in parallel
 	await Promise.all([
-		appStore.load(),
+		// Inject the app environment into the shared settings store as soon as it's known, so the
+		// native-menu rebuild (fired inside settingsStore.load()) labels the app correctly. This
+		// resolves at the same point the previous get(appStore) read would have.
+		appStore.load().then(() => settingsStore.setAppEnvironment(get(appStore).info?.environment ?? 'development')),
 		libraryStore.loadTracks(),
 		tagsStore.load(),
 		playlistsStore.load(),

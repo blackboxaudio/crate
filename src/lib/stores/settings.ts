@@ -16,7 +16,6 @@ import type {
 import * as settingsApi from '$lib/api/settings'
 import { rebuildMenu, type MenuTranslations } from '$lib/api/app'
 import { setLanguage as setI18nLanguage, translate } from '$lib/i18n'
-import { appStore } from './app'
 
 // =============================================================================
 // State
@@ -103,6 +102,10 @@ function createSettingsStore() {
 	const { subscribe, set, update } = writable<SettingsState>(initialState)
 	let systemThemeMediaQuery: MediaQueryList | null = null
 	let mediaQueryHandler: ((e: MediaQueryListEvent) => void) | null = null
+	// App environment used to label the native menu (e.g. "Crate" vs "Crate Dev"). Injected by
+	// desktop after the app store loads, so this shared store needs no dependency on the
+	// desktop-only app store. Defaults to 'development' to match the previous fallback.
+	let injectedAppEnvironment = 'development'
 
 	function resolveTheme(theme: Theme): 'light' | 'dark' {
 		if (theme === 'system') {
@@ -165,8 +168,7 @@ function createSettingsStore() {
 	}
 
 	function getAppName(): string {
-		const appState = get(appStore)
-		const environment = appState.info?.environment ?? 'development'
+		const environment = injectedAppEnvironment
 		if (environment === 'production') {
 			return 'Crate'
 		}
@@ -259,6 +261,14 @@ function createSettingsStore() {
 
 	return {
 		subscribe,
+
+		/**
+		 * Inject the app environment used to label the native menu. Desktop calls this once the
+		 * app store has loaded; mobile (no native menu) can leave the default.
+		 */
+		setAppEnvironment(environment: string) {
+			injectedAppEnvironment = environment
+		},
 
 		/**
 		 * Load settings from backend

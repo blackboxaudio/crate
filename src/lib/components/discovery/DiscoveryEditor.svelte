@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { discoveryStore, refreshingReleaseIds } from '$lib/stores/discovery'
 	import { followedSources } from '$lib/stores'
-	import { uiStore } from '$lib/stores/ui'
+	import { uiLayoutStore } from '$lib/stores/uiLayout'
 	import { toastStore } from '$lib/stores/toast'
 	import type { DiscoveryRelease, DiscoveryReleaseUpdate } from '$lib/types'
 	import Button from '$lib/components/common/Button.svelte'
@@ -103,7 +103,7 @@
 	}
 
 	function handleClose() {
-		uiStore.setRightSidebarVisible(false)
+		uiLayoutStore.setRightSidebarVisible(false)
 	}
 
 	async function handleArtworkAdd(filePath: string) {

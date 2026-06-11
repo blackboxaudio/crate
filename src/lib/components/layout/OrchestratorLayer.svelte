@@ -18,6 +18,7 @@
 		tagsStore,
 		playlistsStore,
 		uiStore,
+		uiLayoutStore,
 		activeView,
 		settingsStore,
 		isDragging,
@@ -276,8 +277,8 @@
 		discoveryStore.toggleTrackLiked(release.id, release.tracks[trackIndex].id)}
 	{onDiscoveryTrackPlayPreview}
 	onClose={() => {
-		uiStore.clearContextMenuPlaylistId()
-		uiStore.clearContextMenuDiscoveryTrackId()
+		uiLayoutStore.clearContextMenuPlaylistId()
+		uiLayoutStore.clearContextMenuDiscoveryTrackId()
 	}}
 />
 
@@ -373,7 +374,7 @@
 			await playlistsStore.load()
 		}
 
-		uiStore.clearSelectedTreeIds()
+		uiLayoutStore.clearSelectedTreeIds()
 		playlistController.handleLibraryClick()
 	}}
 	onDeleteTag={async (id) => {

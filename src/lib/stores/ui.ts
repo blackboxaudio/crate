@@ -1,17 +1,15 @@
 import { writable, derived } from 'svelte/store'
 import type { ActiveView, SidebarView, TagFilterMode } from '$lib/types'
-import {
-	getStoredBoolean,
-	getStoredNumber,
-	getStoredString,
-	setStoredBoolean,
-	setStoredNumber,
-	setStoredString,
-} from '$lib/utils/storage'
+import { getStoredString, setStoredString } from '$lib/utils/storage'
 
 // =============================================================================
 // State
 // =============================================================================
+//
+// Cross-platform UI state: active view, track/release selection, per-view tag filtering, sidebar
+// navigation (which playlist/folder is selected), and the per-view navigation cache. Desktop-only
+// layout chrome (sidebar widths, context menus, modals, playlist-tree selection) lives in the
+// desktop `uiLayout` store so this store can be shared with the mobile app.
 
 interface ViewNavigationState {
 	selectedPlaylistId: string | null
@@ -39,43 +37,19 @@ interface UIState {
 	selectedReleaseIds: Set<string>
 	lastSelectedReleaseId: string | null
 
-	// Sidebar
+	// Sidebar navigation
 	sidebarView: SidebarView
 	selectedPlaylistId: string | null
 	selectedFolderId: string | null
-	sidebarWidth: number
 
 	// Per-context filter state
 	viewFilters: ViewFilterCache
 
-	// Right Sidebar (Track Editor)
-	rightSidebarVisible: boolean
-	rightSidebarWidth: number
-
-	// Modals
-	activeModal: string | null
-
-	// Context menu
-	contextMenuOpen: boolean
-	contextMenuPosition: { x: number; y: number }
-
 	// Tag toggle tracking (for "mixed removes first" behavior)
 	recentlyToggledMixedTags: Set<string>
 
-	// Playlist tree multi-selection state
-	selectedTreeIds: Set<string>
-
-	// Context menu hover styling for playlist tree
-	contextMenuPlaylistId: string | null
-
-	// Context menu hover styling for discovery track sub-rows
-	contextMenuDiscoveryTrackId: string | null
-
 	// Navigation cache per view context
 	viewNavigationCache: ViewNavigationCache
-
-	// Per-playlist scroll offset cache
-	playlistScrollOffsets: Map<string, number>
 
 	// Onboarding state
 	isOnboarding: boolean
@@ -95,25 +69,15 @@ const initialState: UIState = {
 	sidebarView: persistedSidebarView,
 	selectedPlaylistId: persistedPlaylistId,
 	selectedFolderId: persistedFolderId,
-	sidebarWidth: getStoredNumber('sidebarWidth', 240),
 	viewFilters: {
 		library: { selectedTagIds: [], tagFilterMode: 'or' },
 		discovery: { selectedTagIds: [], tagFilterMode: 'or' },
 	},
-	rightSidebarVisible: getStoredBoolean('rightSidebarVisible', false),
-	rightSidebarWidth: getStoredNumber('rightSidebarWidth', 320),
-	activeModal: null,
-	contextMenuOpen: false,
-	contextMenuPosition: { x: 0, y: 0 },
 	recentlyToggledMixedTags: new Set(),
-	selectedTreeIds: new Set(),
-	contextMenuPlaylistId: null,
-	contextMenuDiscoveryTrackId: null,
 	viewNavigationCache: {
 		library: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
 		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
 	},
-	playlistScrollOffsets: new Map(),
 	isOnboarding: false,
 }
 
@@ -180,17 +144,6 @@ function createUIStore() {
 					},
 				},
 			}))
-		},
-
-		/**
-		 * Update scroll offset for a specific playlist
-		 */
-		setPlaylistScrollOffset(playlistId: string, offset: number) {
-			update((state) => {
-				const newOffsets = new Map(state.playlistScrollOffsets)
-				newOffsets.set(playlistId, offset)
-				return { ...state, playlistScrollOffsets: newOffsets }
-			})
 		},
 
 		// =========================================================================
@@ -433,93 +386,6 @@ function createUIStore() {
 			}))
 		},
 
-		/**
-		 * Set sidebar width
-		 */
-		setSidebarWidth(width: number) {
-			const clampedWidth = Math.max(200, Math.min(400, width))
-			setStoredNumber('sidebarWidth', clampedWidth)
-			update((state) => ({
-				...state,
-				sidebarWidth: clampedWidth,
-			}))
-		},
-
-		// =========================================================================
-		// Right Sidebar (Track Editor)
-		// =========================================================================
-
-		/**
-		 * Toggle right sidebar visibility
-		 */
-		toggleRightSidebar() {
-			update((state) => {
-				const newVisible = !state.rightSidebarVisible
-				setStoredBoolean('rightSidebarVisible', newVisible)
-				return { ...state, rightSidebarVisible: newVisible }
-			})
-		},
-
-		/**
-		 * Set right sidebar visibility
-		 */
-		setRightSidebarVisible(visible: boolean) {
-			setStoredBoolean('rightSidebarVisible', visible)
-			update((state) => ({ ...state, rightSidebarVisible: visible }))
-		},
-
-		/**
-		 * Set right sidebar width
-		 */
-		setRightSidebarWidth(width: number) {
-			const clampedWidth = Math.max(280, Math.min(500, width))
-			setStoredNumber('rightSidebarWidth', clampedWidth)
-			update((state) => ({ ...state, rightSidebarWidth: clampedWidth }))
-		},
-
-		// =========================================================================
-		// Modals
-		// =========================================================================
-
-		/**
-		 * Open a modal
-		 */
-		openModal(modalId: string) {
-			update((state) => ({ ...state, activeModal: modalId }))
-		},
-
-		/**
-		 * Close the active modal
-		 */
-		closeModal() {
-			update((state) => ({ ...state, activeModal: null }))
-		},
-
-		// =========================================================================
-		// Context Menu
-		// =========================================================================
-
-		/**
-		 * Open context menu at position
-		 */
-		openContextMenu(x: number, y: number) {
-			update((state) => ({
-				...state,
-				contextMenuOpen: true,
-				contextMenuPosition: { x, y },
-			}))
-		},
-
-		/**
-		 * Close context menu
-		 */
-		closeContextMenu() {
-			update((state) => ({
-				...state,
-				contextMenuOpen: false,
-			}))
-		},
-
 		// =========================================================================
 		// Tag Toggle Tracking
 		// =========================================================================
@@ -543,50 +409,6 @@ function createUIStore() {
 				newSet.delete(tagId)
 				return { ...state, recentlyToggledMixedTags: newSet }
 			})
-		},
-
-		/**
-		 * Set playlist tree multi-selection IDs
-		 */
-		setSelectedTreeIds(ids: Set<string>) {
-			update((state) => ({ ...state, selectedTreeIds: ids }))
-		},
-
-		/**
-		 * Clear playlist tree multi-selection
-		 */
-		clearSelectedTreeIds() {
-			update((state) => (state.selectedTreeIds.size > 0 ? { ...state, selectedTreeIds: new Set() } : state))
-		},
-
-		/**
-		 * Set context menu playlist ID (for hover styling)
-		 */
-		setContextMenuPlaylistId(id: string | null) {
-			update((state) => ({ ...state, contextMenuPlaylistId: id }))
-		},
-
-		/**
-		 * Clear context menu playlist ID
-		 */
-		clearContextMenuPlaylistId() {
-			update((state) => (state.contextMenuPlaylistId !== null ? { ...state, contextMenuPlaylistId: null } : state))
-		},
-
-		/**
-		 * Set context menu discovery track ID (for hover styling)
-		 */
-		setContextMenuDiscoveryTrackId(id: string | null) {
-			update((state) => ({ ...state, contextMenuDiscoveryTrackId: id }))
-		},
-
-		/**
-		 * Clear context menu discovery track ID
-		 */
-		clearContextMenuDiscoveryTrackId() {
-			update((state) =>
-				state.contextMenuDiscoveryTrackId !== null ? { ...state, contextMenuDiscoveryTrackId: null } : state
-			)
 		},
 
 		/**
@@ -644,16 +466,4 @@ export const selectedReleaseIds = derived(uiStore, ($ui) => $ui.selectedReleaseI
 
 export const selectedReleaseCount = derived(uiStore, ($ui) => $ui.selectedReleaseIds.size)
 
-export const rightSidebarVisible = derived(uiStore, ($ui) => $ui.rightSidebarVisible)
-
-export const rightSidebarWidth = derived(uiStore, ($ui) => $ui.rightSidebarWidth)
-
-export const selectedTreeIds = derived(uiStore, ($ui) => $ui.selectedTreeIds)
-
-export const contextMenuPlaylistId = derived(uiStore, ($ui) => $ui.contextMenuPlaylistId)
-
-export const contextMenuDiscoveryTrackId = derived(uiStore, ($ui) => $ui.contextMenuDiscoveryTrackId)
-
 export const scrollOffset = derived(uiStore, ($ui) => $ui.viewNavigationCache[$ui.activeView].scrollOffset)
-
-export const playlistScrollOffsets = derived(uiStore, ($ui) => $ui.playlistScrollOffsets)

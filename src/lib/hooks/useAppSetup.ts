@@ -21,6 +21,7 @@ import {
 	tagsStore,
 	playlistsStore,
 	uiStore,
+	uiLayoutStore,
 	activeView,
 	selectedTrackIds,
 	selectedReleaseIds,
@@ -665,6 +666,12 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onDragStateChange: (dragOver) => setIsDragOver(dragOver),
 		})
 
+		// Wire shared stores to their desktop-only collaborators. The player and playlists stores
+		// live in shared/ and expose handlers instead of importing the desktop-only missingTracks
+		// and USB sync stores directly.
+		playerStore.setTrackMissingHandler((id) => missingTracksStore.markMissing(id))
+		playlistsStore.setPlaylistsChangedHandler((ids) => syncStore.notifyPlaylistChanges(ids))
+
 		// Restore last-playing track/preview from localStorage now that stores are loaded
 		playerStore.restoreTrack(get(libraryStore).tracks)
 		await playerStore.restorePreview()
@@ -701,7 +708,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onNewFolder: () => playlistController.handleCreateFolder(),
 			onImport: handlers.import,
 			onDeleteSelected: () => {
-				const treeIds = get(uiStore).selectedTreeIds
+				const treeIds = get(uiLayoutStore).selectedTreeIds
 				if (treeIds.size > 1) {
 					const selected = getPlaylists().filter((p) => treeIds.has(p.id))
 					if (selected.length > 0) {
@@ -850,7 +857,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onQuickExport: handlers.quickExport,
 			onJumpToPlayingTrack: handlers.jumpToPlayingTrack,
 			onToggleView: handlers.toggleView,
-			onToggleEditor: () => uiStore.toggleRightSidebar(),
+			onToggleEditor: () => uiLayoutStore.toggleRightSidebar(),
 			onExpandAllReleases: () => {
 				const releases = get(displayedReleases)
 				expandedReleaseIds.expandAll(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
