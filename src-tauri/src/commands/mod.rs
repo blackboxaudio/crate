@@ -1,16 +1,25 @@
+// Command modules wrapping desktop-only services are gated behind the `desktop` feature.
+#[cfg(feature = "desktop")]
 pub mod analysis;
 pub mod app;
 pub mod backup;
 pub mod cloud_sync;
+#[cfg(feature = "desktop")]
 pub mod device;
+#[cfg(feature = "desktop")]
 pub mod diagnostics;
 pub mod discovery;
+#[cfg(feature = "desktop")]
 pub mod export;
 pub mod follow;
+#[cfg(feature = "desktop")]
 pub mod library;
+#[cfg(feature = "desktop")]
 pub mod media_controls;
+#[cfg(feature = "desktop")]
 pub mod playback;
 pub mod playlist;
 pub mod settings;
+#[cfg(feature = "desktop")]
 pub mod sync;
 pub mod tag;

@@ -2,7 +2,10 @@ use tauri::State;
 
 use crate::error::Result;
 use crate::models::{DiscoveryRelease, MovePlaylistResult, Playlist, Track};
-use crate::services::{DiscoveryService, LibraryService, PlaylistService};
+use crate::services::{DiscoveryService, PlaylistService};
+// LibraryService is only used by the desktop variant of `delete_playlist`.
+#[cfg(feature = "desktop")]
+use crate::services::LibraryService;
 
 #[tauri::command]
 pub async fn get_playlists(
@@ -41,6 +44,7 @@ pub async fn rename_playlist(
     playlists.rename_playlist(&id, name)
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub async fn delete_playlist(
     id: String,
@@ -56,6 +60,31 @@ pub async fn delete_playlist(
         if !track_ids.is_empty() {
             library.delete_tracks(track_ids)?;
         }
+        if !release_ids.is_empty() {
+            discovery.delete_releases(release_ids)?;
+        }
+        Ok(())
+    } else {
+        playlists.delete_playlist(&id)
+    }
+}
+
+// Mobile build has no LibraryService, so the "delete tracks from collection" path only
+// removes associated discovery releases (mobile has no imported library tracks). The
+// invokable args (`id`, `delete_tracks_from_collection`) are identical to the desktop
+// variant, so the frontend call is unchanged.
+#[cfg(not(feature = "desktop"))]
+#[tauri::command]
+pub async fn delete_playlist(
+    id: String,
+    delete_tracks_from_collection: bool,
+    playlists: State<'_, PlaylistService>,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    if delete_tracks_from_collection {
+        // Collect IDs before deletion (CASCADE removes junction table entries)
+        let (_track_ids, release_ids) = playlists.collect_associated_item_ids(&id)?;
+        playlists.delete_playlist(&id)?;
         if !release_ids.is_empty() {
             discovery.delete_releases(release_ids)?;
         }

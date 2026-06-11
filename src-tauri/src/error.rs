@@ -6,12 +6,15 @@ pub enum CrateError {
     #[error("Database error: {0}")]
     Database(#[from] rusqlite::Error),
 
+    #[allow(dead_code)]
     #[error("Audio error: {0}")]
     Audio(String),
 
+    #[allow(dead_code)]
     #[error("File not found: {0}")]
     FileNotFound(PathBuf),
 
+    #[allow(dead_code)]
     #[error("Import error: {0}")]
     Import(String),
 
@@ -19,6 +22,7 @@ pub enum CrateError {
     #[error("Export error: {0}")]
     Export(String),
 
+    #[allow(dead_code)]
     #[error("Device error: {0}")]
     Device(String),
 
@@ -28,15 +32,18 @@ pub enum CrateError {
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
 
+    #[allow(dead_code)]
     #[error("Metadata error: {0}")]
     Metadata(String),
 
     #[error("Artwork error: {0}")]
     Artwork(String),
 
+    #[allow(dead_code)]
     #[error("Track not found: {0}")]
     TrackNotFound(String),
 
+    #[allow(dead_code)]
     #[error("Analysis error: {0}")]
     Analysis(String),
 

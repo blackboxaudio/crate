@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "desktop",
+  "description": "Desktop-only plugin permissions (auto-updater, process control, window-state persistence). These plugins are gated behind the `desktop` Cargo feature and are absent from mobile builds, so their permissions must be scoped to desktop platforms.",
+  "platforms": ["linux", "macOS", "windows"],
+  "windows": ["main"],
+  "permissions": ["updater:default", "process:default", "window-state:default"]
+}
