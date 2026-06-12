@@ -127,5 +127,12 @@ jobs:
             echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
           } >> "$GITHUB_ENV"
 
+      # `tauri::mobile_entry_point` turns the app identifier's last segment into a Rust
+      # identifier for the Android JNI binding. The desktop bundle id `com.bbx-audio.crate`
+      # ends in `crate` — a reserved keyword — so the Android target won't compile. Override
+      # only the compile-check identifier here; the real desktop id is untouched. Choosing the
+      # production Android identifier is M.002 follow-up work.
       - name: Check Android compilation
+        env:
+          TAURI_CONFIG: '{"identifier":"com.bbx-audio.crateapp"}'
         run: cargo check --target aarch64-linux-android --no-default-features --features mobile
