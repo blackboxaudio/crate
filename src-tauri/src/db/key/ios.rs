@@ -73,9 +73,7 @@ fn store_key(key: &str) -> Result<()> {
         Some(ProtectionMode::AccessibleAfterFirstUnlockThisDeviceOnly),
         0, // no SecAccessControlCreateFlags: non-interactive read at launch, no biometric gate
     )
-    .map_err(|e| {
-        CrateError::KeyStorage(format!("failed to build keychain access control: {e}"))
-    })?;
+    .map_err(|e| CrateError::KeyStorage(format!("failed to build keychain access control: {e}")))?;
 
     let mut options = PasswordOptions::new_generic_password(KEYCHAIN_SERVICE, KEYCHAIN_ACCOUNT);
     options.set_access_control(access);
