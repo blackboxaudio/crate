@@ -1,0 +1,79 @@
+name: Mobile
+
+on:
+  push:
+    branches:
+      - '**'
+
+jobs:
+  ios-check:
+    name: iOS
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+          targets: aarch64-apple-ios
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: mobile-ios
+          cache-targets: true
+          cache-on-failure: true
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
+
+      - name: Check iOS compilation
+        run: cargo check --target aarch64-apple-ios --no-default-features --features mobile
+
+  android-check:
+    name: Android
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+          targets: aarch64-linux-android
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: mobile-android
+          cache-targets: true
+          cache-on-failure: true
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
+
+      # Vendored OpenSSL + SQLCipher are built from C source, so cross-compiling to Android
+      # needs the NDK clang/ar toolchain wired up for both `cc` and openssl-src.
+      - name: Configure Android NDK toolchain
+        run: |
+          NDK="$ANDROID_NDK_LATEST_HOME"
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+          echo "$TOOLCHAIN/bin" >> "$GITHUB_PATH"
+          {
+            echo "ANDROID_NDK_ROOT=$NDK"
+            echo "ANDROID_NDK_HOME=$NDK"
+            echo "CC_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
+            echo "CXX_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android24-clang++"
+            echo "AR_aarch64-linux-android=$TOOLCHAIN/bin/llvm-ar"
+            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
+          } >> "$GITHUB_ENV"
+
+      - name: Check Android compilation
+        run: cargo check --target aarch64-linux-android --no-default-features --features mobile
