@@ -6,14 +6,21 @@ use tauri::{Emitter, State};
 use crate::error::{CrateError, Result};
 use crate::models::{
     BulkImportProgress, BulkImportResult, DiscoveryFilter, DiscoveryRelease,
-    DiscoveryReleaseCreate, DiscoveryReleaseUpdate, DiscoveryTrackCreate,
-    ImportResultWithDuplicates, ScannedPage, ScannedRelease,
+    DiscoveryReleaseCreate, DiscoveryReleaseUpdate, DiscoveryTrackCreate, ScannedPage,
+    ScannedRelease,
 };
 use crate::services::discovery::metadata::{self, FetchedMetadata};
 use crate::services::discovery::n_transform::{self, NsigSolverState};
 use crate::services::discovery::streams::{self, StreamInfo};
 use crate::services::discovery::CachedStream;
-use crate::services::{DiscoveryService, LibraryService, TagService};
+use crate::services::DiscoveryService;
+// LibraryService + TagService are only used by `purchase_discovery_release` (desktop-only:
+// imports purchased files into the library).
+#[cfg(feature = "desktop")]
+use crate::services::{LibraryService, TagService};
+// `ImportResultWithDuplicates` is only the return type of `purchase_discovery_release`.
+#[cfg(feature = "desktop")]
+use crate::models::ImportResultWithDuplicates;
 use crate::{
     AvatarCache, BulkImportCancelFlag, EnrichmentSkipIds, PrefetchTracker, ProxyServerPort,
     ScanEnrichmentCache, ScanPageCancelFlag,
@@ -549,6 +556,7 @@ pub async fn delete_discovery_release_artwork(
     discovery.delete_release_artwork(&release_id)
 }
 
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub async fn purchase_discovery_release(
     release_id: String,

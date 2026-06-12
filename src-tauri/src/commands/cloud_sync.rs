@@ -6,6 +6,8 @@
 
 use std::sync::Arc;
 
+// Only used by the desktop-only `locate_track`.
+#[cfg(feature = "desktop")]
 use rusqlite::OptionalExtension;
 use serde::Serialize;
 use tauri::{AppHandle, State};
@@ -15,6 +17,8 @@ use crate::error::{CrateError, Result};
 use crate::services::cloud_sync::backend::types::DeviceRecord;
 use crate::services::cloud_sync::resolution;
 use crate::services::cloud_sync::runtime::{CloudSyncState, OverrideNotice, SyncStatus};
+// Only used by `locate_track` (desktop-only: relocates a synced track to a local file).
+#[cfg(feature = "desktop")]
 use crate::services::LibraryService;
 
 // =============================================================================
@@ -187,6 +191,7 @@ pub async fn suggest_library_roots(state: State<'_, Arc<CloudSyncState>>) -> Res
 /// Locate a track whose file is unavailable. If the track has a `library_root_id`,
 /// sets that root's local mapping (all tracks under it become available). Otherwise
 /// falls back to relocating the individual track.
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub async fn locate_track(
     track_id: String,

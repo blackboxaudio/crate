@@ -460,7 +460,7 @@ pub(super) async fn scan_discogs_page(
         .and_then(|n| n.as_str())
         .map(|s| s.to_string());
 
-    log::info!("Discogs scan: entity name = {:?}", entity_name);
+    log::info!("Discogs scan: entity name = {entity_name:?}");
 
     // Prefer the primary image, fallback to first — used as the followed source avatar.
     let avatar_url = entity_resp

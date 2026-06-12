@@ -1,6 +1,8 @@
 mod commands;
 mod db;
 mod error;
+// The native application menu is desktop-only.
+#[cfg(feature = "desktop")]
 mod menu;
 mod models;
 mod proxy;
@@ -63,10 +65,14 @@ impl PrefetchTracker {
 }
 
 use services::{
-    discovery::n_transform::NsigSolverState, export::CheckpointService, AnalysisService,
-    AudioService, BackupService, DeviceService, DiagnosticsService, DiscoveryService,
-    ExportService, FollowService, LibraryService, MediaControlsService, PlaylistService,
-    SettingsService, SyncService, TagService,
+    discovery::n_transform::NsigSolverState, BackupService, DiscoveryService, FollowService,
+    PlaylistService, SettingsService, TagService,
+};
+// Desktop-only services and their backing crates are excluded from the mobile build.
+#[cfg(feature = "desktop")]
+use services::{
+    export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
+    ExportService, LibraryService, MediaControlsService, SyncService,
 };
 use tauri::Manager;
 
@@ -95,54 +101,94 @@ pub fn run() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     log::info!("Crash log path: {crash_log_path:?}");
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_notification::init());
+
+    // Desktop-only plugins: the updater (mobile updates via the App Store / TestFlight),
+    // the process plugin, and window-state (there are no OS windows to persist on mobile).
+    #[cfg(feature = "desktop")]
+    let builder = builder
         .plugin(tauri_plugin_updater::Builder::default().build())
         .plugin(tauri_plugin_process::init())
-        .plugin(tauri_plugin_window_state::Builder::default().build())
-        .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_window_state::Builder::default().build());
+
+    let builder = builder
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
             commands::app::open_dev_tools,
             commands::app::close_dev_tools,
+            #[cfg(feature = "desktop")]
             commands::app::rebuild_menu,
+            #[cfg(feature = "desktop")]
             commands::app::set_menu_item_enabled,
+            #[cfg(feature = "desktop")]
             commands::app::set_dialog_conflicting_items_enabled,
+            #[cfg(feature = "desktop")]
             commands::app::set_onboarding_items_enabled,
-            // Library commands
+            // Library commands (desktop-only)
+            #[cfg(feature = "desktop")]
             commands::library::import_tracks,
+            #[cfg(feature = "desktop")]
             commands::library::get_tracks,
+            #[cfg(feature = "desktop")]
             commands::library::get_track,
+            #[cfg(feature = "desktop")]
             commands::library::update_track,
+            #[cfg(feature = "desktop")]
             commands::library::delete_tracks,
+            #[cfg(feature = "desktop")]
             commands::library::search_tracks,
+            #[cfg(feature = "desktop")]
             commands::library::rescan_artwork,
+            #[cfg(feature = "desktop")]
             commands::library::rescan_track_artwork,
+            #[cfg(feature = "desktop")]
             commands::library::check_file_exists,
+            #[cfg(feature = "desktop")]
             commands::library::validate_replacement_file,
+            #[cfg(feature = "desktop")]
             commands::library::relocate_track,
+            #[cfg(feature = "desktop")]
             commands::library::set_track_colors,
+            #[cfg(feature = "desktop")]
             commands::library::update_tracks,
+            #[cfg(feature = "desktop")]
             commands::library::set_track_artwork,
+            #[cfg(feature = "desktop")]
             commands::library::delete_track_artwork,
+            #[cfg(feature = "desktop")]
             commands::library::reextract_track_artwork,
+            #[cfg(feature = "desktop")]
             commands::library::compare_track_artworks,
+            #[cfg(feature = "desktop")]
             commands::library::import_tracks_with_duplicates,
+            #[cfg(feature = "desktop")]
             commands::library::resolve_duplicate,
-            // Playback commands
+            // Playback commands (desktop-only)
+            #[cfg(feature = "desktop")]
             commands::playback::play_track,
+            #[cfg(feature = "desktop")]
             commands::playback::pause,
+            #[cfg(feature = "desktop")]
             commands::playback::resume,
+            #[cfg(feature = "desktop")]
             commands::playback::stop,
+            #[cfg(feature = "desktop")]
             commands::playback::seek,
+            #[cfg(feature = "desktop")]
             commands::playback::set_volume,
+            #[cfg(feature = "desktop")]
             commands::playback::set_speed,
+            #[cfg(feature = "desktop")]
             commands::playback::get_playback_state,
+            #[cfg(feature = "desktop")]
             commands::playback::get_audio_devices,
+            #[cfg(feature = "desktop")]
             commands::playback::set_audio_device,
             // Tag commands
             commands::tag::get_tag_categories,
@@ -177,38 +223,66 @@ pub fn run() {
             // Settings commands
             commands::settings::get_settings,
             commands::settings::set_setting,
-            // Device commands
+            // Device commands (desktop-only)
+            #[cfg(feature = "desktop")]
             commands::device::get_devices,
+            #[cfg(feature = "desktop")]
             commands::device::eject_device,
+            #[cfg(feature = "desktop")]
             commands::device::reformat_device,
-            // Export commands
+            // Export commands (desktop-only)
+            #[cfg(feature = "desktop")]
             commands::export::export_playlists,
+            #[cfg(feature = "desktop")]
             commands::export::get_device_exports,
+            #[cfg(feature = "desktop")]
             commands::export::cancel_export,
+            #[cfg(feature = "desktop")]
             commands::export::cleanup_failed_export,
+            #[cfg(feature = "desktop")]
             commands::export::get_pending_checkpoint,
+            #[cfg(feature = "desktop")]
             commands::export::delete_checkpoint,
+            #[cfg(feature = "desktop")]
             commands::export::resume_export,
-            // Sync commands
+            // Sync commands (desktop-only)
+            #[cfg(feature = "desktop")]
             commands::sync::sync_device,
+            #[cfg(feature = "desktop")]
             commands::sync::get_pending_sync_playlists,
+            #[cfg(feature = "desktop")]
             commands::sync::has_pending_sync_changes,
+            #[cfg(feature = "desktop")]
             commands::sync::is_syncing,
+            #[cfg(feature = "desktop")]
             commands::sync::cancel_sync,
+            #[cfg(feature = "desktop")]
             commands::sync::get_playlists_containing_track,
+            #[cfg(feature = "desktop")]
             commands::sync::get_playlists_containing_tracks,
+            #[cfg(feature = "desktop")]
             commands::sync::get_devices_for_playlist,
+            #[cfg(feature = "desktop")]
             commands::sync::get_devices_for_playlists,
-            // Diagnostics commands
+            // Diagnostics commands (desktop-only)
+            #[cfg(feature = "desktop")]
             commands::diagnostics::get_diagnostic_entries,
+            #[cfg(feature = "desktop")]
             commands::diagnostics::get_system_info,
+            #[cfg(feature = "desktop")]
             commands::diagnostics::get_diagnostics_report,
+            #[cfg(feature = "desktop")]
             commands::diagnostics::clear_diagnostic_entries,
+            #[cfg(feature = "desktop")]
             commands::diagnostics::log_error,
-            // Analysis commands
+            // Analysis commands (desktop-only)
+            #[cfg(feature = "desktop")]
             commands::analysis::analyze_tracks,
+            #[cfg(feature = "desktop")]
             commands::analysis::cancel_track_analysis,
+            #[cfg(feature = "desktop")]
             commands::analysis::cancel_analysis,
+            #[cfg(feature = "desktop")]
             commands::analysis::get_analyzed_tracks,
             // Discovery commands
             commands::discovery::toggle_discovery_track_liked,
@@ -225,6 +299,7 @@ pub fn run() {
             commands::discovery::merge_discovery_releases,
             commands::discovery::fetch_release_metadata,
             commands::discovery::refresh_release_metadata,
+            #[cfg(feature = "desktop")]
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
             commands::discovery::invalidate_preview_stream_cache,
@@ -254,9 +329,12 @@ pub fn run() {
             commands::backup::get_backup_info,
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
-            // Media controls commands
+            // Media controls commands (desktop-only)
+            #[cfg(feature = "desktop")]
             commands::media_controls::update_now_playing,
+            #[cfg(feature = "desktop")]
             commands::media_controls::update_playback_state,
+            #[cfg(feature = "desktop")]
             commands::media_controls::clear_now_playing,
             // Cloud sync commands
             commands::cloud_sync::sign_in,
@@ -275,6 +353,7 @@ pub fn run() {
             commands::cloud_sync::remove_library_root,
             commands::cloud_sync::set_library_root_mapping,
             commands::cloud_sync::suggest_library_roots,
+            #[cfg(feature = "desktop")]
             commands::cloud_sync::locate_track,
         ])
         .setup(|app| {
@@ -293,24 +372,35 @@ pub fn run() {
             let db = Database::new(db_path)?;
             let conn = db.connection();
 
-            // Initialize services
+            // Initialize services. Desktop-only services (file import/analysis, audio
+            // playback, USB export/sync, device detection, diagnostics) are gated out of
+            // the mobile build along with their commands and backing crates.
+            #[cfg(feature = "desktop")]
             let library_service = LibraryService::new(conn.clone(), app_data_dir.clone());
             let tag_service = TagService::new(conn.clone());
             let playlist_service = PlaylistService::new(conn.clone());
             let settings_service = SettingsService::new(conn.clone());
+            #[cfg(feature = "desktop")]
             let export_service = Arc::new(ExportService::new(conn.clone()));
+            #[cfg(feature = "desktop")]
             let checkpoint_service = Arc::new(CheckpointService::new(conn.clone()));
+            #[cfg(feature = "desktop")]
             let sync_service = SyncService::new(conn.clone(), export_service.clone());
+            #[cfg(feature = "desktop")]
             let audio_service = AudioService::new()
                 .map_err(|e| format!("Failed to initialize audio service: {e}"))?;
+            #[cfg(feature = "desktop")]
             let device_service = DeviceService::new();
+            #[cfg(feature = "desktop")]
             let diagnostics_service = DiagnosticsService::new(app_data_dir.clone());
+            #[cfg(feature = "desktop")]
             let analysis_service = AnalysisService::new(conn.clone());
             let backup_service = BackupService::new(conn.clone());
             let discovery_service = DiscoveryService::new(conn.clone(), app_data_dir.clone());
             let follow_service = FollowService::new(conn.clone(), app_data_dir.clone());
 
-            // Load saved audio device setting
+            // Load saved audio device setting (desktop-only: no rodio playback on mobile)
+            #[cfg(feature = "desktop")]
             if let Ok(settings) = settings_service.get_settings() {
                 if let Some(device_name) = settings.audio_device {
                     if !device_name.is_empty() {
@@ -340,16 +430,24 @@ pub fn run() {
                 });
             }
 
+            #[cfg(feature = "desktop")]
             app.manage(library_service);
             app.manage(tag_service);
             app.manage(playlist_service);
             app.manage(settings_service);
+            #[cfg(feature = "desktop")]
             app.manage(export_service);
+            #[cfg(feature = "desktop")]
             app.manage(checkpoint_service);
+            #[cfg(feature = "desktop")]
             app.manage(sync_service);
+            #[cfg(feature = "desktop")]
             app.manage(audio_service);
+            #[cfg(feature = "desktop")]
             app.manage(device_service);
+            #[cfg(feature = "desktop")]
             app.manage(diagnostics_service);
+            #[cfg(feature = "desktop")]
             app.manage(analysis_service);
             app.manage(discovery_service);
             app.manage(follow_service);
@@ -408,7 +506,16 @@ pub fn run() {
                         .filter(|s| !s.is_empty())
                 }
                 .unwrap_or_else(|| {
-                    sysinfo::System::host_name().unwrap_or_else(|| "Crate device".to_string())
+                    // `sysinfo` is desktop-only; mobile falls back to a generic name until
+                    // the device is renamed.
+                    #[cfg(feature = "desktop")]
+                    {
+                        sysinfo::System::host_name().unwrap_or_else(|| "Crate device".to_string())
+                    }
+                    #[cfg(not(feature = "desktop"))]
+                    {
+                        "Crate device".to_string()
+                    }
                 });
                 let app_version = app.package_info().version.to_string();
 
@@ -478,21 +585,30 @@ pub fn run() {
                 });
             }
 
-            // Start device monitoring
-            let device_service = app.state::<DeviceService>();
-            device_service.start_monitoring(app.handle().clone());
+            // Start device monitoring (desktop-only: USB device attach/detach)
+            #[cfg(feature = "desktop")]
+            {
+                let device_service = app.state::<DeviceService>();
+                device_service.start_monitoring(app.handle().clone());
+            }
 
-            // Build and set the application menu
-            let menu = menu::build_menu(app.handle())?;
-            app.set_menu(menu)?;
-            menu::setup_menu_handlers(app.handle());
+            // Build and set the application menu (desktop-only: no native menu on mobile)
+            #[cfg(feature = "desktop")]
+            {
+                let menu = menu::build_menu(app.handle())?;
+                app.set_menu(menu)?;
+                menu::setup_menu_handlers(app.handle());
 
-            // Manage fullscreen label translations for dynamic menu text toggling
-            app.manage(std::sync::Mutex::new(menu::FullscreenLabels::default()));
+                // Manage fullscreen label translations for dynamic menu text toggling
+                app.manage(std::sync::Mutex::new(menu::FullscreenLabels::default()));
+            }
 
-            // Initialize media controls (Now Playing / media key integration)
-            let media_controls_service = MediaControlsService::new(app.handle());
-            app.manage(media_controls_service);
+            // Initialize media controls (desktop-only: souvlaki Now Playing / media keys)
+            #[cfg(feature = "desktop")]
+            {
+                let media_controls_service = MediaControlsService::new(app.handle());
+                app.manage(media_controls_service);
+            }
 
             // Bind a stream proxy HTTP server on a random OS-assigned port. Real HTTP is required
             // for WKWebView's AVFoundation media layer to correctly handle Range requests during
@@ -550,24 +666,28 @@ pub fn run() {
             });
 
             Ok(())
-        })
-        .on_window_event(|window, event| {
-            // Track fullscreen state changes and update the menu text accordingly.
-            // There is no dedicated fullscreen event, so we check on every resize.
-            if let tauri::WindowEvent::Resized(_) = event {
-                use std::sync::atomic::{AtomicBool, Ordering};
-                static WAS_FULLSCREEN: AtomicBool = AtomicBool::new(false);
-
-                let is_fullscreen = window.is_fullscreen().unwrap_or(false);
-                let was_fullscreen = WAS_FULLSCREEN.swap(is_fullscreen, Ordering::Relaxed);
-                if is_fullscreen != was_fullscreen {
-                    menu::update_fullscreen_menu_text(window.app_handle(), is_fullscreen);
-                }
-            }
-        })
-        .run(tauri::generate_context!())
-        .unwrap_or_else(|e| {
-            log::error!("Fatal: failed to run Tauri application: {e}");
-            std::process::exit(1);
         });
+
+    // Fullscreen menu-text tracking via window resize is desktop-only (no native menu on
+    // mobile, and no `WindowEvent::Resized` to react to).
+    #[cfg(feature = "desktop")]
+    let builder = builder.on_window_event(|window, event| {
+        // Track fullscreen state changes and update the menu text accordingly.
+        // There is no dedicated fullscreen event, so we check on every resize.
+        if let tauri::WindowEvent::Resized(_) = event {
+            use std::sync::atomic::{AtomicBool, Ordering};
+            static WAS_FULLSCREEN: AtomicBool = AtomicBool::new(false);
+
+            let is_fullscreen = window.is_fullscreen().unwrap_or(false);
+            let was_fullscreen = WAS_FULLSCREEN.swap(is_fullscreen, Ordering::Relaxed);
+            if is_fullscreen != was_fullscreen {
+                menu::update_fullscreen_menu_text(window.app_handle(), is_fullscreen);
+            }
+        }
+    });
+
+    builder.run(tauri::generate_context!()).unwrap_or_else(|e| {
+        log::error!("Fatal: failed to run Tauri application: {e}");
+        std::process::exit(1);
+    });
 }

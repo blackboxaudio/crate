@@ -3,9 +3,15 @@ use std::path::PathBuf;
 
 use image::imageops::FilterType;
 use image::ImageFormat;
+// Embedded-art extraction relies on `lofty` (audio metadata), which is desktop-only. The
+// image/filesystem methods below stay cross-platform so discovery artwork works on mobile.
+#[cfg(feature = "desktop")]
 use lofty::file::TaggedFile;
+#[cfg(feature = "desktop")]
 use lofty::picture::PictureType;
+#[cfg(feature = "desktop")]
 use lofty::prelude::*;
+#[cfg(feature = "desktop")]
 use lofty::tag::{Tag, TagType};
 
 /// Service for managing album artwork extraction and storage.
@@ -29,6 +35,7 @@ impl ArtworkService {
     /// Extracts album art from a tagged audio file and saves it as WEBP.
     /// Returns the relative path (e.g., "artwork/{track_id}.webp") if successful.
     /// Uses multiple strategies to find pictures across different tag systems.
+    #[cfg(feature = "desktop")]
     pub fn extract_and_save(&self, tagged_file: &TaggedFile, track_id: &str) -> Option<String> {
         // First try the primary tag (most reliable for common formats)
         if let Some(tag) = tagged_file.primary_tag() {
@@ -64,6 +71,7 @@ impl ArtworkService {
     }
 
     /// Extracts a picture from a single tag and saves it.
+    #[cfg(feature = "desktop")]
     fn extract_from_tag(&self, tag: &Tag, track_id: &str) -> Option<String> {
         let pictures = tag.pictures();
         if pictures.is_empty() {
@@ -81,6 +89,7 @@ impl ArtworkService {
 
     /// Saves picture data to disk as a WEBP image.
     /// Resizes to 500x500 max while maintaining aspect ratio.
+    #[cfg(feature = "desktop")]
     fn save_picture(&self, data: &[u8], track_id: &str) -> Option<String> {
         // Load the image from raw bytes
         let img = image::load_from_memory(data).ok()?;
@@ -145,6 +154,7 @@ impl ArtworkService {
     }
 
     /// Returns the full filesystem path for an artwork file.
+    #[cfg(feature = "desktop")]
     pub fn get_full_path(&self, relative_path: &str) -> PathBuf {
         self.artwork_dir
             .parent()
@@ -154,6 +164,7 @@ impl ArtworkService {
 
     /// Checks if all artwork files at the given relative paths have identical content.
     /// Returns `false` if any file can't be read or if fewer than 2 paths are provided.
+    #[cfg(feature = "desktop")]
     pub fn are_artworks_identical(&self, relative_paths: &[String]) -> bool {
         if relative_paths.len() < 2 {
             return false;

@@ -429,6 +429,8 @@ impl Default for AppSettings {
     }
 }
 
+// Audio output device — only surfaced by the desktop playback/audio service.
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioDevice {

@@ -1,0 +1,22 @@
+{
+	"name": "@bbx-audio/crate-mobile",
+	"version": "0.0.0",
+	"description": "Crate mobile app (SvelteKit frontend, scaffold)",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"dev:vite": "vite dev",
+		"build:vite": "vite build",
+		"preview": "vite preview",
+		"check:svelte": "svelte-kit sync && svelte-check --tsconfig tsconfig.json"
+	},
+	"license": "SEE LICENSE IN LICENSE",
+	"devDependencies": {
+		"@sveltejs/adapter-static": "3.0.10",
+		"@sveltejs/kit": "2.49.2",
+		"@sveltejs/vite-plugin-svelte": "6.2.1",
+		"svelte": "5.46.0",
+		"svelte-check": "4.3.4",
+		"vite": "7.3.0"
+	}
+}

@@ -1,4 +1,6 @@
 use serde::{Deserialize, Serialize};
+// Only `Track::new` (desktop library import) constructs UUIDs here.
+#[cfg(feature = "desktop")]
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,6 +59,8 @@ pub struct Track {
     pub tags: Vec<super::Tag>,
 }
 
+// `Track::new` constructs a fresh imported track — only the desktop library import does this.
+#[cfg(feature = "desktop")]
 impl Track {
     pub fn new(file_path: String, format: String, duration_ms: i64) -> Self {
         let now = chrono::Utc::now().to_rfc3339();
@@ -95,6 +99,7 @@ impl Track {
     }
 }
 
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrackFilter {
     pub search: Option<String>,
@@ -106,6 +111,7 @@ pub struct TrackFilter {
     pub key: Option<String>,
 }
 
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TrackUpdate {
     pub title: Option<String>,
@@ -119,6 +125,7 @@ pub struct TrackUpdate {
     pub rating: Option<i32>,
 }
 
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImportResult {
     pub tracks: Vec<Track>,
@@ -127,6 +134,7 @@ pub struct ImportResult {
 }
 
 /// Result of validating a replacement file for a missing track
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileMatchResult {
     /// Whether the file content hash matches the original
@@ -140,6 +148,7 @@ pub struct FileMatchResult {
 }
 
 /// A duplicate track detected during import
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DuplicateTrack {
     /// The path of the new file being imported
@@ -151,6 +160,7 @@ pub struct DuplicateTrack {
 }
 
 /// Extended import result with duplicate detection
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImportResultWithDuplicates {
     /// Successfully imported tracks (non-duplicates)
@@ -164,6 +174,7 @@ pub struct ImportResultWithDuplicates {
 }
 
 /// Resolution action for a duplicate track
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "action", rename_all = "snake_case")]
 pub enum DuplicateResolution {

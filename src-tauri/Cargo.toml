@@ -11,7 +11,33 @@ name = "crate_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
+# No default features: Tauri's mobile build (`tauri ios/android dev|build`) inherits the crate's
+# default features and exposes NO `--no-default-features` opt-out, so a default of `["desktop"]`
+# drags desktop-only deps (souvlaki, the native menu, …) into the iOS/Android build and breaks it.
+# Desktop therefore opts in explicitly via `--features desktop` (package.json scripts + CI); mobile
+# builds use `--no-default-features --features mobile`.
 default = []
+# Desktop-only backend: audio playback, USB export, media keys, file import/analysis, native menu,
+# and the window/process/updater plugins. Opt-in via `--features desktop` (see `default` above).
+desktop = [
+  "dep:rodio",
+  "dep:souvlaki",
+  "dep:raw-window-handle",
+  "dep:sysinfo",
+  "dep:lofty",
+  "dep:symphonia",
+  "dep:stratum-dsp",
+  "dep:binrw",
+  "dep:base85",
+  "dep:walkdir",
+  "dep:tauri-plugin-window-state",
+  "dep:tauri-plugin-process",
+  "dep:tauri-plugin-updater",
+]
+# Marker feature for mobile (iOS/Android) builds: opts out of `desktop`. Empty by design —
+# the secure-store DB key providers (#134) are non-optional `[target.'cfg(target_os = …)']`
+# dependencies (see below), so they attach per-target rather than via this feature.
+mobile = []
 devtools = ["tauri/devtools"]
 
 [build-dependencies]
@@ -24,28 +50,28 @@ tauri-plugin-opener = "2.5.3"
 tauri-plugin-dialog = "2.6.0"
 tauri-plugin-fs = "2.4.5"
 tauri-plugin-clipboard-manager = "2.3.2"
-tauri-plugin-window-state = "2.4.1"
-tauri-plugin-updater = "2.10.0"
-tauri-plugin-process = "2.3.1"
+tauri-plugin-window-state = { version = "2.4.1", optional = true }
+tauri-plugin-updater = { version = "2.10.0", optional = true }
+tauri-plugin-process = { version = "2.3.1", optional = true }
 tauri-plugin-notification = "2"
-souvlaki = "0.8"
-raw-window-handle = "0.6"
+souvlaki = { version = "0.8", optional = true }
+raw-window-handle = { version = "0.6", optional = true }
 
 # Database
 rusqlite = { version = "0.38.0", features = ["bundled-sqlcipher-vendored-openssl"] }
 
-# Audio
-rodio = "0.21.1"
-symphonia = { version = "0.5.5", features = ["all"] }
-lofty = "0.22.4"
+# Audio (desktop-only: playback, decoding, metadata extraction)
+rodio = { version = "0.21.1", optional = true }
+symphonia = { version = "0.5.5", features = ["all"], optional = true }
+lofty = { version = "0.22.4", optional = true }
 
-# Audio analysis
-stratum-dsp = "1.0"
+# Audio analysis (desktop-only)
+stratum-dsp = { version = "1.0", optional = true }
 
 # Serialization
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
-binrw = "0.14.1"
+binrw = { version = "0.14.1", optional = true }
 
 # Async
 tokio = { version = "1.48.0", features = ["full"] }
@@ -73,8 +99,8 @@ chrono = { version = "0.4.42", features = ["serde"] }
 thiserror = "2.0.17"
 log = "0.4.29"
 env_logger = "0.11.8"
-walkdir = "2.5.0"
-sysinfo = "0.37.2"
+walkdir = { version = "2.5.0", optional = true }
+sysinfo = { version = "0.37.2", optional = true }
 
 # Random
 rand = "0.9"
@@ -82,10 +108,24 @@ rand = "0.9"
 # Encoding
 base64 = "0.22"
 
-# Device Library Plus key deobfuscation
+# Device Library Plus key deobfuscation (flate2 also used by shared backup + cloud_sync)
 flate2 = "1.0"
-base85 = "2.0"
+base85 = { version = "2.0", optional = true }
 
 # Cloud sync (auth: PKCE S256 hashing)
 sha2 = "0.10"
+
+# Mobile secure-store providers for the SQLCipher DB key (#134). Non-optional within each
+# target table so they're pulled only for that target and never for desktop — referencing a
+# target-specific optional dep from the `mobile` feature would break the OTHER target's build.
+
+# iOS Keychain access (after-first-unlock, this-device-only).
+[target.'cfg(target_os = "ios")'.dependencies]
+security-framework = "3.7"
+
+# Android Keystore-wrapped key via JNI; ndk-context is provided by Tauri Mobile.
+# `keyring` is the API surface (Entry/Error); `android-keyring` registers the Keystore backend.
+[target.'cfg(target_os = "android")'.dependencies]
+keyring = { version = "3.6", default-features = false }
+android-keyring = { version = "0.2", features = ["ndk-context"] }
 

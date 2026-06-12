@@ -1,0 +1,29 @@
+{
+	"extends": "./.svelte-kit/tsconfig.json",
+	"compilerOptions": {
+		"allowJs": true,
+		"checkJs": true,
+		"esModuleInterop": true,
+		"forceConsistentCasingInFileNames": true,
+		"resolveJsonModule": true,
+		"skipLibCheck": true,
+		"sourceMap": true,
+		"strict": true,
+		"moduleResolution": "bundler"
+	},
+	// TypeScript does not inherit include/exclude from the extended config, so we restate the
+	// SvelteKit-generated includes (relative to this app) and add the shared sources so svelte-check
+	// type-checks code imported via the $shared alias.
+	"include": [
+		".svelte-kit/ambient.d.ts",
+		".svelte-kit/non-ambient.d.ts",
+		".svelte-kit/types/**/$types.d.ts",
+		"vite.config.ts",
+		"src/**/*.js",
+		"src/**/*.ts",
+		"src/**/*.svelte",
+		"../../shared/**/*.ts",
+		"../../shared/**/*.svelte"
+	],
+	"exclude": ["node_modules/**", "../../node_modules/**"]
+}
