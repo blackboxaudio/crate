@@ -1,7 +1,11 @@
 pub mod schema;
 
+mod key;
+
 use rusqlite::Connection;
-use std::path::{Path, PathBuf};
+#[cfg(feature = "desktop")]
+use std::path::Path;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use crate::error::{CrateError, Result};
@@ -10,49 +14,12 @@ pub struct Database {
     conn: Arc<Mutex<Connection>>,
 }
 
-/// Retrieve or generate the database encryption key from a local key file.
-fn get_or_create_db_key(app_data_dir: &Path) -> Result<String> {
-    let key_path = app_data_dir.join("db.key");
-
-    if key_path.exists() {
-        let key = std::fs::read_to_string(&key_path)
-            .map_err(|e| CrateError::KeyStorage(format!("failed to read key file: {e}")))?;
-        let key = key.trim().to_string();
-        if !key.is_empty() {
-            return Ok(key);
-        }
-    }
-
-    // First launch: generate a random 64-char hex key using two UUIDs
-    let key = format!(
-        "{}{}",
-        uuid::Uuid::new_v4().as_simple(),
-        uuid::Uuid::new_v4().as_simple()
-    );
-
-    write_key_file(&key_path, &key)?;
-
-    Ok(key)
-}
-
-/// Write the key to a file with restrictive permissions.
-fn write_key_file(path: &Path, key: &str) -> Result<()> {
-    std::fs::write(path, key)
-        .map_err(|e| CrateError::KeyStorage(format!("failed to write key file: {e}")))?;
-
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600)).map_err(|e| {
-            CrateError::KeyStorage(format!("failed to set key file permissions: {e}"))
-        })?;
-    }
-
-    Ok(())
-}
-
 /// Check whether a database file is unencrypted by attempting to read its header.
 /// An unencrypted SQLite database starts with "SQLite format 3\0".
+///
+/// Desktop-only: mobile databases are encrypted from creation, so there is never
+/// an unencrypted database to detect or migrate.
+#[cfg(feature = "desktop")]
 fn is_unencrypted(db_path: &Path) -> bool {
     std::fs::read(db_path)
         .map(|bytes| bytes.starts_with(b"SQLite format 3\0"))
@@ -60,6 +27,9 @@ fn is_unencrypted(db_path: &Path) -> bool {
 }
 
 /// Migrate an existing unencrypted database to an encrypted one using `sqlcipher_export`.
+///
+/// Desktop-only (see [`is_unencrypted`]); the `std::fs::rename` swap never runs on mobile.
+#[cfg(feature = "desktop")]
 fn migrate_to_encrypted(db_path: &Path, key: &str) -> Result<()> {
     let conn = Connection::open(db_path)?;
     let encrypted_path = db_path.with_extension("db.encrypted");
@@ -87,9 +57,13 @@ impl Database {
         let app_data_dir = db_path.parent().ok_or_else(|| {
             CrateError::KeyStorage("database path has no parent directory".to_string())
         })?;
-        let key = get_or_create_db_key(app_data_dir)?;
+        // Compile-time-selected provider: file (desktop) / Keychain (iOS) / Keystore (Android).
+        let key = key::provision_key(app_data_dir)?;
 
-        // If the database file already exists and is unencrypted, migrate it
+        // If a pre-#134 desktop install left an unencrypted database on disk, migrate it in
+        // place. Mobile databases are born encrypted, so this path — and its `std::fs::rename`
+        // — is compiled out entirely on mobile.
+        #[cfg(feature = "desktop")]
         if db_path.exists() && is_unencrypted(&db_path) {
             log::info!("Migrating unencrypted database to encrypted format");
             migrate_to_encrypted(&db_path, &key)?;

@@ -121,7 +121,7 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/develop' }}
 
       - name: Run clippy
-        run: cargo clippy -- -D warnings
+        run: cargo clippy --features desktop -- -D warnings
 
   rust-audit:
     runs-on: ubuntu-latest

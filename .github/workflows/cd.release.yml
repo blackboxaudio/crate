@@ -158,7 +158,7 @@ jobs:
 
       - name: Build Tauri app (macOS Universal)
         if: matrix.os == 'macos-latest'
-        run: yarn tauri build --config src-tauri/tauri.${{ needs.validate.outputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json --target universal-apple-darwin
+        run: yarn tauri build --config src-tauri/tauri.${{ needs.validate.outputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json --target universal-apple-darwin -f desktop
         env:
           CRATE_ENV: ${{ needs.validate.outputs.channel }}
           # Cloud sync config — public client identifiers, baked in at compile time
@@ -181,7 +181,7 @@ jobs:
 
       - name: Build Tauri app (Windows)
         if: matrix.os == 'windows-latest'
-        run: yarn tauri build --config src-tauri/tauri.${{ needs.validate.outputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json
+        run: yarn tauri build --config src-tauri/tauri.${{ needs.validate.outputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json -f desktop
         env:
           CRATE_ENV: ${{ needs.validate.outputs.channel }}
           # Cloud sync config — public client identifiers, baked in at compile time

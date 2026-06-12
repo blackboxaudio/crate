@@ -11,10 +11,14 @@ name = "crate_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-default = ["desktop"]
-# Desktop-only backend: audio playback, USB export, media keys, file import/analysis,
-# native menu, and the window/process/updater plugins. Enabled by default so desktop
-# builds are unchanged; the mobile build opts out via `--no-default-features --features mobile`.
+# No default features: Tauri's mobile build (`tauri ios/android dev|build`) inherits the crate's
+# default features and exposes NO `--no-default-features` opt-out, so a default of `["desktop"]`
+# drags desktop-only deps (souvlaki, the native menu, …) into the iOS/Android build and breaks it.
+# Desktop therefore opts in explicitly via `--features desktop` (package.json scripts + CI); mobile
+# builds use `--no-default-features --features mobile`.
+default = []
+# Desktop-only backend: audio playback, USB export, media keys, file import/analysis, native menu,
+# and the window/process/updater plugins. Opt-in via `--features desktop` (see `default` above).
 desktop = [
   "dep:rodio",
   "dep:souvlaki",
@@ -30,8 +34,9 @@ desktop = [
   "dep:tauri-plugin-process",
   "dep:tauri-plugin-updater",
 ]
-# Marker feature for mobile (iOS/Android) builds. Currently empty; future mobile-only
-# dependencies (e.g. the secure-store DB key provider, #134) attach here.
+# Marker feature for mobile (iOS/Android) builds: opts out of `desktop`. Empty by design —
+# the secure-store DB key providers (#134) are non-optional `[target.'cfg(target_os = …)']`
+# dependencies (see below), so they attach per-target rather than via this feature.
 mobile = []
 devtools = ["tauri/devtools"]
 
@@ -109,4 +114,18 @@ base85 = { version = "2.0", optional = true }
 
 # Cloud sync (auth: PKCE S256 hashing)
 sha2 = "0.10"
+
+# Mobile secure-store providers for the SQLCipher DB key (#134). Non-optional within each
+# target table so they're pulled only for that target and never for desktop — referencing a
+# target-specific optional dep from the `mobile` feature would break the OTHER target's build.
+
+# iOS Keychain access (after-first-unlock, this-device-only).
+[target.'cfg(target_os = "ios")'.dependencies]
+security-framework = "3.7"
+
+# Android Keystore-wrapped key via JNI; ndk-context is provided by Tauri Mobile.
+# `keyring` is the API surface (Entry/Error); `android-keyring` registers the Keystore backend.
+[target.'cfg(target_os = "android")'.dependencies]
+keyring = { version = "3.6", default-features = false }
+android-keyring = { version = "0.2", features = ["ndk-context"] }
 
