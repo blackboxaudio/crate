@@ -15,6 +15,20 @@ type OverrideNotice = { label: string; device: string }
  */
 export type WebAuthFn = (opts: { url: string; callbackScheme: string }) => Promise<{ callbackUrl: string }>
 
+/**
+ * Extract a human-readable message from an unknown thrown value. Tauri command errors reject with
+ * the *serialized* error (often a plain string), so `instanceof Error` alone drops the real cause.
+ */
+function describeError(error: unknown, fallback: string): string {
+	if (error instanceof Error) return error.message
+	if (typeof error === 'string' && error.trim()) return error
+	if (error && typeof error === 'object') {
+		const m = (error as { message?: unknown }).message
+		if (typeof m === 'string' && m.trim()) return m
+	}
+	return fallback
+}
+
 // =============================================================================
 // State
 // =============================================================================
@@ -129,7 +143,7 @@ function createCloudSyncStore() {
 				update((s) => ({
 					...s,
 					signingIn: false,
-					error: error instanceof Error ? error.message : 'Sign-in failed',
+					error: describeError(error, 'Sign-in failed'),
 				}))
 			}
 		},
@@ -157,7 +171,7 @@ function createCloudSyncStore() {
 				update((s) => ({
 					...s,
 					signingIn: false,
-					error: error instanceof Error ? error.message : 'Sign-in failed',
+					error: describeError(error, 'Sign-in failed'),
 				}))
 			}
 		},

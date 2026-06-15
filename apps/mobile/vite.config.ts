@@ -1,9 +1,19 @@
 import { defineConfig } from 'vite'
 import { sveltekit } from '@sveltejs/kit/vite'
 
-// Minimal scaffold config. The Tauri/version wiring and Tailwind are intentionally omitted until
-// the mobile app grows real UI; it shares cross-platform code from the repo-root `shared/` via the
-// $shared alias declared in svelte.config.js.
+// `tauri ios/android dev` sets TAURI_DEV_HOST to the machine's LAN IP so a physical device can
+// reach the dev server; on a simulator/emulator it's unset and Tauri forwards localhost. The port
+// is fixed (1421, distinct from desktop's 1420) because Tauri's `devUrl` points at it.
+const host = process.env.TAURI_DEV_HOST
+
 export default defineConfig({
 	plugins: [sveltekit()],
+	clearScreen: false,
+	server: {
+		host: host || false,
+		port: 1421,
+		strictPort: true,
+		hmr: host ? { protocol: 'ws', host, port: 1430 } : undefined,
+		watch: { ignored: ['**/src-tauri/**'] },
+	},
 })

@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "mobile",
-  "description": "Mobile-only capabilities: native web-auth (ASWebAuthenticationSession / Custom Tabs) for the OAuth sign-in flow.",
+  "description": "Mobile-only native web-auth (ASWebAuthenticationSession / Custom Tabs) for OAuth sign-in. NB: tauri-plugin-web-auth's `default` permission set is empty, so the `authenticate` command is granted explicitly via `allow-authenticate`.",
   "platforms": ["iOS", "android"],
   "windows": ["main"],
-  "permissions": ["web-auth:default"]
+  "permissions": ["web-auth:allow-authenticate"]
 }
