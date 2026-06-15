@@ -10,10 +10,16 @@ use std::sync::Arc;
 #[cfg(feature = "desktop")]
 use rusqlite::OptionalExtension;
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::State;
+// `AppHandle` + the opener plugin back the desktop loopback `sign_in` only.
+#[cfg(feature = "desktop")]
+use tauri::AppHandle;
+#[cfg(feature = "desktop")]
 use tauri_plugin_opener::OpenerExt;
 
-use crate::error::{CrateError, Result};
+#[cfg(feature = "desktop")]
+use crate::error::CrateError;
+use crate::error::Result;
 use crate::services::cloud_sync::backend::types::DeviceRecord;
 use crate::services::cloud_sync::resolution;
 use crate::services::cloud_sync::runtime::{CloudSyncState, OverrideNotice, SyncStatus};
@@ -25,8 +31,9 @@ use crate::services::LibraryService;
 // Auth + sync commands (Phase 2)
 // =============================================================================
 
-/// Sign in with an identity provider (v1: `"google"`). Opens the system browser for
-/// the consent screen; Crate never sees the user's password.
+/// Sign in with an identity provider (v1: `"google"`). Desktop loopback flow: opens the system
+/// browser for the consent screen; Crate never sees the user's password.
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub async fn sign_in(
     provider_id: String,
@@ -40,6 +47,31 @@ pub async fn sign_in(
             .map_err(|e| CrateError::CloudSyncAuth(format!("failed to open browser: {e}")))
     };
     state.sign_in(&provider_id, open_url).await
+}
+
+/// Begin a native mobile sign-in (v1: `"google"`). Returns the consent URL + callback scheme for
+/// the frontend's `ASWebAuthenticationSession` / Custom Tabs session; the frontend hands the
+/// resulting `code`/`state` back to [`complete_sign_in`].
+#[cfg(feature = "mobile")]
+#[tauri::command]
+pub async fn begin_sign_in(
+    provider_id: String,
+    state: State<'_, Arc<CloudSyncState>>,
+) -> Result<crate::services::cloud_sync::runtime::BeginSignIn> {
+    state.begin_sign_in(&provider_id).await
+}
+
+/// Complete a native mobile sign-in with the `code`/`state` the frontend extracted from the OAuth
+/// callback URL. `oauth_state` is the OAuth CSRF token (named to avoid clashing with the Tauri
+/// `state` handle).
+#[cfg(feature = "mobile")]
+#[tauri::command]
+pub async fn complete_sign_in(
+    code: String,
+    oauth_state: String,
+    state: State<'_, Arc<CloudSyncState>>,
+) -> Result<SyncStatus> {
+    state.complete_sign_in(&code, &oauth_state).await
 }
 
 /// Sign out and clear the stored refresh token.

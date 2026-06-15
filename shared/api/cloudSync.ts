@@ -7,6 +7,18 @@ export async function signIn(providerId: string): Promise<CloudSyncStatus> {
 	return invoke<CloudSyncStatus>('sign_in', { providerId })
 }
 
+// Native mobile sign-in (two-step): `begin_sign_in` returns the consent URL + callback scheme
+// for the platform auth session (ASWebAuthenticationSession / Custom Tabs); the frontend then
+// hands the resulting `code`/`state` back via `complete_sign_in`.
+
+export async function beginSignIn(providerId: string): Promise<{ authUrl: string; callbackScheme: string }> {
+	return invoke<{ authUrl: string; callbackScheme: string }>('begin_sign_in', { providerId })
+}
+
+export async function completeSignIn(code: string, oauthState: string): Promise<CloudSyncStatus> {
+	return invoke<CloudSyncStatus>('complete_sign_in', { code, oauthState })
+}
+
 export async function signOut(): Promise<void> {
 	return invoke<void>('sign_out')
 }

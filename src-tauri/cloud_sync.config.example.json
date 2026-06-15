@@ -3,5 +3,7 @@
   "web_api_key": "your-firebase-web-api-key",
   "storage_bucket": "crate-sync",
   "oauth_client_id": "xxxxxxxxxxxx.apps.googleusercontent.com",
-  "oauth_client_secret": "your-desktop-oauth-client-secret"
+  "oauth_client_secret": "your-desktop-oauth-client-secret",
+  "ios_oauth_client_id": "xxxxxxxxxxxx-ios.apps.googleusercontent.com",
+  "android_oauth_client_id": "xxxxxxxxxxxx-android.apps.googleusercontent.com"
 }

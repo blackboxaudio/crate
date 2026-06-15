@@ -1,0 +1,8 @@
+{
+  "$schema": "../gen/schemas/mobile-schema.json",
+  "identifier": "mobile",
+  "description": "Mobile-only capabilities: native web-auth (ASWebAuthenticationSession / Custom Tabs) for the OAuth sign-in flow.",
+  "platforms": ["iOS", "android"],
+  "windows": ["main"],
+  "permissions": ["web-auth:default"]
+}

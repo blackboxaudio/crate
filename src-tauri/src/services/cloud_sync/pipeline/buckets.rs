@@ -418,10 +418,15 @@ mod tests {
         // The tables that must stay empty on a discovery-only node. A bucket syncs on
         // mobile iff it is NOT backed by one of these — this keeps the allowlist and the
         // bucket→table map from drifting apart.
-        let library_tables: BTreeSet<&str> =
-            ["tracks", "cues", "playlist_tracks", "track_tags", "library_roots"]
-                .into_iter()
-                .collect();
+        let library_tables: BTreeSet<&str> = [
+            "tracks",
+            "cues",
+            "playlist_tracks",
+            "track_tags",
+            "library_roots",
+        ]
+        .into_iter()
+        .collect();
         for b in Bucket::all() {
             let is_library = library_tables.contains(b.table());
             assert_eq!(

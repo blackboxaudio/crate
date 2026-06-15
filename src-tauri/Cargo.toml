@@ -11,10 +11,14 @@ name = "crate_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-default = ["desktop"]
+# No default features: every build selects its platform explicitly — desktop with
+# `--features desktop`, mobile with `--features mobile`. `desktop` MUST NOT be a default
+# feature: `tauri ios/android dev|build` has no `--no-default-features` flag and always
+# inherits the crate's default features, so a desktop default leaks desktop-only deps
+# (souvlaki, the native menu, rodio, …) into the iOS/Android build and breaks compilation.
+default = []
 # Desktop-only backend: audio playback, USB export, media keys, file import/analysis,
-# native menu, and the window/process/updater plugins. Enabled by default so desktop
-# builds are unchanged; the mobile build opts out via `--no-default-features --features mobile`.
+# native menu, and the window/process/updater plugins. Opt in with `--features desktop`.
 desktop = [
   "dep:rodio",
   "dep:souvlaki",
@@ -30,9 +34,9 @@ desktop = [
   "dep:tauri-plugin-process",
   "dep:tauri-plugin-updater",
 ]
-# Marker feature for mobile (iOS/Android) builds. Currently empty; future mobile-only
-# dependencies (e.g. the secure-store DB key provider, #134) attach here.
-mobile = []
+# Mobile (iOS/Android) build feature. Pulls in mobile-only plugins (native web-auth for the OAuth
+# sign-in flow); future mobile-only deps (e.g. the secure-store DB key provider, #134) attach here.
+mobile = ["dep:tauri-plugin-web-auth"]
 devtools = ["tauri/devtools"]
 
 [build-dependencies]
@@ -49,6 +53,8 @@ tauri-plugin-window-state = { version = "2.4.1", optional = true }
 tauri-plugin-updater = { version = "2.10.0", optional = true }
 tauri-plugin-process = { version = "2.3.1", optional = true }
 tauri-plugin-notification = "2"
+# Mobile-only: native OAuth via ASWebAuthenticationSession (iOS) / Custom Tabs (Android).
+tauri-plugin-web-auth = { version = "1.0.0", optional = true }
 souvlaki = { version = "0.8", optional = true }
 raw-window-handle = { version = "0.6", optional = true }
 

@@ -49,11 +49,11 @@ jobs:
 
       - name: Build Tauri app (macOS)
         if: matrix.os == 'macos-latest'
-        run: yarn tauri build --target universal-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}'
+        run: yarn tauri build --target universal-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}' --features desktop
 
       - name: Build Tauri app (Windows)
         if: matrix.os == 'windows-latest'
-        run: yarn tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
+        run: yarn tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}' --features desktop
 
   # Mobile targets are compile-checked only (cargo check, no app bundle) so a desktop change
   # that leaks into shared code can't silently break the mobile build. The feature flags from
