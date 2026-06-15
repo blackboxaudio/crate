@@ -123,6 +123,15 @@ pub async fn pull_and_merge(
         let local = compute_local_manifest(&guard, "")?;
         diff_manifest(&local, remote).to_download
     };
+    // A scoped (mobile) node never merges library buckets — drop them from the download
+    // set (fail-closed: an unknown/unparseable bucket name is dropped too). No-op on
+    // desktop, where every bucket syncs.
+    #[cfg(feature = "mobile")]
+    to_download.retain(|name| {
+        Bucket::parse(name)
+            .map(|b| b.syncs_on_mobile())
+            .unwrap_or(false)
+    });
     if to_download.is_empty() {
         return Ok(MergeOutcome::unchanged());
     }

@@ -1,10 +1,12 @@
 //! Local manifest computation and diffing — backend-agnostic (operates on the
 //! plain [`Manifest`] type, never on Firestore).
 //!
-//! **INCLUDE-ALL policy:** every `Bucket::all()` gets an entry, even when empty.
-//! An empty bucket serializes to zero bytes, whose blake3 is a fixed value, so two
+//! **INCLUDE-ALL policy:** every bucket in `synced_buckets()` gets an entry, even when
+//! empty. An empty bucket serializes to zero bytes, whose blake3 is a fixed value, so two
 //! devices' empty buckets share a hash and never spuriously diff. Diffing keys on
-//! `blob_hash` only (`count`/`hlc` are diagnostics).
+//! `blob_hash` only (`count`/`hlc` are diagnostics). A scoped node (mobile) omits the
+//! library buckets here and relies on [`preserve_unmanaged`] so its manifest write still
+//! carries a peer's library entries forward instead of dropping them.
 
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -34,11 +36,12 @@ pub struct ManifestDiff {
     pub to_download: Vec<String>,
 }
 
-/// Compute this device's manifest over every bucket.
+/// Compute this device's manifest over the buckets this node syncs (every bucket on
+/// desktop; the discovery-only subset on mobile — see [`buckets::synced_buckets`]).
 pub fn compute_local_manifest(conn: &Connection, device_id: &str) -> Result<Manifest> {
     let mut buckets_map = BTreeMap::new();
     let mut manifest_hlc = String::new();
-    for bucket in Bucket::all() {
+    for bucket in buckets::synced_buckets() {
         let bytes = rows::serialize_bucket(conn, &bucket)?;
         let blob_hash = rows::bucket_hash(&bytes);
         let count = count_live_rows(conn, &bucket)?;
@@ -84,6 +87,27 @@ pub fn diff_manifest(local: &Manifest, remote: &Manifest) -> ManifestDiff {
         }
     }
     diff
+}
+
+/// Carry forward a peer's entries for buckets this node does not manage.
+///
+/// A **scoped** node (a discovery-only mobile build — see [`buckets::synced_buckets`])
+/// computes a local manifest that omits the library buckets entirely. The remote
+/// manifest is the **shared** per-user document, so writing a scoped manifest verbatim
+/// would drop those library entries and orphan their blobs. For every `remote` bucket
+/// absent from `local`, copy the remote entry in unchanged; `local` always wins for the
+/// buckets it manages. On desktop (full scope) `local` already has every bucket, so this
+/// is a no-op.
+pub fn preserve_unmanaged(mut local: Manifest, remote: Option<&Manifest>) -> Manifest {
+    if let Some(remote) = remote {
+        for (name, entry) in &remote.buckets {
+            local
+                .buckets
+                .entry(name.clone())
+                .or_insert_with(|| entry.clone());
+        }
+    }
+    local
 }
 
 fn count_live_rows(conn: &Connection, bucket: &Bucket) -> Result<u64> {
@@ -166,5 +190,29 @@ mod tests {
         let d = diff_manifest(&local, &remote);
         assert_eq!(d.to_upload, vec!["playlists".to_string()]);
         assert_eq!(d.to_download, vec!["tags".to_string()]);
+    }
+
+    #[test]
+    fn preserve_unmanaged_carries_forward_remote_only_buckets() {
+        // A scoped (mobile-like) local manifest holds only a discovery bucket.
+        let local = manifest_with(&[("discovery_releases", "d1")]);
+        // The shared remote also has a library bucket this node does not manage.
+        let remote = manifest_with(&[("discovery_releases", "d0"), ("tracks/3", "t9")]);
+
+        let merged = preserve_unmanaged(local, Some(&remote));
+
+        // Local wins for the bucket it manages...
+        assert_eq!(merged.buckets["discovery_releases"].blob_hash, "d1");
+        // ...and the unmanaged remote bucket is carried forward unchanged (no orphan).
+        assert_eq!(merged.buckets["tracks/3"].blob_hash, "t9");
+        assert_eq!(merged.buckets.len(), 2);
+    }
+
+    #[test]
+    fn preserve_unmanaged_without_remote_is_noop() {
+        let local = manifest_with(&[("discovery_releases", "d1")]);
+        let merged = preserve_unmanaged(local, None);
+        assert_eq!(merged.buckets.len(), 1);
+        assert_eq!(merged.buckets["discovery_releases"].blob_hash, "d1");
     }
 }
