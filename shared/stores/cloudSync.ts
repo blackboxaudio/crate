@@ -8,6 +8,27 @@ import { toastStore } from './toast'
 /** Payload of the backend `cloud-sync-override` event (one per discarded local edit). */
 type OverrideNotice = { label: string; device: string }
 
+/**
+ * Native mobile auth-session function, injected by the mobile app so the web-auth plugin import
+ * stays out of `shared/` (and the desktop bundle). Backed by `tauri-plugin-web-auth`'s
+ * `authenticate` — iOS `ASWebAuthenticationSession` / Android Custom Tabs.
+ */
+export type WebAuthFn = (opts: { url: string; callbackScheme: string }) => Promise<{ callbackUrl: string }>
+
+/**
+ * Extract a human-readable message from an unknown thrown value. Tauri command errors reject with
+ * the *serialized* error (often a plain string), so `instanceof Error` alone drops the real cause.
+ */
+function describeError(error: unknown, fallback: string): string {
+	if (error instanceof Error) return error.message
+	if (typeof error === 'string' && error.trim()) return error
+	if (error && typeof error === 'object') {
+		const m = (error as { message?: unknown }).message
+		if (typeof m === 'string' && m.trim()) return m
+	}
+	return fallback
+}
+
 // =============================================================================
 // State
 // =============================================================================
@@ -63,6 +84,30 @@ function createCloudSyncStore() {
 		}
 	}
 
+	/**
+	 * Apply the status returned by a successful sign-in (desktop loopback or mobile native flow)
+	 * and drive first-sign-in onboarding. The dirty queue is empty on a fresh sign-in, so the
+	 * debounce loop won't push on its own — kick the initial op here. Fire-and-forget; the
+	 * indicator reflects progress via polling.
+	 */
+	function applyStatusAfterSignIn(status: CloudSyncStatus) {
+		update((s) => ({ ...s, status, signingIn: false, error: null }))
+		if (status.onboarding === 'initial') {
+			// First device: upload the local library as the initial vault.
+			cloudSyncApi
+				.syncNow()
+				.then(pollStatus)
+				.catch((e) => console.error('Initial sync failed:', e))
+		} else if (status.onboarding === 'restore') {
+			// Fresh device: pull the vault. The Cloud Sync tab surfaces the roots wizard once the
+			// pulled roots land (it reloads on each completed sync).
+			cloudSyncApi
+				.pullNow()
+				.then(pollStatus)
+				.catch((e) => console.error('Restore pull failed:', e))
+		}
+	}
+
 	return {
 		subscribe,
 
@@ -93,29 +138,40 @@ function createCloudSyncStore() {
 			update((s) => ({ ...s, signingIn: true, error: null }))
 			try {
 				const status = await cloudSyncApi.signIn(providerId)
-				update((s) => ({ ...s, status, signingIn: false }))
-				// Drive first-sign-in onboarding. The dirty queue is empty on a fresh
-				// sign-in, so the debounce loop won't push on its own — kick the initial
-				// op here. Fire-and-forget; the indicator reflects progress via polling.
-				if (status.onboarding === 'initial') {
-					// First device: upload the local library as the initial vault.
-					cloudSyncApi
-						.syncNow()
-						.then(() => this.refreshStatus())
-						.catch((e) => console.error('Initial sync failed:', e))
-				} else if (status.onboarding === 'restore') {
-					// Fresh device: pull the vault. The Cloud Sync tab surfaces the roots
-					// wizard once the pulled roots land (it reloads on each completed sync).
-					cloudSyncApi
-						.pullNow()
-						.then(() => this.refreshStatus())
-						.catch((e) => console.error('Restore pull failed:', e))
-				}
+				applyStatusAfterSignIn(status)
 			} catch (error) {
 				update((s) => ({
 					...s,
 					signingIn: false,
-					error: error instanceof Error ? error.message : 'Sign-in failed',
+					error: describeError(error, 'Sign-in failed'),
+				}))
+			}
+		},
+
+		/**
+		 * Native mobile sign-in. `authenticate` is injected by the mobile app
+		 * (`tauri-plugin-web-auth`) so the plugin import never enters `shared/`. Runs the two-step
+		 * backend flow: `begin_sign_in` → present the native auth session → extract `code`/`state`
+		 * from the callback URL → `complete_sign_in`.
+		 */
+		async signInMobile(providerId: string, authenticate: WebAuthFn) {
+			update((s) => ({ ...s, signingIn: true, error: null }))
+			try {
+				const { authUrl, callbackScheme } = await cloudSyncApi.beginSignIn(providerId)
+				const { callbackUrl } = await authenticate({ url: authUrl, callbackScheme })
+				const url = new URL(callbackUrl)
+				const errParam = url.searchParams.get('error')
+				if (errParam) throw new Error(errParam)
+				const code = url.searchParams.get('code')
+				const oauthState = url.searchParams.get('state')
+				if (!code || !oauthState) throw new Error('Missing code or state in OAuth callback')
+				const status = await cloudSyncApi.completeSignIn(code, oauthState)
+				applyStatusAfterSignIn(status)
+			} catch (error) {
+				update((s) => ({
+					...s,
+					signingIn: false,
+					error: describeError(error, 'Sign-in failed'),
 				}))
 			}
 		},
@@ -292,3 +348,5 @@ export const unmappedRootIds = derived(
 )
 
 export const signingIn = derived(cloudSyncStore, ($s) => $s.signingIn)
+
+export const cloudSyncError = derived(cloudSyncStore, ($s) => $s.error)

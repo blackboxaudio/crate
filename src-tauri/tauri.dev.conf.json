@@ -1,7 +1,7 @@
 {
 	"version": "0.2.9-dev",
 	"productName": "Crate Dev",
-	"identifier": "com.bbx-audio.crate-dev",
+	"identifier": "com.bbx-audio.crate.dev",
 	"bundle": {
 		"icon": [
 			"icons/dev/32x32.png",

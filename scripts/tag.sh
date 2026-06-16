@@ -198,9 +198,9 @@ echo ""
 if $TEST_BUILD; then
     echo -e "${BLUE}Step 5: Testing build...${NC}"
     if $DRY_RUN; then
-        echo -e "${YELLOW}[DRY RUN] Would run: yarn tauri build${NC}"
+        echo -e "${YELLOW}[DRY RUN] Would run: yarn tauri build --features desktop${NC}"
     else
-        yarn tauri build
+        yarn tauri build --features desktop
     fi
     echo ""
 fi

@@ -89,6 +89,17 @@ pub struct OverrideNotice {
     pub device: String,
 }
 
+/// What the frontend needs to drive the native mobile auth session: the consent URL to open and
+/// the callback scheme `ASWebAuthenticationSession` / Custom Tabs should intercept. Returned by
+/// [`CloudSyncState::begin_sign_in`].
+#[cfg(feature = "mobile")]
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BeginSignIn {
+    pub auth_url: String,
+    pub callback_scheme: String,
+}
+
 pub struct CloudSyncState {
     backend: Option<Arc<dyn CloudBackend>>,
     config: Option<CloudConfig>,
@@ -105,6 +116,11 @@ pub struct CloudSyncState {
     /// The last ~20 override notices, kept in memory for diagnostics (no audit-log UI in
     /// v1). Newest at the back.
     override_buffer: RwLock<VecDeque<OverrideNotice>>,
+    /// PKCE verifier + CSRF state for an in-flight native mobile sign-in, stashed between the
+    /// `begin_sign_in` and `complete_sign_in` IPC calls. Single-slot: a new `begin` supersedes
+    /// any abandoned attempt. The verifier never leaves Rust.
+    #[cfg(feature = "mobile")]
+    pending_auth: tokio::sync::Mutex<Option<auth::oauth_flow::PendingAuth>>,
 }
 
 impl CloudSyncState {
@@ -145,6 +161,8 @@ impl CloudSyncState {
             status: RwLock::new(status),
             sync_lock: tokio::sync::Mutex::new(()),
             override_buffer: RwLock::new(VecDeque::new()),
+            #[cfg(feature = "mobile")]
+            pending_auth: tokio::sync::Mutex::new(None),
         }
     }
 
@@ -201,8 +219,9 @@ impl CloudSyncState {
         }
     }
 
-    /// Run the full sign-in flow for `provider_id` (e.g. `"google"`). `open_url` opens
+    /// Run the full desktop sign-in flow for `provider_id` (e.g. `"google"`). `open_url` opens
     /// the consent screen in the system browser.
+    #[cfg(feature = "desktop")]
     pub async fn sign_in(
         &self,
         provider_id: &str,
@@ -225,6 +244,83 @@ impl CloudSyncState {
         )
         .await?;
 
+        self.finish_session_setup(backend, session).await
+    }
+
+    /// Begin a native mobile sign-in: build the consent URL + PKCE secrets, stash the secrets
+    /// server-side, and return the URL + callback scheme for the frontend's native auth session
+    /// (`ASWebAuthenticationSession` on iOS / Custom Tabs on Android, via `tauri-plugin-web-auth`).
+    #[cfg(feature = "mobile")]
+    pub async fn begin_sign_in(&self, provider_id: &str) -> Result<BeginSignIn> {
+        // Fail fast if sync isn't configured (no backend → sign-in is impossible).
+        let _backend = self.require_backend()?;
+        let config = self
+            .config
+            .clone()
+            .ok_or_else(|| CrateError::CloudSync("cloud sync not configured".into()))?;
+        let provider = auth::providers::provider_by_id(provider_id)
+            .ok_or_else(|| CrateError::CloudSyncAuth(format!("unknown provider {provider_id}")))?;
+
+        let (client_id, callback_scheme) = config.mobile_client()?;
+        let redirect_uri = format!("{callback_scheme}:/oauth2redirect");
+        let (auth_url, pending) =
+            auth::oauth_flow::build_auth_request(provider.as_ref(), &client_id, &redirect_uri);
+        *self.pending_auth.lock().await = Some(pending);
+        Ok(BeginSignIn {
+            auth_url,
+            callback_scheme,
+        })
+    }
+
+    /// Complete a native mobile sign-in with the `code`/`state` the frontend extracted from the
+    /// OAuth callback URL. Validates `state` against the stashed PKCE secrets, exchanges the code
+    /// for the provider ID token, then runs the shared session-setup tail.
+    #[cfg(feature = "mobile")]
+    pub async fn complete_sign_in(&self, code: &str, state: &str) -> Result<SyncStatus> {
+        let backend = self.require_backend()?;
+        let config = self
+            .config
+            .clone()
+            .ok_or_else(|| CrateError::CloudSync("cloud sync not configured".into()))?;
+
+        let pending = self
+            .pending_auth
+            .lock()
+            .await
+            .take()
+            .ok_or_else(|| CrateError::CloudSyncAuth("no sign-in in progress".into()))?;
+        if pending.state != state {
+            return Err(CrateError::CloudSyncAuth("state mismatch".into()));
+        }
+        let provider = auth::providers::provider_by_id(&pending.provider_id).ok_or_else(|| {
+            CrateError::CloudSyncAuth(format!("unknown provider {}", pending.provider_id))
+        })?;
+
+        // Same client id + redirect_uri the consent request used (both derived from config).
+        let (client_id, callback_scheme) = config.mobile_client()?;
+        let redirect_uri = format!("{callback_scheme}:/oauth2redirect");
+        let session = auth::complete_sign_in_with_code(
+            &backend,
+            provider.as_ref(),
+            self.conn.clone(),
+            &client_id,
+            &redirect_uri,
+            code,
+            &pending.verifier,
+        )
+        .await?;
+
+        self.finish_session_setup(backend, session).await
+    }
+
+    /// Shared post-token tail for desktop and mobile sign-in: fire the best-effort device
+    /// heartbeat, update status, compute the one-shot onboarding hint, store the session, and
+    /// return the status snapshot (with `onboarding` set).
+    async fn finish_session_setup(
+        &self,
+        backend: Arc<dyn CloudBackend>,
+        session: AuthSession,
+    ) -> Result<SyncStatus> {
         // Best-effort device heartbeat — don't block the sign-in return on it.
         let backend_for_hb = backend.clone();
         let session_for_hb = session.clone();

@@ -279,10 +279,56 @@ impl Bucket {
             _ => &["id"],
         }
     }
+
+    /// Whether a **discovery-only mobile** node syncs this bucket. A pure **allowlist**
+    /// (fail-closed): only the discovery + shared buckets a mobile node participates in
+    /// return `true`. Every other bucket — the library buckets (`Tracks(_)`, `Cues`,
+    /// `PlaylistTracks`, `TrackTags`, `LibraryRoots`) **and any bucket added later
+    /// without being classified here** — returns `false`, so it is never pushed, pulled,
+    /// or tombstoned on mobile. Failing closed keeps library data from ever reaching a
+    /// mobile node.
+    ///
+    /// Pure (no build-feature gating) so it is unit-testable on any build; the active
+    /// platform scope is assembled by [`synced_buckets`].
+    pub fn syncs_on_mobile(&self) -> bool {
+        matches!(
+            self,
+            Bucket::DiscoveryReleases
+                | Bucket::DiscoveryTracks
+                | Bucket::DiscoveryReleaseTags
+                | Bucket::PlaylistDiscoveryReleases
+                | Bucket::DiscoveryReleaseSources
+                | Bucket::FollowedSources
+                | Bucket::Playlists
+                | Bucket::Tags
+                | Bucket::TagCategories
+                | Bucket::Settings
+        )
+    }
+}
+
+/// The buckets **this build's node** participates in, in [`Bucket::all`] order. Desktop
+/// syncs every bucket; a `mobile` build narrows to the discovery-only allowlist
+/// ([`Bucket::syncs_on_mobile`]) so library buckets are never serialized into the local
+/// manifest, uploaded, or downloaded. Desktop returns exactly `Bucket::all()`.
+pub fn synced_buckets() -> Vec<Bucket> {
+    #[cfg(feature = "mobile")]
+    {
+        Bucket::all()
+            .into_iter()
+            .filter(Bucket::syncs_on_mobile)
+            .collect()
+    }
+    #[cfg(not(feature = "mobile"))]
+    {
+        Bucket::all()
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::BTreeSet;
+
     use super::*;
 
     #[test]
@@ -336,5 +382,59 @@ mod tests {
         assert_eq!(Bucket::TrackTags.kind(), BucketKind::Junction);
         assert_eq!(Bucket::Settings.kind(), BucketKind::Settings);
         assert_eq!(Bucket::Tracks(3).entity_type(), "tracks");
+    }
+
+    #[test]
+    fn mobile_scope_is_the_discovery_allowlist() {
+        let synced: BTreeSet<String> = Bucket::all()
+            .into_iter()
+            .filter(Bucket::syncs_on_mobile)
+            .map(|b| b.as_str())
+            .collect();
+        let expected: BTreeSet<String> = [
+            "discovery_releases",
+            "discovery_tracks",
+            "discovery_release_tags",
+            "playlist_discovery_releases",
+            "discovery_release_sources",
+            "followed_sources",
+            "playlists",
+            "tags",
+            "tag_categories",
+            "settings",
+        ]
+        .into_iter()
+        .map(String::from)
+        .collect();
+        assert_eq!(synced, expected);
+        // 10 sync; the other 20 (16 track shards + cues/playlist_tracks/track_tags/
+        // library_roots) never do.
+        assert_eq!(synced.len(), 10);
+        assert_eq!(Bucket::all().len() - synced.len(), 20);
+    }
+
+    #[test]
+    fn library_buckets_never_sync_on_mobile() {
+        // The tables that must stay empty on a discovery-only node. A bucket syncs on
+        // mobile iff it is NOT backed by one of these — this keeps the allowlist and the
+        // bucket→table map from drifting apart.
+        let library_tables: BTreeSet<&str> = [
+            "tracks",
+            "cues",
+            "playlist_tracks",
+            "track_tags",
+            "library_roots",
+        ]
+        .into_iter()
+        .collect();
+        for b in Bucket::all() {
+            let is_library = library_tables.contains(b.table());
+            assert_eq!(
+                b.syncs_on_mobile(),
+                !is_library,
+                "bucket {b:?} (table {}) misclassified",
+                b.table()
+            );
+        }
     }
 }

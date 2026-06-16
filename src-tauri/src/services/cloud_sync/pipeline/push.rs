@@ -162,6 +162,13 @@ fn prepare_uploads(
 ) -> Result<PreparedPush> {
     let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
     let local = compute_local_manifest(&guard, device_id)?;
+    // A scoped (mobile) node's local manifest omits the library buckets; carry the
+    // remote's entries for them forward so the shared manifest write never drops a peer's
+    // library buckets (which would orphan their blobs). Preserving *before* the diff keeps
+    // those entries equal to the remote, so they are neither uploaded nor downloaded.
+    // No-op on desktop (full scope), where `local` already has every bucket.
+    #[cfg(feature = "mobile")]
+    let local = super::manifest::preserve_unmanaged(local, remote);
     let base = remote
         .cloned()
         .unwrap_or_else(|| Manifest::empty(device_id));

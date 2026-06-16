@@ -1,0 +1,9 @@
+{
+	"identifier": "com.bbx-audio.crateapp",
+	"build": {
+		"beforeDevCommand": "yarn workspace @bbx-audio/crate-mobile dev:vite",
+		"beforeBuildCommand": "yarn workspace @bbx-audio/crate-mobile build:vite",
+		"devUrl": "http://localhost:1421",
+		"frontendDist": "../apps/mobile/build"
+	}
+}

@@ -1,42 +1,112 @@
-//! Provider-agnostic loopback OAuth 2.0 + PKCE.
+//! Provider-agnostic OAuth 2.0 + PKCE.
 //!
-//! Binds a one-shot `axum` listener on `127.0.0.1:0` (same pattern as `proxy.rs`),
-//! opens the system browser to the provider's consent screen, captures the redirected
-//! `?code=`, and exchanges it (with the PKCE verifier) for the provider's ID token.
-//! Crate never sees the user's password — credentials are entered on the provider's
-//! domain in the browser; only a one-time authorization code returns to the loopback.
+//! The flow has two reusable seams shared by desktop and mobile: [`build_auth_request`] (PKCE
+//! pair + CSRF state + the consent URL) and [`complete`] (exchange the returned `code` +
+//! verifier for the provider's ID token). Crate never sees the user's password — credentials
+//! are entered on the provider's domain.
+//!
+//! **Desktop** ([`run_loopback_flow`], `#[cfg(feature = "desktop")]`) composes the two seams
+//! around a one-shot `axum` listener on `127.0.0.1:0` (same pattern as `proxy.rs`): it opens the
+//! system browser and captures the redirected `?code=` on the loopback.
+//!
+//! **Mobile** drives the same two seams from the frontend: the native `ASWebAuthenticationSession`
+//! / Custom Tabs flow (`tauri-plugin-web-auth`) returns the callback URL to JS, which hands the
+//! `code` back to [`complete`] over IPC. The loopback listener and its query-parsing helpers are
+//! therefore desktop-only.
 
-use std::collections::HashMap;
-use std::sync::Arc;
 use std::time::Duration;
 
 use base64::Engine;
 use sha2::{Digest, Sha256};
+
+#[cfg(feature = "desktop")]
+use std::collections::HashMap;
+#[cfg(feature = "desktop")]
+use std::sync::Arc;
+#[cfg(feature = "desktop")]
 use tokio::sync::oneshot;
 
 use crate::error::{CrateError, Result};
 use crate::services::cloud_sync::auth::provider::{AuthRequestParams, IdentityProvider};
 
 /// How long to wait for the user to finish the browser sign-in before giving up.
+#[cfg(feature = "desktop")]
 const FLOW_TIMEOUT: Duration = Duration::from_secs(300);
 
-/// Run the loopback OAuth + PKCE flow for `provider`, returning the provider ID token.
+/// PKCE verifier + CSRF state for one in-flight authorization. On desktop it lives on the stack
+/// for the duration of [`run_loopback_flow`]; on mobile it is stashed in the cloud-sync runtime
+/// between the `begin_sign_in` and `complete_sign_in` IPC calls so the verifier — the secret that
+/// redeems the code — never leaves Rust.
+pub struct PendingAuth {
+    pub verifier: String,
+    pub state: String,
+    pub provider_id: String,
+}
+
+/// Stage 1 (shared): build the consent URL and the secrets needed to finish the exchange.
 ///
-/// `open_url` is invoked once with the authorization URL; the command layer routes it
-/// to the system browser via the opener plugin (kept as a closure so this module stays
-/// free of Tauri types).
+/// `redirect_uri` is caller-chosen — desktop passes its loopback `http://127.0.0.1:{port}`,
+/// mobile passes the provider's reversed-client-id scheme (e.g.
+/// `com.googleusercontent.apps.<id>:/oauth2redirect`).
+pub fn build_auth_request(
+    provider: &dyn IdentityProvider,
+    client_id: &str,
+    redirect_uri: &str,
+) -> (String, PendingAuth) {
+    let verifier = random_b64url(32);
+    let challenge = code_challenge(&verifier);
+    let state = random_b64url(16);
+    let auth_url = provider.authorization_url(&AuthRequestParams {
+        client_id,
+        redirect_uri,
+        code_challenge: &challenge,
+        state: &state,
+    });
+    (
+        auth_url,
+        PendingAuth {
+            verifier,
+            state,
+            provider_id: provider.id().to_string(),
+        },
+    )
+}
+
+/// Stage 2 (shared): exchange the authorization `code` + PKCE `verifier` for the provider's ID
+/// token. `client_secret` is `None` for public mobile clients (PKCE is the proof) and `Some` for
+/// the desktop "Desktop app" client.
+pub async fn complete(
+    provider: &dyn IdentityProvider,
+    client_id: &str,
+    client_secret: Option<&str>,
+    redirect_uri: &str,
+    code: &str,
+    verifier: &str,
+) -> Result<String> {
+    exchange_code(
+        provider,
+        client_id,
+        client_secret,
+        redirect_uri,
+        code,
+        verifier,
+    )
+    .await
+}
+
+/// Run the desktop loopback OAuth + PKCE flow for `provider`, returning the provider ID token.
+///
+/// `open_url` is invoked once with the authorization URL; the command layer routes it to the
+/// system browser via the opener plugin (kept as a closure so this module stays free of Tauri
+/// types).
+#[cfg(feature = "desktop")]
 pub async fn run_loopback_flow(
     provider: &dyn IdentityProvider,
     client_id: &str,
     client_secret: &str,
     open_url: impl FnOnce(&str) -> Result<()> + Send,
 ) -> Result<String> {
-    // 1. PKCE pair + CSRF state.
-    let verifier = random_b64url(32);
-    let challenge = code_challenge(&verifier);
-    let state = random_b64url(16);
-
-    // 2. One-shot loopback listener on an OS-assigned port (mirrors proxy.rs).
+    // 1. One-shot loopback listener on an OS-assigned port (mirrors proxy.rs).
     let std_listener = std::net::TcpListener::bind("127.0.0.1:0")
         .map_err(|e| CrateError::CloudSyncAuth(format!("bind loopback: {e}")))?;
     let port = std_listener
@@ -45,10 +115,13 @@ pub async fn run_loopback_flow(
         .port();
     let redirect_uri = format!("http://127.0.0.1:{port}");
 
+    // 2. PKCE pair + CSRF state + consent URL.
+    let (auth_url, pending) = build_auth_request(provider, client_id, &redirect_uri);
+
     let (tx, rx) = oneshot::channel::<CallbackResult>();
     let shared = Arc::new(CallbackState {
         tx: tokio::sync::Mutex::new(Some(tx)),
-        expected_state: state.clone(),
+        expected_state: pending.state.clone(),
     });
 
     std_listener
@@ -57,8 +130,8 @@ pub async fn run_loopback_flow(
     let listener = tokio::net::TcpListener::from_std(std_listener)
         .map_err(|e| CrateError::CloudSyncAuth(format!("loopback tokio: {e}")))?;
 
-    // Catch-all route so any redirect target (e.g. with an unexpected path) still hits
-    // the handler — Google sometimes appends an empty path the router would 404 on.
+    // Catch-all route so any redirect target (e.g. with an unexpected path) still hits the
+    // handler — Google sometimes appends an empty path the router would 404 on.
     let router = axum::Router::new()
         .route("/", axum::routing::get(callback_handler))
         .fallback(axum::routing::get(callback_handler))
@@ -68,16 +141,9 @@ pub async fn run_loopback_flow(
     });
 
     // 3. Open the consent screen.
-    let auth_url = provider.authorization_url(&AuthRequestParams {
-        client_id,
-        redirect_uri: &redirect_uri,
-        code_challenge: &challenge,
-        state: &state,
-    });
-    // On Windows, open the URL directly via cmd.exe instead of the closure.
-    // The closure routes through tauri-plugin-opener → open::that_detached →
-    // ShellExecuteExW, which can silently fail from Tokio worker threads that
-    // lack COM initialization.
+    // On Windows, open the URL directly via cmd.exe instead of the closure. The closure routes
+    // through tauri-plugin-opener → open::that_detached → ShellExecuteExW, which can silently
+    // fail from Tokio worker threads that lack COM initialization.
     #[cfg(target_os = "windows")]
     {
         let _ = open_url;
@@ -122,27 +188,30 @@ pub async fn run_loopback_flow(
     server.abort();
 
     // 5. Exchange code + verifier for the provider ID token.
-    exchange_code(
+    complete(
         provider,
         client_id,
-        client_secret,
+        Some(client_secret),
         &redirect_uri,
         &code,
-        &verifier,
+        &pending.verifier,
     )
     .await
 }
 
+#[cfg(feature = "desktop")]
 struct CallbackState {
     tx: tokio::sync::Mutex<Option<oneshot::Sender<CallbackResult>>>,
     expected_state: String,
 }
 
+#[cfg(feature = "desktop")]
 enum CallbackResult {
     Code(String),
     Error(String),
 }
 
+#[cfg(feature = "desktop")]
 async fn callback_handler(
     axum::extract::State(state): axum::extract::State<Arc<CallbackState>>,
     axum::extract::RawQuery(query): axum::extract::RawQuery,
@@ -164,6 +233,7 @@ async fn callback_handler(
     axum::response::Html(CALLBACK_HTML)
 }
 
+#[cfg(feature = "desktop")]
 const CALLBACK_HTML: &str = "<!doctype html><html><head><meta charset=\"utf-8\">\
 <title>Crate</title></head>\
 <body style=\"font-family:system-ui,sans-serif;padding:3rem;text-align:center\">\
@@ -173,7 +243,7 @@ const CALLBACK_HTML: &str = "<!doctype html><html><head><meta charset=\"utf-8\">
 async fn exchange_code(
     provider: &dyn IdentityProvider,
     client_id: &str,
-    client_secret: &str,
+    client_secret: Option<&str>,
     redirect_uri: &str,
     code: &str,
     verifier: &str,
@@ -182,14 +252,7 @@ async fn exchange_code(
         .timeout(Duration::from_secs(30))
         .build()
         .map_err(|e| CrateError::CloudSyncAuth(format!("token exchange client build: {e}")))?;
-    let params = [
-        ("grant_type", "authorization_code"),
-        ("code", code),
-        ("client_id", client_id),
-        ("client_secret", client_secret),
-        ("redirect_uri", redirect_uri),
-        ("code_verifier", verifier),
-    ];
+    let params = build_token_params(client_id, client_secret, redirect_uri, code, verifier);
     let resp = client
         .post(provider.token_endpoint())
         .form(&params)
@@ -210,6 +273,28 @@ async fn exchange_code(
     provider.extract_id_token(&body)
 }
 
+/// Assemble the `application/x-www-form-urlencoded` token-exchange params. `client_secret` is
+/// included iff present — public mobile clients omit it and rely on PKCE.
+fn build_token_params<'a>(
+    client_id: &'a str,
+    client_secret: Option<&'a str>,
+    redirect_uri: &'a str,
+    code: &'a str,
+    verifier: &'a str,
+) -> Vec<(&'a str, &'a str)> {
+    let mut params = vec![
+        ("grant_type", "authorization_code"),
+        ("code", code),
+        ("client_id", client_id),
+        ("redirect_uri", redirect_uri),
+        ("code_verifier", verifier),
+    ];
+    if let Some(secret) = client_secret {
+        params.push(("client_secret", secret));
+    }
+    params
+}
+
 // --- PKCE + query helpers -------------------------------------------------------
 
 /// `n_bytes` of randomness, base64url-no-pad (a valid PKCE verifier / state token).
@@ -225,6 +310,7 @@ fn code_challenge(verifier: &str) -> String {
 }
 
 /// Parse an `x=1&y=2` query string into a decoded map.
+#[cfg(feature = "desktop")]
 fn parse_query(q: &str) -> HashMap<String, String> {
     let mut map = HashMap::new();
     for pair in q.split('&') {
@@ -242,6 +328,7 @@ fn parse_query(q: &str) -> HashMap<String, String> {
 }
 
 /// Minimal `application/x-www-form-urlencoded` percent-decoder (`+` → space).
+#[cfg(feature = "desktop")]
 fn percent_decode(s: &str) -> String {
     let bytes = s.as_bytes();
     let mut out = Vec::with_capacity(bytes.len());
@@ -271,11 +358,58 @@ fn percent_decode(s: &str) -> String {
     String::from_utf8_lossy(&out).into_owned()
 }
 
+#[cfg(feature = "desktop")]
 fn hex_val(b: u8) -> Option<u8> {
     match b {
         b'0'..=b'9' => Some(b - b'0'),
         b'a'..=b'f' => Some(b - b'a' + 10),
         b'A'..=b'F' => Some(b - b'A' + 10),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::cloud_sync::auth::providers::google::GoogleProvider;
+    use crate::services::cloud_sync::percent_encode;
+
+    #[test]
+    fn build_auth_request_produces_pkce_and_consent_url() {
+        let provider = GoogleProvider::new();
+        let redirect = "com.googleusercontent.apps.123-abc:/oauth2redirect";
+        let (auth_url, pending) =
+            build_auth_request(&provider, "123-abc.apps.googleusercontent.com", redirect);
+
+        assert_eq!(pending.provider_id, "google");
+        assert!(!pending.verifier.is_empty());
+        assert!(!pending.state.is_empty());
+
+        assert!(auth_url.contains("response_type=code"));
+        assert!(auth_url.contains("code_challenge_method=S256"));
+        // The challenge embedded in the URL is the S256 hash of the returned verifier.
+        assert!(auth_url.contains(&format!(
+            "code_challenge={}",
+            code_challenge(&pending.verifier)
+        )));
+        // The custom-scheme mobile redirect is percent-encoded into the query.
+        assert!(auth_url.contains(&format!("redirect_uri={}", percent_encode(redirect))));
+        assert!(auth_url.contains(&format!("state={}", pending.state)));
+    }
+
+    #[test]
+    fn token_params_include_secret_only_when_present() {
+        let with = build_token_params("cid", Some("secret"), "uri", "code", "verifier");
+        assert!(with
+            .iter()
+            .any(|(k, v)| *k == "client_secret" && *v == "secret"));
+        assert!(with.iter().any(|(k, _)| *k == "code_verifier"));
+
+        let without = build_token_params("cid", None, "uri", "code", "verifier");
+        assert!(!without.iter().any(|(k, _)| *k == "client_secret"));
+        // PKCE proof is still present for the public-client exchange.
+        assert!(without
+            .iter()
+            .any(|(k, v)| *k == "code_verifier" && *v == "verifier"));
     }
 }

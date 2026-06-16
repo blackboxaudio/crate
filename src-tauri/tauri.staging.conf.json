@@ -1,6 +1,6 @@
 {
 	"productName": "Crate Staging",
-	"identifier": "com.bbx-audio.crate-staging",
+	"identifier": "com.bbx-audio.crate.staging",
 	"bundle": {
 		"createUpdaterArtifacts": true,
 		"icon": [

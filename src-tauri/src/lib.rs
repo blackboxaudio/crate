@@ -116,6 +116,11 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::default().build());
 
+    // Mobile-only plugins: native web-auth (iOS ASWebAuthenticationSession / Android Custom Tabs)
+    // backs the mobile OAuth sign-in flow — there is no loopback browser flow on mobile.
+    #[cfg(feature = "mobile")]
+    let builder = builder.plugin(tauri_plugin_web_auth::init());
+
     let builder = builder
         .invoke_handler(tauri::generate_handler![
             // App commands
@@ -337,7 +342,12 @@ pub fn run() {
             #[cfg(feature = "desktop")]
             commands::media_controls::clear_now_playing,
             // Cloud sync commands
+            #[cfg(feature = "desktop")]
             commands::cloud_sync::sign_in,
+            #[cfg(feature = "mobile")]
+            commands::cloud_sync::begin_sign_in,
+            #[cfg(feature = "mobile")]
+            commands::cloud_sync::complete_sign_in,
             commands::cloud_sync::sign_out,
             commands::cloud_sync::get_sync_status,
             commands::cloud_sync::sync_now,
@@ -369,7 +379,10 @@ pub fn run() {
             let db_path = app_data_dir.join("crate.db");
             log::info!("Database path: {db_path:?}");
 
-            let db = Database::new(db_path)?;
+            let db = Database::new(db_path).map_err(|e| {
+                log::error!("Database initialization failed: {e}");
+                e
+            })?;
             let conn = db.connection();
 
             // Initialize services. Desktop-only services (file import/analysis, audio

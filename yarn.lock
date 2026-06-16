@@ -742,7 +742,7 @@
   resolved "https://registry.yarnpkg.com/@tanstack/virtual-core/-/virtual-core-3.13.21.tgz#925eec83d17d28a30ad4c3645d54d5fbe797bbb3"
   integrity sha512-ww+fmLHyCbPSf7JNbWZP3g7wl6SdNo3ah5Aiw+0e9FDErkVHLKprYUrwTm7dF646FtEkN/KkAKPYezxpmvOjxw==
 
-"@tauri-apps/api@2.11.0", "@tauri-apps/api@^2.11.0":
+"@tauri-apps/api@2.11.0", "@tauri-apps/api@>=2.0.0-beta.6", "@tauri-apps/api@^2.11.0":
   version "2.11.0"
   resolved "https://registry.yarnpkg.com/@tauri-apps/api/-/api-2.11.0.tgz#00fb69996010178a5153798d4a84f6fe3a1e1182"
   integrity sha512-7CinYODhky9lmO23xHnUFv0Xt43fbtWMyxZcLcRBlFkcgXKuEirBvHpmtJ89YMhyeGcq20Wuc47Fa4XjyniywA==
@@ -2357,6 +2357,13 @@ tapable@^2.2.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/tapable/-/tapable-2.3.0.tgz#7e3ea6d5ca31ba8e078b560f0d83ce9a14aa8be6"
   integrity sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==
+
+tauri-plugin-web-auth-api@1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/tauri-plugin-web-auth-api/-/tauri-plugin-web-auth-api-1.0.0.tgz#3c622d1e29ed3ee06c8d00670c4ce84510e9d3b7"
+  integrity sha512-g1uPl2OvFlDZBPUz+4B+AEPsGSMdH6BdnCl7UKXWu0sApRaoe+84rukh3C5o+QgZMVBUf1SyDYZB1hoL2UZwRA==
+  dependencies:
+    "@tauri-apps/api" ">=2.0.0-beta.6"
 
 timers-ext@^0.1.7:
   version "0.1.8"
