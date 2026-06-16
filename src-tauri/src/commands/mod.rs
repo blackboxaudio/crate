@@ -20,6 +20,8 @@ pub mod media_controls;
 pub mod playback;
 pub mod playlist;
 pub mod settings;
+// Throwaway iOS audio-proxy validation harness (#80); remove once findings are captured.
+pub mod spike;
 #[cfg(feature = "desktop")]
 pub mod sync;
 pub mod tag;

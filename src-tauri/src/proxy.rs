@@ -74,17 +74,32 @@ pub(crate) async fn proxy_http_handler(
     req_headers: axum::http::HeaderMap,
     axum::extract::State(state): axum::extract::State<ProxyServerState>,
 ) -> axum::http::Response<axum::body::Body> {
-    match proxy_http_handler_inner(&release_id, track_position, &req_headers, &state).await {
-        Ok(r) => r,
-        Err(e) => {
-            log::error!("Stream proxy error: {e}");
-            axum::http::Response::builder()
-                .status(502)
-                .header("Content-Type", "text/plain")
-                .body(axum::body::Body::from("Internal proxy error"))
-                .unwrap()
-        }
-    }
+    // iOS audio-proxy spike (#80): log each request's Range header and the response status so
+    // WKWebView/AVFoundation Range + seek behavior is observable in the device console.
+    let range_header = req_headers
+        .get("Range")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("<none>")
+        .to_string();
+    log::info!("Stream proxy GET /{release_id}/{track_position} Range={range_header}");
+
+    let response =
+        match proxy_http_handler_inner(&release_id, track_position, &req_headers, &state).await {
+            Ok(r) => r,
+            Err(e) => {
+                log::error!("Stream proxy error: {e}");
+                axum::http::Response::builder()
+                    .status(502)
+                    .header("Content-Type", "text/plain")
+                    .body(axum::body::Body::from("Internal proxy error"))
+                    .unwrap()
+            }
+        };
+    log::info!(
+        "Stream proxy /{release_id}/{track_position} Range={range_header} -> {}",
+        response.status()
+    );
+    response
 }
 
 async fn proxy_http_handler_inner(

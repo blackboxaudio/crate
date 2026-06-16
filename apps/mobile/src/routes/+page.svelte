@@ -26,4 +26,7 @@
 	{#if $cloudSyncError}
 		<p style="color: #c0392b;">{$cloudSyncError}</p>
 	{/if}
+
+	<!-- iOS audio-proxy validation harness (#80); throwaway dev link, remove with the spike. -->
+	<p style="margin-top: 2rem; font-size: 0.85rem;"><a href="/spike">iOS audio proxy spike (#80) →</a></p>
 </main>

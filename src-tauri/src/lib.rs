@@ -311,6 +311,9 @@ pub fn run() {
             commands::discovery::get_discovery_audio_cache_size,
             commands::discovery::clear_discovery_audio_cache,
             commands::discovery::nsig_solve_callback,
+            // iOS audio-proxy spike (#80) — WebView script-injection round-trip validation.
+            commands::spike::spike_webview_roundtrip,
+            commands::spike::spike_webview_callback,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
             commands::discovery::scan_discovery_page,
@@ -472,6 +475,7 @@ pub fn run() {
                 app_data_dir.clone(),
             );
             app.manage(NsigSolverState::new());
+            app.manage(commands::spike::SpikeEvalState::new());
             app.manage(PrefetchTracker::new());
             app.manage(BulkImportCancelFlag(Arc::new(
                 std::sync::atomic::AtomicBool::new(false),
