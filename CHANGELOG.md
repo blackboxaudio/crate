@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Changed
 
 - Prepared the backend to compile for mobile targets (iOS/Android) by gating desktop-only services (audio playback, USB export/sync, file import, track analysis, media keys, device detection) behind a default-on `desktop` Cargo feature, keeping desktop builds unchanged
+- Set up the iOS application project (Tauri mobile) so the mobile app builds and runs on iOS, with the background-audio mode and cloud sign-in OAuth redirect scheme configured
 
 ## [0.2.9] - 2026-06-09
 

@@ -95,6 +95,44 @@ Platform targets:
 - **macOS** - `.dmg`, `.app`
 - **Windows** - `.msi`, `.exe`
 
+### Mobile (iOS)
+
+The iOS app reuses the Rust backend in `src-tauri/` and renders the mobile frontend from `apps/mobile/`. iOS development requires macOS.
+
+**Prerequisites:**
+
+- **Xcode** + Command Line Tools, and **CocoaPods** (`brew install cocoapods`)
+- Rust iOS targets: `rustup target add aarch64-apple-ios aarch64-apple-ios-sim`
+- An **Apple Developer Team ID** for code signing (find it under [Membership details](https://developer.apple.com/account#MembershipDetailsCard))
+
+See the [Tauri iOS prerequisites](https://v2.tauri.app/start/prerequisites/) for the full list.
+
+Code signing is **not** committed to the repo — supply your own team ID via the `APPLE_DEVELOPMENT_TEAM` environment variable (it overrides `tauri.conf.json`'s `bundle.iOS.developmentTeam`). Export it in your shell profile so every `tauri ios` command picks it up:
+
+```bash
+export APPLE_DEVELOPMENT_TEAM=XXXXXXXXXX   # your Apple Developer Team ID
+```
+
+The Xcode project is generated and not committed (`src-tauri/gen/apple` is gitignored), so scaffold it once (with `APPLE_DEVELOPMENT_TEAM` set):
+
+```bash
+yarn tauri ios init
+```
+
+Run the app in the iOS Simulator (or a connected device) with hot reload:
+
+```bash
+yarn dev:ios
+```
+
+Build for production:
+
+```bash
+yarn build:ios
+```
+
+The iOS scripts first generate `src-tauri/Info.ios.plist` (adds background-audio mode for preview playback, and the OAuth callback URL scheme for cloud sign-in). The scheme is derived from `ios_oauth_client_id` in `src-tauri/cloud_sync.config.json` (see `cloud_sync.config.example.json`); without it the app still builds, but cloud sign-in is unavailable.
+
 ## 🔗 Links
 
 - [Website & Downloads](https://crate.bbx-audio.com)
