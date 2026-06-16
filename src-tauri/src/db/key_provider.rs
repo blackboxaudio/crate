@@ -192,7 +192,10 @@ fn store_key(key: &str) -> Result<()> {
     options.set_access_control(access_control);
 
     set_generic_password_options(key.as_bytes(), options).map_err(|e| {
-        CrateError::KeyStorage(format!("keychain write failed (OSStatus {}): {e}", e.code()))
+        CrateError::KeyStorage(format!(
+            "keychain write failed (OSStatus {}): {e}",
+            e.code()
+        ))
     })
 }
 
