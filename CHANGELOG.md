@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Added native cloud sync sign-in on mobile (iOS/Android) using the platform's secure web-auth session (ASWebAuthenticationSession / Custom Tabs) instead of the desktop loopback flow; mobile syncs discovery data only, never the local library
+- Added secure SQLCipher database key storage on iOS using the Keychain (device-only, after-first-unlock accessibility) via a new platform `KeyProvider` abstraction; desktop keeps its local key-file behavior and the unencrypted-to-encrypted database migration is now desktop-only
 
 ### Changed
 

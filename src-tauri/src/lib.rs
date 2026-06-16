@@ -379,7 +379,10 @@ pub fn run() {
             let db_path = app_data_dir.join("crate.db");
             log::info!("Database path: {db_path:?}");
 
-            let db = Database::new(db_path)?;
+            let db = Database::new(db_path).map_err(|e| {
+                log::error!("Database initialization failed: {e}");
+                e
+            })?;
             let conn = db.connection();
 
             // Initialize services. Desktop-only services (file import/analysis, audio
