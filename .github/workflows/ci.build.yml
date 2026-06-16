@@ -59,7 +59,6 @@ jobs:
   # that leaks into shared code can't silently break the mobile build. The feature flags from
   # #141 exclude desktop-only code via `--no-default-features --features mobile`.
   ios:
-    name: iOS
     runs-on: macos-latest
     defaults:
       run:
@@ -87,7 +86,6 @@ jobs:
         run: cargo check --target aarch64-apple-ios --no-default-features --features mobile
 
   android:
-    name: Android
     runs-on: ubuntu-latest
     defaults:
       run:
