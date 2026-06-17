@@ -1,6 +1,8 @@
 <script lang="ts">
+	import '../style.css'
 	import { onMount } from 'svelte'
 	import { initializeI18n } from '$shared/i18n'
+	import { settingsStore } from '$shared/stores/settings'
 
 	let { children } = $props()
 	let i18nReady = $state(false)
@@ -11,11 +13,17 @@
 	onMount(async () => {
 		await initializeI18n()
 		i18nReady = true
+
+		// Reconcile the store with persisted settings (theme/accent/font/language). The inline script
+		// in app.html already applied the correct theme pre-paint; this keeps the Svelte store in sync
+		// so settings controls reflect the real values. load() is mobile-safe (the desktop-only
+		// audio-devices call is guarded), so it resolves rather than rejecting on mobile.
+		await settingsStore.load()
 	})
 </script>
 
 {#if i18nReady}
 	{@render children()}
 {:else}
-	<main style="font-family: sans-serif; padding: 2rem;">Loading…</main>
+	<main class="p-8 text-text-secondary">Loading…</main>
 {/if}

@@ -26,7 +26,9 @@
 		"library": "Bibliotek",
 		"discovery": "Upptäckter",
 		"playlists": "Spellistor",
-		"tags": "Taggar"
+		"tags": "Taggar",
+		"openMenu": "Öppna meny",
+		"openSettings": "Öppna inställningar"
 	},
 	"settings": {
 		"title": "Inställningar",
@@ -423,6 +425,7 @@
 		"rootNoFolder": "Rot (ingen mapp)",
 		"folderEmpty": "Denna mapp är tom",
 		"noPlaylistsYet": "Inga spellistor än",
+		"noPlaylists": "Inga spellistor än",
 		"exportToDevice": "Exportera till enhet"
 	},
 	"tags": {

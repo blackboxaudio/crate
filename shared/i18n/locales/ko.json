@@ -26,7 +26,9 @@
 		"library": "라이브러리",
 		"discovery": "발견",
 		"playlists": "재생목록",
-		"tags": "태그"
+		"tags": "태그",
+		"openMenu": "메뉴 열기",
+		"openSettings": "설정 열기"
 	},
 	"settings": {
 		"title": "설정",
@@ -423,6 +425,7 @@
 		"rootNoFolder": "루트 (폴더 없음)",
 		"folderEmpty": "이 폴더가 비어 있습니다",
 		"noPlaylistsYet": "아직 재생목록이 없습니다",
+		"noPlaylists": "아직 재생목록이 없습니다",
 		"exportToDevice": "장치로 내보내기"
 	},
 	"tags": {

@@ -26,7 +26,9 @@
 		"library": "Libreria",
 		"discovery": "Scoperte",
 		"playlists": "Playlist",
-		"tags": "Tag"
+		"tags": "Tag",
+		"openMenu": "Apri menu",
+		"openSettings": "Apri impostazioni"
 	},
 	"settings": {
 		"title": "Impostazioni",
@@ -423,6 +425,7 @@
 		"rootNoFolder": "Radice (nessuna cartella)",
 		"folderEmpty": "Questa cartella è vuota",
 		"noPlaylistsYet": "Nessuna playlist per ora",
+		"noPlaylists": "Nessuna playlist per ora",
 		"exportToDevice": "Esporta su dispositivo"
 	},
 	"tags": {

@@ -26,7 +26,9 @@
 		"library": "Kütüphane",
 		"discovery": "Keşfet",
 		"playlists": "Çalma Listeleri",
-		"tags": "Etiketler"
+		"tags": "Etiketler",
+		"openMenu": "Menüyü aç",
+		"openSettings": "Ayarları aç"
 	},
 	"settings": {
 		"title": "Ayarlar",
@@ -422,6 +424,7 @@
 		"rootNoFolder": "Kök (Klasör Yok)",
 		"folderEmpty": "Bu klasör boş",
 		"noPlaylistsYet": "Henüz çalma listesi yok",
+		"noPlaylists": "Henüz çalma listesi yok",
 		"exportToDevice": "Cihaza Dışa Aktar"
 	},
 	"tags": {

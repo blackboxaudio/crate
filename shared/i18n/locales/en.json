@@ -26,7 +26,9 @@
 		"library": "Library",
 		"discovery": "Discovery",
 		"playlists": "Playlists",
-		"tags": "Tags"
+		"tags": "Tags",
+		"openMenu": "Open menu",
+		"openSettings": "Open settings"
 	},
 	"settings": {
 		"title": "Settings",
@@ -423,6 +425,7 @@
 		"rootNoFolder": "Root (No Folder)",
 		"folderEmpty": "This folder is empty",
 		"noPlaylistsYet": "No playlists yet",
+		"noPlaylists": "No playlists yet",
 		"exportToDevice": "Export to Device"
 	},
 	"tags": {

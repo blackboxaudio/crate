@@ -3,6 +3,73 @@
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+
+		<!-- Apply theme immediately to prevent flash (mirrors desktop; reads localStorage written by
+		     settingsStore). No splash here — the mobile app boots into the i18n loading gate. -->
+		<script>
+			;(function () {
+				// Theme preference
+				var theme = 'dark'
+				try {
+					var stored = localStorage.getItem('crate-theme')
+					if (stored === 'light' || stored === 'dark') {
+						theme = stored
+					} else if (stored === 'system' || !stored) {
+						theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+					}
+				} catch (e) {}
+				document.documentElement.setAttribute('data-theme', theme)
+
+				// Theme colors (set before style.css loads so the first paint uses correct values)
+				var s = document.documentElement.style
+				if (theme === 'light') {
+					s.setProperty('--surface-0', '#ffffff')
+					s.setProperty('--text-primary', '#18181b')
+					s.setProperty('--text-tertiary', '#71717a')
+				} else {
+					s.setProperty('--surface-0', '#09090b')
+					s.setProperty('--text-primary', '#fafafa')
+					s.setProperty('--text-tertiary', '#71717a')
+				}
+
+				// Accent color (the shared theme CSS maps data-accent -> --brand-primary)
+				var accentColors = {
+					blue: 1, indigo: 1, violet: 1, purple: 1, pink: 1,
+					rose: 1, orange: 1, amber: 1, emerald: 1, teal: 1,
+				}
+				var accent = 'blue'
+				try {
+					var storedAccent = localStorage.getItem('crate-accent')
+					if (storedAccent && accentColors[storedAccent]) accent = storedAccent
+				} catch (e) {}
+				document.documentElement.setAttribute('data-accent', accent)
+
+				// Font preference
+				var fontFamilies = {
+					inter: "'Inter', sans-serif",
+					nunito: "'Nunito', sans-serif",
+					'open-sans': "'Open Sans', sans-serif",
+					'fira-code': "'Fira Code', monospace",
+					'ibm-plex-mono': "'IBM Plex Mono', monospace",
+					'source-code-pro': "'Source Code Pro', monospace",
+				}
+				var font = 'open-sans'
+				try {
+					var storedFont = localStorage.getItem('crate-font')
+					if (storedFont && fontFamilies[storedFont]) font = storedFont
+				} catch (e) {}
+				document.documentElement.setAttribute('data-font', font)
+				document.documentElement.style.setProperty('--font-family', fontFamilies[font])
+			})()
+		</script>
+
+		<!-- Preload the default font (Open Sans) so it's available before style.css loads -->
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			rel="stylesheet"
+			href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..700&display=swap"
+		/>
 		<title>Crate</title>
 		%sveltekit.head%
 	</head>

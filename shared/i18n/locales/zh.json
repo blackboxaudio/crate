@@ -26,7 +26,9 @@
 		"library": "曲库",
 		"discovery": "发现",
 		"playlists": "播放列表",
-		"tags": "标签"
+		"tags": "标签",
+		"openMenu": "打开菜单",
+		"openSettings": "打开设置"
 	},
 	"settings": {
 		"title": "设置",
@@ -423,6 +425,7 @@
 		"rootNoFolder": "根目录（无文件夹）",
 		"folderEmpty": "此文件夹为空",
 		"noPlaylistsYet": "暂无播放列表",
+		"noPlaylists": "暂无播放列表",
 		"exportToDevice": "导出到设备"
 	},
 	"tags": {

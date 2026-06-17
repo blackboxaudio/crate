@@ -1,0 +1,106 @@
+/* Only the default font (Open Sans) is served on mobile to keep boot lightweight; the other
+   `data-font` families remain defined in the shared theme and fall back to the system font until
+   the mobile font picker ships. */
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..700&display=swap');
+@import 'tailwindcss';
+
+/* Cross-platform theme tokens shared with the desktop app: the dark/light theme, accent, and font
+   CSS variables that the @theme mapping and brand utilities below reference. */
+@import '../../../shared/styles/theme.css';
+
+/* =============================================================================
+   Theme Definition with Tailwind CSS 4 @theme (mirrors desktop's mapping so the same
+   surface, text, and stroke utilities are available on mobile).
+   ============================================================================= */
+
+@theme {
+	--color-surface-0: var(--surface-0);
+	--color-surface-1: var(--surface-1);
+	--color-surface-2: var(--surface-2);
+
+	--color-text-primary: var(--text-primary);
+	--color-text-secondary: var(--text-secondary);
+	--color-text-tertiary: var(--text-tertiary);
+
+	--color-stroke: var(--stroke);
+	--color-stroke-subtle: var(--stroke-subtle);
+
+	--color-danger: #ef4444;
+	--color-warning: #f59e0b;
+	--color-success: #22c55e;
+	--color-info: #3b82f6;
+}
+
+/* =============================================================================
+   Brand Color Utilities (raw var() refs so they react to data-accent changes).
+   ============================================================================= */
+
+@utility text-brand-primary {
+	color: var(--brand-primary);
+}
+
+@utility bg-brand-primary {
+	background-color: var(--brand-primary);
+}
+
+@utility bg-brand-hover {
+	background-color: var(--brand-hover);
+}
+
+@utility bg-brand-muted {
+	background-color: var(--brand-muted);
+}
+
+@utility border-brand-primary {
+	border-color: var(--brand-primary);
+}
+
+/* =============================================================================
+   Safe-area utilities (iOS notch / Dynamic Island / home indicator).
+   Require `viewport-fit=cover` (set in app.html).
+   ============================================================================= */
+
+@utility pt-safe {
+	padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility pl-safe {
+	padding-left: env(safe-area-inset-left);
+}
+
+@utility pr-safe {
+	padding-right: env(safe-area-inset-right);
+}
+
+/* =============================================================================
+   Base Styles (touch-oriented)
+   ============================================================================= */
+
+html,
+body {
+	height: 100%;
+	overflow: hidden; /* the shell owns its scroll containers; prevent whole-page bounce */
+	overscroll-behavior: none;
+	background-color: var(--surface-0);
+	color: var(--text-primary);
+	font-family: var(--font-family);
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent; /* no grey flash on tap */
+}
+
+/* Re-enable text selection for inputs and editable content */
+input,
+textarea,
+[contenteditable='true'] {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+*:focus {
+	outline: none;
+}

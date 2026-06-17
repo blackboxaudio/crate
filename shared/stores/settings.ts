@@ -277,7 +277,13 @@ function createSettingsStore() {
 			update((s) => ({ ...s, loading: true, error: null }))
 
 			try {
-				const [settings, audioDevices] = await Promise.all([settingsApi.getSettings(), settingsApi.getAudioDevices()])
+				const [settings, audioDevices] = await Promise.all([
+					settingsApi.getSettings(),
+					// get_audio_devices is desktop-only (#[cfg(feature = "desktop")]); on mobile the command
+					// is absent, so default to an empty list rather than letting the whole load() reject and
+					// fall back to hardcoded theme defaults.
+					settingsApi.getAudioDevices().catch(() => [] as AudioDevice[]),
+				])
 				const resolvedTheme = resolveTheme(settings.theme)
 
 				update((s) => ({

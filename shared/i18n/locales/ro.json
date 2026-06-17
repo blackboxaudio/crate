@@ -26,7 +26,9 @@
 		"library": "Bibliotecă",
 		"discovery": "Descoperiri",
 		"playlists": "Playlisturi",
-		"tags": "Etichete"
+		"tags": "Etichete",
+		"openMenu": "Deschideți meniu",
+		"openSettings": "Deschideți setări"
 	},
 	"settings": {
 		"title": "Setări",
@@ -422,6 +424,7 @@
 		"rootNoFolder": "Root (Fără Folder)",
 		"folderEmpty": "Acest folder este gol",
 		"noPlaylistsYet": "Niciun playlist deocamdată",
+		"noPlaylists": "Niciun playlist deocamdată",
 		"exportToDevice": "Exportă pe Dispozitiv"
 	},
 	"tags": {
