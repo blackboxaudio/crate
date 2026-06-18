@@ -22,7 +22,6 @@ pub mod follow;
 pub mod hash;
 #[cfg(feature = "desktop")]
 pub mod library;
-#[cfg(feature = "desktop")]
 pub mod media_controls;
 pub mod playlist;
 pub mod settings;
@@ -47,7 +46,6 @@ pub use export::ExportService;
 pub use follow::FollowService;
 #[cfg(feature = "desktop")]
 pub use library::LibraryService;
-#[cfg(feature = "desktop")]
 pub use media_controls::MediaControlsService;
 pub use playlist::PlaylistService;
 pub use settings::SettingsService;

@@ -247,7 +247,10 @@
 		"volume": "볼륨",
 		"tempo": "템포",
 		"resetTempo": "템포 재설정",
-		"trackNotFound": "재생 중인 트랙을 찾을 수 없습니다"
+		"trackNotFound": "재생 중인 트랙을 찾을 수 없습니다",
+		"expand": "플레이어 확장",
+		"collapse": "플레이어 축소",
+		"seek": "탐색"
 	},
 	"library": {
 		"searchPlaceholder": "트랙 검색...",
@@ -296,6 +299,7 @@
 		"tracks": "트랙",
 		"trackCount": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}}",
 		"openInBrowser": "브라우저에서 열기",
+		"openInApp": "{app}에서 열기",
 		"copyUrl": "URL 복사",
 		"copiedUrl": "URL이 클립보드에 복사되었습니다",
 		"like": "좋아요 추가",
@@ -314,7 +318,9 @@
 			"title": "제목",
 			"label": "레이블",
 			"releaseDate": "릴리스 날짜",
-			"notes": "노트"
+			"notes": "노트",
+			"notesPlaceholder": "메모 추가…",
+			"addTags": "태그 추가"
 		},
 		"import": {
 			"title": "라이브러리로 가져오기",

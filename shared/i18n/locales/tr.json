@@ -247,7 +247,10 @@
 		"volume": "Ses Düzeyi",
 		"tempo": "Tempo",
 		"resetTempo": "Tempoyu Sıfırla",
-		"trackNotFound": "Çalan parça bulunamadı"
+		"trackNotFound": "Çalan parça bulunamadı",
+		"expand": "Oynatıcıyı Genişlet",
+		"collapse": "Oynatıcıyı Daralt",
+		"seek": "Ara"
 	},
 	"library": {
 		"searchPlaceholder": "Şarkıları ara...",
@@ -295,6 +298,7 @@
 		"tracks": "Şarkılar",
 		"trackCount": "{count, plural, =1 {1 şarkı} other {{count} şarkı}}",
 		"openInBrowser": "Tarayıcıda Aç",
+		"openInApp": "{app}'da Aç",
 		"copyUrl": "URL'yi Kopyala",
 		"copiedUrl": "URL panoya kopyalandı",
 		"like": "Beğenilenlere Ekle",
@@ -313,7 +317,9 @@
 			"title": "Başlık",
 			"label": "Etiket",
 			"releaseDate": "Yayın Tarihi",
-			"notes": "Notlar"
+			"notes": "Notlar",
+			"notesPlaceholder": "Not ekle…",
+			"addTags": "Etiket ekle"
 		},
 		"import": {
 			"title": "Kütüphaneye İçe Aktar",

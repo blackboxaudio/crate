@@ -247,7 +247,10 @@
 		"volume": "音量",
 		"tempo": "テンポ",
 		"resetTempo": "テンポをリセット",
-		"trackNotFound": "再生中のトラックが見つかりません"
+		"trackNotFound": "再生中のトラックが見つかりません",
+		"expand": "プレイヤーを展開",
+		"collapse": "プレイヤーを折りたたむ",
+		"seek": "シーク"
 	},
 	"library": {
 		"searchPlaceholder": "トラックを検索...",
@@ -296,6 +299,7 @@
 		"tracks": "トラック",
 		"trackCount": "{count, plural, =1 {1曲} other {{count}曲}}",
 		"openInBrowser": "ブラウザで開く",
+		"openInApp": "{app}で開く",
 		"copyUrl": "URLをコピー",
 		"copiedUrl": "URLをコピーしました",
 		"like": "お気に入りに追加",
@@ -314,7 +318,9 @@
 			"title": "タイトル",
 			"label": "レーベル",
 			"releaseDate": "リリース日",
-			"notes": "メモ"
+			"notes": "メモ",
+			"notesPlaceholder": "メモを追加…",
+			"addTags": "タグを追加"
 		},
 		"import": {
 			"title": "ライブラリにインポート",

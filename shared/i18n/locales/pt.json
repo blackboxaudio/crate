@@ -247,7 +247,10 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Redefinir tempo",
-		"trackNotFound": "Não foi possível localizar a faixa em reprodução"
+		"trackNotFound": "Não foi possível localizar a faixa em reprodução",
+		"expand": "Expandir reprodutor",
+		"collapse": "Recolher reprodutor",
+		"seek": "Buscar"
 	},
 	"library": {
 		"searchPlaceholder": "Buscar faixas...",
@@ -296,6 +299,7 @@
 		"tracks": "Faixas",
 		"trackCount": "{count, plural, =1 {1 faixa} other {{count} faixas}}",
 		"openInBrowser": "Abrir no navegador",
+		"openInApp": "Abrir em {app}",
 		"copyUrl": "Copiar URL",
 		"copiedUrl": "URL copiada para a área de transferência",
 		"like": "Adicionar às curtidas",
@@ -314,7 +318,9 @@
 			"title": "Título",
 			"label": "Gravadora",
 			"releaseDate": "Data de lançamento",
-			"notes": "Notas"
+			"notes": "Notas",
+			"notesPlaceholder": "Adicionar notas…",
+			"addTags": "Adicionar tags"
 		},
 		"import": {
 			"title": "Importar para a biblioteca",

@@ -1,14 +1,23 @@
+//! Desktop media-session backend (souvlaki): OS Now Playing + hardware/media-key events.
+//!
+//! Hardware media keys arrive as souvlaki [`MediaControlEvent`]s and are re-emitted as the shared
+//! `media-*` Tauri events, matching the iOS backend so the frontend handler is platform-agnostic.
+
 use std::sync::Mutex;
 use std::time::Duration;
 
-use souvlaki::{MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, PlatformConfig};
+use souvlaki::{
+    MediaControlEvent, MediaControls, MediaMetadata, MediaPlayback, MediaPosition, PlatformConfig,
+};
 use tauri::{AppHandle, Emitter};
 
-pub struct MediaControlsService {
+use super::{MediaSession, NowPlayingMetadata, PlaybackStatus};
+
+pub struct SouvlakiMediaSession {
     controls: Option<Mutex<MediaControls>>,
 }
 
-impl MediaControlsService {
+impl SouvlakiMediaSession {
     pub fn new(app_handle: &AppHandle) -> Self {
         let hwnd = Self::get_hwnd(app_handle);
 
@@ -81,15 +90,10 @@ impl MediaControlsService {
     fn get_hwnd(_app_handle: &AppHandle) -> Option<*mut std::ffi::c_void> {
         None
     }
+}
 
-    pub fn set_metadata(
-        &self,
-        title: Option<&str>,
-        artist: Option<&str>,
-        album: Option<&str>,
-        cover_url: Option<&str>,
-        duration: Option<Duration>,
-    ) {
+impl MediaSession for SouvlakiMediaSession {
+    fn set_metadata(&self, meta: &NowPlayingMetadata) {
         let Some(ref controls) = self.controls else {
             return;
         };
@@ -97,21 +101,32 @@ impl MediaControlsService {
             return;
         };
         let _ = controls.set_metadata(MediaMetadata {
-            title,
-            artist,
-            album,
-            cover_url,
-            duration,
+            title: meta.title.as_deref(),
+            artist: meta.artist.as_deref(),
+            album: meta.album.as_deref(),
+            cover_url: meta.cover_url.as_deref(),
+            duration: meta.duration,
         });
     }
 
-    pub fn set_playback(&self, playback: MediaPlayback) {
+    fn set_playback(&self, status: PlaybackStatus, progress: Option<Duration>) {
         let Some(ref controls) = self.controls else {
             return;
         };
         let Ok(mut controls) = controls.lock() else {
             return;
         };
+        let progress = progress.map(MediaPosition);
+        let playback = match status {
+            PlaybackStatus::Playing => MediaPlayback::Playing { progress },
+            PlaybackStatus::Paused => MediaPlayback::Paused { progress },
+            PlaybackStatus::Stopped => MediaPlayback::Stopped,
+        };
         let _ = controls.set_playback(playback);
+    }
+
+    fn clear(&self) {
+        self.set_playback(PlaybackStatus::Stopped, None);
+        self.set_metadata(&NowPlayingMetadata::default());
     }
 }

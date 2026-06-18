@@ -247,7 +247,10 @@
 		"volume": "Głośność",
 		"tempo": "Tempo",
 		"resetTempo": "Resetuj tempo",
-		"trackNotFound": "Nie udało się zlokalizować odtwarzanego utworu"
+		"trackNotFound": "Nie udało się zlokalizować odtwarzanego utworu",
+		"expand": "Rozwiń odtwarzacz",
+		"collapse": "Zwiń odtwarzacz",
+		"seek": "Szukaj"
 	},
 	"library": {
 		"searchPlaceholder": "Szukaj ścieżek...",
@@ -295,6 +298,7 @@
 		"tracks": "Ścieżki",
 		"trackCount": "{count, plural, =1 {1 ścieżka} other {{count} ścieżek}}",
 		"openInBrowser": "Otwórz w przeglądarce",
+		"openInApp": "Otwórz w {app}",
 		"copyUrl": "Skopiuj URL",
 		"copiedUrl": "URL skopiowany do schowka",
 		"like": "Dodaj do polubionych",
@@ -313,7 +317,9 @@
 			"title": "Tytuł",
 			"label": "Label",
 			"releaseDate": "Data wydania",
-			"notes": "Notatki"
+			"notes": "Notatki",
+			"notesPlaceholder": "Dodaj notatki…",
+			"addTags": "Dodaj tagi"
 		},
 		"import": {
 			"title": "Importuj do biblioteki",

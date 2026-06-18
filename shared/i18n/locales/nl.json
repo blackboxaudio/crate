@@ -247,7 +247,10 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Tempo resetten",
-		"trackNotFound": "Kon het afspelende nummer niet vinden"
+		"trackNotFound": "Kon het afspelende nummer niet vinden",
+		"expand": "Speler uitvouwen",
+		"collapse": "Speler samenvouwen",
+		"seek": "Zoeken"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks zoeken...",
@@ -296,6 +299,7 @@
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "In browser openen",
+		"openInApp": "In {app} openen",
 		"copyUrl": "URL kopiëren",
 		"copiedUrl": "URL gekopieerd naar klembord",
 		"like": "Toevoegen aan favorieten",
@@ -314,7 +318,9 @@
 			"title": "Titel",
 			"label": "Label",
 			"releaseDate": "Releasedatum",
-			"notes": "Opmerkingen"
+			"notes": "Opmerkingen",
+			"notesPlaceholder": "Opmerkingen toevoegen…",
+			"addTags": "Tags toevoegen"
 		},
 		"import": {
 			"title": "Importeren naar bibliotheek",

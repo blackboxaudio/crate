@@ -247,7 +247,10 @@
 		"volume": "Volum",
 		"tempo": "Tempo",
 		"resetTempo": "Resetează tempo",
-		"trackNotFound": "Nu s-a putut localiza piesa în curs de redare"
+		"trackNotFound": "Nu s-a putut localiza piesa în curs de redare",
+		"expand": "Extindeți playerul",
+		"collapse": "Restrângeți playerul",
+		"seek": "Cauta"
 	},
 	"library": {
 		"searchPlaceholder": "Caută melodii...",
@@ -295,6 +298,7 @@
 		"tracks": "Melodii",
 		"trackCount": "{count, plural, =1 {1 melodie} other {{count} melodii}}",
 		"openInBrowser": "Deschide în Browser",
+		"openInApp": "Deschide în {app}",
 		"copyUrl": "Copiază URL",
 		"copiedUrl": "URL copiat în clipboard",
 		"like": "Adaugă la Apreciate",
@@ -313,7 +317,9 @@
 			"title": "Titlu",
 			"label": "Label",
 			"releaseDate": "Data Lansării",
-			"notes": "Note"
+			"notes": "Note",
+			"notesPlaceholder": "Adaugă note…",
+			"addTags": "Adaugă etichete"
 		},
 		"import": {
 			"title": "Importă în Bibliotecă",

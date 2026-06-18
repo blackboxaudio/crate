@@ -247,7 +247,10 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Reset tempo",
-		"trackNotFound": "Could not locate the playing track"
+		"trackNotFound": "Could not locate the playing track",
+		"expand": "Expand player",
+		"collapse": "Collapse player",
+		"seek": "Seek"
 	},
 	"library": {
 		"searchPlaceholder": "Search tracks...",
@@ -296,6 +299,7 @@
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "Open in Browser",
+		"openInApp": "Open in {app}",
 		"copyUrl": "Copy URL",
 		"copiedUrl": "URL copied to clipboard",
 		"like": "Like",
@@ -314,7 +318,9 @@
 			"title": "Title",
 			"label": "Label",
 			"releaseDate": "Release Date",
-			"notes": "Notes"
+			"notes": "Notes",
+			"notesPlaceholder": "Add notes…",
+			"addTags": "Add tags"
 		},
 		"import": {
 			"title": "Import to Library",

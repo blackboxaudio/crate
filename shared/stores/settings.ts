@@ -116,7 +116,16 @@ function createSettingsStore() {
 
 	function applyTheme(resolvedTheme: 'light' | 'dark') {
 		if (typeof document === 'undefined') return
-		document.documentElement.setAttribute('data-theme', resolvedTheme)
+		const root = document.documentElement
+		root.setAttribute('data-theme', resolvedTheme)
+		// The boot script (app.html) writes inline --surface-0/--text-primary/--text-tertiary for a
+		// flash-free first paint. Those inline values outrank the stylesheet's [data-theme] rules, so a
+		// runtime theme switch would leave them stale (mismatched surfaces, invisible text). Clear them
+		// here so theme.css becomes authoritative — by now it's loaded and supplies identical values, so
+		// the removal is invisible on first load but lets every later switch re-theme correctly.
+		root.style.removeProperty('--surface-0')
+		root.style.removeProperty('--text-primary')
+		root.style.removeProperty('--text-tertiary')
 	}
 
 	function applyAccentColor(color: AccentColor) {

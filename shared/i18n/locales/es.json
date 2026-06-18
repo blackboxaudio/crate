@@ -247,7 +247,10 @@
 		"volume": "Volumen",
 		"tempo": "Tempo",
 		"resetTempo": "Restablecer tempo",
-		"trackNotFound": "No se pudo localizar la pista en reproducción"
+		"trackNotFound": "No se pudo localizar la pista en reproducción",
+		"expand": "Expandir reproductor",
+		"collapse": "Contraer reproductor",
+		"seek": "Buscar"
 	},
 	"library": {
 		"searchPlaceholder": "Buscar pistas...",
@@ -296,6 +299,7 @@
 		"tracks": "Pistas",
 		"trackCount": "{count, plural, =1 {1 pista} other {{count} pistas}}",
 		"openInBrowser": "Abrir en navegador",
+		"openInApp": "Abrir en {app}",
 		"copyUrl": "Copiar URL",
 		"copiedUrl": "URL copiada al portapapeles",
 		"like": "Me gusta",
@@ -314,7 +318,9 @@
 			"title": "Título",
 			"label": "Sello",
 			"releaseDate": "Fecha de lanzamiento",
-			"notes": "Notas"
+			"notes": "Notas",
+			"notesPlaceholder": "Añadir notas…",
+			"addTags": "Añadir etiquetas"
 		},
 		"import": {
 			"title": "Importar a la biblioteca",

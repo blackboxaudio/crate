@@ -1,0 +1,6 @@
+xcuserdata/
+build/
+Externals/
+# Baked at `tauri ios init` from the gitignored Info.ios.plist; embeds the iOS OAuth client id, so it
+# stays out of git (regenerated on init). See scripts/write-ios-plist.mjs.
+crate-app_iOS/Info.plist

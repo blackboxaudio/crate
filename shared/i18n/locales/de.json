@@ -247,7 +247,10 @@
 		"volume": "Lautstärke",
 		"tempo": "Tempo",
 		"resetTempo": "Tempo zurücksetzen",
-		"trackNotFound": "Der aktuell gespielte Titel konnte nicht gefunden werden"
+		"trackNotFound": "Der aktuell gespielte Titel konnte nicht gefunden werden",
+		"expand": "Player ausklappen",
+		"collapse": "Player einklappen",
+		"seek": "Suchen"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks suchen...",
@@ -296,6 +299,7 @@
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 Track} other {{count} Tracks}}",
 		"openInBrowser": "Im Browser öffnen",
+		"openInApp": "In {app} öffnen",
 		"copyUrl": "URL kopieren",
 		"copiedUrl": "URL in Zwischenablage kopiert",
 		"like": "Markieren",
@@ -314,7 +318,9 @@
 			"title": "Titel",
 			"label": "Label",
 			"releaseDate": "Release-Datum",
-			"notes": "Notizen"
+			"notes": "Notizen",
+			"notesPlaceholder": "Notizen hinzufügen…",
+			"addTags": "Tags hinzufügen"
 		},
 		"import": {
 			"title": "In Bibliothek importieren",

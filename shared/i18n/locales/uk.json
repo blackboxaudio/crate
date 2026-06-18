@@ -247,7 +247,10 @@
 		"volume": "Гучність",
 		"tempo": "Темп",
 		"resetTempo": "Скинути темп",
-		"trackNotFound": "Не вдалося знайти відтворюваний трек"
+		"trackNotFound": "Не вдалося знайти відтворюваний трек",
+		"expand": "Розширити програвач",
+		"collapse": "Згорнути програвач",
+		"seek": "Пошук"
 	},
 	"library": {
 		"searchPlaceholder": "Пошук доріжок...",
@@ -295,6 +298,7 @@
 		"tracks": "Доріжки",
 		"trackCount": "{count, plural, =1 {1 доріжка} other {{count} доріжок}}",
 		"openInBrowser": "Відкрити в браузері",
+		"openInApp": "Відкрити в {app}",
 		"copyUrl": "Копіювати URL",
 		"copiedUrl": "URL скопійовано до буфера обміну",
 		"like": "Додати до вподобаних",
@@ -313,7 +317,9 @@
 			"title": "Назва",
 			"label": "Лейбл",
 			"releaseDate": "Дата випуску",
-			"notes": "Примітки"
+			"notes": "Примітки",
+			"notesPlaceholder": "Додати примітки…",
+			"addTags": "Додати теги"
 		},
 		"import": {
 			"title": "Імпортувати до бібліотеки",

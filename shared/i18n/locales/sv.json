@@ -247,7 +247,10 @@
 		"volume": "Volym",
 		"tempo": "Tempo",
 		"resetTempo": "Återställ tempo",
-		"trackNotFound": "Kunde inte hitta det spelande spåret"
+		"trackNotFound": "Kunde inte hitta det spelande spåret",
+		"expand": "Expandera spelare",
+		"collapse": "Fäll ihop spelare",
+		"seek": "Sök"
 	},
 	"library": {
 		"searchPlaceholder": "Sök spår...",
@@ -296,6 +299,7 @@
 		"tracks": "Spår",
 		"trackCount": "{count, plural, =1 {1 spår} other {{count} spår}}",
 		"openInBrowser": "Öppna i webbläsare",
+		"openInApp": "Öppna i {app}",
 		"copyUrl": "Kopiera URL",
 		"copiedUrl": "URL kopierad till urklipp",
 		"like": "Lägg till i gillat",
@@ -314,7 +318,9 @@
 			"title": "Titel",
 			"label": "Skivbolag",
 			"releaseDate": "Releasedatum",
-			"notes": "Anteckningar"
+			"notes": "Anteckningar",
+			"notesPlaceholder": "Lägg till anteckningar…",
+			"addTags": "Lägg till taggar"
 		},
 		"import": {
 			"title": "Importera till bibliotek",

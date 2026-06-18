@@ -72,8 +72,11 @@ use services::{
 #[cfg(feature = "desktop")]
 use services::{
     export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
-    ExportService, LibraryService, MediaControlsService, SyncService,
+    ExportService, LibraryService, SyncService,
 };
+// Cross-platform media session (Now Playing / lock-screen controls): souvlaki on desktop,
+// AVAudioSession + MediaPlayer on iOS (#79), no-op elsewhere.
+use services::MediaControlsService;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -334,13 +337,29 @@ pub fn run() {
             commands::backup::get_backup_info,
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
-            // Media controls commands (desktop-only)
-            #[cfg(feature = "desktop")]
+            // Media controls commands (cross-platform; no-op backend where unsupported)
             commands::media_controls::update_now_playing,
-            #[cfg(feature = "desktop")]
             commands::media_controls::update_playback_state,
-            #[cfg(feature = "desktop")]
             commands::media_controls::clear_now_playing,
+            // Native iOS preview playback engine (#54): AVPlayer + lock-screen transport.
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_play,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_pause,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_resume,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_seek,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_next,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_previous,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_stop,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_volume,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_rate,
             // Cloud sync commands
             #[cfg(feature = "desktop")]
             commands::cloud_sync::sign_in,
@@ -616,12 +635,21 @@ pub fn run() {
                 app.manage(std::sync::Mutex::new(menu::FullscreenLabels::default()));
             }
 
-            // Initialize media controls (desktop-only: souvlaki Now Playing / media keys)
-            #[cfg(feature = "desktop")]
+            // Initialize the cross-platform media session (Now Playing / lock-screen controls).
+            // The backend is platform-selected: souvlaki on desktop, AVAudioSession + MediaPlayer on
+            // iOS, no-op elsewhere. On iOS, constructing it activates the AVAudioSession `.playback`
+            // category (#79) so audio can continue while the app is backgrounded.
             {
                 let media_controls_service = MediaControlsService::new(app.handle());
                 app.manage(media_controls_service);
             }
+
+            // iOS native preview playback engine (#54): drives AVPlayer + the lock-screen transport
+            // (prev/next/scrubber that keep working while the WebView's JS is suspended on lock).
+            #[cfg(target_os = "ios")]
+            app.manage(services::media_controls::NativePreviewEngine::new(
+                app.handle().clone(),
+            ));
 
             // Bind a stream proxy HTTP server on a random OS-assigned port. Real HTTP is required
             // for WKWebView's AVFoundation media layer to correctly handle Range requests during

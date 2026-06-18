@@ -247,7 +247,10 @@
 		"volume": "音量",
 		"tempo": "速度",
 		"resetTempo": "重置速度",
-		"trackNotFound": "无法找到正在播放的曲目"
+		"trackNotFound": "无法找到正在播放的曲目",
+		"expand": "展开播放器",
+		"collapse": "收起播放器",
+		"seek": "快进"
 	},
 	"library": {
 		"searchPlaceholder": "搜索曲目...",
@@ -296,6 +299,7 @@
 		"tracks": "曲目",
 		"trackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}",
 		"openInBrowser": "在浏览器中打开",
+		"openInApp": "在 {app} 中打开",
 		"copyUrl": "复制URL",
 		"copiedUrl": "已复制URL到剪贴板",
 		"like": "添加到已赞",
@@ -314,7 +318,9 @@
 			"title": "标题",
 			"label": "厂牌",
 			"releaseDate": "发行日期",
-			"notes": "备注"
+			"notes": "备注",
+			"notesPlaceholder": "添加备注…",
+			"addTags": "添加标签"
 		},
 		"import": {
 			"title": "导入到音乐库",

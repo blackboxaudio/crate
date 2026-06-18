@@ -91,6 +91,7 @@ body {
 	-webkit-user-select: none;
 	user-select: none;
 	-webkit-tap-highlight-color: transparent; /* no grey flash on tap */
+	touch-action: manipulation; /* no double-tap zoom (pinch is blocked via viewport + gesture guards) */
 }
 
 /* Re-enable text selection for inputs and editable content */
@@ -103,4 +104,31 @@ textarea,
 
 *:focus {
 	outline: none;
+}
+
+/* =============================================================================
+   Album-art background wash (ExpandedPlayer): a slow Ken-Burns drift on the
+   blurred cover so the now-playing backdrop feels alive. Disabled under
+   reduced-motion. The base scale keeps the blurred edges off-screen.
+   ============================================================================= */
+
+@keyframes art-wash-drift {
+	0%,
+	100% {
+		transform: scale(1.5) translate(0, 0);
+	}
+	50% {
+		transform: scale(1.7) translate(-3%, -2%);
+	}
+}
+
+.art-wash {
+	transform: scale(1.5);
+	animation: art-wash-drift 22s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.art-wash {
+		animation: none;
+	}
 }

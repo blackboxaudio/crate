@@ -128,4 +128,47 @@ sha2 = "0.10"
 [target.'cfg(target_os = "ios")'.dependencies]
 security-framework = "3.7"
 security-framework-sys = "2"
+# iOS media session (#79, #54): background audio + the native lock-screen playback engine, via objc2
+# FFI (mirrors the Keychain FFI above). `AVAudioSession` `.playback` keeps WebView/native audio alive
+# when backgrounded; `AVPlayer` + `MPNowPlayingInfoCenter` + `MPRemoteCommandCenter` provide a native
+# lock-screen transport (prev/next/scrubber that keep working while the WebView's JS is suspended on
+# lock). `block2` backs the remote-command / periodic-time-observer / NotificationCenter blocks.
+# Framework-crate `features` name each class used; reconcile against `cargo check --target
+# aarch64-apple-ios` (objc2 0.3 framework crates gate every type behind its own feature).
+objc2 = "0.6.4"
+block2 = "0.6.2"
+# `block2` enables the block-taking method (NSNotificationCenter addObserverForName:…:usingBlock:).
+objc2-foundation = { version = "0.3.2", features = [
+  "NSString",
+  "NSURL",
+  "NSData",
+  "NSDictionary",
+  "NSValue",
+  "NSError",
+  "NSNotification",
+  "NSOperation",
+  "block2",
+] }
+objc2-avf-audio = { version = "0.3.2", features = ["AVAudioSession", "AVAudioSessionTypes"] }
+# `block2` + `dispatch2` + `objc2-core-media` are needed for AVPlayer.addPeriodicTimeObserver
+# (block handler, dispatch-queue param type, and CMTime in the player's time methods).
+objc2-av-foundation = { version = "0.3.2", features = [
+  "AVPlayer",
+  "AVPlayerItem",
+  "AVAsset",
+  "block2",
+  "dispatch2",
+  "objc2-core-media",
+] }
+objc2-core-media = { version = "0.3.2", features = ["CMTime"] }
+# `MPMediaItemArtwork` is not its own feature — it lives in `MPMediaItem` (which also carries the
+# MPMediaItemProperty* keys). `block2` enables MPRemoteCommand.addTargetWithHandler.
+objc2-media-player = { version = "0.3.2", features = [
+  "MPRemoteCommandCenter",
+  "MPRemoteCommand",
+  "MPRemoteCommandEvent",
+  "MPNowPlayingInfoCenter",
+  "MPMediaItem",
+  "block2",
+] }
 

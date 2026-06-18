@@ -67,7 +67,7 @@
 		></button>
 		<div
 			class="pb-safe fixed inset-x-0 bottom-0 flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-stroke bg-surface-1"
-			transition:fly={{ y: 400, duration: 250, easing: cubicOut, opacity: 1 }}
+			transition:fly={{ y: 400, duration: 300, easing: cubicOut, opacity: 1 }}
 			onoutroend={handleOutroEnd}
 		>
 			<div class="flex justify-center pt-2 pb-1">

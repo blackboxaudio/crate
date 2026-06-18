@@ -36,6 +36,13 @@ export interface SwipeOptions {
 	width?: number
 	/** Hit zone from the screen edge for `mode: 'open'`, in px. Default 24. */
 	edgeSize?: number
+	/** For `mode: 'close'`, restrict the drag to start within this many px of an edge (iOS-style
+	 *  interactive back-swipe). When unset, a close drag can start anywhere on the node. */
+	closeEdgeSize?: number
+	/** Which screen edge `closeEdgeSize` is measured from (defaults to `side`). A panel that slides
+	 *  off to the right (`side: 'right'`) but is dismissed by an edge-swipe from the LEFT sets
+	 *  `closeEdgeFrom: 'left'`. */
+	closeEdgeFrom?: SwipeSide
 	/** Fraction of width that commits the gesture on release. Default 0.4. */
 	snapFraction?: number
 	/** Disable the gesture (e.g. when the drawer isn't in the relevant open/closed state). Default true. */
@@ -50,6 +57,8 @@ interface ResolvedOptions {
 	onClose?: () => void
 	width?: number
 	edgeSize: number
+	closeEdgeSize?: number
+	closeEdgeFrom?: SwipeSide
 	snapFraction: number
 	enabled: boolean
 }
@@ -65,6 +74,8 @@ function resolve(opts: SwipeOptions): ResolvedOptions {
 		onClose: opts.onClose,
 		width: opts.width,
 		edgeSize: opts.edgeSize ?? 24,
+		closeEdgeSize: opts.closeEdgeSize,
+		closeEdgeFrom: opts.closeEdgeFrom,
 		snapFraction: opts.snapFraction ?? 0.4,
 		enabled: opts.enabled ?? true,
 	}
@@ -103,9 +114,14 @@ export const swipe: Action<HTMLElement, SwipeOptions> = (node, initial) => {
 		if (!opts.enabled || pointerId !== null) return
 		if (e.pointerType === 'mouse' && e.button !== 0) return
 
-		if (opts.mode === 'open') {
-			const fromEdge = opts.side === 'left' ? e.clientX : window.innerWidth - e.clientX
-			if (fromEdge > opts.edgeSize) return
+		// Edge gate: 'open' always starts from the screen edge; 'close' is edge-gated only when
+		// `closeEdgeSize` is set (iOS-style back-swipe). The edge defaults to the anchor `side` but can
+		// be overridden via `closeEdgeFrom` (e.g. a right-exiting panel dismissed from the left edge).
+		const edgeLimit = opts.mode === 'open' ? opts.edgeSize : opts.closeEdgeSize
+		if (edgeLimit != null) {
+			const edgeSide = opts.mode === 'open' ? opts.side : (opts.closeEdgeFrom ?? opts.side)
+			const fromEdge = edgeSide === 'left' ? e.clientX : window.innerWidth - e.clientX
+			if (fromEdge > edgeLimit) return
 		}
 
 		pointerId = e.pointerId

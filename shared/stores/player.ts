@@ -3,6 +3,8 @@ import type { Track, PlaybackState, PreviewInfo, DiscoveryRelease } from '../typ
 import * as playerApi from '../api/player'
 import * as discoveryApi from '../api/discovery'
 import * as previewPlayer from '../services/previewPlayer'
+import * as nativePreviewPlayer from '../services/nativePreviewPlayer'
+import { isIOS } from '../utils/platform'
 import { toastStore } from './toast'
 import { translate } from '../i18n'
 import {
@@ -64,6 +66,11 @@ const initialState: PlayerState = {
 	previewLoadingReleaseId: null,
 }
 
+// Pressing "previous" within this window restarts the current track instead of jumping to the
+// previous one (matches iOS Music / most players). Shared by the in-app transport controls and the
+// OS media-session handlers (webMediaSession.ts) so both honour the same rule.
+export const PREVIOUS_RESTART_THRESHOLD_MS = 3000
+
 // =============================================================================
 // Store
 // =============================================================================
@@ -82,6 +89,10 @@ function createPlayerStore() {
 	let previewSpeedCommitTimeout: ReturnType<typeof setTimeout> | null = null
 	let isRestoredFromStorage = false
 	let lastPositionWriteTime = 0
+	// On iOS, discovery preview plays through the native AVPlayer engine (lock-screen transport that
+	// survives JS suspension) instead of the HTML5 <audio> element. Every preview transport method
+	// branches on this; desktop/Android keep the HTML5 path.
+	const useNative = isIOS()
 
 	function persistPosition(positionMs: number) {
 		const now = Date.now()
@@ -340,6 +351,54 @@ function createPlayerStore() {
 			stopPositionTracking()
 			update((s) => ({ ...s, previewLoadingReleaseId: release.id }))
 
+			// iOS: hand the whole release (pre-resolved proxy URLs) to the native engine so it can
+			// switch tracks — including while the screen is locked — without any further JS.
+			if (useNative) {
+				try {
+					const urls = await Promise.all(
+						release.tracks.map((t) => discoveryApi.fetchPreviewStream(release.id, t.position))
+					)
+					const nativeTracks = release.tracks.map((t, i) => ({
+						url: urls[i],
+						title: t.name,
+						artist: release.artist ?? '',
+						album: release.title ?? '',
+						durationMs: t.duration_ms ?? 0,
+						artworkUrl: release.artwork_url ?? null,
+					}))
+					await nativePreviewPlayer.play(nativeTracks, trackIndex)
+					await nativePreviewPlayer.setVolume(state.isMuted ? 0 : state.playbackState.volume)
+					isRestoredFromStorage = false
+					setStoredString('player.playbackSource', 'preview')
+					setStoredString('player.previewReleaseId', release.id)
+					setStoredNumber('player.previewTrackIndex', trackIndex)
+					setStoredNumber('player.durationMs', track.duration_ms || 0)
+					persistPositionImmediate(0)
+					update((s) => ({
+						...s,
+						currentTrack: null,
+						playbackState: {
+							...s.playbackState,
+							is_playing: true,
+							position_ms: 0,
+							duration_ms: track.duration_ms || 0,
+							current_track_id: null,
+							current_track_path: null,
+						},
+						error: null,
+						playbackSource: 'preview',
+						previewInfo: { releaseId: release.id, release, trackIndex },
+						previewTrackIndex: trackIndex,
+						previewLoadingReleaseId: null,
+					}))
+				} catch (error) {
+					const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
+					update((s) => ({ ...s, error: errorMsg, previewLoadingReleaseId: null }))
+					toastStore.error(get(translate)('errors.previewStreamFailed'))
+				}
+				return
+			}
+
 			try {
 				const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
 
@@ -388,7 +447,11 @@ function createPlayerStore() {
 			const state = getState()
 
 			if (state.playbackSource === 'preview') {
-				previewPlayer.pause()
+				if (useNative) {
+					void nativePreviewPlayer.pause()
+				} else {
+					previewPlayer.pause()
+				}
 				persistPositionImmediate(state.playbackState.position_ms)
 				update((s) => ({
 					...s,
@@ -418,6 +481,22 @@ function createPlayerStore() {
 			const state = getState()
 
 			if (state.playbackSource === 'preview') {
+				if (useNative) {
+					// Restored from storage (app relaunch): the native engine lost its in-memory playlist,
+					// so re-issue playPreview to rebuild it; otherwise just resume.
+					if (isRestoredFromStorage && state.previewInfo) {
+						isRestoredFromStorage = false
+						await this.playPreview(state.previewInfo.release, state.previewInfo.trackIndex)
+						return
+					}
+					void nativePreviewPlayer.resume()
+					update((s) => ({
+						...s,
+						playbackState: { ...s.playbackState, is_playing: true },
+						error: null,
+					}))
+					return
+				}
 				// If restored from storage, the audio element has no source — load the stream
 				if (isRestoredFromStorage && state.previewInfo) {
 					isRestoredFromStorage = false
@@ -507,8 +586,12 @@ function createPlayerStore() {
 			previewRetryAttempted = false
 
 			if (state.playbackSource === 'preview') {
-				stopPreviewInternal()
-				clearPreviewEvents()
+				if (useNative) {
+					void nativePreviewPlayer.stop()
+				} else {
+					stopPreviewInternal()
+					clearPreviewEvents()
+				}
 				isRestoredFromStorage = false
 				setStoredString('player.playbackSource', 'library')
 				setStoredString('player.previewReleaseId', '')
@@ -555,7 +638,11 @@ function createPlayerStore() {
 			const state = getState()
 
 			if (state.playbackSource === 'preview') {
-				previewPlayer.seek(positionMs)
+				if (useNative) {
+					void nativePreviewPlayer.seek(positionMs)
+				} else {
+					previewPlayer.seek(positionMs)
+				}
 				update((s) => ({
 					...s,
 					playbackState: { ...s.playbackState, position_ms: positionMs },
@@ -588,7 +675,11 @@ function createPlayerStore() {
 			setStoredNumber('player.volume', volume)
 
 			if (state.playbackSource === 'preview') {
-				previewPlayer.setVolume(volume)
+				if (useNative) {
+					void nativePreviewPlayer.setVolume(volume)
+				} else {
+					previewPlayer.setVolume(volume)
+				}
 				update((s) => ({
 					...s,
 					playbackState: { ...s.playbackState, volume },
@@ -616,6 +707,10 @@ function createPlayerStore() {
 			setStoredNumber('player.speed', speed)
 
 			if (state.playbackSource === 'preview') {
+				// Native applies the rate immediately; HTML5 defers to commitPreviewSpeed (frontend-only).
+				if (useNative) {
+					void nativePreviewPlayer.setRate(speed)
+				}
 				update((s) => ({
 					...s,
 					playbackState: { ...s.playbackState, speed },
@@ -681,6 +776,44 @@ function createPlayerStore() {
 				await this.pause()
 			} else {
 				await this.resume()
+			}
+		},
+
+		/**
+		 * Go to the previous preview track. Restarts the current track if past the
+		 * PREVIOUS_RESTART_THRESHOLD_MS window (or already on the first track), otherwise jumps to the
+		 * previous track in the release. Shared by the in-app transport, the OS media session, and (on
+		 * iOS) the native MPRemoteCommandCenter previous command.
+		 */
+		async previousTrack() {
+			const state = getState()
+			const info = state.previewInfo
+			if (!info) return
+			// Native engine applies the same 3s rule and emits track-changed back to the store.
+			if (useNative) {
+				await nativePreviewPlayer.previous()
+				return
+			}
+			if (state.playbackState.position_ms > PREVIOUS_RESTART_THRESHOLD_MS || info.trackIndex <= 0) {
+				await this.seek(0)
+				return
+			}
+			await this.playPreview(info.release, info.trackIndex - 1)
+		},
+
+		/**
+		 * Go to the next preview track in the release (no-op on the last track).
+		 */
+		async nextTrack() {
+			const state = getState()
+			const info = state.previewInfo
+			if (!info) return
+			if (useNative) {
+				await nativePreviewPlayer.next()
+				return
+			}
+			if (info.trackIndex + 1 < info.release.tracks.length) {
+				await this.playPreview(info.release, info.trackIndex + 1)
 			}
 		},
 
@@ -820,6 +953,67 @@ function createPlayerStore() {
 				setStoredString('player.playbackSource', 'library')
 				setStoredString('player.previewReleaseId', '')
 			}
+		},
+
+		/**
+		 * iOS only: subscribe to the native engine's events and reconcile them into the store. The
+		 * native engine is the source of truth for position / play-state / current track on iOS (the
+		 * JS timer + previewPlayer events are not used there), so the UI catches up from these events —
+		 * including after the WebView resumes from suspension. Returns a cleanup function.
+		 */
+		async startNativeBridge() {
+			return nativePreviewPlayer.startNativePreviewBridge({
+				onState: ({ isPlaying, positionMs, durationMs }) => {
+					update((s) => {
+						if (s.playbackSource !== 'preview') return s
+						return {
+							...s,
+							playbackState: {
+								...s.playbackState,
+								is_playing: isPlaying,
+								position_ms: positionMs,
+								duration_ms: durationMs > 0 ? durationMs : s.playbackState.duration_ms,
+							},
+							previewLoadingReleaseId: isPlaying ? null : s.previewLoadingReleaseId,
+						}
+					})
+					persistPosition(positionMs)
+				},
+				onTrackChanged: (index) => {
+					setStoredNumber('player.previewTrackIndex', index)
+					persistPositionImmediate(0)
+					update((s) => {
+						if (!s.previewInfo) return s
+						const track = s.previewInfo.release.tracks[index]
+						return {
+							...s,
+							previewInfo: { ...s.previewInfo, trackIndex: index },
+							previewTrackIndex: index,
+							playbackState: {
+								...s.playbackState,
+								position_ms: 0,
+								duration_ms: track?.duration_ms ?? s.playbackState.duration_ms,
+							},
+						}
+					})
+				},
+				onEnded: () => {
+					update((s) => ({
+						...s,
+						playbackState: { ...s.playbackState, is_playing: false },
+						previewLoadingReleaseId: null,
+					}))
+				},
+				onError: (message) => {
+					update((s) => ({
+						...s,
+						error: message,
+						playbackState: { ...s.playbackState, is_playing: false },
+						previewLoadingReleaseId: null,
+					}))
+					toastStore.error(get(translate)('errors.previewStreamFailed'))
+				},
+			})
 		},
 
 		/**

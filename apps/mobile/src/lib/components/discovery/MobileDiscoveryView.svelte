@@ -2,11 +2,14 @@
 	import { onMount } from 'svelte'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, sortedReleases, isDiscoveryLoading } from '$shared/stores/discovery'
+	import { previewInfo, previewLoadingReleaseId } from '$shared/stores/player'
+	import { mobileUIStore } from '$lib/stores/mobileUI'
 	import MobileList from '$lib/components/common/MobileList.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
 
-	// Minimal real Discovery feed: loads releases and renders artist/title + remote artwork. The full
-	// feed (search, filters, sort, preview playback, virtualization, context menus) is a later issue.
+	// Real Discovery feed: loads releases and renders artist/title + remote artwork. Tapping a release
+	// opens its detail screen (metadata, notes, tags, track list + preview playback). The full feed
+	// (search, filters, sort, per-track selection, virtualization) is a later issue.
 	onMount(() => {
 		discoveryStore.loadReleases()
 	})
@@ -23,7 +26,11 @@
 {:else}
 	<MobileList>
 		{#each $sortedReleases as release (release.id)}
-			<MobileListItem>
+			<MobileListItem
+				onclick={() => mobileUIStore.openDetail(release.id)}
+				selected={$previewInfo?.releaseId === release.id}
+				ariaLabel={`${release.artist ?? $translate('common.unknownArtist')} — ${release.title ?? $translate('common.untitled')}`}
+			>
 				{#snippet leading()}
 					{#if release.artwork_url}
 						<img src={release.artwork_url} alt="" class="h-12 w-12 rounded object-cover" loading="lazy" />
@@ -43,7 +50,19 @@
 						{release.title ?? $translate('common.untitled')}
 					</span>
 				</div>
+				{#snippet trailing()}
+					{#if $previewLoadingReleaseId === release.id}
+						<svg class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none">
+							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
+							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.4 0 0 5.4 0 12h4z" />
+						</svg>
+					{/if}
+				{/snippet}
 			</MobileListItem>
 		{/each}
+		{#if $previewInfo}
+			<!-- Spacer so the fixed now-playing bar never covers the last row. -->
+			<div class="h-20" aria-hidden="true"></div>
+		{/if}
 	</MobileList>
 {/if}

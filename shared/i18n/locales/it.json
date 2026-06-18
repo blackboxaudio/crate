@@ -247,7 +247,10 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Ripristina tempo",
-		"trackNotFound": "Impossibile individuare la traccia in riproduzione"
+		"trackNotFound": "Impossibile individuare la traccia in riproduzione",
+		"expand": "Espandi lettore",
+		"collapse": "Comprimi lettore",
+		"seek": "Cerca"
 	},
 	"library": {
 		"searchPlaceholder": "Cerca tracce...",
@@ -296,6 +299,7 @@
 		"tracks": "Tracce",
 		"trackCount": "{count, plural, =1 {1 traccia} other {{count} tracce}}",
 		"openInBrowser": "Apri nel browser",
+		"openInApp": "Apri in {app}",
 		"copyUrl": "Copia URL",
 		"copiedUrl": "URL copiato negli appunti",
 		"like": "Aggiungi ai preferiti",
@@ -314,7 +318,9 @@
 			"title": "Titolo",
 			"label": "Etichetta",
 			"releaseDate": "Data di rilascio",
-			"notes": "Note"
+			"notes": "Note",
+			"notesPlaceholder": "Aggiungi note…",
+			"addTags": "Aggiungi tag"
 		},
 		"import": {
 			"title": "Importa nella libreria",
