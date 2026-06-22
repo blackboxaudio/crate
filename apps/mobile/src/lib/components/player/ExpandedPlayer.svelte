@@ -49,6 +49,13 @@
 	let showTempo = $state(false)
 	const tempoPct = $derived(Math.round(($playbackSpeed - 1) * 1000) / 10)
 
+	// Always reopen with the tempo fader hidden: reset it whenever the player collapses. Covers every
+	// close path (drag-dismiss, programmatic collapse, the preview ending) since they all flip
+	// `$isPlayerExpanded` false. The metronome toggle re-reveals it for the duration of a session.
+	$effect(() => {
+		if (!$isPlayerExpanded) showTempo = false
+	})
+
 	function onTempoInput(e: Event) {
 		void playerStore.setSpeed(1 + parseFloat((e.target as HTMLInputElement).value) / 100)
 	}

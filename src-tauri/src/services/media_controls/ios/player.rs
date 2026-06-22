@@ -8,7 +8,7 @@ use block2::RcBlock;
 use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2::MainThreadMarker;
-use objc2_av_foundation::{AVPlayer, AVPlayerItem};
+use objc2_av_foundation::{AVAudioTimePitchAlgorithmVarispeed, AVPlayer, AVPlayerItem};
 use objc2_core_media::CMTime;
 use objc2_foundation::{NSString, NSURL};
 use tauri::AppHandle;
@@ -109,11 +109,16 @@ impl PlaybackEngineInner {
             let item = AVPlayerItem::playerItemWithURL(&url, self.mtm);
             // Vinyl-style tempo: pitch tracks tempo (no "master tempo" / key-lock), matching the HTML5
             // preview player (`preservesPitch = false`) and the desktop engine. AVPlayer otherwise
-            // defaults to a pitch-preserving time-stretch algorithm. `AVAudioTimePitchAlgorithm` is a
-            // typedef for `NSString` whose documented value equals its name, so we build it directly and
-            // avoid the feature-gated, Option-typed `AVAudioTimePitchAlgorithmVarispeed` static.
-            let varispeed = NSString::from_str("AVAudioTimePitchAlgorithmVarispeed");
-            item.setAudioTimePitchAlgorithm(&varispeed);
+            // defaults to a pitch-preserving algorithm (`AVAudioTimePitchAlgorithmTimeDomain` on
+            // iOS 15+) that holds pitch constant as the rate changes. We MUST use the framework's
+            // exported constant here: its runtime value is the short string "Varispeed", NOT the symbol
+            // name, so a hand-built `NSString::from_str("AVAudioTimePitchAlgorithmVarispeed")` is an
+            // unrecognized value that AVFoundation silently ignores — leaving the pitch-preserving
+            // default in place. The `AVAudioProcessingSettings` Cargo feature (enabled in Cargo.toml)
+            // exposes the static; it is `Option` only for weak-link safety and is non-null on iOS 7+.
+            if let Some(varispeed) = AVAudioTimePitchAlgorithmVarispeed {
+                item.setAudioTimePitchAlgorithm(varispeed);
+            }
             self.player.replaceCurrentItemWithPlayerItem(Some(&item));
             self.player.play();
             if (self.rate - 1.0).abs() > f32::EPSILON {

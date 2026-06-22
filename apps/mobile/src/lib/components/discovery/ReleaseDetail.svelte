@@ -44,6 +44,14 @@
 	const isCurrentRelease = $derived($previewInfo?.releaseId === release.id)
 	const platformName = $derived(getReleasePlatformName(release.source_type))
 
+	// Play a track. When nothing is selected yet, slide the full-screen player up so the user lands in it;
+	// if a preview is already active (playing or paused), changing tracks only updates the mini-player.
+	function playTrack(index: number) {
+		const wasIdle = $previewInfo == null
+		void playerStore.playPreview(release, index)
+		if (wasIdle) mobileUIStore.expandPlayer()
+	}
+
 	// Open on mount (this is only rendered while a release is selected). Dismissal flips `open` false; the
 	// Drawer slides out, then `onClosed` clears the store so +page's {#if} unmounts only after the anim.
 	let open = $state(true)
@@ -81,13 +89,11 @@
 	     sideways (and pinch-zoom) on iOS. -->
 	<div class="flex-1 overflow-x-hidden overflow-y-auto px-4 pt-4 pb-28">
 		<!-- Artwork -->
-		<div class="mb-4 flex justify-center">
+		<div class="mb-4">
 			{#if release.artwork_url}
-				<img src={release.artwork_url} alt="" class="aspect-square w-full max-w-xs rounded-xl object-cover shadow-lg" />
+				<img src={release.artwork_url} alt="" class="aspect-square w-full rounded-xl object-cover shadow-lg" />
 			{:else}
-				<div
-					class="flex aspect-square w-full max-w-xs items-center justify-center rounded-xl bg-surface-2 text-text-tertiary"
-				>
+				<div class="flex aspect-square w-full items-center justify-center rounded-xl bg-surface-2 text-text-tertiary">
 					<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
 						<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
 					</svg>
@@ -139,7 +145,7 @@
 							type="button"
 							class="flex min-h-[44px] min-w-0 flex-1 items-center gap-3 px-2 py-2 text-left active:bg-surface-2"
 							aria-label={$translate('discovery.playPreview')}
-							onclick={() => playerStore.playPreview(release, index)}
+							onclick={() => playTrack(index)}
 						>
 							<span class="w-5 flex-shrink-0 text-center text-xs text-text-tertiary tabular-nums">
 								{#if isActive && $previewLoadingReleaseId === release.id}
