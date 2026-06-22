@@ -56,6 +56,11 @@
 							<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
 							<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.4 0 0 5.4 0 12h4z" />
 						</svg>
+					{:else}
+						<!-- Chevron: signals the row opens its detail screen (no hover affordance on touch). -->
+						<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
 					{/if}
 				{/snippet}
 			</MobileListItem>

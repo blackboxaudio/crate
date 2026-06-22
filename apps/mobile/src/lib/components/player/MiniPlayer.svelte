@@ -1,14 +1,16 @@
 <script lang="ts">
+	import { fly } from 'svelte/transition'
+	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
 	import { playerStore, previewInfo, isPlaying, previewLoadingReleaseId, playbackProgress } from '$shared/stores/player'
 	import { mobileUIStore } from '$lib/stores/mobileUI'
 	import { swipeVertical } from '$lib/actions/swipeVertical'
 
-	// Persistent mini-player bar for discovery preview playback: artwork + current track, a play/pause
-	// toggle, and a thin progress indicator. Tap the track area or swipe up anywhere on the bar to open
-	// the full-screen ExpandedPlayer. Renders only while a preview is active; lives at the app root so
-	// it persists across the feed ↔ release-detail navigation. Full transport (scrubber, prev/next)
-	// lives in the expanded player.
+	// Persistent mini-player bar for discovery preview playback: a liquid-glass drawer that sits over the
+	// feed (artwork + current track, a play/pause toggle, a thin progress indicator, and a grabber that
+	// signals it pulls up). Tap the track area, the grabber, or swipe up anywhere to open the full-screen
+	// ExpandedPlayer. Renders only while a preview is active; lives at the app root so it persists across
+	// the feed ↔ release-detail navigation.
 	const track = $derived($previewInfo ? $previewInfo.release.tracks[$previewInfo.trackIndex] : null)
 	const loading = $derived($previewInfo != null && $previewLoadingReleaseId === $previewInfo.releaseId)
 
@@ -19,14 +21,26 @@
 
 {#if $previewInfo}
 	<div
-		class="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-stroke bg-surface-1"
+		class="pb-safe glass fixed inset-x-0 bottom-0 z-40 border-t border-stroke/60"
+		transition:fly={{ y: 96, duration: 320, easing: easeFluid }}
 		use:swipeVertical={{ onSwipeUp: expand }}
 	>
-		<!-- Non-interactive progress indicator across the top edge of the bar. -->
-		<div class="h-0.5 w-full bg-surface-2">
+		<!-- Progress indicator across the very top edge of the bar. -->
+		<div class="h-0.5 w-full bg-text-tertiary/15">
 			<div class="h-full bg-brand-primary" style="width: {$playbackProgress}%"></div>
 		</div>
-		<div class="flex items-center gap-3 px-4 py-2">
+
+		<!-- Grabber: signals the bar pulls up into the full player. -->
+		<button
+			type="button"
+			class="flex w-full justify-center pt-2 pb-0.5"
+			aria-label={$translate('player.expand')}
+			onclick={expand}
+		>
+			<span class="h-1 w-9 rounded-full bg-text-tertiary/50"></span>
+		</button>
+
+		<div class="flex items-center gap-3 px-4 pt-1 pb-2">
 			<button
 				type="button"
 				class="flex min-w-0 flex-1 items-center gap-3 text-left"
@@ -34,10 +48,16 @@
 				onclick={expand}
 			>
 				{#if $previewInfo.release.artwork_url}
-					<img src={$previewInfo.release.artwork_url} alt="" class="h-10 w-10 flex-shrink-0 rounded object-cover" />
+					<img
+						src={$previewInfo.release.artwork_url}
+						alt=""
+						class="h-11 w-11 flex-shrink-0 rounded-lg object-cover shadow-sm"
+					/>
 				{:else}
-					<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded bg-surface-2 text-text-tertiary">
-						<svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor">
+					<div
+						class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-tertiary"
+					>
+						<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
 							<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
 						</svg>
 					</div>

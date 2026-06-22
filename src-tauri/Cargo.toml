@@ -156,6 +156,7 @@ objc2-av-foundation = { version = "0.3.2", features = [
   "AVPlayer",
   "AVPlayerItem",
   "AVAsset",
+  "AVAudioProcessingSettings",
   "block2",
   "dispatch2",
   "objc2-core-media",

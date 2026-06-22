@@ -4,6 +4,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..700&display=swap');
 @import 'tailwindcss';
 
+/* Shared cross-platform Svelte components (e.g. Slider) live outside this app's Vite root, so Tailwind's
+   automatic content detection won't see them — register the directory explicitly to generate their classes. */
+@source '../../../shared/components';
+
 /* Cross-platform theme tokens shared with the desktop app: the dark/light theme, accent, and font
    CSS variables that the @theme mapping and brand utilities below reference. */
 @import '../../../shared/styles/theme.css';
@@ -29,6 +33,10 @@
 	--color-warning: #f59e0b;
 	--color-success: #22c55e;
 	--color-info: #3b82f6;
+
+	/* Conventional iOS-sheet easing for drawers/sheets/panels; mirrored in JS by `easeFluid`
+	   (lib/easing.ts) so the CSS- and Svelte-driven transitions share one smooth curve. */
+	--ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* =============================================================================
@@ -53,6 +61,24 @@
 
 @utility border-brand-primary {
 	border-color: var(--brand-primary);
+}
+
+/* =============================================================================
+   Liquid-glass surface (iOS-style): a translucent, blurred, slightly saturated
+   material that lets content scroll through behind it. Theme-aware via the
+   surface token, with both -webkit- and standard backdrop-filter for WKWebView.
+   ============================================================================= */
+
+@utility glass {
+	background-color: color-mix(in srgb, var(--surface-1) 72%, transparent);
+	-webkit-backdrop-filter: blur(24px) saturate(180%);
+	backdrop-filter: blur(24px) saturate(180%);
+}
+
+@utility glass-strong {
+	background-color: color-mix(in srgb, var(--surface-1) 85%, transparent);
+	-webkit-backdrop-filter: blur(32px) saturate(180%);
+	backdrop-filter: blur(32px) saturate(180%);
 }
 
 /* =============================================================================

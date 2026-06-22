@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
+	import { slide, fade } from 'svelte/transition'
+	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
 	import {
 		playerStore,
@@ -8,16 +9,20 @@
 		previewLoadingReleaseId,
 		playbackPosition,
 		playbackDuration,
+		playbackSpeed,
 	} from '$shared/stores/player'
+	import { discoveryStore } from '$shared/stores/discovery'
 	import { formatDuration } from '$shared/utils/format'
-	import { mobileUIStore } from '$lib/stores/mobileUI'
-	import { swipeVertical } from '$lib/actions/swipeVertical'
+	import { isIOS } from '$shared/utils/platform'
+	import { mobileUIStore, isPlayerExpanded } from '$lib/stores/mobileUI'
+	import Drawer from '$lib/components/common/Drawer.svelte'
+	import Slider from '$shared/components/Slider.svelte'
 
 	// Full-screen preview player: large artwork over a blurred album-art wash, an interactive scrubber,
-	// and prev / play-pause / next transport. Opened from the mini-player (tap or swipe-up); dismissed by
-	// dragging the sheet down (finger-follow) or tapping the drag handle. The sheet slides over a scrim
-	// that fades as you drag, revealing the discovery feed + mini-player behind it. Reads/writes the
-	// shared playerStore so it stays in sync with the mini-player and the OS media session.
+	// prev / play-pause / next transport, a like toggle, and a tempo (±10% speed) control. Slide / scrim /
+	// drag-to-dismiss come from the shared `Drawer` baseline (direction="bottom"); this stays mounted while
+	// a preview exists and opens when `$isPlayerExpanded`. Reads/writes the shared playerStore so it stays
+	// in sync with the mini-player and the OS media session.
 	const track = $derived($previewInfo ? $previewInfo.release.tracks[$previewInfo.trackIndex] : null)
 	const loading = $derived($previewInfo != null && $previewLoadingReleaseId === $previewInfo.releaseId)
 	const canNext = $derived($previewInfo != null && $previewInfo.trackIndex + 1 < $previewInfo.release.tracks.length)
@@ -37,75 +42,42 @@
 		scrubbing = false
 	}
 
-	// Sheet position: a single translateY drives the open slide-up, finger-follow drag-down, snap-back,
-	// and commit (slide fully down, then unmount). `openness` (1 = expanded, 0 = collapsed) feeds the
-	// scrim opacity so the feed behind is revealed as you drag.
-	let viewportH = $state(typeof window !== 'undefined' ? window.innerHeight : 800)
-	let dragY = $state(0)
-	let dragging = $state(false)
-	let entered = $state(false)
-	let collapsing = $state(false)
+	// Tempo: a ±10% bipolar speed fader (the shared Slider, same as the desktop TempoControl), revealed by
+	// the metronome toggle in the transport row. The Slider's snapToCenter detents the fader at exactly
+	// 1.0x. On iOS the native engine applies the rate immediately via setSpeed→setRate; on the HTML5 path
+	// we commit on release. Reset snaps to 1.0x.
+	let showTempo = $state(false)
+	const tempoPct = $derived(Math.round(($playbackSpeed - 1) * 1000) / 10)
 
-	const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
-	const sheetOffsetPx = $derived(collapsing ? viewportH : dragging ? dragY : entered ? 0 : viewportH)
-	const openness = $derived(clamp(1 - sheetOffsetPx / viewportH, 0, 1))
-	const transitionOn = $derived(!dragging)
-
-	onMount(() => {
-		const onResize = () => (viewportH = window.innerHeight)
-		window.addEventListener('resize', onResize)
-		// Next frame: slide the sheet up from below (the CSS transition animates the transform change).
-		const raf = requestAnimationFrame(() => (entered = true))
-		return () => {
-			window.removeEventListener('resize', onResize)
-			cancelAnimationFrame(raf)
-		}
-	})
-
-	// Finger-follow drag-to-dismiss: translate the sheet down with the finger; snap back if not committed.
-	// swipeVertical emits onProgress(0) on release, which re-enables the transition for the snap/commit.
-	function onDragProgress(dy: number) {
-		if (dy === 0) {
-			dragging = false
-			dragY = 0
-			return
-		}
-		dragging = true
-		dragY = Math.max(0, dy)
+	function onTempoInput(e: Event) {
+		void playerStore.setSpeed(1 + parseFloat((e.target as HTMLInputElement).value) / 100)
+	}
+	function onTempoCommit(e: Event) {
+		void playerStore.setSpeed(1 + parseFloat((e.target as HTMLInputElement).value) / 100)
+		if (!isIOS()) playerStore.commitPreviewSpeed()
+	}
+	function resetTempo() {
+		void playerStore.setSpeed(1)
+		if (!isIOS()) playerStore.commitPreviewSpeed()
 	}
 
-	// Commit: animate the sheet fully down, then unmount once the transform transition finishes.
-	function collapse() {
-		collapsing = true
-	}
-	function onSheetTransitionEnd(e: TransitionEvent) {
-		if (e.target === e.currentTarget && collapsing && e.propertyName === 'transform') {
-			mobileUIStore.collapsePlayer()
-		}
+	function toggleLike() {
+		if ($previewInfo && track) void discoveryStore.toggleTrackLiked($previewInfo.releaseId, track.id)
 	}
 </script>
 
-{#if $previewInfo}
-	<div class="fixed inset-0 z-50">
-		<!-- Scrim: dims and reveals the discovery feed + mini-player behind as the sheet drags down. -->
-		<div
-			class="pointer-events-none absolute inset-0 bg-black {transitionOn
-				? 'transition-opacity duration-300 ease-out motion-reduce:transition-none'
-				: ''}"
-			style="opacity: {0.5 * openness}"
-		></div>
-
-		<!-- Sheet: the moving panel, carrying the album-art background and all controls. -->
-		<div
-			class="absolute inset-0 overflow-hidden bg-surface-0 {transitionOn
-				? 'transition-transform duration-300 ease-out motion-reduce:transition-none'
-				: ''}"
-			style="transform: translateY({sheetOffsetPx}px)"
-			use:swipeVertical={{ onSwipeDown: collapse, onProgress: onDragProgress }}
-			ontransitionend={onSheetTransitionEnd}
-		>
-			<!-- Album-art background: a blurred, slowly drifting wash behind the content, with a
-			     theme-aware legibility scrim so the handle and transport stay readable in both modes.
+<Drawer
+	direction="bottom"
+	open={$isPlayerExpanded && $previewInfo != null}
+	onClose={mobileUIStore.collapsePlayer}
+	z={50}
+	scrimDismiss={false}
+	ariaLabel={$previewInfo?.release.title ?? $translate('common.untitled')}
+	class="h-full overflow-hidden bg-surface-0"
+>
+	{#snippet children({ dragging })}
+		{#if $previewInfo}
+			<!-- Album-art background: a blurred, slowly drifting wash with a theme-aware legibility scrim.
 			     Full-bleed and first in the DOM; the relative content wrapper below paints over it. -->
 			{#if $previewInfo.release.artwork_url}
 				<img
@@ -119,29 +91,23 @@
 			{/if}
 
 			<div class="pt-safe pb-safe relative flex h-full flex-col">
-				<!-- Drag handle: tap to collapse, drag (anywhere on the sheet) to dismiss. -->
-				<div class="flex items-center justify-center px-4 py-3">
-					<button
-						type="button"
-						class="flex h-6 w-16 items-center justify-center"
-						aria-label={$translate('player.collapse')}
-						onclick={collapse}
-					>
-						<span class="h-1 w-10 rounded-full bg-stroke"></span>
-					</button>
-				</div>
+				<!-- Drag handle: hidden until dragging, near the top; collapse is by dragging the sheet down. -->
+				<span
+					class="pointer-events-none absolute top-2 left-1/2 h-1 w-10 -translate-x-1/2 rounded-full bg-text-primary/40 transition-opacity duration-200"
+					style="opacity: {dragging ? 1 : 0}"
+				></span>
 
 				<!-- Artwork -->
-				<div class="flex flex-1 items-center justify-center px-8">
+				<div class="flex flex-1 items-center justify-center px-4 pt-3">
 					{#if $previewInfo.release.artwork_url}
 						<img
 							src={$previewInfo.release.artwork_url}
 							alt=""
-							class="aspect-square w-full max-w-sm rounded-xl object-cover shadow-lg"
+							class="aspect-square w-full max-w-sm rounded-2xl object-cover shadow-2xl"
 						/>
 					{:else}
 						<div
-							class="flex aspect-square w-full max-w-sm items-center justify-center rounded-xl bg-surface-2 text-text-tertiary"
+							class="flex aspect-square w-full max-w-sm items-center justify-center rounded-2xl bg-surface-2 text-text-tertiary"
 						>
 							<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
 								<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
@@ -150,27 +116,49 @@
 					{/if}
 				</div>
 
-				<!-- Track info + transport -->
-				<div class="flex flex-col gap-4 px-8 pb-6">
-					<div class="flex min-w-0 flex-col">
-						<span class="truncate text-xl font-semibold text-text-primary">
-							{track?.name ?? $previewInfo.release.title ?? $translate('common.untitled')}
-						</span>
-						<span class="truncate text-base text-text-secondary">
-							{$previewInfo.release.artist ?? $translate('common.unknownArtist')}
-						</span>
+				<!-- Track info + transport. No parent gap/space-y: each row carries its own `mt-4`, so the
+				     tempo control's top margin belongs to the sliding element itself and Svelte's `slide`
+				     animates it away with the height. A selector-based gap/space-y collapses un-animated when
+				     the tempo row unmounts, which jumped the control box. -->
+				<div class="flex flex-col px-4 pb-3">
+					<div class="flex items-center gap-3">
+						<div class="flex min-w-0 flex-1 flex-col">
+							<span class="truncate text-xl font-semibold text-text-primary">
+								{track?.name ?? $previewInfo.release.title ?? $translate('common.untitled')}
+							</span>
+							<span class="truncate text-base text-text-secondary">
+								{$previewInfo.release.artist ?? $translate('common.unknownArtist')}
+							</span>
+						</div>
+						<button
+							type="button"
+							class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
+							aria-label={track?.is_liked ? $translate('discovery.unlike') : $translate('discovery.like')}
+							onclick={toggleLike}
+						>
+							<svg
+								class="h-6 w-6 {track?.is_liked ? 'text-brand-primary' : ''}"
+								viewBox="0 0 24 24"
+								fill={track?.is_liked ? 'currentColor' : 'none'}
+								stroke="currentColor"
+								stroke-width="2"
+							>
+								<path
+									d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
+								/>
+							</svg>
+						</button>
 					</div>
 
-					<!-- Scrubber (stop pointerdown from reaching the sheet's drag gesture). -->
-					<div class="flex flex-col gap-1">
-						<input
-							type="range"
-							min="0"
-							max={$playbackDuration || 0}
+					<!-- Scrubber (unipolar fill; stop pointerdown from reaching the sheet's drag gesture). -->
+					<div class="mt-4 flex flex-col gap-1">
+						<Slider
 							value={sliderValue}
-							aria-label={$translate('player.seek')}
-							class="h-1 w-full cursor-pointer"
-							style="accent-color: var(--brand-primary)"
+							min={0}
+							max={$playbackDuration || 0}
+							hitSize={20}
+							activeScale={1.4}
+							ariaLabel={$translate('player.seek')}
 							oninput={onScrubInput}
 							onchange={onScrubCommit}
 							onpointerdown={(e) => e.stopPropagation()}
@@ -181,11 +169,13 @@
 						</div>
 					</div>
 
-					<!-- Transport controls -->
-					<div class="flex items-center justify-center gap-8">
+					<!-- Transport: prev / play / next stay centered so the play button sits at the screen center.
+					     The metronome (tempo) toggle is a right-hand accessory (absolute, so it doesn't shift
+					     play); a left-hand shuffle will balance it later. Only play stays a circle. -->
+					<div class="relative mt-4 flex items-center justify-center gap-6">
 						<button
 							type="button"
-							class="flex h-12 w-12 items-center justify-center rounded-full text-text-primary active:bg-surface-2"
+							class="flex h-12 w-12 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
 							aria-label={$translate('player.previous')}
 							onclick={() => playerStore.previousTrack()}
 						>
@@ -214,7 +204,7 @@
 						</button>
 						<button
 							type="button"
-							class="flex h-12 w-12 items-center justify-center rounded-full text-text-primary active:bg-surface-2 disabled:opacity-30"
+							class="flex h-12 w-12 items-center justify-center rounded-md text-text-primary active:bg-surface-2 disabled:opacity-30"
 							aria-label={$translate('player.next')}
 							disabled={!canNext}
 							onclick={() => playerStore.nextTrack()}
@@ -223,9 +213,80 @@
 								<path d="M16 6h2v12h-2zM4 6l11 6L4 18z" />
 							</svg>
 						</button>
+						<button
+							type="button"
+							class="absolute top-1/2 right-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md transition-colors active:bg-surface-2 {showTempo
+								? 'bg-brand-muted text-brand-primary'
+								: 'text-text-primary'}"
+							aria-label={$translate('player.tempo')}
+							aria-pressed={showTempo}
+							onclick={() => (showTempo = !showTempo)}
+						>
+							<svg
+								class="h-5 w-5"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<!-- Tabler Icons "metronome" (MIT) -->
+								<path
+									d="M14.153 8.188l-.72 -3.236a2.493 2.493 0 0 0 -4.867 0l-3.025 13.614a2 2 0 0 0 1.952 2.434h7.014a2 2 0 0 0 1.952 -2.434l-.524 -2.357m-4.935 1.791l9 -13"
+								/>
+								<path d="M19 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+							</svg>
+						</button>
 					</div>
+
+					<!-- Tempo (±10% speed fader): revealed by the metronome toggle, slides down into view. The
+					     slider is bipolar — its fill grows out from the centre (0%) toward the thumb, with a small
+					     detent at zero. The readout on the left balances the reset on the right. -->
+					{#if showTempo}
+						<div class="mt-4" transition:slide={{ duration: 250, easing: easeFluid }}>
+							<div class="flex items-center gap-3" out:fade={{ duration: 120, easing: easeFluid }}>
+								<span class="w-12 flex-shrink-0 text-right text-xs text-text-secondary tabular-nums">
+									{tempoPct >= 0 ? '+' : ''}{tempoPct.toFixed(1)}%
+								</span>
+								<div class="flex flex-1 items-center">
+									<Slider
+										value={tempoPct}
+										min={-10}
+										max={10}
+										step={0.1}
+										bipolar
+										snapToCenter={0.5}
+										hitSize={20}
+										activeScale={1.4}
+										ariaLabel={$translate('player.tempo')}
+										oninput={onTempoInput}
+										onchange={onTempoCommit}
+										onpointerdown={(e) => e.stopPropagation()}
+									/>
+								</div>
+								<div class="flex w-12 flex-shrink-0 justify-start">
+									<button
+										type="button"
+										class="flex h-8 w-8 items-center justify-center rounded-md text-text-secondary active:bg-surface-2 disabled:opacity-30"
+										aria-label={$translate('player.resetTempo')}
+										disabled={tempoPct === 0}
+										onclick={resetTempo}
+									>
+										<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<path
+												d="M3 2v6h6M3.51 15a9 9 0 1 0 .49-9.36L3 8"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											/>
+										</svg>
+									</button>
+								</div>
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
-		</div>
-	</div>
-{/if}
+		{/if}
+	{/snippet}
+</Drawer>

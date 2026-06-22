@@ -107,6 +107,13 @@ impl PlaybackEngineInner {
                 return;
             };
             let item = AVPlayerItem::playerItemWithURL(&url, self.mtm);
+            // Vinyl-style tempo: pitch tracks tempo (no "master tempo" / key-lock), matching the HTML5
+            // preview player (`preservesPitch = false`) and the desktop engine. AVPlayer otherwise
+            // defaults to a pitch-preserving time-stretch algorithm. `AVAudioTimePitchAlgorithm` is a
+            // typedef for `NSString` whose documented value equals its name, so we build it directly and
+            // avoid the feature-gated, Option-typed `AVAudioTimePitchAlgorithmVarispeed` static.
+            let varispeed = NSString::from_str("AVAudioTimePitchAlgorithmVarispeed");
+            item.setAudioTimePitchAlgorithm(&varispeed);
             self.player.replaceCurrentItemWithPlayerItem(Some(&item));
             self.player.play();
             if (self.rate - 1.0).abs() > f32::EPSILON {

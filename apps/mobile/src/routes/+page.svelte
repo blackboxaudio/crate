@@ -7,9 +7,8 @@
 	import ReleaseDetail from '$lib/components/discovery/ReleaseDetail.svelte'
 	import MiniPlayer from '$lib/components/player/MiniPlayer.svelte'
 	import ExpandedPlayer from '$lib/components/player/ExpandedPlayer.svelte'
-	import { detailReleaseId, isPlayerExpanded } from '$lib/stores/mobileUI'
+	import { detailReleaseId } from '$lib/stores/mobileUI'
 	import { sortedReleases } from '$shared/stores/discovery'
-	import { previewInfo } from '$shared/stores/player'
 
 	// Resolve the open detail release from the store so notes/tag edits reflect live; null closes it.
 	const detailRelease = $derived($sortedReleases.find((r) => r.id === $detailReleaseId) ?? null)
@@ -26,6 +25,5 @@
 <!-- Persistent preview bar; renders only while a preview is active and persists across navigation. -->
 <MiniPlayer />
 
-{#if $isPlayerExpanded && $previewInfo}
-	<ExpandedPlayer />
-{/if}
+<!-- Stays mounted while a preview exists; opens/collapses internally on $isPlayerExpanded. -->
+<ExpandedPlayer />

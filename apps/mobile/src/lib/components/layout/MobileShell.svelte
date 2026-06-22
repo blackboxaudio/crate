@@ -2,16 +2,15 @@
 	import type { Snippet } from 'svelte'
 	import { onMount } from 'svelte'
 	import { translate } from '$shared/i18n'
-	import { mobileUIStore, openDrawer, isLeftOpen, isRightOpen, isAnyDrawerOpen } from '$lib/stores/mobileUI'
+	import { mobileUIStore, openDrawer, isLeftOpen, isRightOpen } from '$lib/stores/mobileUI'
 	import { swipe } from '$lib/actions/swipe'
 	import Header from './Header.svelte'
-	import Backdrop from './Backdrop.svelte'
 	import LeftDrawer from './LeftDrawer.svelte'
 	import RightDrawer from './RightDrawer.svelte'
 
 	// Composition root for the mobile app: fixed header + scrollable content (the page, slotted as
-	// `children`) + dimming backdrop + the two drawers. Owns the left-edge open gesture and the drawer
-	// width used to scale its finger-follow progress.
+	// `children`) + the two nav drawers (each renders its own scrim via the shared Drawer). Owns the
+	// left-edge open gesture and the drawer width used to scale its finger-follow progress.
 	type Props = {
 		children: Snippet
 	}
@@ -63,8 +62,6 @@
 		{@render children()}
 	</main>
 
-	<Backdrop show={$isAnyDrawerOpen} onclick={mobileUIStore.close} />
-
-	<LeftDrawer open={$isLeftOpen} dragOpenness={leftDrag} widthPx={drawerWidthPx} onClose={mobileUIStore.close} />
-	<RightDrawer open={$isRightOpen} widthPx={drawerWidthPx} onClose={mobileUIStore.close} />
+	<LeftDrawer open={$isLeftOpen} dragOpenness={leftDrag} onClose={mobileUIStore.close} />
+	<RightDrawer open={$isRightOpen} onClose={mobileUIStore.close} />
 </div>
