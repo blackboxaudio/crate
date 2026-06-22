@@ -3,16 +3,23 @@
 	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
 	import { playerStore, previewInfo, isPlaying, previewLoadingReleaseId, playbackProgress } from '$shared/stores/player'
-	import { mobileUIStore } from '$lib/stores/mobileUI'
-	import { swipeVertical } from '$lib/actions/swipeVertical'
+	import { mobileUIStore, detailCovering } from '$lib/stores/mobileUI'
+	import Spinner from '$lib/components/common/Spinner.svelte'
 
-	// Persistent mini-player bar for discovery preview playback: a liquid-glass drawer that sits over the
-	// feed (artwork + current track, a play/pause toggle, a thin progress indicator, and a grabber that
-	// signals it pulls up). Tap the track area, the grabber, or swipe up anywhere to open the full-screen
-	// ExpandedPlayer. Renders only while a preview is active; lives at the app root so it persists across
-	// the feed ↔ release-detail navigation.
+	// Persistent mini-player for discovery preview playback: a floating liquid-glass card (Spotify-style)
+	// that sits just above the bottom tab bar, visually separated from it by a gap, side margins, rounded
+	// corners, and a lift shadow. Tap the card to open the full-screen ExpandedPlayer; the play/pause button
+	// toggles playback without expanding. There is intentionally no drag handle / swipe-up — tapping is the
+	// only way up. A thin progress line runs along the bottom edge. Renders only while a preview is active;
+	// lives at the app root so it persists across the feed ↔ release-detail navigation.
 	const track = $derived($previewInfo ? $previewInfo.release.tracks[$previewInfo.trackIndex] : null)
 	const loading = $derived($previewInfo != null && $previewLoadingReleaseId === $previewInfo.releaseId)
+
+	// Float above the bottom tab bar (its 3.5rem + safe-area height) on the main shell, with a small gap.
+	// When a full-screen release detail covers the tab bar, drop to float just above the bottom safe-area.
+	// Tracks `detailCovering` (not `detailReleaseId`), which drops the instant a close starts — so this
+	// rises back over the tab bar *as* the detail slides out, rather than after it finishes.
+	const overDetail = $derived($detailCovering)
 
 	function expand() {
 		mobileUIStore.expandPlayer()
@@ -21,29 +28,15 @@
 
 {#if $previewInfo}
 	<div
-		class="pb-safe glass fixed inset-x-0 bottom-0 z-40 border-t border-stroke/60"
+		class="fixed inset-x-0 z-40 px-2 transition-[bottom] duration-300 ease-out"
+		style="bottom: calc({overDetail ? '0px' : '3.5rem'} + env(safe-area-inset-bottom) + 0.5rem)"
 		transition:fly={{ y: 96, duration: 320, easing: easeFluid }}
-		use:swipeVertical={{ onSwipeUp: expand }}
 	>
-		<!-- Progress indicator across the very top edge of the bar. -->
-		<div class="h-0.5 w-full bg-text-tertiary/15">
-			<div class="h-full bg-brand-primary" style="width: {$playbackProgress}%"></div>
-		</div>
-
-		<!-- Grabber: signals the bar pulls up into the full player. -->
-		<button
-			type="button"
-			class="flex w-full justify-center pt-2 pb-0.5"
-			aria-label={$translate('player.expand')}
-			onclick={expand}
-		>
-			<span class="h-1 w-9 rounded-full bg-text-tertiary/50"></span>
-		</button>
-
-		<div class="flex items-center gap-3 px-4 pt-1 pb-2">
+		<div class="glass relative overflow-hidden rounded-2xl border border-stroke/60 shadow-lg shadow-black/25">
+			<!-- Tap anywhere on the card (except the play/pause control) to open the full-screen player. -->
 			<button
 				type="button"
-				class="flex min-w-0 flex-1 items-center gap-3 text-left"
+				class="flex w-full items-center gap-3 py-2.5 pr-16 pl-2.5 text-left"
 				aria-label={$translate('player.expand')}
 				onclick={expand}
 			>
@@ -71,23 +64,27 @@
 					</span>
 				</div>
 			</button>
+
+			<!-- Play/pause: overlaid at the right edge so it stays outside the card's tap-to-expand target. -->
 			<button
 				type="button"
-				class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-text-primary active:bg-surface-2"
+				class="absolute top-1/2 right-2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-text-primary active:bg-surface-2"
 				aria-label={$isPlaying ? $translate('player.pause') : $translate('player.play')}
 				onclick={() => playerStore.togglePlayPause()}
 			>
 				{#if loading}
-					<svg class="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none">
-						<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
-						<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.4 0 0 5.4 0 12h4z" />
-					</svg>
+					<Spinner class="h-5 w-5" />
 				{:else if $isPlaying}
 					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg>
 				{:else}
 					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
 				{/if}
 			</button>
+
+			<!-- Progress line along the bottom edge (ends clipped by the card's rounded corners). -->
+			<div class="absolute inset-x-0 bottom-0 h-0.5 bg-text-tertiary/15">
+				<div class="h-full bg-brand-primary" style="width: {$playbackProgress}%"></div>
+			</div>
 		</div>
 	</div>
 {/if}

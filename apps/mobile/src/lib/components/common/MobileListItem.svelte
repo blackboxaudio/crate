@@ -12,9 +12,20 @@
 		trailing?: Snippet
 		children: Snippet
 		ariaLabel?: string
+		/** Bindable handle to the row's root element — lets a list scroll a specific row into view. */
+		ref?: HTMLElement | null
 	}
 
-	let { onclick, selected = false, disabled = false, leading, trailing, children, ariaLabel }: Props = $props()
+	let {
+		onclick,
+		selected = false,
+		disabled = false,
+		leading,
+		trailing,
+		children,
+		ariaLabel,
+		ref = $bindable(null),
+	}: Props = $props()
 
 	const base = 'flex min-h-[44px] w-full items-center gap-3 px-4 py-2 text-left transition-colors select-none'
 </script>
@@ -32,6 +43,7 @@
 {#if onclick}
 	<button
 		type="button"
+		bind:this={ref}
 		{disabled}
 		aria-label={ariaLabel}
 		aria-pressed={selected}
@@ -43,7 +55,11 @@
 		{@render inner()}
 	</button>
 {:else}
-	<div aria-label={ariaLabel} class="{base} {selected ? 'bg-brand-muted text-text-primary' : 'text-text-primary'}">
+	<div
+		bind:this={ref}
+		aria-label={ariaLabel}
+		class="{base} {selected ? 'bg-brand-muted text-text-primary' : 'text-text-primary'}"
+	>
 		{@render inner()}
 	</div>
 {/if}

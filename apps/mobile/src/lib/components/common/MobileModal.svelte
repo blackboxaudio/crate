@@ -45,7 +45,7 @@
 	ariaLabel={title ?? $translate('common.close')}
 	class="pb-safe glass-strong flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-stroke"
 >
-	{#snippet children({ drag })}
+	{#snippet children({ drag, animating })}
 		<!-- Drag zone: the handle + header follow the finger to dismiss; the content below scrolls freely. -->
 		<div use:drag>
 			<div class="flex justify-center pt-2 pb-1">
@@ -59,7 +59,7 @@
 			{/if}
 		</div>
 
-		<div class="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+		<div class="min-h-0 flex-1 px-4 py-4 {animating ? 'overflow-y-hidden' : 'overflow-y-auto'}">
 			{@render body()}
 		</div>
 

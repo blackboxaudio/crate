@@ -1,67 +1,71 @@
 <script lang="ts">
-	import type { Snippet } from 'svelte'
 	import { onMount } from 'svelte'
-	import { translate } from '$shared/i18n'
-	import { mobileUIStore, openDrawer, isLeftOpen, isRightOpen } from '$lib/stores/mobileUI'
-	import { swipe } from '$lib/actions/swipe'
+	import { fly, fade } from 'svelte/transition'
+	import { easeFluid } from '$lib/easing'
+	import { activeTab } from '$lib/stores/mobileUI'
+	import { previewInfo } from '$shared/stores/player'
 	import Header from './Header.svelte'
-	import LeftDrawer from './LeftDrawer.svelte'
-	import RightDrawer from './RightDrawer.svelte'
+	import TabBar from './TabBar.svelte'
+	import MobileDiscoveryView from '$lib/components/discovery/MobileDiscoveryView.svelte'
+	import PlaylistsView from '$lib/components/playlists/PlaylistsView.svelte'
+	import SettingsView from '$lib/components/settings/SettingsView.svelte'
 
-	// Composition root for the mobile app: fixed header + scrollable content (the page, slotted as
-	// `children`) + the two nav drawers (each renders its own scrim via the shared Drawer). Owns the
-	// left-edge open gesture and the drawer width used to scale its finger-follow progress.
-	type Props = {
-		children: Snippet
-	}
+	// Composition root for the mobile app: a branded fixed Header (top), the active tab's view, and the
+	// fixed bottom TabBar. `<main>` is a non-scrolling frame (overflow-hidden) — each view owns its own
+	// scroll container (the discovery feed must be the virtualizer's scroll element). The frame's padding
+	// reserves space for the Header (top) and the tab bar (bottom) so a view's content can't run under that
+	// chrome. 3.5rem matches the Header / TabBar height (`h-14`). The full-screen overlays (release detail,
+	// expanded player) are layered on top by +page.
+	//
+	// The mini-player is intentionally NOT reserved here: it's a floating liquid-glass card meant to sit
+	// *over* the feed so releases stay visible (blurred) underneath it. Instead we publish its clearance as
+	// `--mini-player-inset`, which each scroll view applies as trailing padding — that lets content scroll
+	// under the card while still letting the last row clear it. 5rem ≈ the card's height + its gap above the
+	// tab bar; 0 when no preview is active (the card is hidden).
+	const miniPlayerInset = $derived($previewInfo ? '5rem' : '0px')
 
-	let { children }: Props = $props()
-
-	// Drives the left drawer's finger-follow while opening via the left-edge swipe.
-	let leftDrag = $state<number | null>(null)
-
-	// Track viewport width so the edge-open gesture scales progress against the real drawer width
-	// (85% capped at 320px — must match the drawer's `w-[85%] max-w-[320px]`).
-	let winW = $state(typeof window !== 'undefined' ? window.innerWidth : 360)
+	// Tab-change transition: the incoming view rises a few px and fades in while the outgoing one fades
+	// out. They stack absolutely in the content frame, so they cross-fade rather than push each other.
+	// Honors the OS reduced-motion setting by collapsing to an instant swap.
+	let reduceMotion = $state(false)
 	onMount(() => {
-		const onResize = () => (winW = window.innerWidth)
-		window.addEventListener('resize', onResize)
-		return () => window.removeEventListener('resize', onResize)
+		const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+		reduceMotion = mq.matches
+		const update = () => (reduceMotion = mq.matches)
+		mq.addEventListener('change', update)
+		return () => mq.removeEventListener('change', update)
 	})
-	const drawerWidthPx = $derived(Math.min(winW * 0.85, 320))
-
-	// How far in from the left screen edge a swipe can start and still grab the drawer-open gesture.
-	// Wider than the default so the gesture is forgiving and doesn't require hugging the bezel.
-	const EDGE_SWIPE_ZONE = 64
+	const inMs = $derived(reduceMotion ? 0 : 240)
+	const outMs = $derived(reduceMotion ? 0 : 160)
 </script>
 
-<div class="relative h-dvh w-screen overflow-hidden bg-surface-0">
-	<Header
-		title={$translate('nav.discovery')}
-		onMenu={mobileUIStore.toggleLeft}
-		onSettings={mobileUIStore.toggleRight}
-	/>
+<div class="relative h-dvh w-screen overflow-hidden bg-surface-0" style="--mini-player-inset: {miniPlayerInset}">
+	<Header />
 
 	<main
-		class="pb-safe h-full overflow-y-auto"
-		style="padding-top: calc(3.5rem + env(safe-area-inset-top))"
-		use:swipe={{
-			side: 'left',
-			mode: 'open',
-			enabled: $openDrawer === null,
-			width: drawerWidthPx,
-			edgeSize: EDGE_SWIPE_ZONE,
-			onProgress: (o) => (leftDrag = o),
-			onOpen: () => {
-				leftDrag = null
-				mobileUIStore.openLeft()
-			},
-			onClose: () => (leftDrag = null),
-		}}
+		class="relative h-full overflow-hidden"
+		style="padding-top: calc(3.5rem + env(safe-area-inset-top)); padding-bottom: calc(3.5rem + env(safe-area-inset-bottom))"
 	>
-		{@render children()}
+		<!-- Content frame: fills main's content box (below the header, above the tab bar) and is the
+		     positioning context for the tab views, which stack absolutely while a swap cross-fades. -->
+		<div class="relative h-full w-full">
+			{#key $activeTab}
+				<div
+					class="absolute inset-0"
+					in:fly={{ y: 8, duration: inMs, easing: easeFluid }}
+					out:fade={{ duration: outMs }}
+				>
+					{#if $activeTab === 'discovery'}
+						<MobileDiscoveryView />
+					{:else if $activeTab === 'playlists'}
+						<PlaylistsView />
+					{:else}
+						<SettingsView />
+					{/if}
+				</div>
+			{/key}
+		</div>
 	</main>
 
-	<LeftDrawer open={$isLeftOpen} dragOpenness={leftDrag} onClose={mobileUIStore.close} />
-	<RightDrawer open={$isRightOpen} onClose={mobileUIStore.close} />
+	<TabBar />
 </div>

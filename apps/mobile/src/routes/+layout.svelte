@@ -6,9 +6,15 @@
 	import { startWebMediaSession } from '$shared/services/webMediaSession'
 	import { playerStore } from '$shared/stores/player'
 	import { isIOS } from '$shared/utils/platform'
+	// @ts-expect-error — PUBLIC_APP_VERSION is set dynamically by vite.config.ts
+	import { PUBLIC_APP_VERSION } from '$env/static/public'
+	import { splashVisible, dismissSplash } from '$lib/stores/splash'
+	import SplashScreen from '$lib/components/common/SplashScreen.svelte'
 
 	let { children } = $props()
 	let i18nReady = $state(false)
+
+	const splashVersion = PUBLIC_APP_VERSION
 
 	// Drive the OS lock screen / Control Center. On iOS, discovery preview plays through the native
 	// AVPlayer engine, which OWNS the Now Playing surface (real prev/next/scrubber that work while
@@ -39,6 +45,9 @@
 	// gate rendering until it's ready — otherwise the first `$translate()` throws "Cannot format a
 	// message without first setting the initial locale" and the page bails to a blank screen.
 	onMount(async () => {
+		// Hold the splash for at least a beat so a fast boot doesn't flash it (mirrors desktop's 1s floor).
+		const splashStart = Date.now()
+
 		await initializeI18n()
 		i18nReady = true
 
@@ -47,11 +56,17 @@
 		// so settings controls reflect the real values. load() is mobile-safe (the desktop-only
 		// audio-devices call is guarded), so it resolves rather than rejecting on mobile.
 		await settingsStore.load()
+
+		// Boot done — dismiss the splash (honoring the minimum on-screen time); it scale-fades out.
+		const elapsed = Date.now() - splashStart
+		const MIN_SPLASH_MS = 1000
+		if (elapsed < MIN_SPLASH_MS) await new Promise((r) => setTimeout(r, MIN_SPLASH_MS - elapsed))
+		dismissSplash()
 	})
 </script>
 
+<SplashScreen show={$splashVisible} version={splashVersion} />
+
 {#if i18nReady}
 	{@render children()}
-{:else}
-	<main class="p-8 text-text-secondary">Loading…</main>
 {/if}

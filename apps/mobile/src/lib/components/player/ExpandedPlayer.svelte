@@ -17,6 +17,7 @@
 	import { mobileUIStore, isPlayerExpanded } from '$lib/stores/mobileUI'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Slider from '$shared/components/Slider.svelte'
+	import Spinner from '$lib/components/common/Spinner.svelte'
 
 	// Full-screen preview player: large artwork over a blurred album-art wash, an interactive scrubber,
 	// prev / play-pause / next transport, a like toggle, and a tempo (±10% speed) control. Slide / scrim /
@@ -130,9 +131,15 @@
 				<div class="flex flex-col px-4 pb-3">
 					<div class="flex items-center gap-3">
 						<div class="flex min-w-0 flex-1 flex-col">
-							<span class="truncate text-xl font-semibold text-text-primary">
+							<!-- Tap the title to locate the release: collapse the player, scroll the feed to it (behind
+							     the overlay), and open its detail screen. Desktop parity with the player's title locate. -->
+							<button
+								type="button"
+								class="block max-w-full truncate text-left text-xl font-semibold text-text-primary active:opacity-60"
+								onclick={() => $previewInfo && mobileUIStore.locateRelease($previewInfo.releaseId)}
+							>
 								{track?.name ?? $previewInfo.release.title ?? $translate('common.untitled')}
-							</span>
+							</button>
 							<span class="truncate text-base text-text-secondary">
 								{$previewInfo.release.artist ?? $translate('common.unknownArtist')}
 							</span>
@@ -197,10 +204,7 @@
 							onclick={() => playerStore.togglePlayPause()}
 						>
 							{#if loading}
-								<svg class="h-8 w-8 animate-spin" viewBox="0 0 24 24" fill="none">
-									<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3" />
-									<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.4 0 0 5.4 0 12h4z" />
-								</svg>
+								<Spinner class="h-8 w-8" />
 							{:else if $isPlaying}
 								<svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"
 									><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg

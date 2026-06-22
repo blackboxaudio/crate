@@ -153,16 +153,29 @@ impl std::str::FromStr for AccentColor {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Font {
     Inter,
     Nunito,
-    #[default]
     OpenSans,
     FiraCode,
     IbmPlexMono,
     SourceCodePro,
+}
+
+/// The *unset* default UI font differs by platform: mobile ships **Nunito**, desktop keeps
+/// **Open Sans**. An explicit user choice persists in the settings table (and cloud-syncs), so this
+/// only governs a fresh node that has never set a font. A bare/test build (neither feature) uses
+/// Open Sans, matching desktop.
+impl Default for Font {
+    fn default() -> Self {
+        if cfg!(feature = "mobile") {
+            Font::Nunito
+        } else {
+            Font::OpenSans
+        }
+    }
 }
 
 impl std::fmt::Display for Font {

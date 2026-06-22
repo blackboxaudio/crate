@@ -35,10 +35,13 @@
 					s.setProperty('--text-tertiary', '#71717a')
 				}
 
-				// Accent color (the shared theme CSS maps data-accent -> --brand-primary)
+				// Accent color. The shared theme CSS maps data-accent -> --brand-primary once style.css loads;
+				// set --brand-primary inline here too so the pre-paint splash logo is the right accent before
+				// then (the Svelte SplashScreen clears it on mount so [data-accent] becomes authoritative).
 				var accentColors = {
-					blue: 1, indigo: 1, violet: 1, purple: 1, pink: 1,
-					rose: 1, orange: 1, amber: 1, emerald: 1, teal: 1,
+					blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', purple: '#a855f7',
+					pink: '#ec4899', rose: '#f43f5e', orange: '#f97316', amber: '#f59e0b',
+					emerald: '#10b981', teal: '#14b8a6',
 				}
 				var accent = 'blue'
 				try {
@@ -46,6 +49,7 @@
 					if (storedAccent && accentColors[storedAccent]) accent = storedAccent
 				} catch (e) {}
 				document.documentElement.setAttribute('data-accent', accent)
+				document.documentElement.style.setProperty('--brand-primary', accentColors[accent])
 
 				// Font preference
 				var fontFamilies = {
@@ -56,7 +60,7 @@
 					'ibm-plex-mono': "'IBM Plex Mono', monospace",
 					'source-code-pro': "'Source Code Pro', monospace",
 				}
-				var font = 'open-sans'
+				var font = 'nunito'
 				try {
 					var storedFont = localStorage.getItem('crate-font')
 					if (storedFont && fontFamilies[storedFont]) font = storedFont
@@ -66,17 +70,35 @@
 			})()
 		</script>
 
-		<!-- Preload the default font (Open Sans) so it's available before style.css loads -->
+		<!-- Preload the default font (Nunito) so it's available before style.css loads -->
 		<link rel="preconnect" href="https://fonts.googleapis.com" />
 		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 		<link
 			rel="stylesheet"
-			href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300..700&display=swap"
+			href="https://fonts.googleapis.com/css2?family=Nunito:wght@300..800&display=swap"
 		/>
 		<title>Crate</title>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
+		<!-- Inline splash: paints immediately (before any JS) with a fade-in; the Svelte SplashScreen
+		     removes it once the app mounts. Mirrors the desktop boot splash. --brand-primary/--surface-0/
+		     --text-* are set inline by the boot script above so the accent-masked logo + text are correct. -->
+		<div id="splash" style="position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--surface-0);animation:splashIn 400ms ease-out both">
+			<div style="width:64px;height:64px;background:var(--brand-primary);-webkit-mask-image:url('/crate-logo.svg');-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;mask-image:url('/crate-logo.svg');mask-size:contain;mask-repeat:no-repeat;mask-position:center"></div>
+			<span style="font-size:1.125rem;line-height:1.75rem;font-weight:700;color:var(--text-primary);font-family:var(--font-family)">Crate</span>
+			<span style="font-size:0.75rem;line-height:1rem;color:var(--text-tertiary);font-family:var(--font-family)">v%sveltekit.env.PUBLIC_APP_VERSION%</span>
+		</div>
+		<style>
+			@keyframes splashIn {
+				from {
+					opacity: 0;
+				}
+				to {
+					opacity: 1;
+				}
+			}
+		</style>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

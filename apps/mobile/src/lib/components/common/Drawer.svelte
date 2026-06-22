@@ -20,8 +20,10 @@
 		direction: Direction
 		onClose: () => void
 		onClosed?: () => void
-		/** Receives live drawer state + the dismiss-drag action (apply `use:drag` to a handle to confine it). */
-		children: Snippet<[{ openness: number; dragging: boolean; drag: Action<HTMLElement> }]>
+		/** Receives live drawer state + the dismiss-drag action (apply `use:drag` to a handle to confine it).
+		 *  `animating` is true while the panel slides — switch a scroll container to overflow-hidden then, so
+		 *  its content can't scroll mid-transition while the panel itself stays grabbable / finger-followable. */
+		children: Snippet<[{ openness: number; dragging: boolean; drag: Action<HTMLElement>; animating: boolean }]>
 
 		/** Panel chrome: bg / border / width|height / max-h / rounding / safe-area. Position + z come from here. */
 		class?: string
@@ -76,6 +78,9 @@
 	// directly; the vertical drag is converted from px below.
 	let closeDrag = $state<number | null>(null)
 	let panelH = $state(0)
+	// True while the panel's slide is mid-flight; exposed to content as `animating` so a scroll container can
+	// stop scrolling during the transition (the panel itself stays grabbable / finger-followable).
+	let animatingSlide = $state(false)
 
 	// Openness 0 (off-screen) → 1 (open). A drag wins; then the external open-drag (horizontal); else the
 	// committed open/closing state.
@@ -159,9 +164,21 @@
 		onClosed?.()
 	}
 
-	function onPanelTransitionEnd(e: TransitionEvent) {
-		// Only our own transform transition finalizes — not a child's (e.g. the tempo slide in the player).
-		if (e.target === e.currentTarget && closing && e.propertyName === 'transform') finalizeClose()
+	// Track whether the panel slide is mid-flight (so content can stop scrolling), and finalize a close when
+	// it lands. Driven by the transform transition's own events so it stays correct under reduced motion (no
+	// transition → no events → never animating). Child transitions (e.g. the player's tempo slide) are
+	// ignored via the guards.
+	function onTransformStart(e: TransitionEvent) {
+		if (e.target === e.currentTarget && e.propertyName === 'transform') animatingSlide = true
+	}
+	function onTransformEnd(e: TransitionEvent) {
+		if (e.target !== e.currentTarget || e.propertyName !== 'transform') return
+		animatingSlide = false
+		if (closing) finalizeClose()
+	}
+	function onTransformCancel(e: TransitionEvent) {
+		// Interrupted slide (e.g. reopened mid-close): unfreeze; the replacement transition re-freezes.
+		if (e.target === e.currentTarget && e.propertyName === 'transform') animatingSlide = false
 	}
 
 	// --- gesture wiring ---------------------------------------------------------------------------------
@@ -251,9 +268,11 @@
 			? 'ease-fluid transition-transform duration-500 motion-reduce:transition-none'
 			: ''}"
 		style="z-index: {z}; transform: {transform}"
-		ontransitionend={onPanelTransitionEnd}
+		ontransitionstart={onTransformStart}
+		ontransitionend={onTransformEnd}
+		ontransitioncancel={onTransformCancel}
 		use:gesture={{ horizontal, swipe: panelSwipe, vertical: panelVertical }}
 	>
-		{@render children({ openness, dragging, drag })}
+		{@render children({ openness, dragging, drag, animating: animatingSlide && closeDrag === null })}
 	</div>
 {/if}
