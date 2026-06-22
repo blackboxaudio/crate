@@ -132,7 +132,10 @@
 </script>
 
 <!-- Wrapper clips the horizontal track overflow from the flush-travel widening (see `trackStyle`) while
-     leaving the thumb free to overflow vertically out of the thin track. -->
+     leaving the thumb free to overflow vertically out of the thin track. The input is `block`: a default
+     `inline-block` range input sits on a text baseline, so the wrapper would grow to the inherited line
+     box and the thin track would sit low within it — throwing off `items-center` alignment against a
+     readout/reset button beside it (the wrapper's height then collapses to the track's). -->
 <div class="w-full overflow-x-clip overflow-y-visible">
 	<input
 		type="range"
@@ -142,7 +145,7 @@
 		{disabled}
 		aria-label={ariaLabel}
 		bind:value
-		class="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50 {hitSize !=
+		class="block h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50 {hitSize !=
 		null
 			? 'thumb-hit'
 			: ''} {activeScale != null ? 'thumb-grow' : ''} {active ? 'thumb-active' : ''} {className}"

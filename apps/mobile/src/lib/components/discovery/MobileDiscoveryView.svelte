@@ -50,12 +50,50 @@
 		}
 		mobileUIStore.consumeScrollTarget()
 	})
+
+	// --- Scroll-position persistence ----------------------------------------------------------------
+	// The shell remounts this view on every return to the Discovery tab (`{#key activeTab}`), recreating
+	// the scroll container — so the offset would reset to the top, losing the user's place after a long
+	// scroll. We save it to the store as the user scrolls and restore it on mount.
+
+	// Snapshot both at mount, BEFORE any effect runs. `skipScrollRestore`: when we arrive via "locate"
+	// (the locate effect above consumes `scrollTargetReleaseId` and drives its own scroll-to-release),
+	// that scroll wins, so don't restore. `savedScrollTop`: read up front so an early scroll event at the
+	// top can't clobber it before the restore effect reads it.
+	const skipScrollRestore = get(mobileUIStore).scrollTargetReleaseId !== null
+	const savedScrollTop = get(mobileUIStore).discoveryScrollTop
+
+	// Coalesce saves to one write per frame — a fling fires `scroll` far faster than that.
+	let scrollSaveRaf = 0
+	function handleScroll() {
+		if (scrollSaveRaf) return
+		scrollSaveRaf = requestAnimationFrame(() => {
+			scrollSaveRaf = 0
+			if (scrollEl) mobileUIStore.setDiscoveryScrollTop(scrollEl.scrollTop)
+		})
+	}
+	$effect(() => () => {
+		if (scrollSaveRaf) cancelAnimationFrame(scrollSaveRaf)
+	})
+
+	// Restore once, after the virtualizer has measured (totalSize > 0) so the spacer is tall enough to
+	// accept the offset — assigning before that clamps to ~0. tick() lets the spacer's height land in the
+	// DOM first; the browser then clamps the assignment if the feed has since shrunk.
+	let didRestoreScroll = false
+	$effect(() => {
+		if (didRestoreScroll || skipScrollRestore || savedScrollTop <= 0 || !scrollEl) return
+		if (virtualList.totalSize === 0) return
+		didRestoreScroll = true
+		const el = scrollEl
+		tick().then(() => (el.scrollTop = savedScrollTop))
+	})
 </script>
 
 <!-- Trailing padding lets the feed scroll *under* the floating mini-player (visible, blurred, through its
      glass) while the last release still clears it. The shell publishes the inset; 0 with no preview. -->
 <div
 	bind:this={scrollEl}
+	onscroll={handleScroll}
 	class="h-full overflow-x-hidden overflow-y-auto"
 	style="padding-bottom: var(--mini-player-inset, 0px)"
 >
@@ -93,10 +131,10 @@
 						{/snippet}
 						<div class="flex min-w-0 flex-col">
 							<span class="truncate text-sm font-medium text-text-primary">
-								{release.artist ?? $translate('common.unknownArtist')}
+								{release.title ?? $translate('common.untitled')}
 							</span>
 							<span class="truncate text-xs text-text-secondary">
-								{release.title ?? $translate('common.untitled')}
+								{release.artist ?? $translate('common.unknownArtist')}
 							</span>
 						</div>
 						{#snippet trailing()}

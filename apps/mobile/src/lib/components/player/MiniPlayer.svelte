@@ -2,7 +2,7 @@
 	import { fly } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
-	import { playerStore, previewInfo, isPlaying, previewLoadingReleaseId, playbackProgress } from '$shared/stores/player'
+	import { playerStore, previewInfo, isPlaying, previewLoading, playbackProgress } from '$shared/stores/player'
 	import { mobileUIStore, detailCovering } from '$lib/stores/mobileUI'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 
@@ -13,13 +13,37 @@
 	// only way up. A thin progress line runs along the bottom edge. Renders only while a preview is active;
 	// lives at the app root so it persists across the feed ↔ release-detail navigation.
 	const track = $derived($previewInfo ? $previewInfo.release.tracks[$previewInfo.trackIndex] : null)
-	const loading = $derived($previewInfo != null && $previewLoadingReleaseId === $previewInfo.releaseId)
+	// Loading covers the initial stream fetch (before `previewInfo` is set) as well as mid-playback
+	// buffering, so the spinner shows the moment a track is tapped, not only once playback is ready.
+	const loading = $derived(
+		$previewLoading != null && ($previewInfo == null || $previewLoading.releaseId === $previewInfo.releaseId)
+	)
 
 	// Float above the bottom tab bar (its 3.5rem + safe-area height) on the main shell, with a small gap.
 	// When a full-screen release detail covers the tab bar, drop to float just above the bottom safe-area.
 	// Tracks `detailCovering` (not `detailReleaseId`), which drops the instant a close starts — so this
 	// rises back over the tab bar *as* the detail slides out, rather than after it finishes.
 	const overDetail = $derived($detailCovering)
+
+	// Tap handling for this fixed card. iOS WebKit defers `click` dispatch to a fixed element like this
+	// one while the discovery feed coasts to a stop from a momentum ("flick") scroll — the same deferral
+	// the tab bar had — so a tap mid-scroll felt unacknowledged. Run the action on pointer-DOWN for touch
+	// (it fires on contact, the touch that also halts the scroll), then swallow the trailing compatibility
+	// `click` so the action doesn't run twice (which would un-toggle play/pause). Mouse, pen, and
+	// keyboard/VoiceOver fall through to the `click` path for natural press semantics + activation a11y.
+	let touchHandled = false
+	function tapDown(e: PointerEvent, action: () => void) {
+		if (e.pointerType !== 'touch') return
+		touchHandled = true
+		action()
+	}
+	function tapClick(action: () => void) {
+		if (touchHandled) {
+			touchHandled = false
+			return
+		}
+		action()
+	}
 
 	function expand() {
 		mobileUIStore.expandPlayer()
@@ -38,7 +62,8 @@
 				type="button"
 				class="flex w-full items-center gap-3 py-2.5 pr-16 pl-2.5 text-left"
 				aria-label={$translate('player.expand')}
-				onclick={expand}
+				onpointerdown={(e) => tapDown(e, expand)}
+				onclick={() => tapClick(expand)}
 			>
 				{#if $previewInfo.release.artwork_url}
 					<img
@@ -70,7 +95,8 @@
 				type="button"
 				class="absolute top-1/2 right-2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full text-text-primary active:bg-surface-2"
 				aria-label={$isPlaying ? $translate('player.pause') : $translate('player.play')}
-				onclick={() => playerStore.togglePlayPause()}
+				onpointerdown={(e) => tapDown(e, () => playerStore.togglePlayPause())}
+				onclick={() => tapClick(() => playerStore.togglePlayPause())}
 			>
 				{#if loading}
 					<Spinner class="h-5 w-5" />

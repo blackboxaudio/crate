@@ -1,11 +1,13 @@
 <script lang="ts">
 	import '../style.css'
 	import { onMount } from 'svelte'
+	import { get } from 'svelte/store'
 	import { initializeI18n } from '$shared/i18n'
 	import { settingsStore } from '$shared/stores/settings'
 	import { startWebMediaSession } from '$shared/services/webMediaSession'
-	import { playerStore } from '$shared/stores/player'
+	import { playerStore, previewInfo } from '$shared/stores/player'
 	import { isIOS } from '$shared/utils/platform'
+	import { mobileUIStore } from '$lib/stores/mobileUI'
 	// @ts-expect-error — PUBLIC_APP_VERSION is set dynamically by vite.config.ts
 	import { PUBLIC_APP_VERSION } from '$env/static/public'
 	import { splashVisible, dismissSplash } from '$lib/stores/splash'
@@ -29,6 +31,29 @@
 		}
 		playerStore.onTrackEnd(() => void playerStore.nextTrack())
 		return startWebMediaSession()
+	})
+
+	// Returning to the app while a preview is playing → surface the full-screen player. When a track is
+	// playing in the background and the user comes back to Crate — by tapping the iOS lock-screen Now
+	// Playing widget, the status-bar audio indicator, or just switching back from another app — we assume
+	// they're here for the track, so open the full player over whatever tab they left rather than leaving
+	// them to hunt for the mini bar. The WebView fires `visibilitychange` on every foreground (iOS
+	// suspends its JS while backgrounded). We only act on a real background→foreground round-trip (gate on
+	// having seen `hidden` first, so a cold launch with a restored-but-paused preview doesn't auto-expand)
+	// and only when a preview is actually loaded.
+	onMount(() => {
+		let backgrounded = false
+		function onVisibility() {
+			if (document.visibilityState === 'hidden') {
+				backgrounded = true
+				return
+			}
+			if (!backgrounded) return
+			backgrounded = false
+			if (get(previewInfo) != null) mobileUIStore.expandPlayer()
+		}
+		document.addEventListener('visibilitychange', onVisibility)
+		return () => document.removeEventListener('visibilitychange', onVisibility)
 	})
 
 	// Never allow zooming the UI itself. The viewport meta (user-scalable=no) covers most cases, but

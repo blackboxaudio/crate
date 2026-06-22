@@ -6,7 +6,7 @@
 
 use block2::RcBlock;
 use objc2::rc::Retained;
-use objc2::runtime::AnyObject;
+use objc2::runtime::{AnyObject, Bool};
 use objc2::MainThreadMarker;
 use objc2_av_foundation::{AVAudioTimePitchAlgorithmVarispeed, AVPlayer, AVPlayerItem};
 use objc2_core_media::CMTime;
@@ -34,6 +34,10 @@ pub struct PlaybackEngineInner {
     index: usize,
     rate: f32,
     playing: bool,
+    // True from a programmatic `seek` until its completion handler reports the seek landed. AVPlayer's
+    // `currentTime` keeps returning the pre-seek position until then, so `tick` is suppressed while this
+    // is set — otherwise the periodic position emit flashes the playhead back to the old spot.
+    seeking: bool,
     time_observer: Option<Retained<AnyObject>>,
     // Held only to keep the command-handler / notification blocks alive for the engine's lifetime.
     _command_targets: Vec<Retained<AnyObject>>,
@@ -60,6 +64,7 @@ impl PlaybackEngineInner {
             index: 0,
             rate: 1.0,
             playing: false,
+            seeking: false,
             time_observer: None,
             _command_targets: command_targets,
             _observers: observer_tokens,
@@ -99,6 +104,9 @@ impl PlaybackEngineInner {
             return;
         };
         self.index = i;
+        // New item ⇒ any in-flight seek on the previous one is moot; clear the guard so its late
+        // completion handler (or a stale flag) can't suppress tracking on the fresh track.
+        self.seeking = false;
         // SAFETY: build an AVPlayerItem from the (already-resolved) proxy URL and make it current.
         unsafe {
             let url_str = NSString::from_str(&entry.url);
@@ -163,13 +171,40 @@ impl PlaybackEngineInner {
 
     pub fn seek(&mut self, position_ms: u64) {
         let secs = position_ms as f64 / 1000.0;
+        self.seeking = true;
+        let app = self.app.clone();
+        // Fires once the async seek lands. AVFoundation may invoke it off the main thread (and possibly
+        // synchronously if no item is attached), so it hops back to the main thread before touching the
+        // main-thread-only engine. `finished == NO` means a newer seek superseded this one — leave the
+        // guard set so tracking stays suppressed until that newer seek's handler lands.
+        let handler = RcBlock::new(move |finished: Bool| {
+            if !finished.as_bool() {
+                return;
+            }
+            let _ = app.run_on_main_thread(|| {
+                engine::with_engine_mut(|e| {
+                    e.seeking = false;
+                    e.emit_current_state();
+                });
+            });
+        });
         // SAFETY: build a CMTime and seek within the current item (core-media + AVPlayer FFI).
         unsafe {
             let t = CMTime::with_seconds(secs, TIMESCALE);
-            self.player.seekToTime(t);
+            self.player.seekToTime_completionHandler(t, &handler);
         }
         now_playing::set_playback(secs, if self.playing { self.rate } else { 0.0 });
-        self.emit_current_state();
+        // Snap the UI straight to the requested target. Reading `currentTime` back here would report the
+        // PRE-seek position (the seek is async), which is the flash-back bug; the completion handler
+        // re-emits the real position once the seek settles.
+        engine::emit_state(
+            &self.app,
+            StatePayload {
+                is_playing: self.playing,
+                position_ms,
+                duration_ms: (self.duration_secs() * 1000.0) as u64,
+            },
+        );
     }
 
     /// Move by `delta` tracks. Before the first track restarts it; past the last track stops and emits
@@ -209,6 +244,7 @@ impl PlaybackEngineInner {
             self.player.replaceCurrentItemWithPlayerItem(None);
         }
         self.playing = false;
+        self.seeking = false;
         now_playing::clear();
         engine::emit_state(
             &self.app,
@@ -236,6 +272,11 @@ impl PlaybackEngineInner {
 
     /// Periodic tick (≈2×/sec): push position to the frontend + keep the lock-screen elapsed/rate live.
     fn tick(&mut self) {
+        // A seek is in flight: AVPlayer still reports the pre-seek `currentTime`, so skip this tick to
+        // avoid flashing the playhead back. The seek's completion handler re-emits once it settles.
+        if self.seeking {
+            return;
+        }
         self.emit_current_state();
         now_playing::set_playback(self.position_secs(), if self.playing { self.rate } else { 0.0 });
     }

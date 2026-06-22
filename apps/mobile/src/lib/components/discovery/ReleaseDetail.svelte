@@ -3,7 +3,7 @@
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease } from '$shared/types'
 	import { discoveryStore } from '$shared/stores/discovery'
-	import { playerStore, previewInfo, previewLoadingReleaseId } from '$shared/stores/player'
+	import { playerStore, previewInfo, previewLoading } from '$shared/stores/player'
 	import { formatDate, formatDurationCompact } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { mobileUIStore } from '$lib/stores/mobileUI'
@@ -45,8 +45,32 @@
 	const isCurrentRelease = $derived($previewInfo?.releaseId === release.id)
 	const platformName = $derived(getReleasePlatformName(release.source_type))
 
-	// Play a track. When nothing is selected yet, slide the full-screen player up so the user lands in it;
-	// if a preview is already active (playing or paused), changing tracks only updates the mini-player.
+	// Per-track loading state. The store marks which (release, track) is resolving its stream; mirror it as
+	// primitives so the delay effect below only re-runs when the *target* track changes, not on every
+	// playback tick. The spinner replaces that row's track number.
+	const loadingReleaseId = $derived($previewLoading?.releaseId ?? null)
+	const loadingTrackIndex = $derived($previewLoading?.trackIndex ?? null)
+
+	// Don't flash the spinner for already-cached tracks (the common case) — they start within a few
+	// milliseconds, and a spinner that appears and vanishes reads as a glitch. Only arm it once a load has
+	// outlived SPINNER_DELAY_MS; the row's pressed highlight already acknowledges the tap instantly.
+	const SPINNER_DELAY_MS = 120
+	let spinnerArmed = $state(false)
+	$effect(() => {
+		if (loadingReleaseId == null || loadingTrackIndex == null) {
+			spinnerArmed = false
+			return
+		}
+		// New (or re-tapped) load target — re-arm the delay.
+		spinnerArmed = false
+		const timer = setTimeout(() => (spinnerArmed = true), SPINNER_DELAY_MS)
+		return () => clearTimeout(timer)
+	})
+
+	// Play (or restart) a track. We deliberately don't special-case "same track" — re-tapping the current
+	// track re-runs playPreview, which replays it from the start, so a tap always means "play this now".
+	// When nothing is playing yet, slide the full-screen player up so the user lands in it; if a preview is
+	// already active, the tap just swaps/restarts the track and the mini-player updates in place.
 	function playTrack(index: number) {
 		const wasIdle = $previewInfo == null
 		void playerStore.playPreview(release, index)
@@ -81,7 +105,7 @@
 >
 	{#snippet children({ animating })}
 		<!-- Header -->
-		<div class="flex items-center gap-1 border-b border-stroke px-2 py-2">
+		<div class="flex items-center gap-1 px-2 py-2">
 			<button
 				type="button"
 				class="flex h-10 w-10 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
@@ -150,15 +174,19 @@
 				<div class="flex flex-col">
 					{#each release.tracks as track, index (track.id)}
 						{@const isActive = isCurrentRelease && $previewInfo?.trackIndex === index}
-						<div class="flex min-w-0 items-center {isActive ? 'bg-brand-muted' : ''} rounded">
+						{@const isLoading = spinnerArmed && loadingReleaseId === release.id && loadingTrackIndex === index}
+						<!-- One full-width tap target plays the track; the heart floats on top (absolute) so the whole
+						     row — heart area included — shares the same pressed highlight, yet tapping the heart likes
+						     the track instead of playing it. -->
+						<div class="relative rounded {isActive ? 'bg-brand-muted' : ''}">
 							<button
 								type="button"
-								class="flex min-h-[44px] min-w-0 flex-1 items-center gap-3 px-2 py-2 text-left active:bg-surface-2"
+								class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-12 pl-2 text-left active:bg-surface-2"
 								aria-label={$translate('discovery.playPreview')}
 								onclick={() => playTrack(index)}
 							>
 								<span class="w-5 flex-shrink-0 text-center text-xs text-text-tertiary tabular-nums">
-									{#if isActive && $previewLoadingReleaseId === release.id}
+									{#if isLoading}
 										<Spinner class="mx-auto h-3.5 w-3.5" />
 									{:else}
 										{index + 1}
@@ -173,7 +201,7 @@
 							</button>
 							<button
 								type="button"
-								class="flex h-10 w-10 flex-shrink-0 items-center justify-center text-text-tertiary active:bg-surface-2"
+								class="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r text-text-tertiary active:bg-surface-2"
 								aria-label={track.is_liked ? $translate('discovery.unlike') : $translate('discovery.like')}
 								onclick={() => discoveryStore.toggleTrackLiked(release.id, track.id)}
 							>

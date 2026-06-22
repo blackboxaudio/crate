@@ -6,7 +6,7 @@
 		playerStore,
 		previewInfo,
 		isPlaying,
-		previewLoadingReleaseId,
+		previewLoading,
 		playbackPosition,
 		playbackDuration,
 		playbackSpeed,
@@ -25,7 +25,11 @@
 	// a preview exists and opens when `$isPlayerExpanded`. Reads/writes the shared playerStore so it stays
 	// in sync with the mini-player and the OS media session.
 	const track = $derived($previewInfo ? $previewInfo.release.tracks[$previewInfo.trackIndex] : null)
-	const loading = $derived($previewInfo != null && $previewLoadingReleaseId === $previewInfo.releaseId)
+	// Loading covers both the initial stream fetch (before `previewInfo` is set — e.g. tapping a track from
+	// idle, which expands this player immediately) and mid-playback buffering / speed re-buffering.
+	const loading = $derived(
+		$previewLoading != null && ($previewInfo == null || $previewLoading.releaseId === $previewInfo.releaseId)
+	)
 	const canNext = $derived($previewInfo != null && $previewInfo.trackIndex + 1 < $previewInfo.release.tracks.length)
 
 	// Scrubbing: while the user drags the slider, show the local value and only commit on release so the

@@ -22,6 +22,13 @@ interface MobileUIState {
 	 * release from the expanded player; the feed clears it via `consumeScrollTarget` once it scrolls.
 	 */
 	scrollTargetReleaseId: string | null
+	/**
+	 * Last scroll offset (px) of the discovery feed. Persisted here because the shell remounts the feed
+	 * on every return to the Discovery tab (`{#key activeTab}`), recreating its scroll container — so the
+	 * feed saves its offset as the user scrolls and restores it on mount, keeping their place after a
+	 * long scroll through the releases.
+	 */
+	discoveryScrollTop: number
 }
 
 const initialState: MobileUIState = {
@@ -30,6 +37,7 @@ const initialState: MobileUIState = {
 	detailCovering: false,
 	playerExpanded: false,
 	scrollTargetReleaseId: null,
+	discoveryScrollTop: 0,
 }
 
 function createMobileUIStore() {
@@ -37,9 +45,10 @@ function createMobileUIStore() {
 
 	return {
 		subscribe,
-		/** Switch the active bottom tab. */
+		/** Switch the active bottom tab. No-op when already there, so navigating from both the pointerdown
+		 *  and the trailing click of a single touch tap (see TabBar) collapses to one state update. */
 		setTab(tab: MobileTab) {
-			update((s) => ({ ...s, activeTab: tab }))
+			update((s) => (s.activeTab === tab ? s : { ...s, activeTab: tab }))
 		},
 		/** Push the release detail screen (a full-screen overlay layered above the active tab). */
 		openDetail(releaseId: string) {
@@ -80,6 +89,10 @@ function createMobileUIStore() {
 		/** Clear the one-shot scroll target once the feed has scrolled to it. */
 		consumeScrollTarget() {
 			update((s) => (s.scrollTargetReleaseId === null ? s : { ...s, scrollTargetReleaseId: null }))
+		},
+		/** Remember the discovery feed's scroll offset so it survives the tab-switch remount. */
+		setDiscoveryScrollTop(top: number) {
+			update((s) => (s.discoveryScrollTop === top ? s : { ...s, discoveryScrollTop: top }))
 		},
 		reset() {
 			set(initialState)

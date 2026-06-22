@@ -13,6 +13,17 @@
 		{ id: 'playlists', label: $translate('nav.playlists') },
 		{ id: 'settings', label: $translate('settings.title') },
 	])
+
+	// Switch tabs on pointer-DOWN for touch — not on click. iOS WebKit defers `click` dispatch to a
+	// fixed element like this bar until an in-progress momentum ("flick") scroll of the current tab's
+	// content settles, so tapping a tab mid-scroll felt dead until the list coasted to a stop.
+	// `pointerdown` fires on finger-down — the same touch that cancels the momentum — so the tab switches
+	// immediately. Mouse, pen, and keyboard/VoiceOver keep activating via `onclick` below (natural press
+	// semantics + synthesized-click a11y); `setTab` no-ops when already on the tab, so the trailing click
+	// after a touch tap is harmless. A future tab could veto/confirm the switch here before navigating.
+	function navigateOnTouch(e: PointerEvent, tab: MobileTab) {
+		if (e.pointerType === 'touch') mobileUIStore.setTab(tab)
+	}
 </script>
 
 <nav class="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-stroke-subtle bg-surface-1">
@@ -26,6 +37,7 @@
 					: 'text-text-tertiary'} active:bg-surface-2"
 				aria-current={active ? 'page' : undefined}
 				aria-label={tab.label}
+				onpointerdown={(e) => navigateOnTouch(e, tab.id)}
 				onclick={() => mobileUIStore.setTab(tab.id)}
 			>
 				{#if tab.id === 'discovery'}

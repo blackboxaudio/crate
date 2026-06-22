@@ -32,7 +32,7 @@ interface PlayerState {
 	playbackSource: PlaybackSource
 	previewInfo: PreviewInfo | null
 	previewTrackIndex: number
-	previewLoadingReleaseId: string | null
+	previewLoading: { releaseId: string; trackIndex: number } | null
 }
 
 const initialPlaybackState: PlaybackState = {
@@ -63,7 +63,7 @@ const initialState: PlayerState = {
 	playbackSource: 'library',
 	previewInfo: null,
 	previewTrackIndex: 0,
-	previewLoadingReleaseId: null,
+	previewLoading: null,
 }
 
 // Pressing "previous" within this window restarts the current track instead of jumping to the
@@ -216,7 +216,10 @@ function createPlayerStore() {
 		previewPlayer.setOnWaiting(() => {
 			const state = getState()
 			if (state.playbackSource === 'preview' && state.previewInfo) {
-				update((s) => ({ ...s, previewLoadingReleaseId: state.previewInfo!.releaseId }))
+				update((s) => ({
+					...s,
+					previewLoading: { releaseId: state.previewInfo!.releaseId, trackIndex: state.previewInfo!.trackIndex },
+				}))
 			}
 		})
 		previewPlayer.setOnPlaying(() => {
@@ -224,7 +227,7 @@ function createPlayerStore() {
 				clearTimeout(previewSpeedCommitTimeout)
 				previewSpeedCommitTimeout = null
 			}
-			update((s) => ({ ...s, previewLoadingReleaseId: null }))
+			update((s) => ({ ...s, previewLoading: null }))
 		})
 		previewPlayer.setOnError(async (msg: string) => {
 			// Ignore duplicate error callbacks fired while a retry is in-flight
@@ -349,7 +352,7 @@ function createPlayerStore() {
 			}
 
 			stopPositionTracking()
-			update((s) => ({ ...s, previewLoadingReleaseId: release.id }))
+			update((s) => ({ ...s, previewLoading: { releaseId: release.id, trackIndex } }))
 
 			// iOS: hand the whole release (pre-resolved proxy URLs) to the native engine so it can
 			// switch tracks — including while the screen is locked — without any further JS.
@@ -389,11 +392,11 @@ function createPlayerStore() {
 						playbackSource: 'preview',
 						previewInfo: { releaseId: release.id, release, trackIndex },
 						previewTrackIndex: trackIndex,
-						previewLoadingReleaseId: null,
+						previewLoading: null,
 					}))
 				} catch (error) {
 					const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
-					update((s) => ({ ...s, error: errorMsg, previewLoadingReleaseId: null }))
+					update((s) => ({ ...s, error: errorMsg, previewLoading: null }))
 					toastStore.error(get(translate)('errors.previewStreamFailed'))
 				}
 				return
@@ -431,11 +434,11 @@ function createPlayerStore() {
 					playbackSource: 'preview',
 					previewInfo: { releaseId: release.id, release, trackIndex },
 					previewTrackIndex: trackIndex,
-					previewLoadingReleaseId: null,
+					previewLoading: null,
 				}))
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
-				update((s) => ({ ...s, error: errorMsg, previewLoadingReleaseId: null }))
+				update((s) => ({ ...s, error: errorMsg, previewLoading: null }))
 				toastStore.error(get(translate)('errors.previewStreamFailed'))
 			}
 		},
@@ -753,7 +756,12 @@ function createPlayerStore() {
 
 			// Apply rate change and show spinner
 			previewPlayer.setPlaybackRate(state.playbackState.speed)
-			update((s) => ({ ...s, previewLoadingReleaseId: s.previewInfo?.releaseId ?? null }))
+			update((s) => ({
+				...s,
+				previewLoading: s.previewInfo
+					? { releaseId: s.previewInfo.releaseId, trackIndex: s.previewInfo.trackIndex }
+					: null,
+			}))
 
 			// Force pause+resume so the 'playing' event fires when audio resumes
 			previewPlayer.pause()
@@ -762,7 +770,7 @@ function createPlayerStore() {
 			// Safety timeout: clear spinner if 'playing' never fires
 			previewSpeedCommitTimeout = setTimeout(() => {
 				previewSpeedCommitTimeout = null
-				update((s) => ({ ...s, previewLoadingReleaseId: null }))
+				update((s) => ({ ...s, previewLoading: null }))
 			}, 5000)
 		},
 
@@ -974,7 +982,7 @@ function createPlayerStore() {
 								position_ms: positionMs,
 								duration_ms: durationMs > 0 ? durationMs : s.playbackState.duration_ms,
 							},
-							previewLoadingReleaseId: isPlaying ? null : s.previewLoadingReleaseId,
+							previewLoading: isPlaying ? null : s.previewLoading,
 						}
 					})
 					persistPosition(positionMs)
@@ -1001,7 +1009,7 @@ function createPlayerStore() {
 					update((s) => ({
 						...s,
 						playbackState: { ...s.playbackState, is_playing: false },
-						previewLoadingReleaseId: null,
+						previewLoading: null,
 					}))
 				},
 				onError: (message) => {
@@ -1009,7 +1017,7 @@ function createPlayerStore() {
 						...s,
 						error: message,
 						playbackState: { ...s.playbackState, is_playing: false },
-						previewLoadingReleaseId: null,
+						previewLoading: null,
 					}))
 					toastStore.error(get(translate)('errors.previewStreamFailed'))
 				},
@@ -1067,6 +1075,10 @@ export const previewInfo = derived(playerStore, ($player) => $player.previewInfo
 
 export const previewTrackIndex = derived(playerStore, ($player) => $player.previewTrackIndex)
 
-export const previewLoadingReleaseId = derived(playerStore, ($player) => $player.previewLoadingReleaseId)
+export const previewLoading = derived(playerStore, ($player) => $player.previewLoading)
+
+// Back-compat: release-level consumers (discovery rows, mini/expanded player) only need "is this release
+// loading", so they keep subscribing to this. Returns a string|null, which dedupes cleanly.
+export const previewLoadingReleaseId = derived(playerStore, ($player) => $player.previewLoading?.releaseId ?? null)
 
 export const playbackSpeed = derived(playerStore, ($player) => $player.playbackState.speed)
