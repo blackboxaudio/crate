@@ -20,7 +20,8 @@
 		"folder": "folder",
 		"playlist": "playlist",
 		"next": "Next",
-		"back": "Back"
+		"back": "Back",
+		"more": "More"
 	},
 	"nav": {
 		"library": "Library",
@@ -252,6 +253,22 @@
 		"collapse": "Collapse player",
 		"seek": "Seek"
 	},
+	"queue": {
+		"upNext": "Up Next",
+		"openQueue": "Up next",
+		"playNext": "Play next",
+		"addToQueue": "Add to queue",
+		"playingNext": "Playing next",
+		"addedToQueue": "Added to queue",
+		"nextInQueue": "Next in queue",
+		"upNextFromContext": "Up next",
+		"addedByYou": "Added by you",
+		"removeFromQueue": "Remove from queue",
+		"reorder": "Reorder",
+		"clearQueue": "Clear",
+		"empty": "Nothing up next",
+		"emptyHint": "Songs you add will play next"
+	},
 	"library": {
 		"searchPlaceholder": "Search tracks...",
 		"importTracks": "Import Tracks",
@@ -282,7 +299,13 @@
 		"releases": "releases",
 		"searchPlaceholder": "Search releases...",
 		"noReleasesYet": "No releases yet",
+		"noResults": "No releases match your filters",
 		"addReleaseHint": "Press {shortcut} to add releases from Bandcamp, Discogs, YouTube, and more",
+		"mobileAddHint": "Add releases from Bandcamp, Discogs, YouTube, and more",
+		"sortBy": "Sort by",
+		"selectedCount": "{count, plural, =1 {1 selected} other {{count} selected}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Delete release?} other {Delete {count} releases?}}",
+		"confirmDeleteMessage": "This can't be undone.",
 		"previewNotAvailable": "Preview not available for this source",
 		"columns": {
 			"artistTitle": "Artist / Title",
@@ -711,6 +734,9 @@
 		"emerald": "Emerald"
 	},
 	"dates": {
+		"justNow": "Just now",
+		"minutesAgo": "{count, plural, =1 {1 minute ago} other {{count} minutes ago}}",
+		"hoursAgo": "{count, plural, =1 {1 hour ago} other {{count} hours ago}}",
 		"today": "Today",
 		"yesterday": "Yesterday",
 		"daysAgo": "{count, plural, =1 {1 day ago} other {{count} days ago}}",

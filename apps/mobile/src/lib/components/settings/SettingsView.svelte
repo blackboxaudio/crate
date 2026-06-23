@@ -15,11 +15,7 @@
 	]
 </script>
 
-<div class="h-full overflow-y-auto" style="padding-bottom: var(--mini-player-inset, 0px)">
-	<h2 class="px-4 pt-4 pb-1 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
-		{$translate('settings.title')}
-	</h2>
-
+<div class="h-full overflow-y-auto pt-2" style="padding-bottom: var(--mini-player-inset, 0px)">
 	<!-- Appearance: theme toggle -->
 	<div class="px-4 py-2">
 		<h3 class="mb-1.5 text-sm font-medium text-text-secondary">

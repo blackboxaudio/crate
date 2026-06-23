@@ -20,7 +20,8 @@
 		"folder": "dossier",
 		"playlist": "playlist",
 		"next": "Suivant",
-		"back": "Retour"
+		"back": "Retour",
+		"more": "Plus"
 	},
 	"nav": {
 		"library": "Bibliothèque",
@@ -252,6 +253,22 @@
 		"collapse": "Réduire le lecteur",
 		"seek": "Avancer"
 	},
+	"queue": {
+		"upNext": "À suivre",
+		"openQueue": "À suivre",
+		"playNext": "Lire suivant",
+		"addToQueue": "Ajouter à la file",
+		"playingNext": "En cours de lecture suivant",
+		"addedToQueue": "Ajouté à la file",
+		"nextInQueue": "Suivant dans la file",
+		"upNextFromContext": "À suivre",
+		"addedByYou": "Ajouté par vous",
+		"removeFromQueue": "Retirer de la file",
+		"reorder": "Réorganiser",
+		"clearQueue": "Effacer",
+		"empty": "Rien à suivre",
+		"emptyHint": "Les chansons que vous ajoutez seront lues ensuite"
+	},
 	"library": {
 		"searchPlaceholder": "Rechercher des pistes...",
 		"importTracks": "Importer des pistes",
@@ -282,7 +299,13 @@
 		"releases": "sorties",
 		"searchPlaceholder": "Rechercher des sorties...",
 		"noReleasesYet": "Aucune sortie pour le moment",
+		"noResults": "Aucune sortie ne correspond à vos filtres",
 		"addReleaseHint": "Appuyez sur {shortcut} pour ajouter des sorties de Bandcamp, Discogs, YouTube et plus",
+		"mobileAddHint": "Ajouter des sorties de Bandcamp, Discogs, YouTube et plus",
+		"sortBy": "Trier par",
+		"selectedCount": "{count, plural, =1 {1 sélectionné} other {{count} sélectionnés}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Supprimer la sortie ?} other {Supprimer {count} sorties ?}}",
+		"confirmDeleteMessage": "Cela ne peut pas être annulé.",
 		"previewNotAvailable": "Aperçu non disponible pour cette source",
 		"columns": {
 			"artistTitle": "Artiste / Titre",
@@ -710,6 +733,9 @@
 		"emerald": "Émeraude"
 	},
 	"dates": {
+		"justNow": "À l'instant",
+		"minutesAgo": "{count, plural, =1 {il y a 1 minute} other {il y a {count} minutes}}",
+		"hoursAgo": "{count, plural, =1 {il y a 1 heure} other {il y a {count} heures}}",
 		"today": "Aujourd'hui",
 		"yesterday": "Hier",
 		"daysAgo": "{count, plural, =1 {il y a 1 jour} other {il y a {count} jours}}",

@@ -36,6 +36,11 @@
 		scrimOpacity?: number
 		/** Whether tapping the scrim dismisses. False for fullscreen surfaces whose scrim only shows mid-slide. */
 		scrimDismiss?: boolean
+		/** Cross-fade the panel's opacity with its slide, so a translucent sheet dissolves instead of traveling
+		 *  as a visible slab over the content behind it (the clash a glass bottom-sheet otherwise makes on
+		 *  dismiss). Leave off for fullscreen pushes (release detail, player), which must stay opaque mid-slide
+		 *  so the content behind never shows through. */
+		fade?: boolean
 		/** External finger-follow OPEN progress 0→1 (the shell's edge-open gesture). Horizontal only. */
 		openProgress?: number | null
 		/** Apply the dismiss gesture to the whole panel (default). A bottom sheet with scrollable content sets
@@ -59,6 +64,7 @@
 		scrim = true,
 		scrimOpacity = 0.5,
 		scrimDismiss = true,
+		fade = false,
 		openProgress = null,
 		panelDrag = true,
 		closeEdgeSize,
@@ -106,6 +112,17 @@
 			bottom: `translateY(${off}%)`,
 		}[direction]
 	})
+	// When `fade` is on, the panel's opacity rides `openness` so a translucent sheet dissolves as it slides
+	// (no glass slab clashing with the rows behind it); transform + opacity share the one slide timing. Both
+	// literal class strings are spelled out so Tailwind can see them (a split template wouldn't be generated).
+	const panelTransitionClass = $derived(
+		!transitionOn
+			? ''
+			: fade
+				? 'ease-fluid transition-[transform,opacity] duration-500 motion-reduce:transition-none'
+				: 'ease-fluid transition-transform duration-500 motion-reduce:transition-none'
+	)
+	const panelStyle = $derived(`z-index: ${z}; transform: ${transform}${fade ? `; opacity: ${openness}` : ''}`)
 
 	// --- open/close orchestration, driven by the `open` prop -------------------------------------------
 	$effect(() => {
@@ -264,10 +281,8 @@
 		role="dialog"
 		aria-modal="true"
 		aria-label={ariaLabel}
-		class="fixed {anchorClass} {className} {transitionOn
-			? 'ease-fluid transition-transform duration-500 motion-reduce:transition-none'
-			: ''}"
-		style="z-index: {z}; transform: {transform}"
+		class="fixed {anchorClass} {className} {panelTransitionClass}"
+		style={panelStyle}
 		ontransitionstart={onTransformStart}
 		ontransitionend={onTransformEnd}
 		ontransitioncancel={onTransformCancel}

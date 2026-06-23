@@ -839,6 +839,38 @@ export interface PreviewInfo {
 	trackIndex: number
 }
 
+// =============================================================================
+// Playback queue (two-tier: implicit context queue + explicit user queue)
+// =============================================================================
+
+/**
+ * The identity of one queued playable unit. A discriminated union so the model can later cover
+ * library tracks too (`{ kind: 'library'; trackId }`); only the discovery-preview variant is
+ * implemented today. This is the PERSISTED shape — ids only, never heavy `DiscoveryRelease`
+ * snapshots — so the explicit queue survives a relaunch and re-hydrates the releases by id.
+ */
+export type QueuePayload = { kind: 'preview'; releaseId: string; trackIndex: number }
+
+/** One entry in the explicit user queue. `entryId` is a stable per-entry id (NOT release/track id —
+ *  the same track can be queued twice) so reorder/remove can target a single occurrence. */
+export interface QueueItem {
+	entryId: string
+	payload: QueuePayload
+}
+
+/**
+ * A runtime "Up Next" row for the UI: the resolved release + track plus where it came from. User
+ * entries carry their queue `entryId` (for reorder/remove); context entries carry a synthetic key.
+ * Not persisted — rebuilt from live state whenever the queue changes.
+ */
+export interface UpNextEntry {
+	/** Queue `entryId` for user items; a synthetic `releaseId:trackIndex:n` key for context items. */
+	key: string
+	source: 'user' | 'context'
+	release: DiscoveryRelease
+	trackIndex: number
+}
+
 export interface ScannedRelease {
 	url: string
 	artist: string | null

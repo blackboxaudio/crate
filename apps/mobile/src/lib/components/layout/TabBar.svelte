@@ -15,6 +15,16 @@
 		{ id: 'settings', label: $translate('settings.title') },
 	])
 
+	// Index of the active tab within `tabs` — drives the horizontal offset of the sliding highlight
+	// pill in the bar below. Clamped to 0 so the pill never slides off-bar if `activeTab` is ever
+	// unmatched.
+	const activeIndex = $derived(
+		Math.max(
+			0,
+			tabs.findIndex((t) => t.id === $activeTab)
+		)
+	)
+
 	// Switch tabs on pointer-DOWN for touch — not on click. iOS WebKit defers `click` dispatch to a
 	// fixed element like this bar until an in-progress momentum ("flick") scroll of the current tab's
 	// content settles, so tapping a tab mid-scroll felt dead until the list coasted to a stop.
@@ -28,14 +38,27 @@
 </script>
 
 <nav class="pb-safe fixed inset-x-0 bottom-0 z-30 border-t border-stroke-subtle bg-surface-1">
-	<div class="flex h-14 items-stretch">
+	<div class="relative flex h-14 items-stretch">
+		<!-- Sliding highlight: one brand-tinted pill that slides horizontally to sit behind the active
+		     tab, carrying the highlight from the old tab to the new (mirrors the desktop tabs' sliding
+		     indicator). Decorative and behind the buttons (z-0 vs their z-10); each tab's icon + label
+		     crossfade their color in sync as it arrives. `ease-fluid` is the app's iOS-sheet easing;
+		     reduced-motion users get an instant jump. Width and offset are derived from the tab count
+		     so adding or removing a destination needs no hand-tuning. -->
+		<div
+			class="ease-fluid pointer-events-none absolute inset-y-0 left-0 z-0 transition-transform duration-300 motion-reduce:transition-none"
+			style="width: {100 / tabs.length}%; transform: translateX({activeIndex * 100}%)"
+			aria-hidden="true"
+		>
+			<div class="absolute inset-x-1.5 inset-y-1.5 rounded-2xl bg-brand-muted"></div>
+		</div>
 		{#each tabs as tab (tab.id)}
 			{@const active = $activeTab === tab.id}
 			<button
 				type="button"
-				class="flex flex-1 flex-col items-center justify-center gap-1 {active
+				class="relative z-10 flex flex-1 flex-col items-center justify-center gap-1 transition-colors duration-300 {active
 					? 'text-brand-primary'
-					: 'text-text-tertiary'} active:bg-surface-2"
+					: 'text-text-tertiary'}"
 				aria-current={active ? 'page' : undefined}
 				aria-label={tab.label}
 				onpointerdown={(e) => navigateOnTouch(e, tab.id)}

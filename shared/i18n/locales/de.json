@@ -20,7 +20,8 @@
 		"folder": "Ordner",
 		"playlist": "Playlist",
 		"next": "Weiter",
-		"back": "Zurück"
+		"back": "Zurück",
+		"more": "Mehr"
 	},
 	"nav": {
 		"library": "Bibliothek",
@@ -252,6 +253,22 @@
 		"collapse": "Player einklappen",
 		"seek": "Suchen"
 	},
+	"queue": {
+		"upNext": "Als Nächstes",
+		"openQueue": "Übernächstes",
+		"playNext": "Als nächstes abspielen",
+		"addToQueue": "Zur Warteschlange hinzufügen",
+		"playingNext": "Wird als nächstes abgespielt",
+		"addedToQueue": "Zur Warteschlange hinzugefügt",
+		"nextInQueue": "Übernächstes in der Warteschlange",
+		"upNextFromContext": "Als Nächstes",
+		"addedByYou": "Von dir hinzugefügt",
+		"removeFromQueue": "Aus der Warteschlange entfernen",
+		"reorder": "Neu anordnen",
+		"clearQueue": "Löschen",
+		"empty": "Nichts übernächstes",
+		"emptyHint": "Die Lieder, die du hinzufügst, werden als nächstes abgespielt"
+	},
 	"library": {
 		"searchPlaceholder": "Tracks suchen...",
 		"importTracks": "Tracks importieren",
@@ -282,7 +299,13 @@
 		"releases": "Releases",
 		"searchPlaceholder": "Releases suchen...",
 		"noReleasesYet": "Noch keine Releases",
+		"noResults": "Keine Releases entsprechen Ihren Filtern",
 		"addReleaseHint": "Drücken Sie {shortcut}, um Releases von Bandcamp, Discogs, YouTube und mehr hinzuzufügen",
+		"mobileAddHint": "Releases von Bandcamp, Discogs, YouTube und mehr hinzufügen",
+		"sortBy": "Sortieren nach",
+		"selectedCount": "{count, plural, =1 {1 ausgewählt} other {{count} ausgewählt}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Release löschen?} other {{count} Releases löschen?}}",
+		"confirmDeleteMessage": "Dies kann nicht rückgängig gemacht werden.",
 		"previewNotAvailable": "Vorschau für diese Quelle nicht verfügbar",
 		"columns": {
 			"artistTitle": "Künstler / Titel",
@@ -710,6 +733,9 @@
 		"emerald": "Smaragd"
 	},
 	"dates": {
+		"justNow": "Gerade eben",
+		"minutesAgo": "{count, plural, =1 {vor 1 Minute} other {vor {count} Minuten}}",
+		"hoursAgo": "{count, plural, =1 {vor 1 Stunde} other {vor {count} Stunden}}",
 		"today": "Heute",
 		"yesterday": "Gestern",
 		"daysAgo": "{count, plural, =1 {vor 1 Tag} other {vor {count} Tagen}}",

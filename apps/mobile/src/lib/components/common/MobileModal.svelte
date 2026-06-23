@@ -15,9 +15,11 @@
 		onSubmit?: () => void
 		children: Snippet
 		footer?: Snippet
+		/** Optional trailing action rendered on the right of the title row (e.g. a "Clear all" button). */
+		headerAction?: Snippet
 	}
 
-	let { open, title, onClose, onSubmit, children: body, footer }: Props = $props()
+	let { open, title, onClose, onSubmit, children: body, footer, headerAction }: Props = $props()
 
 	// Enter submits (unless focus is in a textarea/button), mirroring the desktop modal. Scoped to while the
 	// sheet is open. Lives on `window` now that there's no <dialog> to host the handler.
@@ -41,6 +43,7 @@
 	{onClose}
 	direction="bottom"
 	z={50}
+	fade
 	panelDrag={false}
 	ariaLabel={title ?? $translate('common.close')}
 	class="pb-safe glass-strong flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-stroke"
@@ -53,8 +56,9 @@
 			</div>
 
 			{#if title}
-				<div class="border-b border-stroke-subtle px-4 py-3">
+				<div class="flex items-center justify-between gap-3 border-b border-stroke-subtle px-4 py-3">
 					<h2 class="text-base font-medium text-text-primary">{title}</h2>
+					{#if headerAction}{@render headerAction()}{/if}
 				</div>
 			{/if}
 		</div>

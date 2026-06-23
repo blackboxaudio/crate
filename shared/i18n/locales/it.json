@@ -20,7 +20,8 @@
 		"folder": "cartella",
 		"playlist": "playlist",
 		"next": "Successivo",
-		"back": "Indietro"
+		"back": "Indietro",
+		"more": "Altro"
 	},
 	"nav": {
 		"library": "Libreria",
@@ -252,6 +253,22 @@
 		"collapse": "Comprimi lettore",
 		"seek": "Cerca"
 	},
+	"queue": {
+		"upNext": "Prossimo",
+		"openQueue": "Prossimo",
+		"playNext": "Riproduci prossimo",
+		"addToQueue": "Aggiungi alla coda",
+		"playingNext": "Riproduzione prossimo",
+		"addedToQueue": "Aggiunto alla coda",
+		"nextInQueue": "Prossimo nella coda",
+		"upNextFromContext": "Prossimo",
+		"addedByYou": "Aggiunto da te",
+		"removeFromQueue": "Rimuovi dalla coda",
+		"reorder": "Riordina",
+		"clearQueue": "Cancella",
+		"empty": "Niente di prossimo",
+		"emptyHint": "Le canzoni che aggiungi verranno riprodotte dopo"
+	},
 	"library": {
 		"searchPlaceholder": "Cerca tracce...",
 		"importTracks": "Importa tracce",
@@ -282,7 +299,13 @@
 		"releases": "rilasci",
 		"searchPlaceholder": "Cerca uscite...",
 		"noReleasesYet": "Nessun rilascio per ora",
+		"noResults": "Nessun rilascio corrisponde ai tuoi filtri",
 		"addReleaseHint": "Premi {shortcut} per aggiungere rilasci da Bandcamp, Discogs, YouTube e altri",
+		"mobileAddHint": "Aggiungi rilasci da Bandcamp, Discogs, YouTube e altri",
+		"sortBy": "Ordina per",
+		"selectedCount": "{count, plural, =1 {1 selezionato} other {{count} selezionati}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Eliminare il rilascio?} other {Eliminare {count} rilasci?}}",
+		"confirmDeleteMessage": "Questo non può essere annullato.",
 		"previewNotAvailable": "Anteprima non disponibile per questa fonte",
 		"columns": {
 			"artistTitle": "Artista / Titolo",
@@ -710,6 +733,9 @@
 		"emerald": "Smeraldo"
 	},
 	"dates": {
+		"justNow": "Proprio ora",
+		"minutesAgo": "{count, plural, =1 {1 minuto fa} other {{count} minuti fa}}",
+		"hoursAgo": "{count, plural, =1 {1 ora fa} other {{count} ore fa}}",
 		"today": "Oggi",
 		"yesterday": "Ieri",
 		"daysAgo": "{count, plural, =1 {1 giorno fa} other {{count} giorni fa}}",

@@ -16,8 +16,8 @@
 	const playlists = $derived($playlistsStore.playlists.filter((p) => !p.is_folder))
 </script>
 
-<div class="h-full overflow-y-auto" style="padding-bottom: var(--mini-player-inset, 0px)">
-	<MobileList title={$translate('nav.playlists')} isEmpty={playlists.length === 0} empty={emptyPlaylists}>
+<div class="h-full overflow-y-auto pt-2" style="padding-bottom: var(--mini-player-inset, 0px)">
+	<MobileList isEmpty={playlists.length === 0} empty={emptyPlaylists}>
 		{#each playlists as playlist (playlist.id)}
 			<MobileListItem>
 				{#snippet trailing()}

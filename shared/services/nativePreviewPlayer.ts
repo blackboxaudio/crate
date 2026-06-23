@@ -21,6 +21,13 @@ export interface NativeTrack {
 	album: string
 	durationMs: number
 	artworkUrl: string | null
+	/**
+	 * Explicit container MIME type, or null to let AVFoundation infer it. The proxy URL is
+	 * extensionless, and AVPlayer can't infer YouTube/Discogs' `audio/mp4` from it (it fails to load
+	 * silently), so those sources pass `'audio/mp4'`; Bandcamp/SoundCloud (`audio/mpeg`) are
+	 * unambiguous and pass null.
+	 */
+	mimeType: string | null
 }
 
 export interface NativeStateEvent {
@@ -34,10 +41,21 @@ export interface NativeBridgeHandlers {
 	onTrackChanged: (index: number) => void
 	onEnded: () => void
 	onError: (message: string) => void
+	/** Temporary diagnostic channel (#54 debugging): engine traces routed to the webview console. */
+	onDebug?: (message: string) => void
 }
 
 export async function play(tracks: NativeTrack[], startIndex: number): Promise<void> {
 	await invoke('native_preview_play', { tracks, startIndex })
+}
+
+/**
+ * Replace the engine's UPCOMING tail (everything after the currently-playing item) without disturbing
+ * the current track, its position, or the lock screen. Used to slide the lazy window forward as playback
+ * advances and to apply Add-to-queue / Play-next mutations live — including while the screen is locked.
+ */
+export async function setUpcoming(tracks: NativeTrack[]): Promise<void> {
+	await invoke('native_preview_set_upcoming', { tracks })
 }
 
 export async function pause(): Promise<void> {
@@ -84,6 +102,11 @@ export async function startNativePreviewBridge(handlers: NativeBridgeHandlers): 
 	)
 	unlisten.push(await listen('native-preview-ended', () => handlers.onEnded()))
 	unlisten.push(await listen<{ message: string }>('native-preview-error', (e) => handlers.onError(e.payload.message)))
+	if (handlers.onDebug) {
+		unlisten.push(
+			await listen<{ message: string }>('native-preview-debug', (e) => handlers.onDebug!(e.payload.message))
+		)
+	}
 	return () => {
 		for (const u of unlisten) u()
 	}

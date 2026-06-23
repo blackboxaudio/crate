@@ -20,7 +20,8 @@
 		"folder": "mapp",
 		"playlist": "spellista",
 		"next": "Nästa",
-		"back": "Tillbaka"
+		"back": "Tillbaka",
+		"more": "Mer"
 	},
 	"nav": {
 		"library": "Bibliotek",
@@ -252,6 +253,22 @@
 		"collapse": "Fäll ihop spelare",
 		"seek": "Sök"
 	},
+	"queue": {
+		"upNext": "Upp nästa",
+		"openQueue": "Nästa",
+		"playNext": "Spela nästa",
+		"addToQueue": "Lägg till i kö",
+		"playingNext": "Spelar nästa",
+		"addedToQueue": "Tillagt i kö",
+		"nextInQueue": "Nästa i kö",
+		"upNextFromContext": "Upp nästa",
+		"addedByYou": "Tillagt av dig",
+		"removeFromQueue": "Ta bort från kö",
+		"reorder": "Sortera om",
+		"clearQueue": "Rensa",
+		"empty": "Inget upp nästa",
+		"emptyHint": "Låtar du lägger till kommer spelas nästa"
+	},
 	"library": {
 		"searchPlaceholder": "Sök spår...",
 		"importTracks": "Importera spår",
@@ -282,7 +299,13 @@
 		"releases": "utgåvor",
 		"searchPlaceholder": "Sök släpp...",
 		"noReleasesYet": "Inga utgåvor än",
+		"noResults": "Inga utgåvor matchar dina filter",
 		"addReleaseHint": "Tryck {shortcut} för att lägga till utgåvor från Bandcamp, Discogs, YouTube och mer",
+		"mobileAddHint": "Lägg till utgåvor från Bandcamp, Discogs, YouTube och mer",
+		"sortBy": "Sortera efter",
+		"selectedCount": "{count, plural, =1 {1 vald} other {{count} valda}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Ta bort utgåva?} other {Ta bort {count} utgåvor?}}",
+		"confirmDeleteMessage": "Detta kan inte ångras.",
 		"previewNotAvailable": "Förhandsvisning inte tillgänglig för denna källa",
 		"columns": {
 			"artistTitle": "Artist / Titel",
@@ -710,6 +733,9 @@
 		"emerald": "Smaragd"
 	},
 	"dates": {
+		"justNow": "Just nu",
+		"minutesAgo": "{count, plural, =1 {för 1 minut sedan} other {för {count} minuter sedan}}",
+		"hoursAgo": "{count, plural, =1 {för 1 timme sedan} other {för {count} timmar sedan}}",
 		"today": "Idag",
 		"yesterday": "Igår",
 		"daysAgo": "{count, plural, =1 {för 1 dag sedan} other {för {count} dagar sedan}}",

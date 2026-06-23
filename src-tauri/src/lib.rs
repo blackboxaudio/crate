@@ -347,6 +347,8 @@ pub fn run() {
             #[cfg(target_os = "ios")]
             commands::native_preview::native_preview_play,
             #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_upcoming,
+            #[cfg(target_os = "ios")]
             commands::native_preview::native_preview_pause,
             #[cfg(target_os = "ios")]
             commands::native_preview::native_preview_resume,

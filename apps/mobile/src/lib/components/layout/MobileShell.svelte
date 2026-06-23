@@ -2,10 +2,11 @@
 	import { onMount } from 'svelte'
 	import { fly, fade } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
-	import { activeTab } from '$lib/stores/mobileUI'
+	import { activeTab, selectMode } from '$lib/stores/mobileUI'
 	import { previewInfo } from '$shared/stores/player'
 	import Header from './Header.svelte'
 	import TabBar from './TabBar.svelte'
+	import SelectionBar from '$lib/components/discovery/SelectionBar.svelte'
 	import MobileDiscoveryView from '$lib/components/discovery/MobileDiscoveryView.svelte'
 	import PlaylistsView from '$lib/components/playlists/PlaylistsView.svelte'
 	import TagsView from '$lib/components/tags/TagsView.svelte'
@@ -71,4 +72,9 @@
 	</main>
 
 	<TabBar />
+
+	<!-- Multi-select action bar overlays the tab bar's slot while the discovery feed is in select mode. -->
+	{#if $selectMode}
+		<SelectionBar />
+	{/if}
 </div>

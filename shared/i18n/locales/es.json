@@ -20,7 +20,8 @@
 		"folder": "carpeta",
 		"playlist": "lista de reproducción",
 		"next": "Siguiente",
-		"back": "Atrás"
+		"back": "Atrás",
+		"more": "Más"
 	},
 	"nav": {
 		"library": "Biblioteca",
@@ -252,6 +253,22 @@
 		"collapse": "Contraer reproductor",
 		"seek": "Buscar"
 	},
+	"queue": {
+		"upNext": "A continuación",
+		"openQueue": "A continuación",
+		"playNext": "Reproducir siguiente",
+		"addToQueue": "Añadir a la cola",
+		"playingNext": "Reproduciéndose a continuación",
+		"addedToQueue": "Añadido a la cola",
+		"nextInQueue": "Siguiente en la cola",
+		"upNextFromContext": "A continuación",
+		"addedByYou": "Añadido por ti",
+		"removeFromQueue": "Eliminar de la cola",
+		"reorder": "Reordenar",
+		"clearQueue": "Borrar",
+		"empty": "Nada a continuación",
+		"emptyHint": "Las canciones que añadas se reproducirán a continuación"
+	},
 	"library": {
 		"searchPlaceholder": "Buscar pistas...",
 		"importTracks": "Importar pistas",
@@ -282,7 +299,13 @@
 		"releases": "lanzamientos",
 		"searchPlaceholder": "Buscar lanzamientos...",
 		"noReleasesYet": "Sin lanzamientos aún",
+		"noResults": "Ningún lanzamiento coincide con tus filtros",
 		"addReleaseHint": "Presiona {shortcut} para añadir lanzamientos de Bandcamp, Discogs, YouTube y más",
+		"mobileAddHint": "Añadir lanzamientos de Bandcamp, Discogs, YouTube y más",
+		"sortBy": "Ordenar por",
+		"selectedCount": "{count, plural, =1 {1 seleccionado} other {{count} seleccionados}}",
+		"confirmDeleteTitle": "{count, plural, =1 {¿Eliminar lanzamiento?} other {¿Eliminar {count} lanzamientos?}}",
+		"confirmDeleteMessage": "Esto no se puede deshacer.",
 		"previewNotAvailable": "Vista previa no disponible para esta fuente",
 		"columns": {
 			"artistTitle": "Artista / Título",
@@ -710,6 +733,9 @@
 		"emerald": "Esmeralda"
 	},
 	"dates": {
+		"justNow": "Hace poco",
+		"minutesAgo": "{count, plural, =1 {hace 1 minuto} other {hace {count} minutos}}",
+		"hoursAgo": "{count, plural, =1 {hace 1 hora} other {hace {count} horas}}",
 		"today": "Hoy",
 		"yesterday": "Ayer",
 		"daysAgo": "{count, plural, =1 {hace 1 día} other {hace {count} días}}",

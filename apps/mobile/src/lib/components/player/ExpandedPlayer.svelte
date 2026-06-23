@@ -10,7 +10,9 @@
 		playbackPosition,
 		playbackDuration,
 		playbackSpeed,
+		shuffleEnabled,
 	} from '$shared/stores/player'
+	import { canAdvance } from '$shared/stores/playbackQueue'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import { formatDuration } from '$shared/utils/format'
 	import { isIOS } from '$shared/utils/platform'
@@ -18,6 +20,7 @@
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Slider from '$shared/components/Slider.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
+	import UpNextSheet from './UpNextSheet.svelte'
 
 	// Full-screen preview player: large artwork over a blurred album-art wash, an interactive scrubber,
 	// prev / play-pause / next transport, a like toggle, and a tempo (±10% speed) control. Slide / scrim /
@@ -30,7 +33,9 @@
 	const loading = $derived(
 		$previewLoading != null && ($previewInfo == null || $previewLoading.releaseId === $previewInfo.releaseId)
 	)
-	const canNext = $derived($previewInfo != null && $previewInfo.trackIndex + 1 < $previewInfo.release.tracks.length)
+	// Next is available when the two-tier queue can produce another track — a user-queue item, a forward
+	// step, or more context (shuffle pick / next-or-cross-release). The model computes it for us.
+	const canNext = $derived($previewInfo != null && $canAdvance)
 
 	// Scrubbing: while the user drags the slider, show the local value and only commit on release so the
 	// live position updates don't fight the thumb.
@@ -54,11 +59,17 @@
 	let showTempo = $state(false)
 	const tempoPct = $derived(Math.round(($playbackSpeed - 1) * 1000) / 10)
 
-	// Always reopen with the tempo fader hidden: reset it whenever the player collapses. Covers every
-	// close path (drag-dismiss, programmatic collapse, the preview ending) since they all flip
-	// `$isPlayerExpanded` false. The metronome toggle re-reveals it for the duration of a session.
+	// The "Up Next" sheet, opened from the queue button in the header.
+	let showQueue = $state(false)
+
+	// Always reopen with the tempo fader hidden + queue sheet closed: reset them whenever the player
+	// collapses. Covers every close path (drag-dismiss, programmatic collapse, the preview ending) since
+	// they all flip `$isPlayerExpanded` false. The metronome / queue toggles re-reveal for the session.
 	$effect(() => {
-		if (!$isPlayerExpanded) showTempo = false
+		if (!$isPlayerExpanded) {
+			showTempo = false
+			showQueue = false
+		}
 	})
 
 	function onTempoInput(e: Event) {
@@ -187,50 +198,94 @@
 						</div>
 					</div>
 
-					<!-- Transport: prev / play / next stay centered so the play button sits at the screen center.
-					     The metronome (tempo) toggle is a right-hand accessory (absolute, so it doesn't shift
-					     play); a left-hand shuffle will balance it later. Only play stays a circle. -->
-					<div class="relative mt-4 flex items-center justify-center gap-6">
+					<!-- Transport: one justify-between row — shuffle · queue · [prev/play/next] · tempo · menu.
+					     The prev/play/next box is a single fixed item in the middle; with two equal-width
+					     accessories on each side, justify-between spaces everything evenly AND keeps that box (so
+					     the play button) dead-centered. Shuffle and the overflow menu sit flush to the edges. -->
+					<div class="mt-4 flex items-center justify-between">
 						<button
 							type="button"
-							class="flex h-12 w-12 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
-							aria-label={$translate('player.previous')}
-							onclick={() => playerStore.previousTrack()}
+							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-colors active:bg-surface-2 {$shuffleEnabled
+								? 'bg-brand-muted text-brand-primary'
+								: 'text-text-primary'}"
+							aria-label={$translate('player.shuffle')}
+							aria-pressed={$shuffleEnabled}
+							onclick={() => playerStore.toggleShuffle()}
 						>
-							<svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
-								<path d="M6 6h2v12H6zM20 6v12L9 12z" />
+							<svg
+								class="h-5 w-5"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<!-- Tabler Icons "arrows-shuffle" (MIT) -->
+								<path d="M18 4l3 3l-3 3" />
+								<path d="M18 20l3 -3l-3 -3" />
+								<path d="M3 7h3a5 5 0 0 1 5 5a5 5 0 0 0 5 5h4" />
+								<path d="M21 7h-4a4.978 4.978 0 0 0 -3 1m-4 8a4.984 4.984 0 0 1 -3 1h-4" />
 							</svg>
 						</button>
 						<button
 							type="button"
-							class="flex h-16 w-16 items-center justify-center rounded-full bg-brand-primary text-white active:opacity-80"
-							aria-label={$isPlaying ? $translate('player.pause') : $translate('player.play')}
-							onclick={() => playerStore.togglePlayPause()}
+							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-text-primary transition-colors active:bg-surface-2"
+							aria-label={$translate('queue.openQueue')}
+							onclick={() => (showQueue = true)}
 						>
-							{#if loading}
-								<Spinner class="h-8 w-8" />
-							{:else if $isPlaying}
-								<svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"
-									><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg
-								>
-							{:else}
-								<svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
-							{/if}
-						</button>
-						<button
-							type="button"
-							class="flex h-12 w-12 items-center justify-center rounded-md text-text-primary active:bg-surface-2 disabled:opacity-30"
-							aria-label={$translate('player.next')}
-							disabled={!canNext}
-							onclick={() => playerStore.nextTrack()}
-						>
-							<svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
-								<path d="M16 6h2v12h-2zM4 6l11 6L4 18z" />
+							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<!-- Queue: list lines + a play triangle. -->
+								<path d="M4 6h16M4 12h16M4 18h9" stroke-linecap="round" />
+								<path d="M15 16.5l5 2.5-5 2.5z" fill="currentColor" stroke="none" />
 							</svg>
 						</button>
+
+						<!-- Main controls: their own box — previous / play / next, evenly spaced around play. Fixed
+						     size + width (flex-shrink-0); only play is a circle. -->
+						<div class="flex flex-shrink-0 items-center gap-6">
+							<button
+								type="button"
+								class="flex h-12 w-12 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
+								aria-label={$translate('player.previous')}
+								onclick={() => playerStore.previousTrack()}
+							>
+								<svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M6 6h2v12H6zM20 6v12L9 12z" />
+								</svg>
+							</button>
+							<button
+								type="button"
+								class="flex h-16 w-16 items-center justify-center rounded-full bg-brand-primary text-white active:opacity-80"
+								aria-label={$isPlaying ? $translate('player.pause') : $translate('player.play')}
+								onclick={() => playerStore.togglePlayPause()}
+							>
+								{#if loading}
+									<Spinner class="h-8 w-8" />
+								{:else if $isPlaying}
+									<svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"
+										><path d="M6 5h4v14H6zM14 5h4v14h-4z" /></svg
+									>
+								{:else}
+									<svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+								{/if}
+							</button>
+							<button
+								type="button"
+								class="flex h-12 w-12 items-center justify-center rounded-md text-text-primary active:bg-surface-2 disabled:opacity-30"
+								aria-label={$translate('player.next')}
+								disabled={!canNext}
+								onclick={() => playerStore.nextTrack()}
+							>
+								<svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor">
+									<path d="M16 6h2v12h-2zM4 6l11 6L4 18z" />
+								</svg>
+							</button>
+						</div>
+
 						<button
 							type="button"
-							class="absolute top-1/2 right-0 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md transition-colors active:bg-surface-2 {showTempo
+							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-colors active:bg-surface-2 {showTempo
 								? 'bg-brand-muted text-brand-primary'
 								: 'text-text-primary'}"
 							aria-label={$translate('player.tempo')}
@@ -251,6 +306,19 @@
 									d="M14.153 8.188l-.72 -3.236a2.493 2.493 0 0 0 -4.867 0l-3.025 13.614a2 2 0 0 0 1.952 2.434h7.014a2 2 0 0 0 1.952 -2.434l-.524 -2.357m-4.935 1.791l9 -13"
 								/>
 								<path d="M19 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
+							</svg>
+						</button>
+						<!-- Overflow menu (mock placeholder — wired up later). Flush to the right edge, mirroring
+						     shuffle on the left so the row stays symmetric. -->
+						<button
+							type="button"
+							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-text-primary transition-colors active:bg-surface-2"
+							aria-label={$translate('common.more')}
+						>
+							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+								<circle cx="12" cy="5" r="1.6" />
+								<circle cx="12" cy="12" r="1.6" />
+								<circle cx="12" cy="19" r="1.6" />
 							</svg>
 						</button>
 					</div>
@@ -305,3 +373,5 @@
 		{/if}
 	{/snippet}
 </Drawer>
+
+<UpNextSheet open={showQueue} onClose={() => (showQueue = false)} />

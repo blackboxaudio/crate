@@ -20,7 +20,8 @@
 		"folder": "フォルダ",
 		"playlist": "プレイリスト",
 		"next": "次へ",
-		"back": "戻る"
+		"back": "戻る",
+		"more": "その他"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -252,6 +253,22 @@
 		"collapse": "プレイヤーを折りたたむ",
 		"seek": "シーク"
 	},
+	"queue": {
+		"upNext": "次に再生",
+		"openQueue": "次に再生",
+		"playNext": "次に再生",
+		"addToQueue": "キューに追加",
+		"playingNext": "次に再生中",
+		"addedToQueue": "キューに追加されました",
+		"nextInQueue": "キューの次",
+		"upNextFromContext": "次に再生",
+		"addedByYou": "あなたが追加",
+		"removeFromQueue": "キューから削除",
+		"reorder": "並べ替え",
+		"clearQueue": "クリア",
+		"empty": "次はありません",
+		"emptyHint": "追加した曲が次に再生されます"
+	},
 	"library": {
 		"searchPlaceholder": "トラックを検索...",
 		"importTracks": "トラックをインポート",
@@ -282,7 +299,13 @@
 		"releases": "リリース",
 		"searchPlaceholder": "リリースを検索...",
 		"noReleasesYet": "まだリリースがありません",
+		"noResults": "フィルターに合致するリリースがありません",
 		"addReleaseHint": "{shortcut} を押して Bandcamp、Discogs、YouTube などからリリースを追加してください",
+		"mobileAddHint": "Bandcamp、Discogs、YouTube などからリリースを追加してください",
+		"sortBy": "並べ替え",
+		"selectedCount": "{count, plural, =1 {1個選択} other {{count}個選択}}",
+		"confirmDeleteTitle": "{count, plural, =1 {リリースを削除しますか?} other {{count}個のリリースを削除しますか?}}",
+		"confirmDeleteMessage": "この操作は元に戻せません。",
 		"previewNotAvailable": "このソースではプレビューを利用できません",
 		"columns": {
 			"artistTitle": "アーティスト / タイトル",
@@ -711,6 +734,9 @@
 		"emerald": "エメラルド"
 	},
 	"dates": {
+		"justNow": "今しがた",
+		"minutesAgo": "{count, plural, =1 {1分前} other {{count}分前}}",
+		"hoursAgo": "{count, plural, =1 {1時間前} other {{count}時間前}}",
 		"today": "今日",
 		"yesterday": "昨日",
 		"daysAgo": "{count, plural, =1 {1日前} other {{count}日前}}",

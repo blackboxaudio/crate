@@ -13,10 +13,7 @@
 	const categories = $derived($tagsStore.categories)
 </script>
 
-<div class="h-full overflow-y-auto" style="padding-bottom: var(--mini-player-inset, 0px)">
-	<h2 class="px-4 pt-4 pb-1 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
-		{$translate('nav.tags')}
-	</h2>
+<div class="h-full overflow-y-auto pt-2" style="padding-bottom: var(--mini-player-inset, 0px)">
 	{#if categories.length === 0}
 		<div class="px-4 py-6 text-sm text-text-secondary">{$translate('tags.noTags')}</div>
 	{:else}

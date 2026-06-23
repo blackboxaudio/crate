@@ -20,7 +20,8 @@
 		"folder": "folder",
 		"playlist": "playlist",
 		"next": "Următorul",
-		"back": "Înapoi"
+		"back": "Înapoi",
+		"more": "Mai mult"
 	},
 	"nav": {
 		"library": "Bibliotecă",
@@ -252,6 +253,22 @@
 		"collapse": "Restrângeți playerul",
 		"seek": "Cauta"
 	},
+	"queue": {
+		"upNext": "Următorul",
+		"openQueue": "Următorul",
+		"playNext": "Redează următorul",
+		"addToQueue": "Adaugă la coadă",
+		"playingNext": "Redare următorul",
+		"addedToQueue": "Adăugat la coadă",
+		"nextInQueue": "Următorul în coadă",
+		"upNextFromContext": "Următorul",
+		"addedByYou": "Adăugat de tine",
+		"removeFromQueue": "Elimină din coadă",
+		"reorder": "Reordonează",
+		"clearQueue": "Șterge",
+		"empty": "Nimic mai departe",
+		"emptyHint": "Melodiile pe care le adaugi vor fi redate mai departe"
+	},
 	"library": {
 		"searchPlaceholder": "Caută melodii...",
 		"importTracks": "Importă Melodii",
@@ -282,7 +299,13 @@
 		"releases": "lansări",
 		"searchPlaceholder": "Caută lansări...",
 		"noReleasesYet": "Nicio lansare deocamdată",
+		"noResults": "Nicio lansare nu corespunde filtrelor dvs.",
 		"addReleaseHint": "Apăsați {shortcut} pentru a adăuga lansări de pe Bandcamp, Discogs, YouTube și altele",
+		"mobileAddHint": "Adaugă lansări de pe Bandcamp, Discogs, YouTube și altele",
+		"sortBy": "Sortează după",
+		"selectedCount": "{count, plural, =1 {1 selectat} other {{count} selectate}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Șterge lansare?} other {Șterge {count} lansări?}}",
+		"confirmDeleteMessage": "Aceasta nu poate fi anulată.",
 		"previewNotAvailable": "Previzualizare nu este disponibilă pentru această sursă",
 		"columns": {
 			"artistTitle": "Artist / Titlu",
@@ -710,6 +733,9 @@
 		"emerald": "Smarald"
 	},
 	"dates": {
+		"justNow": "Chiar acum",
+		"minutesAgo": "{count, plural, =1 {acum 1 minut} other {acum {count} minute}}",
+		"hoursAgo": "{count, plural, =1 {acum 1 oră} other {acum {count} ore}}",
 		"today": "Azi",
 		"yesterday": "Ieri",
 		"daysAgo": "{count, plural, =1 {acum 1 zi} other {acum {count} zile}}",

@@ -29,6 +29,13 @@ pub struct NativeTrackEntry {
     pub album: String,
     pub duration_ms: u64,
     pub artwork_url: Option<String>,
+    /// Optional explicit MIME type for the stream. When set, the engine builds the `AVPlayerItem`
+    /// via an `AVURLAsset` with `AVURLAssetOverrideMIMETypeKey` so AVFoundation doesn't have to infer
+    /// the container from the extensionless proxy URL — needed for YouTube/Discogs (`audio/mp4`),
+    /// where inference otherwise fails silently. `None` keeps the plain URL initializer (Bandcamp/
+    /// SoundCloud are unambiguous `audio/mpeg`).
+    #[serde(default)]
+    pub mime_type: Option<String>,
 }
 
 /// Send+Sync Tauri-state handle to the native playback engine. All real work happens on the main
@@ -52,6 +59,12 @@ impl NativePreviewEngine {
                 engine.load(tracks, start_index);
             });
         });
+    }
+
+    /// Replace the upcoming tail in place (slide the window / apply a queue mutation) without disturbing
+    /// the currently-playing item.
+    pub fn set_upcoming(&self, tracks: Vec<NativeTrackEntry>) {
+        run_on_main(&self.app, move || with_engine_mut(|e| e.set_upcoming(tracks)));
     }
 
     pub fn pause(&self) {
@@ -136,4 +149,17 @@ pub(super) fn emit_error(app: &AppHandle, message: String) {
         message: String,
     }
     let _ = app.emit("native-preview-error", Payload { message });
+}
+
+/// Temporary diagnostic channel (#54 debugging): log to the Rust logger AND push to the frontend so
+/// the message shows up in the webview console / a debug toast — the iOS device's `yarn dev:ios`
+/// terminal doesn't surface env_logger output, so this is how we trace the engine on-device.
+pub(super) fn emit_debug(app: &AppHandle, message: String) {
+    log::info!("native preview: {message}");
+    #[derive(Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Payload {
+        message: String,
+    }
+    let _ = app.emit("native-preview-debug", Payload { message });
 }

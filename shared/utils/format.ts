@@ -195,9 +195,16 @@ export function formatRelativeDate(dateStr: string, t: TranslateFn): string {
 	const date = new Date(dateStr)
 	const now = new Date()
 	const diffMs = now.getTime() - date.getTime()
-	const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24))
+	const diffMin = Math.floor(diffMs / 60_000)
 
-	if (diffDays === 0) return t('dates.today')
+	// Sub-day granularity first (just now → minutes → hours), then fall through to calendar spans. This
+	// keeps recency-sensitive surfaces (e.g. the cloud-sync "last synced" indicator, which polls every few
+	// seconds) honest instead of collapsing everything under 24h to a coarse "Today".
+	if (diffMin < 1) return t('dates.justNow')
+	if (diffMin < 60) return t('dates.minutesAgo', { values: { count: diffMin } })
+	const diffHr = Math.floor(diffMin / 60)
+	if (diffHr < 24) return t('dates.hoursAgo', { values: { count: diffHr } })
+	const diffDays = Math.floor(diffHr / 24)
 	if (diffDays === 1) return t('dates.yesterday')
 	if (diffDays < 7) return t('dates.daysAgo', { values: { count: diffDays } })
 	const weeks = Math.floor(diffDays / 7)

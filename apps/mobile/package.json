@@ -14,6 +14,7 @@
 	"dependencies": {
 		"@tanstack/virtual-core": "3.13.21",
 		"@tauri-apps/api": "2.11.0",
+		"@tauri-apps/plugin-dialog": "2.7.1",
 		"@tauri-apps/plugin-haptics": "^2.0.0",
 		"@tauri-apps/plugin-opener": "2.5.3",
 		"tauri-plugin-web-auth-api": "1.0.0"

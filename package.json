@@ -18,7 +18,7 @@
 		"dev:android": "node scripts/write-mobile-icons.mjs --platform android --channel dev && cross-env CRATE_ENV=development TAURI_DEV_HOST=$(ipconfig getifaddr en0) tauri android dev --features mobile",
 		"build:ios": "yarn ios:plist:write && node scripts/write-mobile-icons.mjs --platform ios --channel prod && cross-env CRATE_ENV=production tauri ios build --config src-tauri/tauri.prod.conf.json --features mobile",
 		"build:android": "node scripts/write-mobile-icons.mjs --platform android --channel prod && cross-env CRATE_ENV=production tauri android build --features mobile",
-		"build:staging:ios": "yarn ios:plist:write && node scripts/write-mobile-icons.mjs --platform ios --channel staging && cross-env CRATE_ENV=staging tauri ios build --config src-tauri/tauri.staging.conf.json --features mobile",
+		"build:staging:ios": "yarn ios:plist:write && node scripts/write-mobile-icons.mjs --platform ios --channel staging && cross-env CRATE_ENV=staging tauri ios build --config src-tauri/tauri.staging.conf.json --features mobile && node scripts/install-ios-device.mjs --channel staging",
 		"cloud:config:write": "node scripts/write-cloud-config.mjs",
 		"ios:plist:write": "node scripts/write-ios-plist.mjs",
 		"mobile:icons:write": "node scripts/write-mobile-icons.mjs",

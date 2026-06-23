@@ -4,13 +4,20 @@
 //! objc2 reconciliation surface: method names + the `Cargo.toml` framework `features` are validated on
 //! device with `cargo check --target aarch64-apple-ios` (de-risking step #1).
 
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::time::Duration;
+
 use block2::RcBlock;
 use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, Bool};
-use objc2::MainThreadMarker;
-use objc2_av_foundation::{AVAudioTimePitchAlgorithmVarispeed, AVPlayer, AVPlayerItem};
+use objc2::{msg_send, MainThreadMarker};
+use objc2_av_foundation::{
+    AVAudioTimePitchAlgorithmVarispeed, AVPlayer, AVPlayerItem, AVPlayerItemStatus, AVURLAsset,
+    AVURLAssetOverrideMIMETypeKey,
+};
 use objc2_core_media::CMTime;
-use objc2_foundation::{NSString, NSURL};
+use objc2_foundation::{NSDictionary, NSError, NSMutableDictionary, NSString, NSURL};
 use tauri::AppHandle;
 
 use super::engine::{self, NativeTrackEntry, StatePayload};
@@ -32,6 +39,9 @@ pub struct PlaybackEngineInner {
     mtm: MainThreadMarker,
     entries: Vec<NativeTrackEntry>,
     index: usize,
+    // Bumped on every `play_index`. The load watchdog captures the value at spawn time and bails if
+    // it no longer matches — so a watchdog for a superseded track can't report a stale failure.
+    epoch: u64,
     rate: f32,
     playing: bool,
     // True from a programmatic `seek` until its completion handler reports the seek landed. AVPlayer's
@@ -62,6 +72,7 @@ impl PlaybackEngineInner {
             mtm,
             entries: Vec::new(),
             index: 0,
+            epoch: 0,
             rate: 1.0,
             playing: false,
             seeking: false,
@@ -99,14 +110,35 @@ impl PlaybackEngineInner {
         self.play_index(i);
     }
 
+    /// Replace the UPCOMING tail (everything after the current index) without touching the
+    /// currently-playing `AVPlayerItem`, `self.index`, or the lock-screen Now Playing card. The current
+    /// track keeps playing and native auto-advance (`on_item_ended` → `advance(1)`, which reads
+    /// `self.entries` live) rolls straight into the new tail. The already-played front (`entries[0..=index]`)
+    /// is kept so the engine's track-changed indices stay valid and the lock-screen Previous can still step
+    /// back into it. This is what lets the JS sliding window apply queue mutations / refill seamlessly,
+    /// including while the screen is locked. No-op until something is loaded (the next `load` sets the window).
+    pub fn set_upcoming(&mut self, upcoming: Vec<NativeTrackEntry>) {
+        if self.entries.is_empty() {
+            return;
+        }
+        let keep = (self.index + 1).min(self.entries.len());
+        self.entries.truncate(keep);
+        self.entries.extend(upcoming);
+    }
+
     fn play_index(&mut self, i: usize) {
         let Some(entry) = self.entries.get(i).cloned() else {
             return;
         };
         self.index = i;
+        self.epoch = self.epoch.wrapping_add(1);
         // New item ⇒ any in-flight seek on the previous one is moot; clear the guard so its late
         // completion handler (or a stale flag) can't suppress tracking on the fresh track.
         self.seeking = false;
+        engine::emit_debug(
+            &self.app,
+            format!("load track {i} (mime={:?}): {}", entry.mime_type, entry.url),
+        );
         // SAFETY: build an AVPlayerItem from the (already-resolved) proxy URL and make it current.
         unsafe {
             let url_str = NSString::from_str(&entry.url);
@@ -114,7 +146,22 @@ impl PlaybackEngineInner {
                 engine::emit_error(&self.app, format!("invalid stream url: {}", entry.url));
                 return;
             };
-            let item = AVPlayerItem::playerItemWithURL(&url, self.mtm);
+            // Force the container type when the source provides one. The proxy URL is extensionless
+            // (`…/{release}/{position}`); for YouTube/Discogs (`audio/mp4`) AVFoundation can't infer
+            // the format from the URL and silently fails to load, so we hand it the MIME type via
+            // `AVURLAssetOverrideMIMETypeKey`, which makes it ignore the URL/extension entirely.
+            let item = if let Some(mime) = entry.mime_type.as_deref() {
+                let opts: Retained<NSMutableDictionary<NSString, AnyObject>> =
+                    NSMutableDictionary::new();
+                let mime_val = NSString::from_str(mime);
+                let _: () =
+                    msg_send![&*opts, setObject: &*mime_val, forKey: AVURLAssetOverrideMIMETypeKey];
+                let opts_ref: &NSDictionary<NSString, AnyObject> = &opts;
+                let asset = AVURLAsset::URLAssetWithURL_options(&url, Some(opts_ref));
+                AVPlayerItem::playerItemWithAsset(&asset, self.mtm)
+            } else {
+                AVPlayerItem::playerItemWithURL(&url, self.mtm)
+            };
             // Vinyl-style tempo: pitch tracks tempo (no "master tempo" / key-lock), matching the HTML5
             // preview player (`preservesPitch = false`) and the desktop engine. AVPlayer otherwise
             // defaults to a pitch-preserving algorithm (`AVAudioTimePitchAlgorithmTimeDomain` on
@@ -137,6 +184,58 @@ impl PlaybackEngineInner {
         now_playing::update(&self.app, &entry, 0.0, self.rate);
         engine::emit_track_changed(&self.app, self.index);
         self.emit_current_state();
+        // AVPlayer load failures are otherwise silent — the periodic time observer doesn't tick while
+        // an item is stuck loading, so a stream AVFoundation can't play would sit in a fake "playing"
+        // state forever. Watch this item's status until it resolves and surface any failure.
+        spawn_load_watchdog(self.app.clone(), self.epoch);
+    }
+
+    /// Poll the current item's load status (driven by [`spawn_load_watchdog`], off the player's
+    /// timeline). Returns `true` once the outcome is decided so the watchdog can stop: the track was
+    /// superseded, there's no current item, it became ready, or it FAILED — in which case the
+    /// AVFoundation error is surfaced via [`Self::fail`].
+    fn poll_load_status(&mut self, epoch: u64) -> bool {
+        if self.epoch != epoch {
+            return true; // a newer track replaced this one; its own watchdog owns it
+        }
+        // SAFETY: read the current item and its status/error (AVPlayerItem FFI; on the main thread).
+        let Some(item) = (unsafe { self.player.currentItem() }) else {
+            return true;
+        };
+        let status = unsafe { item.status() };
+        if status == AVPlayerItemStatus::Failed {
+            let message = unsafe { item.error() }
+                .map(|e| nserror_message(&e))
+                .unwrap_or_else(|| "AVPlayer reported a failed item with no error".to_string());
+            engine::emit_debug(&self.app, format!("status=Failed on track {}", self.index));
+            self.fail(message);
+            return true;
+        }
+        if status == AVPlayerItemStatus::ReadyToPlay {
+            engine::emit_debug(&self.app, format!("status=ReadyToPlay on track {}", self.index));
+            return true;
+        }
+        false
+    }
+
+    /// Surface a playback failure: log it (→ `yarn dev:ios` terminal via env_logger/stderr), tell the
+    /// frontend (→ error toast), and drop out of the fake "playing" state. Shared by the load
+    /// watchdog and the `FailedToPlayToEndTime` notification.
+    pub(super) fn fail(&mut self, message: String) {
+        log::error!(
+            "native preview: playback failed on track {}: {message}",
+            self.index
+        );
+        self.playing = false;
+        engine::emit_error(&self.app, message);
+        engine::emit_state(
+            &self.app,
+            StatePayload {
+                is_playing: false,
+                position_ms: 0,
+                duration_ms: 0,
+            },
+        );
     }
 
     pub fn pause(&mut self) {
@@ -216,6 +315,10 @@ impl PlaybackEngineInner {
             return;
         }
         if next as usize >= self.entries.len() {
+            engine::emit_debug(
+                &self.app,
+                format!("advance past last track ({}/{}) → stop + ended", next, self.entries.len()),
+            );
             self.stop();
             engine::emit_ended(&self.app);
             return;
@@ -234,6 +337,10 @@ impl PlaybackEngineInner {
 
     /// AVPlayerItemDidPlayToEndTime → advance to the next track (or end).
     pub fn on_item_ended(&mut self) {
+        engine::emit_debug(
+            &self.app,
+            format!("AVPlayerItemDidPlayToEndTime fired on track {}", self.index),
+        );
         self.advance(1);
     }
 
@@ -327,4 +434,47 @@ impl Drop for PlaybackEngineInner {
             unsafe { self.player.removeTimeObserver(&token) };
         }
     }
+}
+
+/// Format an `NSError` for logging + the frontend: localized description plus the domain/code that
+/// pin down the cause (e.g. `[NSURLErrorDomain -1100]` for a 404/unreachable stream, or an
+/// `AVFoundationErrorDomain` code for an undecodable container).
+fn nserror_message(err: &NSError) -> String {
+    let desc = err.localizedDescription();
+    let domain = err.domain();
+    let code = err.code();
+    format!("{desc} [{domain} {code}]")
+}
+
+/// Watch a freshly-loaded item until its load resolves. The periodic time observer only fires while
+/// the player's timebase advances, so an item that never becomes playable would never be noticed;
+/// this polls `AVPlayerItem.status` on the main thread a few times a second instead. It self-stops
+/// once the load is decided (ready / failed / superseded) and after a bounded window regardless.
+fn spawn_load_watchdog(app: AppHandle, epoch: u64) {
+    let resolved = Arc::new(AtomicBool::new(false));
+    tauri::async_runtime::spawn(async move {
+        // ~8s of coverage (20 × 400ms): enough for the proxy's first full download + the AVPlayer
+        // load to settle, short enough not to linger. Stops early the moment the load resolves.
+        for _ in 0..20 {
+            if resolved.load(Ordering::Relaxed) {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(400)).await;
+            let resolved_cb = resolved.clone();
+            let _ = app.run_on_main_thread(move || {
+                engine::with_engine_mut(|e| {
+                    if e.poll_load_status(epoch) {
+                        resolved_cb.store(true, Ordering::Relaxed);
+                    }
+                });
+            });
+        }
+        if !resolved.load(Ordering::Relaxed) {
+            engine::emit_debug(
+                &app,
+                "watchdog timed out: item never became ready or failed (still loading/Unknown after ~8s)"
+                    .to_string(),
+            );
+        }
+    });
 }

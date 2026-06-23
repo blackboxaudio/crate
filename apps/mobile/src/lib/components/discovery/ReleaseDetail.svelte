@@ -1,14 +1,18 @@
 <script lang="ts">
 	import { openUrl } from '@tauri-apps/plugin-opener'
+	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease } from '$shared/types'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import { playerStore, previewInfo, previewLoading, isPlaying } from '$shared/stores/player'
+	import * as playbackQueue from '$shared/stores/playbackQueue'
+	import { toastStore } from '$shared/stores/toast'
 	import { formatDate, formatDurationCompact } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
-	import { mobileUIStore } from '$lib/stores/mobileUI'
+	import { mobileUIStore, mobileDisplayedReleases } from '$lib/stores/mobileUI'
 	import { lightTap } from '$lib/utils/haptics'
 	import Drawer from '$lib/components/common/Drawer.svelte'
+	import MobileModal from '$lib/components/common/MobileModal.svelte'
 	import MarqueeText from '$lib/components/common/MarqueeText.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import EqualizerBars from '$lib/components/common/EqualizerBars.svelte'
@@ -44,6 +48,28 @@
 
 	let tagPickerOpen = $state(false)
 
+	// Per-track queue actions: the trailing ⋯ on a row opens a small sheet offering Play next / Add to
+	// queue for that track. Both feed the two-tier queue (and, on iOS, the native window) live.
+	let actionTrackIndex = $state<number | null>(null)
+	const actionTrack = $derived(actionTrackIndex != null ? release.tracks[actionTrackIndex] : null)
+
+	function openTrackActions(index: number) {
+		void lightTap()
+		actionTrackIndex = index
+	}
+	function queuePlayNext() {
+		if (actionTrackIndex == null) return
+		playbackQueue.playNext(release, actionTrackIndex)
+		toastStore.success(get(translate)('queue.playingNext'))
+		actionTrackIndex = null
+	}
+	function queueAddLast() {
+		if (actionTrackIndex == null) return
+		playbackQueue.addToQueue(release, actionTrackIndex)
+		toastStore.success(get(translate)('queue.addedToQueue'))
+		actionTrackIndex = null
+	}
+
 	const isCurrentRelease = $derived($previewInfo?.releaseId === release.id)
 	const platformName = $derived(getReleasePlatformName(release.source_type))
 
@@ -76,7 +102,9 @@
 	function playTrack(index: number) {
 		void lightTap()
 		const wasIdle = $previewInfo == null
-		void playerStore.playPreview(release, index)
+		// Hand the player the whole feed list (what's on screen behind this detail) as the playback queue,
+		// so next/previous/auto-advance and shuffle span every release — not just this one's tracks.
+		void playerStore.playPreview(release, index, get(mobileDisplayedReleases))
 		if (wasIdle) mobileUIStore.expandPlayer()
 	}
 
@@ -184,7 +212,7 @@
 						<div class="relative rounded {isActive ? 'bg-brand-muted' : ''}">
 							<button
 								type="button"
-								class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-12 pl-2 text-left active:bg-surface-2"
+								class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-20 pl-2 text-left active:bg-surface-2"
 								aria-label={$translate('discovery.playPreview')}
 								onclick={() => playTrack(index)}
 							>
@@ -203,6 +231,18 @@
 										{formatDurationCompact(track.duration_ms)}
 									</span>
 								{/if}
+							</button>
+							<button
+								type="button"
+								class="absolute inset-y-0 right-10 flex w-10 items-center justify-center text-text-tertiary active:bg-surface-2"
+								aria-label={$translate('queue.addToQueue')}
+								onclick={() => openTrackActions(index)}
+							>
+								<svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+									<circle cx="5" cy="12" r="1.6" />
+									<circle cx="12" cy="12" r="1.6" />
+									<circle cx="19" cy="12" r="1.6" />
+								</svg>
 							</button>
 							<button
 								type="button"
@@ -272,4 +312,41 @@
 	{/snippet}
 </Drawer>
 
-<MobileTagPicker open={tagPickerOpen} {release} onClose={() => (tagPickerOpen = false)} />
+<MobileTagPicker open={tagPickerOpen} releaseIds={[release.id]} onClose={() => (tagPickerOpen = false)} />
+
+<!-- Per-track queue actions (opened by a row's ⋯ button). -->
+<MobileModal
+	open={actionTrackIndex != null}
+	onClose={() => (actionTrackIndex = null)}
+	title={actionTrack?.name ?? $translate('queue.addToQueue')}
+>
+	<div class="flex flex-col">
+		<button
+			type="button"
+			class="flex items-center gap-3 rounded-md px-2 py-3 text-left text-sm text-text-primary active:bg-surface-2"
+			onclick={queuePlayNext}
+		>
+			<svg class="h-5 w-5 flex-shrink-0 text-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+				<path d="M5 5l11 7-11 7z" />
+				<rect x="17.5" y="5" width="2" height="14" rx="1" />
+			</svg>
+			{$translate('queue.playNext')}
+		</button>
+		<button
+			type="button"
+			class="flex items-center gap-3 rounded-md px-2 py-3 text-left text-sm text-text-primary active:bg-surface-2"
+			onclick={queueAddLast}
+		>
+			<svg
+				class="h-5 w-5 flex-shrink-0 text-text-secondary"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<path d="M4 6h11M4 12h11M4 18h7M19 14v6M16 17h6" stroke-linecap="round" />
+			</svg>
+			{$translate('queue.addToQueue')}
+		</button>
+	</div>
+</MobileModal>

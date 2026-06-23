@@ -1,4 +1,6 @@
 import { writable, derived } from 'svelte/store'
+import { sortedReleases } from '$shared/stores/discovery'
+import type { DiscoveryRelease, TagFilterMode } from '$shared/types'
 
 /** The app's primary navigation destinations, surfaced as bottom tabs. */
 export type MobileTab = 'discovery' | 'playlists' | 'tags' | 'settings'
@@ -29,6 +31,22 @@ interface MobileUIState {
 	 * long scroll through the releases.
 	 */
 	discoveryScrollTop: number
+	/**
+	 * Active tag-filter IDs for the discovery feed. Filtering is client-side (AND/OR over the already
+	 * loaded set) — unlike desktop, which reloads from the DB — so it stays instant and never resets the
+	 * feed's scroll position. Held here (not the shared `uiStore`) so it's self-contained to mobile.
+	 */
+	tagFilterIds: string[]
+	/** Whether the tag filter requires ALL selected tags (`and`) or ANY (`or`). */
+	tagFilterMode: TagFilterMode
+	/** Whether the feed is in multi-select mode (entered by long-pressing a release). */
+	selectMode: boolean
+	/** Releases selected while in multi-select mode (batch delete / batch tag). */
+	selectedReleaseIds: Set<string>
+	/** Whether the add-release sheet is open. The sheet is a placeholder this pass; #56 fills it in. */
+	addReleaseOpen: boolean
+	/** The one release row whose swipe-to-delete action is revealed — opening another closes it. */
+	openRowId: string | null
 }
 
 const initialState: MobileUIState = {
@@ -38,6 +56,12 @@ const initialState: MobileUIState = {
 	playerExpanded: false,
 	scrollTargetReleaseId: null,
 	discoveryScrollTop: 0,
+	tagFilterIds: [],
+	tagFilterMode: 'or',
+	selectMode: false,
+	selectedReleaseIds: new Set(),
+	addReleaseOpen: false,
+	openRowId: null,
 }
 
 function createMobileUIStore() {
@@ -50,9 +74,10 @@ function createMobileUIStore() {
 		setTab(tab: MobileTab) {
 			update((s) => (s.activeTab === tab ? s : { ...s, activeTab: tab }))
 		},
-		/** Push the release detail screen (a full-screen overlay layered above the active tab). */
+		/** Push the release detail screen (a full-screen overlay layered above the active tab). Closes any
+		 *  swipe-open delete row so it isn't left revealed when the user returns to the feed. */
 		openDetail(releaseId: string) {
-			update((s) => ({ ...s, detailReleaseId: releaseId, detailCovering: true }))
+			update((s) => ({ ...s, detailReleaseId: releaseId, detailCovering: true, openRowId: null }))
 		},
 		/** Begin closing the detail screen: drop the covering flag so the mini-player rises as it slides out,
 		 *  while leaving `detailReleaseId` set so the drawer stays mounted through its slide-out animation. */
@@ -94,6 +119,61 @@ function createMobileUIStore() {
 		setDiscoveryScrollTop(top: number) {
 			update((s) => (s.discoveryScrollTop === top ? s : { ...s, discoveryScrollTop: top }))
 		},
+
+		// --- Tag filtering (client-side over the loaded feed) ---------------------------------------
+		/** Add a tag to the feed filter, or remove it if already active. */
+		toggleTagFilter(id: string) {
+			update((s) => ({
+				...s,
+				tagFilterIds: s.tagFilterIds.includes(id)
+					? s.tagFilterIds.filter((tid) => tid !== id)
+					: [...s.tagFilterIds, id],
+			}))
+		},
+		/** Flip the filter between AND (all selected tags) and OR (any). */
+		toggleTagFilterMode() {
+			update((s) => ({ ...s, tagFilterMode: s.tagFilterMode === 'or' ? 'and' : 'or' }))
+		},
+		/** Clear every active tag filter. */
+		clearTagFilters() {
+			update((s) => (s.tagFilterIds.length === 0 ? s : { ...s, tagFilterIds: [] }))
+		},
+
+		// --- Multi-select -------------------------------------------------------------------------
+		/** Enter multi-select mode, seeding the selection with the long-pressed release (one update,
+		 *  so the seed row is selected immediately with no flash). Closes any open swipe row. */
+		enterSelectMode(seedId: string) {
+			update((s) => ({ ...s, selectMode: true, selectedReleaseIds: new Set([seedId]), openRowId: null }))
+		},
+		/** Toggle a release's membership in the multi-select set. */
+		toggleReleaseSelected(id: string) {
+			update((s) => {
+				const next = new Set(s.selectedReleaseIds)
+				if (next.has(id)) next.delete(id)
+				else next.add(id)
+				return { ...s, selectedReleaseIds: next }
+			})
+		},
+		/** Leave multi-select mode and drop the selection. */
+		exitSelectMode() {
+			update((s) => ({ ...s, selectMode: false, selectedReleaseIds: new Set() }))
+		},
+
+		// --- Add release (entry point only; the functional modal is issue #56) ----------------------
+		openAddRelease() {
+			update((s) => ({ ...s, addReleaseOpen: true }))
+		},
+		closeAddRelease() {
+			update((s) => ({ ...s, addReleaseOpen: false }))
+		},
+
+		// --- Swipe-to-delete single-open invariant --------------------------------------------------
+		/** Record which row's delete action is revealed; opening one row closes any other. Pass null to
+		 *  close the open row (e.g. on scroll). */
+		setOpenRow(id: string | null) {
+			update((s) => (s.openRowId === id ? s : { ...s, openRowId: id }))
+		},
+
 		reset() {
 			set(initialState)
 		},
@@ -107,3 +187,29 @@ export const detailReleaseId = derived(mobileUIStore, ($s) => $s.detailReleaseId
 export const detailCovering = derived(mobileUIStore, ($s) => $s.detailCovering)
 export const isPlayerExpanded = derived(mobileUIStore, ($s) => $s.playerExpanded)
 export const scrollTargetReleaseId = derived(mobileUIStore, ($s) => $s.scrollTargetReleaseId)
+export const tagFilterIds = derived(mobileUIStore, ($s) => $s.tagFilterIds)
+export const tagFilterMode = derived(mobileUIStore, ($s) => $s.tagFilterMode)
+
+/** Client-side tag filter over the loaded feed (AND = all selected tags, OR = any). */
+function applyTagFilter(list: DiscoveryRelease[], ids: string[], mode: TagFilterMode): DiscoveryRelease[] {
+	if (ids.length === 0) return list
+	const set = new Set(ids)
+	return mode === 'and'
+		? list.filter((r) => ids.every((id) => r.tags.some((t) => t.id === id)))
+		: list.filter((r) => r.tags.some((t) => set.has(t.id)))
+}
+
+/**
+ * The discovery feed's displayed list: the shared `sortedReleases` (search + liked/new + sort) with the
+ * mobile-only tag filter applied. Single source of truth for both the rendered feed and the playback
+ * queue captured when a preview starts — so "play / shuffle the whole list" spans exactly what's on screen.
+ */
+export const mobileDisplayedReleases = derived(
+	[sortedReleases, tagFilterIds, tagFilterMode],
+	([$sorted, $ids, $mode]) => applyTagFilter($sorted, $ids, $mode)
+)
+export const selectMode = derived(mobileUIStore, ($s) => $s.selectMode)
+export const selectedReleaseIds = derived(mobileUIStore, ($s) => $s.selectedReleaseIds)
+export const selectedReleaseCount = derived(mobileUIStore, ($s) => $s.selectedReleaseIds.size)
+export const addReleaseOpen = derived(mobileUIStore, ($s) => $s.addReleaseOpen)
+export const openRowId = derived(mobileUIStore, ($s) => $s.openRowId)

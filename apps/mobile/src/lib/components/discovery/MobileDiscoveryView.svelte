@@ -2,33 +2,38 @@
 	import { onMount, tick } from 'svelte'
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
-	import { discoveryStore, sortedReleases, isDiscoveryLoading } from '$shared/stores/discovery'
-	import { previewInfo, previewLoadingReleaseId } from '$shared/stores/player'
-	import { mobileUIStore, scrollTargetReleaseId } from '$lib/stores/mobileUI'
+	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
+	import { mobileUIStore, scrollTargetReleaseId, mobileDisplayedReleases } from '$lib/stores/mobileUI'
 	import { createVirtualList } from '$shared/utils/virtualizer.svelte'
-	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
 	import MobileListSkeleton from '$lib/components/common/MobileListSkeleton.svelte'
-	import Spinner from '$lib/components/common/Spinner.svelte'
+	import DiscoveryToolbar from './DiscoveryToolbar.svelte'
+	import ReleaseCard from './ReleaseCard.svelte'
+	import AddReleaseModal from './AddReleaseModal.svelte'
 
-	// Real Discovery feed: artist/title + remote artwork; tapping a release opens its detail screen.
-	// The list is VIRTUALIZED (shared `createVirtualList`, the same util the desktop feed uses) — only the
-	// rows in view mount. This matters a lot on mobile: a large synced collection (thousands of releases)
-	// rendered un-virtualized instantiates thousands of row components on the main thread, which blocks it
-	// for a long time and freezes the whole UI, taps included (the bottom tab bar appeared "dead"). With
-	// virtualization the render is O(viewport) and the thread stays responsive.
+	// Real Discovery feed: a search/sort/filter toolbar over a VIRTUALIZED list of release cards. The list
+	// uses the shared `createVirtualList` (the same util the desktop feed uses) — only the rows in view
+	// mount. This matters a lot on mobile: a large synced collection (thousands of releases) rendered
+	// un-virtualized instantiates thousands of row components on the main thread, freezing the UI (taps
+	// included). With virtualization the render is O(viewport) and the thread stays responsive.
 	onMount(() => {
 		// This view remounts on every return to the Discovery tab, so only fetch when the feed is empty —
 		// otherwise a tab switch would re-trigger the loading state and flash the cached releases.
 		if (get(discoveryStore).releases.length === 0) discoveryStore.loadReleases()
 	})
 
+	// `releases` is the displayed (search + sort + tag-filtered) list the virtualizer renders — the shared
+	// `mobileDisplayedReleases`, the very same list the playback queue captures, so the feed and what
+	// shuffle/auto-advance span never drift. `totalReleases` is the raw loaded count, used to tell "nothing
+	// added yet" (show the CTA) from "filters hid everything".
+	const releases = $derived($mobileDisplayedReleases)
+	const totalReleases = $derived($discoveryStore.releases.length)
+
 	// This view owns its own scroll container (the shell frame is overflow-hidden); the virtualizer observes
 	// it. `releases` is a plain reactive snapshot so the virtualizer's option closures track the feed.
 	let scrollEl = $state<HTMLElement | null>(null)
-	const releases = $derived($sortedReleases)
 
-	// Fixed row height: MobileListItem is `min-h-[44px]` with `py-2` around a 48px (h-12) artwork ≈ 64px.
-	const ROW_HEIGHT = 64
+	// Fixed row height: ReleaseCard is artwork (48px) beside a 3-line title/artist/label column ≈ 72px.
+	const ROW_HEIGHT = 72
 
 	const virtualList = createVirtualList({
 		count: () => releases.length,
@@ -66,6 +71,8 @@
 	// Coalesce saves to one write per frame — a fling fires `scroll` far faster than that.
 	let scrollSaveRaf = 0
 	function handleScroll() {
+		// A scroll closes any revealed swipe-to-delete row (no-op when none is open).
+		mobileUIStore.setOpenRow(null)
 		if (scrollSaveRaf) return
 		scrollSaveRaf = requestAnimationFrame(() => {
 			scrollSaveRaf = 0
@@ -89,67 +96,67 @@
 	})
 </script>
 
-<!-- Trailing padding lets the feed scroll *under* the floating mini-player (visible, blurred, through its
-     glass) while the last release still clears it. The shell publishes the inset; 0 with no preview. -->
-<div
-	bind:this={scrollEl}
-	onscroll={handleScroll}
-	class="h-full overflow-x-hidden overflow-y-auto"
-	style="padding-bottom: var(--mini-player-inset, 0px)"
->
-	{#if $isDiscoveryLoading && releases.length === 0}
-		<div role="status" aria-label={$translate('common.loading')}>
-			<MobileListSkeleton />
-		</div>
-	{:else if releases.length === 0}
-		<div class="flex h-full items-center justify-center text-sm text-text-secondary">
-			{$translate('discovery.noReleasesYet')}
-		</div>
-	{:else}
-		<!-- Spacer sized to the full virtual height; only the visible rows are absolutely positioned in it. -->
-		<div style="height: {virtualList.totalSize}px; position: relative;">
-			{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
-				{@const release = releases[virtualItem.index]}
-				<div
-					style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start}px);"
-				>
-					<MobileListItem
-						onclick={() => mobileUIStore.openDetail(release.id)}
-						selected={$previewInfo?.releaseId === release.id}
-						ariaLabel={`${release.artist ?? $translate('common.unknownArtist')} — ${release.title ?? $translate('common.untitled')}`}
-					>
-						{#snippet leading()}
-							{#if release.artwork_url}
-								<img src={release.artwork_url} alt="" class="h-12 w-12 rounded object-cover" loading="lazy" />
-							{:else}
-								<div class="flex h-12 w-12 items-center justify-center rounded bg-surface-2 text-text-tertiary">
-									<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
-										<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-									</svg>
-								</div>
-							{/if}
-						{/snippet}
-						<div class="flex min-w-0 flex-col">
-							<span class="truncate text-sm font-medium text-text-primary">
-								{release.title ?? $translate('common.untitled')}
-							</span>
-							<span class="truncate text-xs text-text-secondary">
-								{release.artist ?? $translate('common.unknownArtist')}
-							</span>
-						</div>
-						{#snippet trailing()}
-							{#if $previewLoadingReleaseId === release.id}
-								<Spinner class="h-4 w-4" />
-							{:else}
-								<!-- Chevron: signals the row opens its detail screen (no hover affordance on touch). -->
-								<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
-								</svg>
-							{/if}
-						{/snippet}
-					</MobileListItem>
+<div class="flex h-full flex-col">
+	<DiscoveryToolbar />
+
+	<!-- Scroll container lives BELOW the toolbar (the toolbar must stay outside it so the virtualizer's
+	     rect math / scroll restore stay correct). Trailing padding lets the feed scroll *under* the floating
+	     mini-player while the last release still clears it; the shell publishes the inset (0 with no preview). -->
+	<div
+		bind:this={scrollEl}
+		onscroll={handleScroll}
+		class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
+		style="padding-bottom: var(--mini-player-inset, 0px)"
+	>
+		{#if $isDiscoveryLoading && totalReleases === 0}
+			<div role="status" aria-label={$translate('common.loading')}>
+				<MobileListSkeleton />
+			</div>
+		{:else if totalReleases === 0}
+			<!-- Truly empty: the standalone "add your first discovery" CTA (never a sync prompt). -->
+			<div class="flex h-full flex-col items-center justify-center gap-5 px-8 text-center">
+				<div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-2 text-text-tertiary">
+					<svg viewBox="0 0 24 24" class="h-8 w-8" fill="currentColor">
+						<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+					</svg>
 				</div>
-			{/each}
-		</div>
-	{/if}
+				<div class="space-y-1">
+					<p class="text-base font-semibold text-text-primary">{$translate('discovery.noReleasesYet')}</p>
+					<p class="text-sm text-text-secondary">{$translate('discovery.mobileAddHint')}</p>
+				</div>
+				<button
+					type="button"
+					class="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white active:opacity-90"
+					onclick={mobileUIStore.openAddRelease}
+				>
+					<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round" />
+					</svg>
+					{$translate('discovery.addRelease')}
+				</button>
+			</div>
+		{:else if releases.length === 0}
+			<!-- Releases exist, but the active search/filter hid them all — not a reason to show the add CTA. -->
+			<div class="flex h-full items-center justify-center px-8 text-center text-sm text-text-secondary">
+				{$translate('discovery.noResults')}
+			</div>
+		{:else}
+			<!-- Spacer sized to the full virtual height; only the visible rows are absolutely positioned in it. -->
+			<div style="height: {virtualList.totalSize}px; position: relative;">
+				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
+					{@const release = releases[virtualItem.index]}
+					{#if release}
+						<div
+							style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; transform: translateY({virtualItem.start}px);"
+						>
+							<ReleaseCard {release} />
+						</div>
+					{/if}
+				{/each}
+			</div>
+		{/if}
+	</div>
 </div>
+
+<!-- Add-release entry point (placeholder body; the functional flow is issue #56). Reads its own open state. -->
+<AddReleaseModal />

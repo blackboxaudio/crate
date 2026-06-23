@@ -20,7 +20,8 @@
 		"folder": "папка",
 		"playlist": "плейлист",
 		"next": "Далі",
-		"back": "Назад"
+		"back": "Назад",
+		"more": "Ще"
 	},
 	"nav": {
 		"library": "Бібліотека",
@@ -252,6 +253,22 @@
 		"collapse": "Згорнути програвач",
 		"seek": "Пошук"
 	},
+	"queue": {
+		"upNext": "Далі",
+		"openQueue": "Далі",
+		"playNext": "Програти далі",
+		"addToQueue": "Додати в чергу",
+		"playingNext": "Програється далі",
+		"addedToQueue": "Додано в чергу",
+		"nextInQueue": "Далі в черзі",
+		"upNextFromContext": "Далі",
+		"addedByYou": "Додано вами",
+		"removeFromQueue": "Видалити з черги",
+		"reorder": "Змінити порядок",
+		"clearQueue": "Очистити",
+		"empty": "Далі нічого",
+		"emptyHint": "Пісні, які ви додаєте, будуть програватися далі"
+	},
 	"library": {
 		"searchPlaceholder": "Пошук доріжок...",
 		"importTracks": "Імпортувати доріжки",
@@ -282,7 +299,13 @@
 		"releases": "видання",
 		"searchPlaceholder": "Пошук видань...",
 		"noReleasesYet": "Видань ще немає",
+		"noResults": "Жодне видання не відповідає вашим фільтрам",
 		"addReleaseHint": "Натисніть {shortcut}, щоб додати видання з Bandcamp, Discogs, YouTube та інших",
+		"mobileAddHint": "Додайте видання з Bandcamp, Discogs, YouTube та інших",
+		"sortBy": "Сортувати за",
+		"selectedCount": "{count, plural, =1 {1 вибрано} other {{count} вибрано}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Видалити видання?} other {Видалити {count} видання?}}",
+		"confirmDeleteMessage": "Це неможливо скасувати.",
 		"previewNotAvailable": "Попередній перегляд недоступний для цього джерела",
 		"columns": {
 			"artistTitle": "Виконавець / Назва",
@@ -710,6 +733,9 @@
 		"emerald": "Смарагдовий"
 	},
 	"dates": {
+		"justNow": "Щойно",
+		"minutesAgo": "{count, plural, =1 {1 хвилину тому} other {{count} хвилин тому}}",
+		"hoursAgo": "{count, plural, =1 {1 годину тому} other {{count} годин тому}}",
 		"today": "Сьогодні",
 		"yesterday": "Вчора",
 		"daysAgo": "{count, plural, =1 {1 день тому} other {{count} днів тому}}",

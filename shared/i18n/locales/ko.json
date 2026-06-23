@@ -20,7 +20,8 @@
 		"folder": "폴더",
 		"playlist": "재생목록",
 		"next": "다음",
-		"back": "뒤로"
+		"back": "뒤로",
+		"more": "더 보기"
 	},
 	"nav": {
 		"library": "라이브러리",
@@ -252,6 +253,22 @@
 		"collapse": "플레이어 축소",
 		"seek": "탐색"
 	},
+	"queue": {
+		"upNext": "다음 곡",
+		"openQueue": "다음 곡",
+		"playNext": "다음 재생",
+		"addToQueue": "대기열에 추가",
+		"playingNext": "다음 재생 중",
+		"addedToQueue": "대기열에 추가됨",
+		"nextInQueue": "대기열의 다음",
+		"upNextFromContext": "다음 곡",
+		"addedByYou": "당신이 추가함",
+		"removeFromQueue": "대기열에서 제거",
+		"reorder": "다시 정렬",
+		"clearQueue": "지우기",
+		"empty": "다음이 없습니다",
+		"emptyHint": "추가하는 곡이 다음에 재생됩니다"
+	},
 	"library": {
 		"searchPlaceholder": "트랙 검색...",
 		"importTracks": "트랙 가져오기",
@@ -282,7 +299,13 @@
 		"releases": "릴리스",
 		"searchPlaceholder": "릴리스 검색...",
 		"noReleasesYet": "아직 릴리스가 없습니다",
+		"noResults": "필터와 일치하는 릴리스가 없습니다",
 		"addReleaseHint": "{shortcut} 를 눌러 Bandcamp, Discogs, YouTube 등에서 릴리스를 추가하세요",
+		"mobileAddHint": "Bandcamp, Discogs, YouTube 등에서 릴리스 추가",
+		"sortBy": "정렬 기준",
+		"selectedCount": "{count, plural, =1 {1개 선택} other {{count}개 선택}}",
+		"confirmDeleteTitle": "{count, plural, =1 {릴리스를 삭제하시겠습니까?} other {{count}개의 릴리스를 삭제하시겠습니까?}}",
+		"confirmDeleteMessage": "이 작업은 취소할 수 없습니다.",
 		"previewNotAvailable": "이 소스에서는 미리듣기를 사용할 수 없습니다",
 		"columns": {
 			"artistTitle": "아티스트 / 제목",
@@ -710,6 +733,9 @@
 		"emerald": "에메랄드"
 	},
 	"dates": {
+		"justNow": "방금",
+		"minutesAgo": "{count, plural, =1 {1분 전} other {{count}분 전}}",
+		"hoursAgo": "{count, plural, =1 {1시간 전} other {{count}시간 전}}",
 		"today": "오늘",
 		"yesterday": "어제",
 		"daysAgo": "{count, plural, =1 {1일 전} other {{count}일 전}}",

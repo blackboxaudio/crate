@@ -21,6 +21,15 @@ pub async fn native_preview_play(
 }
 
 #[tauri::command]
+pub async fn native_preview_set_upcoming(
+    tracks: Vec<NativeTrackEntry>,
+    engine: State<'_, NativePreviewEngine>,
+) -> Result<()> {
+    engine.set_upcoming(tracks);
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn native_preview_pause(engine: State<'_, NativePreviewEngine>) -> Result<()> {
     engine.pause();
     Ok(())

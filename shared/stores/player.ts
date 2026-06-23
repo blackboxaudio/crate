@@ -4,6 +4,8 @@ import * as playerApi from '../api/player'
 import * as discoveryApi from '../api/discovery'
 import * as previewPlayer from '../services/previewPlayer'
 import * as nativePreviewPlayer from '../services/nativePreviewPlayer'
+import type { NativeTrack } from '../services/nativePreviewPlayer'
+import * as playbackQueue from './playbackQueue'
 import { isIOS } from '../utils/platform'
 import { toastStore } from './toast'
 import { translate } from '../i18n'
@@ -71,6 +73,11 @@ const initialState: PlayerState = {
 // OS media-session handlers (webMediaSession.ts) so both honour the same rule.
 export const PREVIOUS_RESTART_THRESHOLD_MS = 3000
 
+// Upper bound on how many upcoming tracks the iOS native window pre-resolves up front (each costs a
+// stream fetch). Large enough to cover a typical release for seamless locked playback, capped so a huge
+// album / queue can't trigger an unbounded burst of resolves.
+const NATIVE_WINDOW_CAP = 20
+
 // =============================================================================
 // Store
 // =============================================================================
@@ -93,6 +100,21 @@ function createPlayerStore() {
 	// survives JS suspension) instead of the HTML5 <audio> element. Every preview transport method
 	// branches on this; desktop/Android keep the HTML5 path.
 	const useNative = isIOS()
+
+	// --- iOS native sliding window ------------------------------------------------------------------
+	// The two-tier queue logic (context + explicit user queue, shuffle, history) lives in
+	// playbackQueue.ts; this store drives playback and, on iOS, keeps the native engine fed with a
+	// lazily-resolved window of upcoming items so queued tracks and cross-release advances stay gapless
+	// while the screen is locked. `nativeWindow` mirrors the engine's `entries` array index-for-index (so
+	// its track-changed index maps straight to a pick); `nativeIndex` mirrors the engine's current index.
+	// Both stay empty/unused on the HTML5 path; the queue stays empty on desktop (its own queue runs in
+	// useAppSetup), so every queue branch below is inert there.
+	let nativeWindow: Array<{ release: DiscoveryRelease; trackIndex: number }> = []
+	let nativeIndex = 0
+	// Session cache of resolved stream (proxy) URLs, keyed `releaseId:trackIndex`. The proxy URLs are
+	// stable per release/track, so re-feeding the window on each advance/mutation doesn't re-resolve the
+	// same picks. Cleared on stop/reset; an entry is dropped + the backend cache invalidated on error.
+	const streamUrlCache = new Map<string, string>()
 
 	function persistPosition(positionMs: number) {
 		const now = Date.now()
@@ -281,6 +303,102 @@ function createPlayerStore() {
 		previewPlayer.setOnPlaying(null)
 	}
 
+	// --- iOS native window resolution ---------------------------------------------------------------
+	// Resolve (and session-cache) a track's proxy stream URL. The proxy URLs are stable per release/track,
+	// so the window can be re-fed cheaply on every advance/mutation.
+	async function resolveStreamUrl(release: DiscoveryRelease, trackIndex: number): Promise<string> {
+		const cacheKey = `${release.id}:${trackIndex}`
+		const cached = streamUrlCache.get(cacheKey)
+		if (cached) return cached
+		const track = release.tracks[trackIndex]
+		const url = await discoveryApi.fetchPreviewStream(release.id, track.position)
+		streamUrlCache.set(cacheKey, url)
+		return url
+	}
+
+	// Turn picks into the engine's NativeTrack entries, resolving each one's stream URL. MIME + metadata
+	// are per-release (a window can span releases / sources): YouTube/Discogs need an explicit audio/mp4
+	// (their proxy URL is extensionless and AVFoundation can't infer it); Bandcamp/SoundCloud pass null.
+	async function buildNativeTracks(
+		picks: Array<{ release: DiscoveryRelease; trackIndex: number }>
+	): Promise<NativeTrack[]> {
+		return Promise.all(
+			picks.map(async (p) => {
+				const track = p.release.tracks[p.trackIndex]
+				const url = await resolveStreamUrl(p.release, p.trackIndex)
+				const mimeType = p.release.source_type === 'discogs' || p.release.source_type === 'youtube' ? 'audio/mp4' : null
+				return {
+					url,
+					title: track.name,
+					artist: p.release.artist ?? '',
+					album: p.release.title ?? '',
+					durationMs: track.duration_ms ?? 0,
+					artworkUrl: p.release.artwork_url ?? null,
+					mimeType,
+				}
+			})
+		)
+	}
+
+	// How deep to pre-resolve the window: the rest of the current release (so locked within-release
+	// advance stays seamless, as before) + the user queue + a small cross-release/shuffle margin, capped.
+	function nativeWindowDepth(release: DiscoveryRelease, trackIndex: number): number {
+		const shuffle = getState().shuffleEnabled
+		const ahead = shuffle ? 3 : Math.max(0, release.tracks.length - 1 - trackIndex) + 2
+		return Math.min(NATIVE_WINDOW_CAP, playbackQueue.userQueueLength() + ahead)
+	}
+
+	// Feed the native engine the window around `current`. 'reload' loads it fresh (a new/changed current
+	// track); 'slide' replaces only the upcoming tail in place (a mutation or a post-advance refill) so the
+	// current item keeps playing untouched. Keeps `nativeWindow` in lockstep with the engine's `entries`.
+	async function feedNativeWindow(
+		current: { release: DiscoveryRelease; trackIndex: number },
+		mode: 'reload' | 'slide'
+	) {
+		const picks = playbackQueue.peekUpcoming(nativeWindowDepth(current.release, current.trackIndex))
+		if (mode === 'reload') {
+			const tracks = await buildNativeTracks([current, ...picks])
+			await nativePreviewPlayer.play(tracks, 0)
+			nativeWindow = [current, ...picks]
+			nativeIndex = 0
+		} else {
+			const tracks = await buildNativeTracks(picks)
+			await nativePreviewPlayer.setUpcoming(tracks)
+			nativeWindow = nativeWindow.slice(0, nativeIndex + 1).concat(picks)
+		}
+	}
+
+	// Re-feed the upcoming window tail (slide forward / apply a queue mutation) around the current track.
+	// Coalesced on a short timer so a burst of events settles into ONE slide: that matters when the iOS
+	// WebView resumes from suspension and replays a backlog of native track-changed events — we must wait
+	// until our index has caught up to the engine's before truncating its tail, or the two desync.
+	let slideTimer: ReturnType<typeof setTimeout> | null = null
+	function scheduleNativeSlide() {
+		if (!useNative) return
+		if (slideTimer) clearTimeout(slideTimer)
+		slideTimer = setTimeout(() => {
+			slideTimer = null
+			const state = getState()
+			if (state.playbackSource !== 'preview' || !state.previewInfo) return
+			const { release, trackIndex } = state.previewInfo
+			void feedNativeWindow({ release, trackIndex }, 'slide').catch((e) =>
+				console.error('[native-preview] window slide failed:', e)
+			)
+		}, 60)
+	}
+
+	// A queue mutation (add / play-next / remove / reorder / shuffle toggle) changed what's upcoming. On
+	// iOS, re-feed the window tail so it takes effect — even mid-playback — without disturbing the current
+	// track. No-op on the HTML5 path (it re-resolves per track) or with no preview.
+	function handleQueueChanged() {
+		if (!useNative) return
+		const state = getState()
+		if (state.playbackSource !== 'preview' || !state.previewInfo) return
+		scheduleNativeSlide()
+	}
+	playbackQueue.setQueueChangedHandler(handleQueueChanged)
+	playbackQueue.initShuffle(initialState.shuffleEnabled)
+
 	return {
 		subscribe,
 
@@ -332,11 +450,18 @@ function createPlayerStore() {
 		/**
 		 * Play a preview of a discovery release track.
 		 */
-		async playPreview(release: DiscoveryRelease, trackIndex: number = 0) {
+		async playPreview(release: DiscoveryRelease, trackIndex: number = 0, queue?: DiscoveryRelease[]) {
 			previewRetryAttempted = false
 			const state = getState()
 			const track = release.tracks[trackIndex]
 			if (!track) return
+
+			// Capture the playback queue (the whole list from the view) on a user-initiated preview, so
+			// next/previous/auto-advance + shuffle span every release on screen. Internal re-drives
+			// (next/previous, the iOS mode re-feed) omit `queue` to preserve the captured list + session.
+			if (queue) {
+				playbackQueue.startSession(release, trackIndex, queue)
+			}
 
 			// Clear stale preview events before the async gap to prevent the old
 			// error handler from firing when audio.src='' triggers an error event
@@ -354,22 +479,13 @@ function createPlayerStore() {
 			stopPositionTracking()
 			update((s) => ({ ...s, previewLoading: { releaseId: release.id, trackIndex } }))
 
-			// iOS: hand the whole release (pre-resolved proxy URLs) to the native engine so it can
-			// switch tracks — including while the screen is locked — without any further JS.
+			// iOS: feed the native engine a window starting at this track so it can switch tracks — including
+			// across releases and into queued items, and while the screen is locked — without further JS. The
+			// window's first item is what we're about to play; playbackQueue (synced by the caller) supplies
+			// the upcoming tail.
 			if (useNative) {
 				try {
-					const urls = await Promise.all(
-						release.tracks.map((t) => discoveryApi.fetchPreviewStream(release.id, t.position))
-					)
-					const nativeTracks = release.tracks.map((t, i) => ({
-						url: urls[i],
-						title: t.name,
-						artist: release.artist ?? '',
-						album: release.title ?? '',
-						durationMs: t.duration_ms ?? 0,
-						artworkUrl: release.artwork_url ?? null,
-					}))
-					await nativePreviewPlayer.play(nativeTracks, trackIndex)
+					await feedNativeWindow({ release, trackIndex }, 'reload')
 					await nativePreviewPlayer.setVolume(state.isMuted ? 0 : state.playbackState.volume)
 					isRestoredFromStorage = false
 					setStoredString('player.playbackSource', 'preview')
@@ -396,8 +512,10 @@ function createPlayerStore() {
 					}))
 				} catch (error) {
 					const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
+					console.error('[native-preview] playPreview failed before/at native play:', errorMsg)
 					update((s) => ({ ...s, error: errorMsg, previewLoading: null }))
-					toastStore.error(get(translate)('errors.previewStreamFailed'))
+					// Show the real error during debugging (normally the generic string).
+					toastStore.error(`Preview failed: ${errorMsg}`)
 				}
 				return
 			}
@@ -587,6 +705,10 @@ function createPlayerStore() {
 		async stop() {
 			const state = getState()
 			previewRetryAttempted = false
+			playbackQueue.clearAll()
+			streamUrlCache.clear()
+			nativeWindow = []
+			nativeIndex = 0
 
 			if (state.playbackSource === 'preview') {
 				if (useNative) {
@@ -788,41 +910,40 @@ function createPlayerStore() {
 		},
 
 		/**
-		 * Go to the previous preview track. Restarts the current track if past the
-		 * PREVIOUS_RESTART_THRESHOLD_MS window (or already on the first track), otherwise jumps to the
-		 * previous track in the release. Shared by the in-app transport, the OS media session, and (on
-		 * iOS) the native MPRemoteCommandCenter previous command.
+		 * Go to the previous preview track. Honours the shared PREVIOUS_RESTART_THRESHOLD_MS restart rule,
+		 * then steps back through the unified play history (which spans the user queue and both shuffle and
+		 * sequential context); at the very start it crosses to the previous context release (sequential) or
+		 * restarts. Shared by the in-app transport, the OS media session, and the iOS native command.
 		 */
 		async previousTrack() {
 			const state = getState()
-			const info = state.previewInfo
-			if (!info) return
-			// Native engine applies the same 3s rule and emits track-changed back to the store.
-			if (useNative) {
-				await nativePreviewPlayer.previous()
-				return
-			}
-			if (state.playbackState.position_ms > PREVIOUS_RESTART_THRESHOLD_MS || info.trackIndex <= 0) {
+			if (!state.previewInfo) return
+
+			if (state.playbackState.position_ms > PREVIOUS_RESTART_THRESHOLD_MS) {
 				await this.seek(0)
 				return
 			}
-			await this.playPreview(info.release, info.trackIndex - 1)
+			const pick = playbackQueue.advancePrev()
+			if (pick) await this.playPreview(pick.release, pick.trackIndex)
+			else await this.seek(0)
 		},
 
 		/**
-		 * Go to the next preview track in the release (no-op on the last track).
+		 * Advance to the next preview track via the two-tier queue: the explicit user queue first, then the
+		 * context (shuffle picks across the whole list, or sequential within/across releases, wrapping). On
+		 * iOS, when the engine still holds an item ahead in the loaded window we let it advance natively
+		 * (seamless, works locked) and reconcile in onTrackChanged; past the window we resolve + load fresh.
 		 */
 		async nextTrack() {
 			const state = getState()
-			const info = state.previewInfo
-			if (!info) return
-			if (useNative) {
+			if (!state.previewInfo) return
+
+			if (useNative && nativeIndex + 1 < nativeWindow.length) {
 				await nativePreviewPlayer.next()
 				return
 			}
-			if (info.trackIndex + 1 < info.release.tracks.length) {
-				await this.playPreview(info.release, info.trackIndex + 1)
-			}
+			const pick = playbackQueue.advanceNext()
+			if (pick) await this.playPreview(pick.release, pick.trackIndex)
 		},
 
 		/**
@@ -874,11 +995,14 @@ function createPlayerStore() {
 		 * Toggle shuffle mode. Persisted device-locally; affects playback order only.
 		 */
 		toggleShuffle() {
-			update((s) => {
-				const next = !s.shuffleEnabled
-				setStoredBoolean('player.shuffleEnabled', next)
-				return { ...s, shuffleEnabled: next }
-			})
+			const state = getState()
+			const next = !state.shuffleEnabled
+			setStoredBoolean('player.shuffleEnabled', next)
+			update((s) => ({ ...s, shuffleEnabled: next }))
+			// Re-anchor + redraw the CONTEXT order on the current track (the user queue stays put). On iOS
+			// this also re-feeds the native window tail in place via the queue-changed handler, so toggling
+			// mid-track takes effect immediately without disturbing the currently-playing track.
+			playbackQueue.setShuffle(next)
 		},
 
 		/**
@@ -956,6 +1080,10 @@ function createPlayerStore() {
 					previewInfo: { releaseId: release.id, release, trackIndex: restoredPreviewTrackIndex },
 					previewTrackIndex: restoredPreviewTrackIndex,
 				}))
+				// Seed the queue module so transport + Up Next work after a restore: the context is just this
+				// release (the feed isn't persisted), then re-hydrate the persisted explicit user queue.
+				playbackQueue.startSession(release, restoredPreviewTrackIndex, [release])
+				void playbackQueue.hydrate()
 			} catch {
 				// Release no longer exists — clear stale persistence silently
 				setStoredString('player.playbackSource', 'library')
@@ -988,38 +1116,66 @@ function createPlayerStore() {
 					persistPosition(positionMs)
 				},
 				onTrackChanged: (index) => {
-					setStoredNumber('player.previewTrackIndex', index)
+					// The engine moved to entries-index `index`. Sync the queue module to match: each forward
+					// step consumes one upcoming pick into history; a backward step (the lock-screen Previous,
+					// which the native engine handles itself within the kept-played front of the window) walks
+					// history back. A forward jump greater than one can happen if JS was suspended while the
+					// engine auto-advanced through several pre-fed items. Then point previewInfo at the window
+					// pick and, after a forward move, slide the window so there are always fresh items ahead.
+					if (index === nativeIndex) return
+					const forward = index > nativeIndex
+					if (forward) {
+						for (let i = nativeIndex; i < index; i++) playbackQueue.advanceNext()
+					} else {
+						for (let i = nativeIndex; i > index; i--) playbackQueue.advancePrev()
+					}
+					nativeIndex = index
+					const pick = nativeWindow[index]
+					if (!pick) return
+					setStoredNumber('player.previewTrackIndex', pick.trackIndex)
+					setStoredString('player.previewReleaseId', pick.release.id)
 					persistPositionImmediate(0)
-					update((s) => {
-						if (!s.previewInfo) return s
-						const track = s.previewInfo.release.tracks[index]
-						return {
-							...s,
-							previewInfo: { ...s.previewInfo, trackIndex: index },
-							previewTrackIndex: index,
-							playbackState: {
-								...s.playbackState,
-								position_ms: 0,
-								duration_ms: track?.duration_ms ?? s.playbackState.duration_ms,
-							},
-						}
-					})
+					update((s) => ({
+						...s,
+						previewInfo: { releaseId: pick.release.id, release: pick.release, trackIndex: pick.trackIndex },
+						previewTrackIndex: pick.trackIndex,
+						playbackState: {
+							...s.playbackState,
+							position_ms: 0,
+							duration_ms: pick.release.tracks[pick.trackIndex]?.duration_ms ?? s.playbackState.duration_ms,
+						},
+					}))
+					if (forward) scheduleNativeSlide()
 				},
 				onEnded: () => {
+					console.log('[native-preview] ENDED')
 					update((s) => ({
 						...s,
 						playbackState: { ...s.playbackState, is_playing: false },
 						previewLoading: null,
 					}))
+					// The engine reached the end of its loaded playlist — the single shuffle track, or the last
+					// track of a sequential release. Hand off to the same auto-advance the HTML5 path uses
+					// (wired in +layout) so playback continues across the queue / shuffle.
+					onTrackEndCallback?.()
 				},
 				onError: (message) => {
+					console.error('[native-preview] engine error:', message)
+					// A windowed item failed to load (e.g. an expired/stale upstream stream). Drop the cached
+					// proxy URLs so the next feed re-resolves them fresh rather than re-handing the bad ones.
+					streamUrlCache.clear()
 					update((s) => ({
 						...s,
 						error: message,
 						playbackState: { ...s.playbackState, is_playing: false },
 						previewLoading: null,
 					}))
-					toastStore.error(get(translate)('errors.previewStreamFailed'))
+					// Show the real AVPlayer error during debugging (normally the generic string).
+					toastStore.error(`Player error: ${message}`)
+				},
+				onDebug: (message) => {
+					console.log('[native-preview][engine]', message)
+					toastStore.error(`dbg: ${message}`)
 				},
 			})
 		},
@@ -1031,6 +1187,10 @@ function createPlayerStore() {
 			stopPreviewInternal()
 			clearPreviewEvents()
 			stopPositionTracking()
+			playbackQueue.clearAll()
+			streamUrlCache.clear()
+			nativeWindow = []
+			nativeIndex = 0
 			onTrackEndCallback = null
 			isRestoredFromStorage = false
 			setStoredString('player.playbackSource', 'library')

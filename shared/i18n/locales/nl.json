@@ -20,7 +20,8 @@
 		"folder": "map",
 		"playlist": "afspeellijst",
 		"next": "Volgende",
-		"back": "Terug"
+		"back": "Terug",
+		"more": "Meer"
 	},
 	"nav": {
 		"library": "Bibliotheek",
@@ -252,6 +253,22 @@
 		"collapse": "Speler samenvouwen",
 		"seek": "Zoeken"
 	},
+	"queue": {
+		"upNext": "Volgende",
+		"openQueue": "Volgende",
+		"playNext": "Volgende afspelen",
+		"addToQueue": "Toevoegen aan wachtrij",
+		"playingNext": "Volgende afspelen",
+		"addedToQueue": "Toegevoegd aan wachtrij",
+		"nextInQueue": "Volgende in wachtrij",
+		"upNextFromContext": "Volgende",
+		"addedByYou": "Toegevoegd door jou",
+		"removeFromQueue": "Verwijderen uit wachtrij",
+		"reorder": "Opnieuw ordenen",
+		"clearQueue": "Wissen",
+		"empty": "Niets volgende",
+		"emptyHint": "Nummers die je toevoegt worden hierna afgespeeld"
+	},
 	"library": {
 		"searchPlaceholder": "Tracks zoeken...",
 		"importTracks": "Tracks importeren",
@@ -282,7 +299,13 @@
 		"releases": "releases",
 		"searchPlaceholder": "Releases zoeken...",
 		"noReleasesYet": "Nog geen releases",
+		"noResults": "Geen releases komen overeen met je filters",
 		"addReleaseHint": "Druk {shortcut} om releases van Bandcamp, Discogs, YouTube en meer toe te voegen",
+		"mobileAddHint": "Releases van Bandcamp, Discogs, YouTube en meer toevoegen",
+		"sortBy": "Sorteren op",
+		"selectedCount": "{count, plural, =1 {1 geselecteerd} other {{count} geselecteerd}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Release verwijderen?} other {{count} releases verwijderen?}}",
+		"confirmDeleteMessage": "Dit kan niet ongedaan gemaakt worden.",
 		"previewNotAvailable": "Voorbeeld niet beschikbaar voor deze bron",
 		"columns": {
 			"artistTitle": "Artiest / Titel",
@@ -710,6 +733,9 @@
 		"emerald": "Smaragd"
 	},
 	"dates": {
+		"justNow": "Zojuist",
+		"minutesAgo": "{count, plural, =1 {1 minuut geleden} other {{count} minuten geleden}}",
+		"hoursAgo": "{count, plural, =1 {1 uur geleden} other {{count} uren geleden}}",
 		"today": "Vandaag",
 		"yesterday": "Gisteren",
 		"daysAgo": "{count, plural, =1 {1 dag geleden} other {{count} dagen geleden}}",

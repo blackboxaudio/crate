@@ -20,7 +20,8 @@
 		"folder": "klasör",
 		"playlist": "çalma listesi",
 		"next": "İleri",
-		"back": "Geri"
+		"back": "Geri",
+		"more": "Daha fazla"
 	},
 	"nav": {
 		"library": "Kütüphane",
@@ -252,6 +253,22 @@
 		"collapse": "Oynatıcıyı Daralt",
 		"seek": "Ara"
 	},
+	"queue": {
+		"upNext": "Sırada",
+		"openQueue": "Sırada",
+		"playNext": "Sonrakini oynat",
+		"addToQueue": "Sıraya ekle",
+		"playingNext": "Sonraki oynatılıyor",
+		"addedToQueue": "Sıraya eklendi",
+		"nextInQueue": "Sırada sonraki",
+		"upNextFromContext": "Sırada",
+		"addedByYou": "Sen tarafından eklendi",
+		"removeFromQueue": "Sıradan kaldır",
+		"reorder": "Yeniden sırala",
+		"clearQueue": "Temizle",
+		"empty": "Sırada hiçbir şey yok",
+		"emptyHint": "Eklediğin şarkılar sonra oynatılacak"
+	},
 	"library": {
 		"searchPlaceholder": "Şarkıları ara...",
 		"importTracks": "Şarkıları İçe Aktar",
@@ -282,7 +299,13 @@
 		"releases": "yayın",
 		"searchPlaceholder": "Yayınları ara...",
 		"noReleasesYet": "Henüz yayın yok",
+		"noResults": "Filtrelerinizle eşleşen yayın yok",
 		"addReleaseHint": "{shortcut} tuşuna basarak Bandcamp, Discogs, YouTube ve daha fazlasından yayın ekleyin",
+		"mobileAddHint": "Bandcamp, Discogs, YouTube ve daha fazlasından yayın ekleyin",
+		"sortBy": "Sırala",
+		"selectedCount": "{count, plural, =1 {1 seçildi} other {{count} seçildi}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Yayını sil?} other {{count} yayını sil?}}",
+		"confirmDeleteMessage": "Bu işlem geri alınamaz.",
 		"previewNotAvailable": "Bu kaynak için önizleme mevcut değil",
 		"columns": {
 			"artistTitle": "Sanatçı / Başlık",
@@ -710,6 +733,9 @@
 		"emerald": "Zümrüt"
 	},
 	"dates": {
+		"justNow": "Biraz önce",
+		"minutesAgo": "{count, plural, =1 {1 dakika önce} other {{count} dakika önce}}",
+		"hoursAgo": "{count, plural, =1 {1 saat önce} other {{count} saat önce}}",
 		"today": "Bugün",
 		"yesterday": "Dün",
 		"daysAgo": "{count, plural, =1 {1 gün önce} other {{count} gün önce}}",
