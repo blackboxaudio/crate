@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store'
 
 /** The app's primary navigation destinations, surfaced as bottom tabs. */
-export type MobileTab = 'discovery' | 'playlists' | 'settings'
+export type MobileTab = 'discovery' | 'playlists' | 'tags' | 'settings'
 
 interface MobileUIState {
 	/** Which bottom tab is active — selects the view rendered in the content area. */

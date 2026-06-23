@@ -2,8 +2,8 @@
 	import { translate } from '$shared/i18n'
 	import { mobileUIStore, activeTab, type MobileTab } from '$lib/stores/mobileUI'
 
-	// Bottom tab bar: the app's primary navigation (iOS-conventional). Three destinations — Discovery,
-	// Playlists, Settings — each an icon over a label. Pinned to the bottom edge and owns the bottom
+	// Bottom tab bar: the app's primary navigation (iOS-conventional). Four destinations — Discovery,
+	// Playlists, Tags, Settings — each an icon over a label. Pinned to the bottom edge and owns the bottom
 	// safe-area inset; the mini-player docks directly above it. Full-screen surfaces (the release detail
 	// push, the expanded player) cover it, so it only shows on the main shell. Each button is a 44pt+ hit
 	// area.
@@ -11,6 +11,7 @@
 	const tabs: Tab[] = $derived([
 		{ id: 'discovery', label: $translate('nav.discovery') },
 		{ id: 'playlists', label: $translate('nav.playlists') },
+		{ id: 'tags', label: $translate('nav.tags') },
 		{ id: 'settings', label: $translate('settings.title') },
 	])
 
@@ -68,6 +69,21 @@
 						<line x1="4" y1="6" x2="20" y2="6" />
 						<line x1="4" y1="12" x2="20" y2="12" />
 						<line x1="4" y1="18" x2="13" y2="18" />
+					</svg>
+				{:else if tab.id === 'tags'}
+					<!-- `tag` — matches the desktop tag icon (Icon.svelte). -->
+					<svg
+						class="h-6 w-6"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path
+							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
+						/>
 					</svg>
 				{:else}
 					<svg

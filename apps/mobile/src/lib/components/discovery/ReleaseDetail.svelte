@@ -3,13 +3,15 @@
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease } from '$shared/types'
 	import { discoveryStore } from '$shared/stores/discovery'
-	import { playerStore, previewInfo, previewLoading } from '$shared/stores/player'
+	import { playerStore, previewInfo, previewLoading, isPlaying } from '$shared/stores/player'
 	import { formatDate, formatDurationCompact } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { mobileUIStore } from '$lib/stores/mobileUI'
+	import { lightTap } from '$lib/utils/haptics'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import MarqueeText from '$lib/components/common/MarqueeText.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
+	import EqualizerBars from '$lib/components/common/EqualizerBars.svelte'
 	import MobileTagPicker from './MobileTagPicker.svelte'
 	import SourceIcon from './SourceIcon.svelte'
 
@@ -72,6 +74,7 @@
 	// When nothing is playing yet, slide the full-screen player up so the user lands in it; if a preview is
 	// already active, the tap just swaps/restarts the track and the mini-player updates in place.
 	function playTrack(index: number) {
+		void lightTap()
 		const wasIdle = $previewInfo == null
 		void playerStore.playPreview(release, index)
 		if (wasIdle) mobileUIStore.expandPlayer()
@@ -188,6 +191,8 @@
 								<span class="w-5 flex-shrink-0 text-center text-xs text-text-tertiary tabular-nums">
 									{#if isLoading}
 										<Spinner class="mx-auto h-3.5 w-3.5" />
+									{:else if isActive}
+										<EqualizerBars class="mx-auto h-3.5 w-3.5" playing={$isPlaying} />
 									{:else}
 										{index + 1}
 									{/if}

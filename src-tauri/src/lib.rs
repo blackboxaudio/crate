@@ -122,7 +122,9 @@ pub fn run() {
     // Mobile-only plugins: native web-auth (iOS ASWebAuthenticationSession / Android Custom Tabs)
     // backs the mobile OAuth sign-in flow — there is no loopback browser flow on mobile.
     #[cfg(feature = "mobile")]
-    let builder = builder.plugin(tauri_plugin_web_auth::init());
+    let builder = builder
+        .plugin(tauri_plugin_web_auth::init())
+        .plugin(tauri_plugin_haptics::init());
 
     let builder = builder
         .invoke_handler(tauri::generate_handler![

@@ -8,6 +8,7 @@
 	import TabBar from './TabBar.svelte'
 	import MobileDiscoveryView from '$lib/components/discovery/MobileDiscoveryView.svelte'
 	import PlaylistsView from '$lib/components/playlists/PlaylistsView.svelte'
+	import TagsView from '$lib/components/tags/TagsView.svelte'
 	import SettingsView from '$lib/components/settings/SettingsView.svelte'
 
 	// Composition root for the mobile app: a branded fixed Header (top), the active tab's view, and the
@@ -59,6 +60,8 @@
 						<MobileDiscoveryView />
 					{:else if $activeTab === 'playlists'}
 						<PlaylistsView />
+					{:else if $activeTab === 'tags'}
+						<TagsView />
 					{:else}
 						<SettingsView />
 					{/if}

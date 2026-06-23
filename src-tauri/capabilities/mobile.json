@@ -1,8 +1,8 @@
 {
   "$schema": "../gen/schemas/mobile-schema.json",
   "identifier": "mobile",
-  "description": "Mobile-only native web-auth (ASWebAuthenticationSession / Custom Tabs) for OAuth sign-in. NB: tauri-plugin-web-auth's `default` permission set is empty, so the `authenticate` command is granted explicitly via `allow-authenticate`.",
+  "description": "Mobile-only plugin permissions: native web-auth (ASWebAuthenticationSession / Custom Tabs) for OAuth sign-in, plus haptics (light impact feedback on tap). NB: neither plugin ships a `default` permission set, so each command is granted explicitly (`web-auth:allow-authenticate`, `haptics:allow-impact-feedback`).",
   "platforms": ["iOS", "android"],
   "windows": ["main"],
-  "permissions": ["web-auth:allow-authenticate"]
+  "permissions": ["web-auth:allow-authenticate", "haptics:allow-impact-feedback"]
 }
