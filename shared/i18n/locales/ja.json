@@ -182,7 +182,8 @@
 			"updates": "アップデート",
 			"checkForUpdates": "アップデートを確認",
 			"upToDate": "最新版です",
-			"updateAvailable": "{version} が利用可能"
+			"updateAvailable": "{version} が利用可能",
+			"project": "プロジェクト"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "今すぐ同期",
 			"syncing": "同期中…",
 			"signOut": "サインアウト",
+			"signOutConfirmTitle": "サインアウトしますか?",
+			"signOutConfirmMessage": "ローカルデータはこのデバイスに残ります。再びサインインするまで同期は停止します。",
+			"autoSyncHint": "Discovery ライブラリはすべてのデバイス間で自動的に同期されます。",
 			"lastSynced": "最後に同期した {time}"
 		},
 		"devices": {

@@ -182,7 +182,8 @@
 			"updates": "Оновлення",
 			"checkForUpdates": "Перевірити наявність оновлень",
 			"upToDate": "Актуально",
-			"updateAvailable": "Доступна версія {version}"
+			"updateAvailable": "Доступна версія {version}",
+			"project": "Проект"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "Синхронізувати зараз",
 			"syncing": "Синхронізація…",
 			"signOut": "Вийти",
+			"signOutConfirmTitle": "Вийти?",
+			"signOutConfirmMessage": "Ваші локальні дані залишаються на цьому пристрої. Синхронізація зупиниться до повторного входу.",
+			"autoSyncHint": "Ваша бібліотека Discovery автоматично синхронізується на всіх ваших пристроях.",
 			"lastSynced": "Остання синхронізація {time}"
 		},
 		"devices": {

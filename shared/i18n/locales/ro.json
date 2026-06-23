@@ -182,7 +182,8 @@
 			"updates": "Actualizări",
 			"checkForUpdates": "Caută Actualizări",
 			"upToDate": "Actualizat",
-			"updateAvailable": "{version} disponibil"
+			"updateAvailable": "{version} disponibil",
+			"project": "Proiect"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "Sincronizați acum",
 			"syncing": "Se sincronizează…",
 			"signOut": "Deconectați-vă",
+			"signOutConfirmTitle": "Deconectați-vă?",
+			"signOutConfirmMessage": "Datele locale dvs. rămân pe acest dispozitiv. Sincronizarea se va opri până când vă conectați din nou.",
+			"autoSyncHint": "Biblioteca Discovery se sincronizează automat pe toate dispozitivele dvs.",
 			"lastSynced": "Ultima sincronizare {time}"
 		},
 		"devices": {

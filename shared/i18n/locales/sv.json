@@ -182,7 +182,8 @@
 			"updates": "Uppdateringar",
 			"checkForUpdates": "Sök efter uppdateringar",
 			"upToDate": "Uppdaterad",
-			"updateAvailable": "{version} tillgänglig"
+			"updateAvailable": "{version} tillgänglig",
+			"project": "Projekt"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "Synkronisera nu",
 			"syncing": "Synkroniserar…",
 			"signOut": "Logga ut",
+			"signOutConfirmTitle": "Logga ut?",
+			"signOutConfirmMessage": "Dina lokala data förblir på den här enheten. Synkroniseringen stoppas tills du loggar in igen.",
+			"autoSyncHint": "Ditt Discovery-bibliotek synkroniseras automatiskt på alla dina enheter.",
 			"lastSynced": "Senast synkroniserad {time}"
 		},
 		"devices": {

@@ -182,7 +182,8 @@
 			"updates": "업데이트",
 			"checkForUpdates": "업데이트 확인",
 			"upToDate": "최신 상태",
-			"updateAvailable": "{version} 사용 가능"
+			"updateAvailable": "{version} 사용 가능",
+			"project": "프로젝트"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "지금 동기화",
 			"syncing": "동기화 중…",
 			"signOut": "로그아웃",
+			"signOutConfirmTitle": "로그아웃하시겠습니까?",
+			"signOutConfirmMessage": "로컬 데이터는 이 디바이스에 유지됩니다. 다시 로그인할 때까지 동기화가 중지됩니다.",
+			"autoSyncHint": "Discovery 라이브러리는 모든 디바이스에서 자동으로 동기화됩니다.",
 			"lastSynced": "마지막 동기화 {time}"
 		},
 		"devices": {

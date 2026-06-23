@@ -47,6 +47,8 @@ interface MobileUIState {
 	addReleaseOpen: boolean
 	/** The one release row whose swipe-to-delete action is revealed — opening another closes it. */
 	openRowId: string | null
+	/** One-shot: settings section to scroll into view after switching to the Settings tab. */
+	settingsScrollTarget: string | null
 }
 
 const initialState: MobileUIState = {
@@ -62,6 +64,7 @@ const initialState: MobileUIState = {
 	selectedReleaseIds: new Set(),
 	addReleaseOpen: false,
 	openRowId: null,
+	settingsScrollTarget: null,
 }
 
 function createMobileUIStore() {
@@ -167,6 +170,16 @@ function createMobileUIStore() {
 			update((s) => ({ ...s, addReleaseOpen: false }))
 		},
 
+		// --- Settings deep-link --------------------------------------------------------------------
+		/** Switch to the Settings tab and request a scroll to a named section (e.g. 'sync'). */
+		navigateToSettings(section: string) {
+			update((s) => ({ ...s, activeTab: 'settings', settingsScrollTarget: section }))
+		},
+		/** Clear the one-shot settings scroll target once the view has scrolled to it. */
+		consumeSettingsScrollTarget() {
+			update((s) => (s.settingsScrollTarget === null ? s : { ...s, settingsScrollTarget: null }))
+		},
+
 		// --- Swipe-to-delete single-open invariant --------------------------------------------------
 		/** Record which row's delete action is revealed; opening one row closes any other. Pass null to
 		 *  close the open row (e.g. on scroll). */
@@ -187,6 +200,7 @@ export const detailReleaseId = derived(mobileUIStore, ($s) => $s.detailReleaseId
 export const detailCovering = derived(mobileUIStore, ($s) => $s.detailCovering)
 export const isPlayerExpanded = derived(mobileUIStore, ($s) => $s.playerExpanded)
 export const scrollTargetReleaseId = derived(mobileUIStore, ($s) => $s.scrollTargetReleaseId)
+export const settingsScrollTarget = derived(mobileUIStore, ($s) => $s.settingsScrollTarget)
 export const tagFilterIds = derived(mobileUIStore, ($s) => $s.tagFilterIds)
 export const tagFilterMode = derived(mobileUIStore, ($s) => $s.tagFilterMode)
 

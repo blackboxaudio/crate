@@ -182,7 +182,8 @@
 			"updates": "Atualizações",
 			"checkForUpdates": "Verificar atualizações",
 			"upToDate": "Atualizado",
-			"updateAvailable": "{version} disponível"
+			"updateAvailable": "{version} disponível",
+			"project": "Projeto"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "Sincronizar agora",
 			"syncing": "Sincronizando…",
 			"signOut": "Sair",
+			"signOutConfirmTitle": "Sair?",
+			"signOutConfirmMessage": "Seus dados locais permanecem neste dispositivo. A sincronização será interrompida até que você faça login novamente.",
+			"autoSyncHint": "Sua biblioteca Discovery sincroniza automaticamente em todos os seus dispositivos.",
 			"lastSynced": "Última sincronização {time}"
 		},
 		"devices": {

@@ -12,7 +12,7 @@
 		<script>
 			;(function () {
 				// Theme preference
-				var theme = 'dark'
+				var theme = 'light'
 				try {
 					var stored = localStorage.getItem('crate-theme')
 					if (stored === 'light' || stored === 'dark') {
@@ -43,7 +43,7 @@
 					pink: '#ec4899', rose: '#f43f5e', orange: '#f97316', amber: '#f59e0b',
 					emerald: '#10b981', teal: '#14b8a6',
 				}
-				var accent = 'blue'
+				var accent = 'teal'
 				try {
 					var storedAccent = localStorage.getItem('crate-accent')
 					if (storedAccent && accentColors[storedAccent]) accent = storedAccent

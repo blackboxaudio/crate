@@ -182,7 +182,8 @@
 			"updates": "更新",
 			"checkForUpdates": "检查更新",
 			"upToDate": "已是最新版本",
-			"updateAvailable": "{version} 可用"
+			"updateAvailable": "{version} 可用",
+			"project": "项目"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "立即同步",
 			"syncing": "正在同步…",
 			"signOut": "登出",
+			"signOutConfirmTitle": "确认登出?",
+			"signOutConfirmMessage": "您的本地数据将保留在此设备上。在您重新登录之前，同步将停止。",
+			"autoSyncHint": "您的 Discovery 曲库会自动在您的所有设备间同步。",
 			"lastSynced": "最后同步于 {time}"
 		},
 		"devices": {

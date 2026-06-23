@@ -4,7 +4,7 @@ use rusqlite::Connection;
 use serde_json;
 
 use crate::error::{CrateError, Result};
-use crate::models::AppSettings;
+use crate::models::{AccentColor, AppSettings, Theme};
 use crate::services::cloud_sync::{self, pipeline::dirty};
 
 pub struct SettingsService {
@@ -19,15 +19,25 @@ impl SettingsService {
     pub fn get_settings(&self) -> Result<AppSettings> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
+        #[cfg(feature = "mobile")]
+        let theme_default = Theme::Light;
+        #[cfg(not(feature = "mobile"))]
+        let theme_default = Theme::default();
+
         let theme = self
             .get_setting_value(&conn, "theme")?
             .and_then(|v| v.parse().ok())
-            .unwrap_or_default();
+            .unwrap_or(theme_default);
+
+        #[cfg(feature = "mobile")]
+        let accent_default = AccentColor::Teal;
+        #[cfg(not(feature = "mobile"))]
+        let accent_default = AccentColor::default();
 
         let accent_color = self
             .get_setting_value(&conn, "accent_color")?
             .and_then(|v| v.parse().ok())
-            .unwrap_or_default();
+            .unwrap_or(accent_default);
 
         let font = self
             .get_setting_value(&conn, "font")?

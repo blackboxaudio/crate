@@ -1,16 +1,8 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
 	import { syncStatus, syncPhase, isSyncAvailable, isSignedIn } from '$shared/stores/cloudSync'
-	import SyncSheet from '$lib/components/cloud-sync/SyncSheet.svelte'
+	import { mobileUIStore } from '$lib/stores/mobileUI'
 
-	// Trailing header affordance: an avatar/cloud chip that reflects the live cloud-sync phase and opens the
-	// account + sync sheet. Hidden entirely when sync isn't configured (`disabled`) — mirrors desktop's
-	// SyncStatusIndicator gate — so a build without cloud config keeps a clean brand-only bar. This is the
-	// one piece of always-true, app-wide status the bar earns its keep with (the rest of nav is the TabBar).
-	let sheetOpen = $state(false)
-
-	// Phase → status-dot color on the mobile theme tokens: syncing pulses in brand, offline = warning,
-	// error = danger, idle = success. Signed-out shows no dot — the chip is a plain cloud inviting sign-in.
 	const dotClass = $derived.by(() => {
 		switch ($syncPhase) {
 			case 'syncing':
@@ -26,8 +18,6 @@
 		}
 	})
 
-	// Phase → accessible label so the control announces sync state without opening the sheet (mirrors the
-	// desktop indicator's tooltip). Reuses the existing cloudSync.status.* strings.
 	const statusLabel = $derived.by(() => {
 		switch ($syncPhase) {
 			case 'idle':
@@ -43,7 +33,6 @@
 		}
 	})
 
-	// Avatar fallback: up to two initials from the display name or email (mirrors desktop's Avatar).
 	const initials = $derived.by(() => {
 		const source = ($syncStatus.display_name ?? $syncStatus.email ?? '').trim()
 		if (!source) return ''
@@ -57,8 +46,6 @@
 	let photoError = $state(false)
 	let lastPhotoUrl: string | null = null
 	$effect(() => {
-		// Reset the error (retry the image) only when the URL itself changes — not on every status poll,
-		// which would otherwise re-attempt a genuinely broken avatar every few seconds.
 		const url = $syncStatus.photo_url
 		if (url !== lastPhotoUrl) {
 			lastPhotoUrl = url
@@ -69,12 +56,11 @@
 </script>
 
 {#if $isSyncAvailable}
-	<!-- 44pt touch target wrapping a 32px avatar/cloud glyph. -->
 	<button
 		type="button"
 		class="-mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full active:opacity-70"
 		aria-label={statusLabel}
-		onclick={() => (sheetOpen = true)}
+		onclick={() => mobileUIStore.navigateToSettings('sync')}
 	>
 		{#if $isSignedIn}
 			<span class="relative">
@@ -99,7 +85,6 @@
 				{/if}
 			</span>
 		{:else}
-			<!-- Signed-out: a neutral cloud glyph inviting sign-in (the sheet hosts the sign-in button). -->
 			<svg
 				class="h-6 w-6 text-text-secondary"
 				viewBox="0 0 24 24"
@@ -113,6 +98,4 @@
 			</svg>
 		{/if}
 	</button>
-
-	<SyncSheet open={sheetOpen} onClose={() => (sheetOpen = false)} />
 {/if}

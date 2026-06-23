@@ -182,7 +182,8 @@
 			"updates": "Updates",
 			"checkForUpdates": "Check for Updates",
 			"upToDate": "Up to date",
-			"updateAvailable": "{version} available"
+			"updateAvailable": "{version} available",
+			"project": "Project"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "Sync now",
 			"syncing": "Syncing…",
 			"signOut": "Sign out",
+			"signOutConfirmTitle": "Sign out?",
+			"signOutConfirmMessage": "Your local data stays on this device. Syncing will stop until you sign in again.",
+			"autoSyncHint": "Your discovery library syncs automatically across your devices.",
 			"lastSynced": "Last synced {time}"
 		},
 		"devices": {

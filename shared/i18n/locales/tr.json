@@ -182,7 +182,8 @@
 			"updates": "Güncellemeler",
 			"checkForUpdates": "Güncellemeleri Denetle",
 			"upToDate": "Güncel",
-			"updateAvailable": "{version} mevcut"
+			"updateAvailable": "{version} mevcut",
+			"project": "Proje"
 		}
 	},
 	"cloudSync": {
@@ -203,6 +204,9 @@
 			"syncNow": "Şimdi senkronize et",
 			"syncing": "Senkronize ediliyor…",
 			"signOut": "Oturumu Kapat",
+			"signOutConfirmTitle": "Oturumu kapat?",
+			"signOutConfirmMessage": "Yerel verileriniz bu cihazda kalır. Yeniden oturum açana kadar senkronizasyon durur.",
+			"autoSyncHint": "Discovery kütüphaneniz tüm cihazlarınızda otomatik olarak senkronize olur.",
 			"lastSynced": "Son senkronizasyon {time}"
 		},
 		"devices": {

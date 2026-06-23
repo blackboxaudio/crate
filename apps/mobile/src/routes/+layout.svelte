@@ -10,6 +10,7 @@
 	import { playerStore, previewInfo } from '$shared/stores/player'
 	import { isIOS } from '$shared/utils/platform'
 	import { mobileUIStore, isPlayerExpanded } from '$lib/stores/mobileUI'
+	import { setupCloudSyncMergeListener } from '$lib/cloudSyncMerge'
 	// @ts-expect-error — PUBLIC_APP_VERSION is set dynamically by vite.config.ts
 	import { PUBLIC_APP_VERSION } from '$env/static/public'
 	import { splashVisible, dismissSplash } from '$lib/stores/splash'
@@ -97,6 +98,15 @@
 			cloudSyncStore.stopPolling()
 			cloudSyncStore.stopOverrideListener()
 		}
+	})
+
+	// Live-refresh: when the backend merges remote changes pulled from another device, reload the
+	// affected shared stores so the UI reflects them without a tab-switch. Mirrors desktop's
+	// reloadStoresForBuckets, scoped to the stores mobile actually uses.
+	onMount(() => {
+		let unlisten: (() => void) | undefined
+		void setupCloudSyncMergeListener().then((u) => (unlisten = u))
+		return () => unlisten?.()
 	})
 
 	// Mirror the desktop layout: svelte-i18n loads the active locale's dictionary asynchronously, so
