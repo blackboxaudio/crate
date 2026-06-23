@@ -3,6 +3,7 @@
 	import { translate } from '$shared/i18n'
 	import { playlistsStore } from '$shared/stores/playlists'
 	import { toastStore } from '$shared/stores/toast'
+	import { refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
 
@@ -27,7 +28,7 @@
 
 	async function addTo(playlistId: string) {
 		await playlistsStore.addReleases(playlistId, releaseIds)
-		const count = releaseIds.length
+		void refreshPlaylistCovers(playlistId)
 		const t = get(translate)
 		toastStore.success(t('contextMenu.addToPlaylist'))
 		onClose()
@@ -39,6 +40,7 @@
 		const playlist = await playlistsStore.createPlaylist(trimmed, undefined, 'discovery')
 		if (!playlist) return
 		await playlistsStore.addReleases(playlist.id, releaseIds)
+		void refreshPlaylistCovers(playlist.id)
 		const t = get(translate)
 		toastStore.success(t('contextMenu.addToPlaylist'))
 		reset()

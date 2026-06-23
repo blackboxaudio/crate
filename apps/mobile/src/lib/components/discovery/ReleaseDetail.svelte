@@ -11,11 +11,14 @@
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { mobileUIStore, mobileDisplayedReleases } from '$lib/stores/mobileUI'
 	import { lightTap } from '$lib/utils/haptics'
+	import { confirmDialog } from '$lib/utils/dialog'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 	import MarqueeText from '$lib/components/common/MarqueeText.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import EqualizerBars from '$lib/components/common/EqualizerBars.svelte'
+	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
 	import MobileTagPicker from './MobileTagPicker.svelte'
 	import EditReleaseSheet from './EditReleaseSheet.svelte'
 	import SourceIcon from './SourceIcon.svelte'
@@ -34,6 +37,45 @@
 	let tagPickerOpen = $state(false)
 	let editSheetOpen = $state(false)
 	let playlistPickerOpen = $state(false)
+
+	// Release-level "more" menu (the header ⋯ button): an iOS-style context-menu platter anchored to the
+	// button, holding the actions that used to be cramped, unlabeled icon buttons (Edit, Open in source) plus
+	// Delete. Tap-triggered, so no lifted preview — the platter just springs from the button.
+	let menuOpen = $state(false)
+	let menuButtonEl = $state<HTMLButtonElement | null>(null)
+	let menuAnchor = $state<{ top: number; left: number; width: number; height: number } | null>(null)
+
+	function openMenu() {
+		void lightTap()
+		const r = menuButtonEl?.getBoundingClientRect()
+		menuAnchor = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
+		menuOpen = true
+	}
+	function menuAddToPlaylist() {
+		menuOpen = false
+		playlistPickerOpen = true
+	}
+	function menuEdit() {
+		menuOpen = false
+		editSheetOpen = true
+	}
+	function menuOpenInSource() {
+		menuOpen = false
+		void openUrl(release.url).catch(() => {})
+	}
+	async function menuDelete() {
+		menuOpen = false
+		const ok = await confirmDialog($translate('discovery.confirmDeleteMessage'), {
+			title: $translate('discovery.confirmDeleteTitle', { values: { count: 1 } }),
+			confirmLabel: $translate('common.delete'),
+		})
+		if (!ok) return
+		// Capture the id before closing: closeDetail() unmounts this screen (the +page {#if} drops it once
+		// the release leaves the store), after which the delete still completes in the background.
+		const id = release.id
+		mobileUIStore.closeDetail()
+		await discoveryStore.deleteRelease(id)
+	}
 
 	// Per-track queue actions: the trailing ⋯ on a row opens a small sheet offering Play next / Add to
 	// queue for that track. Both feed the two-tier queue (and, on iOS, the native window) live.
@@ -153,7 +195,7 @@
 				{/if}
 			</div>
 
-			<!-- Metadata + open-in-source action (icon sits to the right of the info block, vertically centered,
+			<!-- Metadata + a "more" action menu (the ⋯ sits to the right of the info block, vertically centered,
 		     to save the vertical whitespace a standalone button row would add). -->
 			<div class="flex items-center gap-3">
 				<div class="min-w-0 flex-1">
@@ -169,51 +211,23 @@
 						{#if release.release_date}{formatDate(release.release_date)}{/if}
 					</p>
 				</div>
-				<!-- Open in the source app (falls back to the browser via Universal/App Links). Icon-only with a
-			     source-matched glyph; no hover on touch, so the resting border signals it's tappable. The
-			     platform name lives in the aria-label. 44px hit target with a tactile active press. -->
+				<!-- One "more" button gathers every release-level action (Add to Playlist, Edit, Open in source,
+			     Delete) into the context-menu platter below — clearer (the actions are labeled) and tidier than
+			     the row of icon buttons + the standalone Add-to-Playlist button it replaces. 44px hit target. -->
 				<button
+					bind:this={menuButtonEl}
 					type="button"
 					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-stroke text-text-primary transition-transform active:scale-95 active:bg-surface-2"
-					aria-label={$translate('discovery.editRelease')}
-					onclick={() => (editSheetOpen = true)}
+					aria-label={$translate('common.more')}
+					aria-haspopup="menu"
+					aria-expanded={menuOpen}
+					onclick={openMenu}
 				>
-					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path
-							d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						/>
-						<path
-							d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
-							stroke-linecap="round"
-							stroke-linejoin="round"
-						/>
+					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+						<circle cx="5" cy="12" r="1.8" />
+						<circle cx="12" cy="12" r="1.8" />
+						<circle cx="19" cy="12" r="1.8" />
 					</svg>
-				</button>
-				<button
-					type="button"
-					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-stroke text-text-primary transition-transform active:scale-95 active:bg-surface-2"
-					aria-label={platformName
-						? $translate('discovery.openInApp', { values: { app: platformName } })
-						: $translate('discovery.openInBrowser')}
-					onclick={() => openUrl(release.url).catch(() => {})}
-				>
-					<SourceIcon source={release.source_type} />
-				</button>
-			</div>
-
-			<!-- Actions -->
-			<div class="mt-4">
-				<button
-					type="button"
-					class="flex items-center gap-2 rounded-md border border-stroke px-3 py-2 text-sm text-text-secondary active:bg-surface-2"
-					onclick={() => (playlistPickerOpen = true)}
-				>
-					<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M12 5v14M5 12h14" stroke-linecap="round" />
-					</svg>
-					{$translate('contextMenu.addToPlaylist')}
 				</button>
 			</div>
 
@@ -331,6 +345,58 @@
 <MobileTagPicker open={tagPickerOpen} releaseIds={[release.id]} onClose={() => (tagPickerOpen = false)} />
 <EditReleaseSheet open={editSheetOpen} {release} onClose={() => (editSheetOpen = false)} />
 <PlaylistPickerSheet open={playlistPickerOpen} releaseIds={[release.id]} onClose={() => (playlistPickerOpen = false)} />
+
+<!-- Release-level "more" menu (opened by the header ⋯ button). Tap-triggered, so no lifted preview. -->
+<ContextMenu open={menuOpen} anchorRect={menuAnchor} tapTriggered onClose={() => (menuOpen = false)}>
+	<ContextMenuItem onclick={menuAddToPlaylist}>
+		{$translate('contextMenu.addToPlaylist')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuEdit}>
+		{$translate('discovery.editRelease')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path
+					d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+				<path
+					d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem separatorBefore onclick={menuOpenInSource}>
+		{platformName
+			? $translate('discovery.openInApp', { values: { app: platformName } })
+			: $translate('discovery.openInBrowser')}
+		{#snippet icon()}
+			<SourceIcon source={release.source_type} />
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem destructive onclick={menuDelete}>
+		{$translate('discovery.deleteRelease')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path
+					d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+</ContextMenu>
 
 <!-- Per-track queue actions (opened by a row's ⋯ button). -->
 <MobileModal

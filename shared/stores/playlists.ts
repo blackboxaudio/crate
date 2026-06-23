@@ -3,6 +3,7 @@ import type {
 	ActiveView,
 	DiscoveryRelease,
 	Playlist,
+	PlaylistCoverArt,
 	SmartRules,
 	Track,
 	BreadcrumbItem,
@@ -351,6 +352,16 @@ function createPlaylistsStore() {
 					...state,
 					error: error instanceof Error ? error.message : 'Failed to get playlist releases',
 				}))
+				return []
+			}
+		},
+
+		// Up to 4 distinct release covers per playlist, for mosaic thumbnails. Fails silently
+		// (empty result) — thumbnails are cosmetic and shouldn't surface an error to the user.
+		async getPlaylistCoverArt(playlistIds: string[]): Promise<PlaylistCoverArt[]> {
+			try {
+				return await playlistsApi.getPlaylistCoverArt(playlistIds)
+			} catch {
 				return []
 			}
 		},

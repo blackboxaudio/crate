@@ -1,11 +1,10 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 
-	// A single row inside a `ContextMenu` platter, styled like an iOS context-menu action: the label leads
-	// and the glyph sits on the trailing edge (the inverse of a Material list row), destructive actions are
-	// tinted red, and an optional hairline groups it from the rows above. Pair with `ContextMenu`.
+	// A single row inside a `ContextMenu` platter: a leading glyph followed by its label, destructive actions
+	// tinted red, and an optional hairline grouping it from the rows above. Pair with `ContextMenu`.
 	type Props = {
-		/** Trailing glyph (iOS puts the icon on the right of the label). */
+		/** Leading glyph, rendered to the left of the label. */
 		icon?: Snippet
 		/** Tint the row red — for destructive actions (Delete, Remove). */
 		destructive?: boolean
@@ -30,7 +29,6 @@
 		: 'text-text-primary'}"
 	{onclick}
 >
-	<span class="min-w-0 flex-1 truncate">{@render children()}</span>
 	{#if icon}
 		<span
 			class="flex h-5 w-5 flex-shrink-0 items-center justify-center {destructive
@@ -40,4 +38,5 @@
 			{@render icon()}
 		</span>
 	{/if}
+	<span class="min-w-0 flex-1 truncate">{@render children()}</span>
 </button>

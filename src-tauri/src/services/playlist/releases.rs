@@ -224,4 +224,76 @@ impl PlaylistService {
 
         Ok(releases)
     }
+
+    /// Fetch up to 4 distinct release covers for each of the given playlists, for mosaic
+    /// thumbnails. Deliberately lightweight: no track/tag joins (unlike `get_playlist_releases`),
+    /// so it can be batched across every playlist visible in a list. Dedupes by `artwork_url`
+    /// (a playlist may hold releases that share a cover), ranks each distinct cover by its
+    /// earliest position, and keeps the first 4 per playlist. Returns an entry for every
+    /// requested id (with an empty vec when a playlist has no usable covers) so callers can
+    /// cache the "no covers" result and avoid refetching.
+    pub fn get_playlist_cover_art(
+        &self,
+        playlist_ids: &[String],
+    ) -> Result<Vec<PlaylistCoverArt>> {
+        // Pre-seed one entry per requested id, preserving input order.
+        let mut result: Vec<PlaylistCoverArt> = playlist_ids
+            .iter()
+            .map(|id| PlaylistCoverArt {
+                playlist_id: id.clone(),
+                artwork_urls: Vec::new(),
+            })
+            .collect();
+
+        if playlist_ids.is_empty() {
+            return Ok(result);
+        }
+
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+
+        let placeholders = playlist_ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<_>>()
+            .join(", ");
+        let param_refs: Vec<&dyn rusqlite::ToSql> = playlist_ids
+            .iter()
+            .map(|id| id as &dyn rusqlite::ToSql)
+            .collect();
+
+        let sql = format!(
+            r#"
+            SELECT playlist_id, artwork_url FROM (
+                SELECT playlist_id, artwork_url,
+                       ROW_NUMBER() OVER (PARTITION BY playlist_id ORDER BY first_pos) AS rn
+                FROM (
+                    SELECT pdr.playlist_id AS playlist_id,
+                           dr.artwork_url AS artwork_url,
+                           MIN(pdr.position) AS first_pos
+                    FROM playlist_discovery_releases pdr
+                    JOIN discovery_releases dr ON dr.id = pdr.release_id
+                    WHERE pdr.playlist_id IN ({placeholders})
+                      AND dr.artwork_url IS NOT NULL AND dr.artwork_url <> ''
+                    GROUP BY pdr.playlist_id, dr.artwork_url
+                )
+            ) WHERE rn <= 4
+            ORDER BY playlist_id, rn
+            "#
+        );
+
+        let mut stmt = conn.prepare(&sql)?;
+        let rows = stmt
+            .query_map(param_refs.as_slice(), |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<std::result::Result<Vec<(String, String)>, _>>()?;
+
+        for (playlist_id, artwork_url) in rows {
+            if let Some(entry) = result.iter_mut().find(|c| c.playlist_id == playlist_id) {
+                entry.artwork_urls.push(artwork_url);
+            }
+        }
+
+        Ok(result)
+    }
 }

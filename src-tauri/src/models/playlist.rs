@@ -70,3 +70,13 @@ pub struct MovePlaylistResult {
     pub playlist: Playlist,
     pub nested_conflicts: Vec<MoveConflict>,
 }
+
+/// The first few distinct release covers for a playlist, used to render Spotify-style
+/// 2x2 mosaic thumbnails in playlist lists without loading the full playlist contents.
+/// Serialized snake_case to match the `DiscoveryRelease` field convention on the frontend.
+#[derive(Debug, Serialize)]
+pub struct PlaylistCoverArt {
+    pub playlist_id: String,
+    /// Up to 4 distinct artwork URLs, ordered by the release's position in the playlist.
+    pub artwork_urls: Vec<String>,
+}

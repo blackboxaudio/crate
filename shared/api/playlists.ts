@@ -4,6 +4,7 @@ import type {
 	MoveConflictResolution,
 	MovePlaylistResult,
 	Playlist,
+	PlaylistCoverArt,
 	SmartRules,
 	Track,
 } from '../types'
@@ -113,6 +114,14 @@ export async function getPlaylistReleases(playlistId: string): Promise<Discovery
 
 export async function reorderPlaylistReleases(playlistId: string, releaseIds: string[]): Promise<void> {
 	return invoke<void>('reorder_playlist_releases', { playlistId, releaseIds })
+}
+
+/**
+ * Get up to 4 distinct release covers per playlist, for mosaic thumbnails. Lightweight
+ * (no tracks/tags) so it can be batched across every playlist visible in a list.
+ */
+export async function getPlaylistCoverArt(playlistIds: string[]): Promise<PlaylistCoverArt[]> {
+	return invoke<PlaylistCoverArt[]>('get_playlist_cover_art', { playlistIds })
 }
 
 /**

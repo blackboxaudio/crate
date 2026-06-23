@@ -8,7 +8,7 @@
 	import Header from './Header.svelte'
 	import TabBar from './TabBar.svelte'
 	import SelectionBar from '$lib/components/discovery/SelectionBar.svelte'
-	import ReleaseActionsSheet from '$lib/components/discovery/ReleaseActionsSheet.svelte'
+	import ReleaseContextMenu from '$lib/components/discovery/ReleaseContextMenu.svelte'
 	import PlaylistPickerSheet from '$lib/components/playlists/PlaylistPickerSheet.svelte'
 	import MobileDiscoveryView from '$lib/components/discovery/MobileDiscoveryView.svelte'
 	import PlaylistsView from '$lib/components/playlists/PlaylistsView.svelte'
@@ -96,5 +96,7 @@
 	{/if}
 </div>
 
-<ReleaseActionsSheet releases={$sortedReleases} onAddToPlaylist={openFeedPicker} />
+<!-- Always mounted; opens only for its own context, so the feed and playlist-detail instances never both
+     render for a release present in both. -->
+<ReleaseContextMenu context="feed" releases={$sortedReleases} onAddToPlaylist={openFeedPicker} />
 <PlaylistPickerSheet open={feedPickerOpen} releaseIds={feedPickerReleaseIds} onClose={() => (feedPickerOpen = false)} />

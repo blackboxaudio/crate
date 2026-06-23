@@ -226,6 +226,7 @@ pub fn run() {
             commands::playlist::remove_releases_from_playlist,
             commands::playlist::get_playlist_releases,
             commands::playlist::reorder_playlist_releases,
+            commands::playlist::get_playlist_cover_art,
             commands::playlist::create_smart_playlist,
             commands::playlist::update_smart_rules,
             commands::playlist::get_smart_playlist_tracks,

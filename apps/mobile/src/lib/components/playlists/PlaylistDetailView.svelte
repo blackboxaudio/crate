@@ -8,10 +8,12 @@
 	import { mobileUIStore, playlistReorderMode, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { lightTap } from '$lib/utils/haptics'
+	import { refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
-	import ReleaseActionsSheet from '$lib/components/discovery/ReleaseActionsSheet.svelte'
+	import ReleaseFeedList from '$lib/components/discovery/ReleaseFeedList.svelte'
+	import ReleaseContextMenu from '$lib/components/discovery/ReleaseContextMenu.svelte'
 	import SelectionBar from '$lib/components/discovery/SelectionBar.svelte'
 	import PlaylistPickerSheet from './PlaylistPickerSheet.svelte'
 	import SortableReleaseList from './SortableReleaseList.svelte'
@@ -65,6 +67,8 @@
 	async function handleReorder(releaseIds: string[]) {
 		discoveryPlaylistStore.reorderInCache(playlist.id, releaseIds)
 		await playlistsStore.reorderReleases(playlist.id, releaseIds)
+		// Reorder can change which four releases lead the playlist → refresh its mosaic thumbnail.
+		void refreshPlaylistCovers(playlist.id)
 	}
 
 	function openPickerForSingle(releaseId: string) {
@@ -89,6 +93,7 @@
 		if (!ok) return
 		await playlistsStore.removeReleases(playlist.id, [releaseId])
 		discoveryPlaylistStore.filterOutAndCache(playlist.id, [releaseId])
+		void refreshPlaylistCovers(playlist.id)
 	}
 
 	async function batchRemoveFromPlaylist() {
@@ -105,6 +110,7 @@
 		mobileUIStore.exitSelectMode()
 		await playlistsStore.removeReleases(playlist.id, ids)
 		discoveryPlaylistStore.filterOutAndCache(playlist.id, ids)
+		void refreshPlaylistCovers(playlist.id)
 	}
 </script>
 
@@ -161,33 +167,35 @@
 			</div>
 		</div>
 
-		<!-- Content -->
-		<div
-			class="flex-1 overflow-x-hidden {animating ? 'overflow-y-hidden' : 'overflow-y-auto'}"
-			style="padding-bottom: var(--mini-player-inset, 0px)"
-		>
-			{#if loading}
-				<div class="flex items-center justify-center py-12">
-					<Spinner class="h-6 w-6 text-text-tertiary" />
-				</div>
-			{:else if releases.length === 0}
-				<div class="px-4 py-12 text-center text-sm text-text-secondary">
-					{$translate('playlists.noPlaylists')}
-				</div>
-			{:else if isReorderMode}
+		<!-- Content. The list branch hands its scroll container to ReleaseFeedList (the same virtualized list
+		     the Discovery feed uses), so it renders directly as the flex child — no outer scroll wrapper, which
+		     would nest scrollers and double the mini-player inset. Loading / empty / reorder keep their own
+		     scrollable wrapper; reorder stays non-virtualized because SortableReleaseList's drag math needs
+		     every row present. -->
+		{#if loading}
+			<div class="flex flex-1 items-center justify-center py-12">
+				<Spinner class="h-6 w-6 text-text-tertiary" />
+			</div>
+		{:else if releases.length === 0}
+			<div class="flex-1 px-4 py-12 text-center text-sm text-text-secondary">
+				{$translate('playlists.noPlaylists')}
+			</div>
+		{:else if isReorderMode}
+			<div
+				class="min-h-0 flex-1 overflow-x-hidden {animating ? 'overflow-y-hidden' : 'overflow-y-auto'}"
+				style="padding-bottom: var(--mini-player-inset, 0px)"
+			>
 				<SortableReleaseList {releases} onReorder={handleReorder} />
-			{:else}
-				<div class="flex flex-col">
-					{#each releases as release, index (release.id)}
-						<div class="h-[72px]">
-							<ReleaseCard {release} playlistId={playlist.id} context="playlist" />
-						</div>
-					{/each}
-				</div>
-			{/if}
-		</div>
+			</div>
+		{:else}
+			<ReleaseFeedList {releases} scrollLocked={animating} row={releaseRow} />
+		{/if}
 	{/snippet}
 </Drawer>
+
+{#snippet releaseRow({ release })}
+	<ReleaseCard {release} playlistId={playlist.id} context="playlist" />
+{/snippet}
 
 {#if isSelectMode}
 	<SelectionBar
@@ -197,7 +205,8 @@
 	/>
 {/if}
 
-<ReleaseActionsSheet
+<ReleaseContextMenu
+	context="playlist"
 	{releases}
 	playlistId={playlist.id}
 	onAddToPlaylist={openPickerForSingle}

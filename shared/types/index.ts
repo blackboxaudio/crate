@@ -269,6 +269,12 @@ export interface Playlist {
 	context: ActiveView
 }
 
+/** The first few distinct release covers for a playlist, for 2x2 mosaic thumbnails. */
+export interface PlaylistCoverArt {
+	playlist_id: string
+	artwork_urls: string[]
+}
+
 export type MoveConflictResolution = 'overwrite' | 'merge'
 
 export interface MoveConflict {

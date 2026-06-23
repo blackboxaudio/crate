@@ -7,9 +7,10 @@
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { toastStore } from '$shared/stores/toast'
 	import { mobileUIStore, selectMode, selectedReleaseIds, openRowId } from '$lib/stores/mobileUI'
-	import { lightTap } from '$lib/utils/haptics'
+	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import Spinner from '$lib/components/common/Spinner.svelte'
+	import ReleaseCardContent from './ReleaseCardContent.svelte'
 
 	// A discovery feed row. Shows artwork + title + artist + label and hosts ONE combined pointer gesture
 	// that disambiguates between: vertical scroll (always wins for the list), a plain tap (open the detail,
@@ -29,7 +30,10 @@
 	const isSelected = $derived($selectedReleaseIds.has(release.id))
 	const isCurrentPreview = $derived($previewInfo?.releaseId === release.id)
 	const isPreviewLoading = $derived($previewLoadingReleaseId === release.id)
-	const highlighted = $derived(isSelected || isCurrentPreview)
+	// In select mode only the selection should read as highlighted — applying the current-preview tint there
+	// would make the playing release look selected when it isn't. Outside select mode the selection set is
+	// empty, so this is just the current-preview highlight.
+	const highlighted = $derived(isSelectMode ? isSelected : isCurrentPreview)
 
 	// --- Gesture state --------------------------------------------------------------------------------
 	const LONG_PRESS_MS = 450
@@ -50,6 +54,7 @@
 	let velocity = 0
 	let openAtStart = 0
 	let longPressTimer = 0
+	let foregroundEl = $state<HTMLElement | null>(null) // the row's foreground div; its rect anchors the context menu
 
 	const bgClass = $derived(highlighted ? 'bg-brand-muted' : pressed && !dragging ? 'bg-surface-2' : 'bg-surface-0')
 
@@ -109,8 +114,12 @@
 	function onLongPress() {
 		longPressTimer = 0
 		if (mode !== 'pending') return
-		void lightTap()
-		mobileUIStore.openActionsSheet(release.id, context)
+		void rigidTap()
+		// Snapshot the row's viewport rect so the context menu can lift a preview of it in place. `revealPx`
+		// is 0 here (long-press only arms from a closed row), so the foreground sits at its resting position.
+		const r = foregroundEl?.getBoundingClientRect()
+		const rect = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
+		mobileUIStore.openActionsSheet(release.id, context, rect)
 		mode = 'idle'
 		pressed = false
 		detachWindow()
@@ -278,6 +287,7 @@
 	<!-- Foreground: the card itself, translated left to reveal the Delete action. Owns the pointer FSM.
 	     `touch-pan-y` lets the browser keep handling vertical scroll until we claim a horizontal swipe. -->
 	<div
+		bind:this={foregroundEl}
 		role="button"
 		tabindex="0"
 		aria-label={`${release.artist ?? $translate('common.unknownArtist')} — ${release.title ?? $translate('common.untitled')}`}
@@ -301,29 +311,7 @@
 			</span>
 		{/if}
 
-		{#if release.artwork_url}
-			<img src={release.artwork_url} alt="" class="h-12 w-12 flex-shrink-0 rounded object-cover" loading="lazy" />
-		{:else}
-			<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded bg-surface-2 text-text-tertiary">
-				<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
-					<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-				</svg>
-			</div>
-		{/if}
-
-		<div class="flex min-w-0 flex-1 flex-col leading-tight">
-			<span class="truncate text-sm font-medium text-text-primary">
-				{release.title ?? $translate('common.untitled')}
-			</span>
-			<span class="truncate text-xs text-text-secondary">
-				{release.artist ?? $translate('common.unknownArtist')}
-			</span>
-			<!-- Label line is always rendered (a non-breaking space when absent) so every row keeps the fixed
-			     height the virtualizer estimates — a conditional line would desync row heights while scrolling. -->
-			<span class="truncate text-xs text-text-tertiary" aria-hidden={!release.label}>
-				{release.label ?? ' '}
-			</span>
-		</div>
+		<ReleaseCardContent {release} />
 
 		{#if !isSelectMode}
 			{#if isPreviewLoading}

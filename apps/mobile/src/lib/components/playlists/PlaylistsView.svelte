@@ -1,15 +1,19 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
+	import { onMount, untrack } from 'svelte'
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
 	import type { Playlist } from '$shared/types'
 	import { playlistsStore, getPlaylistChildren } from '$shared/stores/playlists'
 	import { mobileUIStore } from '$lib/stores/mobileUI'
+	import { getPlaylistCovers, ensurePlaylistCovers } from '$lib/stores/playlistCovers'
 	import { confirmDialog } from '$lib/utils/dialog'
-	import { lightTap } from '$lib/utils/haptics'
+	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import MobileList from '$lib/components/common/MobileList.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
+	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
+	import PlaylistThumbnail from './PlaylistThumbnail.svelte'
 
 	onMount(() => {
 		playlistsStore.load()
@@ -29,6 +33,15 @@
 			if (a.is_folder !== b.is_folder) return a.is_folder ? -1 : 1
 			return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 		})
+	})
+
+	// Batch-load mosaic covers for the playlists shown at the current level; re-runs as folder
+	// navigation changes which playlists are visible. Folders have no covers, so they're excluded.
+	$effect(() => {
+		const ids = children.filter((c) => !c.is_folder).map((c) => c.id)
+		// Re-run only when the visible playlists change — untrack the cover-map reads inside `ensure`
+		// (its `.has()` checks are reactive) so loading covers doesn't re-trigger this effect.
+		if (ids.length > 0) untrack(() => ensurePlaylistCovers(ids))
 	})
 
 	function pushFolder(folderId: string) {
@@ -58,6 +71,11 @@
 	let longPressTimer = 0
 	let longPressTarget = $state<Playlist | null>(null)
 	let rowActionsOpen = $state(false)
+	// Viewport rect of the long-pressed row, so the context menu can lift it in place.
+	let longPressRect = $state<{ top: number; left: number; width: number; height: number } | null>(null)
+	// A stationary long-press also synthesizes a click on release; this latches so we can swallow that one
+	// click (otherwise opening the menu would also navigate into the row — `MobileListItem` is a real <button>).
+	let suppressNextClick = false
 
 	function openCreate(type: 'playlist' | 'folder') {
 		createType = type
@@ -108,15 +126,21 @@
 	}
 
 	function onRowLongPress(playlist: Playlist) {
-		void lightTap()
+		void rigidTap()
 		longPressTarget = playlist
 		rowActionsOpen = true
 	}
 
 	function startLongPress(e: PointerEvent, playlist: Playlist) {
+		suppressNextClick = false
 		if (longPressTimer) clearTimeout(longPressTimer)
+		// Capture the row element now; `currentTarget` is nulled once the event finishes dispatching.
+		const el = e.currentTarget as HTMLElement
 		longPressTimer = window.setTimeout(() => {
 			longPressTimer = 0
+			const r = el?.getBoundingClientRect()
+			longPressRect = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
+			suppressNextClick = true
 			onRowLongPress(playlist)
 		}, 450)
 		window.addEventListener('pointermove', cancelLongPress, { once: true, passive: true })
@@ -129,6 +153,14 @@
 			clearTimeout(longPressTimer)
 			longPressTimer = 0
 		}
+	}
+
+	// Swallow the synthesized click that follows a long-press so the menu doesn't also open the row.
+	function onRowClickCapture(e: MouseEvent) {
+		if (!suppressNextClick) return
+		suppressNextClick = false
+		e.preventDefault()
+		e.stopPropagation()
 	}
 </script>
 
@@ -148,6 +180,9 @@
 					</svg>
 				</button>
 				<span class="truncate text-base font-medium text-text-primary">{currentFolder?.name ?? ''}</span>
+			{:else}
+				<span class="truncate px-2 text-base font-medium text-text-primary">{$translate('playlists.allPlaylists')}</span
+				>
 			{/if}
 		</div>
 		<div class="flex items-center gap-1">
@@ -182,22 +217,18 @@
 	<MobileList isEmpty={children.length === 0} empty={emptyState}>
 		{#each children as item (item.id)}
 			{#if item.is_folder}
-				<div onpointerdown={(e) => startLongPress(e, item)}>
+				<div onpointerdown={(e) => startLongPress(e, item)} onclickcapture={onRowClickCapture}>
 					<MobileListItem onclick={() => pushFolder(item.id)}>
 						{#snippet leading()}
-							<svg
-								class="h-5 w-5 text-text-secondary"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-							>
-								<path
-									d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-								/>
-							</svg>
+							<div class="flex h-11 w-11 items-center justify-center rounded bg-surface-2 text-text-secondary">
+								<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path
+										d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+									/>
+								</svg>
+							</div>
 						{/snippet}
 						{#snippet trailing()}
 							<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -208,20 +239,10 @@
 					</MobileListItem>
 				</div>
 			{:else}
-				<div onpointerdown={(e) => startLongPress(e, item)}>
+				<div onpointerdown={(e) => startLongPress(e, item)} onclickcapture={onRowClickCapture}>
 					<MobileListItem onclick={() => openPlaylist(item.id)}>
 						{#snippet leading()}
-							<svg
-								class="h-5 w-5 text-text-secondary"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-							>
-								<path d="M9 18V5l12-2v13" stroke-linecap="round" stroke-linejoin="round" />
-								<circle cx="6" cy="18" r="3" />
-								<circle cx="18" cy="16" r="3" />
-							</svg>
+							<PlaylistThumbnail urls={getPlaylistCovers(item.id)} />
 						{/snippet}
 						{#snippet trailing()}
 							<span class="text-xs tabular-nums">{item.track_count}</span>
@@ -310,38 +331,56 @@
 	{/snippet}
 </MobileModal>
 
-<!-- Row long-press actions -->
-<MobileModal open={rowActionsOpen} onClose={() => (rowActionsOpen = false)} title={longPressTarget?.name ?? ''}>
-	<div class="flex flex-col">
-		<button
-			type="button"
-			class="flex items-center gap-3 rounded-md px-2 py-3 text-left text-sm text-text-primary active:bg-surface-2"
-			onclick={() => longPressTarget && openRename(longPressTarget)}
-		>
-			<svg
-				class="h-5 w-5 flex-shrink-0 text-text-secondary"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-			>
+<!-- Row long-press context menu -->
+<ContextMenu
+	open={rowActionsOpen}
+	anchorRect={longPressRect}
+	onClose={() => (rowActionsOpen = false)}
+	onClosed={() => {
+		longPressTarget = null
+		longPressRect = null
+	}}
+>
+	{#snippet preview()}
+		{#if longPressTarget}
+			<span class="flex-shrink-0">
+				{#if longPressTarget.is_folder}
+					<div class="flex h-11 w-11 items-center justify-center rounded bg-surface-2 text-text-secondary">
+						<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path
+								d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							/>
+						</svg>
+					</div>
+				{:else}
+					<PlaylistThumbnail urls={getPlaylistCovers(longPressTarget.id)} />
+				{/if}
+			</span>
+			<span class="min-w-0 flex-1 truncate text-sm text-text-primary">{longPressTarget.name}</span>
+		{/if}
+	{/snippet}
+
+	<ContextMenuItem onclick={() => longPressTarget && openRename(longPressTarget)}>
+		{$translate('common.rename')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M17 3a2.828 2.828 0 114 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
 			</svg>
-			{$translate('common.rename')}
-		</button>
-		<button
-			type="button"
-			class="flex items-center gap-3 rounded-md px-2 py-3 text-left text-sm text-danger active:bg-surface-2"
-			onclick={() => longPressTarget && handleDelete(longPressTarget)}
-		>
-			<svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem destructive onclick={() => longPressTarget && handleDelete(longPressTarget)}>
+		{$translate('common.delete')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path
 					d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"
 					stroke-linecap="round"
 					stroke-linejoin="round"
 				/>
 			</svg>
-			{$translate('common.delete')}
-		</button>
-	</div>
-</MobileModal>
+		{/snippet}
+	</ContextMenuItem>
+</ContextMenu>

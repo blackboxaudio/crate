@@ -464,6 +464,7 @@
 		"folderEmpty": "このフォルダは空です",
 		"noPlaylistsYet": "まだプレイリストがありません",
 		"noPlaylists": "まだプレイリストがありません",
+		"allPlaylists": "すべてのプレイリスト",
 		"exportToDevice": "デバイスにエクスポート"
 	},
 	"tags": {
