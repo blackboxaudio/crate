@@ -46,6 +46,17 @@
 		}
 	})
 
+	// Repopulate the mini-player on launch with whatever preview was playing when the app last closed —
+	// the track plus its saved progress, shuffle, and tempo (those non-preview values are restored from
+	// storage when the store initializes). Mirrors desktop's useAppSetup; mobile is preview-only, so we
+	// restore the preview, not a library track. restorePreview() only sets previewInfo — it never expands
+	// the player — so the state lands in the mini-player, paused and ready to resume, by design. Needs only
+	// Tauri IPC (getRelease), which is ready at mount, so it doesn't wait on i18n/settings; the mini-player
+	// renders reactively once previewInfo resolves.
+	onMount(() => {
+		void playerStore.restorePreview()
+	})
+
 	// Auto-open the full-screen player when the user returns to Crate from the lock screen while a
 	// preview is loaded — tapping the Now Playing controls to get back to the track is a clear "take me
 	// to it" intent, so we surface the player instead of leaving them on whatever tab they left. The

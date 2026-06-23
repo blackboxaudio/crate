@@ -14,9 +14,10 @@ use crate::services::media_controls::{NativePreviewEngine, NativeTrackEntry};
 pub async fn native_preview_play(
     tracks: Vec<NativeTrackEntry>,
     start_index: usize,
+    start_position_ms: u64,
     engine: State<'_, NativePreviewEngine>,
 ) -> Result<()> {
-    engine.play(tracks, start_index);
+    engine.play(tracks, start_index, start_position_ms);
     Ok(())
 }
 

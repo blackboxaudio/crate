@@ -203,6 +203,11 @@ function createPlayerStore() {
 						playbackState: { ...state.playbackState, position_ms: duration_ms, is_playing: false },
 					}
 				}
+				// Persist the playhead (throttled) so a preview's progress survives an app restart. The
+				// HTML5 path has no equivalent of the iOS native bridge's position persistence, and the
+				// library-only JS position timer doesn't run for previews, so without this the saved
+				// position only updates on pause/seek — a kill mid-play would lose the progress.
+				persistPosition(positionMs)
 				return {
 					...state,
 					playbackState: { ...state.playbackState, position_ms: positionMs },
@@ -353,12 +358,15 @@ function createPlayerStore() {
 	// current item keeps playing untouched. Keeps `nativeWindow` in lockstep with the engine's `entries`.
 	async function feedNativeWindow(
 		current: { release: DiscoveryRelease; trackIndex: number },
-		mode: 'reload' | 'slide'
+		mode: 'reload' | 'slide',
+		// Only used on 'reload': begin the current track this many ms in (0 = from the start). Non-zero
+		// when restoring the last session on relaunch so the engine starts at the saved position.
+		startPositionMs = 0
 	) {
 		const picks = playbackQueue.peekUpcoming(nativeWindowDepth(current.release, current.trackIndex))
 		if (mode === 'reload') {
 			const tracks = await buildNativeTracks([current, ...picks])
-			await nativePreviewPlayer.play(tracks, 0)
+			await nativePreviewPlayer.play(tracks, 0, startPositionMs)
 			nativeWindow = [current, ...picks]
 			nativeIndex = 0
 		} else {
@@ -448,9 +456,17 @@ function createPlayerStore() {
 		},
 
 		/**
-		 * Play a preview of a discovery release track.
+		 * Play a preview of a discovery release track. `startPositionMs` begins playback that many ms into
+		 * the track (0 = from the start); it's non-zero only when resuming a session restored from storage,
+		 * so the track picks up where it left off. Currently honored on the iOS native path (the HTML5
+		 * restore path seeks in `resume()` itself).
 		 */
-		async playPreview(release: DiscoveryRelease, trackIndex: number = 0, queue?: DiscoveryRelease[]) {
+		async playPreview(
+			release: DiscoveryRelease,
+			trackIndex: number = 0,
+			queue?: DiscoveryRelease[],
+			startPositionMs = 0
+		) {
 			previewRetryAttempted = false
 			const state = getState()
 			const track = release.tracks[trackIndex]
@@ -485,21 +501,25 @@ function createPlayerStore() {
 			// the upcoming tail.
 			if (useNative) {
 				try {
-					await feedNativeWindow({ release, trackIndex }, 'reload')
+					await feedNativeWindow({ release, trackIndex }, 'reload', startPositionMs)
 					await nativePreviewPlayer.setVolume(state.isMuted ? 0 : state.playbackState.volume)
+					// Apply the active/persisted tempo: native_preview_play starts a fresh AVPlayer item at
+					// 1.0x, so without this a (re)start — including restore-then-resume, or starting a new
+					// release after a tempo change — would play at normal speed while the UI shows the offset.
+					void nativePreviewPlayer.setRate(state.playbackState.speed)
 					isRestoredFromStorage = false
 					setStoredString('player.playbackSource', 'preview')
 					setStoredString('player.previewReleaseId', release.id)
 					setStoredNumber('player.previewTrackIndex', trackIndex)
 					setStoredNumber('player.durationMs', track.duration_ms || 0)
-					persistPositionImmediate(0)
+					persistPositionImmediate(startPositionMs)
 					update((s) => ({
 						...s,
 						currentTrack: null,
 						playbackState: {
 							...s.playbackState,
 							is_playing: true,
-							position_ms: 0,
+							position_ms: startPositionMs,
 							duration_ms: track.duration_ms || 0,
 							current_track_id: null,
 							current_track_path: null,
@@ -603,11 +623,18 @@ function createPlayerStore() {
 
 			if (state.playbackSource === 'preview') {
 				if (useNative) {
-					// Restored from storage (app relaunch): the native engine lost its in-memory playlist,
-					// so re-issue playPreview to rebuild it; otherwise just resume.
+					// Restored from storage (app relaunch): the native engine lost its in-memory playlist, so
+					// re-issue playPreview to rebuild it — starting at the persisted position so the track picks
+					// up where it left off. The engine seeks before the item renders, so there's no blip back to
+					// the start (unlike seeking after playback has already begun from 0).
 					if (isRestoredFromStorage && state.previewInfo) {
 						isRestoredFromStorage = false
-						await this.playPreview(state.previewInfo.release, state.previewInfo.trackIndex)
+						await this.playPreview(
+							state.previewInfo.release,
+							state.previewInfo.trackIndex,
+							undefined,
+							state.playbackState.position_ms
+						)
 						return
 					}
 					void nativePreviewPlayer.resume()

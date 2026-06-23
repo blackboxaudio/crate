@@ -45,8 +45,13 @@ export interface NativeBridgeHandlers {
 	onDebug?: (message: string) => void
 }
 
-export async function play(tracks: NativeTrack[], startIndex: number): Promise<void> {
-	await invoke('native_preview_play', { tracks, startIndex })
+/**
+ * Load `tracks` and start playing from `startIndex`, beginning `startPositionMs` into that track
+ * (0 = from the start). A non-zero offset is used when restoring the last session on relaunch so the
+ * engine begins at the saved position instead of playing from the start and then seeking back.
+ */
+export async function play(tracks: NativeTrack[], startIndex: number, startPositionMs = 0): Promise<void> {
+	await invoke('native_preview_play', { tracks, startIndex, startPositionMs })
 }
 
 /**

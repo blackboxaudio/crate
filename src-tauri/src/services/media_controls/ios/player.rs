@@ -100,14 +100,15 @@ impl PlaybackEngineInner {
         self.time_observer = Some(token);
     }
 
-    /// Replace the playlist and start playing from `start_index`.
-    pub fn load(&mut self, entries: Vec<NativeTrackEntry>, start_index: usize) {
+    /// Replace the playlist and start playing from `start_index`, beginning `start_position_ms` into
+    /// that track (0 = from the start; non-zero only when restoring the last session on app relaunch).
+    pub fn load(&mut self, entries: Vec<NativeTrackEntry>, start_index: usize, start_position_ms: u64) {
         if entries.is_empty() {
             return;
         }
         self.entries = entries;
         let i = start_index.min(self.entries.len() - 1);
-        self.play_index(i);
+        self.play_index_at(i, start_position_ms);
     }
 
     /// Replace the UPCOMING tail (everything after the current index) without touching the
@@ -127,6 +128,15 @@ impl PlaybackEngineInner {
     }
 
     fn play_index(&mut self, i: usize) {
+        self.play_index_at(i, 0);
+    }
+
+    /// Like [`Self::play_index`] but begins playback `start_position_ms` into the track (0 = from the
+    /// start). A non-zero offset is used when restoring the last session on relaunch: the item is sought
+    /// to the saved position BEFORE it starts rendering, so the first audio (and the emitted/lock-screen
+    /// position) is at the offset rather than blipping from the start. AVPlayer queues a seek issued
+    /// before the item is ready and applies it once ready, so the seek-then-play order avoids the flash.
+    fn play_index_at(&mut self, i: usize, start_position_ms: u64) {
         let Some(entry) = self.entries.get(i).cloned() else {
             return;
         };
@@ -175,15 +185,30 @@ impl PlaybackEngineInner {
                 item.setAudioTimePitchAlgorithm(varispeed);
             }
             self.player.replaceCurrentItemWithPlayerItem(Some(&item));
+        }
+        self.playing = true;
+        let start_secs = start_position_ms as f64 / 1000.0;
+        now_playing::update(&self.app, &entry, start_secs, self.rate);
+        engine::emit_track_changed(&self.app, self.index);
+        // Position the item at the restore offset BEFORE starting playback. `self.seek` queues the seek
+        // (AVPlayer applies it once the item is ready), sets the `seeking` guard so the periodic observer
+        // doesn't flash the playhead to 0 in the meantime, and emits the target position straight away.
+        if start_position_ms > 0 {
+            self.seek(start_position_ms);
+        }
+        // SAFETY: AVPlayer.play / setRate are main-thread safe. Started AFTER the seek above so playback
+        // begins at the offset rather than rendering from the start first.
+        unsafe {
             self.player.play();
             if (self.rate - 1.0).abs() > f32::EPSILON {
                 self.player.setRate(self.rate);
             }
         }
-        self.playing = true;
-        now_playing::update(&self.app, &entry, 0.0, self.rate);
-        engine::emit_track_changed(&self.app, self.index);
-        self.emit_current_state();
+        // Fresh-from-start track: emit the initial (0) state now. For a restore, `self.seek` above already
+        // emitted the offset position (and suppressed the periodic observer until the seek lands).
+        if start_position_ms == 0 {
+            self.emit_current_state();
+        }
         // AVPlayer load failures are otherwise silent — the periodic time observer doesn't tick while
         // an item is stuck loading, so a stream AVFoundation can't play would sit in a fake "playing"
         // state forever. Watch this item's status until it resolves and surface any failure.

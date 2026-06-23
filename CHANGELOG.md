@@ -18,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added the mobile discovery feed: a virtualized, searchable list of release cards (artwork, artist, title, label) with tag-filter chips (AND/OR), sorting (date added, artist, title, label), swipe-to-delete, and long-press multi-select for batch delete and batch tag assignment
 - Added an account & cloud-sync control to the mobile top bar: a live status chip (synced, syncing, offline, or error) showing your account avatar that opens a sheet to sync now, see when the library last synced, or sign out — and the bar now shows the active section's title (Playlists, Tags, Settings) in place of the wordmark
 - Added a first-class playback queue to the mobile preview player: an "Up Next" sheet (opened from the full-screen player) listing songs you've queued ahead of what the discovery feed will play next, with "Play next" and "Add to queue" from each track's menu in the release detail and a swipe action on feed cards, drag-to-reorder and swipe-to-remove for queued songs, and persistence across relaunch; queued songs always play before the shuffle/sequence resumes and are never reshuffled, and on iOS a lazily-resolved native-engine window keeps queued songs and cross-release advances gapless while the screen is locked
+- Added restoring your listening state on the mobile app's launch: the preview you were last playing reappears in the mini-player — with its track progress, shuffle, and tempo — paused and ready to resume, without auto-opening the full-screen player
 
 ### Changed
 

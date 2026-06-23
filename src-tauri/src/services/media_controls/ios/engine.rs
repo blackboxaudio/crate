@@ -49,14 +49,16 @@ impl NativePreviewEngine {
         Self { app }
     }
 
-    /// Load a release's tracks (pre-resolved proxy URLs) and start playing from `start_index`.
-    pub fn play(&self, tracks: Vec<NativeTrackEntry>, start_index: usize) {
+    /// Load a release's tracks (pre-resolved proxy URLs) and start playing from `start_index`, beginning
+    /// `start_position_ms` into that track (0 = from the start; non-zero only when restoring the last
+    /// session on app relaunch, so playback resumes where it left off without a blip from the start).
+    pub fn play(&self, tracks: Vec<NativeTrackEntry>, start_index: usize, start_position_ms: u64) {
         let app = self.app.clone();
         run_on_main(&self.app, move || {
             ENGINE.with(|cell| {
                 let mut slot = cell.borrow_mut();
                 let engine = slot.get_or_insert_with(|| PlaybackEngineInner::new(app.clone()));
-                engine.load(tracks, start_index);
+                engine.load(tracks, start_index, start_position_ms);
             });
         });
     }
