@@ -87,6 +87,28 @@ impl PlaylistService {
         self.get_playlist(playlist_id)
     }
 
+    pub fn reorder_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<()> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+
+        let hlc = dirty::next_hlc(&conn)?;
+        for (i, release_id) in release_ids.iter().enumerate() {
+            conn.execute(
+                "UPDATE playlist_discovery_releases SET position = ?1, _hlc = ?2 WHERE playlist_id = ?3 AND release_id = ?4",
+                rusqlite::params![i as i32, hlc, playlist_id, release_id],
+            )?;
+        }
+
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, playlist_id],
+        )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
+
+        Ok(())
+    }
+
     pub fn get_playlist_releases(&self, playlist_id: &str) -> Result<Vec<DiscoveryRelease>> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 

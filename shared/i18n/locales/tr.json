@@ -21,7 +21,8 @@
 		"playlist": "çalma listesi",
 		"next": "İleri",
 		"back": "Geri",
-		"more": "Daha fazla"
+		"more": "Daha fazla",
+		"select": "Seç"
 	},
 	"nav": {
 		"library": "Kütüphane",
@@ -306,6 +307,10 @@
 		"noResults": "Filtrelerinizle eşleşen yayın yok",
 		"addReleaseHint": "{shortcut} tuşuna basarak Bandcamp, Discogs, YouTube ve daha fazlasından yayın ekleyin",
 		"mobileAddHint": "Bandcamp, Discogs, YouTube ve daha fazlasından yayın ekleyin",
+		"pending": "Bekleniyor",
+		"offlineQueueNotice": "Çevrimdışısınız — yeniden bağlandığınızda bu yayın eklenecektir",
+		"addToQueue": "Kuyruğa Ekle",
+		"editRelease": "Yayını Düzenle",
 		"sortBy": "Sırala",
 		"selectedCount": "{count, plural, =1 {1 seçildi} other {{count} seçildi}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Yayını sil?} other {{count} yayını sil?}}",

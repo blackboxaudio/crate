@@ -21,3 +21,34 @@ export function getReleasePlatformName(sourceType: DiscoverySourceType): string 
 			return null
 	}
 }
+
+export function isSupportedDiscoveryUrl(input: string): boolean {
+	const lower = input.toLowerCase()
+	return (
+		lower.includes('bandcamp.com') ||
+		lower.includes('soundcloud.com') ||
+		lower.includes('youtube.com') ||
+		lower.includes('youtu.be') ||
+		lower.includes('discogs.com')
+	)
+}
+
+export function isDiscoveryPageUrl(input: string): boolean {
+	const lower = input.toLowerCase()
+	if (lower.includes('bandcamp.com') && !lower.includes('/album/') && !lower.includes('/track/')) {
+		return true
+	}
+	if (lower.includes('discogs.com') && (lower.includes('/artist/') || lower.includes('/label/'))) {
+		return true
+	}
+	return false
+}
+
+export function detectSourceType(url: string): DiscoverySourceType {
+	const lower = url.toLowerCase()
+	if (lower.includes('bandcamp.com')) return 'bandcamp'
+	if (lower.includes('soundcloud.com')) return 'soundcloud'
+	if (lower.includes('youtube.com') || lower.includes('youtu.be')) return 'youtube'
+	if (lower.includes('discogs.com')) return 'discogs'
+	return 'other'
+}

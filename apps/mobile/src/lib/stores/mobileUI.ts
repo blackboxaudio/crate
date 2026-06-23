@@ -49,6 +49,21 @@ interface MobileUIState {
 	openRowId: string | null
 	/** One-shot: settings section to scroll into view after switching to the Settings tab. */
 	settingsScrollTarget: string | null
+	/** Discovery playlist whose detail screen is open (full-screen overlay), or null. */
+	detailPlaylistId: string | null
+	/** Whether the playlist detail is in its covering position (mirrors detailCovering). */
+	playlistDetailCovering: boolean
+	/** Whether the playlist detail is in reorder mode (long-press-drag to reorder releases). */
+	playlistReorderMode: boolean
+	/** Release ID for which the actions sheet is open, or null. */
+	actionsReleaseId: string | null
+	/** Context in which the actions sheet was opened — determines available actions. */
+	actionsContext: 'feed' | 'playlist' | null
+	/**
+	 * Viewport rect of the long-pressed row (captured at long-press fire-time), so the context menu can
+	 * lift a preview of it in place and anchor the platter to it. Plain snapshot (not a live `DOMRect`).
+	 */
+	actionsAnchorRect: { top: number; left: number; width: number; height: number } | null
 }
 
 const initialState: MobileUIState = {
@@ -65,6 +80,12 @@ const initialState: MobileUIState = {
 	addReleaseOpen: false,
 	openRowId: null,
 	settingsScrollTarget: null,
+	detailPlaylistId: null,
+	playlistDetailCovering: false,
+	playlistReorderMode: false,
+	actionsReleaseId: null,
+	actionsContext: null,
+	actionsAnchorRect: null,
 }
 
 function createMobileUIStore() {
@@ -180,6 +201,54 @@ function createMobileUIStore() {
 			update((s) => (s.settingsScrollTarget === null ? s : { ...s, settingsScrollTarget: null }))
 		},
 
+		// --- Playlist detail overlay (mirrors release detail pattern) ---------------------------------
+		openPlaylist(playlistId: string) {
+			update((s) => ({
+				...s,
+				detailPlaylistId: playlistId,
+				playlistDetailCovering: true,
+				playlistReorderMode: false,
+				selectMode: false,
+				selectedReleaseIds: new Set(),
+				openRowId: null,
+			}))
+		},
+		beginClosePlaylist() {
+			update((s) => ({ ...s, playlistDetailCovering: false, playlistReorderMode: false }))
+		},
+		closePlaylist() {
+			update((s) => ({
+				...s,
+				detailPlaylistId: null,
+				playlistDetailCovering: false,
+				playlistReorderMode: false,
+			}))
+		},
+		toggleReorderMode() {
+			update((s) => ({ ...s, playlistReorderMode: !s.playlistReorderMode }))
+		},
+		exitReorderMode() {
+			update((s) => ({ ...s, playlistReorderMode: false }))
+		},
+
+		// --- Release context menu ---------------------------------------------------------------------
+		openActionsSheet(
+			releaseId: string,
+			context: 'feed' | 'playlist',
+			anchorRect: { top: number; left: number; width: number; height: number } | null
+		) {
+			update((s) => ({
+				...s,
+				actionsReleaseId: releaseId,
+				actionsContext: context,
+				actionsAnchorRect: anchorRect,
+				openRowId: null,
+			}))
+		},
+		closeActionsSheet() {
+			update((s) => ({ ...s, actionsReleaseId: null, actionsContext: null, actionsAnchorRect: null }))
+		},
+
 		// --- Swipe-to-delete single-open invariant --------------------------------------------------
 		/** Record which row's delete action is revealed; opening one row closes any other. Pass null to
 		 *  close the open row (e.g. on scroll). */
@@ -227,3 +296,9 @@ export const selectedReleaseIds = derived(mobileUIStore, ($s) => $s.selectedRele
 export const selectedReleaseCount = derived(mobileUIStore, ($s) => $s.selectedReleaseIds.size)
 export const addReleaseOpen = derived(mobileUIStore, ($s) => $s.addReleaseOpen)
 export const openRowId = derived(mobileUIStore, ($s) => $s.openRowId)
+export const detailPlaylistId = derived(mobileUIStore, ($s) => $s.detailPlaylistId)
+export const playlistDetailCovering = derived(mobileUIStore, ($s) => $s.playlistDetailCovering)
+export const playlistReorderMode = derived(mobileUIStore, ($s) => $s.playlistReorderMode)
+export const actionsReleaseId = derived(mobileUIStore, ($s) => $s.actionsReleaseId)
+export const actionsContext = derived(mobileUIStore, ($s) => $s.actionsContext)
+export const actionsAnchorRect = derived(mobileUIStore, ($s) => $s.actionsAnchorRect)

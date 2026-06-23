@@ -21,7 +21,8 @@
 		"playlist": "Playlist",
 		"next": "Weiter",
 		"back": "Zurück",
-		"more": "Mehr"
+		"more": "Mehr",
+		"select": "Auswählen"
 	},
 	"nav": {
 		"library": "Bibliothek",
@@ -306,6 +307,10 @@
 		"noResults": "Keine Releases entsprechen Ihren Filtern",
 		"addReleaseHint": "Drücken Sie {shortcut}, um Releases von Bandcamp, Discogs, YouTube und mehr hinzuzufügen",
 		"mobileAddHint": "Releases von Bandcamp, Discogs, YouTube und mehr hinzufügen",
+		"pending": "Ausstehend",
+		"offlineQueueNotice": "Sie sind offline – dieses Release wird hinzugefügt, wenn Sie die Verbindung wiederherstellen",
+		"addToQueue": "Zur Warteschlange hinzufügen",
+		"editRelease": "Release bearbeiten",
 		"sortBy": "Sortieren nach",
 		"selectedCount": "{count, plural, =1 {1 ausgewählt} other {{count} ausgewählt}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Release löschen?} other {{count} Releases löschen?}}",

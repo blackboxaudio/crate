@@ -21,7 +21,8 @@
 		"playlist": "afspeellijst",
 		"next": "Volgende",
 		"back": "Terug",
-		"more": "Meer"
+		"more": "Meer",
+		"select": "Selecteren"
 	},
 	"nav": {
 		"library": "Bibliotheek",
@@ -306,6 +307,10 @@
 		"noResults": "Geen releases komen overeen met je filters",
 		"addReleaseHint": "Druk {shortcut} om releases van Bandcamp, Discogs, YouTube en meer toe te voegen",
 		"mobileAddHint": "Releases van Bandcamp, Discogs, YouTube en meer toevoegen",
+		"pending": "In behandeling",
+		"offlineQueueNotice": "Je bent offline — deze release wordt toegevoegd als je verbonden bent",
+		"addToQueue": "Toevoegen aan wachtrij",
+		"editRelease": "Release bewerken",
 		"sortBy": "Sorteren op",
 		"selectedCount": "{count, plural, =1 {1 geselecteerd} other {{count} geselecteerd}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Release verwijderen?} other {{count} releases verwijderen?}}",

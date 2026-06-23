@@ -5,13 +5,17 @@
 	// (z-50). The detail push and expanded player cover the tab bar; the mini-player floats above it.
 	import MobileShell from '$lib/components/layout/MobileShell.svelte'
 	import ReleaseDetail from '$lib/components/discovery/ReleaseDetail.svelte'
+	import PlaylistDetailView from '$lib/components/playlists/PlaylistDetailView.svelte'
 	import MiniPlayer from '$lib/components/player/MiniPlayer.svelte'
 	import ExpandedPlayer from '$lib/components/player/ExpandedPlayer.svelte'
-	import { detailReleaseId } from '$lib/stores/mobileUI'
+	import { detailReleaseId, detailPlaylistId } from '$lib/stores/mobileUI'
 	import { sortedReleases } from '$shared/stores/discovery'
+	import { playlistsStore } from '$shared/stores/playlists'
 
-	// Resolve the open detail release from the store so notes/tag edits reflect live; null closes it.
 	const detailRelease = $derived($sortedReleases.find((r) => r.id === $detailReleaseId) ?? null)
+	const detailPlaylist = $derived(
+		$detailPlaylistId ? ($playlistsStore.playlists.find((p) => p.id === $detailPlaylistId) ?? null) : null
+	)
 </script>
 
 <MobileShell />
@@ -20,8 +24,9 @@
 	<ReleaseDetail release={detailRelease} />
 {/if}
 
-<!-- Persistent preview bar; renders only while a preview is active and persists across navigation. -->
-<MiniPlayer />
+{#if detailPlaylist}
+	<PlaylistDetailView playlist={detailPlaylist} />
+{/if}
 
-<!-- Stays mounted while a preview exists; opens/collapses internally on $isPlayerExpanded. -->
+<MiniPlayer />
 <ExpandedPlayer />

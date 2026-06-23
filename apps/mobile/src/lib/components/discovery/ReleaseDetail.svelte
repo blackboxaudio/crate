@@ -17,7 +17,9 @@
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import EqualizerBars from '$lib/components/common/EqualizerBars.svelte'
 	import MobileTagPicker from './MobileTagPicker.svelte'
+	import EditReleaseSheet from './EditReleaseSheet.svelte'
 	import SourceIcon from './SourceIcon.svelte'
+	import PlaylistPickerSheet from '$lib/components/playlists/PlaylistPickerSheet.svelte'
 
 	// Full-screen release detail: large artwork, metadata, editable notes (auto-save on blur),
 	// assignable tags (via the bottom-sheet picker), and the track list with per-track preview playback.
@@ -29,24 +31,9 @@
 	}
 	let { release }: Props = $props()
 
-	// Notes: local editing state, synced from the release only when switching to a different release so
-	// in-progress typing isn't clobbered by store refreshes. Auto-saves on blur (mirrors desktop's
-	// DiscoveryEditor onblur behaviour).
-	let notesValue = $state('')
-	let loadedId = $state('')
-	$effect(() => {
-		if (release.id !== loadedId) {
-			notesValue = release.notes ?? ''
-			loadedId = release.id
-		}
-	})
-
-	async function handleNotesBlur() {
-		if (notesValue === (release.notes ?? '')) return
-		await discoveryStore.updateRelease(release.id, { notes: notesValue })
-	}
-
 	let tagPickerOpen = $state(false)
+	let editSheetOpen = $state(false)
+	let playlistPickerOpen = $state(false)
 
 	// Per-track queue actions: the trailing ⋯ on a row opens a small sheet offering Play next / Add to
 	// queue for that track. Both feed the two-tier queue (and, on iOS, the native window) live.
@@ -188,12 +175,45 @@
 				<button
 					type="button"
 					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-stroke text-text-primary transition-transform active:scale-95 active:bg-surface-2"
+					aria-label={$translate('discovery.editRelease')}
+					onclick={() => (editSheetOpen = true)}
+				>
+					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path
+							d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+						<path
+							d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg>
+				</button>
+				<button
+					type="button"
+					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-stroke text-text-primary transition-transform active:scale-95 active:bg-surface-2"
 					aria-label={platformName
 						? $translate('discovery.openInApp', { values: { app: platformName } })
 						: $translate('discovery.openInBrowser')}
 					onclick={() => openUrl(release.url).catch(() => {})}
 				>
 					<SourceIcon source={release.source_type} />
+				</button>
+			</div>
+
+			<!-- Actions -->
+			<div class="mt-4">
+				<button
+					type="button"
+					class="flex items-center gap-2 rounded-md border border-stroke px-3 py-2 text-sm text-text-secondary active:bg-surface-2"
+					onclick={() => (playlistPickerOpen = true)}
+				>
+					<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+					</svg>
+					{$translate('contextMenu.addToPlaylist')}
 				</button>
 			</div>
 
@@ -295,24 +315,22 @@
 				</div>
 			</div>
 
-			<!-- Notes -->
-			<div class="mt-6">
-				<h2 class="mb-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
-					{$translate('discovery.editor.notes')}
-				</h2>
-				<textarea
-					bind:value={notesValue}
-					onblur={handleNotesBlur}
-					rows="3"
-					placeholder={$translate('discovery.editor.notesPlaceholder')}
-					class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-				></textarea>
-			</div>
+			<!-- Notes (read-only; editing is via the Edit sheet) -->
+			{#if release.notes}
+				<div class="mt-6">
+					<h2 class="mb-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
+						{$translate('discovery.editor.notes')}
+					</h2>
+					<p class="text-sm whitespace-pre-wrap text-text-secondary">{release.notes}</p>
+				</div>
+			{/if}
 		</div>
 	{/snippet}
 </Drawer>
 
 <MobileTagPicker open={tagPickerOpen} releaseIds={[release.id]} onClose={() => (tagPickerOpen = false)} />
+<EditReleaseSheet open={editSheetOpen} {release} onClose={() => (editSheetOpen = false)} />
+<PlaylistPickerSheet open={playlistPickerOpen} releaseIds={[release.id]} onClose={() => (playlistPickerOpen = false)} />
 
 <!-- Per-track queue actions (opened by a row's ⋯ button). -->
 <MobileModal

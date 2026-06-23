@@ -21,7 +21,8 @@
 		"playlist": "playlist",
 		"next": "Următorul",
 		"back": "Înapoi",
-		"more": "Mai mult"
+		"more": "Mai mult",
+		"select": "Selectează"
 	},
 	"nav": {
 		"library": "Bibliotecă",
@@ -306,6 +307,10 @@
 		"noResults": "Nicio lansare nu corespunde filtrelor dvs.",
 		"addReleaseHint": "Apăsați {shortcut} pentru a adăuga lansări de pe Bandcamp, Discogs, YouTube și altele",
 		"mobileAddHint": "Adaugă lansări de pe Bandcamp, Discogs, YouTube și altele",
+		"pending": "În așteptare",
+		"offlineQueueNotice": "Sunteți deconectat — această lansare va fi adăugată când vă reconectați",
+		"addToQueue": "Adaugă în coadă",
+		"editRelease": "Editează Lansare",
 		"sortBy": "Sortează după",
 		"selectedCount": "{count, plural, =1 {1 selectat} other {{count} selectate}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Șterge lansare?} other {Șterge {count} lansări?}}",

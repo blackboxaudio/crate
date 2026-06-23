@@ -6,8 +6,10 @@
 	import { mobileUIStore, scrollTargetReleaseId, mobileDisplayedReleases } from '$lib/stores/mobileUI'
 	import { createVirtualList } from '$shared/utils/virtualizer.svelte'
 	import MobileListSkeleton from '$lib/components/common/MobileListSkeleton.svelte'
+	import { pendingReleases } from '$lib/stores/pendingReleases'
 	import DiscoveryToolbar from './DiscoveryToolbar.svelte'
 	import ReleaseCard from './ReleaseCard.svelte'
+	import PendingReleaseCard from './PendingReleaseCard.svelte'
 	import AddReleaseModal from './AddReleaseModal.svelte'
 
 	// Real Discovery feed: a search/sort/filter toolbar over a VIRTUALIZED list of release cards. The list
@@ -108,6 +110,14 @@
 		class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto"
 		style="padding-bottom: var(--mini-player-inset, 0px)"
 	>
+		{#if $pendingReleases.length > 0}
+			<div class="border-b border-stroke-subtle">
+				{#each $pendingReleases as pending (pending.id)}
+					<PendingReleaseCard {pending} />
+				{/each}
+			</div>
+		{/if}
+
 		{#if $isDiscoveryLoading && totalReleases === 0}
 			<div role="status" aria-label={$translate('common.loading')}>
 				<MobileListSkeleton />
@@ -158,5 +168,5 @@
 	</div>
 </div>
 
-<!-- Add-release entry point (placeholder body; the functional flow is issue #56). Reads its own open state. -->
+<!-- Add-release modal. Reads its own open state. -->
 <AddReleaseModal />

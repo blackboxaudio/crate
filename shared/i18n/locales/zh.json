@@ -21,7 +21,8 @@
 		"playlist": "播放列表",
 		"next": "下一个",
 		"back": "返回",
-		"more": "更多"
+		"more": "更多",
+		"select": "选择"
 	},
 	"nav": {
 		"library": "曲库",
@@ -306,6 +307,10 @@
 		"noResults": "没有发行符合您的筛选条件",
 		"addReleaseHint": "按下 {shortcut} 从 Bandcamp、Discogs、YouTube 等添加发行",
 		"mobileAddHint": "从 Bandcamp、Discogs、YouTube 等添加发行",
+		"pending": "待处理",
+		"offlineQueueNotice": "您处于离线状态 — 重新连接后将添加此发行",
+		"addToQueue": "添加到队列",
+		"editRelease": "编辑发行",
 		"sortBy": "排序方式",
 		"selectedCount": "{count, plural, =1 {已选择 1 个} other {已选择 {count} 个}}",
 		"confirmDeleteTitle": "{count, plural, =1 {删除发行?} other {删除 {count} 个发行?}}",

@@ -166,6 +166,15 @@ pub async fn get_playlist_releases(
 }
 
 #[tauri::command]
+pub async fn reorder_playlist_releases(
+    playlist_id: String,
+    release_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<()> {
+    playlists.reorder_releases(&playlist_id, release_ids)
+}
+
+#[tauri::command]
 pub async fn create_smart_playlist(
     name: String,
     parent_id: Option<String>,

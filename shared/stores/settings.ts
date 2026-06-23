@@ -282,7 +282,7 @@ function createSettingsStore() {
 		/**
 		 * Load settings from backend
 		 */
-		async load() {
+		async load(opts?: { skipLanguage?: boolean }) {
 			update((s) => ({ ...s, loading: true, error: null }))
 
 			try {
@@ -333,10 +333,11 @@ function createSettingsStore() {
 				persistToLocalStorage(settings.theme, settings.accentColor, settings.language, settings.font)
 				setupSystemThemeListener()
 
-				// Update i18n language and menu
-				await setI18nLanguage(settings.language)
-				await tick()
-				await updateMenuTranslations()
+				if (!opts?.skipLanguage) {
+					await setI18nLanguage(settings.language)
+					await tick()
+					await updateMenuTranslations()
+				}
 			} catch (error) {
 				update((s) => ({
 					...s,

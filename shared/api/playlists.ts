@@ -111,6 +111,10 @@ export async function getPlaylistReleases(playlistId: string): Promise<Discovery
 	return invoke<DiscoveryRelease[]>('get_playlist_releases', { playlistId })
 }
 
+export async function reorderPlaylistReleases(playlistId: string, releaseIds: string[]): Promise<void> {
+	return invoke<void>('reorder_playlist_releases', { playlistId, releaseIds })
+}
+
 /**
  * Create a new smart playlist
  */

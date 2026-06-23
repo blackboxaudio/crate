@@ -2,15 +2,31 @@
 	import { onMount } from 'svelte'
 	import { fly, fade } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
-	import { activeTab, selectMode } from '$lib/stores/mobileUI'
+	import { activeTab, selectMode, selectedReleaseIds, detailPlaylistId } from '$lib/stores/mobileUI'
 	import { previewInfo } from '$shared/stores/player'
+	import { sortedReleases } from '$shared/stores/discovery'
 	import Header from './Header.svelte'
 	import TabBar from './TabBar.svelte'
 	import SelectionBar from '$lib/components/discovery/SelectionBar.svelte'
+	import ReleaseActionsSheet from '$lib/components/discovery/ReleaseActionsSheet.svelte'
+	import PlaylistPickerSheet from '$lib/components/playlists/PlaylistPickerSheet.svelte'
 	import MobileDiscoveryView from '$lib/components/discovery/MobileDiscoveryView.svelte'
 	import PlaylistsView from '$lib/components/playlists/PlaylistsView.svelte'
 	import TagsView from '$lib/components/tags/TagsView.svelte'
 	import SettingsView from '$lib/components/settings/SettingsView.svelte'
+
+	let feedPickerOpen = $state(false)
+	let feedPickerReleaseIds = $state<string[]>([])
+
+	function openFeedPicker(releaseId: string) {
+		feedPickerReleaseIds = [releaseId]
+		feedPickerOpen = true
+	}
+
+	function openFeedPickerForSelection() {
+		feedPickerReleaseIds = [...$selectedReleaseIds]
+		feedPickerOpen = true
+	}
 
 	// Composition root for the mobile app: a branded fixed Header (top), the active tab's view, and the
 	// fixed bottom TabBar. `<main>` is a non-scrolling frame (overflow-hidden) — each view owns its own
@@ -73,8 +89,12 @@
 
 	<TabBar />
 
-	<!-- Multi-select action bar overlays the tab bar's slot while the discovery feed is in select mode. -->
-	{#if $selectMode}
-		<SelectionBar />
+	<!-- Multi-select action bar overlays the tab bar's slot while the discovery feed is in select mode.
+	     Suppressed when a playlist overlay is open — it renders its own bar with playlist-context actions. -->
+	{#if $selectMode && !$detailPlaylistId}
+		<SelectionBar onAddToPlaylist={openFeedPickerForSelection} />
 	{/if}
 </div>
+
+<ReleaseActionsSheet releases={$sortedReleases} onAddToPlaylist={openFeedPicker} />
+<PlaylistPickerSheet open={feedPickerOpen} releaseIds={feedPickerReleaseIds} onClose={() => (feedPickerOpen = false)} />

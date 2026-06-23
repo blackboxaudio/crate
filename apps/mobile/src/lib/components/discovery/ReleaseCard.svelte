@@ -20,8 +20,10 @@
 	// modelled on the axis-lock / velocity-flick approach in `$lib/actions/swipe.ts`.
 	type Props = {
 		release: DiscoveryRelease
+		playlistId?: string | null
+		context?: 'feed' | 'playlist'
 	}
-	let { release }: Props = $props()
+	let { release, playlistId = null, context = 'feed' }: Props = $props()
 
 	const isSelectMode = $derived($selectMode)
 	const isSelected = $derived($selectedReleaseIds.has(release.id))
@@ -108,8 +110,7 @@
 		longPressTimer = 0
 		if (mode !== 'pending') return
 		void lightTap()
-		mobileUIStore.enterSelectMode(release.id)
-		// Consume the gesture — the lifting finger is a no-op.
+		mobileUIStore.openActionsSheet(release.id, context)
 		mode = 'idle'
 		pressed = false
 		detachWindow()

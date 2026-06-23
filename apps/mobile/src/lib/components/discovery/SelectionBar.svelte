@@ -8,6 +8,13 @@
 	// Bottom action bar for multi-select mode. Overlays the tab bar (same bottom slot) while the feed is in
 	// select mode; the mini-player keeps floating above it. Batch tag-assign reuses the (now multi-release)
 	// MobileTagPicker; batch delete confirms first, then clears the selection.
+	type Props = {
+		playlistId?: string | null
+		onRemoveFromPlaylist?: () => void
+		onAddToPlaylist?: () => void
+	}
+	let { playlistId = null, onRemoveFromPlaylist, onAddToPlaylist }: Props = $props()
+
 	let tagPickerOpen = $state(false)
 
 	const count = $derived($selectedReleaseCount)
@@ -40,6 +47,32 @@
 			</span>
 		</div>
 		<div class="flex items-center gap-1">
+			{#if onAddToPlaylist}
+				<button
+					type="button"
+					disabled={count === 0}
+					aria-label={$translate('contextMenu.addToPlaylist')}
+					class="flex h-9 w-9 items-center justify-center rounded-md text-text-secondary active:bg-surface-2 disabled:opacity-40"
+					onclick={onAddToPlaylist}
+				>
+					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+					</svg>
+				</button>
+			{/if}
+			{#if playlistId && onRemoveFromPlaylist}
+				<button
+					type="button"
+					disabled={count === 0}
+					aria-label={$translate('contextMenu.removeFromPlaylist')}
+					class="flex h-9 w-9 items-center justify-center rounded-md text-danger active:bg-surface-2 disabled:opacity-40"
+					onclick={onRemoveFromPlaylist}
+				>
+					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M5 12h14" stroke-linecap="round" />
+					</svg>
+				</button>
+			{/if}
 			<button
 				type="button"
 				disabled={count === 0}

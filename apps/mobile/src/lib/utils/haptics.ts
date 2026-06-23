@@ -12,3 +12,24 @@ export async function lightTap(): Promise<void> {
 		// Haptics unavailable — ignore.
 	}
 }
+
+/** A medium impact — a firmer acknowledgement than {@link lightTap} (e.g. committing a selection). */
+export async function mediumTap(): Promise<void> {
+	try {
+		await impactFeedback('medium')
+	} catch {
+		// Haptics unavailable — ignore.
+	}
+}
+
+/**
+ * A sharp, rigid impact — the closest match to iOS's context-menu "thump" when a long-press commits.
+ * Fired the moment a context menu opens. Best-effort like the others.
+ */
+export async function rigidTap(): Promise<void> {
+	try {
+		await impactFeedback('rigid')
+	} catch {
+		// Haptics unavailable — ignore.
+	}
+}

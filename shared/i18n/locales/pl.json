@@ -21,7 +21,8 @@
 		"playlist": "playlista",
 		"next": "Dalej",
 		"back": "Wstecz",
-		"more": "Więcej"
+		"more": "Więcej",
+		"select": "Wybierz"
 	},
 	"nav": {
 		"library": "Biblioteka",
@@ -306,6 +307,10 @@
 		"noResults": "Żadne wydania nie pasują do twoich filtrów",
 		"addReleaseHint": "Naciśnij {shortcut}, aby dodać wydania z Bandcamp, Discogs, YouTube i innych",
 		"mobileAddHint": "Dodaj wydania z Bandcamp, Discogs, YouTube i innych",
+		"pending": "Oczekujące",
+		"offlineQueueNotice": "Jesteś w trybie offline — to wydanie zostanie dodane po ponownym połączeniu",
+		"addToQueue": "Dodaj do kolejki",
+		"editRelease": "Edytuj wydanie",
 		"sortBy": "Sortuj według",
 		"selectedCount": "{count, plural, =1 {1 zaznaczony} other {{count} zaznaczonych}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Usunąć wydanie?} other {Usunąć {count} wydań?}}",

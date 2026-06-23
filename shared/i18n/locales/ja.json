@@ -21,7 +21,8 @@
 		"playlist": "プレイリスト",
 		"next": "次へ",
 		"back": "戻る",
-		"more": "その他"
+		"more": "その他",
+		"select": "選択"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -306,6 +307,10 @@
 		"noResults": "フィルターに合致するリリースがありません",
 		"addReleaseHint": "{shortcut} を押して Bandcamp、Discogs、YouTube などからリリースを追加してください",
 		"mobileAddHint": "Bandcamp、Discogs、YouTube などからリリースを追加してください",
+		"pending": "保留中",
+		"offlineQueueNotice": "オフラインです — 再度接続したときにこのリリースが追加されます",
+		"addToQueue": "キューに追加",
+		"editRelease": "リリースを編集",
 		"sortBy": "並べ替え",
 		"selectedCount": "{count, plural, =1 {1個選択} other {{count}個選択}}",
 		"confirmDeleteTitle": "{count, plural, =1 {リリースを削除しますか?} other {{count}個のリリースを削除しますか?}}",

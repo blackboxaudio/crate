@@ -10,6 +10,7 @@
 	import { playerStore, previewInfo } from '$shared/stores/player'
 	import { isIOS } from '$shared/utils/platform'
 	import { mobileUIStore, isPlayerExpanded } from '$lib/stores/mobileUI'
+	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
 	import { setupCloudSyncMergeListener } from '$lib/cloudSyncMerge'
 	// @ts-expect-error — PUBLIC_APP_VERSION is set dynamically by vite.config.ts
 	import { PUBLIC_APP_VERSION } from '$env/static/public'
@@ -109,6 +110,14 @@
 		return () => unlisten?.()
 	})
 
+	// Hydrate the offline add queue from localStorage; if we're online, drain any pending items now.
+	// Network listeners auto-process the queue when connectivity returns.
+	onMount(() => {
+		pendingReleasesStore.hydrate()
+		pendingReleasesStore.attachNetworkListeners()
+		if (navigator.onLine) void pendingReleasesStore.processQueue()
+	})
+
 	// Mirror the desktop layout: svelte-i18n loads the active locale's dictionary asynchronously, so
 	// gate rendering until it's ready — otherwise the first `$translate()` throws "Cannot format a
 	// message without first setting the initial locale" and the page bails to a blank screen.
@@ -123,7 +132,7 @@
 		// in app.html already applied the correct theme pre-paint; this keeps the Svelte store in sync
 		// so settings controls reflect the real values. load() is mobile-safe (the desktop-only
 		// audio-devices call is guarded), so it resolves rather than rejecting on mobile.
-		await settingsStore.load()
+		await settingsStore.load({ skipLanguage: true })
 
 		// Boot done — dismiss the splash (honoring the minimum on-screen time); it scale-fades out.
 		const elapsed = Date.now() - splashStart

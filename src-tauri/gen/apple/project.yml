@@ -32,6 +32,7 @@ targets:
       - path: Sources
       - path: Assets.xcassets
       - path: Externals
+        buildPhase: none
       - path: crate-app_iOS
       - path: assets
         buildPhase: resources
@@ -54,6 +55,22 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         CFBundleShortVersionString: 0.2.9
         CFBundleVersion: "0.2.9"
+        CFBundleLocalizations:
+          - en
+          - de
+          - es
+          - fr
+          - it
+          - ja
+          - ko
+          - nl
+          - pl
+          - pt
+          - ro
+          - sv
+          - tr
+          - uk
+          - zh
     entitlements:
       path: crate-app_iOS/crate-app_iOS.entitlements
     scheme:

@@ -329,6 +329,17 @@ function createPlaylistsStore() {
 			}
 		},
 
+		async reorderReleases(playlistId: string, releaseIds: string[]) {
+			try {
+				await playlistsApi.reorderPlaylistReleases(playlistId, releaseIds)
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to reorder releases',
+				}))
+			}
+		},
+
 		/**
 		 * Get discovery releases in a playlist
 		 */
