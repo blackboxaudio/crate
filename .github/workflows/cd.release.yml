@@ -214,9 +214,271 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/nsis/*.exe.sig
 
+  android:
+    name: Build Android APK
+    needs: validate
+    runs-on: ubuntu-latest
+    # Mobile jobs must never block a desktop release — if signing secrets are absent or the build
+    # fails, the desktop release still publishes.
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+          targets: aarch64-linux-android
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: mobile-android
+          cache-targets: true
+          cache-on-failure: true
+          save-if: 'false'
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # Vendored OpenSSL + SQLCipher need NDK clang/ar for cross-compilation (mirrored from ci.build.yml).
+      - name: Configure Android NDK toolchain
+        run: |
+          NDK="$ANDROID_NDK_LATEST_HOME"
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+          echo "$TOOLCHAIN/bin" >> "$GITHUB_PATH"
+          {
+            echo "ANDROID_NDK_ROOT=$NDK"
+            echo "ANDROID_NDK_HOME=$NDK"
+            echo "CC_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
+            echo "CXX_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android24-clang++"
+            echo "AR_aarch64-linux-android=$TOOLCHAIN/bin/llvm-ar"
+            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
+          } >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Write cloud sync config
+        env:
+          GCLOUD_PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+          GCLOUD_WEB_API_KEY: ${{ secrets.GCLOUD_WEB_API_KEY }}
+          GCLOUD_STORAGE_BUCKET: ${{ secrets.GCLOUD_STORAGE_BUCKET }}
+          GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
+          GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
+          GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+        run: node scripts/write-cloud-config.mjs
+
+      - name: Determine signing availability
+        id: signing
+        env:
+          HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          if [[ "$HAS_KEYSTORE" == "true" ]]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Android signing secrets not configured — building unsigned APK"
+          fi
+
+      - name: Decode keystore and write key.properties
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.keystore"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > src-tauri/gen/android/key.properties
+
+      - name: Write mobile icons
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: node scripts/write-mobile-icons.mjs --platform android --channel "${CHANNEL/production/prod}"
+
+      - name: Build Android APK
+        env:
+          CRATE_ENV: ${{ needs.validate.outputs.channel }}
+        run: yarn tauri android build --apk --features mobile
+
+      - name: Prepare release artifacts
+        id: artifacts
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: |
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -path "*/release/*" | head -1)
+          if [[ -z "$APK" ]]; then
+            echo "::error::No release APK found"
+            exit 1
+          fi
+          DEST="Crate_${VERSION}_android.apk"
+          cp "$APK" "$DEST"
+          sha256sum "$DEST" > "${DEST}.sha256"
+          echo "apk=$DEST" >> "$GITHUB_OUTPUT"
+          echo "sha256=${DEST}.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: |
+            ${{ steps.artifacts.outputs.apk }}
+            ${{ steps.artifacts.outputs.sha256 }}
+
+  ios:
+    name: Build iOS (TestFlight)
+    needs: validate
+    runs-on: macos-latest
+    continue-on-error: true
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+          targets: aarch64-apple-ios
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: mobile-ios
+          cache-targets: true
+          cache-on-failure: true
+          save-if: 'false'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Write cloud sync config
+        env:
+          GCLOUD_PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+          GCLOUD_WEB_API_KEY: ${{ secrets.GCLOUD_WEB_API_KEY }}
+          GCLOUD_STORAGE_BUCKET: ${{ secrets.GCLOUD_STORAGE_BUCKET }}
+          GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
+          GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
+          GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+        run: node scripts/write-cloud-config.mjs
+
+      - name: Write iOS Info.plist
+        env:
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+        run: yarn ios:plist:write
+
+      - name: Write mobile icons
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: node scripts/write-mobile-icons.mjs --platform ios --channel "${CHANNEL/production/prod}"
+
+      - name: Determine signing availability
+        id: signing
+        env:
+          HAS_CERT: ${{ secrets.IOS_DIST_CERTIFICATE_P12_BASE64 != '' }}
+          HAS_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8_BASE64 != '' }}
+        run: |
+          if [[ "$HAS_CERT" == "true" && "$HAS_API_KEY" == "true" ]]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::iOS distribution signing secrets not configured — skipping iOS build"
+          fi
+
+      - name: Import distribution certificate
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.IOS_DIST_CERTIFICATE_P12_BASE64 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.IOS_DIST_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.IOS_KEYCHAIN_PASSWORD }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/dist_certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          echo "$CERTIFICATE_BASE64" | base64 --decode -o "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$CERTIFICATE_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychains -d user -s "$KEYCHAIN_PATH" login.keychain-db
+
+      - name: Install provisioning profile
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PROFILE_PATH="$RUNNER_TEMP/build_pp.mobileprovision"
+          echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o "$PROFILE_PATH"
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          cp "$PROFILE_PATH" ~/Library/MobileDevice/Provisioning\ Profiles/
+
+      - name: Build iOS app
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          CRATE_ENV: ${{ needs.validate.outputs.channel }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: yarn tauri ios build --export-method app-store-connect --features mobile
+
+      - name: Upload to App Store Connect (TestFlight)
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8_BASE64 }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: |
+          mkdir -p ~/.private_keys
+          echo "$API_KEY_BASE64" | base64 --decode -o ~/.private_keys/AuthKey_${API_KEY_ID}.p8
+
+          IPA=$(find src-tauri/gen/apple/build -name "*.ipa" | head -1)
+          if [[ -z "$IPA" ]]; then
+            echo "::error::No IPA found after build"
+            exit 1
+          fi
+
+          xcrun altool --upload-app \
+            -f "$IPA" \
+            -t ios \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID"
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" 2>/dev/null || true
+
   release:
     name: Create Release
-    needs: [validate, build]
+    needs: [validate, build, android, ios]
+    # Run if desktop build succeeded — mobile jobs use continue-on-error so their
+    # result is always 'success' (even if steps failed), but we check them anyway.
+    if: always() && needs.validate.result == 'success' && needs.build.result == 'success'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -248,6 +510,8 @@ jobs:
             artifacts/release-windows/**/*.msi.sig
             artifacts/release-windows/**/*.exe
             artifacts/release-windows/**/*.exe.sig
+            artifacts/release-android/*.apk
+            artifacts/release-android/*.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

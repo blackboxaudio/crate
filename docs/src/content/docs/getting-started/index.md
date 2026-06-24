@@ -29,6 +29,26 @@ Download the latest version of Crate for your operating system from the [release
 2. Make it executable: `chmod +x Crate-*.AppImage`
 3. Run the AppImage
 
+### iOS (TestFlight)
+
+1. Install [TestFlight](https://apps.apple.com/app/testflight/id899247664) from the App Store
+2. Open the Crate TestFlight public link (shared by the developer)
+3. Tap **Accept** and then **Install**
+4. Open Crate from your Home Screen
+
+TestFlight builds are available worldwide (including EU and Japan). When the app is live on the App Store, you can install it directly from there instead.
+
+### Android
+
+1. Download the `Crate_<version>_android.apk` and its `.sha256` file from the [releases page](https://github.com/blackboxaudio/crate/releases)
+2. Verify the download integrity:
+   ```bash
+   sha256sum -c Crate_<version>_android.apk.sha256
+   ```
+3. Enable "Install from unknown sources" for your browser (Settings → Apps → Special access → Install unknown apps)
+4. Open the APK to install
+5. Launch Crate from your app drawer
+
 ## First Launch
 
 When you first open Crate, you'll see an empty library. The interface consists of:
