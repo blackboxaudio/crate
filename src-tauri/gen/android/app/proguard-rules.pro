@@ -19,3 +19,7 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# App Check Play Integrity helper (#139): called from Rust by name over JNI, so R8 must not
+# rename or strip the class or its requestToken entry point in minified release builds.
+-keep class com.bbx_audio.crateapp.AppCheckPlayIntegrity { *; }

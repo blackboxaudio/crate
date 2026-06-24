@@ -174,4 +174,19 @@ objc2-media-player = { version = "0.3.2", features = [
   "MPMediaItem",
   "block2",
 ] }
+# App Check via Apple App Attest (#139): DCAppAttestService mints the raw attestation/assertion
+# that the Rust App Check exchange (services/cloud_sync/backend/firebase/appcheck/app_attest.rs)
+# trades for a Firebase App Check token. `block2` backs the generateKey / attestKey /
+# generateAssertion completion handlers. Reconcile against `cargo check --target aarch64-apple-ios`.
+objc2-device-check = { version = "0.3.2", features = ["DCAppAttestService", "block2"] }
+
+# Android-only: App Check via Play Integrity (#139). Selected by target OS (like the iOS block
+# above), not the `mobile` feature. `jni` calls the Kotlin Play Integrity helper
+# (gen/android/.../AppCheckPlayIntegrity.kt) that mints the raw integrity token; `ndk-context`
+# supplies the JVM + Android `Context` the call needs. The Rust App Check exchange
+# (services/cloud_sync/backend/firebase/appcheck/play_integrity.rs) trades that token for a
+# Firebase App Check token. Reconcile against `cargo check --target aarch64-linux-android`.
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.21"
+ndk-context = "0.1"
 

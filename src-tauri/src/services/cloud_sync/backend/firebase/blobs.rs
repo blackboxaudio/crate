@@ -66,9 +66,8 @@ impl BlobStore for FirebaseBlobs {
         );
         let resp = self
             .inner
-            .client
-            .post(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::POST, &url, s)
+            .await
             .header(reqwest::header::CONTENT_TYPE, "application/gzip")
             .body(compressed)
             .send()
@@ -88,9 +87,8 @@ impl BlobStore for FirebaseBlobs {
         );
         let resp = self
             .inner
-            .client
-            .get(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::GET, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("blob download request", e))?;
@@ -115,9 +113,8 @@ impl BlobStore for FirebaseBlobs {
         );
         let resp = self
             .inner
-            .client
-            .delete(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::DELETE, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("blob delete request", e))?;

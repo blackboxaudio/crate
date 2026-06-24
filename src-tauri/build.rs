@@ -27,6 +27,9 @@ fn bake_cloud_sync_config() {
         ("oauth_client_secret", "GCLOUD_OAUTH_CLIENT_SECRET"),
         ("ios_oauth_client_id", "GCLOUD_IOS_OAUTH_CLIENT_ID"),
         ("android_oauth_client_id", "GCLOUD_ANDROID_OAUTH_CLIENT_ID"),
+        ("firebase_ios_app_id", "GCLOUD_FIREBASE_IOS_APP_ID"),
+        ("firebase_android_app_id", "GCLOUD_FIREBASE_ANDROID_APP_ID"),
+        ("appcheck_debug_token", "GCLOUD_APPCHECK_DEBUG_TOKEN"),
     ];
 
     println!("cargo:rerun-if-changed=cloud_sync.config.json");

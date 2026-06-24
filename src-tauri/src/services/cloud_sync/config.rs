@@ -10,6 +10,12 @@
 //! (public clients, no secret). They are absent on desktop and excluded from the
 //! "is this config complete?" check, so a desktop config that omits them is still valid.
 //!
+//! Three further optional keys configure mobile Firebase App Check (#139): the
+//! `firebase_ios_app_id` / `firebase_android_app_id` Firebase App IDs that App Check tokens
+//! are minted against, and a dev/CI-only `appcheck_debug_token` that selects the debug
+//! provider in place of native attestation. All three are likewise excluded from the
+//! completeness check — their absence just leaves App Check inactive.
+//!
 //! Loading degrades gracefully: a missing or blank file means cloud sync is simply
 //! unavailable, never a startup panic. A present-but-malformed file is surfaced as an
 //! error so a typo doesn't silently disable sync.
@@ -38,6 +44,21 @@ pub struct CloudConfig {
     /// Android Google OAuth client id (public client, no secret). Mobile-only; optional.
     #[serde(default)]
     pub android_oauth_client_id: Option<String>,
+    /// Firebase **App ID** for the iOS app (format `1:<projectNumber>:ios:<hash>`). Distinct
+    /// from the OAuth client id and the bundle id; minted by registering the iOS app in the
+    /// Firebase console. Required for App Check (App Attest) on iOS; `None` disables it.
+    #[serde(default)]
+    pub firebase_ios_app_id: Option<String>,
+    /// Firebase **App ID** for the Android app (`1:<projectNumber>:android:<hash>`). Required
+    /// for App Check (Play Integrity) on Android; `None` disables it.
+    #[serde(default)]
+    pub firebase_android_app_id: Option<String>,
+    /// App Check **debug** token secret (dev/CI only). When set, the debug provider is used on
+    /// every platform in place of native attestation, so a simulator/desktop build can exercise
+    /// the real exchange endpoint. MUST be empty/absent in release config — it bypasses
+    /// attestation. Optional; excluded from the completeness check.
+    #[serde(default)]
+    pub appcheck_debug_token: Option<String>,
 }
 
 impl CloudConfig {
@@ -83,6 +104,23 @@ impl CloudConfig {
         Ok((id, scheme))
     }
 
+    /// The Firebase App ID used for App Check on the current platform: the iOS id on iOS, the
+    /// Android id on Android. On other targets (a desktop dev build exercising the debug
+    /// provider) it returns whichever id is configured, preferring iOS. `None` when no app id
+    /// is configured — in which case App Check is simply inactive.
+    pub fn firebase_app_id(&self) -> Option<&str> {
+        #[cfg(target_os = "ios")]
+        let id = self.firebase_ios_app_id.as_deref();
+        #[cfg(target_os = "android")]
+        let id = self.firebase_android_app_id.as_deref();
+        #[cfg(not(any(target_os = "ios", target_os = "android")))]
+        let id = self
+            .firebase_ios_app_id
+            .as_deref()
+            .or(self.firebase_android_app_id.as_deref());
+        id
+    }
+
     /// Compile-time fallback for release builds, which don't ship a config file. The five
     /// values are public client identifiers (security rests on PKCE + Firebase Auth +
     /// Security Rules), so baking them into the binary is expected. Injected via
@@ -108,6 +146,10 @@ impl CloudConfig {
             ios_oauth_client_id: option_env!("GCLOUD_IOS_OAUTH_CLIENT_ID").map(str::to_string),
             android_oauth_client_id: option_env!("GCLOUD_ANDROID_OAUTH_CLIENT_ID")
                 .map(str::to_string),
+            firebase_ios_app_id: option_env!("GCLOUD_FIREBASE_IOS_APP_ID").map(str::to_string),
+            firebase_android_app_id: option_env!("GCLOUD_FIREBASE_ANDROID_APP_ID")
+                .map(str::to_string),
+            appcheck_debug_token: option_env!("GCLOUD_APPCHECK_DEBUG_TOKEN").map(str::to_string),
         };
         config.is_complete().then_some(config)
     }

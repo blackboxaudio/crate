@@ -5,5 +5,8 @@
   "oauth_client_id": "xxxxxxxxxxxx.apps.googleusercontent.com",
   "oauth_client_secret": "your-desktop-oauth-client-secret",
   "ios_oauth_client_id": "xxxxxxxxxxxx-ios.apps.googleusercontent.com",
-  "android_oauth_client_id": "xxxxxxxxxxxx-android.apps.googleusercontent.com"
+  "android_oauth_client_id": "xxxxxxxxxxxx-android.apps.googleusercontent.com",
+  "firebase_ios_app_id": "1:xxxxxxxxxxxx:ios:xxxxxxxxxxxxxxxxxxxxxx",
+  "firebase_android_app_id": "1:xxxxxxxxxxxx:android:xxxxxxxxxxxxxxxxxxxxxx",
+  "appcheck_debug_token": "dev-only App Check debug token; leave empty in release"
 }

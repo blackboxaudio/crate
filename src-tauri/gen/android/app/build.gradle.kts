@@ -86,6 +86,9 @@ dependencies {
     implementation("androidx.appcompat:appcompat:1.7.1")
     implementation("androidx.activity:activity-ktx:1.10.1")
     implementation("com.google.android.material:material:1.12.0")
+    // App Check via Play Integrity (#139): mints the device/app integrity token that the Rust
+    // App Check exchange (appcheck/play_integrity.rs) trades for a Firebase App Check token.
+    implementation("com.google.android.play:integrity:1.4.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")

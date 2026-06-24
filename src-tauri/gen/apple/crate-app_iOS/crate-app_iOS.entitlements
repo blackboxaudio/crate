@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
+<!--
+  App Check / App Attest (#139): no entitlement by default. App Attest is a *restricted* entitlement
+  that breaks code signing unless the building channel's App ID has the App Attest capability and a
+  matching provisioning profile. Enable it per channel, only once that channel is set up, by adding
+  inside <dict> (use `development` for the dev channel, `production` for staging/App Store builds):
+      <key>com.apple.developer.devicecheck.appattest-environment</key>
+      <string>production</string>
+  Until then App Check stays monitoring-mode and iOS attestation is a non-fatal no-op, so the
+  staging/production builds still sign and ship; App Check just isn't verified yet on iOS.
+-->
 <dict/>
 </plist>

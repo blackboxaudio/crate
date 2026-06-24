@@ -7,10 +7,14 @@
 use std::sync::Arc;
 
 use crate::error::{CrateError, Result};
+use crate::services::cloud_sync::backend::types::AuthSession;
 use crate::services::cloud_sync::config::CloudConfig;
 
 use super::{AuthBackend, BlobStore, CloudBackend, DeviceRegistry, ManifestStore};
 
+use appcheck::AppCheckState;
+
+mod appcheck;
 mod auth;
 mod blobs;
 mod devices;
@@ -22,6 +26,9 @@ mod rest;
 pub(crate) struct FirebaseInner {
     pub(crate) client: reqwest::Client,
     pub(crate) config: CloudConfig,
+    /// Mobile App Check token cache (#139). `None` on desktop / when unconfigured, in which case
+    /// [`FirebaseInner::authed`] attaches no `X-Firebase-AppCheck` header — unchanged behavior.
+    appcheck: Option<Arc<AppCheckState>>,
 }
 
 impl FirebaseInner {
@@ -49,6 +56,54 @@ impl FirebaseInner {
             self.config.storage_bucket
         )
     }
+
+    /// The current App Check token, or `None` when App Check is inactive (desktop/unconfigured)
+    /// **or** a mint fails. A mint failure is logged and treated as "no header": during the
+    /// monitoring-mode rollout App Check must never break a sync, and once enforcement is enabled
+    /// server-side a missing header surfaces naturally as a 403 at the call site.
+    async fn appcheck_token(&self) -> Option<String> {
+        let state = self.appcheck.as_ref()?;
+        match state.ensure_fresh().await {
+            Ok(token) => Some(token),
+            Err(e) => {
+                log::warn!("cloud_sync: App Check token unavailable ({e}); sending request without it");
+                None
+            }
+        }
+    }
+
+    /// Build a Firestore/Storage request pre-loaded with the user's bearer auth and, when App
+    /// Check is active (mobile), the `X-Firebase-AppCheck` header. The single choke point for
+    /// outbound authenticated calls — every existing call site routes through here, so any future
+    /// one carries App Check by construction.
+    pub(crate) async fn authed(
+        &self,
+        method: reqwest::Method,
+        url: &str,
+        session: &AuthSession,
+    ) -> reqwest::RequestBuilder {
+        let mut req = self
+            .client
+            .request(method, url)
+            .bearer_auth(&session.access_token);
+        if let Some(token) = self.appcheck_token().await {
+            req = req.header("X-Firebase-AppCheck", token);
+        }
+        req
+    }
+
+    /// Attach only the App Check header to a pre-built request. For the Identity-Toolkit /
+    /// secure-token calls, which authenticate by `?key=` API key (not bearer) and run before an
+    /// [`AuthSession`] exists, so they can't go through [`FirebaseInner::authed`].
+    pub(crate) async fn with_appcheck(
+        &self,
+        req: reqwest::RequestBuilder,
+    ) -> reqwest::RequestBuilder {
+        match self.appcheck_token().await {
+            Some(token) => req.header("X-Firebase-AppCheck", token),
+            None => req,
+        }
+    }
 }
 
 /// Firebase backend root. Holds the shared client/config and hands out the four
@@ -64,10 +119,13 @@ impl FirebaseBackend {
             .timeout(std::time::Duration::from_secs(60))
             .build()
             .map_err(|e| CrateError::CloudSync(format!("failed to build HTTP client: {e}")))?;
+        // Mobile-only: `None` on desktop / when no Firebase App ID is configured (#139).
+        let appcheck = appcheck::for_platform(client.clone(), config).map(AppCheckState::new);
         Ok(Self {
             inner: Arc::new(FirebaseInner {
                 client,
                 config: config.clone(),
+                appcheck: appcheck.map(Arc::new),
             }),
         })
     }

@@ -70,9 +70,8 @@ impl AuthBackend for FirebaseAuth {
         });
         let resp = self
             .inner
-            .client
-            .post(&url)
-            .json(&body)
+            .with_appcheck(self.inner.client.post(&url).json(&body))
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("signInWithIdp request", e))?;
@@ -109,9 +108,8 @@ impl AuthBackend for FirebaseAuth {
         ];
         let resp = self
             .inner
-            .client
-            .post(&url)
-            .form(&params)
+            .with_appcheck(self.inner.client.post(&url).form(&params))
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("token refresh request", e))?;
@@ -153,9 +151,8 @@ impl AuthBackend for FirebaseAuth {
         let body = json!({ "idToken": session.access_token });
         let resp = self
             .inner
-            .client
-            .post(&url)
-            .json(&body)
+            .with_appcheck(self.inner.client.post(&url).json(&body))
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("accounts:lookup request", e))?;

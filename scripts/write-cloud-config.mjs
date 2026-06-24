@@ -38,6 +38,13 @@ const MOBILE = {
 	ios_oauth_client_id: 'GCLOUD_IOS_OAUTH_CLIENT_ID',
 	android_oauth_client_id: 'GCLOUD_ANDROID_OAUTH_CLIENT_ID',
 }
+// Firebase App IDs for mobile App Check (#139), optional like MOBILE. The dev-only
+// `appcheck_debug_token` is deliberately NOT materialized here — it bypasses attestation and
+// must never reach a release/CI build; release uses native App Attest / Play Integrity instead.
+const APPCHECK = {
+	firebase_ios_app_id: 'GCLOUD_FIREBASE_IOS_APP_ID',
+	firebase_android_app_id: 'GCLOUD_FIREBASE_ANDROID_APP_ID',
+}
 
 if (existsSync(outPath) && !force) {
 	console.log(`[write-cloud-config] ${outPath} already exists; leaving it untouched (pass --force to overwrite)`)
@@ -61,6 +68,11 @@ if (missing.length > 0) {
 }
 
 for (const [field, envVar] of Object.entries(MOBILE)) {
+	const value = process.env[envVar]
+	if (value && value.trim() !== '') config[field] = value
+}
+
+for (const [field, envVar] of Object.entries(APPCHECK)) {
 	const value = process.env[envVar]
 	if (value && value.trim() !== '') config[field] = value
 }

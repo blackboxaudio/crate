@@ -281,7 +281,11 @@ jobs:
           GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
           GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
           GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
-          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_IOS_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+          # Firebase App IDs for mobile App Check (#139). The dev-only appcheck_debug_token is
+          # deliberately NOT injected in release — release uses native App Attest / Play Integrity.
+          GCLOUD_FIREBASE_IOS_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_IOS_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_IOS_APP_ID }}
+          GCLOUD_FIREBASE_ANDROID_APP_ID: ${{ secrets.GCLOUD_FIREBASE_ANDROID_APP_ID }}
         run: node scripts/write-cloud-config.mjs
 
       - name: Determine signing availability
@@ -387,18 +391,27 @@ jobs:
           GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
           GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
           GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
-          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_IOS_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+          # Firebase App IDs for mobile App Check (#139). The dev-only appcheck_debug_token is
+          # deliberately NOT injected in release — release uses native App Attest / Play Integrity.
+          GCLOUD_FIREBASE_IOS_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_IOS_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_IOS_APP_ID }}
+          GCLOUD_FIREBASE_ANDROID_APP_ID: ${{ secrets.GCLOUD_FIREBASE_ANDROID_APP_ID }}
         run: node scripts/write-cloud-config.mjs
 
       - name: Write iOS Info.plist
         env:
-          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_IOS_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
         run: yarn ios:plist:write
 
       - name: Write mobile icons
         env:
           CHANNEL: ${{ needs.validate.outputs.channel }}
         run: node scripts/write-mobile-icons.mjs --platform ios --channel "${CHANNEL/production/prod}"
+
+      - name: Set iOS bundle id for channel
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: node scripts/write-ios-bundle-id.mjs --channel "${CHANNEL/production/prod}"
 
       - name: Determine signing availability
         id: signing
@@ -433,7 +446,7 @@ jobs:
       - name: Install provisioning profile
         if: steps.signing.outputs.signed == 'true'
         env:
-          PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+          PROVISIONING_PROFILE_BASE64: ${{ needs.validate.outputs.channel == 'staging' && secrets.IOS_PROVISIONING_PROFILE_BASE64_STAGING || secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
         run: |
           PROFILE_PATH="$RUNNER_TEMP/build_pp.mobileprovision"
           echo "$PROVISIONING_PROFILE_BASE64" | base64 --decode -o "$PROFILE_PATH"

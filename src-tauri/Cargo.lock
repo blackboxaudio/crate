@@ -949,12 +949,15 @@ dependencies = [
  "flate2",
  "futures",
  "image",
+ "jni 0.21.1",
  "lofty",
  "log",
+ "ndk-context",
  "objc2",
  "objc2-av-foundation",
  "objc2-avf-audio",
  "objc2-core-media",
+ "objc2-device-check",
  "objc2-foundation",
  "objc2-media-player",
  "rand",
@@ -3347,6 +3350,17 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-core-graphics",
  "objc2-io-surface",
+]
+
+[[package]]
+name = "objc2-device-check"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ac508663f8dc531bc227c1e5bc75d8d847b5f1850baee828fd263b8ff353176d"
+dependencies = [
+ "block2",
+ "objc2",
+ "objc2-foundation",
 ]
 
 [[package]]

@@ -45,9 +45,8 @@ impl DeviceRegistry for FirebaseDevices {
         );
         let resp = self
             .inner
-            .client
-            .patch(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::PATCH, &url, s)
+            .await
             .json(&rest::json_field_doc(device)?)
             .send()
             .await
@@ -66,9 +65,8 @@ impl DeviceRegistry for FirebaseDevices {
         );
         let resp = self
             .inner
-            .client
-            .get(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::GET, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("device list request", e))?;
@@ -98,9 +96,8 @@ impl DeviceRegistry for FirebaseDevices {
         let url = self.device_url(&s.uid, device_id);
         let resp = self
             .inner
-            .client
-            .get(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::GET, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("device get request", e))?;
@@ -127,9 +124,8 @@ impl DeviceRegistry for FirebaseDevices {
         let body = json!({ "fields": { "revoked": { "booleanValue": revoked } } });
         let resp = self
             .inner
-            .client
-            .patch(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::PATCH, &url, s)
+            .await
             .json(&body)
             .send()
             .await
@@ -144,9 +140,8 @@ impl DeviceRegistry for FirebaseDevices {
         let url = self.device_url(&s.uid, device_id);
         let resp = self
             .inner
-            .client
-            .delete(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::DELETE, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("device remove request", e))?;
