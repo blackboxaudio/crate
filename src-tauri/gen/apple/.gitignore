@@ -1,6 +1,9 @@
 xcuserdata/
 build/
 Externals/
-# Baked at `tauri ios init` from the gitignored Info.ios.plist; embeds the iOS OAuth client id, so it
-# stays out of git (regenerated on init). See scripts/write-ios-plist.mjs.
-crate-app_iOS/Info.plist
+# Note: crate-app_iOS/Info.plist is COMMITTED (a clean base with NO OAuth client id) so CI can build
+# from a fresh checkout — it was previously gitignored, which broke `tauri ios build` in CI ("failed
+# to parse plist ... NotFound"). Tauri merges the channel's OAuth redirect scheme (and background
+# audio) from the gitignored src-tauri/Info.ios.plist at `tauri ios dev|build` time
+# (scripts/write-ios-plist.mjs). A local build may re-merge that scheme back into Info.plist — do NOT
+# commit that diff (it would put the client id in git).

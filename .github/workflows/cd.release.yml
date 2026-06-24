@@ -217,6 +217,10 @@ jobs:
   android:
     name: Build Android APK
     needs: validate
+    # TEMP: Android release build disabled for now — remove this `if: false` to re-enable. The
+    # `release` job still runs (it only requires validate + build) and tolerates absent Android
+    # artifacts, so skipping this does not block the desktop/iOS release.
+    if: false
     runs-on: ubuntu-latest
     # Mobile jobs must never block a desktop release — if signing secrets are absent or the build
     # fails, the desktop release still publishes.
@@ -458,6 +462,9 @@ jobs:
         env:
           CRATE_ENV: ${{ needs.validate.outputs.channel }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Tauri reads the iOS signing team from APPLE_DEVELOPMENT_TEAM (the build warned it was
+          # unset); mirror APPLE_TEAM_ID into it so codesigning picks up the team.
+          APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
         run: yarn tauri ios build --export-method app-store-connect --features mobile
 
       - name: Upload to App Store Connect (TestFlight)
