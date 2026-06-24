@@ -92,8 +92,14 @@ export {
 	refreshingReleaseIds,
 	newOnly,
 } from '$shared/stores/discovery'
-export { followStore, followedSources, followNewCount, followedEntityKeys, sortedFollowedSources } from './follow'
-export type { FollowSort } from './follow'
+export {
+	followStore,
+	followedSources,
+	followNewCount,
+	followedEntityKeys,
+	sortedFollowedSources,
+} from '$shared/stores/follow'
+export type { FollowSort } from '$shared/stores/follow'
 export { updaterStore, updateStatus, updateAvailable } from './updater'
 export { expandedReleaseIds } from '$shared/stores/expandedReleases'
 export { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'

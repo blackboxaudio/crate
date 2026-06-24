@@ -3,7 +3,13 @@
 	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
 	import { playerStore, previewInfo, isPlaying, previewLoading, playbackProgress } from '$shared/stores/player'
-	import { mobileUIStore, detailCovering } from '$lib/stores/mobileUI'
+	import {
+		mobileUIStore,
+		detailCovering,
+		playlistDetailCovering,
+		tagDetailCovering,
+		followDetailCovering,
+	} from '$lib/stores/mobileUI'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 
 	// Persistent mini-player for discovery preview playback: a floating liquid-glass card (Spotify-style)
@@ -20,10 +26,11 @@
 	)
 
 	// Float above the bottom tab bar (its 3.5rem + safe-area height) on the main shell, with a small gap.
-	// When a full-screen release detail covers the tab bar, drop to float just above the bottom safe-area.
-	// Tracks `detailCovering` (not `detailReleaseId`), which drops the instant a close starts — so this
-	// rises back over the tab bar *as* the detail slides out, rather than after it finishes.
-	const overDetail = $derived($detailCovering)
+	// When a full-screen detail overlay covers the tab bar — the release detail, or a playlist / tag /
+	// followed-source drill-in — drop to float just above the bottom safe-area instead; otherwise it would
+	// hang 3.5rem up, leaving a gap over the now-covered tab bar. Tracks the *covering* flags (not the ids),
+	// which drop the instant a close starts — so it rises back over the tab bar *as* the detail slides out.
+	const overDetail = $derived($detailCovering || $playlistDetailCovering || $tagDetailCovering || $followDetailCovering)
 
 	// Tap handling for this fixed card. iOS WebKit defers `click` dispatch to a fixed element like this
 	// one while the discovery feed coasts to a stop from a momentum ("flick") scroll — the same deferral

@@ -22,7 +22,7 @@
 	type Props = {
 		release: DiscoveryRelease
 		playlistId?: string | null
-		context?: 'feed' | 'playlist'
+		context?: 'feed' | 'playlist' | 'tag' | 'follow'
 	}
 	let { release, playlistId = null, context = 'feed' }: Props = $props()
 
@@ -235,13 +235,13 @@
 		await discoveryStore.deleteRelease(release.id)
 	}
 
-	// Release-level "Add to queue": enqueue the release's first track (the granular per-track actions live
-	// in the detail screen). Closes the swipe row and confirms with a toast (the queue isn't on screen).
+	// Release-level "Add to queue": enqueue all of the release's tracks, in order (the granular per-track
+	// actions live in the detail screen). Closes the swipe row and confirms with a toast (queue isn't on screen).
 	function queueRelease() {
 		settle(false)
 		if (release.tracks.length === 0) return
 		void lightTap()
-		playbackQueue.addToQueue(release, 0)
+		playbackQueue.addReleaseToQueue(release)
 		toastStore.success($translate('queue.addedToQueue'))
 	}
 </script>

@@ -82,6 +82,17 @@ function trackKey(releaseId: string, trackIndex: number): string {
 	return `${releaseId}:${trackIndex}`
 }
 
+// Shallow content equality for two release lists (same ids, same order). Lets `updateContext` ignore the
+// feed's derived re-emitting an identical list (it recomputes on unrelated mobile-UI-store changes).
+function sameReleaseList(a: DiscoveryRelease[], b: DiscoveryRelease[]): boolean {
+	if (a === b) return true
+	if (a.length !== b.length) return false
+	for (let i = 0; i < a.length; i++) {
+		if (a[i].id !== b[i].id) return false
+	}
+	return true
+}
+
 let entrySeq = 0
 function genEntryId(): string {
 	// Avoid crypto.randomUUID (needs a secure context, which Tauri's custom scheme may not be). A
@@ -285,6 +296,25 @@ export function startSession(release: DiscoveryRelease, trackIndex: number, cont
 	refresh()
 }
 
+/**
+ * Swap the CONTEXT list of the active session in place, keeping the current track, play history, and user
+ * queue — only what plays next/after is re-derived from the new list. Used when the view the session was
+ * started from changes its on-screen set (e.g. the discovery feed's filter is applied/reset while a
+ * feed-originated preview plays), so next/shuffle keep spanning exactly what's on screen. No-op shape when
+ * nothing is playing (`cur` null): it just stores the list for the next `startSession`.
+ */
+export function updateContext(contextReleases: DiscoveryRelease[]) {
+	// No-op when the list is unchanged: the feed's derived re-emits on unrelated UI-store changes, and
+	// resetting the lookahead / shuffle bag every time would disrupt shuffle (and churn the native window).
+	if (sameReleaseList(contextQueue, contextReleases)) return
+	contextQueue = contextReleases
+	contextLookahead = []
+	// Re-anchor the shuffle bag on the current track so fresh draws come from the new list (mirrors setShuffle).
+	shufflePlayed = shuffleEnabled && cur ? new Set([trackKey(cur.release.id, cur.trackIndex)]) : new Set()
+	refresh()
+	onQueueChanged?.()
+}
+
 /** Toggle shuffle: re-anchor + redraw the CONTEXT order only. User queue and history are untouched. */
 export function setShuffle(enabled: boolean) {
 	if (shuffleEnabled === enabled) return
@@ -306,6 +336,33 @@ export function addToQueue(release: DiscoveryRelease, trackIndex: number) {
 /** Front-insert a track so it plays immediately after the current one (ahead of the rest of the queue). */
 export function playNext(release: DiscoveryRelease, trackIndex: number) {
 	userQueue.unshift({ entryId: genEntryId(), release, trackIndex })
+	persistUserQueue()
+	refresh()
+	onQueueChanged?.()
+}
+
+// Build a user-queue entry per track of a release, in track order — the whole-release equivalent of one
+// `addToQueue`/`playNext` call. Each track gets its own stable entry id (it's an independent queue row).
+function releaseEntries(release: DiscoveryRelease): UserEntry[] {
+	return release.tracks.map((_, i) => ({ entryId: genEntryId(), release, trackIndex: i }))
+}
+
+/** Append every track of a release to the end of the user queue, in track order. No-op if it has none. */
+export function addReleaseToQueue(release: DiscoveryRelease) {
+	const entries = releaseEntries(release)
+	if (entries.length === 0) return
+	userQueue.push(...entries)
+	persistUserQueue()
+	refresh()
+	onQueueChanged?.()
+}
+
+/** Front-insert every track of a release so the whole release plays next, in track order (ahead of the
+ *  rest of the queue). No-op if it has no tracks. */
+export function playReleaseNext(release: DiscoveryRelease) {
+	const entries = releaseEntries(release)
+	if (entries.length === 0) return
+	userQueue.unshift(...entries)
 	persistUserQueue()
 	refresh()
 	onQueueChanged?.()

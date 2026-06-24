@@ -9,11 +9,11 @@
 	import { toastStore } from '$shared/stores/toast'
 	import { formatDate, formatDurationCompact } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
-	import { mobileUIStore, mobileDisplayedReleases } from '$lib/stores/mobileUI'
-	import { lightTap } from '$lib/utils/haptics'
+	import { deriveArtistUrl, deriveLabelUrl, isCompilation } from '$shared/utils'
+	import { mobileUIStore, activePlaybackContext } from '$lib/stores/mobileUI'
+	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import Drawer from '$lib/components/common/Drawer.svelte'
-	import MobileModal from '$lib/components/common/MobileModal.svelte'
 	import MarqueeText from '$lib/components/common/MarqueeText.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import EqualizerBars from '$lib/components/common/EqualizerBars.svelte'
@@ -77,26 +77,97 @@
 		await discoveryStore.deleteRelease(id)
 	}
 
-	// Per-track queue actions: the trailing ⋯ on a row opens a small sheet offering Play next / Add to
-	// queue for that track. Both feed the two-tier queue (and, on iOS, the native window) live.
+	// Whether the release exposes a followable artist/label page — gates the "Follow" menu item (mirrors
+	// the release feed's context menu). A Various-Artists comp has no artist target but may have a label.
+	const canFollow = $derived.by(() => {
+		const comp = isCompilation(release.artist)
+		const artistUrl = comp ? null : deriveArtistUrl(release)
+		const labelUrl = comp ? (deriveLabelUrl(release) ?? deriveArtistUrl(release)) : deriveLabelUrl(release)
+		return !!artistUrl || !!labelUrl
+	})
+
+	// Whole-release queue actions + Follow, mirroring the feed's long-press menu so the "more" menu offers
+	// the same actions. The opening haptic already fired in openMenu(), so these don't tap again (matching
+	// the other menu items); the toast confirms since the queue isn't on screen.
+	function menuPlayNext() {
+		menuOpen = false
+		if (release.tracks.length === 0) return
+		playbackQueue.playReleaseNext(release)
+		toastStore.success(get(translate)('queue.playingNext'))
+	}
+	function menuAddToQueue() {
+		menuOpen = false
+		if (release.tracks.length === 0) return
+		playbackQueue.addReleaseToQueue(release)
+		toastStore.success(get(translate)('queue.addedToQueue'))
+	}
+	function menuFollow() {
+		menuOpen = false
+		mobileUIStore.openFollowSheet(release.id)
+	}
+
+	// Per-track queue actions: a long-press on a track row lifts it and springs an iOS-style context menu
+	// offering Play next / Add to queue for that track. Both feed the two-tier queue (and, on iOS, the
+	// native window) live. Mirrors the long-press pattern used by the playlist rows and the release feed.
 	let actionTrackIndex = $state<number | null>(null)
 	const actionTrack = $derived(actionTrackIndex != null ? release.tracks[actionTrackIndex] : null)
+	let trackMenuOpen = $state(false)
+	// Viewport rect of the long-pressed row, so the context menu can lift a preview of it in place.
+	let trackMenuRect = $state<{ top: number; left: number; width: number; height: number } | null>(null)
 
-	function openTrackActions(index: number) {
-		void lightTap()
-		actionTrackIndex = index
+	let trackLongPressTimer = 0
+	// A stationary long-press also synthesizes a click on release; this latches so we swallow that one
+	// click (otherwise opening the menu would also play the track — the row is a real <button>).
+	let suppressNextTrackClick = false
+
+	function startTrackLongPress(e: PointerEvent, index: number) {
+		suppressNextTrackClick = false
+		if (trackLongPressTimer) clearTimeout(trackLongPressTimer)
+		// Capture the row element now; `currentTarget` is nulled once the event finishes dispatching.
+		const el = e.currentTarget as HTMLElement
+		trackLongPressTimer = window.setTimeout(() => {
+			trackLongPressTimer = 0
+			void rigidTap()
+			const r = el?.getBoundingClientRect()
+			trackMenuRect = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
+			actionTrackIndex = index
+			suppressNextTrackClick = true
+			trackMenuOpen = true
+		}, 450)
+		window.addEventListener('pointermove', cancelTrackLongPress, { once: true, passive: true })
+		window.addEventListener('pointerup', cancelTrackLongPress, { once: true })
+		window.addEventListener('pointercancel', cancelTrackLongPress, { once: true })
 	}
+
+	function cancelTrackLongPress() {
+		if (trackLongPressTimer) {
+			clearTimeout(trackLongPressTimer)
+			trackLongPressTimer = 0
+		}
+	}
+
+	// Tear down a pending long-press timer if the detail unmounts mid-press (e.g. swiped closed).
+	$effect(() => () => cancelTrackLongPress())
+
+	// Swallow the synthesized click that follows a long-press so the menu doesn't also play the track.
+	function onTrackClickCapture(e: MouseEvent) {
+		if (!suppressNextTrackClick) return
+		suppressNextTrackClick = false
+		e.preventDefault()
+		e.stopPropagation()
+	}
+
 	function queuePlayNext() {
 		if (actionTrackIndex == null) return
 		playbackQueue.playNext(release, actionTrackIndex)
 		toastStore.success(get(translate)('queue.playingNext'))
-		actionTrackIndex = null
+		trackMenuOpen = false
 	}
 	function queueAddLast() {
 		if (actionTrackIndex == null) return
 		playbackQueue.addToQueue(release, actionTrackIndex)
 		toastStore.success(get(translate)('queue.addedToQueue'))
-		actionTrackIndex = null
+		trackMenuOpen = false
 	}
 
 	const isCurrentRelease = $derived($previewInfo?.releaseId === release.id)
@@ -131,9 +202,13 @@
 	function playTrack(index: number) {
 		void lightTap()
 		const wasIdle = $previewInfo == null
-		// Hand the player the whole feed list (what's on screen behind this detail) as the playback queue,
-		// so next/previous/auto-advance and shuffle span every release — not just this one's tracks.
-		void playerStore.playPreview(release, index, get(mobileDisplayedReleases))
+		// Scope the playback queue to the view this detail was opened from — the discovery feed, or a
+		// playlist / tag / followed-source drill-in — so next/previous/auto-advance and shuffle span exactly
+		// those releases, not just this one's tracks. Record the origin too: only a discovery-feed-started
+		// queue keeps following the feed's live filter (see +page); a tag/follow/playlist queue stays fixed.
+		const context = get(activePlaybackContext)
+		mobileUIStore.setQueueOrigin(context.origin)
+		void playerStore.playPreview(release, index, context.releases)
 		if (wasIdle) mobileUIStore.expandPlayer()
 	}
 
@@ -240,13 +315,17 @@
 					{#each release.tracks as track, index (track.id)}
 						{@const isActive = isCurrentRelease && $previewInfo?.trackIndex === index}
 						{@const isLoading = spinnerArmed && loadingReleaseId === release.id && loadingTrackIndex === index}
-						<!-- One full-width tap target plays the track; the heart floats on top (absolute) so the whole
-						     row — heart area included — shares the same pressed highlight, yet tapping the heart likes
-						     the track instead of playing it. -->
-						<div class="relative rounded {isActive ? 'bg-brand-muted' : ''}">
+						<!-- A tap plays the track; a long-press lifts the row and opens its context menu (Play next /
+						     Add to queue). The heart floats on top (absolute) so the whole row shares the same pressed
+						     highlight, yet tapping the heart likes the track instead of playing it. -->
+						<div
+							class="relative rounded {isActive ? 'bg-brand-muted' : ''}"
+							onpointerdown={(e) => startTrackLongPress(e, index)}
+							onclickcapture={onTrackClickCapture}
+						>
 							<button
 								type="button"
-								class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-20 pl-2 text-left active:bg-surface-2"
+								class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-10 pl-2 text-left active:bg-surface-2"
 								aria-label={$translate('discovery.playPreview')}
 								onclick={() => playTrack(index)}
 							>
@@ -265,18 +344,6 @@
 										{formatDurationCompact(track.duration_ms)}
 									</span>
 								{/if}
-							</button>
-							<button
-								type="button"
-								class="absolute inset-y-0 right-10 flex w-10 items-center justify-center text-text-tertiary active:bg-surface-2"
-								aria-label={$translate('queue.addToQueue')}
-								onclick={() => openTrackActions(index)}
-							>
-								<svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-									<circle cx="5" cy="12" r="1.6" />
-									<circle cx="12" cy="12" r="1.6" />
-									<circle cx="19" cy="12" r="1.6" />
-								</svg>
 							</button>
 							<button
 								type="button"
@@ -357,6 +424,46 @@
 		{/snippet}
 	</ContextMenuItem>
 
+	<ContextMenuItem onclick={menuPlayNext}>
+		{$translate('queue.playNext')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+				<path d="M5 5l11 7-11 7z" />
+				<rect x="17.5" y="5" width="2" height="14" rx="1" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuAddToQueue}>
+		{$translate('queue.addToQueue')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M4 6h11M4 12h11M4 18h7M19 14v6M16 17h6" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	{#if canFollow}
+		<ContextMenuItem onclick={menuFollow}>
+			{$translate('discovery.following.follow')}
+			{#snippet icon()}
+				<svg
+					class="h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M5 12a7 7 0 0 1 7 7" />
+					<path d="M5 5a14 14 0 0 1 14 14" />
+					<circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
 	<ContextMenuItem onclick={menuEdit}>
 		{$translate('discovery.editRelease')}
 		{#snippet icon()}
@@ -398,39 +505,47 @@
 	</ContextMenuItem>
 </ContextMenu>
 
-<!-- Per-track queue actions (opened by a row's ⋯ button). -->
-<MobileModal
-	open={actionTrackIndex != null}
-	onClose={() => (actionTrackIndex = null)}
-	title={actionTrack?.name ?? $translate('queue.addToQueue')}
+<!-- Per-track queue actions (opened by long-pressing a track row). Lifts a preview of the row, mirroring
+     the release feed / playlist context menus. -->
+<ContextMenu
+	open={trackMenuOpen}
+	anchorRect={trackMenuRect}
+	onClose={() => (trackMenuOpen = false)}
+	onClosed={() => {
+		actionTrackIndex = null
+		trackMenuRect = null
+	}}
 >
-	<div class="flex flex-col">
-		<button
-			type="button"
-			class="flex items-center gap-3 rounded-md px-2 py-3 text-left text-sm text-text-primary active:bg-surface-2"
-			onclick={queuePlayNext}
-		>
-			<svg class="h-5 w-5 flex-shrink-0 text-text-secondary" viewBox="0 0 24 24" fill="currentColor">
+	{#snippet preview()}
+		{#if actionTrack}
+			<span class="w-5 flex-shrink-0 text-center text-xs text-text-tertiary tabular-nums">
+				{(actionTrackIndex ?? 0) + 1}
+			</span>
+			<span class="min-w-0 flex-1 truncate text-sm text-text-primary">{actionTrack.name}</span>
+			{#if actionTrack.duration_ms != null}
+				<span class="flex-shrink-0 text-xs text-text-tertiary tabular-nums">
+					{formatDurationCompact(actionTrack.duration_ms)}
+				</span>
+			{/if}
+		{/if}
+	{/snippet}
+
+	<ContextMenuItem onclick={queuePlayNext}>
+		{$translate('queue.playNext')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
 				<path d="M5 5l11 7-11 7z" />
 				<rect x="17.5" y="5" width="2" height="14" rx="1" />
 			</svg>
-			{$translate('queue.playNext')}
-		</button>
-		<button
-			type="button"
-			class="flex items-center gap-3 rounded-md px-2 py-3 text-left text-sm text-text-primary active:bg-surface-2"
-			onclick={queueAddLast}
-		>
-			<svg
-				class="h-5 w-5 flex-shrink-0 text-text-secondary"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-			>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={queueAddLast}>
+		{$translate('queue.addToQueue')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M4 6h11M4 12h11M4 18h7M19 14v6M16 17h6" stroke-linecap="round" />
 			</svg>
-			{$translate('queue.addToQueue')}
-		</button>
-	</div>
-</MobileModal>
+		{/snippet}
+	</ContextMenuItem>
+</ContextMenu>

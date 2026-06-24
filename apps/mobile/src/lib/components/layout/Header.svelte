@@ -15,6 +15,8 @@
 	// Per-tab leading title for the non-home tabs (Discovery keeps the brand lockup below instead).
 	const tabTitle = $derived.by(() => {
 		switch ($activeTab) {
+			case 'following':
+				return $translate('discovery.following.title')
 			case 'playlists':
 				return $translate('nav.playlists')
 			case 'tags':

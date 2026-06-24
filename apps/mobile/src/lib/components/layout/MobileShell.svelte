@@ -2,7 +2,14 @@
 	import { onMount } from 'svelte'
 	import { fly, fade } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
-	import { activeTab, selectMode, selectedReleaseIds, detailPlaylistId } from '$lib/stores/mobileUI'
+	import {
+		activeTab,
+		selectMode,
+		selectedReleaseIds,
+		detailPlaylistId,
+		detailTagId,
+		detailFollowSourceId,
+	} from '$lib/stores/mobileUI'
 	import { previewInfo } from '$shared/stores/player'
 	import { sortedReleases } from '$shared/stores/discovery'
 	import Header from './Header.svelte'
@@ -11,6 +18,7 @@
 	import ReleaseContextMenu from '$lib/components/discovery/ReleaseContextMenu.svelte'
 	import PlaylistPickerSheet from '$lib/components/playlists/PlaylistPickerSheet.svelte'
 	import MobileDiscoveryView from '$lib/components/discovery/MobileDiscoveryView.svelte'
+	import FollowingView from '$lib/components/following/FollowingView.svelte'
 	import PlaylistsView from '$lib/components/playlists/PlaylistsView.svelte'
 	import TagsView from '$lib/components/tags/TagsView.svelte'
 	import SettingsView from '$lib/components/settings/SettingsView.svelte'
@@ -75,6 +83,8 @@
 				>
 					{#if $activeTab === 'discovery'}
 						<MobileDiscoveryView />
+					{:else if $activeTab === 'following'}
+						<FollowingView />
 					{:else if $activeTab === 'playlists'}
 						<PlaylistsView />
 					{:else if $activeTab === 'tags'}
@@ -90,8 +100,8 @@
 	<TabBar />
 
 	<!-- Multi-select action bar overlays the tab bar's slot while the discovery feed is in select mode.
-	     Suppressed when a playlist overlay is open — it renders its own bar with playlist-context actions. -->
-	{#if $selectMode && !$detailPlaylistId}
+	     Suppressed when a playlist or tag overlay is open — each renders its own bar above its own feed. -->
+	{#if $selectMode && !$detailPlaylistId && !$detailTagId && !$detailFollowSourceId}
 		<SelectionBar onAddToPlaylist={openFeedPickerForSelection} />
 	{/if}
 </div>

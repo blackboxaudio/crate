@@ -7,6 +7,7 @@
 	import { toastStore } from '$shared/stores/toast'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
+	import { deriveArtistUrl, deriveLabelUrl, isCompilation } from '$shared/utils'
 	import { mobileUIStore, actionsReleaseId, actionsContext, actionsAnchorRect } from '$lib/stores/mobileUI'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { lightTap } from '$lib/utils/haptics'
@@ -21,9 +22,10 @@
 	// caller mounts one always-present instance per context (feed vs playlist) and passes the `context` it
 	// serves, so only the matching instance opens (and the close animation isn't cut short by an unmount).
 	type Props = {
-		/** Which context this instance serves. It opens only when the store's context matches, so the feed
-		 *  and playlist-detail instances (both always mounted) never both render for the same release. */
-		context: 'feed' | 'playlist'
+		/** Which context this instance serves. It opens only when the store's context matches, so the feed,
+		 *  playlist-detail and tag-detail instances (each always mounted in its overlay) never both render for
+		 *  the same release. */
+		context: 'feed' | 'playlist' | 'tag' | 'follow'
 		releases: DiscoveryRelease[]
 		playlistId?: string | null
 		onAddToPlaylist?: (releaseId: string) => void
@@ -44,6 +46,16 @@
 	})
 	const platformName = $derived(displayed ? getReleasePlatformName(displayed.source_type) : null)
 
+	// Whether the release exposes a followable artist/label page (Bandcamp / SoundCloud, or a known label
+	// page) — gates the "Follow" action. A Various-Artists comp has no artist target but may have a label.
+	const canFollow = $derived.by(() => {
+		if (!displayed) return false
+		const comp = isCompilation(displayed.artist)
+		const artistUrl = comp ? null : deriveArtistUrl(displayed)
+		const labelUrl = comp ? (deriveLabelUrl(displayed) ?? deriveArtistUrl(displayed)) : deriveLabelUrl(displayed)
+		return !!artistUrl || !!labelUrl
+	})
+
 	// If the release vanishes while this instance's menu is open (e.g. a sync deletes it), tear it down.
 	$effect(() => {
 		if ($actionsContext === context && releaseId && !release) mobileUIStore.closeActionsSheet()
@@ -51,6 +63,14 @@
 
 	function close() {
 		mobileUIStore.closeActionsSheet()
+	}
+
+	// Open the inline follow sheet for this release. Snapshot the id before close() clears the store.
+	function handleFollow() {
+		const id = releaseId
+		if (!id) return
+		close()
+		mobileUIStore.openFollowSheet(id)
 	}
 
 	// Each handler snapshots the id/release up front: `close()` clears the store, after which the derived
@@ -76,11 +96,13 @@
 		onRemoveFromPlaylist?.(id)
 	}
 
+	// Release-level queue actions enqueue every track of the release, in order — the whole-release
+	// equivalent of the per-track Play next / Add to queue in the detail screen.
 	function handlePlayNext() {
 		const r = release
 		if (!r || r.tracks.length === 0) return
 		void lightTap()
-		playbackQueue.playNext(r, 0)
+		playbackQueue.playReleaseNext(r)
 		toastStore.success(get(translate)('queue.playingNext'))
 		close()
 	}
@@ -89,7 +111,7 @@
 		const r = release
 		if (!r || r.tracks.length === 0) return
 		void lightTap()
-		playbackQueue.addToQueue(r, 0)
+		playbackQueue.addReleaseToQueue(r)
 		toastStore.success(get(translate)('queue.addedToQueue'))
 		close()
 	}
@@ -153,6 +175,27 @@
 			</svg>
 		{/snippet}
 	</ContextMenuItem>
+
+	{#if canFollow}
+		<ContextMenuItem onclick={handleFollow}>
+			{$translate('discovery.following.follow')}
+			{#snippet icon()}
+				<svg
+					class="h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M5 12a7 7 0 0 1 7 7" />
+					<path d="M5 5a14 14 0 0 1 14 14" />
+					<circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
 
 	{#if context === 'playlist' && playlistId}
 		<ContextMenuItem onclick={handleReorder}>

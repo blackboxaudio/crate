@@ -7,6 +7,7 @@
 	import { playlistsStore, getPlaylistChildren } from '$shared/stores/playlists'
 	import { mobileUIStore } from '$lib/stores/mobileUI'
 	import { easeFluid } from '$lib/easing'
+	import { swipe, type SwipeOptions } from '$lib/actions/swipe'
 	import { getPlaylistCovers, ensurePlaylistCovers } from '$lib/stores/playlistCovers'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
@@ -83,6 +84,19 @@
 		navDirection = 'back'
 		folderStack = folderStack.slice(0, -1)
 	}
+
+	// Interactive back-swipe to the parent folder: an edge-swipe from the left edge dragging right, mirroring
+	// the detail-view dismiss gesture (`closeEdgeFrom: 'left'`). Active only inside a folder; on commit it runs
+	// the same `popFolder` (and its 'back' slide) as the header back button. Lives on the persistent content
+	// container below — outside the `{#key}` — so the gesture survives level swaps.
+	const backSwipe = $derived<SwipeOptions>({
+		side: 'right',
+		mode: 'close',
+		closeEdgeFrom: 'left',
+		closeEdgeSize: 24,
+		enabled: folderStack.length > 0,
+		onClose: popFolder,
+	})
 
 	function openPlaylist(playlistId: string) {
 		void lightTap()
@@ -261,7 +275,7 @@
 	</div>
 
 	<!-- Sliding content: each level owns its own scroll container so they can slide over one another. -->
-	<div class="relative min-h-0 flex-1 overflow-hidden">
+	<div class="relative min-h-0 flex-1 overflow-hidden" use:swipe={backSwipe}>
 		{#key currentFolderId}
 			<div
 				class="absolute inset-0 overflow-y-auto"

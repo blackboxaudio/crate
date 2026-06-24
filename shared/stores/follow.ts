@@ -1,7 +1,7 @@
 import { writable, derived } from 'svelte/store'
-import type { FollowedReleasesFound, FollowedSource, FollowedSourceCreate } from '$shared/types'
-import * as followApi from '$shared/api/follow'
-import { toastStore } from '$shared/stores/toast'
+import type { FollowedReleasesFound, FollowedSource, FollowedSourceCreate } from '../types'
+import * as followApi from '../api/follow'
+import { toastStore } from './toast'
 
 export type FollowSort = 'newCount' | 'name' | 'recentlyReleased'
 
@@ -240,7 +240,7 @@ export const followedEntityKeys = derived(followStore, ($f) => {
 	return keys
 })
 
-/** The Following modal's filtered + sorted list (search matches name AND url/domain). */
+/** The Following list's filtered + sorted view (search matches name AND url/domain). */
 export const sortedFollowedSources = derived(followStore, ($f) => {
 	let sources = [...$f.sources]
 	const q = $f.search.trim().toLowerCase()

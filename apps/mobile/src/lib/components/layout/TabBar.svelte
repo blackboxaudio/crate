@@ -2,14 +2,15 @@
 	import { translate } from '$shared/i18n'
 	import { mobileUIStore, activeTab, type MobileTab } from '$lib/stores/mobileUI'
 
-	// Bottom tab bar: the app's primary navigation (iOS-conventional). Four destinations — Discovery,
-	// Playlists, Tags, Settings — each an icon over a label. Pinned to the bottom edge and owns the bottom
-	// safe-area inset; the mini-player docks directly above it. Full-screen surfaces (the release detail
+	// Bottom tab bar: the app's primary navigation (iOS-conventional). Five destinations — Discovery,
+	// Following, Playlists, Tags, Settings — each an icon over a label. Pinned to the bottom edge and owns the
+	// bottom safe-area inset; the mini-player docks directly above it. Full-screen surfaces (the release detail
 	// push, the expanded player) cover it, so it only shows on the main shell. Each button is a 44pt+ hit
 	// area.
 	type Tab = { id: MobileTab; label: string }
 	const tabs: Tab[] = $derived([
 		{ id: 'discovery', label: $translate('nav.discovery') },
+		{ id: 'following', label: $translate('discovery.following.title') },
 		{ id: 'playlists', label: $translate('nav.playlists') },
 		{ id: 'tags', label: $translate('nav.tags') },
 		{ id: 'settings', label: $translate('settings.title') },
@@ -107,6 +108,21 @@
 						<path
 							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
 						/>
+					</svg>
+				{:else if tab.id === 'following'}
+					<!-- `rss` — matches the desktop Following icon (Icon.svelte): two broadcast arcs over a dot. -->
+					<svg
+						class="h-6 w-6"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M5 12a7 7 0 0 1 7 7" />
+						<path d="M5 5a14 14 0 0 1 14 14" />
+						<circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
 					</svg>
 				{:else}
 					<svg
