@@ -20,13 +20,17 @@
 		"folder": "フォルダ",
 		"playlist": "プレイリスト",
 		"next": "次へ",
-		"back": "戻る"
+		"back": "戻る",
+		"more": "その他",
+		"select": "選択"
 	},
 	"nav": {
 		"library": "ライブラリ",
 		"discovery": "ディスカバリー",
 		"playlists": "プレイリスト",
-		"tags": "タグ"
+		"tags": "タグ",
+		"openMenu": "メニューを開く",
+		"openSettings": "設定を開く"
 	},
 	"settings": {
 		"title": "設定",
@@ -179,7 +183,8 @@
 			"updates": "アップデート",
 			"checkForUpdates": "アップデートを確認",
 			"upToDate": "最新版です",
-			"updateAvailable": "{version} が利用可能"
+			"updateAvailable": "{version} が利用可能",
+			"project": "プロジェクト"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "今すぐ同期",
 			"syncing": "同期中…",
 			"signOut": "サインアウト",
+			"signOutConfirmTitle": "サインアウトしますか?",
+			"signOutConfirmMessage": "ローカルデータはこのデバイスに残ります。再びサインインするまで同期は停止します。",
+			"autoSyncHint": "Discovery ライブラリはすべてのデバイス間で自動的に同期されます。",
 			"lastSynced": "最後に同期した {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "音量",
 		"tempo": "テンポ",
 		"resetTempo": "テンポをリセット",
-		"trackNotFound": "再生中のトラックが見つかりません"
+		"trackNotFound": "再生中のトラックが見つかりません",
+		"expand": "プレイヤーを展開",
+		"collapse": "プレイヤーを折りたたむ",
+		"seek": "シーク"
+	},
+	"queue": {
+		"upNext": "次に再生",
+		"openQueue": "次に再生",
+		"playNext": "次に再生",
+		"addToQueue": "キューに追加",
+		"playingNext": "次に再生中",
+		"addedToQueue": "キューに追加されました",
+		"nextInQueue": "キューの次",
+		"upNextFromContext": "次に再生",
+		"addedByYou": "あなたが追加",
+		"removeFromQueue": "キューから削除",
+		"reorder": "並べ替え",
+		"clearQueue": "クリア",
+		"empty": "次はありません",
+		"emptyHint": "追加した曲が次に再生されます"
 	},
 	"library": {
 		"searchPlaceholder": "トラックを検索...",
@@ -277,7 +304,18 @@
 		"releases": "リリース",
 		"searchPlaceholder": "リリースを検索...",
 		"noReleasesYet": "まだリリースがありません",
+		"noResults": "フィルターに合致するリリースがありません",
 		"addReleaseHint": "{shortcut} を押して Bandcamp、Discogs、YouTube などからリリースを追加してください",
+		"mobileAddHint": "Bandcamp、Discogs、YouTube などからリリースを追加してください",
+		"pending": "保留中",
+		"offlineQueueNotice": "オフラインです — 再度接続したときにこのリリースが追加されます",
+		"addToQueue": "キューに追加",
+		"editRelease": "リリースを編集",
+		"goToRelease": "リリースに移動",
+		"sortBy": "並べ替え",
+		"selectedCount": "{count, plural, =1 {1個選択} other {{count}個選択}}",
+		"confirmDeleteTitle": "{count, plural, =1 {リリースを削除しますか?} other {{count}個のリリースを削除しますか?}}",
+		"confirmDeleteMessage": "この操作は元に戻せません。",
 		"previewNotAvailable": "このソースではプレビューを利用できません",
 		"columns": {
 			"artistTitle": "アーティスト / タイトル",
@@ -294,6 +332,7 @@
 		"tracks": "トラック",
 		"trackCount": "{count, plural, =1 {1曲} other {{count}曲}}",
 		"openInBrowser": "ブラウザで開く",
+		"openInApp": "{app}で開く",
 		"copyUrl": "URLをコピー",
 		"copiedUrl": "URLをコピーしました",
 		"like": "お気に入りに追加",
@@ -312,7 +351,9 @@
 			"title": "タイトル",
 			"label": "レーベル",
 			"releaseDate": "リリース日",
-			"notes": "メモ"
+			"notes": "メモ",
+			"notesPlaceholder": "メモを追加…",
+			"addTags": "タグを追加"
 		},
 		"import": {
 			"title": "ライブラリにインポート",
@@ -423,6 +464,8 @@
 		"rootNoFolder": "ルート（フォルダなし）",
 		"folderEmpty": "このフォルダは空です",
 		"noPlaylistsYet": "まだプレイリストがありません",
+		"noPlaylists": "まだプレイリストがありません",
+		"allPlaylists": "すべてのプレイリスト",
 		"exportToDevice": "デバイスにエクスポート"
 	},
 	"tags": {
@@ -702,6 +745,9 @@
 		"emerald": "エメラルド"
 	},
 	"dates": {
+		"justNow": "今しがた",
+		"minutesAgo": "{count, plural, =1 {1分前} other {{count}分前}}",
+		"hoursAgo": "{count, plural, =1 {1時間前} other {{count}時間前}}",
 		"today": "今日",
 		"yesterday": "昨日",
 		"daysAgo": "{count, plural, =1 {1日前} other {{count}日前}}",

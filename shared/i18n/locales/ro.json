@@ -20,13 +20,17 @@
 		"folder": "folder",
 		"playlist": "playlist",
 		"next": "Următorul",
-		"back": "Înapoi"
+		"back": "Înapoi",
+		"more": "Mai mult",
+		"select": "Selectează"
 	},
 	"nav": {
 		"library": "Bibliotecă",
 		"discovery": "Descoperiri",
 		"playlists": "Playlisturi",
-		"tags": "Etichete"
+		"tags": "Etichete",
+		"openMenu": "Deschideți meniu",
+		"openSettings": "Deschideți setări"
 	},
 	"settings": {
 		"title": "Setări",
@@ -179,7 +183,8 @@
 			"updates": "Actualizări",
 			"checkForUpdates": "Caută Actualizări",
 			"upToDate": "Actualizat",
-			"updateAvailable": "{version} disponibil"
+			"updateAvailable": "{version} disponibil",
+			"project": "Proiect"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Sincronizați acum",
 			"syncing": "Se sincronizează…",
 			"signOut": "Deconectați-vă",
+			"signOutConfirmTitle": "Deconectați-vă?",
+			"signOutConfirmMessage": "Datele locale dvs. rămân pe acest dispozitiv. Sincronizarea se va opri până când vă conectați din nou.",
+			"autoSyncHint": "Biblioteca Discovery se sincronizează automat pe toate dispozitivele dvs.",
 			"lastSynced": "Ultima sincronizare {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Volum",
 		"tempo": "Tempo",
 		"resetTempo": "Resetează tempo",
-		"trackNotFound": "Nu s-a putut localiza piesa în curs de redare"
+		"trackNotFound": "Nu s-a putut localiza piesa în curs de redare",
+		"expand": "Extindeți playerul",
+		"collapse": "Restrângeți playerul",
+		"seek": "Cauta"
+	},
+	"queue": {
+		"upNext": "Următorul",
+		"openQueue": "Următorul",
+		"playNext": "Redează următorul",
+		"addToQueue": "Adaugă la coadă",
+		"playingNext": "Redare următorul",
+		"addedToQueue": "Adăugat la coadă",
+		"nextInQueue": "Următorul în coadă",
+		"upNextFromContext": "Următorul",
+		"addedByYou": "Adăugat de tine",
+		"removeFromQueue": "Elimină din coadă",
+		"reorder": "Reordonează",
+		"clearQueue": "Șterge",
+		"empty": "Nimic mai departe",
+		"emptyHint": "Melodiile pe care le adaugi vor fi redate mai departe"
 	},
 	"library": {
 		"searchPlaceholder": "Caută melodii...",
@@ -277,7 +304,18 @@
 		"releases": "lansări",
 		"searchPlaceholder": "Caută lansări...",
 		"noReleasesYet": "Nicio lansare deocamdată",
+		"noResults": "Nicio lansare nu corespunde filtrelor dvs.",
 		"addReleaseHint": "Apăsați {shortcut} pentru a adăuga lansări de pe Bandcamp, Discogs, YouTube și altele",
+		"mobileAddHint": "Adaugă lansări de pe Bandcamp, Discogs, YouTube și altele",
+		"pending": "În așteptare",
+		"offlineQueueNotice": "Sunteți deconectat — această lansare va fi adăugată când vă reconectați",
+		"addToQueue": "Adaugă în coadă",
+		"editRelease": "Editează Lansare",
+		"goToRelease": "Mergi la Lansare",
+		"sortBy": "Sortează după",
+		"selectedCount": "{count, plural, =1 {1 selectat} other {{count} selectate}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Șterge lansare?} other {Șterge {count} lansări?}}",
+		"confirmDeleteMessage": "Aceasta nu poate fi anulată.",
 		"previewNotAvailable": "Previzualizare nu este disponibilă pentru această sursă",
 		"columns": {
 			"artistTitle": "Artist / Titlu",
@@ -293,6 +331,7 @@
 		"tracks": "Melodii",
 		"trackCount": "{count, plural, =1 {1 melodie} other {{count} melodii}}",
 		"openInBrowser": "Deschide în Browser",
+		"openInApp": "Deschide în {app}",
 		"copyUrl": "Copiază URL",
 		"copiedUrl": "URL copiat în clipboard",
 		"like": "Adaugă la Apreciate",
@@ -311,7 +350,9 @@
 			"title": "Titlu",
 			"label": "Label",
 			"releaseDate": "Data Lansării",
-			"notes": "Note"
+			"notes": "Note",
+			"notesPlaceholder": "Adaugă note…",
+			"addTags": "Adaugă etichete"
 		},
 		"import": {
 			"title": "Importă în Bibliotecă",
@@ -422,6 +463,8 @@
 		"rootNoFolder": "Root (Fără Folder)",
 		"folderEmpty": "Acest folder este gol",
 		"noPlaylistsYet": "Niciun playlist deocamdată",
+		"noPlaylists": "Niciun playlist deocamdată",
+		"allPlaylists": "Toate Playlisturile",
 		"exportToDevice": "Exportă pe Dispozitiv"
 	},
 	"tags": {
@@ -701,6 +744,9 @@
 		"emerald": "Smarald"
 	},
 	"dates": {
+		"justNow": "Chiar acum",
+		"minutesAgo": "{count, plural, =1 {acum 1 minut} other {acum {count} minute}}",
+		"hoursAgo": "{count, plural, =1 {acum 1 oră} other {acum {count} ore}}",
 		"today": "Azi",
 		"yesterday": "Ieri",
 		"daysAgo": "{count, plural, =1 {acum 1 zi} other {acum {count} zile}}",

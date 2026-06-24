@@ -87,6 +87,28 @@ impl PlaylistService {
         self.get_playlist(playlist_id)
     }
 
+    pub fn reorder_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<()> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+
+        let hlc = dirty::next_hlc(&conn)?;
+        for (i, release_id) in release_ids.iter().enumerate() {
+            conn.execute(
+                "UPDATE playlist_discovery_releases SET position = ?1, _hlc = ?2 WHERE playlist_id = ?3 AND release_id = ?4",
+                rusqlite::params![i as i32, hlc, playlist_id, release_id],
+            )?;
+        }
+
+        let now = chrono::Utc::now().to_rfc3339();
+        conn.execute(
+            "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+            rusqlite::params![now, hlc, playlist_id],
+        )?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
+
+        Ok(())
+    }
+
     pub fn get_playlist_releases(&self, playlist_id: &str) -> Result<Vec<DiscoveryRelease>> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
@@ -201,5 +223,146 @@ impl PlaylistService {
         }
 
         Ok(releases)
+    }
+
+    /// Fetch up to 4 distinct release covers for each of the given playlists, for mosaic
+    /// thumbnails. Deliberately lightweight: no track/tag joins (unlike `get_playlist_releases`),
+    /// so it can be batched across every playlist visible in a list. Dedupes by `artwork_url`
+    /// (a playlist may hold releases that share a cover), ranks each distinct cover by its
+    /// earliest position, and keeps the first 4 per playlist. Returns an entry for every
+    /// requested id (with an empty vec when a playlist has no usable covers) so callers can
+    /// cache the "no covers" result and avoid refetching.
+    pub fn get_playlist_cover_art(
+        &self,
+        playlist_ids: &[String],
+    ) -> Result<Vec<PlaylistCoverArt>> {
+        // Pre-seed one entry per requested id, preserving input order.
+        let mut result: Vec<PlaylistCoverArt> = playlist_ids
+            .iter()
+            .map(|id| PlaylistCoverArt {
+                playlist_id: id.clone(),
+                artwork_urls: Vec::new(),
+            })
+            .collect();
+
+        if playlist_ids.is_empty() {
+            return Ok(result);
+        }
+
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+
+        let placeholders = playlist_ids
+            .iter()
+            .map(|_| "?")
+            .collect::<Vec<_>>()
+            .join(", ");
+        let param_refs: Vec<&dyn rusqlite::ToSql> = playlist_ids
+            .iter()
+            .map(|id| id as &dyn rusqlite::ToSql)
+            .collect();
+
+        // Regular playlists: one batched window query over the junction table. Smart playlists hold no
+        // junction rows (their members are computed from rules), so they contribute nothing here and are
+        // resolved from their rules below.
+        {
+            let sql = format!(
+                r#"
+                SELECT playlist_id, artwork_url FROM (
+                    SELECT playlist_id, artwork_url,
+                           ROW_NUMBER() OVER (PARTITION BY playlist_id ORDER BY first_pos) AS rn
+                    FROM (
+                        SELECT pdr.playlist_id AS playlist_id,
+                               dr.artwork_url AS artwork_url,
+                               MIN(pdr.position) AS first_pos
+                        FROM playlist_discovery_releases pdr
+                        JOIN discovery_releases dr ON dr.id = pdr.release_id
+                        WHERE pdr.playlist_id IN ({placeholders})
+                          AND dr.artwork_url IS NOT NULL AND dr.artwork_url <> ''
+                        GROUP BY pdr.playlist_id, dr.artwork_url
+                    )
+                ) WHERE rn <= 4
+                ORDER BY playlist_id, rn
+                "#
+            );
+
+            let mut stmt = conn.prepare(&sql)?;
+            let rows = stmt
+                .query_map(param_refs.as_slice(), |row| {
+                    Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                })?
+                .collect::<std::result::Result<Vec<(String, String)>, _>>()?;
+
+            for (playlist_id, artwork_url) in rows {
+                if let Some(entry) = result.iter_mut().find(|c| c.playlist_id == playlist_id) {
+                    entry.artwork_urls.push(artwork_url);
+                }
+            }
+        }
+
+        // Smart playlists: rule-based, so resolve each from its discovery query and keep the first four
+        // distinct covers in the same order the detail view lists them (`get_smart_playlist_releases`). A
+        // best-effort thumbnail fetch — a playlist with malformed rules is skipped (left coverless), not
+        // allowed to fail the whole batch.
+        let smart_meta: Vec<(String, Option<String>, String)> = {
+            let mut stmt = conn.prepare(&format!(
+                "SELECT id, smart_rules, context FROM playlists WHERE id IN ({placeholders}) AND is_smart = 1"
+            ))?;
+            // Bind before the block ends so the `MappedRows` temporary drops before `stmt` does (E0597).
+            let rows = stmt
+                .query_map(param_refs.as_slice(), |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, Option<String>>(1)?,
+                        row.get::<_, String>(2)?,
+                    ))
+                })?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            rows
+        };
+
+        for (playlist_id, smart_rules_json, context) in &smart_meta {
+            // Covers come from `discovery_releases`, so only discovery smart playlists can be resolved here.
+            if context != "discovery" {
+                continue;
+            }
+            let Some(json) = smart_rules_json else { continue };
+            let rules: SmartRules = match serde_json::from_str(json) {
+                Ok(r) => r,
+                Err(_) => continue,
+            };
+            let (where_clause, params) = match smart_rules::build_smart_query_discovery(&rules) {
+                Ok(q) => q,
+                Err(_) => continue,
+            };
+
+            let sql = format!("SELECT dr.artwork_url FROM discovery_releases dr WHERE {where_clause}");
+            let param_refs: Vec<&dyn rusqlite::ToSql> =
+                params.iter().map(|p| p as &dyn rusqlite::ToSql).collect();
+
+            // Iterate lazily and stop at four distinct covers — for a sorted/limited smart query SQLite can
+            // then avoid materializing the whole match set just to fill a thumbnail.
+            let mut stmt = conn.prepare(&sql)?;
+            let mut sql_rows = stmt.query(param_refs.as_slice())?;
+            let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+            let mut urls: Vec<String> = Vec::new();
+            while let Some(row) = sql_rows.next()? {
+                let Some(url) = row.get::<_, Option<String>>(0)? else {
+                    continue;
+                };
+                if url.is_empty() || !seen.insert(url.clone()) {
+                    continue;
+                }
+                urls.push(url);
+                if urls.len() >= 4 {
+                    break;
+                }
+            }
+
+            if let Some(entry) = result.iter_mut().find(|c| &c.playlist_id == playlist_id) {
+                entry.artwork_urls = urls;
+            }
+        }
+
+        Ok(result)
     }
 }

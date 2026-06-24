@@ -20,13 +20,17 @@
 		"folder": "folder",
 		"playlist": "playlist",
 		"next": "Next",
-		"back": "Back"
+		"back": "Back",
+		"more": "More",
+		"select": "Select"
 	},
 	"nav": {
 		"library": "Library",
 		"discovery": "Discovery",
 		"playlists": "Playlists",
-		"tags": "Tags"
+		"tags": "Tags",
+		"openMenu": "Open menu",
+		"openSettings": "Open settings"
 	},
 	"settings": {
 		"title": "Settings",
@@ -179,7 +183,8 @@
 			"updates": "Updates",
 			"checkForUpdates": "Check for Updates",
 			"upToDate": "Up to date",
-			"updateAvailable": "{version} available"
+			"updateAvailable": "{version} available",
+			"project": "Project"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Sync now",
 			"syncing": "Syncing…",
 			"signOut": "Sign out",
+			"signOutConfirmTitle": "Sign out?",
+			"signOutConfirmMessage": "Your local data stays on this device. Syncing will stop until you sign in again.",
+			"autoSyncHint": "Your discovery library syncs automatically across your devices.",
 			"lastSynced": "Last synced {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Reset tempo",
-		"trackNotFound": "Could not locate the playing track"
+		"trackNotFound": "Could not locate the playing track",
+		"expand": "Expand player",
+		"collapse": "Collapse player",
+		"seek": "Seek"
+	},
+	"queue": {
+		"upNext": "Up Next",
+		"openQueue": "Up next",
+		"playNext": "Play next",
+		"addToQueue": "Add to queue",
+		"playingNext": "Playing next",
+		"addedToQueue": "Added to queue",
+		"nextInQueue": "Next in queue",
+		"upNextFromContext": "Up next",
+		"addedByYou": "Added by you",
+		"removeFromQueue": "Remove from queue",
+		"reorder": "Reorder",
+		"clearQueue": "Clear",
+		"empty": "Nothing up next",
+		"emptyHint": "Songs you add will play next"
 	},
 	"library": {
 		"searchPlaceholder": "Search tracks...",
@@ -277,7 +304,18 @@
 		"releases": "releases",
 		"searchPlaceholder": "Search releases...",
 		"noReleasesYet": "No releases yet",
+		"noResults": "No releases match your filters",
 		"addReleaseHint": "Press {shortcut} to add releases from Bandcamp, Discogs, YouTube, and more",
+		"mobileAddHint": "Add releases from Bandcamp, Discogs, YouTube, and more",
+		"pending": "Pending",
+		"offlineQueueNotice": "You're offline — this release will be added when you reconnect",
+		"addToQueue": "Add to Queue",
+		"editRelease": "Edit Release",
+		"goToRelease": "Go to Release",
+		"sortBy": "Sort by",
+		"selectedCount": "{count, plural, =1 {1 selected} other {{count} selected}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Delete release?} other {Delete {count} releases?}}",
+		"confirmDeleteMessage": "This can't be undone.",
 		"previewNotAvailable": "Preview not available for this source",
 		"columns": {
 			"artistTitle": "Artist / Title",
@@ -294,6 +332,7 @@
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "Open in Browser",
+		"openInApp": "Open in {app}",
 		"copyUrl": "Copy URL",
 		"copiedUrl": "URL copied to clipboard",
 		"like": "Like",
@@ -312,7 +351,9 @@
 			"title": "Title",
 			"label": "Label",
 			"releaseDate": "Release Date",
-			"notes": "Notes"
+			"notes": "Notes",
+			"notesPlaceholder": "Add notes…",
+			"addTags": "Add tags"
 		},
 		"import": {
 			"title": "Import to Library",
@@ -423,6 +464,8 @@
 		"rootNoFolder": "Root (No Folder)",
 		"folderEmpty": "This folder is empty",
 		"noPlaylistsYet": "No playlists yet",
+		"noPlaylists": "No playlists yet",
+		"allPlaylists": "All Playlists",
 		"exportToDevice": "Export to Device"
 	},
 	"tags": {
@@ -702,6 +745,9 @@
 		"emerald": "Emerald"
 	},
 	"dates": {
+		"justNow": "Just now",
+		"minutesAgo": "{count, plural, =1 {1 minute ago} other {{count} minutes ago}}",
+		"hoursAgo": "{count, plural, =1 {1 hour ago} other {{count} hours ago}}",
 		"today": "Today",
 		"yesterday": "Yesterday",
 		"daysAgo": "{count, plural, =1 {1 day ago} other {{count} days ago}}",

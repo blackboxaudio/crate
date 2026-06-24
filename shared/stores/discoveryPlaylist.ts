@@ -119,6 +119,15 @@ function createDiscoveryPlaylistStore() {
 			}
 		},
 
+		reorderInCache(playlistId: string, releaseIds: string[]) {
+			update((state) => {
+				const byId = new Map(state.releases.map((r) => [r.id, r]))
+				const reordered = releaseIds.map((id) => byId.get(id)).filter(Boolean) as DiscoveryRelease[]
+				cache.set(playlistId, reordered)
+				return { releases: reordered }
+			})
+		},
+
 		getCache() {
 			return cache
 		},

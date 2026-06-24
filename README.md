@@ -94,6 +94,8 @@ Output binaries are placed in `src-tauri/target/release/bundle/`.
 Platform targets:
 - **macOS** - `.dmg`, `.app`
 - **Windows** - `.msi`, `.exe`
+- **iOS** - TestFlight / App Store (via CI)
+- **Android** - signed `.apk` (via CI, attached to GitHub Releases)
 
 ### Mobile (iOS)
 
@@ -128,8 +130,14 @@ yarn dev:ios
 Build for production:
 
 ```bash
-yarn build:ios
+yarn build:ios                # default iOS build
+yarn build:ios:appstore       # App Store Connect (TestFlight / App Store)
+yarn build:ios:adhoc          # ad-hoc distribution
+yarn build:android:apk        # Android APK
+yarn build:android:aab        # Android App Bundle
 ```
+
+For signed release builds via CI, see [`.github/MOBILE_DISTRIBUTION.md`](.github/MOBILE_DISTRIBUTION.md).
 
 The iOS scripts first generate `src-tauri/Info.ios.plist` (adds background-audio mode for preview playback, and the OAuth callback URL scheme for cloud sign-in). The scheme is derived from `ios_oauth_client_id` in `src-tauri/cloud_sync.config.json` (see `cloud_sync.config.example.json`); without it the app still builds, but cloud sign-in is unavailable.
 

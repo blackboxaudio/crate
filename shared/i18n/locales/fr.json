@@ -20,13 +20,17 @@
 		"folder": "dossier",
 		"playlist": "playlist",
 		"next": "Suivant",
-		"back": "Retour"
+		"back": "Retour",
+		"more": "Plus",
+		"select": "Sélectionner"
 	},
 	"nav": {
 		"library": "Bibliothèque",
 		"discovery": "Découvertes",
 		"playlists": "Playlists",
-		"tags": "Tags"
+		"tags": "Tags",
+		"openMenu": "Ouvrir le menu",
+		"openSettings": "Ouvrir les paramètres"
 	},
 	"settings": {
 		"title": "Paramètres",
@@ -179,7 +183,8 @@
 			"updates": "Mises à jour",
 			"checkForUpdates": "Vérifier les mises à jour",
 			"upToDate": "À jour",
-			"updateAvailable": "{version} disponible"
+			"updateAvailable": "{version} disponible",
+			"project": "Projet"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Synchroniser maintenant",
 			"syncing": "Synchronisation…",
 			"signOut": "Déconnexion",
+			"signOutConfirmTitle": "Se déconnecter?",
+			"signOutConfirmMessage": "Vos données locales restent sur cet appareil. La synchronisation s'arrêtera jusqu'à ce que vous vous reconnectiez.",
+			"autoSyncHint": "Votre bibliothèque Discovery se synchronise automatiquement sur tous vos appareils.",
 			"lastSynced": "Dernière synchronisation {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Réinitialiser le tempo",
-		"trackNotFound": "Impossible de localiser la piste en cours de lecture"
+		"trackNotFound": "Impossible de localiser la piste en cours de lecture",
+		"expand": "Développer le lecteur",
+		"collapse": "Réduire le lecteur",
+		"seek": "Avancer"
+	},
+	"queue": {
+		"upNext": "À suivre",
+		"openQueue": "À suivre",
+		"playNext": "Lire suivant",
+		"addToQueue": "Ajouter à la file",
+		"playingNext": "En cours de lecture suivant",
+		"addedToQueue": "Ajouté à la file",
+		"nextInQueue": "Suivant dans la file",
+		"upNextFromContext": "À suivre",
+		"addedByYou": "Ajouté par vous",
+		"removeFromQueue": "Retirer de la file",
+		"reorder": "Réorganiser",
+		"clearQueue": "Effacer",
+		"empty": "Rien à suivre",
+		"emptyHint": "Les chansons que vous ajoutez seront lues ensuite"
 	},
 	"library": {
 		"searchPlaceholder": "Rechercher des pistes...",
@@ -277,7 +304,18 @@
 		"releases": "sorties",
 		"searchPlaceholder": "Rechercher des sorties...",
 		"noReleasesYet": "Aucune sortie pour le moment",
+		"noResults": "Aucune sortie ne correspond à vos filtres",
 		"addReleaseHint": "Appuyez sur {shortcut} pour ajouter des sorties de Bandcamp, Discogs, YouTube et plus",
+		"mobileAddHint": "Ajouter des sorties de Bandcamp, Discogs, YouTube et plus",
+		"pending": "En attente",
+		"offlineQueueNotice": "Vous êtes hors ligne — cette sortie sera ajoutée quand vous vous reconnecterez",
+		"addToQueue": "Ajouter à la file d'attente",
+		"editRelease": "Modifier la sortie",
+		"goToRelease": "Aller à la sortie",
+		"sortBy": "Trier par",
+		"selectedCount": "{count, plural, =1 {1 sélectionné} other {{count} sélectionnés}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Supprimer la sortie ?} other {Supprimer {count} sorties ?}}",
+		"confirmDeleteMessage": "Cela ne peut pas être annulé.",
 		"previewNotAvailable": "Aperçu non disponible pour cette source",
 		"columns": {
 			"artistTitle": "Artiste / Titre",
@@ -294,6 +332,7 @@
 		"tracks": "Pistes",
 		"trackCount": "{count, plural, =1 {1 piste} other {{count} pistes}}",
 		"openInBrowser": "Ouvrir dans le navigateur",
+		"openInApp": "Ouvrir dans {app}",
 		"copyUrl": "Copier l'URL",
 		"copiedUrl": "URL copiée dans le presse-papiers",
 		"like": "Ajouter aux favoris",
@@ -312,7 +351,9 @@
 			"title": "Titre",
 			"label": "Label",
 			"releaseDate": "Date de sortie",
-			"notes": "Notes"
+			"notes": "Notes",
+			"notesPlaceholder": "Ajouter des notes…",
+			"addTags": "Ajouter des étiquettes"
 		},
 		"import": {
 			"title": "Importer dans la bibliothèque",
@@ -423,6 +464,8 @@
 		"rootNoFolder": "Racine (aucun dossier)",
 		"folderEmpty": "Ce dossier est vide",
 		"noPlaylistsYet": "Aucune playlist pour le moment",
+		"noPlaylists": "Aucune playlist pour le moment",
+		"allPlaylists": "Toutes les playlists",
 		"exportToDevice": "Exporter vers l'appareil"
 	},
 	"tags": {
@@ -701,6 +744,9 @@
 		"emerald": "Émeraude"
 	},
 	"dates": {
+		"justNow": "À l'instant",
+		"minutesAgo": "{count, plural, =1 {il y a 1 minute} other {il y a {count} minutes}}",
+		"hoursAgo": "{count, plural, =1 {il y a 1 heure} other {il y a {count} heures}}",
 		"today": "Aujourd'hui",
 		"yesterday": "Hier",
 		"daysAgo": "{count, plural, =1 {il y a 1 jour} other {il y a {count} jours}}",

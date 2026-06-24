@@ -14,8 +14,10 @@ pub mod export;
 pub mod follow;
 #[cfg(feature = "desktop")]
 pub mod library;
-#[cfg(feature = "desktop")]
 pub mod media_controls;
+// iOS-only native preview playback engine commands (#54).
+#[cfg(target_os = "ios")]
+pub mod native_preview;
 #[cfg(feature = "desktop")]
 pub mod playback;
 pub mod playlist;

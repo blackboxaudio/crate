@@ -20,13 +20,17 @@
 		"folder": "klasör",
 		"playlist": "çalma listesi",
 		"next": "İleri",
-		"back": "Geri"
+		"back": "Geri",
+		"more": "Daha fazla",
+		"select": "Seç"
 	},
 	"nav": {
 		"library": "Kütüphane",
 		"discovery": "Keşfet",
 		"playlists": "Çalma Listeleri",
-		"tags": "Etiketler"
+		"tags": "Etiketler",
+		"openMenu": "Menüyü aç",
+		"openSettings": "Ayarları aç"
 	},
 	"settings": {
 		"title": "Ayarlar",
@@ -179,7 +183,8 @@
 			"updates": "Güncellemeler",
 			"checkForUpdates": "Güncellemeleri Denetle",
 			"upToDate": "Güncel",
-			"updateAvailable": "{version} mevcut"
+			"updateAvailable": "{version} mevcut",
+			"project": "Proje"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Şimdi senkronize et",
 			"syncing": "Senkronize ediliyor…",
 			"signOut": "Oturumu Kapat",
+			"signOutConfirmTitle": "Oturumu kapat?",
+			"signOutConfirmMessage": "Yerel verileriniz bu cihazda kalır. Yeniden oturum açana kadar senkronizasyon durur.",
+			"autoSyncHint": "Discovery kütüphaneniz tüm cihazlarınızda otomatik olarak senkronize olur.",
 			"lastSynced": "Son senkronizasyon {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Ses Düzeyi",
 		"tempo": "Tempo",
 		"resetTempo": "Tempoyu Sıfırla",
-		"trackNotFound": "Çalan parça bulunamadı"
+		"trackNotFound": "Çalan parça bulunamadı",
+		"expand": "Oynatıcıyı Genişlet",
+		"collapse": "Oynatıcıyı Daralt",
+		"seek": "Ara"
+	},
+	"queue": {
+		"upNext": "Sırada",
+		"openQueue": "Sırada",
+		"playNext": "Sonrakini oynat",
+		"addToQueue": "Sıraya ekle",
+		"playingNext": "Sonraki oynatılıyor",
+		"addedToQueue": "Sıraya eklendi",
+		"nextInQueue": "Sırada sonraki",
+		"upNextFromContext": "Sırada",
+		"addedByYou": "Sen tarafından eklendi",
+		"removeFromQueue": "Sıradan kaldır",
+		"reorder": "Yeniden sırala",
+		"clearQueue": "Temizle",
+		"empty": "Sırada hiçbir şey yok",
+		"emptyHint": "Eklediğin şarkılar sonra oynatılacak"
 	},
 	"library": {
 		"searchPlaceholder": "Şarkıları ara...",
@@ -277,7 +304,18 @@
 		"releases": "yayın",
 		"searchPlaceholder": "Yayınları ara...",
 		"noReleasesYet": "Henüz yayın yok",
+		"noResults": "Filtrelerinizle eşleşen yayın yok",
 		"addReleaseHint": "{shortcut} tuşuna basarak Bandcamp, Discogs, YouTube ve daha fazlasından yayın ekleyin",
+		"mobileAddHint": "Bandcamp, Discogs, YouTube ve daha fazlasından yayın ekleyin",
+		"pending": "Bekleniyor",
+		"offlineQueueNotice": "Çevrimdışısınız — yeniden bağlandığınızda bu yayın eklenecektir",
+		"addToQueue": "Kuyruğa Ekle",
+		"editRelease": "Yayını Düzenle",
+		"goToRelease": "Yayına Git",
+		"sortBy": "Sırala",
+		"selectedCount": "{count, plural, =1 {1 seçildi} other {{count} seçildi}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Yayını sil?} other {{count} yayını sil?}}",
+		"confirmDeleteMessage": "Bu işlem geri alınamaz.",
 		"previewNotAvailable": "Bu kaynak için önizleme mevcut değil",
 		"columns": {
 			"artistTitle": "Sanatçı / Başlık",
@@ -293,6 +331,7 @@
 		"tracks": "Şarkılar",
 		"trackCount": "{count, plural, =1 {1 şarkı} other {{count} şarkı}}",
 		"openInBrowser": "Tarayıcıda Aç",
+		"openInApp": "{app}'da Aç",
 		"copyUrl": "URL'yi Kopyala",
 		"copiedUrl": "URL panoya kopyalandı",
 		"like": "Beğenilenlere Ekle",
@@ -311,7 +350,9 @@
 			"title": "Başlık",
 			"label": "Etiket",
 			"releaseDate": "Yayın Tarihi",
-			"notes": "Notlar"
+			"notes": "Notlar",
+			"notesPlaceholder": "Not ekle…",
+			"addTags": "Etiket ekle"
 		},
 		"import": {
 			"title": "Kütüphaneye İçe Aktar",
@@ -422,6 +463,8 @@
 		"rootNoFolder": "Kök (Klasör Yok)",
 		"folderEmpty": "Bu klasör boş",
 		"noPlaylistsYet": "Henüz çalma listesi yok",
+		"noPlaylists": "Henüz çalma listesi yok",
+		"allPlaylists": "Tüm Çalma Listeleri",
 		"exportToDevice": "Cihaza Dışa Aktar"
 	},
 	"tags": {
@@ -701,6 +744,9 @@
 		"emerald": "Zümrüt"
 	},
 	"dates": {
+		"justNow": "Biraz önce",
+		"minutesAgo": "{count, plural, =1 {1 dakika önce} other {{count} dakika önce}}",
+		"hoursAgo": "{count, plural, =1 {1 saat önce} other {{count} saat önce}}",
 		"today": "Bugün",
 		"yesterday": "Dün",
 		"daysAgo": "{count, plural, =1 {1 gün önce} other {{count} gün önce}}",

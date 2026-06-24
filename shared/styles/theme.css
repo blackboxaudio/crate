@@ -1,0 +1,151 @@
+/* =============================================================================
+   Shared theme tokens — imported by BOTH apps/desktop and apps/mobile.
+
+   This file holds the cross-platform design tokens as plain CSS custom properties: the dark/light
+   theme surfaces/text/strokes, the accent palettes, and the font families, keyed off the
+   `data-theme` / `data-accent` / `data-font` attributes set on <html> by the inline boot script and
+   `settingsStore`.
+
+   It is intentionally pure CSS (no Tailwind directives) so it can be `@import`ed by either app. Each
+   app's own `style.css` keeps the Tailwind glue locally — `@import 'tailwindcss'`, the `@theme` color
+   mapping, and the brand-color `@utility` helpers — which reference the variables defined here.
+   ============================================================================= */
+
+/* =============================================================================
+   Dark Theme (Default)
+   ============================================================================= */
+
+:root,
+[data-theme='dark'] {
+	--surface-0: #09090b; /* zinc-950 - deepest background */
+	--surface-1: #18181b; /* zinc-900 - main background */
+	--surface-2: #27272a; /* zinc-800 - elevated surfaces */
+
+	--text-primary: #fafafa; /* zinc-50 */
+	--text-secondary: #a1a1aa; /* zinc-400 */
+	--text-tertiary: #71717a; /* zinc-500 */
+
+	--stroke: #3f3f46; /* zinc-700 */
+	--stroke-subtle: #27272a; /* zinc-800 */
+
+	color-scheme: dark;
+}
+
+/* =============================================================================
+   Light Theme
+   ============================================================================= */
+
+[data-theme='light'] {
+	--surface-0: #ffffff; /* white - deepest background */
+	--surface-1: #fafafa; /* zinc-50 - main background */
+	--surface-2: #f4f4f5; /* zinc-100 - elevated surfaces */
+
+	--text-primary: #18181b; /* zinc-900 */
+	--text-secondary: #52525b; /* zinc-600 */
+	--text-tertiary: #71717a; /* zinc-500 */
+
+	--stroke: #d4d4d8; /* zinc-300 */
+	--stroke-subtle: #e4e4e7; /* zinc-200 */
+
+	color-scheme: light;
+}
+
+/* =============================================================================
+   Accent Color Variants
+   ============================================================================= */
+
+/* Default (blue) - only when no accent is explicitly set */
+:root:not([data-accent]) {
+	--brand-primary: #3b82f6;
+	--brand-hover: #2563eb;
+	--brand-muted: rgba(59, 130, 246, 0.2);
+}
+
+[data-accent='blue'] {
+	--brand-primary: #3b82f6;
+	--brand-hover: #2563eb;
+	--brand-muted: rgba(59, 130, 246, 0.2);
+}
+
+[data-accent='indigo'] {
+	--brand-primary: #6366f1;
+	--brand-hover: #4f46e5;
+	--brand-muted: rgba(99, 102, 241, 0.2);
+}
+
+[data-accent='violet'] {
+	--brand-primary: #8b5cf6;
+	--brand-hover: #7c3aed;
+	--brand-muted: rgba(139, 92, 246, 0.2);
+}
+
+[data-accent='purple'] {
+	--brand-primary: #a855f7;
+	--brand-hover: #9333ea;
+	--brand-muted: rgba(168, 85, 247, 0.2);
+}
+
+[data-accent='pink'] {
+	--brand-primary: #ec4899;
+	--brand-hover: #db2777;
+	--brand-muted: rgba(236, 72, 153, 0.2);
+}
+
+[data-accent='rose'] {
+	--brand-primary: #f43f5e;
+	--brand-hover: #e11d48;
+	--brand-muted: rgba(244, 63, 94, 0.2);
+}
+
+[data-accent='orange'] {
+	--brand-primary: #f97316;
+	--brand-hover: #ea580c;
+	--brand-muted: rgba(249, 115, 22, 0.2);
+}
+
+[data-accent='amber'] {
+	--brand-primary: #f59e0b;
+	--brand-hover: #d97706;
+	--brand-muted: rgba(245, 158, 11, 0.2);
+}
+
+[data-accent='emerald'] {
+	--brand-primary: #10b981;
+	--brand-hover: #059669;
+	--brand-muted: rgba(16, 185, 129, 0.2);
+}
+
+[data-accent='teal'] {
+	--brand-primary: #14b8a6;
+	--brand-hover: #0d9488;
+	--brand-muted: rgba(20, 184, 166, 0.2);
+}
+
+/* =============================================================================
+   Font Family Variants
+   ============================================================================= */
+
+:root,
+[data-font='open-sans'] {
+	--font-family: 'Open Sans', sans-serif;
+}
+
+[data-font='inter'] {
+	--font-family: 'Inter', sans-serif;
+}
+
+[data-font='nunito'] {
+	--font-family: 'Nunito', sans-serif;
+}
+
+[data-font='fira-code'] {
+	--font-family: 'Fira Code', monospace;
+}
+
+[data-font='ibm-plex-mono'] {
+	--font-family: 'IBM Plex Mono', monospace;
+}
+
+[data-font='source-code-pro'] {
+	--font-family: 'Source Code Pro', monospace;
+}

@@ -20,13 +20,17 @@
 		"folder": "map",
 		"playlist": "afspeellijst",
 		"next": "Volgende",
-		"back": "Terug"
+		"back": "Terug",
+		"more": "Meer",
+		"select": "Selecteren"
 	},
 	"nav": {
 		"library": "Bibliotheek",
 		"discovery": "Ontdekkingen",
 		"playlists": "Afspeellijsten",
-		"tags": "Tags"
+		"tags": "Tags",
+		"openMenu": "Menu openen",
+		"openSettings": "Instellingen openen"
 	},
 	"settings": {
 		"title": "Instellingen",
@@ -179,7 +183,8 @@
 			"updates": "Updates",
 			"checkForUpdates": "Op updates controleren",
 			"upToDate": "Up-to-date",
-			"updateAvailable": "{version} beschikbaar"
+			"updateAvailable": "{version} beschikbaar",
+			"project": "Project"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Nu synchroniseren",
 			"syncing": "Synchroniseren…",
 			"signOut": "Afmelden",
+			"signOutConfirmTitle": "Afmelden?",
+			"signOutConfirmMessage": "Uw lokale gegevens blijven op dit apparaat. Synchronisatie stopt totdat u zich opnieuw aanmeldt.",
+			"autoSyncHint": "Uw Discovery-bibliotheek wordt automatisch gesynchroniseerd op al uw apparaten.",
 			"lastSynced": "Laatst gesynchroniseerd {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Tempo resetten",
-		"trackNotFound": "Kon het afspelende nummer niet vinden"
+		"trackNotFound": "Kon het afspelende nummer niet vinden",
+		"expand": "Speler uitvouwen",
+		"collapse": "Speler samenvouwen",
+		"seek": "Zoeken"
+	},
+	"queue": {
+		"upNext": "Volgende",
+		"openQueue": "Volgende",
+		"playNext": "Volgende afspelen",
+		"addToQueue": "Toevoegen aan wachtrij",
+		"playingNext": "Volgende afspelen",
+		"addedToQueue": "Toegevoegd aan wachtrij",
+		"nextInQueue": "Volgende in wachtrij",
+		"upNextFromContext": "Volgende",
+		"addedByYou": "Toegevoegd door jou",
+		"removeFromQueue": "Verwijderen uit wachtrij",
+		"reorder": "Opnieuw ordenen",
+		"clearQueue": "Wissen",
+		"empty": "Niets volgende",
+		"emptyHint": "Nummers die je toevoegt worden hierna afgespeeld"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks zoeken...",
@@ -277,7 +304,18 @@
 		"releases": "releases",
 		"searchPlaceholder": "Releases zoeken...",
 		"noReleasesYet": "Nog geen releases",
+		"noResults": "Geen releases komen overeen met je filters",
 		"addReleaseHint": "Druk {shortcut} om releases van Bandcamp, Discogs, YouTube en meer toe te voegen",
+		"mobileAddHint": "Releases van Bandcamp, Discogs, YouTube en meer toevoegen",
+		"pending": "In behandeling",
+		"offlineQueueNotice": "Je bent offline — deze release wordt toegevoegd als je verbonden bent",
+		"addToQueue": "Toevoegen aan wachtrij",
+		"editRelease": "Release bewerken",
+		"goToRelease": "Ga naar Release",
+		"sortBy": "Sorteren op",
+		"selectedCount": "{count, plural, =1 {1 geselecteerd} other {{count} geselecteerd}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Release verwijderen?} other {{count} releases verwijderen?}}",
+		"confirmDeleteMessage": "Dit kan niet ongedaan gemaakt worden.",
 		"previewNotAvailable": "Voorbeeld niet beschikbaar voor deze bron",
 		"columns": {
 			"artistTitle": "Artiest / Titel",
@@ -294,6 +332,7 @@
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "In browser openen",
+		"openInApp": "In {app} openen",
 		"copyUrl": "URL kopiëren",
 		"copiedUrl": "URL gekopieerd naar klembord",
 		"like": "Toevoegen aan favorieten",
@@ -312,7 +351,9 @@
 			"title": "Titel",
 			"label": "Label",
 			"releaseDate": "Releasedatum",
-			"notes": "Opmerkingen"
+			"notes": "Opmerkingen",
+			"notesPlaceholder": "Opmerkingen toevoegen…",
+			"addTags": "Tags toevoegen"
 		},
 		"import": {
 			"title": "Importeren naar bibliotheek",
@@ -423,6 +464,8 @@
 		"rootNoFolder": "Hoofdmap (geen map)",
 		"folderEmpty": "Deze map is leeg",
 		"noPlaylistsYet": "Nog geen afspeellijsten",
+		"noPlaylists": "Nog geen afspeellijsten",
+		"allPlaylists": "Alle afspeellijsten",
 		"exportToDevice": "Exporteren naar apparaat"
 	},
 	"tags": {
@@ -701,6 +744,9 @@
 		"emerald": "Smaragd"
 	},
 	"dates": {
+		"justNow": "Zojuist",
+		"minutesAgo": "{count, plural, =1 {1 minuut geleden} other {{count} minuten geleden}}",
+		"hoursAgo": "{count, plural, =1 {1 uur geleden} other {{count} uren geleden}}",
 		"today": "Vandaag",
 		"yesterday": "Gisteren",
 		"daysAgo": "{count, plural, =1 {1 dag geleden} other {{count} dagen geleden}}",

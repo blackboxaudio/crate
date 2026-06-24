@@ -1,0 +1,165 @@
+/* Only the default font (Nunito) is served on mobile to keep boot lightweight; the other
+   `data-font` families remain defined in the shared theme and fall back to the system font until
+   the mobile font picker ships. */
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300..800&display=swap');
+@import 'tailwindcss';
+
+/* Shared cross-platform Svelte components (e.g. Slider) live outside this app's Vite root, so Tailwind's
+   automatic content detection won't see them — register the directory explicitly to generate their classes. */
+@source '../../../shared/components';
+
+/* Cross-platform theme tokens shared with the desktop app: the dark/light theme, accent, and font
+   CSS variables that the @theme mapping and brand utilities below reference. */
+@import '../../../shared/styles/theme.css';
+
+/* =============================================================================
+   Theme Definition with Tailwind CSS 4 @theme (mirrors desktop's mapping so the same
+   surface, text, and stroke utilities are available on mobile).
+   ============================================================================= */
+
+@theme {
+	--color-surface-0: var(--surface-0);
+	--color-surface-1: var(--surface-1);
+	--color-surface-2: var(--surface-2);
+
+	--color-text-primary: var(--text-primary);
+	--color-text-secondary: var(--text-secondary);
+	--color-text-tertiary: var(--text-tertiary);
+
+	--color-stroke: var(--stroke);
+	--color-stroke-subtle: var(--stroke-subtle);
+
+	--color-danger: #ef4444;
+	--color-warning: #f59e0b;
+	--color-success: #22c55e;
+	--color-info: #3b82f6;
+
+	/* Conventional iOS-sheet easing for drawers/sheets/panels; mirrored in JS by `easeFluid`
+	   (lib/easing.ts) so the CSS- and Svelte-driven transitions share one smooth curve. */
+	--ease-fluid: cubic-bezier(0.32, 0.72, 0, 1);
+
+	/* Slight-overshoot "spring" for the iOS context-menu platter pop (the y2 of 1.56 gives ~6%
+	   overshoot). Used only on the platter's scale/opacity entrance — the lifted preview stays on
+	   --ease-fluid, since a lifting object that overshoots looks wrong. */
+	--ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* =============================================================================
+   Brand Color Utilities (raw var() refs so they react to data-accent changes).
+   ============================================================================= */
+
+@utility text-brand-primary {
+	color: var(--brand-primary);
+}
+
+@utility bg-brand-primary {
+	background-color: var(--brand-primary);
+}
+
+@utility bg-brand-hover {
+	background-color: var(--brand-hover);
+}
+
+@utility bg-brand-muted {
+	background-color: var(--brand-muted);
+}
+
+@utility border-brand-primary {
+	border-color: var(--brand-primary);
+}
+
+/* =============================================================================
+   Liquid-glass surface (iOS-style): a translucent, blurred, slightly saturated
+   material that lets content scroll through behind it. Theme-aware via the
+   surface token, with both -webkit- and standard backdrop-filter for WKWebView.
+   ============================================================================= */
+
+@utility glass {
+	background-color: color-mix(in srgb, var(--surface-1) 72%, transparent);
+	-webkit-backdrop-filter: blur(24px) saturate(180%);
+	backdrop-filter: blur(24px) saturate(180%);
+}
+
+@utility glass-strong {
+	background-color: color-mix(in srgb, var(--surface-1) 85%, transparent);
+	-webkit-backdrop-filter: blur(32px) saturate(180%);
+	backdrop-filter: blur(32px) saturate(180%);
+}
+
+/* =============================================================================
+   Safe-area utilities (iOS notch / Dynamic Island / home indicator).
+   Require `viewport-fit=cover` (set in app.html).
+   ============================================================================= */
+
+@utility pt-safe {
+	padding-top: env(safe-area-inset-top);
+}
+
+@utility pb-safe {
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility pl-safe {
+	padding-left: env(safe-area-inset-left);
+}
+
+@utility pr-safe {
+	padding-right: env(safe-area-inset-right);
+}
+
+/* =============================================================================
+   Base Styles (touch-oriented)
+   ============================================================================= */
+
+html,
+body {
+	height: 100%;
+	overflow: hidden; /* the shell owns its scroll containers; prevent whole-page bounce */
+	overscroll-behavior: none;
+	background-color: var(--surface-0);
+	color: var(--text-primary);
+	font-family: var(--font-family);
+	-webkit-user-select: none;
+	user-select: none;
+	-webkit-tap-highlight-color: transparent; /* no grey flash on tap */
+	touch-action: manipulation; /* no double-tap zoom (pinch is blocked via viewport + gesture guards) */
+}
+
+/* Re-enable text selection for inputs and editable content */
+input,
+textarea,
+[contenteditable='true'] {
+	-webkit-user-select: text;
+	user-select: text;
+}
+
+*:focus {
+	outline: none;
+}
+
+/* =============================================================================
+   Album-art background wash (ExpandedPlayer): a slow Ken-Burns drift on the
+   blurred cover so the now-playing backdrop feels alive. Disabled under
+   reduced-motion. The base scale keeps the blurred edges off-screen.
+   ============================================================================= */
+
+@keyframes art-wash-drift {
+	0%,
+	100% {
+		transform: scale(1.5) translate(0, 0);
+	}
+	50% {
+		transform: scale(1.7) translate(-3%, -2%);
+	}
+}
+
+.art-wash {
+	transform: scale(1.5);
+	animation: art-wash-drift 22s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.art-wash {
+		animation: none;
+	}
+}

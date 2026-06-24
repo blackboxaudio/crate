@@ -117,16 +117,22 @@ The changelog (`CHANGELOG.md`) follows [Keep a Changelog](https://keepachangelog
 
 Prerelease increments (`./scripts/tag.sh prerelease`) skip the changelog entirely — changes continue accumulating under `[Unreleased]` until the next `prepare` or `graduate`.
 
+## Mobile Distribution
+
+iOS (TestFlight / App Store) and Android (signed APK) builds run alongside the desktop build in the same `cd.release.yml` workflow. See [MOBILE_DISTRIBUTION.md](MOBILE_DISTRIBUTION.md) for setup instructions, required GitHub secrets, and the full signing flow.
+
 ## Post-Release Checklist
 
 After CI completes:
 
 1. Go to [GitHub Releases](https://github.com/blackboxaudio/crate/releases) and review the draft
-2. Verify artifacts are attached (DMG for macOS, MSI/EXE for Windows)
+2. Verify artifacts are attached (DMG for macOS, MSI/EXE for Windows, APK + sha256 for Android)
 3. Review release notes
 4. Publish the release
 5. Verify download links work
 6. Verify auto-updater picks up the new version (check `latest.json` in GCS)
+7. Verify the iOS build appeared in TestFlight (App Store Connect → TestFlight)
+8. `sha256sum -c` the Android APK from the release, then sideload to verify
 
 ## Utilities
 

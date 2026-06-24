@@ -116,7 +116,16 @@ function createSettingsStore() {
 
 	function applyTheme(resolvedTheme: 'light' | 'dark') {
 		if (typeof document === 'undefined') return
-		document.documentElement.setAttribute('data-theme', resolvedTheme)
+		const root = document.documentElement
+		root.setAttribute('data-theme', resolvedTheme)
+		// The boot script (app.html) writes inline --surface-0/--text-primary/--text-tertiary for a
+		// flash-free first paint. Those inline values outrank the stylesheet's [data-theme] rules, so a
+		// runtime theme switch would leave them stale (mismatched surfaces, invisible text). Clear them
+		// here so theme.css becomes authoritative — by now it's loaded and supplies identical values, so
+		// the removal is invisible on first load but lets every later switch re-theme correctly.
+		root.style.removeProperty('--surface-0')
+		root.style.removeProperty('--text-primary')
+		root.style.removeProperty('--text-tertiary')
 	}
 
 	function applyAccentColor(color: AccentColor) {
@@ -273,11 +282,17 @@ function createSettingsStore() {
 		/**
 		 * Load settings from backend
 		 */
-		async load() {
+		async load(opts?: { skipLanguage?: boolean }) {
 			update((s) => ({ ...s, loading: true, error: null }))
 
 			try {
-				const [settings, audioDevices] = await Promise.all([settingsApi.getSettings(), settingsApi.getAudioDevices()])
+				const [settings, audioDevices] = await Promise.all([
+					settingsApi.getSettings(),
+					// get_audio_devices is desktop-only (#[cfg(feature = "desktop")]); on mobile the command
+					// is absent, so default to an empty list rather than letting the whole load() reject and
+					// fall back to hardcoded theme defaults.
+					settingsApi.getAudioDevices().catch(() => [] as AudioDevice[]),
+				])
 				const resolvedTheme = resolveTheme(settings.theme)
 
 				update((s) => ({
@@ -318,10 +333,11 @@ function createSettingsStore() {
 				persistToLocalStorage(settings.theme, settings.accentColor, settings.language, settings.font)
 				setupSystemThemeListener()
 
-				// Update i18n language and menu
-				await setI18nLanguage(settings.language)
-				await tick()
-				await updateMenuTranslations()
+				if (!opts?.skipLanguage) {
+					await setI18nLanguage(settings.language)
+					await tick()
+					await updateMenuTranslations()
+				}
 			} catch (error) {
 				update((s) => ({
 					...s,

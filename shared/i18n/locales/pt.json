@@ -20,13 +20,17 @@
 		"folder": "pasta",
 		"playlist": "playlist",
 		"next": "Próximo",
-		"back": "Voltar"
+		"back": "Voltar",
+		"more": "Mais",
+		"select": "Selecionar"
 	},
 	"nav": {
 		"library": "Biblioteca",
 		"discovery": "Descobertas",
 		"playlists": "Playlists",
-		"tags": "Tags"
+		"tags": "Tags",
+		"openMenu": "Abrir menu",
+		"openSettings": "Abrir configurações"
 	},
 	"settings": {
 		"title": "Configurações",
@@ -179,7 +183,8 @@
 			"updates": "Atualizações",
 			"checkForUpdates": "Verificar atualizações",
 			"upToDate": "Atualizado",
-			"updateAvailable": "{version} disponível"
+			"updateAvailable": "{version} disponível",
+			"project": "Projeto"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Sincronizar agora",
 			"syncing": "Sincronizando…",
 			"signOut": "Sair",
+			"signOutConfirmTitle": "Sair?",
+			"signOutConfirmMessage": "Seus dados locais permanecem neste dispositivo. A sincronização será interrompida até que você faça login novamente.",
+			"autoSyncHint": "Sua biblioteca Discovery sincroniza automaticamente em todos os seus dispositivos.",
 			"lastSynced": "Última sincronização {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Redefinir tempo",
-		"trackNotFound": "Não foi possível localizar a faixa em reprodução"
+		"trackNotFound": "Não foi possível localizar a faixa em reprodução",
+		"expand": "Expandir reprodutor",
+		"collapse": "Recolher reprodutor",
+		"seek": "Buscar"
+	},
+	"queue": {
+		"upNext": "Próximo",
+		"openQueue": "Próximo",
+		"playNext": "Reproduzir próximo",
+		"addToQueue": "Adicionar à fila",
+		"playingNext": "Reproduzindo próximo",
+		"addedToQueue": "Adicionado à fila",
+		"nextInQueue": "Próximo na fila",
+		"upNextFromContext": "Próximo",
+		"addedByYou": "Adicionado por você",
+		"removeFromQueue": "Remover da fila",
+		"reorder": "Reordenar",
+		"clearQueue": "Limpar",
+		"empty": "Nada próximo",
+		"emptyHint": "As músicas que você adicionar serão reproduzidas a seguir"
 	},
 	"library": {
 		"searchPlaceholder": "Buscar faixas...",
@@ -277,7 +304,18 @@
 		"releases": "lançamentos",
 		"searchPlaceholder": "Pesquisar lançamentos...",
 		"noReleasesYet": "Nenhum lançamento ainda",
+		"noResults": "Nenhum lançamento corresponde aos seus filtros",
 		"addReleaseHint": "Pressione {shortcut} para adicionar lançamentos do Bandcamp, Discogs, YouTube e muito mais",
+		"mobileAddHint": "Adicionar lançamentos do Bandcamp, Discogs, YouTube e muito mais",
+		"pending": "Pendente",
+		"offlineQueueNotice": "Você está offline — este lançamento será adicionado quando você se reconectar",
+		"addToQueue": "Adicionar à fila",
+		"editRelease": "Editar lançamento",
+		"goToRelease": "Ir para lançamento",
+		"sortBy": "Ordenar por",
+		"selectedCount": "{count, plural, =1 {1 selecionado} other {{count} selecionados}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Excluir lançamento?} other {Excluir {count} lançamentos?}}",
+		"confirmDeleteMessage": "Esta ação não pode ser desfeita.",
 		"previewNotAvailable": "Pré-visualização não disponível para esta fonte",
 		"columns": {
 			"artistTitle": "Artista / Título",
@@ -294,6 +332,7 @@
 		"tracks": "Faixas",
 		"trackCount": "{count, plural, =1 {1 faixa} other {{count} faixas}}",
 		"openInBrowser": "Abrir no navegador",
+		"openInApp": "Abrir em {app}",
 		"copyUrl": "Copiar URL",
 		"copiedUrl": "URL copiada para a área de transferência",
 		"like": "Adicionar às curtidas",
@@ -312,7 +351,9 @@
 			"title": "Título",
 			"label": "Gravadora",
 			"releaseDate": "Data de lançamento",
-			"notes": "Notas"
+			"notes": "Notas",
+			"notesPlaceholder": "Adicionar notas…",
+			"addTags": "Adicionar tags"
 		},
 		"import": {
 			"title": "Importar para a biblioteca",
@@ -423,6 +464,8 @@
 		"rootNoFolder": "Raiz (sem pasta)",
 		"folderEmpty": "Esta pasta está vazia",
 		"noPlaylistsYet": "Nenhuma playlist ainda",
+		"noPlaylists": "Nenhuma playlist ainda",
+		"allPlaylists": "Todas as playlists",
 		"exportToDevice": "Exportar para dispositivo"
 	},
 	"tags": {
@@ -701,6 +744,9 @@
 		"emerald": "Esmeralda"
 	},
 	"dates": {
+		"justNow": "Agora mesmo",
+		"minutesAgo": "{count, plural, =1 {há 1 minuto} other {há {count} minutos}}",
+		"hoursAgo": "{count, plural, =1 {há 1 hora} other {há {count} horas}}",
 		"today": "Hoje",
 		"yesterday": "Ontem",
 		"daysAgo": "{count, plural, =1 {há 1 dia} other {há {count} dias}}",

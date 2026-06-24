@@ -20,13 +20,17 @@
 		"folder": "mapp",
 		"playlist": "spellista",
 		"next": "Nästa",
-		"back": "Tillbaka"
+		"back": "Tillbaka",
+		"more": "Mer",
+		"select": "Välj"
 	},
 	"nav": {
 		"library": "Bibliotek",
 		"discovery": "Upptäckter",
 		"playlists": "Spellistor",
-		"tags": "Taggar"
+		"tags": "Taggar",
+		"openMenu": "Öppna meny",
+		"openSettings": "Öppna inställningar"
 	},
 	"settings": {
 		"title": "Inställningar",
@@ -179,7 +183,8 @@
 			"updates": "Uppdateringar",
 			"checkForUpdates": "Sök efter uppdateringar",
 			"upToDate": "Uppdaterad",
-			"updateAvailable": "{version} tillgänglig"
+			"updateAvailable": "{version} tillgänglig",
+			"project": "Projekt"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Synkronisera nu",
 			"syncing": "Synkroniserar…",
 			"signOut": "Logga ut",
+			"signOutConfirmTitle": "Logga ut?",
+			"signOutConfirmMessage": "Dina lokala data förblir på den här enheten. Synkroniseringen stoppas tills du loggar in igen.",
+			"autoSyncHint": "Ditt Discovery-bibliotek synkroniseras automatiskt på alla dina enheter.",
 			"lastSynced": "Senast synkroniserad {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Volym",
 		"tempo": "Tempo",
 		"resetTempo": "Återställ tempo",
-		"trackNotFound": "Kunde inte hitta det spelande spåret"
+		"trackNotFound": "Kunde inte hitta det spelande spåret",
+		"expand": "Expandera spelare",
+		"collapse": "Fäll ihop spelare",
+		"seek": "Sök"
+	},
+	"queue": {
+		"upNext": "Upp nästa",
+		"openQueue": "Nästa",
+		"playNext": "Spela nästa",
+		"addToQueue": "Lägg till i kö",
+		"playingNext": "Spelar nästa",
+		"addedToQueue": "Tillagt i kö",
+		"nextInQueue": "Nästa i kö",
+		"upNextFromContext": "Upp nästa",
+		"addedByYou": "Tillagt av dig",
+		"removeFromQueue": "Ta bort från kö",
+		"reorder": "Sortera om",
+		"clearQueue": "Rensa",
+		"empty": "Inget upp nästa",
+		"emptyHint": "Låtar du lägger till kommer spelas nästa"
 	},
 	"library": {
 		"searchPlaceholder": "Sök spår...",
@@ -277,7 +304,18 @@
 		"releases": "utgåvor",
 		"searchPlaceholder": "Sök släpp...",
 		"noReleasesYet": "Inga utgåvor än",
+		"noResults": "Inga utgåvor matchar dina filter",
 		"addReleaseHint": "Tryck {shortcut} för att lägga till utgåvor från Bandcamp, Discogs, YouTube och mer",
+		"mobileAddHint": "Lägg till utgåvor från Bandcamp, Discogs, YouTube och mer",
+		"pending": "Väntande",
+		"offlineQueueNotice": "Du är offline — denna utgåva kommer att läggas till när du ansluter igen",
+		"addToQueue": "Lägg till i kö",
+		"editRelease": "Redigera utgåva",
+		"goToRelease": "Gå till utgåva",
+		"sortBy": "Sortera efter",
+		"selectedCount": "{count, plural, =1 {1 vald} other {{count} valda}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Ta bort utgåva?} other {Ta bort {count} utgåvor?}}",
+		"confirmDeleteMessage": "Detta kan inte ångras.",
 		"previewNotAvailable": "Förhandsvisning inte tillgänglig för denna källa",
 		"columns": {
 			"artistTitle": "Artist / Titel",
@@ -294,6 +332,7 @@
 		"tracks": "Spår",
 		"trackCount": "{count, plural, =1 {1 spår} other {{count} spår}}",
 		"openInBrowser": "Öppna i webbläsare",
+		"openInApp": "Öppna i {app}",
 		"copyUrl": "Kopiera URL",
 		"copiedUrl": "URL kopierad till urklipp",
 		"like": "Lägg till i gillat",
@@ -312,7 +351,9 @@
 			"title": "Titel",
 			"label": "Skivbolag",
 			"releaseDate": "Releasedatum",
-			"notes": "Anteckningar"
+			"notes": "Anteckningar",
+			"notesPlaceholder": "Lägg till anteckningar…",
+			"addTags": "Lägg till taggar"
 		},
 		"import": {
 			"title": "Importera till bibliotek",
@@ -423,6 +464,8 @@
 		"rootNoFolder": "Rot (ingen mapp)",
 		"folderEmpty": "Denna mapp är tom",
 		"noPlaylistsYet": "Inga spellistor än",
+		"noPlaylists": "Inga spellistor än",
+		"allPlaylists": "Alla spellistor",
 		"exportToDevice": "Exportera till enhet"
 	},
 	"tags": {
@@ -701,6 +744,9 @@
 		"emerald": "Smaragd"
 	},
 	"dates": {
+		"justNow": "Just nu",
+		"minutesAgo": "{count, plural, =1 {för 1 minut sedan} other {för {count} minuter sedan}}",
+		"hoursAgo": "{count, plural, =1 {för 1 timme sedan} other {för {count} timmar sedan}}",
 		"today": "Idag",
 		"yesterday": "Igår",
 		"daysAgo": "{count, plural, =1 {för 1 dag sedan} other {för {count} dagar sedan}}",

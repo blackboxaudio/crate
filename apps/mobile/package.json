@@ -12,15 +12,22 @@
 	},
 	"license": "SEE LICENSE IN LICENSE",
 	"dependencies": {
+		"@tanstack/virtual-core": "3.13.21",
 		"@tauri-apps/api": "2.11.0",
+		"@tauri-apps/plugin-clipboard-manager": "2.3.2",
+		"@tauri-apps/plugin-dialog": "2.7.1",
+		"@tauri-apps/plugin-haptics": "^2.0.0",
+		"@tauri-apps/plugin-opener": "2.5.3",
 		"tauri-plugin-web-auth-api": "1.0.0"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-static": "3.0.10",
 		"@sveltejs/kit": "2.49.2",
 		"@sveltejs/vite-plugin-svelte": "6.2.1",
+		"@tailwindcss/vite": "4.1.18",
 		"svelte": "5.46.0",
 		"svelte-check": "4.3.4",
+		"tailwindcss": "4.1.18",
 		"vite": "7.3.0"
 	}
 }

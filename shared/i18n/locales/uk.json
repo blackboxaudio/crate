@@ -20,13 +20,17 @@
 		"folder": "папка",
 		"playlist": "плейлист",
 		"next": "Далі",
-		"back": "Назад"
+		"back": "Назад",
+		"more": "Ще",
+		"select": "Вибрати"
 	},
 	"nav": {
 		"library": "Бібліотека",
 		"discovery": "Пошук",
 		"playlists": "Плейлисти",
-		"tags": "Теги"
+		"tags": "Теги",
+		"openMenu": "Відкрити меню",
+		"openSettings": "Відкрити параметри"
 	},
 	"settings": {
 		"title": "Параметри",
@@ -179,7 +183,8 @@
 			"updates": "Оновлення",
 			"checkForUpdates": "Перевірити наявність оновлень",
 			"upToDate": "Актуально",
-			"updateAvailable": "Доступна версія {version}"
+			"updateAvailable": "Доступна версія {version}",
+			"project": "Проект"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Синхронізувати зараз",
 			"syncing": "Синхронізація…",
 			"signOut": "Вийти",
+			"signOutConfirmTitle": "Вийти?",
+			"signOutConfirmMessage": "Ваші локальні дані залишаються на цьому пристрої. Синхронізація зупиниться до повторного входу.",
+			"autoSyncHint": "Ваша бібліотека Discovery автоматично синхронізується на всіх ваших пристроях.",
 			"lastSynced": "Остання синхронізація {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Гучність",
 		"tempo": "Темп",
 		"resetTempo": "Скинути темп",
-		"trackNotFound": "Не вдалося знайти відтворюваний трек"
+		"trackNotFound": "Не вдалося знайти відтворюваний трек",
+		"expand": "Розширити програвач",
+		"collapse": "Згорнути програвач",
+		"seek": "Пошук"
+	},
+	"queue": {
+		"upNext": "Далі",
+		"openQueue": "Далі",
+		"playNext": "Програти далі",
+		"addToQueue": "Додати в чергу",
+		"playingNext": "Програється далі",
+		"addedToQueue": "Додано в чергу",
+		"nextInQueue": "Далі в черзі",
+		"upNextFromContext": "Далі",
+		"addedByYou": "Додано вами",
+		"removeFromQueue": "Видалити з черги",
+		"reorder": "Змінити порядок",
+		"clearQueue": "Очистити",
+		"empty": "Далі нічого",
+		"emptyHint": "Пісні, які ви додаєте, будуть програватися далі"
 	},
 	"library": {
 		"searchPlaceholder": "Пошук доріжок...",
@@ -277,7 +304,18 @@
 		"releases": "видання",
 		"searchPlaceholder": "Пошук видань...",
 		"noReleasesYet": "Видань ще немає",
+		"noResults": "Жодне видання не відповідає вашим фільтрам",
 		"addReleaseHint": "Натисніть {shortcut}, щоб додати видання з Bandcamp, Discogs, YouTube та інших",
+		"mobileAddHint": "Додайте видання з Bandcamp, Discogs, YouTube та інших",
+		"pending": "Очікування",
+		"offlineQueueNotice": "Ви в режимі офлайн — це видання буде додано, коли ви знову підключитесь",
+		"addToQueue": "Додати в чергу",
+		"editRelease": "Редагувати видання",
+		"goToRelease": "Перейти до видання",
+		"sortBy": "Сортувати за",
+		"selectedCount": "{count, plural, =1 {1 вибрано} other {{count} вибрано}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Видалити видання?} other {Видалити {count} видання?}}",
+		"confirmDeleteMessage": "Це неможливо скасувати.",
 		"previewNotAvailable": "Попередній перегляд недоступний для цього джерела",
 		"columns": {
 			"artistTitle": "Виконавець / Назва",
@@ -293,6 +331,7 @@
 		"tracks": "Доріжки",
 		"trackCount": "{count, plural, =1 {1 доріжка} other {{count} доріжок}}",
 		"openInBrowser": "Відкрити в браузері",
+		"openInApp": "Відкрити в {app}",
 		"copyUrl": "Копіювати URL",
 		"copiedUrl": "URL скопійовано до буфера обміну",
 		"like": "Додати до вподобаних",
@@ -311,7 +350,9 @@
 			"title": "Назва",
 			"label": "Лейбл",
 			"releaseDate": "Дата випуску",
-			"notes": "Примітки"
+			"notes": "Примітки",
+			"notesPlaceholder": "Додати примітки…",
+			"addTags": "Додати теги"
 		},
 		"import": {
 			"title": "Імпортувати до бібліотеки",
@@ -422,6 +463,8 @@
 		"rootNoFolder": "Корінь (без папки)",
 		"folderEmpty": "Ця папка порожня",
 		"noPlaylistsYet": "Плейлистів ще немає",
+		"noPlaylists": "Плейлистів ще немає",
+		"allPlaylists": "Усі плейлисти",
 		"exportToDevice": "Експортувати на пристрій"
 	},
 	"tags": {
@@ -701,6 +744,9 @@
 		"emerald": "Смарагдовий"
 	},
 	"dates": {
+		"justNow": "Щойно",
+		"minutesAgo": "{count, plural, =1 {1 хвилину тому} other {{count} хвилин тому}}",
+		"hoursAgo": "{count, plural, =1 {1 годину тому} other {{count} годин тому}}",
 		"today": "Сьогодні",
 		"yesterday": "Вчора",
 		"daysAgo": "{count, plural, =1 {1 день тому} other {{count} днів тому}}",

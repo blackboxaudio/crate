@@ -1,7 +1,7 @@
 use tauri::State;
 
 use crate::error::Result;
-use crate::models::{DiscoveryRelease, MovePlaylistResult, Playlist, Track};
+use crate::models::{DiscoveryRelease, MovePlaylistResult, Playlist, PlaylistCoverArt, Track};
 use crate::services::{DiscoveryService, PlaylistService};
 // LibraryService is only used by the desktop variant of `delete_playlist`.
 #[cfg(feature = "desktop")]
@@ -163,6 +163,23 @@ pub async fn get_playlist_releases(
     playlists: State<'_, PlaylistService>,
 ) -> Result<Vec<DiscoveryRelease>> {
     playlists.get_playlist_releases(&playlist_id)
+}
+
+#[tauri::command]
+pub async fn reorder_playlist_releases(
+    playlist_id: String,
+    release_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<()> {
+    playlists.reorder_releases(&playlist_id, release_ids)
+}
+
+#[tauri::command]
+pub async fn get_playlist_cover_art(
+    playlist_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Vec<PlaylistCoverArt>> {
+    playlists.get_playlist_cover_art(&playlist_ids)
 }
 
 #[tauri::command]

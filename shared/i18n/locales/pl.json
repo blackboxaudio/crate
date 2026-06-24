@@ -20,13 +20,17 @@
 		"folder": "folder",
 		"playlist": "playlista",
 		"next": "Dalej",
-		"back": "Wstecz"
+		"back": "Wstecz",
+		"more": "Więcej",
+		"select": "Wybierz"
 	},
 	"nav": {
 		"library": "Biblioteka",
 		"discovery": "Odkrywanie",
 		"playlists": "Playlisty",
-		"tags": "Tagi"
+		"tags": "Tagi",
+		"openMenu": "Otwórz menu",
+		"openSettings": "Otwórz ustawienia"
 	},
 	"settings": {
 		"title": "Ustawienia",
@@ -179,7 +183,8 @@
 			"updates": "Aktualizacje",
 			"checkForUpdates": "Sprawdź dostępne aktualizacje",
 			"upToDate": "Aktualna",
-			"updateAvailable": "Dostępna wersja {version}"
+			"updateAvailable": "Dostępna wersja {version}",
+			"project": "Projekt"
 		}
 	},
 	"cloudSync": {
@@ -200,6 +205,9 @@
 			"syncNow": "Synchronizuj teraz",
 			"syncing": "Synchronizowanie…",
 			"signOut": "Wyloguj",
+			"signOutConfirmTitle": "Wylogować się?",
+			"signOutConfirmMessage": "Twoje dane lokalne pozostają na tym urządzeniu. Synchronizacja zostanie wznowiona po ponownym zalogowaniu.",
+			"autoSyncHint": "Twoja biblioteka Discovery synchronizuje się automatycznie na wszystkich twoich urządzeniach.",
 			"lastSynced": "Ostatnia synchronizacja {time}"
 		},
 		"devices": {
@@ -245,7 +253,26 @@
 		"volume": "Głośność",
 		"tempo": "Tempo",
 		"resetTempo": "Resetuj tempo",
-		"trackNotFound": "Nie udało się zlokalizować odtwarzanego utworu"
+		"trackNotFound": "Nie udało się zlokalizować odtwarzanego utworu",
+		"expand": "Rozwiń odtwarzacz",
+		"collapse": "Zwiń odtwarzacz",
+		"seek": "Szukaj"
+	},
+	"queue": {
+		"upNext": "Kolejne",
+		"openQueue": "Kolejne",
+		"playNext": "Odtwórz następne",
+		"addToQueue": "Dodaj do kolejki",
+		"playingNext": "Odtwarzanie następne",
+		"addedToQueue": "Dodane do kolejki",
+		"nextInQueue": "Następne w kolejce",
+		"upNextFromContext": "Kolejne",
+		"addedByYou": "Dodane przez ciebie",
+		"removeFromQueue": "Usuń z kolejki",
+		"reorder": "Zmień kolejność",
+		"clearQueue": "Wyczyść",
+		"empty": "Nic kolejnego",
+		"emptyHint": "Utwory, które dodasz będą odtwarzane dalej"
 	},
 	"library": {
 		"searchPlaceholder": "Szukaj ścieżek...",
@@ -277,7 +304,18 @@
 		"releases": "wydań",
 		"searchPlaceholder": "Szukaj wydań...",
 		"noReleasesYet": "Brak wydań",
+		"noResults": "Żadne wydania nie pasują do twoich filtrów",
 		"addReleaseHint": "Naciśnij {shortcut}, aby dodać wydania z Bandcamp, Discogs, YouTube i innych",
+		"mobileAddHint": "Dodaj wydania z Bandcamp, Discogs, YouTube i innych",
+		"pending": "Oczekujące",
+		"offlineQueueNotice": "Jesteś w trybie offline — to wydanie zostanie dodane po ponownym połączeniu",
+		"addToQueue": "Dodaj do kolejki",
+		"editRelease": "Edytuj wydanie",
+		"goToRelease": "Przejdź do wydania",
+		"sortBy": "Sortuj według",
+		"selectedCount": "{count, plural, =1 {1 zaznaczony} other {{count} zaznaczonych}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Usunąć wydanie?} other {Usunąć {count} wydań?}}",
+		"confirmDeleteMessage": "Tej czynności nie można cofnąć.",
 		"previewNotAvailable": "Podgląd nie jest dostępny dla tego źródła",
 		"columns": {
 			"artistTitle": "Artysta / Tytuł",
@@ -293,6 +331,7 @@
 		"tracks": "Ścieżki",
 		"trackCount": "{count, plural, =1 {1 ścieżka} other {{count} ścieżek}}",
 		"openInBrowser": "Otwórz w przeglądarce",
+		"openInApp": "Otwórz w {app}",
 		"copyUrl": "Skopiuj URL",
 		"copiedUrl": "URL skopiowany do schowka",
 		"like": "Dodaj do polubionych",
@@ -311,7 +350,9 @@
 			"title": "Tytuł",
 			"label": "Label",
 			"releaseDate": "Data wydania",
-			"notes": "Notatki"
+			"notes": "Notatki",
+			"notesPlaceholder": "Dodaj notatki…",
+			"addTags": "Dodaj tagi"
 		},
 		"import": {
 			"title": "Importuj do biblioteki",
@@ -422,6 +463,8 @@
 		"rootNoFolder": "Root (Bez folderu)",
 		"folderEmpty": "Ten folder jest pusty",
 		"noPlaylistsYet": "Brak playlist",
+		"noPlaylists": "Brak playlist",
+		"allPlaylists": "Wszystkie playlisty",
 		"exportToDevice": "Eksportuj na urządzenie"
 	},
 	"tags": {
@@ -701,6 +744,9 @@
 		"emerald": "Szmaragdowy"
 	},
 	"dates": {
+		"justNow": "Przed chwilą",
+		"minutesAgo": "{count, plural, =1 {1 minutę temu} other {{count} minut temu}}",
+		"hoursAgo": "{count, plural, =1 {1 godzinę temu} other {{count} godzin temu}}",
 		"today": "Dzisiaj",
 		"yesterday": "Wczoraj",
 		"daysAgo": "{count, plural, =1 {1 dzień temu} other {{count} dni temu}}",
