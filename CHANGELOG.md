@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.3.0-staging.1] - 2026-06-24
+
 ### Added
 
 - Added signed mobile distribution: iOS builds upload to TestFlight automatically on release tags, and signed Android APKs with SHA-256 checksums are attached to GitHub Releases
@@ -178,7 +180,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.9...HEAD
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.3.0-staging.1...HEAD
+[0.3.0-staging.1]: https://github.com/blackboxaudio/crate/compare/v0.2.9...v0.3.0-staging.1
 [0.2.9]: https://github.com/blackboxaudio/crate/compare/v0.2.9...v0.2.9
 [0.2.9]: https://github.com/blackboxaudio/crate/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/blackboxaudio/crate/compare/v0.2.7...v0.2.8

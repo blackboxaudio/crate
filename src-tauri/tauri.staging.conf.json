@@ -9,7 +9,12 @@
 			"icons/staging/128x128@2x.png",
 			"icons/staging/icon.icns",
 			"icons/staging/icon.ico"
-		]
+		],
+		"windows": {
+			"wix": {
+				"version": "0.3.0.1"
+			}
+		}
 	},
 	"app": {
 		"windows": [
@@ -24,5 +29,6 @@
 				"https://storage.googleapis.com/crate-releases/staging/latest.json"
 			]
 		}
-	}
+	},
+	"version": "0.3.0-staging.1"
 }
