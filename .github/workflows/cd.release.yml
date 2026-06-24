@@ -465,7 +465,12 @@ jobs:
           # Tauri reads the iOS signing team from APPLE_DEVELOPMENT_TEAM (the build warned it was
           # unset); mirror APPLE_TEAM_ID into it so codesigning picks up the team.
           APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
-        run: yarn tauri ios build --export-method app-store-connect --features mobile
+        # Pass the channel's Tauri config so the iOS bundle id matches the channel
+        # (staging -> com.bbx-audio.crate.staging, production -> com.bbx-audio.crate). Without it,
+        # `tauri ios build` uses the base tauri.conf.json identifier (com.bbx-audio.crate) for every
+        # channel, which is why staging was signing against the production bundle. Mirrors the
+        # desktop build and the local build:staging:ios script.
+        run: yarn tauri ios build --config src-tauri/tauri.${{ needs.validate.outputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json --export-method app-store-connect --features mobile
 
       - name: Upload to App Store Connect (TestFlight)
         if: steps.signing.outputs.signed == 'true'

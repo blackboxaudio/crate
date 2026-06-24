@@ -1,6 +1,6 @@
 {
 	"name": "@bbx-audio/crate",
-	"version": "0.3.0-staging.2",
+	"version": "0.3.0-staging.3",
 	"description": "Cross-platform DJ library manager with music discovery, track analysis, and USB export",
 	"type": "module",
 	"private": true,
