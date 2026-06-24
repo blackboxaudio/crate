@@ -13,10 +13,6 @@ settingGroups:
       PRODUCT_NAME: Crate Dev
       PRODUCT_BUNDLE_IDENTIFIER: com.bbx-audio.crate.dev
       DEVELOPMENT_TEAM: 883V548CV2
-      # Manual (release) signing: the provisioning profile name, supplied per channel via the
-      # IOS_PROVISIONING_PROFILE_NAME env var in CI (#139). Empty for local `yarn dev:ios`, where
-      # signing is automatic and this setting is ignored — so local on-device dev is unaffected.
-      PROVISIONING_PROFILE_SPECIFIER: ${IOS_PROVISIONING_PROFILE_NAME}
 targetTemplates:
   app:
     type: application

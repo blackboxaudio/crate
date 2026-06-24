@@ -934,7 +934,7 @@ dependencies = [
 
 [[package]]
 name = "crate-app"
-version = "0.3.0-staging.5"
+version = "0.3.0-staging.6"
 dependencies = [
  "async-trait",
  "axum",

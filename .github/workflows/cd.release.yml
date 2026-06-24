@@ -430,6 +430,16 @@ jobs:
             echo "::warning::iOS distribution signing secrets not configured — skipping iOS build"
           fi
 
+      - name: Configure iOS signing
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          IOS_PROVISIONING_PROFILE_NAME: ${{ needs.validate.outputs.channel == 'staging' && secrets.IOS_PROVISIONING_PROFILE_NAME_STAGING || secrets.IOS_PROVISIONING_PROFILE_NAME }}
+        # Tauri ignores project.yml and uses the committed pbxproj as-is, applying manual-signing
+        # MODE but never selecting a profile -> "requires a provisioning profile". This writes the
+        # profile + Apple Distribution identity into the pbxproj on the runner (channel-aware; not
+        # committed, so local dev keeps automatic signing).
+        run: node scripts/write-ios-signing.mjs
+
       - name: Build iOS app
         if: steps.signing.outputs.signed == 'true'
         env:
@@ -446,9 +456,6 @@ jobs:
           IOS_CERTIFICATE: ${{ secrets.IOS_DIST_CERTIFICATE_P12_BASE64 }}
           IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DIST_CERTIFICATE_PASSWORD }}
           IOS_MOBILE_PROVISION: ${{ needs.validate.outputs.channel == 'staging' && secrets.IOS_PROVISIONING_PROFILE_BASE64_STAGING || secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
-          # Profile NAME for manual signing — project.yml's PROVISIONING_PROFILE_SPECIFIER reads this
-          # so xcodebuild selects the installed profile. Channel-aware (staging vs prod).
-          IOS_PROVISIONING_PROFILE_NAME: ${{ needs.validate.outputs.channel == 'staging' && secrets.IOS_PROVISIONING_PROFILE_NAME_STAGING || secrets.IOS_PROVISIONING_PROFILE_NAME }}
         # Pass the channel's Tauri config so the iOS bundle id matches the channel
         # (staging -> com.bbx-audio.crate.staging, production -> com.bbx-audio.crate). Without it,
         # `tauri ios build` uses the base tauri.conf.json identifier (com.bbx-audio.crate) for every
