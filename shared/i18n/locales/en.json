@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "You're offline — this release will be added when you reconnect",
 		"addToQueue": "Add to Queue",
 		"editRelease": "Edit Release",
+		"goToRelease": "Go to Release",
 		"sortBy": "Sort by",
 		"selectedCount": "{count, plural, =1 {1 selected} other {{count} selected}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Delete release?} other {Delete {count} releases?}}",

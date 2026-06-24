@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { slide, fade } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
@@ -15,11 +16,18 @@
 	import { canAdvance } from '$shared/stores/playbackQueue'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import { formatDuration } from '$shared/utils/format'
+	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { isIOS } from '$shared/utils/platform'
 	import { mobileUIStore, isPlayerExpanded } from '$lib/stores/mobileUI'
+	import { lightTap } from '$lib/utils/haptics'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Slider from '$shared/components/Slider.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
+	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
+	import SourceIcon from '../discovery/SourceIcon.svelte'
+	import EditReleaseSheet from '../discovery/EditReleaseSheet.svelte'
+	import PlaylistPickerSheet from '$lib/components/playlists/PlaylistPickerSheet.svelte'
 	import UpNextSheet from './UpNextSheet.svelte'
 
 	// Full-screen preview player: large artwork over a blurred album-art wash, an interactive scrubber,
@@ -69,6 +77,7 @@
 		if (!$isPlayerExpanded) {
 			showTempo = false
 			showQueue = false
+			menuOpen = false
 		}
 	})
 
@@ -86,6 +95,41 @@
 
 	function toggleLike() {
 		if ($previewInfo && track) void discoveryStore.toggleTrackLiked($previewInfo.releaseId, track.id)
+	}
+
+	// Overflow (⋯) menu: an iOS-style context-menu platter anchored to the transport's "more" button,
+	// gathering release-level actions for the currently-playing preview. Tap-triggered, so the platter just
+	// springs from the button with no lifted preview. Add-to-playlist / Edit open their own bottom sheets.
+	let menuOpen = $state(false)
+	let menuButtonEl = $state<HTMLButtonElement | null>(null)
+	let menuAnchor = $state<{ top: number; left: number; width: number; height: number } | null>(null)
+	let editSheetOpen = $state(false)
+	let playlistPickerOpen = $state(false)
+
+	const platformName = $derived($previewInfo ? getReleasePlatformName($previewInfo.release.source_type) : null)
+
+	function openMenu() {
+		void lightTap()
+		const r = menuButtonEl?.getBoundingClientRect()
+		menuAnchor = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
+		menuOpen = true
+	}
+	function menuAddToPlaylist() {
+		menuOpen = false
+		playlistPickerOpen = true
+	}
+	// Go to release: collapse the player and open the release's detail screen — same as tapping the title.
+	function menuGoToRelease() {
+		menuOpen = false
+		if ($previewInfo) mobileUIStore.locateRelease($previewInfo.releaseId)
+	}
+	function menuEdit() {
+		menuOpen = false
+		editSheetOpen = true
+	}
+	function menuOpenInSource() {
+		menuOpen = false
+		if ($previewInfo) void openUrl($previewInfo.release.url).catch(() => {})
 	}
 </script>
 
@@ -308,17 +352,21 @@
 								<path d="M19 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
 							</svg>
 						</button>
-						<!-- Overflow menu (mock placeholder — wired up later). Flush to the right edge, mirroring
-						     shuffle on the left so the row stays symmetric. -->
+						<!-- Overflow menu: opens the release-actions context menu. Flush to the right edge, mirroring
+						     shuffle on the left so the row stays symmetric. Horizontal dots, matching ReleaseDetail. -->
 						<button
+							bind:this={menuButtonEl}
 							type="button"
 							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-text-primary transition-colors active:bg-surface-2"
 							aria-label={$translate('common.more')}
+							aria-haspopup="menu"
+							aria-expanded={menuOpen}
+							onclick={openMenu}
 						>
 							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-								<circle cx="12" cy="5" r="1.6" />
+								<circle cx="5" cy="12" r="1.6" />
 								<circle cx="12" cy="12" r="1.6" />
-								<circle cx="12" cy="19" r="1.6" />
+								<circle cx="19" cy="12" r="1.6" />
 							</svg>
 						</button>
 					</div>
@@ -375,3 +423,60 @@
 </Drawer>
 
 <UpNextSheet open={showQueue} onClose={() => (showQueue = false)} />
+
+{#if $previewInfo}
+	<PlaylistPickerSheet
+		open={playlistPickerOpen}
+		releaseIds={[$previewInfo.releaseId]}
+		onClose={() => (playlistPickerOpen = false)}
+	/>
+	<EditReleaseSheet open={editSheetOpen} release={$previewInfo.release} onClose={() => (editSheetOpen = false)} />
+{/if}
+
+<!-- Release-actions "more" menu (opened by the transport ⋯ button). Tap-triggered, so no lifted preview. -->
+<ContextMenu open={menuOpen} anchorRect={menuAnchor} tapTriggered onClose={() => (menuOpen = false)}>
+	<ContextMenuItem onclick={menuAddToPlaylist}>
+		{$translate('contextMenu.addToPlaylist')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuGoToRelease}>
+		{$translate('discovery.goToRelease')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuEdit}>
+		{$translate('discovery.editRelease')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path
+					d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+				<path
+					d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem separatorBefore onclick={menuOpenInSource}>
+		{platformName
+			? $translate('discovery.openInApp', { values: { app: platformName } })
+			: $translate('discovery.openInBrowser')}
+		{#snippet icon()}
+			{#if $previewInfo}<SourceIcon source={$previewInfo.release.source_type} />{/if}
+		{/snippet}
+	</ContextMenuItem>
+</ContextMenu>

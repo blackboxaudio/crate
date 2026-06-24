@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Du är offline — denna utgåva kommer att läggas till när du ansluter igen",
 		"addToQueue": "Lägg till i kö",
 		"editRelease": "Redigera utgåva",
+		"goToRelease": "Gå till utgåva",
 		"sortBy": "Sortera efter",
 		"selectedCount": "{count, plural, =1 {1 vald} other {{count} valda}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Ta bort utgåva?} other {Ta bort {count} utgåvor?}}",

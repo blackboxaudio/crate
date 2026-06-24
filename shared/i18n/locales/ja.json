@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "オフラインです — 再度接続したときにこのリリースが追加されます",
 		"addToQueue": "キューに追加",
 		"editRelease": "リリースを編集",
+		"goToRelease": "リリースに移動",
 		"sortBy": "並べ替え",
 		"selectedCount": "{count, plural, =1 {1個選択} other {{count}個選択}}",
 		"confirmDeleteTitle": "{count, plural, =1 {リリースを削除しますか?} other {{count}個のリリースを削除しますか?}}",

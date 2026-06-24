@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Sunteți deconectat — această lansare va fi adăugată când vă reconectați",
 		"addToQueue": "Adaugă în coadă",
 		"editRelease": "Editează Lansare",
+		"goToRelease": "Mergi la Lansare",
 		"sortBy": "Sortează după",
 		"selectedCount": "{count, plural, =1 {1 selectat} other {{count} selectate}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Șterge lansare?} other {Șterge {count} lansări?}}",

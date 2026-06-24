@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Çevrimdışısınız — yeniden bağlandığınızda bu yayın eklenecektir",
 		"addToQueue": "Kuyruğa Ekle",
 		"editRelease": "Yayını Düzenle",
+		"goToRelease": "Yayına Git",
 		"sortBy": "Sırala",
 		"selectedCount": "{count, plural, =1 {1 seçildi} other {{count} seçildi}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Yayını sil?} other {{count} yayını sil?}}",

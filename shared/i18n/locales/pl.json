@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Jesteś w trybie offline — to wydanie zostanie dodane po ponownym połączeniu",
 		"addToQueue": "Dodaj do kolejki",
 		"editRelease": "Edytuj wydanie",
+		"goToRelease": "Przejdź do wydania",
 		"sortBy": "Sortuj według",
 		"selectedCount": "{count, plural, =1 {1 zaznaczony} other {{count} zaznaczonych}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Usunąć wydanie?} other {Usunąć {count} wydań?}}",

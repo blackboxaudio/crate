@@ -155,8 +155,8 @@
 	direction="right"
 	onClose={startClose}
 	onClosed={mobileUIStore.closeDetail}
-	z={30}
-	scrimZ={20}
+	z={35}
+	scrimZ={34}
 	scrimDismiss={false}
 	closeEdgeFrom="left"
 	closeEdgeSize={24}

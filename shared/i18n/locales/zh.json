@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "您处于离线状态 — 重新连接后将添加此发行",
 		"addToQueue": "添加到队列",
 		"editRelease": "编辑发行",
+		"goToRelease": "前往发行",
 		"sortBy": "排序方式",
 		"selectedCount": "{count, plural, =1 {已选择 1 个} other {已选择 {count} 个}}",
 		"confirmDeleteTitle": "{count, plural, =1 {删除发行?} other {删除 {count} 个发行?}}",

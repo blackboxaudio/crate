@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Vous êtes hors ligne — cette sortie sera ajoutée quand vous vous reconnecterez",
 		"addToQueue": "Ajouter à la file d'attente",
 		"editRelease": "Modifier la sortie",
+		"goToRelease": "Aller à la sortie",
 		"sortBy": "Trier par",
 		"selectedCount": "{count, plural, =1 {1 sélectionné} other {{count} sélectionnés}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Supprimer la sortie ?} other {Supprimer {count} sorties ?}}",

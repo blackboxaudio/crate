@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Sei offline — questo rilascio verrà aggiunto quando ti riconnetti",
 		"addToQueue": "Aggiungi alla coda",
 		"editRelease": "Modifica rilascio",
+		"goToRelease": "Vai a rilascio",
 		"sortBy": "Ordina per",
 		"selectedCount": "{count, plural, =1 {1 selezionato} other {{count} selezionati}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Eliminare il rilascio?} other {Eliminare {count} rilasci?}}",

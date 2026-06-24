@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Estás sin conexión — este lanzamiento se añadirá cuando te reconectes",
 		"addToQueue": "Añadir a la cola",
 		"editRelease": "Editar lanzamiento",
+		"goToRelease": "Ir a lanzamiento",
 		"sortBy": "Ordenar por",
 		"selectedCount": "{count, plural, =1 {1 seleccionado} other {{count} seleccionados}}",
 		"confirmDeleteTitle": "{count, plural, =1 {¿Eliminar lanzamiento?} other {¿Eliminar {count} lanzamientos?}}",

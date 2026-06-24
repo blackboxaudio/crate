@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Je bent offline — deze release wordt toegevoegd als je verbonden bent",
 		"addToQueue": "Toevoegen aan wachtrij",
 		"editRelease": "Release bewerken",
+		"goToRelease": "Ga naar Release",
 		"sortBy": "Sorteren op",
 		"selectedCount": "{count, plural, =1 {1 geselecteerd} other {{count} geselecteerd}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Release verwijderen?} other {{count} releases verwijderen?}}",

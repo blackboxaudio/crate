@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Sie sind offline – dieses Release wird hinzugefügt, wenn Sie die Verbindung wiederherstellen",
 		"addToQueue": "Zur Warteschlange hinzufügen",
 		"editRelease": "Release bearbeiten",
+		"goToRelease": "Zu Release gehen",
 		"sortBy": "Sortieren nach",
 		"selectedCount": "{count, plural, =1 {1 ausgewählt} other {{count} ausgewählt}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Release löschen?} other {{count} Releases löschen?}}",

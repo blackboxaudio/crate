@@ -1,13 +1,12 @@
 <script lang="ts">
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
-	import type { Playlist, DiscoveryRelease } from '$shared/types'
+	import type { Playlist } from '$shared/types'
 	import { playlistsStore } from '$shared/stores/playlists'
+	import { getSmartPlaylistReleases } from '$shared/api/playlists'
 	import { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
-	import { playerStore, previewInfo } from '$shared/stores/player'
 	import { mobileUIStore, playlistReorderMode, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
 	import { confirmDialog } from '$lib/utils/dialog'
-	import { lightTap } from '$lib/utils/haptics'
 	import { refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
@@ -43,7 +42,12 @@
 			return
 		}
 		loading = true
-		const fetched = await playlistsStore.getPlaylistReleases(playlist.id)
+		// Smart playlists hold no junction rows — their releases are computed from rules, fetched via a
+		// separate command (mirrors desktop's `is_smart` branch). Without this, every smart playlist opened
+		// empty because `get_playlist_releases` only reads `playlist_discovery_releases`.
+		const fetched = playlist.is_smart
+			? await getSmartPlaylistReleases(playlist.id).catch(() => [])
+			: await playlistsStore.getPlaylistReleases(playlist.id)
 		discoveryPlaylistStore.cacheAndSet(playlist.id, fetched)
 		loading = false
 	}
@@ -56,12 +60,6 @@
 	function onClosed() {
 		discoveryPlaylistStore.clearReleases()
 		mobileUIStore.closePlaylist()
-	}
-
-	function playRelease(release: DiscoveryRelease, index: number) {
-		void lightTap()
-		void playerStore.playPreview(release, 0, releases)
-		mobileUIStore.expandPlayer()
 	}
 
 	async function handleReorder(releaseIds: string[]) {
@@ -178,7 +176,7 @@
 			</div>
 		{:else if releases.length === 0}
 			<div class="flex-1 px-4 py-12 text-center text-sm text-text-secondary">
-				{$translate('playlists.noPlaylists')}
+				{$translate('discovery.noReleasesYet')}
 			</div>
 		{:else if isReorderMode}
 			<div

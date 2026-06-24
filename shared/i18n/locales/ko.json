@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "오프라인 상태입니다 — 다시 연결하면 이 릴리스가 추가됩니다",
 		"addToQueue": "대기열에 추가",
 		"editRelease": "릴리스 편집",
+		"goToRelease": "릴리스로 이동",
 		"sortBy": "정렬 기준",
 		"selectedCount": "{count, plural, =1 {1개 선택} other {{count}개 선택}}",
 		"confirmDeleteTitle": "{count, plural, =1 {릴리스를 삭제하시겠습니까?} other {{count}개의 릴리스를 삭제하시겠습니까?}}",

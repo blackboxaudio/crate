@@ -1,22 +1,30 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte'
 	import { get } from 'svelte/store'
+	import { fade } from 'svelte/transition'
 	import { translate } from '$shared/i18n'
-	import type { Playlist } from '$shared/types'
+	import type { Playlist, SmartRules } from '$shared/types'
 	import { playlistsStore, getPlaylistChildren } from '$shared/stores/playlists'
 	import { mobileUIStore } from '$lib/stores/mobileUI'
+	import { easeFluid } from '$lib/easing'
 	import { getPlaylistCovers, ensurePlaylistCovers } from '$lib/stores/playlistCovers'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import MobileList from '$lib/components/common/MobileList.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
-	import MobileModal from '$lib/components/common/MobileModal.svelte'
+	import MobilePromptDialog from '$lib/components/common/MobilePromptDialog.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
 	import PlaylistThumbnail from './PlaylistThumbnail.svelte'
+	import SmartPlaylistEditor from './SmartPlaylistEditor.svelte'
 
 	onMount(() => {
 		playlistsStore.load()
+		const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
+		reduceMotion = mq.matches
+		const onMq = () => (reduceMotion = mq.matches)
+		mq.addEventListener('change', onMq)
+		return () => mq.removeEventListener('change', onMq)
 	})
 
 	const allPlaylists = $derived($playlistsStore.playlists.filter((p) => p.context === 'discovery'))
@@ -44,13 +52,35 @@
 		if (ids.length > 0) untrack(() => ensurePlaylistCovers(ids))
 	})
 
+	// --- Drill-down transition --------------------------------------------------------------------
+	// The level swaps via `{#key currentFolderId}`; a directional slide+fade signals depth — drilling in
+	// pushes the incoming level from the right (outgoing exits left), going back reverses it. Matches the
+	// app's `--ease-fluid` sheet motion; collapses to an instant swap under reduced motion.
+	let reduceMotion = $state(false)
+	let navDirection = $state<'forward' | 'back'>('forward')
+	const NAV_SLIDE = 28 // px — a subtle parallax, not a full-width push
+
+	function levelTransition(_node: Element, { incoming }: { incoming: boolean }) {
+		if (reduceMotion) return { duration: 0 }
+		const sign = navDirection === 'forward' ? 1 : -1
+		// Incoming enters from the +sign edge (forward → right, back → left); outgoing exits to the −sign edge.
+		const dir = incoming ? sign : -sign
+		return {
+			duration: incoming ? 260 : 200,
+			easing: easeFluid,
+			css: (t: number, u: number) => `transform: translateX(${dir * u * NAV_SLIDE}px); opacity: ${t};`,
+		}
+	}
+
 	function pushFolder(folderId: string) {
 		void lightTap()
+		navDirection = 'forward'
 		folderStack = [...folderStack, folderId]
 	}
 
 	function popFolder() {
 		void lightTap()
+		navDirection = 'back'
 		folderStack = folderStack.slice(0, -1)
 	}
 
@@ -68,6 +98,12 @@
 	let renameTarget = $state<Playlist | null>(null)
 	let renameName = $state('')
 
+	let smartEditorOpen = $state(false)
+
+	// The single "+" add menu (folder / playlist / smart playlist), anchored to the toolbar button.
+	let addMenuOpen = $state(false)
+	let addMenuRect = $state<{ top: number; left: number; width: number; height: number } | null>(null)
+
 	let longPressTimer = 0
 	let longPressTarget = $state<Playlist | null>(null)
 	let rowActionsOpen = $state(false)
@@ -77,10 +113,23 @@
 	// click (otherwise opening the menu would also navigate into the row — `MobileListItem` is a real <button>).
 	let suppressNextClick = false
 
+	function openAddMenu(e: MouseEvent) {
+		void lightTap()
+		const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+		addMenuRect = { top: r.top, left: r.left, width: r.width, height: r.height }
+		addMenuOpen = true
+	}
+
 	function openCreate(type: 'playlist' | 'folder') {
+		addMenuOpen = false
 		createType = type
 		createName = ''
 		createModalOpen = true
+	}
+
+	function openSmartEditor() {
+		addMenuOpen = false
+		smartEditorOpen = true
 	}
 
 	async function handleCreate() {
@@ -93,6 +142,11 @@
 			await playlistsStore.createPlaylist(trimmed, currentFolderId ?? undefined, 'discovery')
 		}
 		createName = ''
+	}
+
+	async function handleCreateSmart(name: string, rules: SmartRules) {
+		smartEditorOpen = false
+		await playlistsStore.createSmartPlaylist(name, rules, currentFolderId ?? undefined, 'discovery')
 	}
 
 	function openRename(playlist: Playlist) {
@@ -164,95 +218,99 @@
 	}
 </script>
 
-<div class="h-full overflow-y-auto" style="padding-bottom: var(--mini-player-inset, 0px)">
-	<!-- Navigation header with back and create actions -->
-	<div class="flex items-center justify-between px-2 py-2">
-		<div class="flex min-w-0 items-center gap-1">
-			{#if folderStack.length > 0}
-				<button
-					type="button"
-					class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
-					aria-label={$translate('common.back')}
-					onclick={popFolder}
+<div class="flex h-full flex-col">
+	<!-- Navigation header (stays put; the title cross-fades as the level changes). -->
+	<div class="flex items-center justify-between gap-1 px-2 py-2">
+		<div class="relative flex h-10 min-w-0 flex-1 items-center">
+			{#key currentFolderId}
+				<div
+					class="absolute inset-0 flex items-center gap-1"
+					in:fade|local={{ duration: 160 }}
+					out:fade|local={{ duration: 120 }}
 				>
-					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
-				</button>
-				<span class="truncate text-base font-medium text-text-primary">{currentFolder?.name ?? ''}</span>
-			{:else}
-				<span class="truncate px-2 text-base font-medium text-text-primary">{$translate('playlists.allPlaylists')}</span
-				>
-			{/if}
+					{#if folderStack.length > 0}
+						<button
+							type="button"
+							class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
+							aria-label={$translate('common.back')}
+							onclick={popFolder}
+						>
+							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+							</svg>
+						</button>
+						<span class="truncate text-base font-medium text-text-primary">{currentFolder?.name ?? ''}</span>
+					{:else}
+						<span class="truncate px-2 text-base font-medium text-text-primary"
+							>{$translate('playlists.allPlaylists')}</span
+						>
+					{/if}
+				</div>
+			{/key}
 		</div>
-		<div class="flex items-center gap-1">
-			<button
-				type="button"
-				class="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
-				aria-label={$translate('playlists.newFolder')}
-				onclick={() => openCreate('folder')}
-			>
-				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path
-						d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					/>
-					<path d="M12 11v6M9 14h6" stroke-linecap="round" />
-				</svg>
-			</button>
-			<button
-				type="button"
-				class="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
-				aria-label={$translate('playlists.newPlaylist')}
-				onclick={() => openCreate('playlist')}
-			>
-				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M12 5v14M5 12h14" stroke-linecap="round" />
-				</svg>
-			</button>
-		</div>
+		<button
+			type="button"
+			class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
+			aria-label={$translate('common.create')}
+			onclick={openAddMenu}
+		>
+			<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+			</svg>
+		</button>
 	</div>
 
-	<MobileList isEmpty={children.length === 0} empty={emptyState}>
-		{#each children as item (item.id)}
-			{#if item.is_folder}
-				<div onpointerdown={(e) => startLongPress(e, item)} onclickcapture={onRowClickCapture}>
-					<MobileListItem onclick={() => pushFolder(item.id)}>
-						{#snippet leading()}
-							<div class="flex h-11 w-11 items-center justify-center rounded bg-surface-2 text-text-secondary">
-								<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-									<path
-										d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-									/>
-								</svg>
+	<!-- Sliding content: each level owns its own scroll container so they can slide over one another. -->
+	<div class="relative min-h-0 flex-1 overflow-hidden">
+		{#key currentFolderId}
+			<div
+				class="absolute inset-0 overflow-y-auto"
+				style="padding-bottom: var(--mini-player-inset, 0px)"
+				in:levelTransition|local={{ incoming: true }}
+				out:levelTransition|local={{ incoming: false }}
+			>
+				<MobileList isEmpty={children.length === 0} empty={emptyState}>
+					{#each children as item (item.id)}
+						{#if item.is_folder}
+							<div onpointerdown={(e) => startLongPress(e, item)} onclickcapture={onRowClickCapture}>
+								<MobileListItem onclick={() => pushFolder(item.id)}>
+									{#snippet leading()}
+										<div class="flex h-11 w-11 items-center justify-center rounded bg-surface-2 text-text-secondary">
+											<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+												<path
+													d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												/>
+											</svg>
+										</div>
+									{/snippet}
+									{#snippet trailing()}
+										<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+											<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
+										</svg>
+									{/snippet}
+									<span class="truncate">{item.name}</span>
+								</MobileListItem>
 							</div>
-						{/snippet}
-						{#snippet trailing()}
-							<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
-							</svg>
-						{/snippet}
-						<span class="truncate">{item.name}</span>
-					</MobileListItem>
-				</div>
-			{:else}
-				<div onpointerdown={(e) => startLongPress(e, item)} onclickcapture={onRowClickCapture}>
-					<MobileListItem onclick={() => openPlaylist(item.id)}>
-						{#snippet leading()}
-							<PlaylistThumbnail urls={getPlaylistCovers(item.id)} />
-						{/snippet}
-						{#snippet trailing()}
-							<span class="text-xs tabular-nums">{item.track_count}</span>
-						{/snippet}
-						<span class="truncate">{item.name}</span>
-					</MobileListItem>
-				</div>
-			{/if}
-		{/each}
-	</MobileList>
+						{:else}
+							<div onpointerdown={(e) => startLongPress(e, item)} onclickcapture={onRowClickCapture}>
+								<MobileListItem onclick={() => openPlaylist(item.id)}>
+									{#snippet leading()}
+										<PlaylistThumbnail urls={getPlaylistCovers(item.id)} smart={item.is_smart} />
+									{/snippet}
+									{#snippet trailing()}
+										<span class="text-xs tabular-nums">{item.track_count}</span>
+									{/snippet}
+									<span class="truncate">{item.name}</span>
+								</MobileListItem>
+							</div>
+						{/if}
+					{/each}
+				</MobileList>
+			</div>
+		{/key}
+	</div>
 </div>
 
 {#snippet emptyState()}
@@ -263,73 +321,76 @@
 	{/if}
 {/snippet}
 
-<!-- Create playlist/folder modal -->
-<MobileModal
-	open={createModalOpen}
-	onClose={() => (createModalOpen = false)}
-	onSubmit={handleCreate}
-	title={createType === 'folder' ? $translate('modals.createFolder.title') : $translate('modals.createPlaylist.title')}
->
-	<input
-		type="text"
-		bind:value={createName}
-		placeholder={createType === 'folder'
-			? $translate('modals.createFolder.placeholder')
-			: $translate('modals.createPlaylist.placeholder')}
-		class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-		autofocus
-	/>
-	{#snippet footer()}
-		<button
-			type="button"
-			class="rounded-md px-4 py-2 text-sm text-text-secondary active:bg-surface-2"
-			onclick={() => (createModalOpen = false)}
-		>
-			{$translate('common.cancel')}
-		</button>
-		<button
-			type="button"
-			class="rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
-			disabled={!createName.trim()}
-			onclick={handleCreate}
-		>
-			{$translate('common.create')}
-		</button>
-	{/snippet}
-</MobileModal>
+<!-- "+" add menu: folder / playlist / smart playlist, anchored to the toolbar button (no lifted preview). -->
+<ContextMenu open={addMenuOpen} anchorRect={addMenuRect} tapTriggered onClose={() => (addMenuOpen = false)}>
+	<ContextMenuItem onclick={() => openCreate('folder')}>
+		{$translate('playlists.newFolder')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path
+					d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
 
-<!-- Rename modal -->
-<MobileModal
+	<ContextMenuItem onclick={() => openCreate('playlist')}>
+		{$translate('playlists.newPlaylist')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M3 6h11M3 12h11M3 18h7M16 9v9M16 9l5-2v9" stroke-linecap="round" stroke-linejoin="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={openSmartEditor}>
+		{$translate('playlists.newSmartPlaylist')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path
+					d="M5 3v4M3 5h4M6 17v4M4 19h4M13 3l2.5 6.5L22 12l-6.5 2.5L13 21l-2.5-6.5L4 12l6.5-2.5L13 3z"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+</ContextMenu>
+
+<!-- Create playlist/folder dialog (centered so the iOS keyboard never covers it). -->
+<MobilePromptDialog
+	open={createModalOpen}
+	bind:value={createName}
+	title={createType === 'folder' ? $translate('modals.createFolder.title') : $translate('modals.createPlaylist.title')}
+	placeholder={createType === 'folder'
+		? $translate('modals.createFolder.placeholder')
+		: $translate('modals.createPlaylist.placeholder')}
+	confirmDisabled={!createName.trim()}
+	onConfirm={handleCreate}
+	onCancel={() => (createModalOpen = false)}
+/>
+
+<!-- Rename dialog -->
+<MobilePromptDialog
 	open={renameModalOpen}
-	onClose={() => (renameModalOpen = false)}
-	onSubmit={handleRename}
+	bind:value={renameName}
 	title={$translate('modals.rename.title')}
->
-	<input
-		type="text"
-		bind:value={renameName}
-		placeholder={$translate('modals.rename.placeholder')}
-		class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-		autofocus
-	/>
-	{#snippet footer()}
-		<button
-			type="button"
-			class="rounded-md px-4 py-2 text-sm text-text-secondary active:bg-surface-2"
-			onclick={() => (renameModalOpen = false)}
-		>
-			{$translate('common.cancel')}
-		</button>
-		<button
-			type="button"
-			class="rounded-md bg-brand-primary px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
-			disabled={!renameName.trim()}
-			onclick={handleRename}
-		>
-			{$translate('common.save')}
-		</button>
-	{/snippet}
-</MobileModal>
+	placeholder={$translate('modals.rename.placeholder')}
+	confirmLabel={$translate('common.save')}
+	confirmDisabled={!renameName.trim()}
+	onConfirm={handleRename}
+	onCancel={() => (renameModalOpen = false)}
+/>
+
+<!-- Smart playlist rule editor -->
+<SmartPlaylistEditor
+	open={smartEditorOpen}
+	context="discovery"
+	onSubmit={handleCreateSmart}
+	onCancel={() => (smartEditorOpen = false)}
+/>
 
 <!-- Row long-press context menu -->
 <ContextMenu
@@ -355,7 +416,7 @@
 						</svg>
 					</div>
 				{:else}
-					<PlaylistThumbnail urls={getPlaylistCovers(longPressTarget.id)} />
+					<PlaylistThumbnail urls={getPlaylistCovers(longPressTarget.id)} smart={longPressTarget.is_smart} />
 				{/if}
 			</span>
 			<span class="min-w-0 flex-1 truncate text-sm text-text-primary">{longPressTarget.name}</span>

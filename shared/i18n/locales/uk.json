@@ -311,6 +311,7 @@
 		"offlineQueueNotice": "Ви в режимі офлайн — це видання буде додано, коли ви знову підключитесь",
 		"addToQueue": "Додати в чергу",
 		"editRelease": "Редагувати видання",
+		"goToRelease": "Перейти до видання",
 		"sortBy": "Сортувати за",
 		"selectedCount": "{count, plural, =1 {1 вибрано} other {{count} вибрано}}",
 		"confirmDeleteTitle": "{count, plural, =1 {Видалити видання?} other {Видалити {count} видання?}}",
