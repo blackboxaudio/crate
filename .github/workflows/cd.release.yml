@@ -357,11 +357,20 @@ jobs:
   ios:
     name: Build iOS (TestFlight)
     needs: validate
-    runs-on: macos-latest
+    # Pinned to macos-15 (not macos-latest): the latest image defaults to Xcode 26.x, whose
+    # Metal-cryptex toolchain lacks the Swift back-compat libs and breaks linking Tauri's Swift
+    # plugins (undefined swiftCompatibility56 / swiftCompatibilityConcurrency). macos-15 ships a
+    # stable Xcode 16, selected below.
+    runs-on: macos-15
     continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Select Xcode 16
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.4'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
