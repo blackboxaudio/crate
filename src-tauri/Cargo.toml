@@ -1,6 +1,6 @@
 [package]
 name = "crate-app"
-version = "0.3.0-staging.6"
+version = "0.3.0-staging.7"
 description = "Cross-platform DJ library manager with music discovery, track analysis, and USB export"
 authors = ["you"]
 edition = "2021"
