@@ -15,7 +15,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "E94C98A4D3328FF7E8690A56"
-               BuildableName = "Crate Dev.app"
+               BuildableName = "Crate Staging.app"
                BlueprintName = "crate-app_iOS"
                ReferencedContainer = "container:crate-app.xcodeproj">
             </BuildableReference>
@@ -31,7 +31,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E94C98A4D3328FF7E8690A56"
-            BuildableName = "Crate Dev.app"
+            BuildableName = "Crate Staging.app"
             BlueprintName = "crate-app_iOS"
             ReferencedContainer = "container:crate-app.xcodeproj">
          </BuildableReference>
@@ -66,7 +66,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E94C98A4D3328FF7E8690A56"
-            BuildableName = "Crate Dev.app"
+            BuildableName = "Crate Staging.app"
             BlueprintName = "crate-app_iOS"
             ReferencedContainer = "container:crate-app.xcodeproj">
          </BuildableReference>
@@ -95,7 +95,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "E94C98A4D3328FF7E8690A56"
-            BuildableName = "Crate Dev.app"
+            BuildableName = "Crate Staging.app"
             BlueprintName = "crate-app_iOS"
             ReferencedContainer = "container:crate-app.xcodeproj">
          </BuildableReference>

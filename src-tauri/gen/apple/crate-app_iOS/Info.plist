@@ -33,9 +33,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.2.9</string>
+	<string>0.3.0</string>
 	<key>CFBundleVersion</key>
-	<string>0.2.9</string>
+	<string>0.3.0.7</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>UILaunchStoryboardName</key>
@@ -61,6 +61,19 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.bbx-audio.crate.oauth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.1021114070037-k7jv8al0ied0p7ulmojs3107s9ja43f3</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>
