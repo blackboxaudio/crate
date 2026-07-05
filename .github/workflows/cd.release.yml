@@ -217,14 +217,12 @@ jobs:
   android:
     name: Build Android APK
     needs: validate
-    # TEMP: Android release build disabled for now — remove this `if: false` to re-enable. The
-    # `release` job still runs (it only requires validate + build) and tolerates absent Android
-    # artifacts, so skipping this does not block the desktop/iOS release.
+    # TEMP: Android release build disabled for now — remove this `if: false` to re-enable. While
+    # disabled this job reports `skipped`, which the `release` gate treats as non-blocking. Once
+    # re-enabled, an Android build *failure* WILL block the release — a release is only published
+    # when every build (desktop and mobile) succeeds.
     if: false
     runs-on: ubuntu-latest
-    # Mobile jobs must never block a desktop release — if signing secrets are absent or the build
-    # fails, the desktop release still publishes.
-    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -363,7 +361,6 @@ jobs:
     # plugins) — fixed by repointing LIBRARY_SEARCH_PATHS at XcodeDefault.xctoolchain in the
     # pbxproj + project.yml.
     runs-on: macos-latest
-    continue-on-error: true
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -502,9 +499,16 @@ jobs:
   release:
     name: Create Release
     needs: [validate, build, android, ios]
-    # Run if desktop build succeeded — mobile jobs use continue-on-error so their
-    # result is always 'success' (even if steps failed), but we check them anyway.
-    if: always() && needs.validate.result == 'success' && needs.build.result == 'success'
+    # Publish a release only when every build succeeded — desktop AND mobile. A build that is
+    # intentionally skipped (the Android job's `if: false`, or an iOS run without signing secrets)
+    # is treated as non-blocking; a genuine build *failure* blocks the release. `always()` is
+    # required so this job still evaluates when a mobile job is skipped.
+    if: >-
+      always()
+      && needs.validate.result == 'success'
+      && needs.build.result == 'success'
+      && (needs.android.result == 'success' || needs.android.result == 'skipped')
+      && (needs.ios.result == 'success' || needs.ios.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
