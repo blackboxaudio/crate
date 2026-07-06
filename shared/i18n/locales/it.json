@@ -937,6 +937,26 @@
 			"title": "Tutto è pronto!",
 			"subtitle": "Inizia a costruire la tua collezione."
 		},
-		"getStarted": "Inizia"
+		"getStarted": "Inizia",
+		"mobile": {
+			"welcome": {
+				"title": "Benvenuto in {appName}",
+				"subtitle": "Scopri musica e costruisci la tua collezione — direttamente dalla tua tasca."
+			},
+			"discover": {
+				"title": "Aggiungi e anteprima le uscite",
+				"description": "Incolla un link da Bandcamp, SoundCloud e altro per salvare un'uscita, quindi tocca per un'anteprima istantanea."
+			},
+			"sync": {
+				"title": "Sincronizza con il tuo desktop",
+				"description": "Accedi facoltativamente per mantenere la tua collezione sincronizzata su tutti i tuoi dispositivi. Puoi farlo anche in seguito."
+			},
+			"appearance": {
+				"title": "Rendilo tuo",
+				"description": "Scegli un tema e un colore di accento. Puoi cambiarli in qualsiasi momento in Impostazioni."
+			},
+			"skip": "Salta",
+			"maybeLater": "Forse più tardi"
+		}
 	}
 }

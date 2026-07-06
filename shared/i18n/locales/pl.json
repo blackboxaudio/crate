@@ -934,6 +934,26 @@
 			"title": "Wszystko gotowe!",
 			"subtitle": "Zacznij budować swoją kolekcję."
 		},
-		"getStarted": "Zacznij"
+		"getStarted": "Zacznij",
+		"mobile": {
+			"welcome": {
+				"title": "Witaj w {appName}",
+				"subtitle": "Odkrywaj muzykę i buduj swoją kolekcję — bezpośrednio z kieszeni."
+			},
+			"discover": {
+				"title": "Dodaj i podgląd wydawnictw",
+				"description": "Wklej link z Bandcamp, SoundCloud i więcej, aby zapisać wydawnictwo, a następnie dotknij, aby uzyskać natychmiastowy podgląd."
+			},
+			"sync": {
+				"title": "Synchronizuj z pulpitem",
+				"description": "Opcjonalnie zaloguj się, aby utrzymać kolekcję zsynchronizowaną na wszystkich urządzeniach. Możesz zrobić to później."
+			},
+			"appearance": {
+				"title": "Uczyń to swoim",
+				"description": "Wybierz motyw i kolor akcentu. W każdej chwili możesz zmienić je w Ustawieniach."
+			},
+			"skip": "Pomiń",
+			"maybeLater": "Może później"
+		}
 	}
 }

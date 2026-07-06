@@ -937,6 +937,26 @@
 			"title": "Je bent helemaal klaar!",
 			"subtitle": "Begin met het opbouwen van je collectie."
 		},
-		"getStarted": "Aan de slag"
+		"getStarted": "Aan de slag",
+		"mobile": {
+			"welcome": {
+				"title": "Welkom bij {appName}",
+				"subtitle": "Ontdek muziek en bouw je collectie op — direct vanuit je zak."
+			},
+			"discover": {
+				"title": "Voeg releases toe en bekijk een voorbeeld",
+				"description": "Plak een link van Bandcamp, SoundCloud en meer om een release op te slaan, tik vervolgens om direct een voorbeeld te bekijken."
+			},
+			"sync": {
+				"title": "Synchroniseer met je bureaublad",
+				"description": "Meld je optioneel aan om je collectie op al je apparaten gesynchroniseerd te houden. Je kunt dit altijd later doen."
+			},
+			"appearance": {
+				"title": "Maak het van jou",
+				"description": "Kies een thema en een accentkleur. Je kunt deze op elk moment in Instellingen wijzigen."
+			},
+			"skip": "Overslaan",
+			"maybeLater": "Misschien later"
+		}
 	}
 }

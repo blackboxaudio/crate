@@ -937,6 +937,26 @@
 			"title": "一切准备就绪!",
 			"subtitle": "开始构建您的音乐收藏。"
 		},
-		"getStarted": "开始"
+		"getStarted": "开始",
+		"mobile": {
+			"welcome": {
+				"title": "欢迎来到 {appName}",
+				"subtitle": "发现音乐并构建您的收藏 — 直接在您的口袋中。"
+			},
+			"discover": {
+				"title": "添加和预览发行版",
+				"description": "粘贴 Bandcamp、SoundCloud 等的链接来保存发行版，然后点击以获得即时预览。"
+			},
+			"sync": {
+				"title": "与您的桌面同步",
+				"description": "可选地登录以在所有设备之间保持收藏同步。您可以稍后随时执行此操作。"
+			},
+			"appearance": {
+				"title": "自定义您的外观",
+				"description": "选择一个主题和强调色。您可以随时在设置中更改它们。"
+			},
+			"skip": "跳过",
+			"maybeLater": "也许稍后"
+		}
 	}
 }

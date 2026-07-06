@@ -937,6 +937,26 @@
 			"title": "Sie sind startklar!",
 			"subtitle": "Beginnen Sie mit dem Aufbau Ihrer Sammlung."
 		},
-		"getStarted": "Loslegen"
+		"getStarted": "Loslegen",
+		"mobile": {
+			"welcome": {
+				"title": "Willkommen bei {appName}",
+				"subtitle": "Entdecke Musik und baue deine Sammlung auf – direkt aus deiner Tasche."
+			},
+			"discover": {
+				"title": "Veröffentlichungen hinzufügen & Vorschau",
+				"description": "Fügen Sie einen Link von Bandcamp, SoundCloud und mehr ein, um eine Veröffentlichung zu speichern, und tippen Sie dann, um eine sofortige Vorschau zu erhalten."
+			},
+			"sync": {
+				"title": "Mit deinem Desktop synchronisieren",
+				"description": "Melde dich optional an, um deine Sammlung auf all deinen Geräten zu synchronisieren. Das kannst du später immer noch tun."
+			},
+			"appearance": {
+				"title": "Mach es zu deinem",
+				"description": "Wähle ein Design und eine Akzentfarbe. Du kannst diese jederzeit in Einstellungen ändern."
+			},
+			"skip": "Überspringen",
+			"maybeLater": "Vielleicht später"
+		}
 	}
 }

@@ -934,6 +934,26 @@
 			"title": "Hepsi hazır!",
 			"subtitle": "Koleksiyonunuzu oluşturmaya başlayın."
 		},
-		"getStarted": "Başla"
+		"getStarted": "Başla",
+		"mobile": {
+			"welcome": {
+				"title": "{appName} Uygulamasına Hoş Geldiniz",
+				"subtitle": "Müzik keşfedin ve koleksiyonunuzu oluşturun — doğrudan cebinizden."
+			},
+			"discover": {
+				"title": "Yayınları Ekle ve Önizle",
+				"description": "Bandcamp, SoundCloud ve daha fazlasından bir bağlantı yapıştırarak bir yayını kaydedin, ardından anında önizleme için dokunun."
+			},
+			"sync": {
+				"title": "Masaüstü ile Senkronize Edin",
+				"description": "İsteğe bağlı olarak oturum açın ve koleksiyonunuzu tüm cihazlarda senkronize tutun. Bunu her zaman daha sonra yapabilirsiniz."
+			},
+			"appearance": {
+				"title": "Bunu Kendin Yap",
+				"description": "Bir tema ve vurgu rengi seçin. Bunları istediğiniz zaman Ayarlar'da değiştirebilirsiniz."
+			},
+			"skip": "Atla",
+			"maybeLater": "Belki daha sonra"
+		}
 	}
 }

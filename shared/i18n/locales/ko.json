@@ -937,6 +937,26 @@
 			"title": "모두 설정되었습니다!",
 			"subtitle": "컬렉션 구축을 시작합니다."
 		},
-		"getStarted": "시작하기"
+		"getStarted": "시작하기",
+		"mobile": {
+			"welcome": {
+				"title": "{appName}에 오신 것을 환영합니다",
+				"subtitle": "음악을 발견하고 컬렉션을 구축하세요 — 주머니에서 바로."
+			},
+			"discover": {
+				"title": "릴리스 추가 및 미리보기",
+				"description": "Bandcamp, SoundCloud 등에서 링크를 붙여넣어 릴리스를 저장한 다음 탭하여 즉시 미리보기합니다."
+			},
+			"sync": {
+				"title": "데스크톱과 동기화",
+				"description": "선택적으로 로그인하여 모든 기기에서 컬렉션을 동기화 상태로 유지합니다. 나중에 언제든지 할 수 있습니다."
+			},
+			"appearance": {
+				"title": "당신의 것으로 만드세요",
+				"description": "테마와 강조색을 선택하세요. 설정에서 언제든지 변경할 수 있습니다."
+			},
+			"skip": "건너뛰기",
+			"maybeLater": "나중에"
+		}
 	}
 }

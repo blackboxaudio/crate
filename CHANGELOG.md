@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Added a first-run onboarding flow to the mobile app: a one-time, dismissible carousel that welcomes you, explains adding and previewing releases, offers an optional "Sign in to sync with desktop" step, and lets you pick a theme and accent color — the app is fully usable standalone with zero sync setup, and onboarding can be skipped at any point. The theme/accent step is skipped only when signing in restores your existing appearance settings from another device
+- Added branded native launch screens to the mobile app on iOS and Android (the crate mark on the app background, respecting light/dark mode) so there's no plain-white flash before the app loads
 - Added a "New" badge to mobile discovery releases surfaced by a followed source: newly surfaced releases are marked everywhere they appear (the discovery feed, playlists, followed-source feeds, and the release detail) until you open or play them, at which point the badge clears automatically and syncs across devices
 - Added metadata refresh to the mobile release detail: opening a release that has no tracks yet now auto-fetches them from the source, and a "Refresh Metadata" action in the release's menu (or a pull-down on the release) re-fetches metadata and tracks on demand
 - Added pull-to-refresh across the mobile app: pull down on the discovery feed or Following tab to check all followed sources for new releases, on a followed source's release list to check just that source, and on a release to refresh its metadata — with freshly surfaced releases reloading into the feed inline

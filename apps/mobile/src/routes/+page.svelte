@@ -13,6 +13,8 @@
 	import FollowDetailView from '$lib/components/following/FollowDetailView.svelte'
 	import MiniPlayer from '$lib/components/player/MiniPlayer.svelte'
 	import ExpandedPlayer from '$lib/components/player/ExpandedPlayer.svelte'
+	import MobileOnboarding from '$lib/components/onboarding/MobileOnboarding.svelte'
+	import { onboardingComplete } from '$lib/stores/onboarding'
 	import {
 		mobileUIStore,
 		detailReleaseId,
@@ -106,3 +108,10 @@
 
 <MiniPlayer />
 <ExpandedPlayer />
+
+<!-- First-run onboarding carousel. Gated on a device-local flag (not the cloud-synced onboarding setting),
+     so it appears once per fresh install regardless of desktop state. Rendered last so it layers above the
+     shell; the boot splash (z-9999) covers it until the app has mounted. -->
+{#if !$onboardingComplete}
+	<MobileOnboarding />
+{/if}

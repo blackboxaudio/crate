@@ -937,6 +937,26 @@
 			"title": "Du är redo!",
 			"subtitle": "Börja bygga din samling."
 		},
-		"getStarted": "Kom igång"
+		"getStarted": "Kom igång",
+		"mobile": {
+			"welcome": {
+				"title": "Välkommen till {appName}",
+				"subtitle": "Upptäck musik och bygg din samling — direkt från din ficka."
+			},
+			"discover": {
+				"title": "Lägg till och förhandsgranska utgåvor",
+				"description": "Klistra in en länk från Bandcamp, SoundCloud och mer för att spara en utgåva, sedan tryck för att förhandsgranska direkt."
+			},
+			"sync": {
+				"title": "Synkronisera med din skrivbord",
+				"description": "Logga in valfritt för att hålla din samling synkroniserad på alla dina enheter. Du kan alltid göra det senare."
+			},
+			"appearance": {
+				"title": "Gör det ditt",
+				"description": "Välj ett tema och en accentfärg. Du kan ändra dessa när som helst i Inställningar."
+			},
+			"skip": "Hoppa över",
+			"maybeLater": "Kanske senare"
+		}
 	}
 }

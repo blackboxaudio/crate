@@ -937,6 +937,26 @@
 			"title": "Vous êtes prêt!",
 			"subtitle": "Commencez à construire votre collection."
 		},
-		"getStarted": "Commencer"
+		"getStarted": "Commencer",
+		"mobile": {
+			"welcome": {
+				"title": "Bienvenue dans {appName}",
+				"subtitle": "Découvrez de la musique et construisez votre collection — directement depuis votre poche."
+			},
+			"discover": {
+				"title": "Ajouter et prévisualiser les sorties",
+				"description": "Collez un lien de Bandcamp, SoundCloud, et plus pour enregistrer une sortie, puis appuyez pour obtenir un aperçu instantané."
+			},
+			"sync": {
+				"title": "Synchronisez avec votre bureau",
+				"description": "Connectez-vous en option pour garder votre collection en synchronisation sur tous vos appareils. Vous pouvez toujours le faire plus tard."
+			},
+			"appearance": {
+				"title": "Personnalisez-le",
+				"description": "Choisissez un thème et une couleur d'accent. Vous pouvez les modifier à tout moment dans Paramètres."
+			},
+			"skip": "Ignorer",
+			"maybeLater": "Peut-être plus tard"
+		}
 	}
 }

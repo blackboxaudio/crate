@@ -938,6 +938,26 @@
 			"title": "You're all set!",
 			"subtitle": "Start building your collection."
 		},
-		"getStarted": "Get Started"
+		"getStarted": "Get Started",
+		"mobile": {
+			"welcome": {
+				"title": "Welcome to {appName}",
+				"subtitle": "Discover music and build your collection — right from your pocket."
+			},
+			"discover": {
+				"title": "Add & preview releases",
+				"description": "Paste a link from Bandcamp, SoundCloud, and more to save a release, then tap to preview it instantly."
+			},
+			"sync": {
+				"title": "Sync with your desktop",
+				"description": "Optionally sign in to keep your collection in sync across your devices. You can always do this later."
+			},
+			"appearance": {
+				"title": "Make it yours",
+				"description": "Pick a theme and accent color. You can change these anytime in Settings."
+			},
+			"skip": "Skip",
+			"maybeLater": "Maybe later"
+		}
 	}
 }

@@ -934,6 +934,26 @@
 			"title": "Totul este gata!",
 			"subtitle": "Începeți să construiți colecția dvs."
 		},
-		"getStarted": "Pornire"
+		"getStarted": "Pornire",
+		"mobile": {
+			"welcome": {
+				"title": "Bun venit în {appName}",
+				"subtitle": "Descoperiți muzică și construiți-vă colecția — direct din buzunar."
+			},
+			"discover": {
+				"title": "Adăugați și previzualizați lansări",
+				"description": "Lipiți un link de la Bandcamp, SoundCloud și altele pentru a salva o lansare, apoi atingeți pentru o previzualizare instantanee."
+			},
+			"sync": {
+				"title": "Sincronizați cu desktopul dvs.",
+				"description": "Conectați-vă opțional pentru a menține colecția sincronizată pe toate dispozitivele. Puteți face asta oricând mai târziu."
+			},
+			"appearance": {
+				"title": "Faceți-l al vostru",
+				"description": "Alegeți o temă și o culoare de accent. Puteți schimba acestea oricând în Setări."
+			},
+			"skip": "Omiteți",
+			"maybeLater": "Poate mai târziu"
+		}
 	}
 }

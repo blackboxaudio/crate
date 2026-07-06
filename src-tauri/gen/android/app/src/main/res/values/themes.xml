@@ -1,6 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Theme.crate_app" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <!-- Customize your theme here. -->
+        <!-- Branded launch screen: window background for pre-Android-12 devices, and the
+             platform splash screen (background + centered mark) on API 31+. -->
+        <item name="android:windowBackground">@drawable/launch_splash</item>
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">@color/splash_background</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@mipmap/ic_launcher_foreground</item>
     </style>
 </resources>
