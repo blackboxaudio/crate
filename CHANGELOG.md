@@ -14,15 +14,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added a "New" badge to mobile discovery releases surfaced by a followed source: newly surfaced releases are marked everywhere they appear (the discovery feed, playlists, followed-source feeds, and the release detail) until you open or play them, at which point the badge clears automatically and syncs across devices
 - Added metadata refresh to the mobile release detail: opening a release that has no tracks yet now auto-fetches them from the source, and a "Refresh Metadata" action in the release's menu (or a pull-down on the release) re-fetches metadata and tracks on demand
 - Added pull-to-refresh across the mobile app: pull down on the discovery feed or Following tab to check all followed sources for new releases, on a followed source's release list to check just that source, and on a release to refresh its metadata — with freshly surfaced releases reloading into the feed inline
+- Added the iOS tab-bar convention to the mobile app: re-tapping the active tab scrolls its list back to the top, or — when a drill-in (release, playlist, tag, or followed-source detail) is open — backs out of it a level at a time
+- Added offline downloads to the mobile app: a "Download for Offline" action on a release's menu pre-fetches its audio to the device so it plays with no network (airplane mode), a "Downloaded" badge marks fully-cached releases, and "Remove Download" reclaims the space; the on-device audio cache is capped at 500 MB and evicts the least-recently-played tracks when full
 
 ### Changed
 
+- Gave the mobile app iOS-style large-title navigation: each tab (Discovery, Following, Playlists, Tags) shows a large title at the top of its content that scrolls away and collapses into a compact centered title in the top bar as you scroll, with the per-tab search / sort / filter controls scrolling away alongside it. The brand mark, account chip, and settings gear stay pinned in the top bar. Following can be filtered by name or URL and Playlists by name, matching the existing Discovery search
+- Changed the mobile app to render in the native system font (San Francisco on iOS) instead of a network-served web font, and to honor the system Dynamic Type text-size setting so text scales with your accessibility preference — the app no longer fetches a font over the network, so it paints instantly and works offline
+- Locked the mobile app to portrait orientation
+- Moved mobile Settings out of the bottom tab bar into a right-side drawer opened from a gear button in the top bar, so the four remaining tabs (Discovery, Following, Playlists, Tags) have room for their labels in every language; the mini-player is hidden while the settings drawer is open
 - Changed the mobile cloud sign-in button to the standard Google-branded "Sign in with Google" button
 - Changed the mobile Following tab to check sources via pull-to-refresh instead of a "Check all" button (checking a single source stays on its long-press menu)
 - Enabled iOS App Attest device attestation for staging and production builds (Firebase App Check): the App Attest entitlement is now stamped per release channel, while dev builds continue to use an App Check debug token
+- Followed-source refresh now throttles its network checks to stay under Bandcamp, SoundCloud, and Discogs rate limits: each source's page is re-fetched at most once every 30 minutes on automatic refreshes (an explicit single-source "check now" still runs immediately), and a source that returns a rate-limit response is backed off with an increasing delay before it's checked again
+- Changed mobile cloud sync to run when the app launches and each time it returns to the foreground, instead of polling continuously — the desktop app keeps its always-on background sync, but the phone no longer ticks in the background, saving battery
+- Mobile releases added by URL while offline now retry automatically with an increasing (exponential) backoff delay once metadata can't be fetched, in addition to retrying the moment connectivity returns, so a transient failure no longer leaves an item stuck until the app is restarted
 
 ### Fixed
 
+- Fixed mobile bottom sheets being covered by the on-screen keyboard (most noticeably the "Add Release" sheet, where the URL field and action buttons were hidden): a sheet now lifts to rest just above the keyboard when a field is focused and drops back down when it's dismissed
 - Fixed mobile (iOS) cloud sign-in hanging on "Signing in…" and never completing, from two causes: the Google OAuth redirect scheme is no longer registered in the iOS app's `Info.plist` (it was intercepting the callback and preventing the native web-auth session from resolving), and App Check token minting on the sign-in path is now bounded by a timeout with a short failure cooldown so a slow or unregistered device attestation degrades to "no header" instead of stalling sign-in
 
 ## [0.3.0-staging.1] - 2026-06-24
