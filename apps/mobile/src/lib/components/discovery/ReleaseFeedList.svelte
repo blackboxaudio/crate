@@ -3,6 +3,7 @@
 	import type { Snippet } from 'svelte'
 	import type { DiscoveryRelease } from '$shared/types'
 	import { createVirtualList } from '$shared/utils/virtualizer.svelte'
+	import PullToRefresh from '$lib/components/common/PullToRefresh.svelte'
 
 	// Shared VIRTUALIZED release list used by BOTH the Discovery feed and the playlist detail. Only the
 	// rows in view mount, so a large synced collection (thousands of releases) stays responsive — the
@@ -27,6 +28,8 @@
 		onScroll?: (scrollTop: number) => void
 		/** Lock scrolling (the playlist passes the Drawer's `animating` flag during the slide). */
 		scrollLocked?: boolean
+		/** When set, a pull-down at the top of the list runs this (the feed uses it to check follows). */
+		onRefresh?: () => Promise<void> | void
 		overscan?: number
 		class?: string
 	}
@@ -40,6 +43,7 @@
 		skipScrollRestore = false,
 		onScroll,
 		scrollLocked = false,
+		onRefresh,
 		overscan = 8,
 		class: className = '',
 	}: Props = $props()
@@ -86,29 +90,36 @@
 	})
 </script>
 
-<div
-	bind:this={scrollEl}
-	onscroll={handleScroll}
-	class="min-h-0 flex-1 overflow-x-hidden {scrollLocked ? 'overflow-y-hidden' : 'overflow-y-auto'} {className}"
-	style="padding-bottom: var(--mini-player-inset, 0px)"
->
-	{#if leading}{@render leading()}{/if}
-
-	{#if releases.length === 0}
-		{#if empty}{@render empty()}{/if}
-	{:else}
-		<!-- Spacer sized to the full virtual height; only the visible rows are absolutely positioned in it. -->
-		<div style="height: {virtualList.totalSize}px; position: relative;">
-			{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
-				{@const release = releases[virtualItem.index]}
-				{#if release}
-					<div
-						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; transform: translateY({virtualItem.start}px);"
-					>
-						{@render row({ release, index: virtualItem.index })}
-					</div>
-				{/if}
-			{/each}
-		</div>
+<!-- Relative wrapper for the pull-to-refresh spinner. It fills the same flex slot the scroll element used
+     to; the scroll element itself keeps owning the scroll (a pull pushes its content down via padding). -->
+<div class="relative flex min-h-0 flex-1 flex-col">
+	{#if onRefresh}
+		<PullToRefresh {scrollEl} {onRefresh} />
 	{/if}
+	<div
+		bind:this={scrollEl}
+		onscroll={handleScroll}
+		class="min-h-0 flex-1 overflow-x-hidden {scrollLocked ? 'overflow-y-hidden' : 'overflow-y-auto'} {className}"
+		style="padding-bottom: var(--mini-player-inset, 0px)"
+	>
+		{#if leading}{@render leading()}{/if}
+
+		{#if releases.length === 0}
+			{#if empty}{@render empty()}{/if}
+		{:else}
+			<!-- Spacer sized to the full virtual height; only the visible rows are absolutely positioned in it. -->
+			<div style="height: {virtualList.totalSize}px; position: relative;">
+				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
+					{@const release = releases[virtualItem.index]}
+					{#if release}
+						<div
+							style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; transform: translateY({virtualItem.start}px);"
+						>
+							{@render row({ release, index: virtualItem.index })}
+						</div>
+					{/if}
+				{/each}
+			</div>
+		{/if}
+	</div>
 </div>

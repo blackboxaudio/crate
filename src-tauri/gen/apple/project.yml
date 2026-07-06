@@ -1,6 +1,6 @@
 name: crate-app
 options:
-  bundleIdPrefix: com.bbx-audio.crate.staging
+  bundleIdPrefix: com.bbx-audio.crate.dev
   deploymentTarget:
     iOS: 14.0
 fileGroups: [../../src]
@@ -10,8 +10,8 @@ configs:
 settingGroups:
   app:
     base:
-      PRODUCT_NAME: Crate Staging
-      PRODUCT_BUNDLE_IDENTIFIER: com.bbx-audio.crate.staging
+      PRODUCT_NAME: Crate Dev
+      PRODUCT_BUNDLE_IDENTIFIER: com.bbx-audio.crate.dev
       DEVELOPMENT_TEAM: 883V548CV2
 targetTemplates:
   app:

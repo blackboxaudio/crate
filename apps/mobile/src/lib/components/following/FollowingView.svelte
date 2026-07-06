@@ -4,6 +4,7 @@
 	import { translate } from '$shared/i18n'
 	import type { FollowedSource } from '$shared/types'
 	import { followStore, sortedFollowedSources } from '$shared/stores/follow'
+	import { discoveryStore } from '$shared/stores/discovery'
 	import { formatRelativeDate } from '$shared/utils'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
@@ -13,6 +14,7 @@
 	import MobilePromptDialog from '$lib/components/common/MobilePromptDialog.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
+	import PullToRefresh from '$lib/components/common/PullToRefresh.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 
 	// The Following tab: a management roster of the artists/labels the user follows. Mirrors the desktop
@@ -27,6 +29,9 @@
 	const sources = $derived($sortedFollowedSources)
 	const hasSources = $derived(sources.length > 0)
 
+	// The roster's own scroll element, handed to PullToRefresh so a pull-down checks every source.
+	let scrollEl = $state<HTMLElement | null>(null)
+
 	function domain(url: string): string {
 		try {
 			return new URL(url).host
@@ -35,9 +40,13 @@
 		}
 	}
 
-	async function checkAll() {
+	// Pull-to-refresh: check every followed source, then reload the discovery feed so newly surfaced
+	// releases show up there too. Replaces the old "Check all" button; per-source checks stay on the
+	// row long-press menu ("Check now").
+	async function refreshAll() {
 		void lightTap()
 		await followStore.checkAll()
+		await discoveryStore.loadReleases()
 	}
 
 	function openSource(source: FollowedSource) {
@@ -188,20 +197,10 @@
 {/snippet}
 
 <div class="flex h-full flex-col">
-	<!-- Action row: Check all (left) + Add source (right). Hidden when empty — the empty state has its own CTA. -->
+	<!-- Add source. Hidden when empty — the empty state has its own CTA. Checking all is now a pull-down
+	     on the list (below); a single source is checked from its long-press menu. -->
 	{#if hasSources}
-		<div class="flex items-center justify-between gap-1 px-2 py-2">
-			<button
-				type="button"
-				class="flex h-10 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-text-secondary active:bg-surface-2 disabled:opacity-50"
-				disabled={$followStore.checkingAll}
-				onclick={checkAll}
-			>
-				{#if $followStore.checkingAll}
-					<Spinner class="h-3.5 w-3.5" />
-				{/if}
-				{$translate('discovery.following.checkAll')}
-			</button>
+		<div class="flex items-center justify-end gap-1 px-2 py-2">
 			<button
 				type="button"
 				class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
@@ -215,30 +214,44 @@
 		</div>
 	{/if}
 
-	<!-- Scroll container (the shell frame reserves header/tab-bar padding; this owns its own scroll). -->
-	<div class="min-h-0 flex-1 overflow-y-auto" style="padding-bottom: var(--mini-player-inset, 0px)">
-		<MobileList isEmpty={!hasSources} empty={emptyState}>
-			{#each sources as source (source.id)}
-				{@const checking = $followStore.checkingIds.has(source.id) || $followStore.checkingAll}
-				<div onpointerdown={(e) => startLongPress(e, source)} onclickcapture={onRowClickCapture}>
-					<MobileListItem onclick={() => openSourceDetail(source)}>
-						{#snippet leading()}
-							{@render avatar(source)}
-						{/snippet}
-						{#snippet trailing()}
-							{@render status(source, checking)}
-						{/snippet}
-						<span class="block truncate text-sm font-medium text-text-primary">{source.name ?? domain(source.url)}</span
-						>
-						<span class="block truncate text-xs text-text-tertiary">
-							{domain(source.url)}{source.lastCheckedAt
-								? ` · ${$translate('discovery.following.checkedAgo', { values: { time: formatRelativeDate(source.lastCheckedAt, $translate) } })}`
-								: ''}
-						</span>
-					</MobileListItem>
-				</div>
-			{/each}
-		</MobileList>
+	<!-- Scroll container (the shell frame reserves header/tab-bar padding; this owns its own scroll). The
+	     relative wrapper hosts the pull-to-refresh spinner, which pushes the list down (via padding) so it
+	     sits in the gap above rather than over the rows. -->
+	<div class="relative flex min-h-0 flex-1 flex-col">
+		{#if hasSources}
+			<PullToRefresh {scrollEl} onRefresh={refreshAll} />
+		{/if}
+		<div
+			bind:this={scrollEl}
+			class="min-h-0 flex-1 overflow-y-auto"
+			style="padding-bottom: var(--mini-player-inset, 0px)"
+		>
+			<MobileList isEmpty={!hasSources} empty={emptyState}>
+				{#each sources as source (source.id)}
+					<!-- Only an individual "Check now" spins this row; a pull-to-refresh (check-all) is already
+				     represented by the single pull spinner, so don't light up every row for it. -->
+					{@const checking = $followStore.checkingIds.has(source.id)}
+					<div onpointerdown={(e) => startLongPress(e, source)} onclickcapture={onRowClickCapture}>
+						<MobileListItem onclick={() => openSourceDetail(source)}>
+							{#snippet leading()}
+								{@render avatar(source)}
+							{/snippet}
+							{#snippet trailing()}
+								{@render status(source, checking)}
+							{/snippet}
+							<span class="block truncate text-sm font-medium text-text-primary"
+								>{source.name ?? domain(source.url)}</span
+							>
+							<span class="block truncate text-xs text-text-tertiary">
+								{domain(source.url)}{source.lastCheckedAt
+									? ` · ${$translate('discovery.following.checkedAgo', { values: { time: formatRelativeDate(source.lastCheckedAt, $translate) } })}`
+									: ''}
+							</span>
+						</MobileListItem>
+					</div>
+				{/each}
+			</MobileList>
+		</div>
 	</div>
 </div>
 

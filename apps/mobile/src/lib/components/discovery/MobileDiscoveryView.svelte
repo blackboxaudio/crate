@@ -3,6 +3,7 @@
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
+	import { followStore } from '$shared/stores/follow'
 	import { mobileUIStore, scrollTargetReleaseId, mobileDisplayedReleases } from '$lib/stores/mobileUI'
 	import MobileListSkeleton from '$lib/components/common/MobileListSkeleton.svelte'
 	import { pendingReleases } from '$lib/stores/pendingReleases'
@@ -57,6 +58,13 @@
 		mobileUIStore.setOpenRow(null)
 		mobileUIStore.setDiscoveryScrollTop(scrollTop)
 	}
+
+	// Pull-to-refresh: check every followed source for new releases, then reload the feed so any freshly
+	// surfaced (is_new) releases appear inline. checkAll also refreshes the Following tab's counts.
+	async function refreshFollowed() {
+		await followStore.checkAll()
+		await discoveryStore.loadReleases()
+	}
 </script>
 
 <div class="flex h-full flex-col">
@@ -71,6 +79,7 @@
 		initialScrollTop={savedScrollTop}
 		{skipScrollRestore}
 		onScroll={handleScroll}
+		onRefresh={refreshFollowed}
 		leading={pendingBlock}
 		empty={emptyState}
 		row={releaseRow}

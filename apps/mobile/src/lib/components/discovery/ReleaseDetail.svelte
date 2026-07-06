@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { get } from 'svelte/store'
+	import { cubicOut } from 'svelte/easing'
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease } from '$shared/types'
 	import { discoveryStore } from '$shared/stores/discovery'
@@ -16,9 +17,11 @@
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import MarqueeText from '$lib/components/common/MarqueeText.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
+	import PullToRefresh from '$lib/components/common/PullToRefresh.svelte'
 	import EqualizerBars from '$lib/components/common/EqualizerBars.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
+	import TrackListSkeleton from './TrackListSkeleton.svelte'
 	import MobileTagPicker from './MobileTagPicker.svelte'
 	import EditReleaseSheet from './EditReleaseSheet.svelte'
 	import SourceIcon from './SourceIcon.svelte'
@@ -62,6 +65,10 @@
 	function menuOpenInSource() {
 		menuOpen = false
 		void openUrl(release.url).catch(() => {})
+	}
+	function menuRefresh() {
+		menuOpen = false
+		void discoveryStore.refreshMetadata(release.id)
 	}
 	async function menuDelete() {
 		menuOpen = false
@@ -212,6 +219,46 @@
 		if (wasIdle) mobileUIStore.expandPlayer()
 	}
 
+	// Whether this release's metadata is currently being (re)fetched — drives the empty track-list
+	// placeholder skeleton. The store tracks in-flight ids.
+	const isRefreshing = $derived($discoveryStore.refreshingIds.has(release.id))
+
+	// The scrollable content element, handed to PullToRefresh so a pull-down re-fetches this release's
+	// metadata (the same action as the header menu's "Refresh Metadata").
+	let contentEl = $state<HTMLElement | null>(null)
+	async function refreshDetail() {
+		await discoveryStore.refreshMetadata(release.id)
+	}
+
+	// Delay before clearing the "new" flag on open: long enough for the drawer to finish sliding in (500ms)
+	// and the badge to sit visibly for a beat, so it then pops out (see out:pop) rather than vanishing
+	// under the opening transition.
+	const NEW_CLEAR_DELAY = 850
+
+	// A little "pop" as the badge leaves: it grows and fades so clearing the "new" state is noticeable.
+	function pop(_node: Element, { duration = 260 } = {}) {
+		return {
+			duration,
+			easing: cubicOut,
+			css: (t: number) => `transform: scale(${1 + (1 - t) * 0.4}); opacity: ${t}`,
+		}
+	}
+
+	// Once-per-open setup. Runs when the detail is opened for a release (this screen mounts per open).
+	let didInit = false
+	$effect(() => {
+		if (didInit) return
+		didInit = true
+		// Viewing the detail counts as "seen" — clear the release's "new" flag after the delay (no-op if not
+		// new). Not cancelled on close so a quick open still registers the view; clearNew is safe post-unmount.
+		setTimeout(() => discoveryStore.clearNew(release.id), NEW_CLEAR_DELAY)
+		// Auto-fetch tracks when the release was opened empty (common for bulk-imported or watcher-surfaced
+		// releases saved with only a URL). The backend's refresh creates the tracks from the source; the
+		// live `release` prop then re-renders them. Guarded so a release that genuinely has no tracks
+		// doesn't re-fetch on every reactive tick.
+		if (release.tracks.length === 0) void discoveryStore.refreshMetadata(release.id)
+	})
+
 	// Open on mount (this is only rendered while a release is selected). Dismissal flips `open` false; the
 	// Drawer slides out, then `onClosed` clears the store so +page's {#if} unmounts only after the anim.
 	let open = $state(true)
@@ -255,156 +302,180 @@
 
 		<!-- Scrollable content; bottom padding clears the mini-player bar. overflow-x is pinned hidden because
 	     overflow-y-auto alone computes overflow-x to `auto`, which would let overflowing content scroll
-	     sideways (and pinch-zoom) on iOS. -->
-		<div class="flex-1 overflow-x-hidden px-4 pt-4 pb-28 {animating ? 'overflow-y-hidden' : 'overflow-y-auto'}">
-			<!-- Artwork -->
-			<div class="mb-4">
-				{#if release.artwork_url}
-					<img src={release.artwork_url} alt="" class="aspect-square w-full rounded-xl object-cover shadow-lg" />
-				{:else}
-					<div class="flex aspect-square w-full items-center justify-center rounded-xl bg-surface-2 text-text-tertiary">
-						<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
-							<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+	     sideways (and pinch-zoom) on iOS. Wrapped so a pull-down at the top re-fetches this release's
+	     metadata (disabled while the drawer is animating). -->
+		<div class="relative flex min-h-0 flex-1 flex-col">
+			<PullToRefresh scrollEl={contentEl} onRefresh={refreshDetail} enabled={!animating} />
+			<div
+				bind:this={contentEl}
+				class="min-h-0 flex-1 overflow-x-hidden px-4 pt-4 pb-28 {animating ? 'overflow-y-hidden' : 'overflow-y-auto'}"
+			>
+				<!-- Artwork -->
+				<div class="mb-4">
+					{#if release.artwork_url}
+						<img src={release.artwork_url} alt="" class="aspect-square w-full rounded-xl object-cover shadow-lg" />
+					{:else}
+						<div
+							class="flex aspect-square w-full items-center justify-center rounded-xl bg-surface-2 text-text-tertiary"
+						>
+							<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
+								<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+							</svg>
+						</div>
+					{/if}
+				</div>
+
+				<!-- Metadata + a "more" action menu (the ⋯ sits to the right of the info block, vertically centered,
+		     to save the vertical whitespace a standalone button row would add). -->
+				<div class="flex items-center gap-3">
+					<div class="min-w-0 flex-1">
+						<h1 class="text-xl font-semibold text-text-primary">
+							{release.title ?? $translate('common.untitled')}{#if release.is_new}<span
+									out:pop
+									class="ml-2 inline-block rounded-full bg-brand-muted px-1.5 py-0.5 align-middle text-[10px] font-semibold text-brand-primary"
+									>{$translate('filters.new')}</span
+								>{/if}
+						</h1>
+						<p class="text-base text-text-secondary">{release.artist ?? $translate('common.unknownArtist')}</p>
+						<p class="mt-0.5 text-sm text-text-tertiary">
+							{#if release.label}{release.label}{/if}
+							{#if release.label && release.release_date}
+								·
+							{/if}
+							{#if release.release_date}{formatDate(release.release_date)}{/if}
+						</p>
+					</div>
+					<!-- One "more" button gathers every release-level action (Add to Playlist, Edit, Open in source,
+			     Delete) into the context-menu platter below — clearer (the actions are labeled) and tidier than
+			     the row of icon buttons + the standalone Add-to-Playlist button it replaces. 44px hit target. -->
+					<button
+						bind:this={menuButtonEl}
+						type="button"
+						class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-stroke text-text-primary transition-transform active:scale-95 active:bg-surface-2"
+						aria-label={$translate('common.more')}
+						aria-haspopup="menu"
+						aria-expanded={menuOpen}
+						onclick={openMenu}
+					>
+						<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+							<circle cx="5" cy="12" r="1.8" />
+							<circle cx="12" cy="12" r="1.8" />
+							<circle cx="19" cy="12" r="1.8" />
 						</svg>
+					</button>
+				</div>
+
+				<!-- Track list -->
+				<div class="mt-6">
+					<h2 class="mb-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
+						{$translate('discovery.tracks')}
+					</h2>
+					<div class="flex flex-col">
+						{#if release.tracks.length === 0}
+							<!-- No tracks yet: either fetching them (auto on open / manual refresh) — show skeleton
+						     rows shaped like real tracks — or the source genuinely had none. -->
+							{#if isRefreshing}
+								<div role="status" aria-label={$translate('discovery.fetchingMetadata')}>
+									<TrackListSkeleton />
+								</div>
+							{:else}
+								<div class="py-3 text-sm text-text-tertiary">{$translate('library.noTracksYet')}</div>
+							{/if}
+						{/if}
+						{#each release.tracks as track, index (track.id)}
+							{@const isActive = isCurrentRelease && $previewInfo?.trackIndex === index}
+							{@const isLoading = spinnerArmed && loadingReleaseId === release.id && loadingTrackIndex === index}
+							<!-- A tap plays the track; a long-press lifts the row and opens its context menu (Play next /
+						     Add to queue). The heart floats on top (absolute) so the whole row shares the same pressed
+						     highlight, yet tapping the heart likes the track instead of playing it. -->
+							<div
+								class="relative rounded {isActive ? 'bg-brand-muted' : ''}"
+								onpointerdown={(e) => startTrackLongPress(e, index)}
+								onclickcapture={onTrackClickCapture}
+							>
+								<button
+									type="button"
+									class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-10 pl-2 text-left active:bg-surface-2"
+									aria-label={$translate('discovery.playPreview')}
+									onclick={() => playTrack(index)}
+								>
+									<span class="w-5 flex-shrink-0 text-center text-xs text-text-tertiary tabular-nums">
+										{#if isLoading}
+											<Spinner class="mx-auto h-3.5 w-3.5" />
+										{:else if isActive}
+											<EqualizerBars class="mx-auto h-3.5 w-3.5" playing={$isPlaying} />
+										{:else}
+											{index + 1}
+										{/if}
+									</span>
+									<MarqueeText text={track.name} class="min-w-0 flex-1 text-sm text-text-primary" />
+									{#if track.duration_ms != null}
+										<span class="flex-shrink-0 text-xs text-text-tertiary tabular-nums">
+											{formatDurationCompact(track.duration_ms)}
+										</span>
+									{/if}
+								</button>
+								<button
+									type="button"
+									class="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r text-text-tertiary active:bg-surface-2"
+									aria-label={track.is_liked ? $translate('discovery.unlike') : $translate('discovery.like')}
+									onclick={() => discoveryStore.toggleTrackLiked(release.id, track.id)}
+								>
+									<svg
+										class="h-4 w-4 {track.is_liked ? 'text-brand-primary' : ''}"
+										viewBox="0 0 24 24"
+										fill={track.is_liked ? 'currentColor' : 'none'}
+										stroke="currentColor"
+										stroke-width="2"
+									>
+										<path
+											d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
+										/>
+									</svg>
+								</button>
+							</div>
+						{/each}
+					</div>
+				</div>
+
+				<!-- Tags -->
+				<div class="mt-6">
+					<h2 class="mb-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
+						{$translate('nav.tags')}
+					</h2>
+					<div class="flex flex-wrap items-center gap-1.5">
+						{#each release.tags as tag (tag.id)}
+							{@const color = tag.color ?? '#888888'}
+							<span
+								class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium"
+								style="background-color: {color}20; color: {color}; border: 1px solid {color}40;"
+							>
+								{tag.name}
+							</span>
+						{/each}
+						<button
+							type="button"
+							class="inline-flex items-center gap-1 rounded border border-dashed border-stroke px-2 py-0.5 text-xs text-text-secondary active:bg-surface-2"
+							onclick={() => (tagPickerOpen = true)}
+						>
+							<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+							</svg>
+							{$translate('discovery.editor.addTags')}
+						</button>
+					</div>
+				</div>
+
+				<!-- Notes (read-only; editing is via the Edit sheet) -->
+				{#if release.notes}
+					<div class="mt-6">
+						<h2 class="mb-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
+							{$translate('discovery.editor.notes')}
+						</h2>
+						<p class="text-sm whitespace-pre-wrap text-text-secondary">{release.notes}</p>
 					</div>
 				{/if}
 			</div>
-
-			<!-- Metadata + a "more" action menu (the ⋯ sits to the right of the info block, vertically centered,
-		     to save the vertical whitespace a standalone button row would add). -->
-			<div class="flex items-center gap-3">
-				<div class="min-w-0 flex-1">
-					<h1 class="text-xl font-semibold text-text-primary">
-						{release.title ?? $translate('common.untitled')}
-					</h1>
-					<p class="text-base text-text-secondary">{release.artist ?? $translate('common.unknownArtist')}</p>
-					<p class="mt-0.5 text-sm text-text-tertiary">
-						{#if release.label}{release.label}{/if}
-						{#if release.label && release.release_date}
-							·
-						{/if}
-						{#if release.release_date}{formatDate(release.release_date)}{/if}
-					</p>
-				</div>
-				<!-- One "more" button gathers every release-level action (Add to Playlist, Edit, Open in source,
-			     Delete) into the context-menu platter below — clearer (the actions are labeled) and tidier than
-			     the row of icon buttons + the standalone Add-to-Playlist button it replaces. 44px hit target. -->
-				<button
-					bind:this={menuButtonEl}
-					type="button"
-					class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-stroke text-text-primary transition-transform active:scale-95 active:bg-surface-2"
-					aria-label={$translate('common.more')}
-					aria-haspopup="menu"
-					aria-expanded={menuOpen}
-					onclick={openMenu}
-				>
-					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-						<circle cx="5" cy="12" r="1.8" />
-						<circle cx="12" cy="12" r="1.8" />
-						<circle cx="19" cy="12" r="1.8" />
-					</svg>
-				</button>
-			</div>
-
-			<!-- Track list -->
-			<div class="mt-6">
-				<h2 class="mb-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
-					{$translate('discovery.tracks')}
-				</h2>
-				<div class="flex flex-col">
-					{#each release.tracks as track, index (track.id)}
-						{@const isActive = isCurrentRelease && $previewInfo?.trackIndex === index}
-						{@const isLoading = spinnerArmed && loadingReleaseId === release.id && loadingTrackIndex === index}
-						<!-- A tap plays the track; a long-press lifts the row and opens its context menu (Play next /
-						     Add to queue). The heart floats on top (absolute) so the whole row shares the same pressed
-						     highlight, yet tapping the heart likes the track instead of playing it. -->
-						<div
-							class="relative rounded {isActive ? 'bg-brand-muted' : ''}"
-							onpointerdown={(e) => startTrackLongPress(e, index)}
-							onclickcapture={onTrackClickCapture}
-						>
-							<button
-								type="button"
-								class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-10 pl-2 text-left active:bg-surface-2"
-								aria-label={$translate('discovery.playPreview')}
-								onclick={() => playTrack(index)}
-							>
-								<span class="w-5 flex-shrink-0 text-center text-xs text-text-tertiary tabular-nums">
-									{#if isLoading}
-										<Spinner class="mx-auto h-3.5 w-3.5" />
-									{:else if isActive}
-										<EqualizerBars class="mx-auto h-3.5 w-3.5" playing={$isPlaying} />
-									{:else}
-										{index + 1}
-									{/if}
-								</span>
-								<MarqueeText text={track.name} class="min-w-0 flex-1 text-sm text-text-primary" />
-								{#if track.duration_ms != null}
-									<span class="flex-shrink-0 text-xs text-text-tertiary tabular-nums">
-										{formatDurationCompact(track.duration_ms)}
-									</span>
-								{/if}
-							</button>
-							<button
-								type="button"
-								class="absolute inset-y-0 right-0 flex w-10 items-center justify-center rounded-r text-text-tertiary active:bg-surface-2"
-								aria-label={track.is_liked ? $translate('discovery.unlike') : $translate('discovery.like')}
-								onclick={() => discoveryStore.toggleTrackLiked(release.id, track.id)}
-							>
-								<svg
-									class="h-4 w-4 {track.is_liked ? 'text-brand-primary' : ''}"
-									viewBox="0 0 24 24"
-									fill={track.is_liked ? 'currentColor' : 'none'}
-									stroke="currentColor"
-									stroke-width="2"
-								>
-									<path
-										d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21.23l8.84-8.84a5.5 5.5 0 0 0 0-7.78z"
-									/>
-								</svg>
-							</button>
-						</div>
-					{/each}
-				</div>
-			</div>
-
-			<!-- Tags -->
-			<div class="mt-6">
-				<h2 class="mb-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
-					{$translate('nav.tags')}
-				</h2>
-				<div class="flex flex-wrap items-center gap-1.5">
-					{#each release.tags as tag (tag.id)}
-						{@const color = tag.color ?? '#888888'}
-						<span
-							class="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium"
-							style="background-color: {color}20; color: {color}; border: 1px solid {color}40;"
-						>
-							{tag.name}
-						</span>
-					{/each}
-					<button
-						type="button"
-						class="inline-flex items-center gap-1 rounded border border-dashed border-stroke px-2 py-0.5 text-xs text-text-secondary active:bg-surface-2"
-						onclick={() => (tagPickerOpen = true)}
-					>
-						<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M12 5v14M5 12h14" stroke-linecap="round" />
-						</svg>
-						{$translate('discovery.editor.addTags')}
-					</button>
-				</div>
-			</div>
-
-			<!-- Notes (read-only; editing is via the Edit sheet) -->
-			{#if release.notes}
-				<div class="mt-6">
-					<h2 class="mb-1.5 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
-						{$translate('discovery.editor.notes')}
-					</h2>
-					<p class="text-sm whitespace-pre-wrap text-text-secondary">{release.notes}</p>
-				</div>
-			{/if}
 		</div>
 	{/snippet}
 </Drawer>
@@ -482,7 +553,25 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem separatorBefore onclick={menuOpenInSource}>
+	<ContextMenuItem separatorBefore onclick={menuRefresh}>
+		{$translate('discovery.refreshMetadata')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M21 12a9 9 0 1 1-2.64-6.36" />
+				<path d="M21 3v6h-6" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuOpenInSource}>
 		{platformName
 			? $translate('discovery.openInApp', { values: { app: platformName } })
 			: $translate('discovery.openInBrowser')}

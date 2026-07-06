@@ -2,6 +2,7 @@
 	import type { FollowedSource } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
+	import { followStore } from '$shared/stores/follow'
 	import { releasesFromSource } from '$shared/utils'
 	import { mobileUIStore, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
 	import Drawer from '$lib/components/common/Drawer.svelte'
@@ -47,6 +48,13 @@
 	$effect(() => {
 		if ($discoveryStore.releases.length === 0) discoveryStore.loadReleases()
 	})
+
+	// Pull-to-refresh: check just this source for new releases, then reload the feed so any freshly
+	// surfaced (is_new) releases show up in this drill-in (and everywhere else).
+	async function refreshSource() {
+		await followStore.check(source.id)
+		await discoveryStore.loadReleases()
+	}
 
 	function startClose() {
 		open = false
@@ -134,7 +142,7 @@
 				{$translate('discovery.noReleasesYet')}
 			</div>
 		{:else}
-			<ReleaseFeedList {releases} scrollLocked={animating} row={releaseRow} />
+			<ReleaseFeedList {releases} scrollLocked={animating} onRefresh={refreshSource} row={releaseRow} />
 		{/if}
 	{/snippet}
 </Drawer>

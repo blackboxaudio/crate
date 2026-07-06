@@ -49,6 +49,19 @@ pub(crate) trait AppCheckProvider: Send + Sync {
 /// Refresh a little before expiry, mirroring the auth bearer-token skew.
 const APPCHECK_SKEW: Duration = Duration::from_secs(5 * 60);
 
+/// Upper bound on a single mint attempt. App Check "must never break a sync", so a slow or hung
+/// attestation — a misconfigured App Attest dev build, a stalled exchange endpoint — degrades to
+/// "no header" in bounded time instead of stalling sign-in for minutes. A healthy App Attest /
+/// Play Integrity mint completes in a few seconds, comfortably under this. (The native completion
+/// handlers already self-time-out at 20s, but the network legs of the exchange do not; this caps
+/// the whole mint.)
+const MINT_TIMEOUT: Duration = Duration::from_secs(10);
+
+/// After a failed or timed-out mint, short-circuit further mints to a fast "no header" for this
+/// long. Sign-in makes several App-Check-bearing calls back to back (`signInWithIdp`, then the
+/// onboarding manifest read); without this, each would independently pay the full [`MINT_TIMEOUT`].
+const MINT_FAILURE_COOLDOWN: Duration = Duration::from_secs(30);
+
 /// App Check token cache + the provider that mints it. One per backend, shared via `Arc` so
 /// every facet (manifest/blobs/devices/auth) reuses a single in-flight token.
 pub(crate) struct AppCheckState {
@@ -56,6 +69,9 @@ pub(crate) struct AppCheckState {
     /// `std::sync::Mutex` is correct here: the guard is always dropped before the `.await`
     /// that mints, so it is never held across a suspension point.
     cached: Mutex<Option<AppCheckToken>>,
+    /// Set when a mint fails/times out; suppresses re-minting until it elapses (see
+    /// [`MINT_FAILURE_COOLDOWN`]). Same guard-dropped-before-await discipline as `cached`.
+    cooldown_until: Mutex<Option<SystemTime>>,
 }
 
 impl AppCheckState {
@@ -63,12 +79,16 @@ impl AppCheckState {
         Self {
             provider,
             cached: Mutex::new(None),
+            cooldown_until: Mutex::new(None),
         }
     }
 
     /// Return a valid App Check token, minting a new one when the cache is empty or within
     /// [`APPCHECK_SKEW`] of expiry. A token-expiry race at worst mints twice — harmless, since
     /// both tokens are individually valid and the last writer wins.
+    ///
+    /// Every mint is bounded by [`MINT_TIMEOUT`], and a failure opens a [`MINT_FAILURE_COOLDOWN`]
+    /// window during which mints fast-fail — so a broken attestation can never stall a sync.
     pub(crate) async fn ensure_fresh(&self) -> Result<String> {
         // Fast path: decide under the lock, then DROP the guard before any await.
         {
@@ -84,15 +104,50 @@ impl AppCheckState {
                 }
             }
         }
-        // Slow path: mint with NO lock held (the provider hits the network), then store.
-        let minted = self.provider.fetch_token().await?;
+        // Negative cache: a recent mint failure short-circuits to fast-fail, so one sign-in's
+        // several App-Check calls don't each stall for `MINT_TIMEOUT`.
+        {
+            let cooldown = self.cooldown_until.lock().map_err(|_| CrateError::LockPoisoned)?;
+            if let Some(until) = *cooldown {
+                if until.duration_since(SystemTime::now()).is_ok() {
+                    return Err(CrateError::CloudSync(
+                        "App Check mint in cooldown after a recent failure".into(),
+                    ));
+                }
+            }
+        }
+        // Slow path: mint with NO lock held (the provider hits the network), bounded by a timeout.
+        let minted = match tokio::time::timeout(MINT_TIMEOUT, self.provider.fetch_token()).await {
+            Ok(Ok(minted)) => minted,
+            Ok(Err(e)) => {
+                self.begin_cooldown();
+                return Err(e);
+            }
+            Err(_) => {
+                self.begin_cooldown();
+                return Err(CrateError::CloudSync(format!(
+                    "App Check mint timed out after {MINT_TIMEOUT:?}"
+                )));
+            }
+        };
         log::debug!(
             "cloud_sync: minted App Check token via {} provider",
             self.provider.kind()
         );
         let token = minted.token.clone();
         *self.cached.lock().map_err(|_| CrateError::LockPoisoned)? = Some(minted);
+        // A good mint clears any prior failure cooldown.
+        if let Ok(mut c) = self.cooldown_until.lock() {
+            *c = None;
+        }
         Ok(token)
+    }
+
+    /// Open a fast-fail window after a failed/timed-out mint.
+    fn begin_cooldown(&self) {
+        if let Ok(mut c) = self.cooldown_until.lock() {
+            *c = Some(SystemTime::now() + MINT_FAILURE_COOLDOWN);
+        }
     }
 }
 
@@ -185,6 +240,41 @@ mod tests {
         assert_eq!(state.ensure_fresh().await.unwrap(), "tok");
         // Second call served from cache — only one mint.
         assert_eq!(provider.mints.load(std::sync::atomic::Ordering::SeqCst), 1);
+    }
+
+    /// A provider that always fails, counting attempts — to exercise the failure cooldown.
+    struct FailingProvider {
+        attempts: std::sync::atomic::AtomicUsize,
+    }
+
+    #[async_trait]
+    impl AppCheckProvider for FailingProvider {
+        async fn fetch_token(&self) -> Result<AppCheckToken> {
+            self.attempts
+                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            Err(CrateError::CloudSync("attestation unavailable".into()))
+        }
+        fn kind(&self) -> &'static str {
+            "failing"
+        }
+    }
+
+    #[tokio::test]
+    async fn ensure_fresh_cooldown_suppresses_reminting_after_failure() {
+        let provider = Arc::new(FailingProvider {
+            attempts: std::sync::atomic::AtomicUsize::new(0),
+        });
+        let state = AppCheckState::new(provider.clone());
+
+        // First call actually hits the provider and fails.
+        assert!(state.ensure_fresh().await.is_err());
+        // Within the cooldown window, the next call fast-fails WITHOUT hitting the provider again,
+        // so a sign-in's back-to-back App-Check calls don't each pay the mint timeout.
+        assert!(state.ensure_fresh().await.is_err());
+        assert_eq!(
+            provider.attempts.load(std::sync::atomic::Ordering::SeqCst),
+            1
+        );
     }
 
     #[tokio::test]

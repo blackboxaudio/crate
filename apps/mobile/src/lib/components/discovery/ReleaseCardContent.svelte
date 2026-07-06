@@ -22,8 +22,19 @@
 {/if}
 
 <div class="flex min-w-0 flex-1 flex-col leading-tight">
-	<span class="truncate text-sm font-medium text-text-primary">
-		{release.title ?? $translate('common.untitled')}
+	<!-- Title line: the "new" status pill (unread until listened to) trails the title, matching the
+	     followed-source rows' status indicator. The title truncates; the pill never shrinks. -->
+	<span class="flex min-w-0 items-center gap-1.5">
+		<span class="truncate text-sm font-medium text-text-primary">
+			{release.title ?? $translate('common.untitled')}
+		</span>
+		{#if release.is_new}
+			<span
+				class="flex-shrink-0 rounded-full bg-brand-muted px-1.5 py-0.5 text-[10px] font-semibold text-brand-primary"
+			>
+				{$translate('filters.new')}
+			</span>
+		{/if}
 	</span>
 	<span class="truncate text-xs text-text-secondary">
 		{release.artist ?? $translate('common.unknownArtist')}

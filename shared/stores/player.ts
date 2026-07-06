@@ -91,6 +91,10 @@ function createPlayerStore() {
 	// file-not-found error. Injected so this shared store needs no dependency on the
 	// desktop-only missingTracks store.
 	let onTrackMissing: ((trackId: string) => void) | null = null
+	// Called when a discovery preview starts playing, so the discovery store can clear the release's
+	// "new" flag (listened → no longer new). Injected to avoid a circular import: the discovery store
+	// already depends on this player store, so it registers the handler rather than us importing it.
+	let onPreviewPlayed: ((releaseId: string) => void) | null = null
 	let previewRetryAttempted = false
 	let previewRetrying = false
 	let previewSpeedCommitTimeout: ReturnType<typeof setTimeout> | null = null
@@ -530,6 +534,8 @@ function createPlayerStore() {
 						previewTrackIndex: trackIndex,
 						previewLoading: null,
 					}))
+					// Listened → clear the release's "new" flag (desktop/mobile agnostic; no-op if unset).
+					onPreviewPlayed?.(release.id)
 				} catch (error) {
 					const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
 					console.error('[native-preview] playPreview failed before/at native play:', errorMsg)
@@ -574,6 +580,8 @@ function createPlayerStore() {
 					previewTrackIndex: trackIndex,
 					previewLoading: null,
 				}))
+				// Listened → clear the release's "new" flag (desktop/mobile agnostic; no-op if unset).
+				onPreviewPlayed?.(release.id)
 			} catch (error) {
 				const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
 				update((s) => ({ ...s, error: errorMsg, previewLoading: null }))
@@ -1045,6 +1053,14 @@ function createPlayerStore() {
 		 */
 		setTrackMissingHandler(handler: ((trackId: string) => void) | null) {
 			onTrackMissing = handler
+		},
+
+		/**
+		 * Register a handler called when a discovery preview starts playing. The discovery store wires
+		 * this to `clearNew`, so a release stops being flagged "new" once it's been listened to.
+		 */
+		setPreviewPlayedHandler(handler: ((releaseId: string) => void) | null) {
+			onPreviewPlayed = handler
 		},
 
 		/**

@@ -444,6 +444,11 @@ function createDiscoveryStore() {
 
 export const discoveryStore = createDiscoveryStore()
 
+// A discovery preview starting means the user has listened to the release — clear its "new" flag.
+// Registered here (rather than imported by the player store) because the player store must not depend
+// on this store: discovery already imports playerStore, so wiring it the other way would be circular.
+playerStore.setPreviewPlayedHandler((releaseId) => discoveryStore.clearNew(releaseId))
+
 // =============================================================================
 // Derived Stores
 // =============================================================================

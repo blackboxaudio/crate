@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added a "New" badge to mobile discovery releases surfaced by a followed source: newly surfaced releases are marked everywhere they appear (the discovery feed, playlists, followed-source feeds, and the release detail) until you open or play them, at which point the badge clears automatically and syncs across devices
+- Added metadata refresh to the mobile release detail: opening a release that has no tracks yet now auto-fetches them from the source, and a "Refresh Metadata" action in the release's menu (or a pull-down on the release) re-fetches metadata and tracks on demand
+- Added pull-to-refresh across the mobile app: pull down on the discovery feed or Following tab to check all followed sources for new releases, on a followed source's release list to check just that source, and on a release to refresh its metadata — with freshly surfaced releases reloading into the feed inline
+
+### Changed
+
+- Changed the mobile cloud sign-in button to the standard Google-branded "Sign in with Google" button
+- Changed the mobile Following tab to check sources via pull-to-refresh instead of a "Check all" button (checking a single source stays on its long-press menu)
+- Enabled iOS App Attest device attestation for staging and production builds (Firebase App Check): the App Attest entitlement is now stamped per release channel, while dev builds continue to use an App Check debug token
+
+### Fixed
+
+- Fixed mobile (iOS) cloud sign-in hanging on "Signing in…" and never completing, from two causes: the Google OAuth redirect scheme is no longer registered in the iOS app's `Info.plist` (it was intercepting the callback and preventing the native web-auth session from resolving), and App Check token minting on the sign-in path is now bounded by a timeout with a short failure cooldown so a slow or unregistered device attestation degrades to "no header" instead of stalling sign-in
+
 ## [0.3.0-staging.1] - 2026-06-24
 
 ### Added
