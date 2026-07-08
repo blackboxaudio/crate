@@ -315,8 +315,13 @@ pub fn run() {
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
             commands::discovery::invalidate_preview_stream_cache,
+            commands::discovery::precache_preview_stream,
+            commands::discovery::get_release_cache_state,
             commands::discovery::get_discovery_audio_cache_size,
             commands::discovery::clear_discovery_audio_cache,
+            commands::discovery::cache_release_artwork,
+            commands::discovery::get_discovery_artwork_cache_size,
+            commands::discovery::clear_discovery_artwork_cache,
             commands::discovery::nsig_solve_callback,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
@@ -377,6 +382,11 @@ pub fn run() {
             commands::cloud_sync::get_sync_status,
             commands::cloud_sync::sync_now,
             commands::cloud_sync::pull_now,
+            commands::cloud_sync::sync_foreground,
+            #[cfg(feature = "mobile")]
+            commands::cloud_sync::schedule_background_sync,
+            #[cfg(feature = "mobile")]
+            commands::cloud_sync::cancel_background_sync,
             commands::cloud_sync::get_recent_overrides,
             commands::cloud_sync::list_devices,
             commands::cloud_sync::rename_device,
@@ -568,11 +578,22 @@ pub fn run() {
                 ));
                 app.manage(cloud_state.clone());
 
-                // Restore any persisted session, then run one serialized sync task:
-                // each tick pulls other devices' changes (polled every ~10s) and pushes
-                // ours once the dirty queue goes quiescent (~15s after the last
-                // mutation). "Sync now" pushes immediately via the command. A one-shot
-                // GC sweep at startup reclaims superseded blobs past their grace window.
+                // iOS: register the BGTaskScheduler launch handler now (must happen before
+                // `didFinishLaunchingWithOptions` returns — `.setup()` runs within it). The
+                // handler resolves the managed `CloudSyncState` above when the OS later fires an
+                // opportunistic background refresh. The frontend arms the actual schedule after
+                // sign-in via `schedule_background_sync`.
+                #[cfg(target_os = "ios")]
+                services::cloud_sync::background::ios::register(app.handle().clone());
+
+                // Restore any persisted session and run a one-shot startup GC sweep on
+                // both platforms. Desktop then enters a serialized poll loop: each tick
+                // pulls other devices' changes (~10s) and pushes ours once the dirty queue
+                // goes quiescent (~15s after the last mutation). Mobile deliberately has NO
+                // such loop — an always-on 5s tick would drain the battery and iOS/Android
+                // freeze the process when backgrounded anyway — so it syncs on launch and on
+                // every foreground via the `sync_foreground` command instead. "Sync now"
+                // pushes immediately via the command on both.
                 tauri::async_runtime::spawn(async move {
                     cloud_state.restore_session().await;
                     if !cloud_state.is_available() {
@@ -584,40 +605,43 @@ pub fn run() {
                             log::warn!("cloud_sync: gc sweep failed: {e}");
                         }
                     }
-                    let quiescent = std::time::Duration::from_secs(15);
-                    let mut tick: u64 = 0;
-                    loop {
-                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                        tick += 1;
-                        if !cloud_state.is_signed_in().await {
-                            continue;
-                        }
-                        // Pull every other tick (~10s) to halve manifest reads; the
-                        // etag gate keeps an unchanged poll cheap.
-                        if tick.is_multiple_of(2) {
-                            if let Err(e) = cloud_state.run_pull().await {
-                                // A transient connectivity failure is expected while
-                                // offline (already surfaced as the `Offline` phase) —
-                                // don't spam warnings every poll.
-                                if e.is_transient() {
-                                    log::debug!("cloud_sync: pull offline: {e}");
-                                } else {
-                                    log::warn!("cloud_sync: pull failed: {e}");
-                                }
+                    #[cfg(feature = "desktop")]
+                    {
+                        let quiescent = std::time::Duration::from_secs(15);
+                        let mut tick: u64 = 0;
+                        loop {
+                            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                            tick += 1;
+                            if !cloud_state.is_signed_in().await {
+                                continue;
                             }
-                        }
-                        match cloud_state.dirty_quiescent(quiescent) {
-                            Ok(true) => {
-                                if let Err(e) = cloud_state.run_push().await {
+                            // Pull every other tick (~10s) to halve manifest reads; the
+                            // etag gate keeps an unchanged poll cheap.
+                            if tick.is_multiple_of(2) {
+                                if let Err(e) = cloud_state.run_pull().await {
+                                    // A transient connectivity failure is expected while
+                                    // offline (already surfaced as the `Offline` phase) —
+                                    // don't spam warnings every poll.
                                     if e.is_transient() {
-                                        log::debug!("cloud_sync: push offline: {e}");
+                                        log::debug!("cloud_sync: pull offline: {e}");
                                     } else {
-                                        log::warn!("cloud_sync: debounced push failed: {e}");
+                                        log::warn!("cloud_sync: pull failed: {e}");
                                     }
                                 }
                             }
-                            Ok(false) => {}
-                            Err(e) => log::warn!("cloud_sync: dirty check failed: {e}"),
+                            match cloud_state.dirty_quiescent(quiescent) {
+                                Ok(true) => {
+                                    if let Err(e) = cloud_state.run_push().await {
+                                        if e.is_transient() {
+                                            log::debug!("cloud_sync: push offline: {e}");
+                                        } else {
+                                            log::warn!("cloud_sync: debounced push failed: {e}");
+                                        }
+                                    }
+                                }
+                                Ok(false) => {}
+                                Err(e) => log::warn!("cloud_sync: dirty check failed: {e}"),
+                            }
                         }
                     }
                 });

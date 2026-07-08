@@ -382,5 +382,28 @@ ALTER TABLE discovery_releases ADD COLUMN surfaced_at TEXT;
         r#"
 ALTER TABLE discovery_releases ADD COLUMN source_page_url TEXT;
 "#,
+        // Migration 7: LRU eviction for the on-disk audio-byte cache. `last_accessed_at`
+        // (RFC 3339) is touched on every cache write and on every playback read so the
+        // eviction sweep can drop the least-recently-played tracks once the cache exceeds
+        // its size cap. Device-local (the cache itself is never synced). Backfilled from
+        // `cached_at` so pre-existing entries have a sensible ordering.
+        r#"
+ALTER TABLE discovery_audio_cache ADD COLUMN last_accessed_at TEXT;
+UPDATE discovery_audio_cache SET last_accessed_at = cached_at WHERE last_accessed_at IS NULL;
+"#,
+        // Migration 8: on-disk cache for remote discovery artwork, giving mobile offline
+        // album art. Keyed by release_id (one cover per release). `last_accessed_at` (RFC
+        // 3339) is touched on every render read so the eviction sweep drops the least-
+        // recently-shown covers once the cache exceeds its (user-configurable) size cap.
+        // Device-local — the cache is never synced.
+        r#"
+CREATE TABLE discovery_artwork_cache (
+    release_id       TEXT    PRIMARY KEY,
+    ext              TEXT    NOT NULL DEFAULT 'webp',
+    file_size        INTEGER NOT NULL,
+    cached_at        TEXT    NOT NULL,
+    last_accessed_at TEXT    NOT NULL
+);
+"#,
     ]
 }

@@ -1,25 +1,32 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
+	import { fade, scale, slide } from 'svelte/transition'
 	import { translate } from '$shared/i18n'
 	import type { Tag, TagCategory } from '$shared/types'
-	import { pickTagCategoryColor } from '$shared/types'
+	import { DEFAULT_TAG_COLOR, pickTagCategoryColor } from '$shared/types'
 	import { tagsStore } from '$shared/stores/tags'
+	import { discoveryStore } from '$shared/stores/discovery'
+	import { discoveryPlaylistStore } from '$shared/stores/discoveryPlaylist'
+	import { toastStore } from '$shared/stores/toast'
 	import { accentColor } from '$shared/stores/settings'
-	import { mobileUIStore } from '$lib/stores/mobileUI'
+	import { mobileUIStore, scrollTopNonce } from '$lib/stores/mobileUI'
+	import { easeFluid } from '$lib/easing'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import MobilePromptDialog from '$lib/components/common/MobilePromptDialog.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
+	import TagCategoryPickerSheet from './TagCategoryPickerSheet.svelte'
 	import TagColorPicker from './TagColorPicker.svelte'
 
 	// Tags tab: browse + manage the user's tag categories and tags. Each category is a section of colored,
 	// tappable tag chips; tapping a chip drills into a feed of the releases carrying that tag (see
-	// TagDetailView). A toolbar "+" creates a category, a dashed "+" chip adds a tag, and long-pressing a chip
-	// (rename / delete) or a category name (rename / set color / delete) opens an iOS context menu. All CRUD
-	// goes through the shared `tagsStore` (Tauri commands), so categories/tags created here converge with
-	// desktop via cloud sync.
+	// TagDetailView). A toolbar "+" creates a category and a dashed "+" chip adds a tag; management lives in
+	// an iOS context menu per row — a category's (add tag / rename / set color / delete) opens from its "…"
+	// button or a long-press on its name, a tag's (rename / move to category / delete) from a long-press on
+	// the chip. All CRUD goes through the shared `tagsStore` (Tauri commands), so categories/tags created
+	// here converge with desktop via cloud sync.
 	const MAX_CATEGORIES = 4 // matches desktop's cap
 
 	onMount(() => {
@@ -27,6 +34,17 @@
 	})
 
 	const categories = $derived($tagsStore.categories)
+
+	// The scroll container, for the tab re-tap scroll-to-top.
+	let scrollEl = $state<HTMLElement | null>(null)
+	// iOS "re-tap the active tab to scroll to top". Ignore the initial nonce so a normal mount doesn't scroll.
+	let seenScrollNonce = get(mobileUIStore).scrollTopNonce
+	$effect(() => {
+		const n = $scrollTopNonce
+		if (n === seenScrollNonce) return
+		seenScrollNonce = n
+		scrollEl?.scrollTo({ top: 0, behavior: 'smooth' })
+	})
 
 	function openTag(tagId: string) {
 		void lightTap()
@@ -56,6 +74,11 @@
 
 	let colorPickerOpen = $state(false)
 	let colorTarget = $state<TagCategory | null>(null)
+
+	let movePickerOpen = $state(false)
+	// Snapshotted at menu-tap time (like `renameTarget`), so the menu's `onClosed` clearing the long-press
+	// target after its exit animation can't race the sheet.
+	let moveTarget = $state<{ tag: Tag; category: TagCategory } | null>(null)
 
 	function openCreateCategory() {
 		if (categories.length >= MAX_CATEGORIES) return
@@ -93,6 +116,7 @@
 
 	function openRenameCategory(category: TagCategory) {
 		rowActionsOpen = false
+		void lightTap()
 		renameTarget = { type: 'category', category }
 		renameName = category.name
 		renameOpen = true
@@ -100,6 +124,7 @@
 
 	function openRenameTag(tag: Tag) {
 		rowActionsOpen = false
+		void lightTap()
 		renameTarget = { type: 'tag', tag }
 		renameName = tag.name
 		renameOpen = true
@@ -116,6 +141,7 @@
 
 	function openColorPicker(category: TagCategory) {
 		rowActionsOpen = false
+		void lightTap()
 		colorTarget = category
 		colorPickerOpen = true
 	}
@@ -125,6 +151,21 @@
 		// name omitted → only the color is updated (the backend leaves the untouched column alone).
 		await tagsStore.updateCategory(colorTarget.id, undefined, hex)
 		colorTarget = null
+	}
+
+	async function handleMoveSelect(categoryId: string) {
+		const target = moveTarget
+		if (!target || categoryId === target.category.id) return
+		try {
+			await tagsStore.moveTag(target.tag.id, categoryId)
+			// Keep the tag copies embedded on releases in step (their category_id rides along) — mirrors desktop.
+			discoveryStore.updateTagCategory(target.tag.id, categoryId)
+			discoveryPlaylistStore.updateTagCategory(target.tag.id, categoryId)
+		} catch (error) {
+			const message = error instanceof Error ? error.message : get(translate)('errors.tagNameConflict')
+			toastStore.error(message)
+		}
+		moveTarget = null
 	}
 
 	async function handleDeleteCategory(category: TagCategory) {
@@ -154,6 +195,9 @@
 	let longPressTimer = 0
 	let longPressTarget = $state<LongPressTarget | null>(null)
 	let rowActionsOpen = $state(false)
+	// Whether the menu was opened by a discrete tap (a category's "…" button) rather than a held long-press —
+	// drives ContextMenu's `tapTriggered` arming and skips the lifted preview (button-anchored presentation).
+	let menuByTap = $state(false)
 	// Viewport rect of the long-pressed row, so the context menu can lift it in place.
 	let longPressRect = $state<{ top: number; left: number; width: number; height: number } | null>(null)
 	// A stationary long-press also synthesizes a click on release; this latches so we can swallow that one.
@@ -174,6 +218,7 @@
 			longPressRect = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
 			suppressNextClick = true
 			void rigidTap()
+			menuByTap = false
 			longPressTarget = target
 			rowActionsOpen = true
 		}, 450)
@@ -196,6 +241,17 @@
 		e.stopPropagation()
 	}
 
+	// A category's "…" button: opens the same menu as a long-press, but anchored to the button (no lifted
+	// preview, and no synthesized click to swallow — the tap is a real click).
+	function openCategoryMenu(e: MouseEvent, category: TagCategory) {
+		void lightTap()
+		const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+		longPressRect = { top: r.top, left: r.left, width: r.width, height: r.height }
+		menuByTap = true
+		longPressTarget = { type: 'category', category }
+		rowActionsOpen = true
+	}
+
 	// Menu actions read the latched target and narrow it (the items render per-type, but the handlers can't
 	// assume that statically) — so each guards before dispatching.
 	function menuAddTag() {
@@ -206,6 +262,14 @@
 		const t = longPressTarget
 		if (t?.type === 'category') openRenameCategory(t.category)
 		else if (t?.type === 'tag') openRenameTag(t.tag)
+	}
+	function menuMoveTag() {
+		const t = longPressTarget
+		if (t?.type !== 'tag') return
+		rowActionsOpen = false
+		void lightTap()
+		moveTarget = { tag: t.tag, category: t.category }
+		movePickerOpen = true
 	}
 	function menuSetColor() {
 		const t = longPressTarget
@@ -218,50 +282,101 @@
 	}
 </script>
 
-<div class="flex h-full flex-col">
-	<!-- Toolbar: a single "+" creates a category (capped at 4, matching desktop). Adding tags is done with the
-	     dashed "+" chip in each category below. -->
-	<div class="flex items-center justify-end px-2 py-2">
-		<button
-			type="button"
-			class="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary active:bg-surface-2 disabled:opacity-40"
-			aria-label={$translate('tags.newCategory')}
-			disabled={categories.length >= MAX_CATEGORIES}
-			onclick={openCreateCategory}
-		>
-			<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
-			</svg>
-		</button>
-	</div>
+<div class="relative flex h-full flex-col">
+	<div
+		bind:this={scrollEl}
+		class="min-h-0 flex-1 overflow-y-auto overscroll-y-none"
+		style="padding-bottom: var(--mini-player-inset, 0px)"
+	>
+		<!-- Glass toolbar: a trailing "+" that creates a category (capped at 4, matching desktop); adding tags
+		     is done with the dashed "+" chip in each category below. Tags has no search, so the add sits alone
+		     (the section title lives in the fixed top bar), but the bar still gives this tab the same header
+		     material + separating line as the others. Hidden while the roster is empty — the empty state
+		     carries its own CTA (FollowingView precedent). -->
+		{#if categories.length > 0}
+			<div class="glass flex items-center justify-end gap-2 border-b border-stroke-subtle px-3 py-2">
+				<button
+					type="button"
+					class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2 disabled:opacity-40"
+					aria-label={$translate('tags.newCategory')}
+					disabled={categories.length >= MAX_CATEGORIES}
+					onclick={openCreateCategory}
+				>
+					<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+					</svg>
+				</button>
+			</div>
+		{/if}
 
-	<div class="min-h-0 flex-1 overflow-y-auto" style="padding-bottom: var(--mini-player-inset, 0px)">
 		{#if categories.length === 0}
-			<div class="px-4 py-12 text-center text-sm text-text-secondary">{$translate('tags.noTagCategoriesYet')}</div>
+			<!-- Empty state: icon + explanation + the first step as its own CTA (mirrors FollowingView). -->
+			<div class="flex flex-col items-center gap-2 px-4 py-10 text-center">
+				<svg
+					class="h-8 w-8 text-text-tertiary"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path
+						d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
+					/>
+				</svg>
+				<div class="text-sm font-medium text-text-primary">{$translate('tags.noTagCategoriesYet')}</div>
+				<div class="max-w-xs text-xs text-text-tertiary">{$translate('tags.emptyHint')}</div>
+				<button
+					type="button"
+					class="mt-2 rounded-lg bg-brand-muted px-4 py-2 text-sm font-medium text-brand-primary active:opacity-80"
+					onclick={openCreateCategory}
+				>
+					{$translate('tags.newCategory')}
+				</button>
+			</div>
 		{:else}
 			{#each categories as category (category.id)}
-				<div class="px-4 py-2">
-					<!-- Category name (long-press → manage: rename / set color / delete). -->
-					<h3
-						class="mb-1.5 text-sm font-medium text-text-secondary"
-						onpointerdown={(e) => startLongPress(e, { type: 'category', category })}
-						onclickcapture={onRowClickCapture}
-					>
-						{category.name}
-					</h3>
+				<div class="px-4 py-2" transition:slide={{ duration: 200, easing: easeFluid }}>
+					<!-- Category header: name (long-press → manage) + a visible "…" button opening the same menu. -->
+					<div class="mb-1 flex items-center justify-between gap-2">
+						<h3
+							class="min-w-0 flex-1 truncate text-sm font-medium text-text-secondary"
+							onpointerdown={(e) => startLongPress(e, { type: 'category', category })}
+							onclickcapture={onRowClickCapture}
+						>
+							{category.name}
+						</h3>
+						<button
+							type="button"
+							class="-my-1.5 flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-tertiary active:bg-surface-2"
+							aria-label={$translate('common.more')}
+							aria-haspopup="menu"
+							aria-expanded={rowActionsOpen && menuByTap && lpCategory?.id === category.id}
+							onclick={(e) => openCategoryMenu(e, category)}
+						>
+							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+								<circle cx="5" cy="12" r="1.8" />
+								<circle cx="12" cy="12" r="1.8" />
+								<circle cx="19" cy="12" r="1.8" />
+							</svg>
+						</button>
+					</div>
 
-					<!-- Tappable tag chips (tap → drill into the tag's feed; long-press → rename / delete) plus a
-					     dashed "+" chip to add a tag to this category. -->
+					<!-- Tappable tag chips (tap → drill into the tag's feed; long-press → rename / move / delete) plus
+					     a dashed "+" chip to add a tag to this category. -->
 					<div class="flex flex-wrap gap-2">
 						{#each category.tags as tag (tag.id)}
-							{@const color = tag.color ?? category.color ?? '#6366f1'}
+							{@const color = tag.color ?? category.color ?? DEFAULT_TAG_COLOR}
 							<div
 								onpointerdown={(e) => startLongPress(e, { type: 'tag', tag, category })}
 								onclickcapture={onRowClickCapture}
+								in:scale={{ duration: 180, start: 0.85, easing: easeFluid }}
+								out:scale={{ duration: 140, start: 0.85, easing: easeFluid }}
 							>
 								<button
 									type="button"
-									class="rounded-md px-3 py-2 text-sm font-medium active:opacity-70"
+									class="inline-flex min-h-[44px] items-center rounded-lg px-3.5 text-sm font-medium active:opacity-70"
 									style="background-color: {color}20; color: {color}; border: 1px solid {color}40;"
 									onclick={() => openTag(tag.id)}
 								>
@@ -271,14 +386,22 @@
 						{/each}
 						<button
 							type="button"
-							class="inline-flex items-center justify-center rounded-md border border-dashed border-stroke px-3 py-2 text-text-tertiary active:bg-surface-2"
+							class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-dashed border-stroke px-3 text-text-tertiary active:bg-surface-2"
 							aria-label={$translate('tags.addTag')}
 							onclick={() => openCreateTag(category.id)}
 						>
-							<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 								<path d="M12 5v14M5 12h14" stroke-linecap="round" />
 							</svg>
 						</button>
+						{#if category.tags.length === 0}
+							<span
+								class="inline-flex min-h-[44px] items-center text-xs text-text-tertiary"
+								transition:fade={{ duration: 120 }}
+							>
+								{$translate('tags.noTags')}
+							</span>
+						{/if}
 					</div>
 				</div>
 			{/each}
@@ -328,28 +451,42 @@
 	onClose={() => (colorPickerOpen = false)}
 />
 
-<!-- Row long-press context menu: category (add tag / rename / set color / delete) or tag (rename / delete). -->
+<!-- Category picker for a tag's "Move to Category" -->
+<TagCategoryPickerSheet
+	open={movePickerOpen}
+	{categories}
+	currentCategoryId={moveTarget?.category.id ?? null}
+	onSelect={handleMoveSelect}
+	onClose={() => (movePickerOpen = false)}
+/>
+
+<!-- Row context menu: category (add tag / rename / set color / delete — via the "…" button or a long-press)
+     or tag (rename / move to category / delete — via a long-press). A long-press lifts the row as a preview;
+     the "…" tap anchors the platter to the button instead (no preview, dismissal armed immediately). -->
+{#snippet rowPreview()}
+	{#if lpCategory}
+		<span class="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{lpCategory.name}</span>
+	{:else if lpTag}
+		<span
+			class="block h-3 w-3 flex-shrink-0 rounded-full"
+			style="background-color: {lpTag.tag.color ?? lpTag.category.color ?? DEFAULT_TAG_COLOR}"
+		></span>
+		<span class="min-w-0 flex-1 truncate text-sm text-text-primary">{lpTag.tag.name}</span>
+	{/if}
+{/snippet}
+
 <ContextMenu
 	open={rowActionsOpen}
 	anchorRect={longPressRect}
+	tapTriggered={menuByTap}
+	preview={menuByTap ? undefined : rowPreview}
 	onClose={() => (rowActionsOpen = false)}
 	onClosed={() => {
 		longPressTarget = null
 		longPressRect = null
+		menuByTap = false
 	}}
 >
-	{#snippet preview()}
-		{#if lpCategory}
-			<span class="min-w-0 flex-1 truncate text-sm font-semibold text-text-primary">{lpCategory.name}</span>
-		{:else if lpTag}
-			<span
-				class="block h-3 w-3 flex-shrink-0 rounded-full"
-				style="background-color: {lpTag.tag.color ?? lpTag.category.color ?? '#6366f1'}"
-			></span>
-			<span class="min-w-0 flex-1 truncate text-sm text-text-primary">{lpTag.tag.name}</span>
-		{/if}
-	{/snippet}
-
 	{#if lpCategory}
 		<ContextMenuItem onclick={menuAddTag}>
 			{$translate('tags.addTag')}
@@ -396,6 +533,20 @@
 				</svg>
 			{/snippet}
 		</ContextMenuItem>
+		{#if categories.length > 1}
+			<ContextMenuItem onclick={menuMoveTag}>
+				{$translate('tags.moveToCategory')}
+				{#snippet icon()}
+					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path
+							d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+						/>
+					</svg>
+				{/snippet}
+			</ContextMenuItem>
+		{/if}
 		<ContextMenuItem destructive onclick={menuDelete}>
 			{$translate('common.delete')}
 			{#snippet icon()}

@@ -2,13 +2,15 @@
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, likedOnly } from '$shared/stores/discovery'
 	import { mobileUIStore, tagFilterIds } from '$lib/stores/mobileUI'
+	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
 	import SortSheet from './SortSheet.svelte'
 	import FilterSheet from './FilterSheet.svelte'
 
-	// Discovery feed toolbar: search + sort + tag-filter + add. Sits ABOVE the virtualizer's scroll element
-	// (not inside it) so the virtualizer's offset math / scroll restoration stay correct. Search and sort
-	// drive the shared discovery store (real-time, client-side); the filter button opens the tag chips; the
-	// add button opens the add-release sheet (issue #56's flow, placeholder for now).
+	// Discovery feed toolbar: search + sort + tag-filter + add. A glass bar the parent overlays on the top of
+	// the feed (absolutely positioned), so the release rows scroll behind it and show through the blur
+	// (matching the mini-player's material). Search and sort drive the shared discovery store (real-time,
+	// client-side); the filter button opens the tag chips; the add button opens the add-release sheet
+	// (issue #56's flow, placeholder for now).
 	let sortOpen = $state(false)
 	let filterOpen = $state(false)
 
@@ -22,30 +24,12 @@
 	const hasActiveFilters = $derived(activeFilterCount > 0)
 </script>
 
-<div class="flex items-center gap-2 border-b border-stroke-subtle bg-surface-1 px-3 py-2">
-	<div class="relative min-w-0 flex-1">
-		<svg
-			class="pointer-events-none absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2 text-text-tertiary"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-		>
-			<circle cx="11" cy="11" r="7" />
-			<path d="M21 21l-4.3-4.3" stroke-linecap="round" />
-		</svg>
-		<input
-			type="text"
-			value={$discoveryStore.filter.search ?? ''}
-			oninput={(e) => discoveryStore.setSearch(e.currentTarget.value)}
-			placeholder={$translate('discovery.searchPlaceholder')}
-			autocapitalize="off"
-			autocomplete="off"
-			autocorrect="off"
-			spellcheck="false"
-			class="h-9 w-full rounded-md border border-stroke bg-surface-2 pr-3 pl-8 text-sm text-text-primary transition-colors placeholder:text-text-tertiary focus:border-brand-primary focus:shadow-[0_0_0_3px_var(--brand-muted)]"
-		/>
-	</div>
+<div class="glass flex items-center gap-2 border-b border-stroke-subtle px-3 py-2">
+	<MobileSearchInput
+		value={$discoveryStore.filter.search ?? ''}
+		oninput={(v) => discoveryStore.setSearch(v)}
+		placeholder={$translate('discovery.searchPlaceholder')}
+	/>
 
 	<button
 		type="button"

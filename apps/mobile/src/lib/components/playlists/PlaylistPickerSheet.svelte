@@ -158,7 +158,7 @@
 					{#snippet trailing()}
 						<span class="text-xs tabular-nums">{playlist.track_count}</span>
 					{/snippet}
-					<span class="truncate text-sm">{playlist.name}</span>
+					<span class="truncate text-sm font-medium">{playlist.name}</span>
 				</MobileListItem>
 			{/each}
 			{@render createRow()}
@@ -200,7 +200,7 @@
 										<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
 									</svg>
 								{/snippet}
-								<span class="truncate text-sm">{item.name}</span>
+								<span class="truncate text-sm font-medium">{item.name}</span>
 							</MobileListItem>
 						{:else}
 							<MobileListItem onclick={() => addTo(item.id)}>
@@ -210,7 +210,7 @@
 								{#snippet trailing()}
 									<span class="text-xs tabular-nums">{item.track_count}</span>
 								{/snippet}
-								<span class="truncate text-sm">{item.name}</span>
+								<span class="truncate text-sm font-medium">{item.name}</span>
 							</MobileListItem>
 						{/if}
 					{/each}

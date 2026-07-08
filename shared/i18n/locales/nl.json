@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Toevoegen",
 		"close": "Sluiten",
 		"save": "Opslaan",
 		"search": "Zoeken...",
@@ -22,7 +23,8 @@
 		"next": "Volgende",
 		"back": "Terug",
 		"more": "Meer",
-		"select": "Selecteren"
+		"select": "Selecteren",
+		"noResults": "Geen resultaten"
 	},
 	"nav": {
 		"library": "Bibliotheek",
@@ -121,7 +123,12 @@
 			"cacheSize": "Cachegrootte",
 			"clearCache": "Cache wissen",
 			"clearCacheConfirmMessage": "Weet je zeker dat je alle cachegeheugen voor voorbeeldaudio wilt wissen?",
-			"clearCacheWarning": "Eerder bekeken nummers moeten bij volgende afspeling opnieuw van hun bron worden gestreamd. Dit kan trager zijn en sommige streams zijn mogelijk niet meer beschikbaar."
+			"clearCacheWarning": "Eerder bekeken nummers moeten bij volgende afspeling opnieuw van hun bron worden gestreamd. Dit kan trager zijn en sommige streams zijn mogelijk niet meer beschikbaar.",
+			"audioCache": "Audio",
+			"artworkCache": "Albumhoes",
+			"artworkCacheDescription": "Albumhoezen worden op dit apparaat opgeslagen zodat ze zonder verbinding kunnen worden weergegeven.",
+			"clearArtworkCacheConfirmMessage": "Weet je zeker dat je alle cachegeheugen voor albumhoezen wilt wissen?",
+			"cacheLimit": "Cachemimiet"
 		},
 		"following": {
 			"title": "Volgend",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Metagegevens ophalen...",
 		"refreshMetadata": "Metagegevens vernieuwen",
+		"downloadForOffline": "Voor offline downloaden",
+		"downloading": "Bezig met downloaden...",
+		"downloadedForOffline": "Gedownload",
+		"removeDownload": "Download verwijderen",
+		"downloadFailed": "Kon niet downloaden voor offline",
 		"fetchError": "Kan metagegevens niet ophalen van deze URL",
 		"unsupportedUrl": "Deze URL wordt niet ondersteund",
 		"tracks": "Tracks",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "Nog geen afspeellijsten",
 		"noPlaylists": "Nog geen afspeellijsten",
 		"allPlaylists": "Alle afspeellijsten",
+		"searchPlaceholder": "Afspeellijsten zoeken…",
+		"emptyHint": "Maak afspeellijsten om je ontdekkingen in te delen",
+		"detailEmptyHint": "Houd een release in Ontdekkingen ingedrukt om het aan een afspeellijst toe te voegen",
 		"exportToDevice": "Exporteren naar apparaat"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "Tag toevoegen",
 		"moveToCategory": "Verplaatsen naar categorie",
 		"noTags": "Geen tags",
-		"noTagCategoriesYet": "Nog geen tagcategorieën"
+		"noTagCategoriesYet": "Nog geen tagcategorieën",
+		"emptyHint": "Maak kleurgecodeerde tagcategorieën om je ontdekkingen in te delen"
 	},
 	"contextMenu": {
 		"viewInFinder": "Bekijken in Finder",

@@ -87,12 +87,45 @@ export async function invalidatePreviewStreamCache(releaseId: string): Promise<v
 	return invoke<void>('invalidate_preview_stream_cache', { releaseId })
 }
 
+/** Per-release audio-cache state for the "downloaded for offline" indicator. */
+export interface ReleaseCacheState {
+	cached_tracks: number
+	total_tracks: number
+	bytes: number
+}
+
+export async function getReleaseCacheState(releaseId: string): Promise<ReleaseCacheState> {
+	return invoke<ReleaseCacheState>('get_release_cache_state', { releaseId })
+}
+
+/** Proactively download + cache one track's audio for offline playback. Idempotent. */
+export async function precachePreviewStream(releaseId: string, trackPosition: number): Promise<void> {
+	return invoke<void>('precache_preview_stream', { releaseId, trackPosition })
+}
+
 export async function getAudioCacheSize(): Promise<number> {
 	return invoke<number>('get_discovery_audio_cache_size')
 }
 
 export async function clearAudioCache(): Promise<void> {
 	return invoke<void>('clear_discovery_audio_cache')
+}
+
+/**
+ * Download + cache a release's remote cover to disk (idempotent). Returns the relative cache
+ * path ("discovery/artwork/{id}.ext") for cache-first offline rendering, or null when the
+ * release has no artwork_url or the fetch fails.
+ */
+export async function cacheReleaseArtwork(releaseId: string): Promise<string | null> {
+	return invoke<string | null>('cache_release_artwork', { releaseId })
+}
+
+export async function getArtworkCacheSize(): Promise<number> {
+	return invoke<number>('get_discovery_artwork_cache_size')
+}
+
+export async function clearArtworkCache(): Promise<void> {
+	return invoke<void>('clear_discovery_artwork_cache')
 }
 
 export async function setDiscoveryReleaseArtwork(id: string, filePath: string): Promise<DiscoveryRelease> {

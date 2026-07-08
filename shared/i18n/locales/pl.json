@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Dodaj",
 		"close": "Zamknij",
 		"save": "Zapisz",
 		"search": "Szukaj...",
@@ -22,7 +23,8 @@
 		"next": "Dalej",
 		"back": "Wstecz",
 		"more": "Więcej",
-		"select": "Wybierz"
+		"select": "Wybierz",
+		"noResults": "Brak wyników"
 	},
 	"nav": {
 		"library": "Biblioteka",
@@ -121,7 +123,12 @@
 			"cacheSize": "Rozmiar buforu",
 			"clearCache": "Wyczyść bufor",
 			"clearCacheConfirmMessage": "Czy na pewno chcesz wyczyścić wszystkie buforowane pliki audio z podglądem?",
-			"clearCacheWarning": "Poprzednio słuchane ścieżki będą musiały być ponownie przesyłane ze źródła przy następnym odtwarzaniu. Może to być wolniejsze i niektóre strumienie mogą już nie być dostępne."
+			"clearCacheWarning": "Poprzednio słuchane ścieżki będą musiały być ponownie przesyłane ze źródła przy następnym odtwarzaniu. Może to być wolniejsze i niektóre strumienie mogą już nie być dostępne.",
+			"audioCache": "Audio",
+			"artworkCache": "Okładka",
+			"artworkCacheDescription": "Okładki albumów są zapisywane na tym urządzeniu, aby wyświetlały się bez połączenia.",
+			"clearArtworkCacheConfirmMessage": "Czy na pewno chcesz wyczyścić wszystkie buforowane okładki albumów?",
+			"cacheLimit": "Limit buforu"
 		},
 		"following": {
 			"title": "Obserwowani",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Pobieranie metadanych...",
 		"refreshMetadata": "Odśwież metadane",
+		"downloadForOffline": "Pobierz do użytku offline",
+		"downloading": "Pobieranie...",
+		"downloadedForOffline": "Pobrane",
+		"removeDownload": "Usuń pobranie",
+		"downloadFailed": "Nie udało się pobrać do użytku offline",
 		"fetchError": "Nie można pobrać metadanych z tego adresu URL",
 		"tracks": "Ścieżki",
 		"trackCount": "{count, plural, =1 {1 ścieżka} other {{count} ścieżek}}",
@@ -465,6 +477,9 @@
 		"noPlaylistsYet": "Brak playlist",
 		"noPlaylists": "Brak playlist",
 		"allPlaylists": "Wszystkie playlisty",
+		"searchPlaceholder": "Szukaj playlist…",
+		"emptyHint": "Utwórz playlisty, aby zorganizować swoje odkrycia",
+		"detailEmptyHint": "Naciśnij i przytrzymaj wydanie w Odkrywaniu, aby dodać je do playlisty",
 		"exportToDevice": "Eksportuj na urządzenie"
 	},
 	"tags": {
@@ -478,7 +493,8 @@
 		"addTag": "Dodaj tag",
 		"moveToCategory": "Przenieś do kategorii",
 		"noTags": "Brak tagów",
-		"noTagCategoriesYet": "Brak kategorii tagów"
+		"noTagCategoriesYet": "Brak kategorii tagów",
+		"emptyHint": "Utwórz kategorie tagów z kodowaniem kolorami, aby zorganizować swoje odkrycia"
 	},
 	"contextMenu": {
 		"viewInFinder": "Pokaż w Finderze",

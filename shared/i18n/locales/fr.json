@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Ajouter",
 		"close": "Fermer",
 		"save": "Enregistrer",
 		"search": "Rechercher...",
@@ -22,7 +23,8 @@
 		"next": "Suivant",
 		"back": "Retour",
 		"more": "Plus",
-		"select": "Sélectionner"
+		"select": "Sélectionner",
+		"noResults": "Aucun résultat"
 	},
 	"nav": {
 		"library": "Bibliothèque",
@@ -121,7 +123,12 @@
 			"cacheSize": "Taille du cache",
 			"clearCache": "Effacer le cache",
 			"clearCacheConfirmMessage": "Êtes-vous sûr de vouloir effacer tous les fichiers audio d'aperçu en cache?",
-			"clearCacheWarning": "Les pistes précédemment prévisualisées devront être à nouveau diffusées en continu à partir de leur source lors de la lecture suivante. Cela peut être plus lent et certains flux peuvent ne plus être disponibles."
+			"clearCacheWarning": "Les pistes précédemment prévisualisées devront être à nouveau diffusées en continu à partir de leur source lors de la lecture suivante. Cela peut être plus lent et certains flux peuvent ne plus être disponibles.",
+			"audioCache": "Audio",
+			"artworkCache": "Pochette",
+			"artworkCacheDescription": "Les pochettes d'album sont enregistrées sur cet appareil pour s'afficher sans connexion.",
+			"clearArtworkCacheConfirmMessage": "Êtes-vous sûr de vouloir effacer toutes les pochettes en cache?",
+			"cacheLimit": "Limite du cache"
 		},
 		"following": {
 			"title": "Suivi",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Récupération des métadonnées...",
 		"refreshMetadata": "Actualiser les métadonnées",
+		"downloadForOffline": "Télécharger hors ligne",
+		"downloading": "Téléchargement en cours...",
+		"downloadedForOffline": "Téléchargé",
+		"removeDownload": "Supprimer le téléchargement",
+		"downloadFailed": "Impossible de télécharger hors ligne",
 		"fetchError": "Impossible de récupérer les métadonnées à partir de cette URL",
 		"unsupportedUrl": "Cette URL n'est pas supportée",
 		"tracks": "Pistes",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "Aucune playlist pour le moment",
 		"noPlaylists": "Aucune playlist pour le moment",
 		"allPlaylists": "Toutes les playlists",
+		"searchPlaceholder": "Rechercher des playlists…",
+		"emptyHint": "Créez des playlists pour organiser vos découvertes",
+		"detailEmptyHint": "Appuyez longtemps sur une sortie dans Découvertes pour l'ajouter à une playlist",
 		"exportToDevice": "Exporter vers l'appareil"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "Ajouter un tag",
 		"moveToCategory": "Déplacer vers la catégorie",
 		"noTags": "Aucun tag",
-		"noTagCategoriesYet": "Aucune catégorie de tag pour le moment"
+		"noTagCategoriesYet": "Aucune catégorie de tag pour le moment",
+		"emptyHint": "Créez des catégories de tags colorées pour organiser vos découvertes"
 	},
 	"contextMenu": {
 		"viewInFinder": "Afficher dans le Finder",

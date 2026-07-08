@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Añadir",
 		"close": "Cerrar",
 		"save": "Guardar",
 		"search": "Buscar...",
@@ -22,7 +23,8 @@
 		"next": "Siguiente",
 		"back": "Atrás",
 		"more": "Más",
-		"select": "Seleccionar"
+		"select": "Seleccionar",
+		"noResults": "Sin resultados"
 	},
 	"nav": {
 		"library": "Biblioteca",
@@ -121,7 +123,12 @@
 			"cacheSize": "Tamaño de la caché",
 			"clearCache": "Borrar caché",
 			"clearCacheConfirmMessage": "¿Estás seguro de que deseas borrar todo el audio de vista previa en caché?",
-			"clearCacheWarning": "Las pistas previsualizadas anteriormente necesitarán retransmitirse desde su fuente en la siguiente reproducción. Esto puede ser más lento y algunos streams pueden no estar disponibles."
+			"clearCacheWarning": "Las pistas previsualizadas anteriormente necesitarán retransmitirse desde su fuente en la siguiente reproducción. Esto puede ser más lento y algunos streams pueden no estar disponibles.",
+			"audioCache": "Audio",
+			"artworkCache": "Portada",
+			"artworkCacheDescription": "Las portadas de álbumes se guardan en este dispositivo para que se muestren sin conexión.",
+			"clearArtworkCacheConfirmMessage": "¿Estás seguro de que deseas borrar todas las portadas en caché?",
+			"cacheLimit": "Límite de caché"
 		},
 		"following": {
 			"title": "Siguiendo",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Obteniendo metadatos...",
 		"refreshMetadata": "Actualizar metadatos",
+		"downloadForOffline": "Descargar para offline",
+		"downloading": "Descargando...",
+		"downloadedForOffline": "Descargado",
+		"removeDownload": "Eliminar descarga",
+		"downloadFailed": "Error al descargar para offline",
 		"fetchError": "No se pudieron obtener los metadatos de esta URL",
 		"unsupportedUrl": "Esta URL no es compatible",
 		"tracks": "Pistas",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "Sin listas de reproducción aún",
 		"noPlaylists": "Sin listas de reproducción aún",
 		"allPlaylists": "Todas las listas de reproducción",
+		"searchPlaceholder": "Buscar listas de reproducción…",
+		"emptyHint": "Crea listas de reproducción para organizar tus descubrimientos",
+		"detailEmptyHint": "Mantén presionado un lanzamiento en Descubrimientos para añadirlo a una lista de reproducción",
 		"exportToDevice": "Exportar a dispositivo"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "Añadir etiqueta",
 		"moveToCategory": "Mover a categoría",
 		"noTags": "Sin etiquetas",
-		"noTagCategoriesYet": "Sin categorías de etiquetas aún"
+		"noTagCategoriesYet": "Sin categorías de etiquetas aún",
+		"emptyHint": "Crea categorías de etiquetas codificadas por colores para organizar tus descubrimientos"
 	},
 	"contextMenu": {
 		"viewInFinder": "Ver en Finder",

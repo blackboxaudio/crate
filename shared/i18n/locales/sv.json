@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Lägg till",
 		"close": "Stäng",
 		"save": "Spara",
 		"search": "Sök...",
@@ -22,7 +23,8 @@
 		"next": "Nästa",
 		"back": "Tillbaka",
 		"more": "Mer",
-		"select": "Välj"
+		"select": "Välj",
+		"noResults": "Inga resultat"
 	},
 	"nav": {
 		"library": "Bibliotek",
@@ -121,7 +123,12 @@
 			"cacheSize": "Cachestorlek",
 			"clearCache": "Rensa cache",
 			"clearCacheConfirmMessage": "Är du säker på att du vill rensa all cachelagrat förhandsgranskningsljud?",
-			"clearCacheWarning": "Tidigare förhandsgranskat spår måste strömmas igen från sin källa vid nästa uppspelning. Detta kan vara långsammare och vissa strömmar kanske inte längre är tillgängliga."
+			"clearCacheWarning": "Tidigare förhandsgranskat spår måste strömmas igen från sin källa vid nästa uppspelning. Detta kan vara långsammare och vissa strömmar kanske inte längre är tillgängliga.",
+			"audioCache": "Ljud",
+			"artworkCache": "Albumomslag",
+			"artworkCacheDescription": "Albumomslag sparas på denna enhet så att de visas utan anslutning.",
+			"clearArtworkCacheConfirmMessage": "Är du säker på att du vill rensa alla cachelagrade albumomslag?",
+			"cacheLimit": "Cachegräns"
 		},
 		"following": {
 			"title": "Följar",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Hämtar metadata...",
 		"refreshMetadata": "Uppdatera metadata",
+		"downloadForOffline": "Ladda ned för offline",
+		"downloading": "Laddar ned...",
+		"downloadedForOffline": "Nedladdad",
+		"removeDownload": "Ta bort nedladdning",
+		"downloadFailed": "Kunde inte ladda ned för offline",
 		"fetchError": "Kunde inte hämta metadata från denna URL",
 		"unsupportedUrl": "Denna URL stöds inte",
 		"tracks": "Spår",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "Inga spellistor än",
 		"noPlaylists": "Inga spellistor än",
 		"allPlaylists": "Alla spellistor",
+		"searchPlaceholder": "Sök spellistor…",
+		"emptyHint": "Skapa spellistor för att organisera dina upptäckter",
+		"detailEmptyHint": "Håll ned en utgåva i Upptäckter för att lägga till den i en spellista",
 		"exportToDevice": "Exportera till enhet"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "Lägg till tagg",
 		"moveToCategory": "Flytta till kategori",
 		"noTags": "Inga taggar",
-		"noTagCategoriesYet": "Inga taggkategorier än"
+		"noTagCategoriesYet": "Inga taggkategorier än",
+		"emptyHint": "Skapa färgkodade taggkategorier för att organisera dina upptäckter"
 	},
 	"contextMenu": {
 		"viewInFinder": "Visa i Finder",

@@ -156,6 +156,9 @@ impl std::str::FromStr for AccentColor {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Font {
+    /// The native platform UI font (San Francisco on iOS/macOS). The mobile default — no web font is
+    /// fetched, so the app paints instantly and works offline.
+    System,
     Inter,
     Nunito,
     OpenSans,
@@ -164,14 +167,14 @@ pub enum Font {
     SourceCodePro,
 }
 
-/// The *unset* default UI font differs by platform: mobile ships **Nunito**, desktop keeps
-/// **Open Sans**. An explicit user choice persists in the settings table (and cloud-syncs), so this
-/// only governs a fresh node that has never set a font. A bare/test build (neither feature) uses
-/// Open Sans, matching desktop.
+/// The *unset* default UI font differs by platform: mobile ships the **native system** font (San
+/// Francisco on iOS), desktop keeps **Open Sans**. An explicit user choice persists in the settings
+/// table (and cloud-syncs), so this only governs a fresh node that has never set a font. A bare/test
+/// build (neither feature) uses Open Sans, matching desktop.
 impl Default for Font {
     fn default() -> Self {
         if cfg!(feature = "mobile") {
-            Font::Nunito
+            Font::System
         } else {
             Font::OpenSans
         }
@@ -181,6 +184,7 @@ impl Default for Font {
 impl std::fmt::Display for Font {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Font::System => write!(f, "system"),
             Font::Inter => write!(f, "inter"),
             Font::Nunito => write!(f, "nunito"),
             Font::OpenSans => write!(f, "open-sans"),
@@ -196,6 +200,7 @@ impl std::str::FromStr for Font {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "system" => Ok(Font::System),
             "inter" => Ok(Font::Inter),
             "nunito" => Ok(Font::Nunito),
             "open-sans" => Ok(Font::OpenSans),
@@ -409,6 +414,10 @@ pub struct AppSettings {
     pub last_backup_type: Option<String>,
     pub has_completed_onboarding: bool,
     pub has_completed_wizard: bool,
+    /// Device-local cap (MB) on the on-disk discovery audio-preview cache; drives LRU eviction.
+    pub discovery_audio_cache_limit_mb: i64,
+    /// Device-local cap (MB) on the on-disk discovery artwork cache; drives LRU eviction.
+    pub discovery_artwork_cache_limit_mb: i64,
 }
 
 impl Default for AppSettings {
@@ -438,6 +447,8 @@ impl Default for AppSettings {
             last_backup_type: None,
             has_completed_onboarding: false,
             has_completed_wizard: false,
+            discovery_audio_cache_limit_mb: 500,
+            discovery_artwork_cache_limit_mb: 250,
         }
     }
 }

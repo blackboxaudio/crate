@@ -1,7 +1,7 @@
-/* Only the default font (Nunito) is served on mobile to keep boot lightweight; the other
-   `data-font` families remain defined in the shared theme and fall back to the system font until
-   the mobile font picker ships. */
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300..800&display=swap');
+/* Mobile serves NO web font: the default `data-font` is the native system stack (San Francisco on
+   iOS), so the shell paints instantly and works offline. The other `data-font` families stay defined
+   in the shared theme but fall back to the system font here (nothing is fetched) until a mobile font
+   picker ships. */
 @import 'tailwindcss';
 
 /* Shared cross-platform Svelte components (e.g. Slider) live outside this app's Vite root, so Tailwind's
@@ -111,6 +111,17 @@
    Base Styles (touch-oriented)
    ============================================================================= */
 
+/* Dynamic Type: bind the rem base to the iOS "Body" text style so every rem-derived size (Tailwind's
+   text-sm / text-base / …, and our rem paddings) scales with the user's system text-size / accessibility
+   setting — the native-app expectation. `-apple-system-body` resolves to the live Dynamic Type body size
+   on iOS/WKWebView (≈17px at the default setting) and gracefully falls back to the browser default (16px)
+   elsewhere. It also pulls in the system family, which the `html, body` rule below overrides back to the
+   user's `--font-family`, so only the *size* is inherited from Dynamic Type. This scales text independently
+   of pinch-zoom (still disabled via the viewport), so accessibility text sizing works without zoom. */
+html {
+	font: -apple-system-body;
+}
+
 html,
 body {
 	height: 100%;
@@ -121,8 +132,17 @@ body {
 	font-family: var(--font-family);
 	-webkit-user-select: none;
 	user-select: none;
+	-webkit-touch-callout: none; /* no long-press callout menu (would hijack our drag gestures) */
 	-webkit-tap-highlight-color: transparent; /* no grey flash on tap */
 	touch-action: manipulation; /* no double-tap zoom (pinch is blocked via viewport + gesture guards) */
+}
+
+/* Kill the native long-press image drag/callout. On iOS an <img> starts a drag-and-drop session on
+   long-press even under `user-select: none`; that session captures the pointer and breaks any swipe
+   gesture started afterward (e.g. dragging the expanded player down after long-pressing its artwork). */
+img {
+	-webkit-user-drag: none;
+	-webkit-touch-callout: none;
 }
 
 /* Re-enable text selection for inputs and editable content */

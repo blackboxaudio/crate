@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
+	import { get } from 'svelte/store'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { translate } from '$shared/i18n'
 	import type { FollowedSource } from '$shared/types'
@@ -8,12 +9,14 @@
 	import { formatRelativeDate } from '$shared/utils'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
-	import { mobileUIStore } from '$lib/stores/mobileUI'
+	import { mobileUIStore, scrollTopNonce } from '$lib/stores/mobileUI'
 	import MobileList from '$lib/components/common/MobileList.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
+	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
 	import MobilePromptDialog from '$lib/components/common/MobilePromptDialog.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
+	import EmptyState from '$lib/components/common/EmptyState.svelte'
 	import PullToRefresh from '$lib/components/common/PullToRefresh.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 
@@ -29,8 +32,27 @@
 	const sources = $derived($sortedFollowedSources)
 	const hasSources = $derived(sources.length > 0)
 
-	// The roster's own scroll element, handed to PullToRefresh so a pull-down checks every source.
+	// Client-side roster search over the loaded sources — matches on the display name or the source URL
+	// (mirrors the desktop Following search). The empty roster shows its own CTA, so search is only offered
+	// once there's a roster to filter.
+	let query = $state('')
+	const filteredSources = $derived.by(() => {
+		const q = query.trim().toLowerCase()
+		if (!q) return sources
+		return sources.filter((s) => (s.name ?? '').toLowerCase().includes(q) || s.url.toLowerCase().includes(q))
+	})
+
+	// The roster's own scroll element, handed to PullToRefresh so a pull-down checks every source, and used
+	// for the tab re-tap scroll-to-top.
 	let scrollEl = $state<HTMLElement | null>(null)
+	// iOS "re-tap the active tab to scroll to top". Ignore the initial nonce so a normal mount doesn't scroll.
+	let seenScrollNonce = get(mobileUIStore).scrollTopNonce
+	$effect(() => {
+		const n = $scrollTopNonce
+		if (n === seenScrollNonce) return
+		seenScrollNonce = n
+		scrollEl?.scrollTo({ top: 0, behavior: 'smooth' })
+	})
 
 	function domain(url: string): string {
 		try {
@@ -197,13 +219,19 @@
 {/snippet}
 
 <div class="flex h-full flex-col">
-	<!-- Add source. Hidden when empty — the empty state has its own CTA. Checking all is now a pull-down
-	     on the list (below); a single source is checked from its long-press menu. -->
+	<!-- Glass toolbar: search + add (the section title lives in the fixed top bar). Pinned ABOVE the scroll
+	     container rather than scrolling with it, so a pull-to-refresh opens its gap in the space *beneath* the
+	     search bar. Hidden when the roster is empty (the empty state has its own CTA). -->
 	{#if hasSources}
-		<div class="flex items-center justify-end gap-1 px-2 py-2">
+		<div class="glass flex items-center gap-2 border-b border-stroke-subtle px-3 py-2">
+			<MobileSearchInput
+				value={query}
+				oninput={(v) => (query = v)}
+				placeholder={$translate('discovery.following.searchPlaceholder')}
+			/>
 			<button
 				type="button"
-				class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
+				class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
 				aria-label={$translate('discovery.following.followSource')}
 				onclick={openAdd}
 			>
@@ -213,10 +241,10 @@
 			</button>
 		</div>
 	{/if}
-
 	<!-- Scroll container (the shell frame reserves header/tab-bar padding; this owns its own scroll). The
 	     relative wrapper hosts the pull-to-refresh spinner, which pushes the list down (via padding) so it
-	     sits in the gap above rather than over the rows. -->
+	     sits in the gap beneath the search bar rather than over the rows. Checking all is a pull-down; a
+	     single source is checked from its long-press menu. -->
 	<div class="relative flex min-h-0 flex-1 flex-col">
 		{#if hasSources}
 			<PullToRefresh {scrollEl} onRefresh={refreshAll} />
@@ -227,7 +255,10 @@
 			style="padding-bottom: var(--mini-player-inset, 0px)"
 		>
 			<MobileList isEmpty={!hasSources} empty={emptyState}>
-				{#each sources as source (source.id)}
+				{#if hasSources && filteredSources.length === 0}
+					<div class="px-4 py-10 text-center text-sm text-text-secondary">{$translate('common.noResults')}</div>
+				{/if}
+				{#each filteredSources as source (source.id)}
 					<!-- Only an individual "Check now" spins this row; a pull-to-refresh (check-all) is already
 				     represented by the single pull spinner, so don't light up every row for it. -->
 					{@const checking = $followStore.checkingIds.has(source.id)}
@@ -256,30 +287,28 @@
 </div>
 
 {#snippet emptyState()}
-	<div class="flex flex-col items-center gap-2 py-10 text-center">
-		<svg
-			class="h-8 w-8 text-text-tertiary"
-			viewBox="0 0 24 24"
-			fill="none"
-			stroke="currentColor"
-			stroke-width="2"
-			stroke-linecap="round"
-			stroke-linejoin="round"
-		>
-			<path d="M5 12a7 7 0 0 1 7 7" />
-			<path d="M5 5a14 14 0 0 1 14 14" />
-			<circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
-		</svg>
-		<div class="text-sm font-medium text-text-primary">{$translate('discovery.following.empty.title')}</div>
-		<div class="max-w-xs text-xs text-text-tertiary">{$translate('discovery.following.empty.hint')}</div>
-		<button
-			type="button"
-			class="mt-2 rounded-lg bg-brand-muted px-4 py-2 text-sm font-medium text-brand-primary active:opacity-80"
-			onclick={openAdd}
-		>
-			{$translate('discovery.following.followSource')}
-		</button>
-	</div>
+	<EmptyState
+		title={$translate('discovery.following.empty.title')}
+		hint={$translate('discovery.following.empty.hint')}
+		ctaLabel={$translate('discovery.following.followSource')}
+		onCta={openAdd}
+	>
+		{#snippet icon()}
+			<svg
+				class="h-8 w-8"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M5 12a7 7 0 0 1 7 7" />
+				<path d="M5 5a14 14 0 0 1 14 14" />
+				<circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
+			</svg>
+		{/snippet}
+	</EmptyState>
 {/snippet}
 
 <!-- Add-source prompt: paste an artist/label page URL. -->

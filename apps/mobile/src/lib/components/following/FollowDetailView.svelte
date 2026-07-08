@@ -1,10 +1,11 @@
 <script lang="ts">
+	import { get } from 'svelte/store'
 	import type { FollowedSource } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
 	import { followStore } from '$shared/stores/follow'
 	import { releasesFromSource } from '$shared/utils'
-	import { mobileUIStore, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
+	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
@@ -64,6 +65,16 @@
 	function onClosed() {
 		mobileUIStore.closeFollowSource()
 	}
+
+	// iOS "re-tap the active tab to pop to root": the tab bar bumps `overlayPopNonce`. Close on the bump, but
+	// defer to the release detail when it's stacked on top (that closes first; a second tap then reaches here).
+	let seenPopNonce = get(overlayPopNonce)
+	$effect(() => {
+		const n = $overlayPopNonce
+		if (n === seenPopNonce) return
+		seenPopNonce = n
+		if (open && get(detailReleaseId) === null) startClose()
+	})
 
 	function openPickerForSingle(releaseId: string) {
 		pickerReleaseIds = [releaseId]

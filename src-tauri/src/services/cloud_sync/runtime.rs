@@ -460,6 +460,21 @@ impl CloudSyncState {
         result
     }
 
+    /// One opportunistic sync pass: pull other devices' changes, then push local edits when the
+    /// dirty queue is non-empty. A no-op when signed out. Shared by the `sync_foreground`
+    /// command (app launch / foreground return) and the iOS BGTaskScheduler background handler,
+    /// which reuses this managed state so the pass still enforces revocation and heartbeats.
+    pub async fn run_foreground_pass(&self) -> Result<()> {
+        if !self.is_signed_in().await {
+            return Ok(());
+        }
+        self.run_pull().await?;
+        if self.dirty_quiescent(std::time::Duration::ZERO)? {
+            self.run_push().await?;
+        }
+        Ok(())
+    }
+
     async fn do_pull(&self, backend: &Arc<dyn CloudBackend>) -> Result<()> {
         let session = self
             .ensure_session(backend)

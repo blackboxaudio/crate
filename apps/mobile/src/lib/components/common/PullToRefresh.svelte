@@ -13,8 +13,15 @@
 		scrollEl: HTMLElement | null
 		onRefresh: () => Promise<void> | void
 		enabled?: boolean
+		/**
+		 * Resting top padding (px) the scroll content sits under — e.g. an absolute glass toolbar overlaying
+		 * the top of the list. We OWN the scroll element's `padding-top` (stacking the pull on top of this),
+		 * and the spinner is offset down by it so it appears in the gap *below* that toolbar rather than
+		 * behind it.
+		 */
+		topInset?: number
 	}
-	let { scrollEl, onRefresh, enabled = true }: Props = $props()
+	let { scrollEl, onRefresh, enabled = true, topInset = 0 }: Props = $props()
 
 	const THRESHOLD = 64 // px pulled (after resistance) that commits the refresh on release
 	const MAX = 96 // px the indicator can travel while dragging
@@ -35,25 +42,25 @@
 	const opacity = $derived(finishing ? 0 : Math.min((refreshing ? THRESHOLD : distance) / THRESHOLD, 1))
 	// Ease things on settle (refresh/fade/snap-back); follow the finger 1:1 while actively dragging.
 	const settling = $derived(refreshing || finishing || distance === 0)
+	// Once the pull is committed (the refresh is running / fading out), the indicator is a pinned bar the
+	// list can scroll under — so back it with the list's OWN surface (no border, no blur) so any rows scrolled
+	// up beneath it are occluded while it still reads as part of the list's background rather than a separate
+	// chrome bar above it. During the interactive drag it stays a bare spinner over the empty gap (no
+	// backdrop-filter to jank the per-frame height animation).
+	const committed = $derived(refreshing || finishing)
 
 	// Push the list DOWN by the pull distance so the spinner sits in the revealed gap above the content
-	// (rather than overlaying the rows). The scroll element is owned by the host, so drive it here off the
-	// reactive `active`. We use padding-top rather than a transform on purpose: a transform would make the
-	// scroll element the containing block for the long-press ContextMenu's `position: fixed` overlay and
+	// (rather than overlaying the rows). The scroll element is owned by the host, so drive its `padding-top`
+	// here — stacking the pull distance on top of the resting `topInset` (which reserves space for an
+	// overlaid glass toolbar). We use padding-top rather than a transform on purpose: a transform would make
+	// the scroll element the containing block for the long-press ContextMenu's `position: fixed` overlay and
 	// clip it during a refresh. padding-top pushes content the same way with no such side effect, and the
 	// extra height just becomes scrollable — nothing overflows the container.
-	let baseEl: HTMLElement | null = null
-	let basePadTop = 0
 	$effect(() => {
 		const el = scrollEl
 		if (!el) return
-		if (el !== baseEl) {
-			// Capture the element's resting top padding (from its classes) once, before we start overriding
-			// it, so the pull offset stacks on top rather than replacing it (some hosts have their own pt-*).
-			baseEl = el
-			basePadTop = parseFloat(getComputedStyle(el).paddingTop) || 0
-		}
-		el.style.paddingTop = active > 0 ? `${basePadTop + active}px` : ''
+		const pad = topInset + active
+		el.style.paddingTop = pad > 0 ? `${pad}px` : ''
 		el.style.transition = settling ? 'padding-top 0.2s ease' : 'none'
 		return () => {
 			el.style.paddingTop = ''
@@ -145,11 +152,15 @@
 	})
 </script>
 
-<!-- Spinner sits flat in the gap opened above the pushed-down list: an overlay whose height tracks the
-     pull, with the bare spinner centered so it's evenly spaced between the container top and the list. -->
+<!-- Spinner sits flat in the gap opened above the pushed-down list: a pinned overlay (it does NOT scroll
+     with the list) whose height tracks the pull, with the spinner centered. While the refresh is committed
+     it takes the list's own surface as a backdrop (no border) so it blends seamlessly into the list
+     background while still occluding any rows scrolled up beneath it. -->
 <div
-	class="pointer-events-none absolute inset-x-0 top-0 z-20 flex items-center justify-center overflow-hidden text-text-tertiary"
-	style="height: {active}px; opacity: {opacity}; transition: {settling
+	class="pointer-events-none absolute inset-x-0 z-20 flex items-center justify-center overflow-hidden text-text-tertiary {committed
+		? 'bg-surface-0'
+		: ''}"
+	style="top: {topInset}px; height: {active}px; opacity: {opacity}; transition: {settling
 		? `height 0.2s ease, opacity ${FADE_MS}ms ease`
 		: 'none'}"
 >

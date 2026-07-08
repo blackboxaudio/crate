@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Adicionar",
 		"close": "Fechar",
 		"save": "Salvar",
 		"search": "Pesquisar...",
@@ -22,7 +23,8 @@
 		"next": "Próximo",
 		"back": "Voltar",
 		"more": "Mais",
-		"select": "Selecionar"
+		"select": "Selecionar",
+		"noResults": "Nenhum resultado"
 	},
 	"nav": {
 		"library": "Biblioteca",
@@ -121,7 +123,12 @@
 			"cacheSize": "Tamanho do cache",
 			"clearCache": "Limpar cache",
 			"clearCacheConfirmMessage": "Tem certeza de que deseja limpar todo o áudio de visualização em cache?",
-			"clearCacheWarning": "As faixas visualizadas anteriormente precisarão ser transmitidas novamente de sua fonte na próxima reprodução. Isso pode ser mais lento e alguns fluxos podem não estar mais disponíveis."
+			"clearCacheWarning": "As faixas visualizadas anteriormente precisarão ser transmitidas novamente de sua fonte na próxima reprodução. Isso pode ser mais lento e alguns fluxos podem não estar mais disponíveis.",
+			"audioCache": "Áudio",
+			"artworkCache": "Capa",
+			"artworkCacheDescription": "A arte do álbum é salva neste dispositivo para que apareça sem conexão.",
+			"clearArtworkCacheConfirmMessage": "Tem certeza de que deseja limpar toda a arte do álbum em cache?",
+			"cacheLimit": "Limite de cache"
 		},
 		"following": {
 			"title": "Seguindo",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Obtendo metadados...",
 		"refreshMetadata": "Atualizar metadados",
+		"downloadForOffline": "Baixar para offline",
+		"downloading": "Baixando...",
+		"downloadedForOffline": "Baixado",
+		"removeDownload": "Remover download",
+		"downloadFailed": "Não foi possível baixar para offline",
 		"fetchError": "Não foi possível obter metadados desta URL",
 		"unsupportedUrl": "Esta URL não é suportada",
 		"tracks": "Faixas",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "Nenhuma playlist ainda",
 		"noPlaylists": "Nenhuma playlist ainda",
 		"allPlaylists": "Todas as playlists",
+		"searchPlaceholder": "Pesquisar playlists…",
+		"emptyHint": "Crie playlists para organizar suas descobertas",
+		"detailEmptyHint": "Pressione e mantenha um lançamento em Descobertas para adicioná-lo a uma playlist",
 		"exportToDevice": "Exportar para dispositivo"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "Adicionar tag",
 		"moveToCategory": "Mover para categoria",
 		"noTags": "Nenhuma tag",
-		"noTagCategoriesYet": "Nenhuma categoria de tag ainda"
+		"noTagCategoriesYet": "Nenhuma categoria de tag ainda",
+		"emptyHint": "Crie categorias de tags codificadas por cores para organizar suas descobertas"
 	},
 	"contextMenu": {
 		"viewInFinder": "Ver no Finder",

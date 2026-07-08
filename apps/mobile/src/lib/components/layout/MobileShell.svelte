@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import { fly, fade } from 'svelte/transition'
-	import { easeFluid } from '$lib/easing'
+	import { fade } from 'svelte/transition'
 	import {
 		activeTab,
 		selectMode,
@@ -21,7 +20,6 @@
 	import FollowingView from '$lib/components/following/FollowingView.svelte'
 	import PlaylistsView from '$lib/components/playlists/PlaylistsView.svelte'
 	import TagsView from '$lib/components/tags/TagsView.svelte'
-	import SettingsView from '$lib/components/settings/SettingsView.svelte'
 
 	let feedPickerOpen = $state(false)
 	let feedPickerReleaseIds = $state<string[]>([])
@@ -50,9 +48,10 @@
 	// tab bar; 0 when no preview is active (the card is hidden).
 	const miniPlayerInset = $derived($previewInfo ? '5rem' : '0px')
 
-	// Tab-change transition: the incoming view rises a few px and fades in while the outgoing one fades
-	// out. They stack absolutely in the content frame, so they cross-fade rather than push each other.
-	// Honors the OS reduced-motion setting by collapsing to an instant swap.
+	// Tab-change transition: a pure crossfade — the incoming and outgoing views stack absolutely in the
+	// content frame and fade through each other in place, with no vertical movement (so a tab's fixed chrome,
+	// like its search/toolbar bar, just fades rather than sliding). Honors the OS reduced-motion setting by
+	// collapsing to an instant swap.
 	let reduceMotion = $state(false)
 	onMount(() => {
 		const mq = window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -76,21 +75,15 @@
 		     positioning context for the tab views, which stack absolutely while a swap cross-fades. -->
 		<div class="relative h-full w-full">
 			{#key $activeTab}
-				<div
-					class="absolute inset-0"
-					in:fly={{ y: 8, duration: inMs, easing: easeFluid }}
-					out:fade={{ duration: outMs }}
-				>
+				<div class="absolute inset-0" in:fade={{ duration: inMs }} out:fade={{ duration: outMs }}>
 					{#if $activeTab === 'discovery'}
 						<MobileDiscoveryView />
 					{:else if $activeTab === 'following'}
 						<FollowingView />
 					{:else if $activeTab === 'playlists'}
 						<PlaylistsView />
-					{:else if $activeTab === 'tags'}
-						<TagsView />
 					{:else}
-						<SettingsView />
+						<TagsView />
 					{/if}
 				</div>
 			{/key}

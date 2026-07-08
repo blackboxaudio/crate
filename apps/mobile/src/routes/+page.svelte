@@ -1,10 +1,11 @@
 <script lang="ts">
-	// Mobile app shell: the bottom-tab navigation shell (header + Discovery / Playlists / Tags / Settings
-	// tabs), with the playlist-, tag-, and follow-detail screens, the release-detail screen, the persistent mini-player,
+	// Mobile app shell: the bottom-tab navigation shell (header + Discovery / Following / Playlists / Tags
+	// tabs), with the playlist-, tag-, and follow-detail screens, the release-detail screen, the settings
+	// drawer, the persistent mini-player,
 	// and the full-screen expanded player layered on top. Layering (low → high): shell < playlist/tag detail
-	// (z-30) < release detail (z-35) < mini-player (z-40) < expanded player (z-50). The release detail sits
-	// above the playlist/tag detail so it can be pushed open from within either; the mini-player floats above
-	// all of them.
+	// (z-30) < release detail (z-35) < mini-player (z-40) < settings drawer (z-45) < expanded player (z-50).
+	// The release detail sits above the playlist/tag detail so it can be pushed open from within either; the
+	// settings drawer sits above the mini-player (which it hides while open); the expanded player floats above all.
 	import MobileShell from '$lib/components/layout/MobileShell.svelte'
 	import ReleaseDetail from '$lib/components/discovery/ReleaseDetail.svelte'
 	import PlaylistDetailView from '$lib/components/playlists/PlaylistDetailView.svelte'
@@ -13,6 +14,7 @@
 	import FollowDetailView from '$lib/components/following/FollowDetailView.svelte'
 	import MiniPlayer from '$lib/components/player/MiniPlayer.svelte'
 	import ExpandedPlayer from '$lib/components/player/ExpandedPlayer.svelte'
+	import SettingsDrawer from '$lib/components/settings/SettingsDrawer.svelte'
 	import MobileOnboarding from '$lib/components/onboarding/MobileOnboarding.svelte'
 	import { onboardingComplete } from '$lib/stores/onboarding'
 	import {
@@ -24,6 +26,7 @@
 		followReleaseId,
 		mobileDisplayedReleases,
 		queueOrigin,
+		settingsOpen,
 	} from '$lib/stores/mobileUI'
 	import { sortedReleases, discoveryStore } from '$shared/stores/discovery'
 	import { discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
@@ -105,6 +108,12 @@
 <!-- Inline follow sheet (follow a release's artist / label). Always mounted so it animates out on dismiss;
      opens when a release context menu fires its "Follow" action. -->
 <FollowSheet release={followRelease} onClose={() => mobileUIStore.closeFollowSheet()} />
+
+<!-- Settings drawer: a full-width right-side overlay opened from the header gear (Settings is not a tab).
+     Kept mounted through its slide-out — `closeSettings` clears `settingsOpen` only after the animation. -->
+{#if $settingsOpen}
+	<SettingsDrawer />
+{/if}
 
 <MiniPlayer />
 <ExpandedPlayer />

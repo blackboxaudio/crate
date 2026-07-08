@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$shared/types'
 	import { translate } from '$shared/i18n'
+	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 
 	// The visual interior of a discovery row — artwork + title/artist/label. Extracted so the live
 	// `ReleaseCard` and the `ContextMenu` lifted preview render from one source of truth: the preview is a
@@ -11,15 +12,15 @@
 	let { release }: Props = $props()
 </script>
 
-{#if release.artwork_url}
-	<img src={release.artwork_url} alt="" class="h-12 w-12 flex-shrink-0 rounded object-cover" loading="lazy" />
-{:else}
-	<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded bg-surface-2 text-text-tertiary">
-		<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
-			<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-		</svg>
-	</div>
-{/if}
+<ReleaseArtwork {release} class="h-12 w-12 flex-shrink-0 rounded object-cover">
+	{#snippet fallback()}
+		<div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded bg-surface-2 text-text-tertiary">
+			<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
+				<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+			</svg>
+		</div>
+	{/snippet}
+</ReleaseArtwork>
 
 <div class="flex min-w-0 flex-1 flex-col leading-tight">
 	<!-- Title line: the "new" status pill (unread until listened to) trails the title, matching the

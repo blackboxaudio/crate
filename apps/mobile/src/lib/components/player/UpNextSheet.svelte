@@ -4,6 +4,7 @@
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { lightTap } from '$lib/utils/haptics'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
+	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 
 	// "Up Next" bottom sheet: the explicit user queue (reorderable + removable) followed by a read-only
 	// forecast of what the discovery-feed context will play next. Reads the two-tier model from
@@ -114,11 +115,11 @@
 							</svg>
 						</button>
 
-						{#if entry.release.artwork_url}
-							<img src={entry.release.artwork_url} alt="" class="h-10 w-10 flex-shrink-0 rounded object-cover" />
-						{:else}
-							<div class="h-10 w-10 flex-shrink-0 rounded bg-surface-2"></div>
-						{/if}
+						<ReleaseArtwork release={entry.release} class="h-10 w-10 flex-shrink-0 rounded object-cover">
+							{#snippet fallback()}
+								<div class="h-10 w-10 flex-shrink-0 rounded bg-surface-2"></div>
+							{/snippet}
+						</ReleaseArtwork>
 
 						<div class="flex min-w-0 flex-1 flex-col leading-tight">
 							<span class="truncate text-sm text-text-primary">{trackName(entry)}</span>
@@ -150,11 +151,11 @@
 			<div class="flex flex-col">
 				{#each contextEntries as entry (entry.key)}
 					<div class="flex items-center gap-2 py-1.5">
-						{#if entry.release.artwork_url}
-							<img src={entry.release.artwork_url} alt="" class="h-10 w-10 flex-shrink-0 rounded object-cover" />
-						{:else}
-							<div class="h-10 w-10 flex-shrink-0 rounded bg-surface-2"></div>
-						{/if}
+						<ReleaseArtwork release={entry.release} class="h-10 w-10 flex-shrink-0 rounded object-cover">
+							{#snippet fallback()}
+								<div class="h-10 w-10 flex-shrink-0 rounded bg-surface-2"></div>
+							{/snippet}
+						</ReleaseArtwork>
 						<div class="flex min-w-0 flex-1 flex-col leading-tight">
 							<span class="truncate text-sm text-text-secondary">{trackName(entry)}</span>
 							<span class="truncate text-xs text-text-tertiary">

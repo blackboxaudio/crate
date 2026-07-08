@@ -363,12 +363,18 @@ pub(super) async fn scan_soundcloud_page(
     let client_id = crate::services::discovery::streams::resolve_sc_client_id(client).await?;
 
     // Resolve the profile URL to a user object.
-    let user: serde_json::Value = client
+    let resolve_resp = client
         .get("https://api-v2.soundcloud.com/resolve")
         .query(&[("url", url), ("client_id", client_id.as_str())])
         .send()
         .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to resolve SoundCloud profile: {e}")))?
+        .map_err(|e| CrateError::Discovery(format!("Failed to resolve SoundCloud profile: {e}")))?;
+    if resolve_resp.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(CrateError::Discovery(
+            "SoundCloud rate limit exceeded (429)".into(),
+        ));
+    }
+    let user: serde_json::Value = resolve_resp
         .json()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to parse SoundCloud profile: {e}")))?;
@@ -393,7 +399,7 @@ pub(super) async fn scan_soundcloud_page(
         .map(|s| s.replace("-large", "-t500x500"));
 
     // Own uploads only (this endpoint excludes reposts).
-    let resp: serde_json::Value = client
+    let tracks_resp = client
         .get(format!(
             "https://api-v2.soundcloud.com/users/{user_id}/tracks"
         ))
@@ -404,7 +410,13 @@ pub(super) async fn scan_soundcloud_page(
         ])
         .send()
         .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch SoundCloud tracks: {e}")))?
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch SoundCloud tracks: {e}")))?;
+    if tracks_resp.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(CrateError::Discovery(
+            "SoundCloud rate limit exceeded (429)".into(),
+        ));
+    }
+    let resp: serde_json::Value = tracks_resp
         .json()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to parse SoundCloud tracks: {e}")))?;

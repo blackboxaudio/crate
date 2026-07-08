@@ -28,6 +28,15 @@ pub struct SourceToCheck {
     pub baseline_established: bool,
 }
 
+/// The local watch-state fields the check gate needs to decide whether a source's page
+/// should be re-fetched now, or skipped to stay under the platform's rate limit.
+pub struct CheckGate {
+    pub last_checked_at: Option<String>,
+    pub health: String,
+    pub last_error: Option<String>,
+    pub consecutive_failures: i64,
+}
+
 /// A surfaced release hitting its release date today, for a release-day notification.
 pub struct ReleaseDayItem {
     pub release_id: String,

@@ -130,6 +130,13 @@
 	--font-family: 'Open Sans', sans-serif;
 }
 
+/* The native platform UI font (San Francisco on iOS/macOS, Segoe/Roboto elsewhere). The default on
+   mobile, where it reads as a first-class native app and — unlike the web-served families below —
+   needs no network fetch, so it paints instantly and works offline. */
+[data-font='system'] {
+	--font-family: -apple-system, BlinkMacSystemFont, system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
 [data-font='inter'] {
 	--font-family: 'Inter', sans-serif;
 }

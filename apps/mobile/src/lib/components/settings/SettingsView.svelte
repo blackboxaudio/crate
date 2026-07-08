@@ -4,7 +4,7 @@
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { translate } from '$shared/i18n'
 	import type { Theme, AccentColor } from '$shared/types'
-	import { settingsStore, theme, accentColor } from '$shared/stores/settings'
+	import { settingsStore, theme, accentColor, audioCacheLimitMb, artworkCacheLimitMb } from '$shared/stores/settings'
 	import * as discoveryApi from '$shared/api/discovery'
 	import { formatFileSize } from '$shared/utils/format'
 	import { confirmDialog } from '$lib/utils/dialog'
@@ -34,6 +34,16 @@
 
 	let cacheSize = $state(0)
 	let clearing = $state(false)
+	let artworkCacheSize = $state(0)
+	let clearingArtwork = $state(false)
+
+	// Cache-size cap presets (MB). Audio previews are large; artwork is small.
+	const audioCachePresets = [250, 500, 1000, 2000]
+	const artworkCachePresets = [100, 250, 500]
+
+	function formatCap(mb: number): string {
+		return mb >= 1000 ? `${mb / 1000} GB` : `${mb} MB`
+	}
 
 	let scrollContainer: HTMLDivElement | undefined
 
@@ -42,6 +52,12 @@
 			cacheSize = await discoveryApi.getAudioCacheSize()
 		} catch {
 			cacheSize = 0
+		}
+
+		try {
+			artworkCacheSize = await discoveryApi.getArtworkCacheSize()
+		} catch {
+			artworkCacheSize = 0
 		}
 
 		const target = get(settingsScrollTarget)
@@ -67,6 +83,23 @@
 			cacheSize = 0
 		} finally {
 			clearing = false
+		}
+	}
+
+	async function handleClearArtworkCache() {
+		const t = get(translate)
+		const confirmed = await confirmDialog(t('settings.discovery.clearArtworkCacheConfirmMessage'), {
+			title: t('settings.discovery.artworkCache'),
+			confirmLabel: t('settings.discovery.clearCache'),
+			kind: 'warning',
+		})
+		if (!confirmed) return
+		clearingArtwork = true
+		try {
+			await discoveryApi.clearArtworkCache()
+			artworkCacheSize = 0
+		} finally {
+			clearingArtwork = false
 		}
 	}
 </script>
@@ -155,11 +188,15 @@
 
 	<!-- Cache -->
 	<div class="mt-2 border-t border-stroke-subtle px-4 py-3">
-		<h3 class="mb-1.5 text-sm font-medium text-text-secondary">
+		<h3 class="mb-2 text-sm font-medium text-text-secondary">
 			{$translate('settings.discovery.previewCache')}
 		</h3>
+
+		<!-- Audio cache -->
 		<div class="flex items-center justify-between">
-			<p class="text-sm text-text-primary">{formatFileSize(cacheSize)}</p>
+			<p class="text-sm text-text-primary">
+				{$translate('settings.discovery.audioCache')} · {formatFileSize(cacheSize)}
+			</p>
 			<button
 				type="button"
 				class="rounded-md bg-surface-2 px-3 py-1.5 text-sm font-medium text-text-secondary active:opacity-70 disabled:opacity-50"
@@ -168,6 +205,56 @@
 			>
 				{$translate('settings.discovery.clearCache')}
 			</button>
+		</div>
+		<div class="mt-2 flex items-center justify-between gap-3">
+			<span class="text-xs text-text-tertiary">{$translate('settings.discovery.cacheLimit')}</span>
+			<div class="inline-flex gap-1">
+				{#each audioCachePresets as mb (mb)}
+					<button
+						type="button"
+						class="rounded-md border px-2.5 py-1 text-xs font-medium transition-colors {$audioCacheLimitMb === mb
+							? 'border-brand-primary bg-brand-primary text-white'
+							: 'border-stroke-subtle bg-surface-2 text-text-secondary active:opacity-70'}"
+						onclick={() => settingsStore.setAudioCacheLimitMb(mb)}
+					>
+						{formatCap(mb)}
+					</button>
+				{/each}
+			</div>
+		</div>
+
+		<!-- Artwork cache -->
+		<p class="mt-4 text-xs text-text-tertiary">
+			{$translate('settings.discovery.artworkCacheDescription')}
+		</p>
+		<div class="mt-1.5 flex items-center justify-between">
+			<p class="text-sm text-text-primary">
+				{$translate('settings.discovery.artworkCache')} · {formatFileSize(artworkCacheSize)}
+			</p>
+			<button
+				type="button"
+				class="rounded-md bg-surface-2 px-3 py-1.5 text-sm font-medium text-text-secondary active:opacity-70 disabled:opacity-50"
+				onclick={handleClearArtworkCache}
+				disabled={artworkCacheSize === 0 || clearingArtwork}
+			>
+				{$translate('settings.discovery.clearCache')}
+			</button>
+		</div>
+		<div class="mt-2 flex items-center justify-between gap-3">
+			<span class="text-xs text-text-tertiary">{$translate('settings.discovery.cacheLimit')}</span>
+			<div class="inline-flex gap-1">
+				{#each artworkCachePresets as mb (mb)}
+					<button
+						type="button"
+						class="rounded-md border px-2.5 py-1 text-xs font-medium transition-colors {$artworkCacheLimitMb === mb
+							? 'border-brand-primary bg-brand-primary text-white'
+							: 'border-stroke-subtle bg-surface-2 text-text-secondary active:opacity-70'}"
+						onclick={() => settingsStore.setArtworkCacheLimitMb(mb)}
+					>
+						{formatCap(mb)}
+					</button>
+				{/each}
+			</div>
 		</div>
 	</div>
 

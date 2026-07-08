@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "追加",
 		"close": "閉じる",
 		"save": "保存",
 		"search": "検索...",
@@ -22,7 +23,8 @@
 		"next": "次へ",
 		"back": "戻る",
 		"more": "その他",
-		"select": "選択"
+		"select": "選択",
+		"noResults": "結果なし"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -121,7 +123,12 @@
 			"cacheSize": "キャッシュ サイズ",
 			"clearCache": "キャッシュをクリア",
 			"clearCacheConfirmMessage": "キャッシュされたすべてのプレビュー オーディオをクリアしてもよろしいですか？",
-			"clearCacheWarning": "以前プレビューされたトラックは、次の再生時にソースから再度ストリーミングする必要があります。これはより遅くなり、一部のストリームは利用できなくなる可能性があります。"
+			"clearCacheWarning": "以前プレビューされたトラックは、次の再生時にソースから再度ストリーミングする必要があります。これはより遅くなり、一部のストリームは利用できなくなる可能性があります。",
+			"audioCache": "オーディオ",
+			"artworkCache": "アートワーク",
+			"artworkCacheDescription": "アルバムアートはこのデバイスに保存され、接続がなくても表示されます。",
+			"clearArtworkCacheConfirmMessage": "キャッシュされたすべてのアルバムアートをクリアしてもよろしいですか？",
+			"cacheLimit": "キャッシュ制限"
 		},
 		"following": {
 			"title": "フォロー中",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "メタデータを取得中...",
 		"refreshMetadata": "メタデータを更新",
+		"downloadForOffline": "オフラインでダウンロード",
+		"downloading": "ダウンロード中...",
+		"downloadedForOffline": "ダウンロード済み",
+		"removeDownload": "ダウンロードを削除",
+		"downloadFailed": "オフライン用のダウンロードに失敗しました",
 		"fetchError": "このURLからメタデータを取得できませんでした",
 		"unsupportedUrl": "このURLはサポートされていません",
 		"tracks": "トラック",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "まだプレイリストがありません",
 		"noPlaylists": "まだプレイリストがありません",
 		"allPlaylists": "すべてのプレイリスト",
+		"searchPlaceholder": "プレイリストを検索…",
+		"emptyHint": "プレイリストを作成してディスカバリーを整理しましょう",
+		"detailEmptyHint": "ディスカバリーのリリースを長押ししてプレイリストに追加してください",
 		"exportToDevice": "デバイスにエクスポート"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "タグを追加",
 		"moveToCategory": "カテゴリに移動",
 		"noTags": "タグなし",
-		"noTagCategoriesYet": "まだタグカテゴリがありません"
+		"noTagCategoriesYet": "まだタグカテゴリがありません",
+		"emptyHint": "色分けされたタグカテゴリを作成してディスカバリーを整理しましょう"
 	},
 	"contextMenu": {
 		"viewInFinder": "Finderで表示",

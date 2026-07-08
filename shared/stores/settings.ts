@@ -49,6 +49,8 @@ interface SettingsState {
 	lastBackupType: string | null
 	hasCompletedOnboarding: boolean
 	hasCompletedWizard: boolean
+	discoveryAudioCacheLimitMb: number
+	discoveryArtworkCacheLimitMb: number
 	loading: boolean
 	error: string | null
 }
@@ -81,6 +83,8 @@ const initialState: SettingsState = {
 	lastBackupType: null,
 	hasCompletedOnboarding: false,
 	hasCompletedWizard: false,
+	discoveryAudioCacheLimitMb: 500,
+	discoveryArtworkCacheLimitMb: 250,
 	loading: false,
 	error: null,
 }
@@ -323,6 +327,8 @@ function createSettingsStore() {
 					lastBackupType: settings.lastBackupType ?? null,
 					hasCompletedOnboarding: settings.hasCompletedOnboarding,
 					hasCompletedWizard: settings.hasCompletedWizard,
+					discoveryAudioCacheLimitMb: settings.discoveryAudioCacheLimitMb ?? 500,
+					discoveryArtworkCacheLimitMb: settings.discoveryArtworkCacheLimitMb ?? 250,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -487,6 +493,26 @@ function createSettingsStore() {
 				await settingsApi.setSetting('backup_frequency', frequency)
 			} catch (error) {
 				console.error('Failed to save backup frequency setting:', error)
+			}
+		},
+
+		async setAudioCacheLimitMb(mb: number) {
+			update((s) => ({ ...s, discoveryAudioCacheLimitMb: mb }))
+
+			try {
+				await settingsApi.setSetting('discovery_audio_cache_limit_mb', String(mb))
+			} catch (error) {
+				console.error('Failed to save audio cache limit setting:', error)
+			}
+		},
+
+		async setArtworkCacheLimitMb(mb: number) {
+			update((s) => ({ ...s, discoveryArtworkCacheLimitMb: mb }))
+
+			try {
+				await settingsApi.setSetting('discovery_artwork_cache_limit_mb', String(mb))
+			} catch (error) {
+				console.error('Failed to save artwork cache limit setting:', error)
 			}
 		},
 
@@ -737,6 +763,10 @@ export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceI
 export const lastBackupAt = derived(settingsStore, ($s) => $s.lastBackupAt)
 
 export const backupFrequency = derived(settingsStore, ($s) => $s.backupFrequency)
+
+export const audioCacheLimitMb = derived(settingsStore, ($s) => $s.discoveryAudioCacheLimitMb)
+
+export const artworkCacheLimitMb = derived(settingsStore, ($s) => $s.discoveryArtworkCacheLimitMb)
 
 export const lastBackupType = derived(settingsStore, ($s) => $s.lastBackupType)
 

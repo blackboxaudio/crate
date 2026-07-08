@@ -1,3 +1,4 @@
+mod artwork_cache;
 mod audio_cache;
 mod release_crud;
 mod release_ops;
@@ -43,6 +44,11 @@ impl DiscoveryService {
             log::warn!("Failed to create audio cache directory: {e}");
         }
 
+        let artwork_cache_dir = app_data_dir.join("discovery").join("artwork");
+        if let Err(e) = std::fs::create_dir_all(&artwork_cache_dir) {
+            log::warn!("Failed to create artwork cache directory: {e}");
+        }
+
         Self {
             conn,
             artwork_service,
@@ -52,6 +58,26 @@ impl DiscoveryService {
 
     pub fn app_data_dir(&self) -> PathBuf {
         self.app_data_dir.clone()
+    }
+
+    /// Read a device-local cache-size cap (in MB) from the `settings` table, converted to
+    /// bytes. Falls back to `default_mb` when the setting is unset, unparseable, or non-positive.
+    /// Shared by the audio and artwork LRU sweeps so their caps are user-configurable.
+    fn cache_limit_bytes(&self, key: &str, default_mb: i64) -> i64 {
+        let mb = self
+            .conn
+            .lock()
+            .ok()
+            .and_then(|c| {
+                c.query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
+                    row.get::<_, String>(0)
+                })
+                .ok()
+            })
+            .and_then(|v| v.parse::<i64>().ok())
+            .filter(|mb| *mb > 0)
+            .unwrap_or(default_mb);
+        mb * 1024 * 1024
     }
 
     /// Get a clone of the database connection Arc for use in background tasks.

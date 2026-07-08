@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Hinzufügen",
 		"close": "Schließen",
 		"save": "Speichern",
 		"search": "Suchen...",
@@ -22,7 +23,8 @@
 		"next": "Weiter",
 		"back": "Zurück",
 		"more": "Mehr",
-		"select": "Auswählen"
+		"select": "Auswählen",
+		"noResults": "Keine Ergebnisse"
 	},
 	"nav": {
 		"library": "Bibliothek",
@@ -121,7 +123,12 @@
 			"cacheSize": "Cache-Größe",
 			"clearCache": "Cache löschen",
 			"clearCacheConfirmMessage": "Möchten Sie alle zwischengespeicherten Audio-Vorschaudateien wirklich löschen?",
-			"clearCacheWarning": "Zuvor angehörte Tracks müssen beim nächsten Abspielen erneut von ihrer Quelle gestreamt werden. Dies kann langsamer sein und einige Streams sind möglicherweise nicht mehr verfügbar."
+			"clearCacheWarning": "Zuvor angehörte Tracks müssen beim nächsten Abspielen erneut von ihrer Quelle gestreamt werden. Dies kann langsamer sein und einige Streams sind möglicherweise nicht mehr verfügbar.",
+			"audioCache": "Audio",
+			"artworkCache": "Artwork",
+			"artworkCacheDescription": "Album-Cover werden auf diesem Gerät gespeichert, damit sie auch ohne Verbindung angezeigt werden.",
+			"clearArtworkCacheConfirmMessage": "Möchten Sie alle zwischengespeicherten Album-Cover wirklich löschen?",
+			"cacheLimit": "Cache-Limit"
 		},
 		"following": {
 			"title": "Folgt",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Metadaten werden abgerufen...",
 		"refreshMetadata": "Metadaten aktualisieren",
+		"downloadForOffline": "Für Offline herunterladen",
+		"downloading": "Wird heruntergeladen...",
+		"downloadedForOffline": "Heruntergeladen",
+		"removeDownload": "Download entfernen",
+		"downloadFailed": "Offline-Download fehlgeschlagen",
 		"fetchError": "Metadaten von dieser URL konnten nicht abgerufen werden",
 		"unsupportedUrl": "Diese URL wird nicht unterstützt",
 		"tracks": "Tracks",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "Noch keine Playlists",
 		"noPlaylists": "Noch keine Playlists",
 		"allPlaylists": "Alle Playlists",
+		"searchPlaceholder": "Playlists durchsuchen…",
+		"emptyHint": "Erstellen Sie Playlists, um Ihre Entdeckungen zu organisieren",
+		"detailEmptyHint": "Halten Sie lange ein Release in Entdeckungen gedrückt, um es zu einer Playlist hinzuzufügen",
 		"exportToDevice": "Auf Gerät exportieren"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "Tag hinzufügen",
 		"moveToCategory": "In Kategorie verschieben",
 		"noTags": "Keine Tags",
-		"noTagCategoriesYet": "Noch keine Tag-Kategorien"
+		"noTagCategoriesYet": "Noch keine Tag-Kategorien",
+		"emptyHint": "Erstellen Sie farbcodierte Tag-Kategorien, um Ihre Entdeckungen zu organisieren"
 	},
 	"contextMenu": {
 		"viewInFinder": "Im Finder anzeigen",

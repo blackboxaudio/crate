@@ -31,16 +31,21 @@
 </script>
 
 {#if show}
+	<!-- Fixed px (not rem/Tailwind text-*) so this Svelte splash renders identically to the pre-paint
+	     splash in app.html. Mobile's `html { font: -apple-system-body }` rebinds the rem base to the iOS
+	     Dynamic Type body size (~17px+, scales with accessibility text), but that only applies once
+	     style.css loads — after the pre-paint splash has already painted at the 16px default. Pinning to
+	     px keeps both splashes the same size across the handoff and immune to Dynamic Type scaling. -->
 	<div
-		class="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-3 bg-surface-0"
+		class="fixed inset-0 z-[9999] flex flex-col items-center justify-center gap-[12px] bg-surface-0"
 		out:scale={{ start: 1, duration: 400, easing: cubicOut, opacity: 0 }}
 		onoutroend={onOutroEnd}
 	>
 		<div
-			class="h-16 w-16 bg-brand-primary"
+			class="h-[64px] w-[64px] bg-brand-primary"
 			style="-webkit-mask-image: url('/crate-logo.svg'); -webkit-mask-size: contain; -webkit-mask-repeat: no-repeat; -webkit-mask-position: center; mask-image: url('/crate-logo.svg'); mask-size: contain; mask-repeat: no-repeat; mask-position: center;"
 		></div>
-		<span class="text-lg font-bold text-text-primary">Crate</span>
-		<span class="text-xs text-text-tertiary">v{version}</span>
+		<span class="text-[18px] leading-[28px] font-bold text-text-primary">Crate</span>
+		<span class="text-[12px] leading-[16px] text-text-tertiary">v{version}</span>
 	</div>
 {/if}

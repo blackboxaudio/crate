@@ -67,6 +67,7 @@ impl DiscoveryService {
             release_date: create.release_date,
             artwork_url: create.artwork_url,
             artwork_path: None,
+            artwork_cache_path: None,
             notes: create.notes,
             parent_url: create.parent_url,
             source_page_url: create.source_page_url,
@@ -98,6 +99,7 @@ impl DiscoveryService {
                     release_date: row.get(6)?,
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
+                    artwork_cache_path: None,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
                     source_page_url: row.get(11)?,
@@ -161,6 +163,15 @@ impl DiscoveryService {
         release.source_ids = stmt
             .query_map([id], |row| row.get::<_, String>(0))?
             .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        // Load the on-disk cached-cover path, if any, for cache-first (offline) rendering.
+        if let Ok(ext) = conn.query_row(
+            "SELECT ext FROM discovery_artwork_cache WHERE release_id = ?1",
+            [id],
+            |row| row.get::<_, String>(0),
+        ) {
+            release.artwork_cache_path = Some(self.artwork_cache_rel_path(id, &ext));
+        }
 
         Ok(release)
     }
@@ -267,6 +278,7 @@ impl DiscoveryService {
                     release_date: row.get(6)?,
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
+                    artwork_cache_path: None,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
                     source_page_url: row.get(11)?,
@@ -348,6 +360,16 @@ impl DiscoveryService {
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
+        // Batch load cached-cover extensions for cache-first (offline) artwork rendering.
+        let mut stmt = conn.prepare(&format!(
+            "SELECT release_id, ext FROM discovery_artwork_cache WHERE release_id IN ({placeholders})"
+        ))?;
+        let all_artwork: Vec<(String, String)> = stmt
+            .query_map(track_params.as_slice(), |row| {
+                Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
         // Merge tracks, tags, and provenance into releases
         for release in &mut releases {
             release.tracks = all_tracks
@@ -365,6 +387,10 @@ impl DiscoveryService {
                 .filter(|(rid, _)| *rid == release.id)
                 .map(|(_, sid)| sid.clone())
                 .collect();
+            release.artwork_cache_path = all_artwork
+                .iter()
+                .find(|(rid, _)| *rid == release.id)
+                .map(|(_, ext)| self.artwork_cache_rel_path(&release.id, ext));
         }
 
         Ok(releases)
@@ -436,6 +462,13 @@ impl DiscoveryService {
         dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
 
         drop(conn);
+
+        // If the remote artwork URL was (re)set — e.g. a metadata refresh — drop any stale
+        // cached cover so the next display re-downloads the current art.
+        if update.artwork_url.is_some() {
+            let _ = self.delete_cached_artwork_file(id);
+        }
+
         self.get_release(id)
     }
 
@@ -504,9 +537,12 @@ impl DiscoveryService {
     }
 
     pub fn delete_release(&self, id: &str) -> Result<()> {
-        // Clean up cached audio files before the SQL DELETE
+        // Clean up cached audio + artwork files before the SQL DELETE
         if let Err(e) = self.delete_cached_audio_files(id) {
             log::warn!("Failed to clean up cached audio for release {id}: {e}");
+        }
+        if let Err(e) = self.delete_cached_artwork_file(id) {
+            log::warn!("Failed to clean up cached artwork for release {id}: {e}");
         }
 
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
@@ -569,10 +605,13 @@ impl DiscoveryService {
     }
 
     pub fn delete_releases(&self, ids: Vec<String>) -> Result<()> {
-        // Clean up cached audio files for all releases
+        // Clean up cached audio + artwork files for all releases
         for id in &ids {
             if let Err(e) = self.delete_cached_audio_files(id) {
                 log::warn!("Failed to clean up cached audio for release {id}: {e}");
+            }
+            if let Err(e) = self.delete_cached_artwork_file(id) {
+                log::warn!("Failed to clean up cached artwork for release {id}: {e}");
             }
         }
 

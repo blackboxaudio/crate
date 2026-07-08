@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Add",
 		"close": "Close",
 		"save": "Save",
 		"search": "Search...",
@@ -22,7 +23,8 @@
 		"next": "Next",
 		"back": "Back",
 		"more": "More",
-		"select": "Select"
+		"select": "Select",
+		"noResults": "No results"
 	},
 	"nav": {
 		"library": "Library",
@@ -121,7 +123,12 @@
 			"cacheSize": "Cache size",
 			"clearCache": "Clear Cache",
 			"clearCacheConfirmMessage": "Are you sure you want to clear all cached preview audio?",
-			"clearCacheWarning": "Previously previewed tracks will need to be re-streamed from their source on next play. This may be slower and some streams may no longer be available."
+			"clearCacheWarning": "Previously previewed tracks will need to be re-streamed from their source on next play. This may be slower and some streams may no longer be available.",
+			"audioCache": "Audio",
+			"artworkCache": "Artwork",
+			"artworkCacheDescription": "Album art is saved on this device so it shows without a connection.",
+			"clearArtworkCacheConfirmMessage": "Are you sure you want to clear all cached album art?",
+			"cacheLimit": "Cache limit"
 		},
 		"following": {
 			"title": "Following",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Fetching metadata...",
 		"refreshMetadata": "Refresh Metadata",
+		"downloadForOffline": "Download for Offline",
+		"downloading": "Downloading...",
+		"downloadedForOffline": "Downloaded",
+		"removeDownload": "Remove Download",
+		"downloadFailed": "Could not download for offline",
 		"fetchError": "Could not fetch metadata from this URL",
 		"unsupportedUrl": "This URL is not supported",
 		"tracks": "Tracks",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "No playlists yet",
 		"noPlaylists": "No playlists yet",
 		"allPlaylists": "All Playlists",
+		"searchPlaceholder": "Search playlists…",
+		"emptyHint": "Create playlists to organize your discoveries",
+		"detailEmptyHint": "Long-press a release in Discovery to add it to a playlist",
 		"exportToDevice": "Export to Device"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "Add Tag",
 		"moveToCategory": "Move to Category",
 		"noTags": "No tags",
-		"noTagCategoriesYet": "No tag categories yet"
+		"noTagCategoriesYet": "No tag categories yet",
+		"emptyHint": "Create color-coded tag categories to organize your discoveries"
 	},
 	"contextMenu": {
 		"viewInFinder": "View in Finder",

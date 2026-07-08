@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Adaugă",
 		"close": "Închide",
 		"save": "Salvează",
 		"search": "Caută...",
@@ -22,7 +23,8 @@
 		"next": "Următorul",
 		"back": "Înapoi",
 		"more": "Mai mult",
-		"select": "Selectează"
+		"select": "Selectează",
+		"noResults": "Niciun rezultat"
 	},
 	"nav": {
 		"library": "Bibliotecă",
@@ -121,7 +123,12 @@
 			"cacheSize": "Dimensiune cache",
 			"clearCache": "Goliți Cache",
 			"clearCacheConfirmMessage": "Sunteți sigur că doriți să goliți cache-ul cu tot audioformatul previzualizat?",
-			"clearCacheWarning": "Melodiile previzualizate anterior vor trebui să fie reîncărcate din sursa lor la următoarea redare. Aceasta poate fi mai lentă și unele fluxuri pot să nu mai fie disponibile."
+			"clearCacheWarning": "Melodiile previzualizate anterior vor trebui să fie reîncărcate din sursa lor la următoarea redare. Aceasta poate fi mai lentă și unele fluxuri pot să nu mai fie disponibile.",
+			"audioCache": "Audio",
+			"artworkCache": "Copertă",
+			"artworkCacheDescription": "Arta albumului este salvată pe acest dispozitiv, deci se afișează fără conexiune.",
+			"clearArtworkCacheConfirmMessage": "Sunteți sigur că doriți să goliți cache-ul cu toată arta albumului?",
+			"cacheLimit": "Limita cache"
 		},
 		"following": {
 			"title": "Urmărire",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Se preiau metadatele...",
 		"refreshMetadata": "Reîncarcă Metadate",
+		"downloadForOffline": "Descarcă pentru offline",
+		"downloading": "Se descarcă...",
+		"downloadedForOffline": "Descărcate",
+		"removeDownload": "Elimină descărcarea",
+		"downloadFailed": "Descărcarea pentru offline a eșuat",
 		"fetchError": "Nu s-au putut prelua metadatele din acest URL",
 		"tracks": "Melodii",
 		"trackCount": "{count, plural, =1 {1 melodie} other {{count} melodii}}",
@@ -465,6 +477,9 @@
 		"noPlaylistsYet": "Niciun playlist deocamdată",
 		"noPlaylists": "Niciun playlist deocamdată",
 		"allPlaylists": "Toate Playlisturile",
+		"searchPlaceholder": "Caută playlisturi…",
+		"emptyHint": "Creați playlisturi pentru a vă organiza descoperirile",
+		"detailEmptyHint": "Apăsați lung pe o lansare în Descoperiri pentru a o adăuga la un playlist",
 		"exportToDevice": "Exportă pe Dispozitiv"
 	},
 	"tags": {
@@ -478,7 +493,8 @@
 		"addTag": "Adaugă Etichetă",
 		"moveToCategory": "Mută în Categorie",
 		"noTags": "Nicio etichetă",
-		"noTagCategoriesYet": "Nicio categorie de etichete deocamdată"
+		"noTagCategoriesYet": "Nicio categorie de etichete deocamdată",
+		"emptyHint": "Creați categorii de etichete codificate prin culoare pentru a vă organiza descoperirile"
 	},
 	"contextMenu": {
 		"viewInFinder": "Arată în Finder",

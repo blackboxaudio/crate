@@ -98,6 +98,37 @@ pub async fn pull_now(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
     state.run_pull().await
 }
 
+/// One-shot foreground sync for mobile, which — unlike desktop — has no always-on poll loop
+/// (the loop in `lib.rs` is desktop-gated so the app doesn't drain the battery ticking every
+/// 5s). Called on launch and whenever the app returns to the foreground: pull other devices'
+/// changes, then push local edits if the dirty queue is non-empty. A no-op when signed out.
+#[tauri::command]
+pub async fn sync_foreground(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
+    state.run_foreground_pass().await
+}
+
+/// Schedule opportunistic background sync (iOS BGTaskScheduler / Android WorkManager). Called by
+/// the mobile frontend after sign-in — and on launch when already signed in — so background sync
+/// only runs for signed-in users. Idempotent; a no-op when signed out. The OS decides actual
+/// cadence (both platforms throttle to ~15 min minimum and treat it as opportunistic).
+#[cfg(feature = "mobile")]
+#[tauri::command]
+pub async fn schedule_background_sync(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
+    if !state.is_signed_in().await {
+        return Ok(());
+    }
+    crate::services::cloud_sync::background::schedule();
+    Ok(())
+}
+
+/// Cancel any scheduled background sync (called on sign-out). No-op on unsupported targets.
+#[cfg(feature = "mobile")]
+#[tauri::command]
+pub async fn cancel_background_sync() -> Result<()> {
+    crate::services::cloud_sync::background::cancel();
+    Ok(())
+}
+
 /// The recent override notices kept in memory (diagnostics; no audit-log UI in v1).
 #[tauri::command]
 pub async fn get_recent_overrides(

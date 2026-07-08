@@ -118,6 +118,9 @@ async fn proxy_http_handler_inner(
                 if data.len() as i64 == file_size {
                     let cached = Arc::new(CachedAudio { data, content_type });
 
+                    // Bump the LRU access time so a replayed track survives eviction.
+                    let _ = discovery.touch_audio_cache_access(release_id, track_position);
+
                     // Promote to memory cache
                     let mut cache = state.cache.write().await;
                     while cache.len() >= MAX_CACHE_ENTRIES {
@@ -198,6 +201,10 @@ async fn proxy_http_handler_inner(
                                 "Cached audio to disk: {rid}/{tp} ({} bytes)",
                                 entry.data.len()
                             );
+                            // Keep the on-disk cache under its size cap (LRU eviction).
+                            if let Err(e) = discovery.enforce_audio_cache_limit() {
+                                log::warn!("Failed to enforce audio cache limit: {e}");
+                            }
                         }
 
                         true

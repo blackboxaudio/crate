@@ -4,6 +4,21 @@ import type { CloudSyncStatus, CloudSyncPhase, CloudDeviceRecord, LibraryRoot } 
 import * as cloudSyncApi from '../api/cloudSync'
 import { translate } from '../i18n'
 import { toastStore } from './toast'
+import { isMobile } from '../utils/platform'
+
+/**
+ * Arm/disarm opportunistic background sync (mobile: iOS BGTaskScheduler / Android WorkManager).
+ * Guarded to mobile so the desktop bundle never invokes the mobile-only command; errors are
+ * swallowed (the schedule is best-effort and the OS owns actual cadence).
+ */
+function armBackgroundSync() {
+	if (!isMobile()) return
+	void cloudSyncApi.scheduleBackgroundSync().catch(() => {})
+}
+function disarmBackgroundSync() {
+	if (!isMobile()) return
+	void cloudSyncApi.cancelBackgroundSync().catch(() => {})
+}
 
 /** Payload of the backend `cloud-sync-override` event (one per discarded local edit). */
 type OverrideNotice = { label: string; device: string }
@@ -74,6 +89,7 @@ function createCloudSyncStore() {
 
 	let pollTimer: ReturnType<typeof setInterval> | null = null
 	let overrideUnlisten: UnlistenFn | null = null
+	let foregroundCleanup: (() => void) | null = null
 
 	async function pollStatus() {
 		try {
@@ -82,6 +98,22 @@ function createCloudSyncStore() {
 		} catch {
 			// Silent — status polling shouldn't surface errors
 		}
+	}
+
+	/**
+	 * Mobile foreground sync: one pull-then-push pass, then refresh the status indicator. Unlike
+	 * desktop (which runs an always-on poll loop), mobile has no background loop, so this runs on
+	 * launch and every time the app returns to the foreground. Failures are swallowed — a transient
+	 * offline error already surfaces via the `Offline` phase, and this fires often enough that a
+	 * toast would be intrusive.
+	 */
+	async function foregroundSync() {
+		try {
+			await cloudSyncApi.syncForeground()
+		} catch {
+			// Silent — offline/foreground failures reflect in the sync phase, not a toast.
+		}
+		await pollStatus()
 	}
 
 	/**
@@ -106,6 +138,8 @@ function createCloudSyncStore() {
 				.then(pollStatus)
 				.catch((e) => console.error('Restore pull failed:', e))
 		}
+		// Now signed in — arm opportunistic background sync (mobile only).
+		armBackgroundSync()
 	}
 
 	return {
@@ -181,6 +215,7 @@ function createCloudSyncStore() {
 				await cloudSyncApi.signOut()
 				const status = await cloudSyncApi.getSyncStatus()
 				update((s) => ({ ...s, status, devices: [], error: null }))
+				disarmBackgroundSync()
 			} catch (error) {
 				console.error('Failed to sign out:', error)
 			}
@@ -288,6 +323,38 @@ function createCloudSyncStore() {
 				clearInterval(pollTimer)
 				pollTimer = null
 			}
+		},
+
+		/** Run one foreground sync pass on demand (pull, then push if dirty). */
+		syncForeground() {
+			return foregroundSync()
+		},
+
+		/**
+		 * Mobile-only: sync on launch and whenever the app returns to the foreground, in place of an
+		 * always-on poll. Listens for `visibilitychange` (tab/app becomes visible) and window `focus`,
+		 * and kicks an initial pass immediately. Desktop keeps using `startPolling` instead.
+		 */
+		startForegroundSync() {
+			if (foregroundCleanup) return
+			const onVisible = () => {
+				if (document.visibilityState === 'visible') void foregroundSync()
+			}
+			const onFocus = () => void foregroundSync()
+			document.addEventListener('visibilitychange', onVisible)
+			window.addEventListener('focus', onFocus)
+			foregroundCleanup = () => {
+				document.removeEventListener('visibilitychange', onVisible)
+				window.removeEventListener('focus', onFocus)
+			}
+			void foregroundSync()
+			// Arm opportunistic background sync on launch too (no-ops in the backend when signed out).
+			armBackgroundSync()
+		},
+
+		stopForegroundSync() {
+			foregroundCleanup?.()
+			foregroundCleanup = null
 		},
 
 		/** Listen for override conflicts and toast the discarded edit's owner. */

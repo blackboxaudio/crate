@@ -2,6 +2,7 @@
 	import type { DiscoveryRelease } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { lightTap } from '$lib/utils/haptics'
+	import ReleaseCardContent from '$lib/components/discovery/ReleaseCardContent.svelte'
 
 	type Props = {
 		releases: DiscoveryRelease[]
@@ -16,28 +17,24 @@
 	let startY = 0
 	let currentY = 0
 	let rowHeight = 0
-	let containerEl: HTMLDivElement | undefined = $state()
 
-	let longPressTimer = 0
-
-	const LONG_PRESS_MS = 300
-
+	// Drag starts immediately on the trailing handle (no long-press): a dedicated handle removes the
+	// scroll-vs-drag ambiguity, and the rows themselves keep normal touch behavior so the list stays
+	// scrollable while in reorder mode.
 	function onPointerDown(e: PointerEvent, index: number) {
 		if (pointerId !== null) return
 		pointerId = e.pointerId
 		startY = e.clientY
 		currentY = e.clientY
 
-		const row = e.currentTarget as HTMLElement
-		rowHeight = row.offsetHeight
+		const handle = e.currentTarget as HTMLElement
+		// The handle is a direct child of the row element.
+		rowHeight = handle.parentElement?.offsetHeight ?? 72
 
-		longPressTimer = window.setTimeout(() => {
-			longPressTimer = 0
-			void lightTap()
-			dragIndex = index
-			overIndex = index
-			;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-		}, LONG_PRESS_MS)
+		void lightTap()
+		dragIndex = index
+		overIndex = index
+		handle.setPointerCapture(e.pointerId)
 
 		window.addEventListener('pointermove', onPointerMove)
 		window.addEventListener('pointerup', onPointerUp)
@@ -45,18 +42,8 @@
 	}
 
 	function onPointerMove(e: PointerEvent) {
-		if (e.pointerId !== pointerId) return
+		if (e.pointerId !== pointerId || dragIndex === null) return
 		currentY = e.clientY
-
-		if (dragIndex === null) {
-			if (Math.abs(currentY - startY) > 10) {
-				clearTimeout(longPressTimer)
-				longPressTimer = 0
-				cleanup()
-			}
-			return
-		}
-
 		const dy = currentY - startY
 		const rawTarget = dragIndex + Math.round(dy / rowHeight)
 		overIndex = Math.max(0, Math.min(items.length - 1, rawTarget))
@@ -64,11 +51,6 @@
 
 	function onPointerUp(e: PointerEvent) {
 		if (e.pointerId !== pointerId) return
-
-		if (longPressTimer) {
-			clearTimeout(longPressTimer)
-			longPressTimer = 0
-		}
 
 		if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex) {
 			const reordered = [...items]
@@ -105,40 +87,32 @@
 	}
 </script>
 
-<div bind:this={containerEl} class="flex flex-col">
+<div class="flex flex-col">
 	{#each items as release, index (release.id)}
 		{@const isDragging = dragIndex === index}
+		<!-- h-[72px] mirrors ReleaseFeedList's fixed rowHeight, and ReleaseCardContent is the same interior
+		     the normal rows render — so toggling reorder mode doesn't reflow the list. The drag handle sits
+		     in the trailing-accessory position (where the normal row's chevron lives). -->
 		<div
-			class="flex touch-none items-center gap-3 px-4 py-3 {isDragging
+			class="flex h-[72px] items-center gap-3 px-4 {isDragging
 				? 'relative z-10 scale-[1.02] bg-surface-2 shadow-lg'
 				: 'bg-surface-0'} {dragIndex !== null && !isDragging ? 'transition-transform duration-150 ease-out' : ''}"
 			style={dragIndex !== null ? `transform: ${getTransform(index)}` : ''}
-			onpointerdown={(e) => onPointerDown(e, index)}
 		>
-			<svg class="h-5 w-5 flex-shrink-0 text-text-tertiary" viewBox="0 0 24 24" fill="currentColor">
-				<rect x="4" y="5" width="16" height="2" rx="1" />
-				<rect x="4" y="11" width="16" height="2" rx="1" />
-				<rect x="4" y="17" width="16" height="2" rx="1" />
-			</svg>
+			<ReleaseCardContent {release} />
 
-			{#if release.artwork_url}
-				<img src={release.artwork_url} alt="" class="h-10 w-10 flex-shrink-0 rounded object-cover" />
-			{:else}
-				<div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded bg-surface-2 text-text-tertiary">
-					<svg viewBox="0 0 24 24" class="h-4 w-4" fill="currentColor">
-						<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-					</svg>
-				</div>
-			{/if}
-
-			<div class="flex min-w-0 flex-1 flex-col leading-tight">
-				<span class="truncate text-sm font-medium text-text-primary">
-					{release.title ?? $translate('common.untitled')}
-				</span>
-				<span class="truncate text-xs text-text-secondary">
-					{release.artist ?? $translate('common.unknownArtist')}
-				</span>
-			</div>
+			<button
+				type="button"
+				class="flex h-11 w-11 flex-shrink-0 touch-none items-center justify-center rounded-md text-text-tertiary"
+				aria-label={$translate('queue.reorder')}
+				onpointerdown={(e) => onPointerDown(e, index)}
+			>
+				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+					<rect x="4" y="5" width="16" height="2" rx="1" />
+					<rect x="4" y="11" width="16" height="2" rx="1" />
+					<rect x="4" y="17" width="16" height="2" rx="1" />
+				</svg>
+			</button>
 		</div>
 	{/each}
 </div>

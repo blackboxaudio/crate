@@ -160,6 +160,20 @@ impl SettingsService {
                     > 0
             });
 
+        // Device-local cache-size caps (MB) for the discovery audio + artwork caches. Read
+        // directly by the cache LRU sweeps; surfaced here so the settings UI shows the value.
+        let discovery_audio_cache_limit_mb = self
+            .get_setting_value(&conn, "discovery_audio_cache_limit_mb")?
+            .and_then(|v| v.parse().ok())
+            .filter(|mb: &i64| *mb > 0)
+            .unwrap_or(500);
+
+        let discovery_artwork_cache_limit_mb = self
+            .get_setting_value(&conn, "discovery_artwork_cache_limit_mb")?
+            .and_then(|v| v.parse().ok())
+            .filter(|mb: &i64| *mb > 0)
+            .unwrap_or(250);
+
         Ok(AppSettings {
             theme,
             accent_color,
@@ -185,6 +199,8 @@ impl SettingsService {
             last_backup_type,
             has_completed_onboarding,
             has_completed_wizard,
+            discovery_audio_cache_limit_mb,
+            discovery_artwork_cache_limit_mb,
         })
     }
 

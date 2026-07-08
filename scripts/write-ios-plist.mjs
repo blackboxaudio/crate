@@ -3,8 +3,12 @@
  * Generate `src-tauri/Info.ios.plist`, which Tauri v2 auto-merges into the iOS app's `Info.plist`
  * at `tauri ios dev|build` time (additive for new keys; no config wiring needed).
  *
- * It adds one thing the generated project doesn't have:
- * - `UIBackgroundModes: [audio]` — lets discovery preview playback continue in the background (#79).
+ * It adds a couple of things the generated project doesn't have:
+ * - `UIBackgroundModes: [audio, fetch]` — `audio` lets discovery preview playback continue in the
+ *   background (#79); `fetch` enables opportunistic background cloud sync via `BGAppRefreshTask` (#61).
+ * - `BGTaskSchedulerPermittedIdentifiers: [audio.bbx.crate.sync.refresh]` — the background-sync task
+ *   identifier must be declared here or `BGTaskScheduler` registration/submission throws at runtime.
+ *   MUST match `TASK_IDENTIFIER` in `src-tauri/src/services/cloud_sync/background/ios.rs`.
  *
  * It deliberately does NOT register the Google OAuth callback URL scheme (the reversed client id).
  * Native cloud sign-in (#133) uses `ASWebAuthenticationSession` (via `tauri-plugin-web-auth`), which
@@ -37,6 +41,11 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
+		<string>fetch</string>
+	</array>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>audio.bbx.crate.sync.refresh</string>
 	</array>
 </dict>
 </plist>
@@ -44,4 +53,6 @@ const plist = `<?xml version="1.0" encoding="UTF-8"?>
 
 writeFileSync(outPath, plist)
 
-console.log(`[write-ios-plist] wrote ${outPath} (UIBackgroundModes: audio)`)
+console.log(
+	`[write-ios-plist] wrote ${outPath} (UIBackgroundModes: audio, fetch; BGTaskSchedulerPermittedIdentifiers: audio.bbx.crate.sync.refresh)`
+)

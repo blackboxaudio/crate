@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Ekle",
 		"close": "Kapat",
 		"save": "Kaydet",
 		"search": "Ara...",
@@ -22,7 +23,8 @@
 		"next": "İleri",
 		"back": "Geri",
 		"more": "Daha fazla",
-		"select": "Seç"
+		"select": "Seç",
+		"noResults": "Sonuç bulunamadı"
 	},
 	"nav": {
 		"library": "Kütüphane",
@@ -121,7 +123,12 @@
 			"cacheSize": "Önbellek boyutu",
 			"clearCache": "Önbelleği Temizle",
 			"clearCacheConfirmMessage": "Tüm önbelleğe alınan önizleme sesini temizlemek istediğinizden emin misiniz?",
-			"clearCacheWarning": "Önceden önizlenmiş şarkılar bir sonraki oynatmada kaynağından yeniden akışla getirilmesi gerekecektir. Bu daha yavaş olabilir ve bazı akışlar artık mevcut olmayabilir."
+			"clearCacheWarning": "Önceden önizlenmiş şarkılar bir sonraki oynatmada kaynağından yeniden akışla getirilmesi gerekecektir. Bu daha yavaş olabilir ve bazı akışlar artık mevcut olmayabilir.",
+			"audioCache": "Ses",
+			"artworkCache": "Kapak Sanatı",
+			"artworkCacheDescription": "Albüm kapak sanatı bu cihaza kaydedilir, böylece bağlantı olmadan görüntülenebilir.",
+			"clearArtworkCacheConfirmMessage": "Tüm önbelleğe alınan albüm kapak sanatını temizlemek istediğinizden emin misiniz?",
+			"cacheLimit": "Önbellek sınırı"
 		},
 		"following": {
 			"title": "İzleniyor",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Meta veriler indiriliyor...",
 		"refreshMetadata": "Meta Verileri Yenile",
+		"downloadForOffline": "Çevrimdışı için İndir",
+		"downloading": "İndiriliyor...",
+		"downloadedForOffline": "İndirildi",
+		"removeDownload": "İndirmeyi Kaldır",
+		"downloadFailed": "Çevrimdışı için indirilemedi",
 		"fetchError": "Bu URL'den meta veriler indirilemedi",
 		"tracks": "Şarkılar",
 		"trackCount": "{count, plural, =1 {1 şarkı} other {{count} şarkı}}",
@@ -465,6 +477,9 @@
 		"noPlaylistsYet": "Henüz çalma listesi yok",
 		"noPlaylists": "Henüz çalma listesi yok",
 		"allPlaylists": "Tüm Çalma Listeleri",
+		"searchPlaceholder": "Çalma listelerinde ara…",
+		"emptyHint": "Keşiflerinizi düzenlemek için çalma listeleri oluşturun",
+		"detailEmptyHint": "Çalma listesine eklemek için Keşfet'te bir yayına uzun basın",
 		"exportToDevice": "Cihaza Dışa Aktar"
 	},
 	"tags": {
@@ -478,7 +493,8 @@
 		"addTag": "Etiket Ekle",
 		"moveToCategory": "Kategoriye Taşı",
 		"noTags": "Etiket yok",
-		"noTagCategoriesYet": "Henüz etiket kategorisi yok"
+		"noTagCategoriesYet": "Henüz etiket kategorisi yok",
+		"emptyHint": "Keşiflerinizi düzenlemek için renkle kodlanmış etiket kategorileri oluşturun"
 	},
 	"contextMenu": {
 		"viewInFinder": "Finder'da Göster",

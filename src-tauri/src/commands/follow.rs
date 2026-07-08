@@ -136,7 +136,9 @@ pub async fn check_followed_source(
     let source = follow.source_to_check(&id)?;
     let conn = follow.connection();
     let app_data_dir = follow.app_data_dir();
-    let (result, _ids) = watch::check_one(conn, app, app_data_dir, source).await;
+    // Manual single-source "Check now": force past the re-scan cooldown (the user asked
+    // for it), but the 429 backoff inside `check_one` is still honored.
+    let (result, _ids) = watch::check_one(conn, app, app_data_dir, source, true).await;
     Ok(result)
 }
 

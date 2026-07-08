@@ -4,14 +4,21 @@
 	import { cubicOut } from 'svelte/easing'
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease } from '$shared/types'
+	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 	import { discoveryStore } from '$shared/stores/discovery'
+	import {
+		precachePreviewStream,
+		invalidatePreviewStreamCache,
+		getReleaseCacheState,
+		type ReleaseCacheState,
+	} from '$shared/api/discovery'
 	import { playerStore, previewInfo, previewLoading, isPlaying } from '$shared/stores/player'
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { toastStore } from '$shared/stores/toast'
 	import { formatDate, formatDurationCompact } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { deriveArtistUrl, deriveLabelUrl, isCompilation } from '$shared/utils'
-	import { mobileUIStore, activePlaybackContext } from '$lib/stores/mobileUI'
+	import { mobileUIStore, activePlaybackContext, overlayPopNonce } from '$lib/stores/mobileUI'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import Drawer from '$lib/components/common/Drawer.svelte'
@@ -111,6 +118,60 @@
 	function menuFollow() {
 		menuOpen = false
 		mobileUIStore.openFollowSheet(release.id)
+	}
+
+	// Offline download: pre-cache the release's audio bytes so it plays in airplane mode, and let the
+	// user reclaim that space per-release. `cacheState` drives the header "downloaded" badge and gates
+	// which menu item shows (Download vs Remove). Refreshed on open and after each action.
+	let cacheState = $state<ReleaseCacheState | null>(null)
+	let downloading = $state(false)
+	const isFullyDownloaded = $derived(
+		!!cacheState && cacheState.total_tracks > 0 && cacheState.cached_tracks >= cacheState.total_tracks
+	)
+	const hasSomeCached = $derived(!!cacheState && cacheState.cached_tracks > 0)
+
+	async function refreshCacheState(id: string) {
+		try {
+			cacheState = await getReleaseCacheState(id)
+		} catch {
+			cacheState = null
+		}
+	}
+
+	// Reload the cache state whenever this detail shows a different release.
+	$effect(() => {
+		void refreshCacheState(release.id)
+	})
+
+	async function menuDownloadForOffline() {
+		menuOpen = false
+		if (downloading || release.tracks.length === 0) return
+		downloading = true
+		// Sequential: the proxy downloads one stream at a time anyway, and this keeps memory + network
+		// pressure low on mobile. Per-track failures are tolerated so a single dead stream doesn't abort
+		// the whole release; the badge simply won't reach "fully downloaded".
+		let anySucceeded = false
+		for (const track of release.tracks) {
+			try {
+				await precachePreviewStream(release.id, track.position)
+				anySucceeded = true
+			} catch {
+				// keep going
+			}
+		}
+		await refreshCacheState(release.id)
+		downloading = false
+		if (!anySucceeded) toastStore.error(get(translate)('discovery.downloadFailed'))
+	}
+
+	async function menuRemoveDownload() {
+		menuOpen = false
+		try {
+			await invalidatePreviewStreamCache(release.id)
+		} catch {
+			// best-effort; refresh reflects reality either way
+		}
+		await refreshCacheState(release.id)
 	}
 
 	// Per-track queue actions: a long-press on a track row lifts it and springs an iOS-style context menu
@@ -270,6 +331,16 @@
 		open = false
 		mobileUIStore.beginCloseDetail()
 	}
+
+	// iOS "re-tap the active tab to pop to root": the tab bar bumps `overlayPopNonce`. The release detail is
+	// always the topmost overlay, so it closes on the bump — the same animated path as the back chevron.
+	let seenPopNonce = get(overlayPopNonce)
+	$effect(() => {
+		const n = $overlayPopNonce
+		if (n === seenPopNonce) return
+		seenPopNonce = n
+		if (open) startClose()
+	})
 </script>
 
 <Drawer
@@ -312,17 +383,17 @@
 			>
 				<!-- Artwork -->
 				<div class="mb-4">
-					{#if release.artwork_url}
-						<img src={release.artwork_url} alt="" class="aspect-square w-full rounded-xl object-cover shadow-lg" />
-					{:else}
-						<div
-							class="flex aspect-square w-full items-center justify-center rounded-xl bg-surface-2 text-text-tertiary"
-						>
-							<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
-								<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-							</svg>
-						</div>
-					{/if}
+					<ReleaseArtwork {release} class="aspect-square w-full rounded-xl object-cover shadow-lg">
+						{#snippet fallback()}
+							<div
+								class="flex aspect-square w-full items-center justify-center rounded-xl bg-surface-2 text-text-tertiary"
+							>
+								<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
+									<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+								</svg>
+							</div>
+						{/snippet}
+					</ReleaseArtwork>
 				</div>
 
 				<!-- Metadata + a "more" action menu (the ⋯ sits to the right of the info block, vertically centered,
@@ -344,6 +415,27 @@
 							{/if}
 							{#if release.release_date}{formatDate(release.release_date)}{/if}
 						</p>
+						{#if downloading}
+							<p class="mt-1 flex items-center gap-1.5 text-xs font-medium text-text-tertiary">
+								<Spinner class="h-3 w-3" />
+								{$translate('discovery.downloading')}
+							</p>
+						{:else if isFullyDownloaded}
+							<p class="mt-1 flex items-center gap-1 text-xs font-medium text-brand-primary">
+								<svg
+									class="h-3.5 w-3.5"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2.5"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+								>
+									<path d="M20 6 9 17l-5-5" />
+								</svg>
+								{$translate('discovery.downloadedForOffline')}
+							</p>
+						{/if}
 					</div>
 					<!-- One "more" button gathers every release-level action (Add to Playlist, Edit, Open in source,
 			     Delete) into the context-menu platter below — clearer (the actions are labeled) and tidier than
@@ -351,7 +443,7 @@
 					<button
 						bind:this={menuButtonEl}
 						type="button"
-						class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md border border-stroke text-text-primary transition-transform active:scale-95 active:bg-surface-2"
+						class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-text-primary transition-transform active:scale-95 active:bg-surface-2"
 						aria-label={$translate('common.more')}
 						aria-haspopup="menu"
 						aria-expanded={menuOpen}
@@ -579,6 +671,46 @@
 			<SourceIcon source={release.source_type} />
 		{/snippet}
 	</ContextMenuItem>
+
+	{#if release.tracks.length > 0 && !isFullyDownloaded}
+		<ContextMenuItem separatorBefore onclick={menuDownloadForOffline}>
+			{downloading ? $translate('discovery.downloading') : $translate('discovery.downloadForOffline')}
+			{#snippet icon()}
+				<svg
+					class="h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+					<path d="M7 10l5 5 5-5" />
+					<path d="M12 15V3" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
+	{#if hasSomeCached}
+		<ContextMenuItem separatorBefore={isFullyDownloaded} onclick={menuRemoveDownload}>
+			{$translate('discovery.removeDownload')}
+			{#snippet icon()}
+				<svg
+					class="h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
 
 	<ContextMenuItem destructive onclick={menuDelete}>
 		{$translate('discovery.deleteRelease')}

@@ -5,10 +5,18 @@
 	import { playlistsStore } from '$shared/stores/playlists'
 	import { getSmartPlaylistReleases } from '$shared/api/playlists'
 	import { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
-	import { mobileUIStore, playlistReorderMode, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
+	import {
+		mobileUIStore,
+		playlistReorderMode,
+		selectMode,
+		selectedReleaseIds,
+		overlayPopNonce,
+		detailReleaseId,
+	} from '$lib/stores/mobileUI'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import Drawer from '$lib/components/common/Drawer.svelte'
+	import EmptyState from '$lib/components/common/EmptyState.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
 	import ReleaseFeedList from '$lib/components/discovery/ReleaseFeedList.svelte'
@@ -56,6 +64,16 @@
 		open = false
 		mobileUIStore.beginClosePlaylist()
 	}
+
+	// iOS "re-tap the active tab to pop to root": the tab bar bumps `overlayPopNonce`. Close on the bump, but
+	// defer to the release detail when it's stacked on top (that closes first; a second tap then reaches here).
+	let seenPopNonce = get(overlayPopNonce)
+	$effect(() => {
+		const n = $overlayPopNonce
+		if (n === seenPopNonce) return
+		seenPopNonce = n
+		if (open && get(detailReleaseId) === null) startClose()
+	})
 
 	function onClosed() {
 		discoveryPlaylistStore.clearReleases()
@@ -141,28 +159,31 @@
 				</button>
 				<h1 class="truncate text-lg font-semibold text-text-primary">{playlist.name}</h1>
 			</div>
-			<div class="flex items-center gap-1">
-				{#if isReorderMode}
-					<button
-						type="button"
-						class="rounded-md px-3 py-2 text-sm font-medium text-brand-primary active:bg-surface-2"
-						onclick={() => mobileUIStore.exitReorderMode()}
-					>
-						{$translate('common.done')}
-					</button>
-				{:else}
-					<button
-						type="button"
-						class="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
-						aria-label={$translate('queue.reorder')}
-						onclick={() => mobileUIStore.toggleReorderMode()}
-					>
-						<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M7 15l5 5 5-5M7 9l5-5 5 5" stroke-linecap="round" stroke-linejoin="round" />
-						</svg>
-					</button>
-				{/if}
-			</div>
+			<!-- Reorder only applies to manual playlists — a smart playlist's order is rule-derived. -->
+			{#if !playlist.is_smart}
+				<div class="flex items-center gap-1">
+					{#if isReorderMode}
+						<button
+							type="button"
+							class="rounded-md px-3 py-2 text-sm font-medium text-brand-primary active:bg-surface-2"
+							onclick={() => mobileUIStore.exitReorderMode()}
+						>
+							{$translate('common.done')}
+						</button>
+					{:else}
+						<button
+							type="button"
+							class="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
+							aria-label={$translate('queue.reorder')}
+							onclick={() => mobileUIStore.toggleReorderMode()}
+						>
+							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M7 15l5 5 5-5M7 9l5-5 5 5" stroke-linecap="round" stroke-linejoin="round" />
+							</svg>
+						</button>
+					{/if}
+				</div>
+			{/if}
 		</div>
 
 		<!-- Content. The list branch hands its scroll container to ReleaseFeedList (the same virtualized list
@@ -175,8 +196,17 @@
 				<Spinner class="h-6 w-6 text-text-tertiary" />
 			</div>
 		{:else if releases.length === 0}
-			<div class="flex-1 px-4 py-12 text-center text-sm text-text-secondary">
-				{$translate('discovery.noReleasesYet')}
+			<div class="flex-1 px-4 py-6">
+				<EmptyState
+					title={$translate('discovery.noReleasesYet')}
+					hint={playlist.is_smart ? undefined : $translate('playlists.detailEmptyHint')}
+				>
+					{#snippet icon()}
+						<svg class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+							<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+						</svg>
+					{/snippet}
+				</EmptyState>
 			</div>
 		{:else if isReorderMode}
 			<div
@@ -198,15 +228,17 @@
 {#if isSelectMode}
 	<SelectionBar
 		playlistId={playlist.id}
-		onRemoveFromPlaylist={batchRemoveFromPlaylist}
+		onRemoveFromPlaylist={playlist.is_smart ? undefined : batchRemoveFromPlaylist}
 		onAddToPlaylist={openPickerForSelection}
 	/>
 {/if}
 
+<!-- A smart playlist has no junction rows, so per-release reorder/remove don't apply — passing a null
+     playlistId hides both menu items (its only internal use is that gate). -->
 <ReleaseContextMenu
 	context="playlist"
 	{releases}
-	playlistId={playlist.id}
+	playlistId={playlist.is_smart ? null : playlist.id}
 	onAddToPlaylist={openPickerForSingle}
 	onRemoveFromPlaylist={removeFromPlaylist}
 />

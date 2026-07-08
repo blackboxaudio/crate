@@ -89,6 +89,9 @@ dependencies {
     // App Check via Play Integrity (#139): mints the device/app integrity token that the Rust
     // App Check exchange (appcheck/play_integrity.rs) trades for a Firebase App Check token.
     implementation("com.google.android.play:integrity:1.4.0")
+    // WorkManager backs opportunistic background cloud sync (#61): CrateSyncScheduler enqueues a
+    // periodic CrateSyncWorker that calls into Rust via JNI (background/android.rs).
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")

@@ -18,6 +18,9 @@
 	import { formatDuration } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { isIOS } from '$shared/utils/platform'
+	import { getDiscoveryArtworkSrc } from '$shared/utils/artwork'
+	import { cacheReleaseArtwork } from '$shared/api/discovery'
+	import { mobileAppDataDir } from '$lib/stores/appData'
 	import { mobileUIStore, isPlayerExpanded } from '$lib/stores/mobileUI'
 	import { lightTap } from '$lib/utils/haptics'
 	import Drawer from '$lib/components/common/Drawer.svelte'
@@ -36,6 +39,30 @@
 	// a preview exists and opens when `$isPlayerExpanded`. Reads/writes the shared playerStore so it stays
 	// in sync with the mini-player and the OS media session.
 	const track = $derived($previewInfo ? $previewInfo.release.tracks[$previewInfo.trackIndex] : null)
+
+	// Cache-first cover for both the blurred wash and the foreground art: prefers the on-disk
+	// cached copy (renders offline) and falls back to the remote URL, downloading it to disk on
+	// first display so it's cached next time. Local state so the download flips the src without a
+	// store round-trip; re-tracked whenever the active release changes.
+	let artCachePath = $state<string | null>(null)
+	$effect(() => {
+		const rel = $previewInfo?.release
+		artCachePath = rel?.artwork_cache_path ?? null
+		if (rel && !artCachePath && rel.artwork_url) {
+			const id = rel.id
+			void cacheReleaseArtwork(id).then((path) => {
+				if (path && $previewInfo?.release.id === id) artCachePath = path
+			})
+		}
+	})
+	const artSrc = $derived(
+		$previewInfo
+			? getDiscoveryArtworkSrc(
+					{ artwork_url: $previewInfo.release.artwork_url, artwork_cache_path: artCachePath },
+					$mobileAppDataDir
+				)
+			: undefined
+	)
 	// Loading covers both the initial stream fetch (before `previewInfo` is set — e.g. tapping a track from
 	// idle, which expands this player immediately) and mid-playback buffering / speed re-buffering.
 	const loading = $derived(
@@ -146,9 +173,9 @@
 		{#if $previewInfo}
 			<!-- Album-art background: a blurred, slowly drifting wash with a theme-aware legibility scrim.
 			     Full-bleed and first in the DOM; the relative content wrapper below paints over it. -->
-			{#if $previewInfo.release.artwork_url}
+			{#if artSrc}
 				<img
-					src={$previewInfo.release.artwork_url}
+					src={artSrc}
 					alt=""
 					class="art-wash pointer-events-none absolute inset-0 h-full w-full object-cover blur-2xl"
 				/>
@@ -166,12 +193,8 @@
 
 				<!-- Artwork -->
 				<div class="flex flex-1 items-center justify-center px-4 pt-3">
-					{#if $previewInfo.release.artwork_url}
-						<img
-							src={$previewInfo.release.artwork_url}
-							alt=""
-							class="aspect-square w-full max-w-sm rounded-2xl object-cover shadow-2xl"
-						/>
+					{#if artSrc}
+						<img src={artSrc} alt="" class="aspect-square w-full max-w-sm rounded-2xl object-cover shadow-2xl" />
 					{:else}
 						<div
 							class="flex aspect-square w-full max-w-sm items-center justify-center rounded-2xl bg-surface-2 text-text-tertiary"

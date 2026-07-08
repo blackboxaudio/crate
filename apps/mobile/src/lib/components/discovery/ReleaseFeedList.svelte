@@ -12,12 +12,15 @@
 	// The virtualizer must own the scroll element (it builds a ResizeObserver on it), so this component
 	// owns the scroll container and the parent reaches in only through the exported `scrollToIndex`
 	// (locate) and the `onScroll` callback (persistence). Callers supply the row via a snippet so each
-	// owns its own ReleaseCard props/context, plus optional `leading` (scrolls above the list) and
-	// `empty` (shown when there are no rows) snippets.
+	// owns its own ReleaseCard props/context, plus optional `leading` (scrolls above the list) and `empty`
+	// (shown when there are no rows) snippets. `topInset` reserves resting top padding for a glass toolbar
+	// the host overlays on the list (so rows scroll behind it); it's applied via PullToRefresh, which owns
+	// the scroll element's padding-top — so it takes effect only when `onRefresh` is provided (the feed's case).
 	type Props = {
 		releases: DiscoveryRelease[]
 		row: Snippet<[{ release: DiscoveryRelease; index: number }]>
 		rowHeight?: number
+		topInset?: number
 		leading?: Snippet
 		empty?: Snippet
 		/** One-shot scroll offset to restore once the virtualizer has measured (feed only). */
@@ -37,6 +40,7 @@
 		releases,
 		row,
 		rowHeight = 72,
+		topInset = 0,
 		leading,
 		empty,
 		initialScrollTop = 0,
@@ -62,6 +66,12 @@
 	// virtualizer. Exposed via bind:this.
 	export function scrollToIndex(index: number, opts?: { align?: 'start' | 'center' | 'end' | 'auto' }) {
 		virtualList.scrollToIndex(index, opts)
+	}
+
+	// Smooth scroll the feed back to the top (iOS "re-tap the active tab to scroll to top"). Exposed via
+	// bind:this so the host can drive it from the tab-bar re-tap signal.
+	export function scrollToTop(smooth = true) {
+		scrollEl?.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })
 	}
 
 	// Coalesce scroll callbacks to one per frame — a fling fires `scroll` far faster than that.
@@ -94,12 +104,17 @@
      to; the scroll element itself keeps owning the scroll (a pull pushes its content down via padding). -->
 <div class="relative flex min-h-0 flex-1 flex-col">
 	{#if onRefresh}
-		<PullToRefresh {scrollEl} {onRefresh} />
+		<PullToRefresh {scrollEl} {onRefresh} {topInset} />
 	{/if}
+	<!-- With `onRefresh`, a pull-down past the top is the refresh gesture, so leave the rubber-band. Without
+	     it there's nothing to reveal, so kill the top/bottom overscroll bounce (`overscroll-y-none`) — the
+	     list shouldn't budge when it can't scroll further. -->
 	<div
 		bind:this={scrollEl}
 		onscroll={handleScroll}
-		class="min-h-0 flex-1 overflow-x-hidden {scrollLocked ? 'overflow-y-hidden' : 'overflow-y-auto'} {className}"
+		class="min-h-0 flex-1 overflow-x-hidden {scrollLocked ? 'overflow-y-hidden' : 'overflow-y-auto'} {onRefresh
+			? ''
+			: 'overscroll-y-none'} {className}"
 		style="padding-bottom: var(--mini-player-inset, 0px)"
 	>
 		{#if leading}{@render leading()}{/if}

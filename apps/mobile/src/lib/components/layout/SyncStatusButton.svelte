@@ -58,9 +58,9 @@
 {#if $isSyncAvailable}
 	<button
 		type="button"
-		class="-mr-2 flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full active:opacity-70"
+		class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full active:opacity-70"
 		aria-label={statusLabel}
-		onclick={() => mobileUIStore.navigateToSettings('sync')}
+		onclick={() => mobileUIStore.openSettings('sync')}
 	>
 		{#if $isSignedIn}
 			<span class="relative">

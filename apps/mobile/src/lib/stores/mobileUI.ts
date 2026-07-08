@@ -5,8 +5,9 @@ import { followedSources } from '$shared/stores/follow'
 import { releasesFromSource } from '$shared/utils'
 import type { DiscoveryRelease, TagFilterMode } from '$shared/types'
 
-/** The app's primary navigation destinations, surfaced as bottom tabs. */
-export type MobileTab = 'discovery' | 'following' | 'playlists' | 'tags' | 'settings'
+/** The app's primary navigation destinations, surfaced as bottom tabs. Settings is intentionally NOT a
+ *  tab — it opens as a right-side drawer from the Header's gear button (see `openSettings`). */
+export type MobileTab = 'discovery' | 'following' | 'playlists' | 'tags'
 
 /** Where a preview-playback session was started from — selects which list scopes next / shuffle, and
  *  whether the discovery feed's live filter changes should keep re-scoping it. */
@@ -54,7 +55,12 @@ interface MobileUIState {
 	addReleaseOpen: boolean
 	/** The one release row whose swipe-to-delete action is revealed — opening another closes it. */
 	openRowId: string | null
-	/** One-shot: settings section to scroll into view after switching to the Settings tab. */
+	/** Whether the settings drawer is mounted (a full-width right-side overlay). Mirrors `detailReleaseId`
+	 *  as the mount flag; stays set until the slide-out animation finishes so `+page` keeps it mounted. The
+	 *  drawer is opaque and sits above the mini-player (z-45 > z-40), so — unlike the detail overlays that
+	 *  the mini-player floats *above* — no `covering` flag is needed: it simply covers the mini-player. */
+	settingsOpen: boolean
+	/** One-shot: settings section to scroll into view after the settings drawer opens. */
 	settingsScrollTarget: string | null
 	/** Discovery playlist whose detail screen is open (full-screen overlay), or null. */
 	detailPlaylistId: string | null
@@ -91,6 +97,17 @@ interface MobileUIState {
 	 * follow / playlist queues are fixed snapshots of the list they started from.
 	 */
 	queueOrigin: PlaybackContextOrigin | null
+	/**
+	 * Bumped when the active tab is re-tapped with nothing to pop — the mounted view scrolls to the top
+	 * (iOS "tap the active tab to scroll to top"). A nonce rather than a boolean so repeated taps each fire.
+	 */
+	scrollTopNonce: number
+	/**
+	 * Bumped when the active tab is re-tapped while a drill-in overlay is open — the topmost overlay pops
+	 * to root (iOS "tap the active tab to pop the navigation stack"). A nonce so repeated taps back out level
+	 * by level.
+	 */
+	overlayPopNonce: number
 }
 
 const initialState: MobileUIState = {
@@ -106,6 +123,7 @@ const initialState: MobileUIState = {
 	selectedReleaseIds: new Set(),
 	addReleaseOpen: false,
 	openRowId: null,
+	settingsOpen: false,
 	settingsScrollTarget: null,
 	detailPlaylistId: null,
 	playlistDetailCovering: false,
@@ -119,6 +137,8 @@ const initialState: MobileUIState = {
 	actionsAnchorRect: null,
 	followReleaseId: null,
 	queueOrigin: null,
+	scrollTopNonce: 0,
+	overlayPopNonce: 0,
 }
 
 function createMobileUIStore() {
@@ -130,6 +150,25 @@ function createMobileUIStore() {
 		 *  and the trailing click of a single touch tap (see TabBar) collapses to one state update. */
 		setTab(tab: MobileTab) {
 			update((s) => (s.activeTab === tab ? s : { ...s, activeTab: tab }))
+		},
+		/**
+		 * Activate a bottom tab from the tab bar. Switching to a *different* tab just navigates. Re-tapping
+		 * the *active* tab follows the iOS convention: pop the topmost drill-in to root, else exit multi-select,
+		 * else scroll the view to the top. The nonces let the mounted view / overlay react (see TabBar and the
+		 * tab views / detail overlays). Guard against the double fire of a touch tap in the TabBar, not here.
+		 */
+		activateTab(tab: MobileTab) {
+			update((s) => {
+				if (s.activeTab !== tab) return { ...s, activeTab: tab }
+				const hasOverlay =
+					s.detailReleaseId !== null ||
+					s.detailPlaylistId !== null ||
+					s.detailTagId !== null ||
+					s.detailFollowSourceId !== null
+				if (hasOverlay) return { ...s, overlayPopNonce: s.overlayPopNonce + 1 }
+				if (s.selectMode) return { ...s, selectMode: false, selectedReleaseIds: new Set() }
+				return { ...s, scrollTopNonce: s.scrollTopNonce + 1 }
+			})
 		},
 		/** Push the release detail screen (a full-screen overlay layered above the active tab). Closes any
 		 *  swipe-open delete row so it isn't left revealed when the user returns to the feed. */
@@ -224,10 +263,20 @@ function createMobileUIStore() {
 			update((s) => ({ ...s, addReleaseOpen: false }))
 		},
 
-		// --- Settings deep-link --------------------------------------------------------------------
-		/** Switch to the Settings tab and request a scroll to a named section (e.g. 'sync'). */
-		navigateToSettings(section: string) {
-			update((s) => ({ ...s, activeTab: 'settings', settingsScrollTarget: section }))
+		// --- Settings drawer (right-side overlay; mirrors the release detail mount pattern) ------------
+		/** Open the settings drawer, optionally requesting a scroll to a named section (e.g. 'sync').
+		 *  Closes any swipe-open delete row so it isn't left revealed behind the overlay. */
+		openSettings(section?: string) {
+			update((s) => ({
+				...s,
+				settingsOpen: true,
+				settingsScrollTarget: section ?? null,
+				openRowId: null,
+			}))
+		},
+		/** Finalize the close once the slide-out animation lands (clears the mount). */
+		closeSettings() {
+			update((s) => ({ ...s, settingsOpen: false }))
 		},
 		/** Clear the one-shot settings scroll target once the view has scrolled to it. */
 		consumeSettingsScrollTarget() {
@@ -362,6 +411,7 @@ export const detailReleaseId = derived(mobileUIStore, ($s) => $s.detailReleaseId
 export const detailCovering = derived(mobileUIStore, ($s) => $s.detailCovering)
 export const isPlayerExpanded = derived(mobileUIStore, ($s) => $s.playerExpanded)
 export const scrollTargetReleaseId = derived(mobileUIStore, ($s) => $s.scrollTargetReleaseId)
+export const settingsOpen = derived(mobileUIStore, ($s) => $s.settingsOpen)
 export const settingsScrollTarget = derived(mobileUIStore, ($s) => $s.settingsScrollTarget)
 export const tagFilterIds = derived(mobileUIStore, ($s) => $s.tagFilterIds)
 export const tagFilterMode = derived(mobileUIStore, ($s) => $s.tagFilterMode)
@@ -426,3 +476,5 @@ export const actionsContext = derived(mobileUIStore, ($s) => $s.actionsContext)
 export const actionsAnchorRect = derived(mobileUIStore, ($s) => $s.actionsAnchorRect)
 export const followReleaseId = derived(mobileUIStore, ($s) => $s.followReleaseId)
 export const queueOrigin = derived(mobileUIStore, ($s) => $s.queueOrigin)
+export const scrollTopNonce = derived(mobileUIStore, ($s) => $s.scrollTopNonce)
+export const overlayPopNonce = derived(mobileUIStore, ($s) => $s.overlayPopNonce)

@@ -23,6 +23,11 @@ pub struct DiscoveryRelease {
     pub release_date: Option<String>,
     pub artwork_url: Option<String>,
     pub artwork_path: Option<String>,
+    /// Relative path to the on-disk cached remote cover ("discovery/artwork/{id}.ext"), or
+    /// `None` when not yet cached. Populated on read from `discovery_artwork_cache`; drives
+    /// cache-first (offline) artwork rendering on mobile. Device-local — never synced.
+    #[serde(default)]
+    pub artwork_cache_path: Option<String>,
     pub notes: Option<String>,
     pub parent_url: Option<String>,
     /// The artist/label page this release was discovered from (the scanned page, or a

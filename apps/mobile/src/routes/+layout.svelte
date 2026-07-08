@@ -16,6 +16,7 @@
 	import { PUBLIC_APP_VERSION } from '$env/static/public'
 	import { splashVisible, dismissSplash } from '$lib/stores/splash'
 	import SplashScreen from '$lib/components/common/SplashScreen.svelte'
+	import ToastContainer from '$lib/components/common/ToastContainer.svelte'
 
 	let { children } = $props()
 	let i18nReady = $state(false)
@@ -88,15 +89,17 @@
 
 	// Boot the cloud-sync store so the header's account/sync chip and the Settings panel reflect the real
 	// signed-in status on launch — not just after a fresh sign-in (mirrors desktop's useAppSetup). load()
-	// fetches the persisted status, polling keeps it live, and the override listener toasts when another
-	// device supersedes a local edit. On a build without cloud config the status stays `disabled` and the
-	// chip stays hidden.
+	// fetches the persisted status. Unlike desktop, mobile does NOT run an always-on poll (that would drain
+	// the battery and iOS/Android freeze the process when backgrounded anyway) — startForegroundSync() runs
+	// one pull-then-push pass on launch and on every foreground (visibilitychange / focus) instead. The
+	// override listener toasts when another device supersedes a local edit. On a build without cloud config
+	// the status stays `disabled` and the chip stays hidden.
 	onMount(() => {
 		void cloudSyncStore.load()
-		cloudSyncStore.startPolling()
+		cloudSyncStore.startForegroundSync()
 		void cloudSyncStore.startOverrideListener()
 		return () => {
-			cloudSyncStore.stopPolling()
+			cloudSyncStore.stopForegroundSync()
 			cloudSyncStore.stopOverrideListener()
 		}
 	})
@@ -147,3 +150,8 @@
 {#if i18nReady}
 	{@render children()}
 {/if}
+
+<!-- Global toast host: mobile had none, so every `toastStore.error(...)` (preview failures, sync
+     errors, …) was silently swallowed. Rendered outside the i18n gate so errors still show if i18n
+     is mid-load. -->
+<ToastContainer />

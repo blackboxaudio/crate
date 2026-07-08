@@ -325,28 +325,47 @@ function createPlayerStore() {
 		return url
 	}
 
-	// Turn picks into the engine's NativeTrack entries, resolving each one's stream URL. MIME + metadata
-	// are per-release (a window can span releases / sources): YouTube/Discogs need an explicit audio/mp4
-	// (their proxy URL is extensionless and AVFoundation can't infer it); Bandcamp/SoundCloud pass null.
-	async function buildNativeTracks(
+	// Build a single engine entry for a pick: resolve its (session-cached) proxy stream URL and map the
+	// per-release metadata + MIME. MIME is per-release (a window can span releases / sources): YouTube/Discogs
+	// need an explicit audio/mp4 (their proxy URL is extensionless and AVFoundation can't infer it);
+	// Bandcamp/SoundCloud pass null. Throws if the URL can't be resolved — the caller decides whether that
+	// track is required (the tapped/current one) or best-effort (an upcoming window pick).
+	async function buildOneNativeTrack(p: { release: DiscoveryRelease; trackIndex: number }): Promise<NativeTrack> {
+		const track = p.release.tracks[p.trackIndex]
+		const url = await resolveStreamUrl(p.release, p.trackIndex)
+		const mimeType = p.release.source_type === 'discogs' || p.release.source_type === 'youtube' ? 'audio/mp4' : null
+		return {
+			url,
+			title: track.name,
+			artist: p.release.artist ?? '',
+			album: p.release.title ?? '',
+			durationMs: track.duration_ms ?? 0,
+			artworkUrl: p.release.artwork_url ?? null,
+			mimeType,
+		}
+	}
+
+	// Resolve the upcoming window picks best-effort: a pick that fails to resolve (dead / expired /
+	// rate-limited stream) is DROPPED rather than rejecting the whole window, so one bad neighbour can't
+	// abort playback of the track the user actually chose. Returns survivors paired with their originating
+	// pick (order preserved) so the engine's `entries` and our `nativeWindow` stay index-aligned.
+	async function resolveWindowTail(
 		picks: Array<{ release: DiscoveryRelease; trackIndex: number }>
-	): Promise<NativeTrack[]> {
-		return Promise.all(
-			picks.map(async (p) => {
-				const track = p.release.tracks[p.trackIndex]
-				const url = await resolveStreamUrl(p.release, p.trackIndex)
-				const mimeType = p.release.source_type === 'discogs' || p.release.source_type === 'youtube' ? 'audio/mp4' : null
-				return {
-					url,
-					title: track.name,
-					artist: p.release.artist ?? '',
-					album: p.release.title ?? '',
-					durationMs: track.duration_ms ?? 0,
-					artworkUrl: p.release.artwork_url ?? null,
-					mimeType,
+	): Promise<Array<{ pick: { release: DiscoveryRelease; trackIndex: number }; track: NativeTrack }>> {
+		const settled = await Promise.all(
+			picks.map(async (pick) => {
+				try {
+					return { pick, track: await buildOneNativeTrack(pick) }
+				} catch (e) {
+					console.warn('[native-preview] dropping unresolvable window track:', e)
+					return null
 				}
 			})
 		)
+		return settled.filter((r) => r !== null) as Array<{
+			pick: { release: DiscoveryRelease; trackIndex: number }
+			track: NativeTrack
+		}>
 	}
 
 	// How deep to pre-resolve the window: the rest of the current release (so locked within-release
@@ -369,14 +388,20 @@ function createPlayerStore() {
 	) {
 		const picks = playbackQueue.peekUpcoming(nativeWindowDepth(current.release, current.trackIndex))
 		if (mode === 'reload') {
-			const tracks = await buildNativeTracks([current, ...picks])
+			// The current (tapped/restored) track is required — let it throw so a genuine failure of the
+			// chosen track still surfaces to playPreview's catch. The upcoming tail is best-effort.
+			const currentTrack = await buildOneNativeTrack(current)
+			const tail = await resolveWindowTail(picks)
+			const tracks = [currentTrack, ...tail.map((t) => t.track)]
 			await nativePreviewPlayer.play(tracks, 0, startPositionMs)
-			nativeWindow = [current, ...picks]
+			nativeWindow = [current, ...tail.map((t) => t.pick)]
 			nativeIndex = 0
 		} else {
-			const tracks = await buildNativeTracks(picks)
-			await nativePreviewPlayer.setUpcoming(tracks)
-			nativeWindow = nativeWindow.slice(0, nativeIndex + 1).concat(picks)
+			// Slide: only the upcoming tail is (re)fed, so it's entirely best-effort — the current item keeps
+			// playing untouched. Keep `nativeWindow` aligned with the survivors we actually hand the engine.
+			const tail = await resolveWindowTail(picks)
+			await nativePreviewPlayer.setUpcoming(tail.map((t) => t.track))
+			nativeWindow = nativeWindow.slice(0, nativeIndex + 1).concat(tail.map((t) => t.pick))
 		}
 	}
 
@@ -1213,12 +1238,14 @@ function createPlayerStore() {
 						playbackState: { ...s.playbackState, is_playing: false },
 						previewLoading: null,
 					}))
-					// Show the real AVPlayer error during debugging (normally the generic string).
-					toastStore.error(`Player error: ${message}`)
+					// User-facing generic string (the raw AVPlayer error is kept in console + state.error for
+					// diagnostics); mirrors the HTML5 preview path's error toast.
+					toastStore.error(get(translate)('errors.previewStreamFailed'))
 				},
 				onDebug: (message) => {
+					// Console only — a per-load/tick toast would bury real errors now that the mobile toast host
+					// renders. Re-enable a toast here temporarily if deep-debugging the native engine.
 					console.log('[native-preview][engine]', message)
-					toastStore.error(`dbg: ${message}`)
 				},
 			})
 		},

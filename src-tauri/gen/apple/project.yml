@@ -104,6 +104,10 @@ targets:
       # DeviceCheck backs App Attest for mobile App Check (#139); DCAppAttestService symbols don't
       # auto-link from objc2-device-check, so link the framework explicitly (as with MediaPlayer).
       - sdk: DeviceCheck.framework
+      # BackgroundTasks backs opportunistic background cloud sync via BGTaskScheduler (#61). Linked
+      # explicitly because the BG* classes are reached through `class!`/`msg_send!` (no objc2 typed
+      # binding crate), so nothing else pulls the framework in.
+      - sdk: BackgroundTasks.framework
     preBuildScripts:
       - script: yarn tauri ios xcode-script -v --platform ${PLATFORM_DISPLAY_NAME:?} --sdk-root ${SDKROOT:?} --framework-search-paths "${FRAMEWORK_SEARCH_PATHS:?}" --header-search-paths "${HEADER_SEARCH_PATHS:?}" --gcc-preprocessor-definitions "${GCC_PREPROCESSOR_DEFINITIONS:-}" --configuration ${CONFIGURATION:?} ${FORCE_COLOR} ${ARCHS:?}
         name: Build Rust Code

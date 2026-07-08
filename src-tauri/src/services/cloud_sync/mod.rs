@@ -23,6 +23,12 @@ pub mod pipeline;
 pub mod resolution;
 pub mod runtime;
 
+// Opportunistic background sync (iOS BGTaskScheduler / Android WorkManager). Mobile-only —
+// desktop uses the always-on poll loop in `lib.rs` instead. Gated so desktop and featureless
+// `cargo check` never compile the native (objc2 / JNI) submodules.
+#[cfg(feature = "mobile")]
+pub mod background;
+
 #[cfg(test)]
 mod tests;
 

@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "Aggiungi",
 		"close": "Chiudi",
 		"save": "Salva",
 		"search": "Cerca...",
@@ -22,7 +23,8 @@
 		"next": "Successivo",
 		"back": "Indietro",
 		"more": "Altro",
-		"select": "Seleziona"
+		"select": "Seleziona",
+		"noResults": "Nessun risultato"
 	},
 	"nav": {
 		"library": "Libreria",
@@ -121,7 +123,12 @@
 			"cacheSize": "Dimensione cache",
 			"clearCache": "Cancella cache",
 			"clearCacheConfirmMessage": "Sei sicuro di voler cancellare tutto l'audio di anteprima memorizzato nella cache?",
-			"clearCacheWarning": "I brani precedentemente visualizzati in anteprima dovranno essere trasmessi nuovamente dalla loro fonte alla prossima riproduzione. Questo potrebbe essere più lento e alcuni flussi potrebbero non essere più disponibili."
+			"clearCacheWarning": "I brani precedentemente visualizzati in anteprima dovranno essere trasmessi nuovamente dalla loro fonte alla prossima riproduzione. Questo potrebbe essere più lento e alcuni flussi potrebbero non essere più disponibili.",
+			"audioCache": "Audio",
+			"artworkCache": "Copertina",
+			"artworkCacheDescription": "Le copertine degli album vengono salvate su questo dispositivo in modo che vengano visualizzate senza connessione.",
+			"clearArtworkCacheConfirmMessage": "Sei sicuro di voler cancellare tutte le copertine memorizzate nella cache?",
+			"cacheLimit": "Limite cache"
 		},
 		"following": {
 			"title": "Seguiti",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "Recupero metadati...",
 		"refreshMetadata": "Aggiorna metadati",
+		"downloadForOffline": "Scarica per offline",
+		"downloading": "Download in corso...",
+		"downloadedForOffline": "Scaricato",
+		"removeDownload": "Rimuovi download",
+		"downloadFailed": "Impossibile scaricare per offline",
 		"fetchError": "Impossibile recuperare i metadati da questo URL",
 		"unsupportedUrl": "Questo URL non è supportato",
 		"tracks": "Tracce",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "Nessuna playlist per ora",
 		"noPlaylists": "Nessuna playlist per ora",
 		"allPlaylists": "Tutte le playlist",
+		"searchPlaceholder": "Cerca playlist…",
+		"emptyHint": "Crea playlist per organizzare le tue scoperte",
+		"detailEmptyHint": "Tieni premuto un rilascio in Scoperte per aggiungerlo a una playlist",
 		"exportToDevice": "Esporta su dispositivo"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "Aggiungi tag",
 		"moveToCategory": "Sposta nella categoria",
 		"noTags": "Nessun tag",
-		"noTagCategoriesYet": "Nessuna categoria di tag per ora"
+		"noTagCategoriesYet": "Nessuna categoria di tag per ora",
+		"emptyHint": "Crea categorie di tag con codice colore per organizzare le tue scoperte"
 	},
 	"contextMenu": {
 		"viewInFinder": "Visualizza nel Finder",

@@ -12,9 +12,11 @@
 		operatorRequiresSecondValue,
 		createDefaultCondition,
 		conditionHasValue,
+		parseSmartRules,
 		type FieldDefinition,
 	} from '$shared/utils/smartRules'
-	import type { SmartRules, SmartCondition, MatchMode, ActiveView } from '$shared/types'
+	import type { Playlist, SmartRules, SmartCondition, MatchMode, ActiveView } from '$shared/types'
+	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 
 	// Mobile smart-playlist rule editor. A focused, touch-first counterpart to the desktop SmartPlaylistModal:
@@ -28,10 +30,12 @@
 	type Props = {
 		open: boolean
 		context?: ActiveView
+		/** When set, the editor opens prefilled to edit this smart playlist instead of creating one. */
+		playlist?: Playlist | null
 		onSubmit: (name: string, rules: SmartRules) => void
 		onCancel: () => void
 	}
-	let { open, context = 'discovery', onSubmit, onCancel }: Props = $props()
+	let { open, context = 'discovery', playlist = null, onSubmit, onCancel }: Props = $props()
 
 	let name = $state('')
 	let matchMode = $state<MatchMode>('all')
@@ -39,35 +43,39 @@
 	let previewCount = $state<number | null>(null)
 	let previewLoading = $state(false)
 	let previewTimer: ReturnType<typeof setTimeout> | undefined
+	// The mobile editor has no limit UI; carry an existing (desktop-authored) limit through an edit
+	// untouched instead of silently stripping it on save.
+	let initialLimit: SmartRules['limit']
 
 	const tagCategories = $derived($tagsStore.categories)
 	const fields = $derived(getFieldsForContext(context))
+	const isEditing = $derived(!!playlist)
+	const title = $derived(isEditing ? $translate('smartPlaylist.editTitle') : $translate('smartPlaylist.createTitle'))
 	const canSubmit = $derived(name.trim().length > 0 && conditions.length > 0 && conditions.every(conditionHasValue))
 
-	// Reserve clearance for the iOS keyboard so a focused value field can scroll above it (`visualViewport`
-	// shrinks to the area above the keyboard). A trailing spacer this tall lets the last condition scroll up.
-	let kbInset = $state(0)
+	// Keyboard clearance is handled by the shared `Drawer` (it lifts the whole bottom sheet above the keyboard),
+	// so no per-editor visualViewport spacer is needed here.
 	onMount(() => {
 		if (tagCategories.length === 0) tagsStore.load()
-		const vv = window.visualViewport
-		const measure = () => {
-			kbInset = Math.max(0, window.innerHeight - (vv?.height ?? window.innerHeight) - (vv?.offsetTop ?? 0))
-		}
-		measure()
-		vv?.addEventListener('resize', measure)
-		vv?.addEventListener('scroll', measure)
-		return () => {
-			vv?.removeEventListener('resize', measure)
-			vv?.removeEventListener('scroll', measure)
-		}
 	})
 
-	// Reset whenever the editor (re)opens.
+	// Reset (create) or prefill (edit) whenever the editor (re)opens.
 	$effect(() => {
 		if (open) {
-			name = ''
-			matchMode = 'all'
-			conditions = []
+			const parsed = playlist ? parseSmartRules(playlist.smart_rules) : null
+			if (playlist && parsed) {
+				name = playlist.name
+				matchMode = parsed.match_mode
+				// Clone before feeding $state — the per-index condition updates must not mutate the
+				// store's parsed objects.
+				conditions = structuredClone(parsed.conditions)
+				initialLimit = parsed.limit
+			} else {
+				name = playlist?.name ?? ''
+				matchMode = 'all'
+				conditions = []
+				initialLimit = undefined
+			}
 			previewCount = null
 		}
 	})
@@ -101,7 +109,7 @@
 
 	function handleSubmit() {
 		if (!canSubmit) return
-		onSubmit(name.trim(), { match_mode: matchMode, conditions })
+		onSubmit(name.trim(), { match_mode: matchMode, conditions, ...(initialLimit ? { limit: initialLimit } : {}) })
 	}
 
 	function addCondition() {
@@ -159,23 +167,23 @@
 	scrimZ={63}
 	scrimDismiss={false}
 	panelDrag={false}
-	ariaLabel={$translate('smartPlaylist.createTitle')}
+	ariaLabel={title}
 	class="pb-safe flex h-[94vh] w-full flex-col rounded-t-2xl border-t border-stroke bg-surface-0"
 >
 	{#snippet children({ animating })}
-		<!-- Top nav bar: Cancel · title · Create. Actions stay above the keyboard. -->
+		<!-- Top nav bar: Cancel · title · Create/Save. Actions stay above the keyboard. -->
 		<div class="flex items-center justify-between gap-2 border-b border-stroke-subtle px-3 py-3">
 			<button type="button" class="text-sm text-text-secondary active:opacity-60" onclick={onCancel}>
 				{$translate('common.cancel')}
 			</button>
-			<h2 class="truncate text-base font-semibold text-text-primary">{$translate('smartPlaylist.createTitle')}</h2>
+			<h2 class="truncate text-base font-semibold text-text-primary">{title}</h2>
 			<button
 				type="button"
 				class="text-sm font-semibold text-brand-primary active:opacity-60 disabled:opacity-40"
 				disabled={!canSubmit}
 				onclick={handleSubmit}
 			>
-				{$translate('common.create')}
+				{isEditing ? $translate('common.save') : $translate('common.create')}
 			</button>
 		</div>
 
@@ -271,7 +279,7 @@
 									<div class="flex flex-wrap gap-1.5 pt-1">
 										{#each tagCategories as category (category.id)}
 											{#each category.tags as tag (tag.id)}
-												{@const color = tag.color ?? category.color ?? '#6366f1'}
+												{@const color = tag.color ?? category.color ?? DEFAULT_TAG_COLOR}
 												{@const selected = condition.type === 'tags' && condition.tag_ids.includes(tag.id)}
 												<button
 													type="button"
@@ -368,9 +376,6 @@
 						{/if}
 					</p>
 				{/if}
-
-				<!-- Keyboard clearance so a focused field can scroll above the keyboard. -->
-				<div style="height: {kbInset}px"></div>
 			</div>
 		</div>
 	{/snippet}

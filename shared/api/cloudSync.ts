@@ -35,6 +35,25 @@ export async function pullNow(): Promise<void> {
 	return invoke<void>('pull_now')
 }
 
+/** One-shot foreground sync (mobile): pull, then push if there are local edits. No-op when signed out. */
+export async function syncForeground(): Promise<void> {
+	return invoke<void>('sync_foreground')
+}
+
+/**
+ * Arm opportunistic background sync (mobile: iOS BGTaskScheduler / Android WorkManager). Call after
+ * sign-in and on launch when already signed in. The command is mobile-only; on desktop the invoke
+ * rejects (unknown command), so callers swallow the error.
+ */
+export async function scheduleBackgroundSync(): Promise<void> {
+	return invoke<void>('schedule_background_sync')
+}
+
+/** Cancel any scheduled background sync (mobile; called on sign-out). Mobile-only command. */
+export async function cancelBackgroundSync(): Promise<void> {
+	return invoke<void>('cancel_background_sync')
+}
+
 // Devices
 
 export async function listDevices(): Promise<CloudDeviceRecord[]> {

@@ -1,5 +1,6 @@
 {
 	"common": {
+		"add": "添加",
 		"close": "关闭",
 		"save": "保存",
 		"search": "搜索...",
@@ -22,7 +23,8 @@
 		"next": "下一个",
 		"back": "返回",
 		"more": "更多",
-		"select": "选择"
+		"select": "选择",
+		"noResults": "无结果"
 	},
 	"nav": {
 		"library": "曲库",
@@ -121,7 +123,12 @@
 			"cacheSize": "缓存大小",
 			"clearCache": "清除缓存",
 			"clearCacheConfirmMessage": "确定要清除所有缓存的预览音频吗？",
-			"clearCacheWarning": "之前预览的曲目需要在下次播放时从其来源重新流式传输。这可能会更慢，某些流可能不再可用。"
+			"clearCacheWarning": "之前预览的曲目需要在下次播放时从其来源重新流式传输。这可能会更慢，某些流可能不再可用。",
+			"audioCache": "音频",
+			"artworkCache": "专辑封面",
+			"artworkCacheDescription": "专辑封面保存在此设备上，无需连接即可显示。",
+			"clearArtworkCacheConfirmMessage": "确定要清除所有缓存的专辑封面吗？",
+			"cacheLimit": "缓存限制"
 		},
 		"following": {
 			"title": "关注中",
@@ -327,6 +334,11 @@
 		},
 		"fetchingMetadata": "正在获取元数据...",
 		"refreshMetadata": "刷新元数据",
+		"downloadForOffline": "下载以供离线使用",
+		"downloading": "下载中...",
+		"downloadedForOffline": "已下载",
+		"removeDownload": "删除下载",
+		"downloadFailed": "无法下载以供离线使用",
 		"fetchError": "无法从此URL获取元数据",
 		"unsupportedUrl": "不支持此URL",
 		"tracks": "曲目",
@@ -466,6 +478,9 @@
 		"noPlaylistsYet": "暂无播放列表",
 		"noPlaylists": "暂无播放列表",
 		"allPlaylists": "所有播放列表",
+		"searchPlaceholder": "搜索播放列表…",
+		"emptyHint": "创建播放列表来整理你的发现",
+		"detailEmptyHint": "在发现中长按发行来将其添加到播放列表",
 		"exportToDevice": "导出到设备"
 	},
 	"tags": {
@@ -479,7 +494,8 @@
 		"addTag": "添加标签",
 		"moveToCategory": "移动到分类",
 		"noTags": "暂无标签",
-		"noTagCategoriesYet": "暂无标签分类"
+		"noTagCategoriesYet": "暂无标签分类",
+		"emptyHint": "创建带颜色编码的标签分类来整理你的发现"
 	},
 	"contextMenu": {
 		"viewInFinder": "在访达中显示",

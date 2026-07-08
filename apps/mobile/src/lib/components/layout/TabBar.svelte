@@ -2,18 +2,18 @@
 	import { translate } from '$shared/i18n'
 	import { mobileUIStore, activeTab, type MobileTab } from '$lib/stores/mobileUI'
 
-	// Bottom tab bar: the app's primary navigation (iOS-conventional). Five destinations — Discovery,
-	// Following, Playlists, Tags, Settings — each an icon over a label. Pinned to the bottom edge and owns the
-	// bottom safe-area inset; the mini-player docks directly above it. Full-screen surfaces (the release detail
-	// push, the expanded player) cover it, so it only shows on the main shell. Each button is a 44pt+ hit
-	// area.
+	// Bottom tab bar: the app's primary navigation (iOS-conventional). Four destinations — Discovery,
+	// Following, Playlists, Tags — each an icon over a label. Settings is not a tab: it opens as a right-side
+	// drawer from the Header's gear button, which keeps the labels roomy enough that long localizations (e.g.
+	// Japanese) don't overflow the sliding indicator. Pinned to the bottom edge and owns the bottom safe-area
+	// inset; the mini-player docks directly above it. Full-screen surfaces (the release detail push, the
+	// expanded player) cover it, so it only shows on the main shell. Each button is a 44pt+ hit area.
 	type Tab = { id: MobileTab; label: string }
 	const tabs: Tab[] = $derived([
 		{ id: 'discovery', label: $translate('nav.discovery') },
 		{ id: 'following', label: $translate('discovery.following.title') },
 		{ id: 'playlists', label: $translate('nav.playlists') },
 		{ id: 'tags', label: $translate('nav.tags') },
-		{ id: 'settings', label: $translate('settings.title') },
 	])
 
 	// Index of the active tab within `tabs` — drives the horizontal offset of the sliding highlight
@@ -26,15 +26,31 @@
 		)
 	)
 
-	// Switch tabs on pointer-DOWN for touch — not on click. iOS WebKit defers `click` dispatch to a
+	// Activate tabs on pointer-DOWN for touch — not on click. iOS WebKit defers `click` dispatch to a
 	// fixed element like this bar until an in-progress momentum ("flick") scroll of the current tab's
 	// content settles, so tapping a tab mid-scroll felt dead until the list coasted to a stop.
-	// `pointerdown` fires on finger-down — the same touch that cancels the momentum — so the tab switches
-	// immediately. Mouse, pen, and keyboard/VoiceOver keep activating via `onclick` below (natural press
-	// semantics + synthesized-click a11y); `setTab` no-ops when already on the tab, so the trailing click
-	// after a touch tap is harmless. A future tab could veto/confirm the switch here before navigating.
-	function navigateOnTouch(e: PointerEvent, tab: MobileTab) {
-		if (e.pointerType === 'touch') mobileUIStore.setTab(tab)
+	// `pointerdown` fires on finger-down — the same touch that cancels the momentum — so the tab activates
+	// immediately. Mouse, pen, and keyboard/VoiceOver activate via `onclick` (natural press semantics +
+	// synthesized-click a11y).
+	//
+	// `activateTab` re-taps do real work now (pop-to-root / scroll-to-top drive one-shot nonces), so — unlike
+	// the old idempotent `setTab` — the trailing synthesized click after a touch tap must NOT fire it a second
+	// time (that would pop two levels or double-scroll). Latch on the touch pointerdown and swallow that one
+	// click; a mouse pointerdown clears the latch so its own click still activates.
+	let suppressClick = false
+	function onTabPointerDown(e: PointerEvent, tab: MobileTab) {
+		suppressClick = false
+		if (e.pointerType === 'touch') {
+			suppressClick = true
+			mobileUIStore.activateTab(tab)
+		}
+	}
+	function onTabClick(tab: MobileTab) {
+		if (suppressClick) {
+			suppressClick = false
+			return
+		}
+		mobileUIStore.activateTab(tab)
 	}
 </script>
 
@@ -62,8 +78,8 @@
 					: 'text-text-tertiary'}"
 				aria-current={active ? 'page' : undefined}
 				aria-label={tab.label}
-				onpointerdown={(e) => navigateOnTouch(e, tab.id)}
-				onclick={() => mobileUIStore.setTab(tab.id)}
+				onpointerdown={(e) => onTabPointerDown(e, tab.id)}
+				onclick={() => onTabClick(tab.id)}
 			>
 				{#if tab.id === 'discovery'}
 					<!-- `globe` — matches the desktop Discovery icon (settings Discovery tab / Icon.svelte). -->
@@ -109,7 +125,7 @@
 							d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z"
 						/>
 					</svg>
-				{:else if tab.id === 'following'}
+				{:else}
 					<!-- `rss` — matches the desktop Following icon (Icon.svelte): two broadcast arcs over a dot. -->
 					<svg
 						class="h-6 w-6"
@@ -123,21 +139,6 @@
 						<path d="M5 12a7 7 0 0 1 7 7" />
 						<path d="M5 5a14 14 0 0 1 14 14" />
 						<circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
-					</svg>
-				{:else}
-					<svg
-						class="h-6 w-6"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<circle cx="12" cy="12" r="3" />
-						<path
-							d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
-						/>
 					</svg>
 				{/if}
 				<span class="text-[11px] leading-none font-medium">{tab.label}</span>

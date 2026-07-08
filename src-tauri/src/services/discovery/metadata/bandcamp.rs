@@ -31,6 +31,13 @@ pub(super) async fn scan_bandcamp_page(
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to fetch Bandcamp page: {e}")))?;
 
+    // Surface a 429 explicitly so the follow watch loop can back off instead of hammering.
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(CrateError::Discovery(
+            "Bandcamp rate limit exceeded (429)".into(),
+        ));
+    }
+
     // Check if we were redirected to an album/track page (common for single-release artists)
     let final_url = response.url().to_string();
     let final_lower = final_url.to_lowercase();

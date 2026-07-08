@@ -1,8 +1,10 @@
 <script lang="ts">
+	import { get } from 'svelte/store'
 	import type { Tag } from '$shared/types'
+	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
-	import { mobileUIStore, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
+	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
@@ -26,7 +28,7 @@
 	let open = $state(true)
 
 	// Tags inherit their category's color; fall back to the app's default indigo if neither is set.
-	const dotColor = $derived(tag.color ?? categoryColor ?? '#6366f1')
+	const dotColor = $derived(tag.color ?? categoryColor ?? DEFAULT_TAG_COLOR)
 
 	// Releases carrying this tag, taken from the shared discovery set (re-derives as tags change / sync lands).
 	const releases = $derived($discoveryStore.releases.filter((r) => r.tags.some((t) => t.id === tag.id)))
@@ -41,6 +43,12 @@
 		if ($discoveryStore.releases.length === 0) discoveryStore.loadReleases()
 	})
 
+	// Pull-to-refresh: reload the shared discovery set — tag membership rides on each release, so newly
+	// synced or freshly tagged releases re-derive into this feed (mirrors FollowDetailView).
+	async function refreshReleases() {
+		await discoveryStore.loadReleases()
+	}
+
 	function startClose() {
 		open = false
 		mobileUIStore.beginCloseTag()
@@ -49,6 +57,16 @@
 	function onClosed() {
 		mobileUIStore.closeTag()
 	}
+
+	// iOS "re-tap the active tab to pop to root": the tab bar bumps `overlayPopNonce`. Close on the bump, but
+	// defer to the release detail when it's stacked on top (that closes first; a second tap then reaches here).
+	let seenPopNonce = get(overlayPopNonce)
+	$effect(() => {
+		const n = $overlayPopNonce
+		if (n === seenPopNonce) return
+		seenPopNonce = n
+		if (open && get(detailReleaseId) === null) startClose()
+	})
 
 	function openPickerForSingle(releaseId: string) {
 		pickerReleaseIds = [releaseId]
@@ -101,7 +119,7 @@
 				{$translate('discovery.noReleasesYet')}
 			</div>
 		{:else}
-			<ReleaseFeedList {releases} scrollLocked={animating} row={releaseRow} />
+			<ReleaseFeedList {releases} scrollLocked={animating} onRefresh={refreshReleases} row={releaseRow} />
 		{/if}
 	{/snippet}
 </Drawer>

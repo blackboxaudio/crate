@@ -4,7 +4,7 @@
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
 	import { followStore } from '$shared/stores/follow'
-	import { mobileUIStore, scrollTargetReleaseId, mobileDisplayedReleases } from '$lib/stores/mobileUI'
+	import { mobileUIStore, scrollTargetReleaseId, mobileDisplayedReleases, scrollTopNonce } from '$lib/stores/mobileUI'
 	import MobileListSkeleton from '$lib/components/common/MobileListSkeleton.svelte'
 	import { pendingReleases } from '$lib/stores/pendingReleases'
 	import DiscoveryToolbar from './DiscoveryToolbar.svelte'
@@ -30,7 +30,7 @@
 	const releases = $derived($mobileDisplayedReleases)
 	const totalReleases = $derived($discoveryStore.releases.length)
 
-	// Bound feed-list instance, so the locate effect can drive the virtualizer's scrollToIndex.
+	// Bound feed-list instance, so the locate / scroll-to-top effects can drive the virtualizer's scroll.
 	let feedList = $state<ReturnType<typeof ReleaseFeedList> | null>(null)
 
 	// Snapshot at mount, BEFORE any effect runs. `skipScrollRestore`: when we arrive via "locate" (the
@@ -52,12 +52,23 @@
 		mobileUIStore.consumeScrollTarget()
 	})
 
-	// A scroll closes any revealed swipe-to-delete row (no-op when none is open) and persists the offset —
-	// the shell remounts this view on tab return, so the feed list restores from the store on mount.
+	// A scroll closes any revealed swipe-to-delete row (no-op when none is open) and persists the offset — the
+	// shell remounts this view on tab return, so the feed list restores from the store on mount.
 	function handleScroll(scrollTop: number) {
 		mobileUIStore.setOpenRow(null)
 		mobileUIStore.setDiscoveryScrollTop(scrollTop)
 	}
+
+	// iOS "re-tap the active tab to scroll to top": the tab bar bumps `scrollTopNonce` when the active tab is
+	// re-tapped with nothing to pop. Ignore the initial value so a normal mount (or scroll restore) doesn't
+	// yank the feed to the top.
+	let seenScrollNonce = get(mobileUIStore).scrollTopNonce
+	$effect(() => {
+		const n = $scrollTopNonce
+		if (n === seenScrollNonce) return
+		seenScrollNonce = n
+		feedList?.scrollToTop()
+	})
 
 	// Pull-to-refresh: check every followed source for new releases, then reload the feed so any freshly
 	// surfaced (is_new) releases appear inline. checkAll also refreshes the Following tab's counts.
@@ -67,12 +78,13 @@
 	}
 </script>
 
-<div class="flex h-full flex-col">
+<div class="relative flex h-full flex-col">
+	<!-- Pinned search/sort/filter toolbar (the section title lives in the fixed top bar). It sits ABOVE the
+	     feed's scroll container rather than scrolling with it, so a pull-to-refresh opens its gap in the space
+	     *beneath* the toolbar — the spinner reads as coming out from under the search bar. The pending block
+	     stays inside the list as its `leading` so it scrolls with the rows. ReleaseFeedList owns the scroll
+	     container and shows the loading/empty states when nothing is displayed. -->
 	<DiscoveryToolbar />
-
-	<!-- The toolbar stays OUTSIDE the feed list's scroll element so the virtualizer's rect math / scroll
-	     restore stay correct. ReleaseFeedList owns the scroll container, renders the pending block above the
-	     feed (leading), and shows the loading/empty states (empty snippet) when nothing is displayed. -->
 	<ReleaseFeedList
 		bind:this={feedList}
 		{releases}

@@ -137,6 +137,7 @@ impl PlaylistService {
                     release_date: row.get(6)?,
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
+                    artwork_cache_path: None,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
                     source_page_url: row.get(11)?,

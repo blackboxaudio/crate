@@ -56,6 +56,9 @@ export const TAG_CATEGORY_COLORS: { id: TagCategoryColor; label: string; hex: st
 	{ id: 'rose', label: 'Rose', hex: '#f43f5e' },
 ]
 
+/** Fallback chip/dot color when neither a tag nor its category has one (the indigo preset). */
+export const DEFAULT_TAG_COLOR = '#6366f1'
+
 export const ACCENT_TO_TAG_COLOR_HEX: Record<AccentColor, string> = {
 	blue: '#3b82f6',
 	indigo: '#6366f1',
@@ -475,7 +478,7 @@ export type AccentColor =
 	| 'emerald'
 	| 'teal'
 
-export type Font = 'inter' | 'nunito' | 'open-sans' | 'fira-code' | 'ibm-plex-mono' | 'source-code-pro'
+export type Font = 'system' | 'inter' | 'nunito' | 'open-sans' | 'fira-code' | 'ibm-plex-mono' | 'source-code-pro'
 
 export type Language =
 	| 'en'
@@ -541,6 +544,10 @@ export interface AppSettings {
 	lastBackupType: string | null
 	hasCompletedOnboarding: boolean
 	hasCompletedWizard: boolean
+	/** Device-local cap (MB) on the on-disk discovery audio-preview cache; drives LRU eviction. */
+	discoveryAudioCacheLimitMb: number
+	/** Device-local cap (MB) on the on-disk discovery artwork cache; drives LRU eviction. */
+	discoveryArtworkCacheLimitMb: number
 }
 
 export interface AudioDevice {
@@ -724,6 +731,8 @@ export interface DiscoveryRelease {
 	release_date: string | null
 	artwork_url: string | null
 	artwork_path: string | null
+	/** Relative path to the on-disk cached remote cover, or null if not yet cached. Drives cache-first offline artwork on mobile. */
+	artwork_cache_path: string | null
 	notes: string | null
 	parent_url: string | null
 	source_page_url: string | null

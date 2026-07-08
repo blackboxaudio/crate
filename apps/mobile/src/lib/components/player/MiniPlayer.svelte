@@ -11,6 +11,7 @@
 		followDetailCovering,
 	} from '$lib/stores/mobileUI'
 	import Spinner from '$lib/components/common/Spinner.svelte'
+	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 
 	// Persistent mini-player for discovery preview playback: a floating liquid-glass card (Spotify-style)
 	// that sits just above the bottom tab bar, visually separated from it by a gap, side margins, rounded
@@ -72,21 +73,20 @@
 				onpointerdown={(e) => tapDown(e, expand)}
 				onclick={() => tapClick(expand)}
 			>
-				{#if $previewInfo.release.artwork_url}
-					<img
-						src={$previewInfo.release.artwork_url}
-						alt=""
-						class="h-11 w-11 flex-shrink-0 rounded-lg object-cover shadow-sm"
-					/>
-				{:else}
-					<div
-						class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-tertiary"
-					>
-						<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
-							<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-						</svg>
-					</div>
-				{/if}
+				<ReleaseArtwork
+					release={$previewInfo.release}
+					class="h-11 w-11 flex-shrink-0 rounded-lg object-cover shadow-sm"
+				>
+					{#snippet fallback()}
+						<div
+							class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-surface-2 text-text-tertiary"
+						>
+							<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
+								<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
+							</svg>
+						</div>
+					{/snippet}
+				</ReleaseArtwork>
 				<div class="flex min-w-0 flex-1 flex-col">
 					<span class="truncate text-sm font-medium text-text-primary">
 						{track?.name ?? $previewInfo.release.title ?? $translate('common.untitled')}

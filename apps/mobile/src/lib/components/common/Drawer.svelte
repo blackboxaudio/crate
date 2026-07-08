@@ -41,6 +41,12 @@
 		 *  dismiss). Leave off for fullscreen pushes (release detail, player), which must stay opaque mid-slide
 		 *  so the content behind never shows through. */
 		fade?: boolean
+		/** Bottom sheets only: slide by animating the panel's `bottom` position instead of `transform:
+		 *  translateY`. It still slides up from the bottom, but the panel carries NO transform — so a field
+		 *  focused on open isn't parented by a transformed element (the iOS caret-offset trigger). The native
+		 *  caret tracks a layout-position move but not a composited transform, so it stays glued to the field as
+		 *  the sheet slides. Use for keyboard-first sheets (e.g. the add-release form). */
+		positionSlide?: boolean
 		/** External finger-follow OPEN progress 0→1 (the shell's edge-open gesture). Horizontal only. */
 		openProgress?: number | null
 		/** Apply the dismiss gesture to the whole panel (default). A bottom sheet with scrollable content sets
@@ -65,6 +71,7 @@
 		scrimOpacity = 0.5,
 		scrimDismiss = true,
 		fade = false,
+		positionSlide = false,
 		openProgress = null,
 		panelDrag = true,
 		closeEdgeSize,
@@ -87,6 +94,11 @@
 	// True while the panel's slide is mid-flight; exposed to content as `animating` so a scroll container can
 	// stop scrolling during the transition (the panel itself stays grabbable / finger-followable).
 	let animatingSlide = $state(false)
+	// True once a bottom sheet has finished sliding open and is at rest. We then drop its `transform` to `none`
+	// (identity `translateY(0%)` is visually the same) so a focused input inside it isn't parented by a
+	// transformed element — iOS mispositions the text caret inside transformed elements and only lazily
+	// corrects it, which showed up as the caret sitting well below the field for ~1s after the sheet opened.
+	let settled = $state(false)
 
 	// Openness 0 (off-screen) → 1 (open). A drag wins; then the external open-drag (horizontal); else the
 	// committed open/closing state.
@@ -103,7 +115,12 @@
 			bottom: 'inset-x-0 bottom-0',
 		}[direction]
 	)
+	// `positionSlide` bottom sheets animate `bottom` (see below), never `transform`, so this is unused for them.
+	const posSlide = $derived(direction === 'bottom' && positionSlide)
 	const transform = $derived.by(() => {
+		// Bottom sheet at rest (fully open, no drag, not closing): no transform at all, so an input's caret sits
+		// correctly. During the open/close slide or a dismiss drag it keeps the translate so the motion works.
+		if (direction === 'bottom' && settled && closeDrag === null && !closing) return 'none'
 		const off = (1 - openness) * 100
 		return {
 			left: `translateX(-${off}%)`,
@@ -112,17 +129,24 @@
 			bottom: `translateY(${off}%)`,
 		}[direction]
 	})
-	// When `fade` is on, the panel's opacity rides `openness` so a translucent sheet dissolves as it slides
-	// (no glass slab clashing with the rows behind it); transform + opacity share the one slide timing. Both
-	// literal class strings are spelled out so Tailwind can see them (a split template wouldn't be generated).
+	// When `fade` is on, the panel's opacity rides `openness` so a translucent sheet dissolves as it slides.
+	// A `posSlide` sheet instead slides by its `bottom` offset (a layout move, so a focused field's caret follows
+	// it): `bottom: -100%` parks it fully below the viewport, `0%` is open. Both literal class strings are spelled
+	// out so Tailwind can see them.
 	const panelTransitionClass = $derived(
 		!transitionOn
 			? ''
-			: fade
-				? 'ease-fluid transition-[transform,opacity] duration-500 motion-reduce:transition-none'
-				: 'ease-fluid transition-transform duration-500 motion-reduce:transition-none'
+			: posSlide
+				? 'ease-fluid transition-[bottom] duration-500 motion-reduce:transition-none'
+				: fade
+					? 'ease-fluid transition-[transform,opacity] duration-500 motion-reduce:transition-none'
+					: 'ease-fluid transition-transform duration-500 motion-reduce:transition-none'
 	)
-	const panelStyle = $derived(`z-index: ${z}; transform: ${transform}${fade ? `; opacity: ${openness}` : ''}`)
+	const panelStyle = $derived(
+		posSlide
+			? `z-index: ${z}; bottom: ${-(1 - openness) * 100}%`
+			: `z-index: ${z}; transform: ${transform}${fade ? `; opacity: ${openness}` : ''}`
+	)
 
 	// --- open/close orchestration, driven by the `open` prop -------------------------------------------
 	$effect(() => {
@@ -149,6 +173,17 @@
 		}
 	})
 
+	// Mark the sheet settled once the open slide has had time to land (the `transitionend` below sets it sooner
+	// when a transition actually runs; this is the fallback for reduced motion, where no transition fires).
+	$effect(() => {
+		if (entered && !closing) {
+			const t = setTimeout(() => {
+				if (entered && !closing) settled = true
+			}, DURATION + 20)
+			return () => clearTimeout(t)
+		}
+	})
+
 	onMount(() => {
 		function onKey(e: KeyboardEvent) {
 			if (e.key === 'Escape' && visible && !closing) requestClose()
@@ -161,6 +196,8 @@
 	function startClose() {
 		if (closing) return
 		closing = true
+		// Restore the transform for the slide-out (it was dropped to `none` at rest for the caret fix).
+		settled = false
 		// Back up the transitionend so reduced-motion (no transition → no event) still finalizes.
 		setTimeout(() => closing && finalizeClose(), DURATION + 20)
 	}
@@ -178,6 +215,7 @@
 		entered = false
 		closing = false
 		closeDrag = null
+		settled = false
 		onClosed?.()
 	}
 
@@ -192,6 +230,7 @@
 		if (e.target !== e.currentTarget || e.propertyName !== 'transform') return
 		animatingSlide = false
 		if (closing) finalizeClose()
+		else if (entered) settled = true
 	}
 	function onTransformCancel(e: TransitionEvent) {
 		// Interrupted slide (e.g. reopened mid-close): unfreeze; the replacement transition re-freezes.

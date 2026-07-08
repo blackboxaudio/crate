@@ -353,12 +353,96 @@ pub async fn clear_discovery_audio_cache(discovery: State<'_, DiscoveryService>)
     discovery.clear_audio_cache()
 }
 
+/// Download + cache a release's remote cover to disk for offline (airplane-mode) rendering.
+/// Idempotent: an already-cached cover is just touched and re-served. Returns the relative
+/// cache path ("discovery/artwork/{id}.ext"), or `None` when the release has no `artwork_url`
+/// or the fetch fails (the frontend then falls back to the remote URL).
+#[tauri::command]
+pub async fn cache_release_artwork(
+    release_id: String,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<Option<String>> {
+    discovery.cache_release_artwork(&release_id).await
+}
+
+#[tauri::command]
+pub async fn get_discovery_artwork_cache_size(
+    discovery: State<'_, DiscoveryService>,
+) -> Result<i64> {
+    discovery.get_artwork_cache_total_size()
+}
+
+#[tauri::command]
+pub async fn clear_discovery_artwork_cache(discovery: State<'_, DiscoveryService>) -> Result<()> {
+    discovery.clear_artwork_cache()
+}
+
 #[tauri::command]
 pub async fn invalidate_preview_stream_cache(
     release_id: String,
     discovery: State<'_, DiscoveryService>,
 ) -> Result<()> {
     discovery.invalidate_stream_cache(&release_id)
+}
+
+/// Per-release cache state for the "downloaded for offline" indicator.
+#[derive(serde::Serialize)]
+pub struct ReleaseCacheState {
+    pub cached_tracks: i64,
+    pub total_tracks: i64,
+    pub bytes: i64,
+}
+
+/// Report how many of a release's tracks have their audio cached on disk (drives the
+/// per-release download indicator).
+#[tauri::command]
+pub async fn get_release_cache_state(
+    release_id: String,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<ReleaseCacheState> {
+    let (cached_tracks, total_tracks, bytes) = discovery.get_release_cache_state(&release_id)?;
+    Ok(ReleaseCacheState {
+        cached_tracks,
+        total_tracks,
+        bytes,
+    })
+}
+
+/// Proactively download and cache a track's audio bytes for offline playback ("Download for
+/// offline" / re-cache on demand). Resolves the stream URL via [`fetch_preview_stream`], then
+/// makes a server-side request to the localhost proxy — which downloads the full stream and
+/// persists it to the on-disk audio cache (with LRU eviction) — so the track later plays with
+/// no network. Idempotent: a request for an already-cached track just re-serves from disk. The
+/// frontend calls this per track to drive a whole-release download. Server-side on purpose: the
+/// WebView CSP `connect-src` doesn't allow `fetch()` to the proxy, only `<audio>` media loads.
+#[tauri::command]
+pub async fn precache_preview_stream(
+    release_id: String,
+    track_position: i32,
+    app: tauri::AppHandle,
+    discovery: State<'_, DiscoveryService>,
+    proxy_port: State<'_, ProxyServerPort>,
+    tracker: State<'_, PrefetchTracker>,
+) -> Result<()> {
+    // Resolve (and cache) the stream URL, and get the localhost proxy URL for the track.
+    let proxy_url =
+        fetch_preview_stream(release_id, track_position, app, discovery, proxy_port, tracker)
+            .await?;
+
+    // Hitting the proxy forces it to download the full stream and persist it to the on-disk
+    // cache before responding. A tiny range keeps the transferred body to a couple of bytes
+    // while the server still caches everything.
+    let client = reqwest::Client::new();
+    client
+        .get(&proxy_url)
+        .header("Range", "bytes=0-1")
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Precache proxy request failed: {e:#}")))?
+        .error_for_status()
+        .map_err(|e| CrateError::Discovery(format!("Precache proxy returned error: {e:#}")))?;
+
+    Ok(())
 }
 
 #[tauri::command]
