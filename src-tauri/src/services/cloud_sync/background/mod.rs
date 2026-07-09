@@ -70,6 +70,7 @@ pub(crate) async fn run_background_sync(
 #[cfg_attr(not(target_os = "android"), allow(dead_code))]
 fn dirty_nonempty(conn: &Arc<Mutex<Connection>>) -> Result<bool> {
     let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-    let count: i64 = guard.query_row("SELECT COUNT(*) FROM sync_dirty_buckets", [], |r| r.get(0))?;
+    let count: i64 =
+        guard.query_row("SELECT COUNT(*) FROM sync_dirty_buckets", [], |r| r.get(0))?;
     Ok(count > 0)
 }

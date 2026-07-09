@@ -52,7 +52,10 @@ fn health_for_error(msg: &str) -> FollowHealth {
 fn seconds_since(now: DateTime<Utc>, ts: &str) -> Option<i64> {
     DateTime::parse_from_rfc3339(ts)
         .ok()
-        .map(|t| now.signed_duration_since(t.with_timezone(&Utc)).num_seconds())
+        .map(|t| {
+            now.signed_duration_since(t.with_timezone(&Utc))
+                .num_seconds()
+        })
         .filter(|&s| s >= 0)
 }
 
@@ -75,7 +78,11 @@ fn backoff_window_secs(health: &str, consecutive_failures: i64) -> i64 {
 /// forced manual check; the plain re-scan cooldown applies only to automatic sweeps
 /// (`force == false`). Returns `false` when there's no prior check to gate against.
 fn should_skip_scan(now: DateTime<Utc>, gate: &CheckGate, force: bool) -> bool {
-    let elapsed = match gate.last_checked_at.as_deref().and_then(|ts| seconds_since(now, ts)) {
+    let elapsed = match gate
+        .last_checked_at
+        .as_deref()
+        .and_then(|ts| seconds_since(now, ts))
+    {
         Some(e) => e,
         None => return false,
     };
@@ -245,7 +252,10 @@ pub async fn check_one(
         .await;
         let (health, error) = match res {
             Ok(()) => ("ok".to_string(), None),
-            Err(e) => (health_for_error(&e.to_string()).to_string(), Some(e.to_string())),
+            Err(e) => (
+                health_for_error(&e.to_string()).to_string(),
+                Some(e.to_string()),
+            ),
         };
         return (
             SourceCheckResult {
@@ -365,8 +375,14 @@ pub async fn check_all(
             tokio::time::sleep(metadata::jittered_delay(base_ms)).await;
         }
 
-        let (result, ids) =
-            check_one(conn.clone(), app.clone(), app_data_dir.clone(), source, false).await;
+        let (result, ids) = check_one(
+            conn.clone(),
+            app.clone(),
+            app_data_dir.clone(),
+            source,
+            false,
+        )
+        .await;
         release_ids.extend(ids);
         by_source.push(result);
     }
@@ -497,7 +513,9 @@ mod tests {
     use super::*;
 
     fn at(ts: &str) -> DateTime<Utc> {
-        DateTime::parse_from_rfc3339(ts).unwrap().with_timezone(&Utc)
+        DateTime::parse_from_rfc3339(ts)
+            .unwrap()
+            .with_timezone(&Utc)
     }
 
     fn gate(last_checked_at: Option<&str>, health: &str, failures: i64) -> CheckGate {

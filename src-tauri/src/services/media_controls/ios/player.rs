@@ -60,7 +60,8 @@ impl PlaybackEngineInner {
     pub fn new(app: AppHandle) -> Self {
         // The engine is only ever constructed inside a `run_on_main_thread` closure, so we are on the
         // main thread here.
-        let mtm = MainThreadMarker::new().expect("native preview engine must be created on main thread");
+        let mtm =
+            MainThreadMarker::new().expect("native preview engine must be created on main thread");
         // SAFETY: AVPlayer designated initializer; on the main thread (mtm proves it).
         let player = unsafe { AVPlayer::new(mtm) };
         let command_targets = remote_command::configure(&app);
@@ -102,7 +103,12 @@ impl PlaybackEngineInner {
 
     /// Replace the playlist and start playing from `start_index`, beginning `start_position_ms` into
     /// that track (0 = from the start; non-zero only when restoring the last session on app relaunch).
-    pub fn load(&mut self, entries: Vec<NativeTrackEntry>, start_index: usize, start_position_ms: u64) {
+    pub fn load(
+        &mut self,
+        entries: Vec<NativeTrackEntry>,
+        start_index: usize,
+        start_position_ms: u64,
+    ) {
         if entries.is_empty() {
             return;
         }
@@ -237,7 +243,10 @@ impl PlaybackEngineInner {
             return true;
         }
         if status == AVPlayerItemStatus::ReadyToPlay {
-            engine::emit_debug(&self.app, format!("status=ReadyToPlay on track {}", self.index));
+            engine::emit_debug(
+                &self.app,
+                format!("status=ReadyToPlay on track {}", self.index),
+            );
             return true;
         }
         false
@@ -342,7 +351,11 @@ impl PlaybackEngineInner {
         if next as usize >= self.entries.len() {
             engine::emit_debug(
                 &self.app,
-                format!("advance past last track ({}/{}) → stop + ended", next, self.entries.len()),
+                format!(
+                    "advance past last track ({}/{}) → stop + ended",
+                    next,
+                    self.entries.len()
+                ),
             );
             self.stop();
             engine::emit_ended(&self.app);
@@ -353,7 +366,8 @@ impl PlaybackEngineInner {
 
     /// "Previous" with the shared 3s restart-vs-previous rule.
     pub fn previous(&mut self) {
-        if (self.position_secs() * 1000.0) as u64 > PREVIOUS_RESTART_THRESHOLD_MS || self.index == 0 {
+        if (self.position_secs() * 1000.0) as u64 > PREVIOUS_RESTART_THRESHOLD_MS || self.index == 0
+        {
             self.seek(0);
         } else {
             self.advance(-1);
@@ -410,7 +424,10 @@ impl PlaybackEngineInner {
             return;
         }
         self.emit_current_state();
-        now_playing::set_playback(self.position_secs(), if self.playing { self.rate } else { 0.0 });
+        now_playing::set_playback(
+            self.position_secs(),
+            if self.playing { self.rate } else { 0.0 },
+        );
     }
 
     fn position_secs(&self) -> f64 {

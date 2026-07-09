@@ -8,6 +8,7 @@ pub mod metadata;
 pub mod n_transform;
 pub mod streams;
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -33,6 +34,16 @@ pub struct DiscoveryService {
     conn: Arc<Mutex<Connection>>,
     artwork_service: ArtworkService,
     app_data_dir: PathBuf,
+    /// Shared client for artwork downloads — building a fresh client (connection pool, TLS
+    /// context) per cover fetch is wasteful when the feed requests dozens while scrolling.
+    artwork_http: reqwest::Client,
+    /// Caps concurrent artwork download+decode work: a fast flick through a large uncached feed
+    /// mounts many rows at once, and an unbounded fan-out of fetches and image decodes can
+    /// pressure a mobile device into killing the webview process.
+    artwork_fetch_permits: tokio::sync::Semaphore,
+    /// Release ids with an artwork download currently in flight (dedup — the virtualized feed
+    /// can remount a row while its first request is still running).
+    artwork_in_flight: Mutex<HashSet<String>>,
 }
 
 impl DiscoveryService {
@@ -49,10 +60,18 @@ impl DiscoveryService {
             log::warn!("Failed to create artwork cache directory: {e}");
         }
 
+        let artwork_http = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .unwrap_or_default();
+
         Self {
             conn,
             artwork_service,
             app_data_dir,
+            artwork_http,
+            artwork_fetch_permits: tokio::sync::Semaphore::new(3),
+            artwork_in_flight: Mutex::new(HashSet::new()),
         }
     }
 

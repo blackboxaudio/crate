@@ -76,7 +76,10 @@ pub fn configure(_app: &AppHandle) -> Vec<Retained<AnyObject>> {
 ///
 /// # Safety
 /// `command` must be a live MPRemoteCommand obtained on the main thread.
-unsafe fn add_handler(command: &MPRemoteCommand, action: impl Fn() + 'static) -> Retained<AnyObject> {
+unsafe fn add_handler(
+    command: &MPRemoteCommand,
+    action: impl Fn() + 'static,
+) -> Retained<AnyObject> {
     let block = RcBlock::new(
         move |_event: NonNull<MPRemoteCommandEvent>| -> MPRemoteCommandHandlerStatus {
             action();

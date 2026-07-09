@@ -48,7 +48,8 @@ serde_json = "1.0.145"
 
 [dependencies]
 # Tauri
-tauri = { version = "2.10.2", features = ["protocol-asset"] }
+# 2.11 floor: `Builder::on_web_content_process_terminate` (webview crash recovery) landed in 2.11.
+tauri = { version = "2.11", features = ["protocol-asset"] }
 tauri-plugin-opener = "2.5.3"
 tauri-plugin-dialog = "2.6.0"
 tauri-plugin-fs = "2.4.5"

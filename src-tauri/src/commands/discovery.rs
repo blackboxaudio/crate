@@ -425,9 +425,15 @@ pub async fn precache_preview_stream(
     tracker: State<'_, PrefetchTracker>,
 ) -> Result<()> {
     // Resolve (and cache) the stream URL, and get the localhost proxy URL for the track.
-    let proxy_url =
-        fetch_preview_stream(release_id, track_position, app, discovery, proxy_port, tracker)
-            .await?;
+    let proxy_url = fetch_preview_stream(
+        release_id,
+        track_position,
+        app,
+        discovery,
+        proxy_port,
+        tracker,
+    )
+    .await?;
 
     // Hitting the proxy forces it to download the full stream and persist it to the on-disk
     // cache before responding. A tiny range keeps the transferred body to a couple of bytes

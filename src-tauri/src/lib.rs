@@ -145,6 +145,18 @@ pub fn run() {
         .plugin(tauri_plugin_web_auth::init())
         .plugin(tauri_plugin_haptics::init());
 
+    // If the OS kills the WKWebView content process (e.g. iOS jetsam under memory pressure: the
+    // screen goes white while native audio keeps playing), reload the webview so the UI recovers
+    // instead of staying blank until a manual relaunch. iOS/macOS only — the hook is unsupported
+    // on other platforms.
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    let builder = builder.on_web_content_process_terminate(|webview| {
+        log::warn!("Web content process terminated — reloading webview");
+        if let Err(e) = webview.reload() {
+            log::error!("Failed to reload webview after content process termination: {e}");
+        }
+    });
+
     let builder = builder
         .invoke_handler(tauri::generate_handler![
             // App commands

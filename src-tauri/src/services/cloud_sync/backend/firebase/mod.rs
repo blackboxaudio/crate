@@ -66,7 +66,9 @@ impl FirebaseInner {
         match state.ensure_fresh().await {
             Ok(token) => Some(token),
             Err(e) => {
-                log::warn!("cloud_sync: App Check token unavailable ({e}); sending request without it");
+                log::warn!(
+                    "cloud_sync: App Check token unavailable ({e}); sending request without it"
+                );
                 None
             }
         }

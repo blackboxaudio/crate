@@ -100,6 +100,15 @@ function createPlayerStore() {
 	let previewSpeedCommitTimeout: ReturnType<typeof setTimeout> | null = null
 	let isRestoredFromStorage = false
 	let lastPositionWriteTime = 0
+	// While an iOS native seek is in flight, the engine's 0.5s state ticks can still carry the
+	// pre-seek position: the Rust-side `seeking` guard only engages once the seek command reaches the
+	// main thread, so a tick emitted in that IPC window would clobber the optimistic position (the
+	// scrubber "snaps back"). While set, stale position updates are ignored until the engine echoes a
+	// position near the target (the Rust seek emits the exact target immediately on landing) or a
+	// timeout passes — failing open so a dropped command can't freeze the playhead.
+	let pendingNativeSeek: { targetMs: number; issuedAt: number } | null = null
+	const NATIVE_SEEK_SETTLE_TOLERANCE_MS = 1500
+	const NATIVE_SEEK_TIMEOUT_MS = 2000
 	// On iOS, discovery preview plays through the native AVPlayer engine (lock-screen transport that
 	// survives JS suspension) instead of the HTML5 <audio> element. Every preview transport method
 	// branches on this; desktop/Android keep the HTML5 path.
@@ -388,6 +397,8 @@ function createPlayerStore() {
 	) {
 		const picks = playbackQueue.peekUpcoming(nativeWindowDepth(current.release, current.trackIndex))
 		if (mode === 'reload') {
+			// A fresh current track supersedes any in-flight seek on the previous one.
+			pendingNativeSeek = null
 			// The current (tapped/restored) track is required — let it throw so a genuine failure of the
 			// chosen track still surfaces to playPreview's catch. The upcoming tail is best-effort.
 			const currentTrack = await buildOneNativeTrack(current)
@@ -769,6 +780,7 @@ function createPlayerStore() {
 			streamUrlCache.clear()
 			nativeWindow = []
 			nativeIndex = 0
+			pendingNativeSeek = null
 
 			if (state.playbackSource === 'preview') {
 				if (useNative) {
@@ -824,6 +836,7 @@ function createPlayerStore() {
 
 			if (state.playbackSource === 'preview') {
 				if (useNative) {
+					pendingNativeSeek = { targetMs: positionMs, issuedAt: Date.now() }
 					void nativePreviewPlayer.seek(positionMs)
 				} else {
 					previewPlayer.seek(positionMs)
@@ -1168,6 +1181,16 @@ function createPlayerStore() {
 		async startNativeBridge() {
 			return nativePreviewPlayer.startNativePreviewBridge({
 				onState: ({ isPlaying, positionMs, durationMs }) => {
+					let applyPosition = true
+					if (pendingNativeSeek) {
+						const settled = Math.abs(positionMs - pendingNativeSeek.targetMs) <= NATIVE_SEEK_SETTLE_TOLERANCE_MS
+						const timedOut = Date.now() - pendingNativeSeek.issuedAt >= NATIVE_SEEK_TIMEOUT_MS
+						if (settled || timedOut) {
+							pendingNativeSeek = null
+						} else {
+							applyPosition = false
+						}
+					}
 					update((s) => {
 						if (s.playbackSource !== 'preview') return s
 						return {
@@ -1175,13 +1198,13 @@ function createPlayerStore() {
 							playbackState: {
 								...s.playbackState,
 								is_playing: isPlaying,
-								position_ms: positionMs,
+								position_ms: applyPosition ? positionMs : s.playbackState.position_ms,
 								duration_ms: durationMs > 0 ? durationMs : s.playbackState.duration_ms,
 							},
 							previewLoading: isPlaying ? null : s.previewLoading,
 						}
 					})
-					persistPosition(positionMs)
+					if (applyPosition) persistPosition(positionMs)
 				},
 				onTrackChanged: (index) => {
 					// The engine moved to entries-index `index`. Sync the queue module to match: each forward
@@ -1191,6 +1214,9 @@ function createPlayerStore() {
 					// engine auto-advanced through several pre-fed items. Then point previewInfo at the window
 					// pick and, after a forward move, slide the window so there are always fresh items ahead.
 					if (index === nativeIndex) return
+					// A track change makes any in-flight seek target meaningless — drop the guard so the
+					// new track's position ticks apply immediately.
+					pendingNativeSeek = null
 					const forward = index > nativeIndex
 					if (forward) {
 						for (let i = nativeIndex; i < index; i++) playbackQueue.advanceNext()
@@ -1261,6 +1287,7 @@ function createPlayerStore() {
 			streamUrlCache.clear()
 			nativeWindow = []
 			nativeIndex = 0
+			pendingNativeSeek = null
 			onTrackEndCallback = null
 			isRestoredFromStorage = false
 			setStoredString('player.playbackSource', 'library')

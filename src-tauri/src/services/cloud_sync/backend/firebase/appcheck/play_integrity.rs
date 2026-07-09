@@ -78,7 +78,8 @@ impl PlayIntegrityProvider {
 
     /// Exchange a raw Play Integrity token for a Firebase App Check token.
     async fn exchange(&self, integrity_token: &str) -> Result<AppCheckToken> {
-        let body = serde_json::json!({ "playIntegrityToken": integrity_token, "limitedUse": false });
+        let body =
+            serde_json::json!({ "playIntegrityToken": integrity_token, "limitedUse": false });
         let resp = self
             .client
             .post(self.endpoint("exchangePlayIntegrityToken"))

@@ -73,7 +73,12 @@ impl AppAttestProvider {
 
     /// POST an App Check exchange/challenge request carrying the project Web API key, returning
     /// the parsed JSON body on success (or a transient-aware error).
-    async fn post(&self, verb: &str, body: serde_json::Value, context: &'static str) -> Result<serde_json::Value> {
+    async fn post(
+        &self,
+        verb: &str,
+        body: serde_json::Value,
+        context: &'static str,
+    ) -> Result<serde_json::Value> {
         let resp = self
             .client
             .post(self.endpoint(verb))
@@ -93,12 +98,18 @@ impl AppAttestProvider {
     /// Request a fresh single-use challenge from Firebase.
     async fn challenge(&self) -> Result<String> {
         let body = self
-            .post(CHALLENGE_VERB, serde_json::json!({}), "appcheck app-attest challenge")
+            .post(
+                CHALLENGE_VERB,
+                serde_json::json!({}),
+                "appcheck app-attest challenge",
+            )
             .await?;
         body.get("challenge")
             .and_then(|c| c.as_str())
             .map(str::to_string)
-            .ok_or_else(|| CrateError::CloudSync("appcheck challenge response missing `challenge`".into()))
+            .ok_or_else(|| {
+                CrateError::CloudSync("appcheck challenge response missing `challenge`".into())
+            })
     }
 
     /// First-time / recovery path: attest the key against a fresh challenge, exchange the
@@ -121,9 +132,16 @@ impl AppAttestProvider {
             "keyId": key_id, // Apple's keyId is already base64; echo it through.
             "limitedUse": false,
         });
-        let AttestationResponse { app_check_token, artifact } = serde_json::from_value(
-            self.post("exchangeAppAttestAttestation", body, "appcheck app-attest attestation")
-                .await?,
+        let AttestationResponse {
+            app_check_token,
+            artifact,
+        } = serde_json::from_value(
+            self.post(
+                "exchangeAppAttestAttestation",
+                body,
+                "appcheck app-attest attestation",
+            )
+            .await?,
         )
         .map_err(|e| CrateError::CloudSync(format!("appcheck attestation decode: {e}")))?;
 

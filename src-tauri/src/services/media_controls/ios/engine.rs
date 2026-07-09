@@ -66,7 +66,9 @@ impl NativePreviewEngine {
     /// Replace the upcoming tail in place (slide the window / apply a queue mutation) without disturbing
     /// the currently-playing item.
     pub fn set_upcoming(&self, tracks: Vec<NativeTrackEntry>) {
-        run_on_main(&self.app, move || with_engine_mut(|e| e.set_upcoming(tracks)));
+        run_on_main(&self.app, move || {
+            with_engine_mut(|e| e.set_upcoming(tracks))
+        });
     }
 
     pub fn pause(&self) {
@@ -88,10 +90,14 @@ impl NativePreviewEngine {
         run_on_main(&self.app, || with_engine_mut(|e| e.stop()));
     }
     pub fn set_volume(&self, volume: f64) {
-        run_on_main(&self.app, move || with_engine_mut(|e| e.set_volume(volume as f32)));
+        run_on_main(&self.app, move || {
+            with_engine_mut(|e| e.set_volume(volume as f32))
+        });
     }
     pub fn set_rate(&self, rate: f64) {
-        run_on_main(&self.app, move || with_engine_mut(|e| e.set_rate(rate as f32)));
+        run_on_main(&self.app, move || {
+            with_engine_mut(|e| e.set_rate(rate as f32))
+        });
     }
 }
 

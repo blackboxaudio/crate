@@ -17,29 +17,56 @@ const BUCKET_FLAGS = {
 	settings: 'settings',
 } as const
 
-function reloadStoresForBuckets(buckets: string[]): void {
-	let discovery = false
-	let playlists = false
-	let tags = false
-	let settings = false
+// During the initial restore of a large account, `cloud-sync-merged` fires once per merge batch —
+// reloading every touched store on each event re-fetches the ENTIRE release list (thousands of
+// rows with nested tracks/tags) over IPC dozens of times in quick succession, which can pressure
+// the WKWebView content process into a jetsam kill. Coalesce: accumulate flags and flush on a
+// trailing debounce, with a max-wait so a long merge stream still paints progressively.
+const RELOAD_DEBOUNCE_MS = 750
+const RELOAD_MAX_WAIT_MS = 4000
 
+const pendingFlags = new Set<string>()
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let maxWaitTimer: ReturnType<typeof setTimeout> | null = null
+
+function flushPendingReloads(): void {
+	if (debounceTimer) clearTimeout(debounceTimer)
+	if (maxWaitTimer) clearTimeout(maxWaitTimer)
+	debounceTimer = null
+	maxWaitTimer = null
+
+	if (pendingFlags.has('discovery')) discoveryStore.loadReleases()
+	if (pendingFlags.has('playlists')) playlistsStore.load()
+	if (pendingFlags.has('tags')) tagsStore.load()
+	if (pendingFlags.has('settings')) settingsStore.load()
+	pendingFlags.clear()
+}
+
+function scheduleReloadForBuckets(buckets: string[]): void {
 	for (const bucket of buckets) {
 		const flags = BUCKET_FLAGS[bucket as keyof typeof BUCKET_FLAGS]
 		if (!flags) continue
-		if (flags.includes('discovery')) discovery = true
-		if (flags.includes('playlists')) playlists = true
-		if (flags.includes('tags')) tags = true
-		if (flags.includes('settings')) settings = true
+		for (const flag of flags.split(',')) pendingFlags.add(flag)
 	}
+	if (pendingFlags.size === 0) return
 
-	if (discovery) discoveryStore.loadReleases()
-	if (playlists) playlistsStore.load()
-	if (tags) tagsStore.load()
-	if (settings) settingsStore.load()
+	if (debounceTimer) clearTimeout(debounceTimer)
+	debounceTimer = setTimeout(flushPendingReloads, RELOAD_DEBOUNCE_MS)
+	if (!maxWaitTimer) {
+		maxWaitTimer = setTimeout(flushPendingReloads, RELOAD_MAX_WAIT_MS)
+	}
 }
 
 export async function setupCloudSyncMergeListener(): Promise<UnlistenFn> {
-	return listen<string[]>('cloud-sync-merged', (event) => {
-		reloadStoresForBuckets(event.payload)
+	const unlisten = await listen<string[]>('cloud-sync-merged', (event) => {
+		scheduleReloadForBuckets(event.payload)
 	})
+	return () => {
+		if (debounceTimer) clearTimeout(debounceTimer)
+		if (maxWaitTimer) clearTimeout(maxWaitTimer)
+		debounceTimer = null
+		maxWaitTimer = null
+		pendingFlags.clear()
+		unlisten()
+	}
 }

@@ -109,7 +109,10 @@ impl AppCheckState {
         // Negative cache: a recent mint failure short-circuits to fast-fail, so one sign-in's
         // several App-Check calls don't each stall for `MINT_TIMEOUT`.
         {
-            let cooldown = self.cooldown_until.lock().map_err(|_| CrateError::LockPoisoned)?;
+            let cooldown = self
+                .cooldown_until
+                .lock()
+                .map_err(|_| CrateError::LockPoisoned)?;
             if let Some(until) = *cooldown {
                 if until.duration_since(SystemTime::now()).is_ok() {
                     return Err(CrateError::CloudSync(
@@ -240,8 +243,7 @@ mod tests {
     #[async_trait]
     impl AppCheckProvider for FakeProvider {
         async fn fetch_token(&self) -> Result<AppCheckToken> {
-            self.mints
-                .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+            self.mints.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
             Ok(AppCheckToken {
                 token: self.token.clone(),
                 expires_at: SystemTime::now() + self.ttl,
@@ -325,13 +327,19 @@ mod tests {
             .ensure_fresh()
             .await
             .expect_err("panic must surface as an error");
-        assert!(err.to_string().contains("panicked"), "unexpected error: {err}");
+        assert!(
+            err.to_string().contains("panicked"),
+            "unexpected error: {err}"
+        );
         // The failure also opened the cooldown window (fast-fail, no second panic).
         let err = state
             .ensure_fresh()
             .await
             .expect_err("cooldown must fast-fail");
-        assert!(err.to_string().contains("cooldown"), "unexpected error: {err}");
+        assert!(
+            err.to_string().contains("cooldown"),
+            "unexpected error: {err}"
+        );
     }
 
     #[tokio::test]
@@ -367,9 +375,7 @@ mod tests {
     #[test]
     fn for_platform_debug_provider_when_token_set() {
         // App id + debug token → the debug provider on every platform (incl. these host tests).
-        let cfg = test_config(
-            r#","firebase_ios_app_id":"1:1:ios:x","appcheck_debug_token":"dbg""#,
-        );
+        let cfg = test_config(r#","firebase_ios_app_id":"1:1:ios:x","appcheck_debug_token":"dbg""#);
         let provider = for_platform(reqwest::Client::new(), &cfg).expect("provider");
         assert_eq!(provider.kind(), "debug");
     }
@@ -415,8 +421,12 @@ mod tests {
             .filter(|t| !t.trim().is_empty())
             .expect("set appcheck_debug_token in cloud_sync.config.json");
 
-        let provider =
-            super::debug::DebugProvider::new(reqwest::Client::new(), &config, &app_id, &debug_token);
+        let provider = super::debug::DebugProvider::new(
+            reqwest::Client::new(),
+            &config,
+            &app_id,
+            &debug_token,
+        );
         match provider.fetch_token().await {
             Ok(token) => println!(
                 "\n✅ App Check debug exchange OK — token length {}, expires_at {:?}\n",

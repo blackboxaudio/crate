@@ -36,7 +36,11 @@ pub fn update(app: &AppHandle, entry: &NativeTrackEntry, elapsed_secs: f64, rate
             MPMediaItemPropertyPlaybackDuration,
             entry.duration_ms as f64 / 1000.0,
         );
-        set_number(&dict, MPNowPlayingInfoPropertyElapsedPlaybackTime, elapsed_secs);
+        set_number(
+            &dict,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime,
+            elapsed_secs,
+        );
         set_number(&dict, MPNowPlayingInfoPropertyPlaybackRate, rate as f64);
 
         let center = MPNowPlayingInfoCenter::defaultCenter();
@@ -55,11 +59,16 @@ pub fn set_playback(elapsed_secs: f64, rate: f32) {
     // SAFETY: copy the current dict (if any), patch the two keys, set it back.
     unsafe {
         let center = MPNowPlayingInfoCenter::defaultCenter();
-        let dict: Retained<NSMutableDictionary<NSString, AnyObject>> = match center.nowPlayingInfo() {
+        let dict: Retained<NSMutableDictionary<NSString, AnyObject>> = match center.nowPlayingInfo()
+        {
             Some(existing) => msg_send![&*existing, mutableCopy],
             None => NSMutableDictionary::new(),
         };
-        set_number(&dict, MPNowPlayingInfoPropertyElapsedPlaybackTime, elapsed_secs);
+        set_number(
+            &dict,
+            MPNowPlayingInfoPropertyElapsedPlaybackTime,
+            elapsed_secs,
+        );
         set_number(&dict, MPNowPlayingInfoPropertyPlaybackRate, rate as f64);
         center.setNowPlayingInfo(Some(&dict));
     }
@@ -126,7 +135,8 @@ fn set_artwork(bytes: Vec<u8>) {
             msg_send![MPMediaItemArtwork::alloc(), initWithImage: &*image];
 
         let center = MPNowPlayingInfoCenter::defaultCenter();
-        let dict: Retained<NSMutableDictionary<NSString, AnyObject>> = match center.nowPlayingInfo() {
+        let dict: Retained<NSMutableDictionary<NSString, AnyObject>> = match center.nowPlayingInfo()
+        {
             Some(existing) => msg_send![&*existing, mutableCopy],
             None => NSMutableDictionary::new(),
         };

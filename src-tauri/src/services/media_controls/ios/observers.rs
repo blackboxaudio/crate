@@ -52,7 +52,8 @@ const ENTERED_FROM_LOCK_EVENT: &str = "native-preview-entered-from-lock";
 // in for three string constants.
 const UI_APP_DID_BECOME_ACTIVE: &str = "UIApplicationDidBecomeActiveNotification";
 const UI_APP_DID_ENTER_BACKGROUND: &str = "UIApplicationDidEnterBackgroundNotification";
-const UI_APP_PROTECTED_DATA_DID_BECOME_AVAILABLE: &str = "UIApplicationProtectedDataDidBecomeAvailable";
+const UI_APP_PROTECTED_DATA_DID_BECOME_AVAILABLE: &str =
+    "UIApplicationProtectedDataDidBecomeAvailable";
 
 /// Register the engine's observers. Returns their tokens (retained for the engine's lifetime).
 pub fn register(app: &AppHandle) -> Vec<Retained<AnyObject>> {
@@ -81,10 +82,20 @@ pub fn register(app: &AppHandle) -> Vec<Retained<AnyObject>> {
             handle_failed_to_end,
         ));
         if let Some(name) = AVAudioSessionInterruptionNotification {
-            tokens.push(add_observer(&center, name, &main_queue, handle_interruption));
+            tokens.push(add_observer(
+                &center,
+                name,
+                &main_queue,
+                handle_interruption,
+            ));
         }
         if let Some(name) = AVAudioSessionRouteChangeNotification {
-            tokens.push(add_observer(&center, name, &main_queue, handle_route_change));
+            tokens.push(add_observer(
+                &center,
+                name,
+                &main_queue,
+                handle_route_change,
+            ));
         }
 
         // Lock-screen entry detection (drives the mobile UI's auto-open of the full-screen player).
@@ -102,22 +113,33 @@ pub fn register(app: &AppHandle) -> Vec<Retained<AnyObject>> {
         let active_name = NSString::from_str(UI_APP_DID_BECOME_ACTIVE);
 
         let flag = unlocked_since_background.clone();
-        tokens.push(add_observer(&center, &unlock_name, &main_queue, move |_note| {
-            flag.store(true, Ordering::Relaxed)
-        }));
+        tokens.push(add_observer(
+            &center,
+            &unlock_name,
+            &main_queue,
+            move |_note| flag.store(true, Ordering::Relaxed),
+        ));
 
         let flag = unlocked_since_background.clone();
-        tokens.push(add_observer(&center, &background_name, &main_queue, move |_note| {
-            flag.store(false, Ordering::Relaxed)
-        }));
+        tokens.push(add_observer(
+            &center,
+            &background_name,
+            &main_queue,
+            move |_note| flag.store(false, Ordering::Relaxed),
+        ));
 
         let flag = unlocked_since_background;
         let app = app.clone();
-        tokens.push(add_observer(&center, &active_name, &main_queue, move |_note| {
-            if flag.swap(false, Ordering::Relaxed) {
-                let _ = app.emit(ENTERED_FROM_LOCK_EVENT, ());
-            }
-        }));
+        tokens.push(add_observer(
+            &center,
+            &active_name,
+            &main_queue,
+            move |_note| {
+                if flag.swap(false, Ordering::Relaxed) {
+                    let _ = app.emit(ENTERED_FROM_LOCK_EVENT, ());
+                }
+            },
+        ));
     }
 
     tokens

@@ -233,10 +233,7 @@ impl PlaylistService {
     /// earliest position, and keeps the first 4 per playlist. Returns an entry for every
     /// requested id (with an empty vec when a playlist has no usable covers) so callers can
     /// cache the "no covers" result and avoid refetching.
-    pub fn get_playlist_cover_art(
-        &self,
-        playlist_ids: &[String],
-    ) -> Result<Vec<PlaylistCoverArt>> {
+    pub fn get_playlist_cover_art(&self, playlist_ids: &[String]) -> Result<Vec<PlaylistCoverArt>> {
         // Pre-seed one entry per requested id, preserving input order.
         let mut result: Vec<PlaylistCoverArt> = playlist_ids
             .iter()
@@ -326,7 +323,9 @@ impl PlaylistService {
             if context != "discovery" {
                 continue;
             }
-            let Some(json) = smart_rules_json else { continue };
+            let Some(json) = smart_rules_json else {
+                continue;
+            };
             let rules: SmartRules = match serde_json::from_str(json) {
                 Ok(r) => r,
                 Err(_) => continue,
@@ -336,7 +335,8 @@ impl PlaylistService {
                 Err(_) => continue,
             };
 
-            let sql = format!("SELECT dr.artwork_url FROM discovery_releases dr WHERE {where_clause}");
+            let sql =
+                format!("SELECT dr.artwork_url FROM discovery_releases dr WHERE {where_clause}");
             let param_refs: Vec<&dyn rusqlite::ToSql> =
                 params.iter().map(|p| p as &dyn rusqlite::ToSql).collect();
 
