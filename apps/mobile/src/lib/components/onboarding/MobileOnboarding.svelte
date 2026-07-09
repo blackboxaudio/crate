@@ -4,7 +4,7 @@
 	import { cubicOut } from 'svelte/easing'
 	import type { Theme, AccentColor } from '$shared/types'
 	import { translate } from '$shared/i18n'
-	import { isSyncAvailable, signingIn, cloudSyncStore } from '$shared/stores/cloudSync'
+	import { isSyncAvailable, signingIn, cloudSyncError, cloudSyncStore } from '$shared/stores/cloudSync'
 	import { settingsStore, theme, accentColor } from '$shared/stores/settings'
 	import { signInMobile } from '$lib/signInMobile'
 	import { onboardingComplete } from '$lib/stores/onboarding'
@@ -176,6 +176,9 @@
 						{/if}
 						<span>{$translate('cloudSync.signIn.button', { values: { provider: 'Google' } })}</span>
 					</button>
+					{#if $cloudSyncError}
+						<p class="text-xs text-danger">{$cloudSyncError}</p>
+					{/if}
 				{:else}
 					<div class="space-y-2">
 						<h1 class="text-2xl font-bold text-text-primary">{$translate('onboarding.mobile.appearance.title')}</h1>

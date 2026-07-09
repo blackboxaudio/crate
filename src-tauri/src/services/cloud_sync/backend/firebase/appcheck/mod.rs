@@ -12,10 +12,12 @@
 //! same skew schedule as the auth bearer token, and the backend stamps the resulting
 //! `X-Firebase-AppCheck` header onto every Firestore / Storage / Identity-Toolkit request.
 
+use std::panic::AssertUnwindSafe;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
 use async_trait::async_trait;
+use futures::FutureExt as _;
 
 use crate::error::{CrateError, Result};
 use crate::services::cloud_sync::config::CloudConfig;
@@ -117,11 +119,24 @@ impl AppCheckState {
             }
         }
         // Slow path: mint with NO lock held (the provider hits the network), bounded by a timeout.
-        let minted = match tokio::time::timeout(MINT_TIMEOUT, self.provider.fetch_token()).await {
-            Ok(Ok(minted)) => minted,
-            Ok(Err(e)) => {
+        // `catch_unwind` so a PANIC inside a provider (e.g. a bridging bug in the native
+        // attestation FFI) degrades exactly like a mint error — otherwise it would unwind through
+        // the calling Tauri command's task and leave the frontend's invoke promise (and the
+        // sign-in spinner) pending forever. The `AssertUnwindSafe` is sound: no provider holds a
+        // lock or other invariant across the mint that a mid-flight unwind could corrupt.
+        let mint = AssertUnwindSafe(self.provider.fetch_token()).catch_unwind();
+        let minted = match tokio::time::timeout(MINT_TIMEOUT, mint).await {
+            Ok(Ok(Ok(minted))) => minted,
+            Ok(Ok(Err(e))) => {
                 self.begin_cooldown();
                 return Err(e);
+            }
+            Ok(Err(panic)) => {
+                self.begin_cooldown();
+                return Err(CrateError::CloudSync(format!(
+                    "App Check mint panicked: {}",
+                    panic_message(panic.as_ref())
+                )));
             }
             Err(_) => {
                 self.begin_cooldown();
@@ -149,6 +164,16 @@ impl AppCheckState {
             *c = Some(SystemTime::now() + MINT_FAILURE_COOLDOWN);
         }
     }
+}
+
+/// Best-effort extraction of a caught panic's message (payloads are `&str` or `String` for every
+/// `panic!`/`unwrap` in practice).
+fn panic_message(payload: &(dyn std::any::Any + Send)) -> &str {
+    payload
+        .downcast_ref::<&'static str>()
+        .copied()
+        .or_else(|| payload.downcast_ref::<String>().map(String::as_str))
+        .unwrap_or("non-string panic payload")
 }
 
 /// Select the App Check provider for the current platform, or `None` when App Check is
@@ -275,6 +300,38 @@ mod tests {
             provider.attempts.load(std::sync::atomic::Ordering::SeqCst),
             1
         );
+    }
+
+    /// A provider whose mint panics — simulating a bridging bug in native attestation code.
+    struct PanickingProvider;
+
+    #[async_trait]
+    impl AppCheckProvider for PanickingProvider {
+        async fn fetch_token(&self) -> Result<AppCheckToken> {
+            panic!("simulated native bridging bug")
+        }
+        fn kind(&self) -> &'static str {
+            "panicking"
+        }
+    }
+
+    /// A panic inside a provider must degrade like a mint failure (error + cooldown), never
+    /// unwind into the caller — an unwind through a Tauri command task leaves the frontend's
+    /// invoke promise (and the sign-in spinner) hanging forever.
+    #[tokio::test]
+    async fn ensure_fresh_turns_a_provider_panic_into_an_error() {
+        let state = AppCheckState::new(Arc::new(PanickingProvider));
+        let err = state
+            .ensure_fresh()
+            .await
+            .expect_err("panic must surface as an error");
+        assert!(err.to_string().contains("panicked"), "unexpected error: {err}");
+        // The failure also opened the cooldown window (fast-fail, no second panic).
+        let err = state
+            .ensure_fresh()
+            .await
+            .expect_err("cooldown must fast-fail");
+        assert!(err.to_string().contains("cooldown"), "unexpected error: {err}");
     }
 
     #[tokio::test]

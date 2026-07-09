@@ -1,6 +1,13 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
-	import { syncStatus, syncPhase, isSignedIn, signingIn, cloudSyncStore } from '$shared/stores/cloudSync'
+	import {
+		syncStatus,
+		syncPhase,
+		isSignedIn,
+		signingIn,
+		cloudSyncError,
+		cloudSyncStore,
+	} from '$shared/stores/cloudSync'
 	import { signInMobile } from '$lib/signInMobile'
 	import { formatRelativeDate } from '$shared/utils/format'
 	import { confirmDialog } from '$lib/utils/dialog'
@@ -189,5 +196,8 @@
 			{/if}
 			<span>{$translate('cloudSync.signIn.button', { values: { provider: 'Google' } })}</span>
 		</button>
+		{#if $cloudSyncError}
+			<p class="text-xs text-danger">{$cloudSyncError}</p>
+		{/if}
 	</div>
 {/if}

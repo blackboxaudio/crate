@@ -121,14 +121,14 @@ impl AppAttestProvider {
             "keyId": key_id, // Apple's keyId is already base64; echo it through.
             "limitedUse": false,
         });
-        let parsed: AttestationResponse = serde_json::from_value(
+        let AttestationResponse { app_check_token, artifact } = serde_json::from_value(
             self.post("exchangeAppAttestAttestation", body, "appcheck app-attest attestation")
                 .await?,
         )
         .map_err(|e| CrateError::CloudSync(format!("appcheck attestation decode: {e}")))?;
 
-        keychain_store(KEYCHAIN_ARTIFACT_ACCOUNT, &parsed.artifact)?;
-        Ok(parsed.app_check_token.into_token())
+        keychain_store_blocking(KEYCHAIN_ARTIFACT_ACCOUNT, artifact).await?;
+        Ok(app_check_token.into_token())
     }
 
     /// Steady-state path: assert against a fresh challenge using the stored artifact.
@@ -165,10 +165,14 @@ impl AppAttestProvider {
 
     /// Load the persisted App Attest key id, generating + persisting one on first run.
     async fn ensure_key(&self) -> Result<String> {
-        if let Some(key_id) = keychain_load(KEYCHAIN_KEY_ID_ACCOUNT)? {
+        if let Some(key_id) = keychain_load_blocking(KEYCHAIN_KEY_ID_ACCOUNT).await? {
             return Ok(key_id);
         }
-        if !app_attest_supported() {
+        // `isSupported` is a plain getter, but keep ALL native calls off the async runtime.
+        let supported = tokio::task::spawn_blocking(app_attest_supported)
+            .await
+            .map_err(|e| CrateError::CloudSync(format!("appcheck support probe failed: {e}")))?;
+        if !supported {
             return Err(CrateError::CloudSync(
                 "App Attest is not supported on this device".into(),
             ));
@@ -177,7 +181,7 @@ impl AppAttestProvider {
             DCAppAttestService::sharedService().generateKeyWithCompletionHandler(block);
         })
         .await?;
-        keychain_store(KEYCHAIN_KEY_ID_ACCOUNT, &key_id)?;
+        keychain_store_blocking(KEYCHAIN_KEY_ID_ACCOUNT, key_id.clone()).await?;
         Ok(key_id)
     }
 }
@@ -190,7 +194,7 @@ impl AppCheckProvider for AppAttestProvider {
 
     async fn fetch_token(&self) -> Result<AppCheckToken> {
         let key_id = self.ensure_key().await?;
-        match keychain_load(KEYCHAIN_ARTIFACT_ACCOUNT)? {
+        match keychain_load_blocking(KEYCHAIN_ARTIFACT_ACCOUNT).await? {
             Some(artifact) => match self.assert(&key_id, &artifact).await {
                 Ok(token) => Ok(token),
                 // A network blip shouldn't burn a re-attestation; surface it as transient.
@@ -263,17 +267,24 @@ fn app_attest_supported() -> bool {
 
 /// Bridge a `…completionHandler:` call whose result is `NSData` to async.
 ///
-/// All objc2 values (the service, the block, the args) are created and dropped **inside the inner
-/// scope, before the `.await`** — so no `!Send` value crosses the suspension point and the
-/// resulting future stays `Send` (required by the `#[async_trait]` bound). The framework copies
-/// the escaping completion block during the call, so dropping our `RcBlock` early is safe; the
-/// block extracts the bytes on the callback queue and sends only an owned `Vec<u8>` across.
+/// The kickoff runs on the **blocking pool**, not the async task: the framework call should only
+/// schedule work and return, but this FFI surface must never be able to stall the runtime — a
+/// `tokio::time::timeout` cannot preempt synchronous code, so a kickoff that blocks (or panics)
+/// on the calling task would hang its Tauri command forever. On the blocking pool, a stall
+/// strands one pool thread and the timeout below still fires; a panic surfaces as a `JoinError`.
+/// (Mirrors `play_integrity.rs`, which wraps its blocking JNI call in `spawn_blocking`.)
+///
+/// All objc2 values (the service, the block, the args) are created and dropped **inside the
+/// blocking closure** — so no `!Send` value crosses a thread/suspension boundary and the future
+/// stays `Send` (required by the `#[async_trait]` bound). The framework copies the escaping
+/// completion block during the call, so dropping our `RcBlock` at closure end is safe; the block
+/// extracts the bytes on the callback queue and sends only an owned `Vec<u8>` across.
 async fn bridge_data(
     context: &'static str,
-    invoke: impl FnOnce(&DynBlock<dyn Fn(*mut NSData, *mut NSError)>),
+    invoke: impl FnOnce(&DynBlock<dyn Fn(*mut NSData, *mut NSError)>) + Send + 'static,
 ) -> Result<Vec<u8>> {
     let (tx, rx) = oneshot::channel::<Result<Vec<u8>>>();
-    {
+    let kickoff = tokio::task::spawn_blocking(move || {
         let tx = Mutex::new(Some(tx));
         let block = RcBlock::new(move |data: *mut NSData, err: *mut NSError| {
             // SAFETY: pointers are valid for the duration of the completion callback.
@@ -285,12 +296,20 @@ async fn bridge_data(
             }
         });
         invoke(&block);
-    }
-    match tokio::time::timeout(NATIVE_CALL_TIMEOUT, rx).await {
-        Ok(Ok(result)) => result,
-        Ok(Err(_)) => Err(CrateError::CloudSync(format!(
-            "{context}: completion handler dropped"
-        ))),
+    });
+    let bridged = async move {
+        kickoff
+            .await
+            .map_err(|e| CrateError::CloudSync(format!("{context}: native kickoff failed: {e}")))?;
+        match rx.await {
+            Ok(result) => result,
+            Err(_) => Err(CrateError::CloudSync(format!(
+                "{context}: completion handler dropped"
+            ))),
+        }
+    };
+    match tokio::time::timeout(NATIVE_CALL_TIMEOUT, bridged).await {
+        Ok(result) => result,
         Err(_) => Err(CrateError::CloudSync(format!(
             "{context}: timed out after {NATIVE_CALL_TIMEOUT:?}"
         ))),
@@ -298,12 +317,13 @@ async fn bridge_data(
 }
 
 /// Bridge a `…completionHandler:` call whose result is `NSString` (i.e. `generateKey`) to async.
+/// Same blocking-pool kickoff + timeout discipline as [`bridge_data`].
 async fn bridge_string(
     context: &'static str,
-    invoke: impl FnOnce(&DynBlock<dyn Fn(*mut NSString, *mut NSError)>),
+    invoke: impl FnOnce(&DynBlock<dyn Fn(*mut NSString, *mut NSError)>) + Send + 'static,
 ) -> Result<String> {
     let (tx, rx) = oneshot::channel::<Result<String>>();
-    {
+    let kickoff = tokio::task::spawn_blocking(move || {
         let tx = Mutex::new(Some(tx));
         let block = RcBlock::new(move |s: *mut NSString, err: *mut NSError| {
             // SAFETY: pointers are valid for the duration of the completion callback.
@@ -315,12 +335,20 @@ async fn bridge_string(
             }
         });
         invoke(&block);
-    }
-    match tokio::time::timeout(NATIVE_CALL_TIMEOUT, rx).await {
-        Ok(Ok(result)) => result,
-        Ok(Err(_)) => Err(CrateError::CloudSync(format!(
-            "{context}: completion handler dropped"
-        ))),
+    });
+    let bridged = async move {
+        kickoff
+            .await
+            .map_err(|e| CrateError::CloudSync(format!("{context}: native kickoff failed: {e}")))?;
+        match rx.await {
+            Ok(result) => result,
+            Err(_) => Err(CrateError::CloudSync(format!(
+                "{context}: completion handler dropped"
+            ))),
+        }
+    };
+    match tokio::time::timeout(NATIVE_CALL_TIMEOUT, bridged).await {
+        Ok(result) => result,
         Err(_) => Err(CrateError::CloudSync(format!(
             "{context}: timed out after {NATIVE_CALL_TIMEOUT:?}"
         ))),
@@ -358,6 +386,21 @@ unsafe fn ns_error(context: &str, err: *mut NSError) -> CrateError {
 // ---------------------------------------------------------------------------
 // Keychain persistence (mirrors db::key_provider's iOS pattern).
 // ---------------------------------------------------------------------------
+
+/// [`keychain_load`] on the blocking pool — Security-framework calls are synchronous IPC to
+/// `securityd` and must not run on (and potentially stall) the async runtime.
+async fn keychain_load_blocking(account: &'static str) -> Result<Option<String>> {
+    tokio::task::spawn_blocking(move || keychain_load(account))
+        .await
+        .map_err(|e| CrateError::CloudSync(format!("appcheck keychain task failed: {e}")))?
+}
+
+/// [`keychain_store`] on the blocking pool (see [`keychain_load_blocking`]).
+async fn keychain_store_blocking(account: &'static str, value: String) -> Result<()> {
+    tokio::task::spawn_blocking(move || keychain_store(account, &value))
+        .await
+        .map_err(|e| CrateError::CloudSync(format!("appcheck keychain task failed: {e}")))?
+}
 
 fn keychain_load(account: &str) -> Result<Option<String>> {
     use security_framework::passwords::get_generic_password;

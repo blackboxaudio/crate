@@ -98,9 +98,28 @@ pub fn run() {
             .append(true)
             .open(std::env::temp_dir().join("crate-crash.log"))
             .and_then(|mut f| std::io::Write::write_all(&mut f, message.as_bytes()));
+        // Also route the panic through `log`: on mobile that's the only channel that reaches the
+        // device console (the default hook prints to stderr, which iOS/Android discard).
+        log::error!("PANIC: {info}");
         default_hook(info);
     }));
 
+    // Route `log` output where each platform can actually see it. A normally-launched mobile app's
+    // stderr is discarded by the OS, so env_logger would be invisible on-device: iOS logs via
+    // os_log (Console.app, subsystem `com.bbx-audio.crate`), Android via logcat (tag `crate`).
+    // Desktop keeps env_logger on stderr, where `RUST_LOG` still applies.
+    #[cfg(target_os = "ios")]
+    oslog::OsLogger::new("com.bbx-audio.crate")
+        .level_filter(log::LevelFilter::Info)
+        .init()
+        .ok();
+    #[cfg(target_os = "android")]
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_max_level(log::LevelFilter::Info)
+            .with_tag("crate"),
+    );
+    #[cfg(not(any(target_os = "ios", target_os = "android")))]
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     log::info!("Crash log path: {crash_log_path:?}");
 

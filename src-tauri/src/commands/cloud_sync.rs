@@ -64,6 +64,11 @@ pub async fn begin_sign_in(
 /// Complete a native mobile sign-in with the `code`/`state` the frontend extracted from the OAuth
 /// callback URL. `oauth_state` is the OAuth CSRF token (named to avoid clashing with the Tauri
 /// `state` handle).
+///
+/// The whole completion is bounded by [`SIGN_IN_TIMEOUT`]: every leg of the chain (token exchange,
+/// App Check mint, `signInWithIdp`, onboarding manifest read) is individually bounded, but a stall
+/// anywhere — e.g. a hung native attestation call — would otherwise leave the frontend's invoke
+/// promise pending and the sign-in button spinning forever. The promise must always settle.
 #[cfg(feature = "mobile")]
 #[tauri::command]
 pub async fn complete_sign_in(
@@ -71,7 +76,15 @@ pub async fn complete_sign_in(
     oauth_state: String,
     state: State<'_, Arc<CloudSyncState>>,
 ) -> Result<SyncStatus> {
-    state.complete_sign_in(&code, &oauth_state).await
+    /// Generous upper bound: the slowest legitimate chain (30s token exchange + 10s App Check
+    /// mint + 60s `signInWithIdp` on a terrible network) still fits.
+    const SIGN_IN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+    match tokio::time::timeout(SIGN_IN_TIMEOUT, state.complete_sign_in(&code, &oauth_state)).await {
+        Ok(result) => result,
+        Err(_) => Err(CrateError::CloudSyncAuth(format!(
+            "sign-in timed out after {SIGN_IN_TIMEOUT:?}"
+        ))),
+    }
 }
 
 /// Sign out and clear the stored refresh token.

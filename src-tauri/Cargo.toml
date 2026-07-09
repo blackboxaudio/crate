@@ -179,6 +179,11 @@ objc2-media-player = { version = "0.3.2", features = [
 # trades for a Firebase App Check token. `block2` backs the generateKey / attestKey /
 # generateAssertion completion handlers. Reconcile against `cargo check --target aarch64-apple-ios`.
 objc2-device-check = { version = "0.3.2", features = ["DCAppAttestService", "block2"] }
+# iOS unified logging: a normally-launched app's stderr is discarded by iOS, so `env_logger`
+# output never reaches Console.app and on-device builds are undebuggable. `oslog` routes the
+# `log` facade to os_log (subsystem `com.bbx-audio.crate`), making cloud-sync / App Check
+# diagnostics — and panic messages, via the hook in lib.rs — visible for TestFlight builds.
+oslog = "0.2"
 
 # Android-only: App Check via Play Integrity (#139). Selected by target OS (like the iOS block
 # above), not the `mobile` feature. `jni` calls the Kotlin Play Integrity helper
@@ -189,4 +194,7 @@ objc2-device-check = { version = "0.3.2", features = ["DCAppAttestService", "blo
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.21"
 ndk-context = "0.1"
+# Android counterpart of the iOS `oslog` routing above: stderr never reaches logcat, so route
+# the `log` facade there (tag "crate"). See lib.rs logger init.
+android_logger = "0.14"
 
