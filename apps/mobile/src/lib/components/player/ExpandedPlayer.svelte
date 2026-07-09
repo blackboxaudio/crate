@@ -79,8 +79,10 @@
 	// Everything animates off `$previewInfo` changes (never off the gesture directly), so the transport
 	// buttons, auto-advance, UpNext taps, and iOS lock-screen skips — which land asynchronously via the
 	// native engine's onTrackChanged — all run the identical transition. The swipe pager only registers
-	// a `pendingGesture` before driving the player; the watcher consumes it to attribute the change.
-	let pendingGesture = $state<{ dir: 1 | -1; targetKey: string | null } | null>(null)
+	// pending gestures before driving the player; the watcher consumes them to attribute each change.
+	// A FIFO (not a single slot) because stream resolution can take seconds and rapid swipes may queue
+	// several page requests before the first change lands — each landing consumes its matching head.
+	let pendingGestures = $state<Array<{ dir: 1 | -1; targetKey: string | null }>>([])
 	let changeFx = $state<TrackChangeFx | null>(null)
 	let fxSeq = 0
 	// Untracked snapshot of the last-seen track (and its rendered cover src, kept fresh as the
@@ -101,21 +103,26 @@
 		}
 		if (lastTrack) {
 			const kind = lastTrack.releaseId === info.releaseId ? 'same' : 'cross'
-			const pg = pendingGesture
+			const head = pendingGestures[0]
 			let viaGesture = false
 			let dir: 1 | -1
-			if (pg && (pg.targetKey === null || pg.targetKey === `${info.releaseId}:${info.trackIndex}`)) {
+			if (head && (head.targetKey === null || head.targetKey === `${info.releaseId}:${info.trackIndex}`)) {
+				// This change is the oldest in-flight swipe landing — consume it, keep the rest queued.
 				viaGesture = true
-				dir = pg.dir
-			} else if (kind === 'same') {
-				// Wrapping last → first still reads as "next"; otherwise the index order is the direction.
-				const wrapped = info.trackIndex === 0 && lastTrack.trackIndex === info.release.tracks.length - 1
-				dir = wrapped || info.trackIndex > lastTrack.trackIndex ? 1 : -1
+				dir = head.dir
+				pendingGestures = pendingGestures.slice(1)
 			} else {
-				dir = 1
+				if (kind === 'same') {
+					// Wrapping last → first still reads as "next"; otherwise the index order is the direction.
+					const wrapped = info.trackIndex === 0 && lastTrack.trackIndex === info.release.tracks.length - 1
+					dir = wrapped || info.trackIndex > lastTrack.trackIndex ? 1 : -1
+				} else {
+					dir = 1
+				}
+				// An unrelated change (UpNext tap, lock-screen skip) invalidates any queued swipes.
+				if (pendingGestures.length > 0) pendingGestures = []
 			}
 			changeFx = { kind, dir, viaGesture, outgoingSrc: lastTrack.artSrc, seq: ++fxSeq }
-			pendingGesture = null
 		}
 		lastTrack = { releaseId: info.releaseId, trackIndex: info.trackIndex, artSrc }
 	})
@@ -134,12 +141,15 @@
 	const canPrevPage = $derived(prevPick != null)
 
 	function requestPage(dir: 1 | -1, target: QueuePick | null) {
-		pendingGesture = { dir, targetKey: target ? `${target.release.id}:${target.trackIndex}` : null }
+		pendingGestures = [
+			...pendingGestures,
+			{ dir, targetKey: target ? `${target.release.id}:${target.trackIndex}` : null },
+		]
 		if (dir === 1) void playerStore.nextTrack()
 		else void playerStore.previousTrack({ skipRestartThreshold: true })
 	}
 	function onSettleTimeout() {
-		pendingGesture = null
+		pendingGestures = []
 	}
 
 	// Title/artist text transitions, per line (each line sits in its own overflow-hidden mask, and the
@@ -225,7 +235,7 @@
 			showTempo = false
 			showQueue = false
 			menuOpen = false
-			pendingGesture = null
+			pendingGestures = []
 		}
 	})
 
@@ -290,7 +300,7 @@
 	ariaLabel={$previewInfo?.release.title ?? $translate('common.untitled')}
 	class="h-full overflow-hidden bg-surface-0"
 >
-	{#snippet children({ dragging, animating })}
+	{#snippet children({ dragging })}
 		{#if $previewInfo}
 			<!-- Album-art background: a blurred, slowly drifting wash with a theme-aware legibility scrim.
 			     Full-bleed and first in the DOM; the relative content wrapper below paints over it. Keyed by
@@ -323,11 +333,12 @@
 				<CoverPager
 					{artSrc}
 					{changeFx}
+					currentKey={`${$previewInfo.releaseId}:${$previewInfo.trackIndex}`}
 					{prevPick}
 					{nextPick}
 					{canNext}
 					canPrev={canPrevPage}
-					enabled={$isPlayerExpanded && !dragging && !animating}
+					enabled={$isPlayerExpanded && !dragging}
 					onRequestPage={requestPage}
 					{onSettleTimeout}
 				/>

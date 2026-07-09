@@ -31,26 +31,41 @@
 		artSrc: string | undefined
 		/** The latest track change, store-driven. The pager slides (or completes a settle) on each one. */
 		changeFx: TrackChangeFx | null
+		/** `releaseId:trackIndex` of the CURRENT track — a settle completes only when its own target has
+		 *  landed (with rapid queued swipes, an EARLIER swipe's change must not complete it). */
+		currentKey: string | null
 		prevPick: QueuePick | null
 		nextPick: QueuePick | null
 		/** Whether paging next/previous is possible (false → rubber-band; never commits). */
 		canNext: boolean
 		canPrev: boolean
 		enabled: boolean
-		/** A committed swipe: set the pending gesture and drive the player next/previous. */
+		/** A committed swipe: queue the pending gesture and drive the player next/previous. */
 		onRequestPage: (dir: 1 | -1, target: QueuePick | null) => void
-		/** The store never confirmed a committed swipe (watchdog) — clear the pending gesture. */
+		/** The store never confirmed a committed swipe (safety watchdog) — clear pending gestures. */
 		onSettleTimeout: () => void
 	}
-	let { artSrc, changeFx, prevPick, nextPick, canNext, canPrev, enabled, onRequestPage, onSettleTimeout }: Props =
-		$props()
+	let {
+		artSrc,
+		changeFx,
+		currentKey,
+		prevPick,
+		nextPick,
+		canNext,
+		canPrev,
+		enabled,
+		onRequestPage,
+		onSettleTimeout,
+	}: Props = $props()
 
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 	const GAP = 24 // px between cards in the strip
 	const SETTLE_MS = 300
 	const STORE_SLIDE_MS = 350
-	const SETTLE_WATCHDOG_MS = 800
+	// Safety valve only: stream resolution routinely takes over a second, and the parked card waiting on
+	// it is correct feedback — only a store that never responds at all should bounce the swipe back.
+	const SETTLE_WATCHDOG_MS = 3000
 
 	let coverW = $state(0)
 	const slotDist = $derived(coverW + GAP)
@@ -62,14 +77,25 @@
 	type Phase = 'idle' | 'dragging' | 'settling' | 'spring' | 'storeSlide'
 	let phase = $state<Phase>('idle')
 	let dragX = $state(0)
-	let strip = $state<{ centerSrc: string | undefined; prev: QueuePick | null; next: QueuePick | null } | null>(null)
+	// The strip's frozen cards. The center is `centerSrc` normally; it's `centerPick` when a new drag
+	// starts while a prior swipe is still settling — the parked incoming card becomes the center even
+	// though its track hasn't technically landed in the store yet (see onDragStart).
+	let strip = $state<{
+		centerSrc?: string
+		centerPick?: QueuePick | null
+		prev: QueuePick | null
+		next: QueuePick | null
+	} | null>(null)
 	let storeSlide = $state<{ outgoingSrc: string | undefined; dir: 1 | -1 } | null>(null)
 	const transitionOn = $derived(phase === 'settling' || phase === 'spring' || phase === 'storeSlide')
 
-	// A committed settle completes only when BOTH the slide animation ended AND the store change landed
-	// (on iOS the native engine confirms a "next" asynchronously, often after the card has parked).
+	// A committed settle completes only when BOTH the slide animation ended AND the settle's own target
+	// landed in the store (on iOS the native engine confirms asynchronously; on the HTML5 path the
+	// stream fetch can take seconds — the parked card just waits it out, still interruptible).
 	let settleEnded = false
 	let storeLanded = false
+	let settleTargetKey: string | null = null
+	let lastCommitDir: 1 | -1 = 1
 	let lastFxSeq = 0
 	let fallbackTimer: ReturnType<typeof setTimeout> | null = null
 	let watchdogTimer: ReturnType<typeof setTimeout> | null = null
@@ -100,10 +126,24 @@
 	}
 
 	// --- gesture callbacks ------------------------------------------------------------------------
+	// A drag can start in ANY phase — a locked-out pager is what reads as "unresponsive". Interrupting
+	// a spring/store-slide just snaps it home and drags fresh; interrupting a settle re-anchors on the
+	// parked incoming card (its track may not have landed yet, but the queue already advanced, so the
+	// live peeks are its real neighbors) so rapid consecutive swipes keep paging without waiting.
 	function onDragStart() {
 		clearTimers()
+		if (phase === 'settling' && strip) {
+			const pendingPick = lastCommitDir === 1 ? strip.next : strip.prev
+			strip = pendingPick
+				? { centerPick: pendingPick, prev: prevPick, next: nextPick }
+				: { centerSrc: artSrc, prev: prevPick, next: nextPick }
+		} else {
+			strip = { centerSrc: artSrc, prev: prevPick, next: nextPick }
+		}
 		storeSlide = null
-		strip = { centerSrc: artSrc, prev: prevPick, next: nextPick }
+		dragX = 0
+		settleEnded = false
+		storeLanded = false
 		phase = 'dragging'
 	}
 
@@ -128,6 +168,8 @@
 		const target = dir === 1 ? (strip?.next ?? null) : (strip?.prev ?? null)
 		settleEnded = false
 		storeLanded = false
+		settleTargetKey = target ? `${target.release.id}:${target.trackIndex}` : null
+		lastCommitDir = dir
 		phase = 'settling'
 		dragX = -dir * slotDist
 		if (reducedMotion) {
@@ -138,8 +180,9 @@
 				completeIfReady()
 			}, SETTLE_MS + 100)
 		}
-		// If the store never confirms (e.g. the queue emptied concurrently), spring back.
+		// If the store never confirms at all (e.g. the queue emptied concurrently), spring back.
 		watchdogTimer = setTimeout(() => {
+			if (phase !== 'settling') return // a newer drag already took over
 			onSettleTimeout()
 			if (reducedMotion) resetIdle()
 			else {
@@ -183,18 +226,29 @@
 		const fx = changeFx
 		if (!fx || fx.seq === lastFxSeq) return
 		lastFxSeq = fx.seq
-		if (watchdogTimer) clearTimeout(watchdogTimer)
-		watchdogTimer = null
-		if (phase === 'settling' && fx.viaGesture) {
-			storeLanded = true
-			completeIfReady()
+		if (phase === 'settling') {
+			if (fx.viaGesture && (settleTargetKey === null || currentKey === settleTargetKey)) {
+				// Our own target landed — the settle can complete (once the slide animation ends too).
+				storeLanded = true
+				completeIfReady()
+			} else if (fx.viaGesture) {
+				// An EARLIER queued swipe landed while we settle toward a later target: nothing to do
+				// visually (our strip was re-anchored past it) — keep waiting for our own change.
+			} else {
+				// A different track raced past the gesture (an UpNext tap / lock-screen skip landed
+				// instead): drop the frozen strip and run the normal store slide for what actually played.
+				resetIdle()
+				runStoreSlide(fx)
+			}
 		} else if (phase === 'dragging') {
-			// The store changed under an active drag (rare — e.g. a lock-screen skip): drop the frozen
-			// strip and snap to the new track; the finger keeps dragging the fresh card.
+			// Gesture-confirmed changes landing mid-drag are already represented (the strip re-anchored
+			// on the pending card); an unrelated store change snaps the drag to the new reality.
+			if (!fx.viaGesture) resetIdle()
+		} else if (fx.viaGesture) {
+			// A gesture's change landing after its settle already wound down (cancel/interrupt): the
+			// card is in place, no extra motion.
 			resetIdle()
 		} else {
-			// Normal store-driven change — or a settling gesture that a different track raced past
-			// (an UpNext tap / lock-screen skip landed instead of the gesture's target).
 			resetIdle()
 			runStoreSlide(fx)
 		}
@@ -226,12 +280,14 @@
 	// outgoing cover occupies the slot the strip parked on and the other neighbor is hidden (its peeked
 	// pick may already be stale); at rest the live peeked neighbors pre-mount so their art is decoded
 	// before a drag starts.
+	const centerPick = $derived(strip?.centerPick ?? null)
 	const centerSrc = $derived(strip ? strip.centerSrc : artSrc)
 	const prevSlotPick = $derived(storeSlide ? null : strip ? strip.prev : prevPick)
 	const nextSlotPick = $derived(storeSlide ? null : strip ? strip.next : nextPick)
 
 	const pagerOptions = $derived({
-		enabled: enabled && coverW > 0 && (phase === 'idle' || phase === 'dragging'),
+		// Never gated on the phase: a new drag interrupts whatever motion is in flight (onDragStart).
+		enabled: enabled && coverW > 0,
 		canPage: (dir: 1 | -1) => (dir === 1 ? canNext : canPrev),
 		width: () => coverW,
 		onDragStart,
@@ -284,9 +340,17 @@
 				</div>
 			{/if}
 
-			<!-- Current track's cover (frozen while a gesture strip is active). -->
+			<!-- Current track's cover (frozen while a gesture strip is active; a pick when a drag was
+			     re-anchored on a still-pending swipe target). -->
 			<div class="absolute inset-0" style="transform: {centerTransform}; transition: {slotTransition}">
-				{#if centerSrc}
+				{#if centerPick}
+					<ReleaseArtwork
+						release={centerPick.release}
+						eager
+						class="aspect-square w-full rounded-2xl object-cover shadow-2xl"
+						fallback={fallbackTile}
+					/>
+				{:else if centerSrc}
 					<img src={centerSrc} alt="" class="aspect-square w-full rounded-2xl object-cover shadow-2xl" />
 				{:else}
 					{@render fallbackTile()}
