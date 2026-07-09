@@ -799,6 +799,10 @@ export interface DiscoveryFilter {
 	search?: string
 	tag_ids?: string[]
 	tag_filter_mode?: TagFilterMode
+	// Page size / row offset for chunked loading (see discoveryStore.loadReleases). Omitted =
+	// full set in one response (legacy behavior).
+	limit?: number
+	offset?: number
 }
 
 // =============================================================================

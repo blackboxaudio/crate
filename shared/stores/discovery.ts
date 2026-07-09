@@ -56,6 +56,23 @@ function sleep(ms: number): Promise<void> {
 }
 
 // =============================================================================
+// Chunked loading
+// =============================================================================
+
+// Releases load in pages instead of one giant IPC response: with thousands of releases
+// (each carrying nested tracks/tags), a single multi-MB payload injected and parsed on the
+// webview main thread in one shot both freezes the UI and can push the mobile WKWebView
+// content process into an out-of-memory kill. A small first page paints fast; follow-up
+// pages stream in with an event-loop yield between them so user interactions (taps,
+// scrolling, playback) are handled between pages.
+const FIRST_PAGE_SIZE = 200
+const PAGE_SIZE = 500
+
+// Monotonic token: a newer loadReleases() call silently cancels any in-flight paged load
+// (each page checks it fetched under the current generation before touching the store).
+let loadGeneration = 0
+
+// =============================================================================
 // Store
 // =============================================================================
 
@@ -66,17 +83,38 @@ function createDiscoveryStore() {
 		subscribe,
 
 		async loadReleases(filter?: DiscoveryFilter) {
+			const generation = ++loadGeneration
 			update((state) => ({ ...state, loading: true, error: null }))
 
 			try {
-				const releases = await discoveryApi.getReleases(filter)
-				update((state) => ({
-					...state,
-					releases,
-					loading: false,
-					filter: filter ?? {},
-				}))
+				let offset = 0
+				let pageSize = FIRST_PAGE_SIZE
+				let accumulated: DiscoveryRelease[] = []
+				for (;;) {
+					const page = await discoveryApi.getReleases({ ...(filter ?? {}), limit: pageSize, offset })
+					if (generation !== loadGeneration) return // superseded by a newer load
+					accumulated = offset === 0 ? page : accumulated.concat(page)
+					const done = page.length < pageSize
+					const releases = accumulated
+					// Publish each page as it lands so the feed fills progressively; `loading`
+					// stays true until the last page so empty-state logic still waits for a
+					// complete load. NOTE: an in-place mutation (delete/update) landing mid-load
+					// can be transiently overwritten by the next page publish — it self-heals on
+					// the next reload, and the window is sub-second per page.
+					update((state) => ({
+						...state,
+						releases,
+						loading: !done,
+						filter: filter ?? {},
+					}))
+					if (done) break
+					offset += page.length
+					pageSize = PAGE_SIZE
+					// Yield the main thread between pages so queued user input runs first.
+					await sleep(0)
+				}
 			} catch (error) {
+				if (generation !== loadGeneration) return
 				update((state) => ({
 					...state,
 					loading: false,

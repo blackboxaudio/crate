@@ -4,7 +4,13 @@
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
 	import { followStore } from '$shared/stores/follow'
-	import { mobileUIStore, scrollTargetReleaseId, mobileDisplayedReleases, scrollTopNonce } from '$lib/stores/mobileUI'
+	import {
+		mobileUIStore,
+		scrollTargetReleaseId,
+		mobileDisplayedReleases,
+		scrollTopNonce,
+		DISCOVERY_ROW_HEIGHT,
+	} from '$lib/stores/mobileUI'
 	import MobileListSkeleton from '$lib/components/common/MobileListSkeleton.svelte'
 	import { pendingReleases } from '$lib/stores/pendingReleases'
 	import DiscoveryToolbar from './DiscoveryToolbar.svelte'
@@ -36,9 +42,34 @@
 	// Snapshot at mount, BEFORE any effect runs. `skipScrollRestore`: when we arrive via "locate" (the
 	// locate effect below drives its own scroll-to-release), that scroll wins, so don't restore.
 	// `savedScrollTop`: read up front so an early scroll event at the top can't clobber it before the
-	// feed list's restore reads it.
+	// feed list's restore reads it. `bootAnchor`: the one-shot restart anchor (see mobileUI.ts) — while
+	// it's live, the feed list's raw-pixel restore is suppressed and the anchor effect below drives the
+	// restore instead (a deep offset only becomes reachable as the release pages stream in).
 	const skipScrollRestore = get(mobileUIStore).scrollTargetReleaseId !== null
 	const savedScrollTop = get(mobileUIStore).discoveryScrollTop
+	const bootAnchor = get(mobileUIStore).discoveryRestoreAnchor
+
+	// Restart scroll restore: anchor by release ID so new releases shifting the list (or a partial load)
+	// can't land us on the wrong rows. Re-runs as pages stream in; the moment the anchor release appears,
+	// scroll to its row (rows are uniform, so the spacer already spans it). If the whole load finishes
+	// without it (release deleted since last session), fall back to the raw offset, clamped by the browser.
+	// Known imprecision: the `leading` pending-releases block sits above the virtual rows, so the anchor
+	// math is off by its height while offline adds are pending — same class of error as the locate path.
+	let anchorDone = bootAnchor === null || skipScrollRestore
+	$effect(() => {
+		const anchor = bootAnchor
+		if (anchorDone || !feedList || !anchor) return
+		const index = releases.findIndex((r) => r.id === anchor.releaseId)
+		if (index >= 0) {
+			anchorDone = true
+			mobileUIStore.consumeDiscoveryAnchor()
+			tick().then(() => feedList?.scrollToOffset(index * DISCOVERY_ROW_HEIGHT + anchor.offset))
+		} else if (!$isDiscoveryLoading && totalReleases > 0) {
+			anchorDone = true
+			mobileUIStore.consumeDiscoveryAnchor()
+			tick().then(() => feedList?.scrollToOffset(savedScrollTop))
+		}
+	})
 
 	// Background "scroll to release" (locate from the expanded player): the target row may not be mounted,
 	// so center it via the virtualizer, then clear the one-shot target.
@@ -88,8 +119,9 @@
 	<ReleaseFeedList
 		bind:this={feedList}
 		{releases}
+		rowHeight={DISCOVERY_ROW_HEIGHT}
 		initialScrollTop={savedScrollTop}
-		{skipScrollRestore}
+		skipScrollRestore={skipScrollRestore || bootAnchor !== null}
 		onScroll={handleScroll}
 		onRefresh={refreshFollowed}
 		leading={pendingBlock}

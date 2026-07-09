@@ -34,7 +34,9 @@
 	import { tagsStore } from '$shared/stores/tags'
 	import { followedSources } from '$shared/stores/follow'
 	import * as playbackQueue from '$shared/stores/playbackQueue'
+	import { validateRestoredNavigation } from '$lib/stores/navRestore'
 	import { get } from 'svelte/store'
+	import { onMount } from 'svelte'
 
 	// Resolve the open detail release from the feed first, then the open playlist's loaded set, then the full
 	// discovery set. The feed's `sortedReleases` applies the search / liked / new filters, so a release tapped
@@ -74,6 +76,13 @@
 	const detailFollowSource = $derived(
 		$detailFollowSourceId ? ($followedSources.find((s) => s.id === $detailFollowSourceId) ?? null) : null
 	)
+
+	// Validate the boot-restored navigation state (restored tab / folder trail / detail overlays / scroll
+	// anchor may reference entities deleted from another device since last session). Runs from HERE — after
+	// the tab views' onMount loads have started — so it can tell "already loading" from "needs a load".
+	onMount(() => {
+		void validateRestoredNavigation()
+	})
 
 	// Keep a discovery-feed-originated playback queue in sync with the feed's live filter: when the on-screen
 	// list changes — a tag filter / search / sort applied or reset, or releases synced in — re-scope the active

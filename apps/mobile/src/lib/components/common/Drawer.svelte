@@ -56,6 +56,10 @@
 		/** iOS-style back-swipe: restrict the close drag to start within this many px of an edge. Horizontal only. */
 		closeEdgeSize?: number
 		closeEdgeFrom?: 'left' | 'right'
+		/** Skip the slide-in and appear already in place (boot-restored overlays reopen where the user left
+		 *  off, not as a fresh navigation). Close still animates. Applies to every open of this instance —
+		 *  fine for surfaces mounted via `{#if}` per open, which is how the detail views use it. */
+		enterInstant?: boolean
 	}
 	let {
 		open,
@@ -76,6 +80,7 @@
 		panelDrag = true,
 		closeEdgeSize,
 		closeEdgeFrom,
+		enterInstant = false,
 	}: Props = $props()
 
 	const DURATION = 500 // ms — the one shared slide duration; keep in sync with the `duration-500` class below
@@ -161,9 +166,14 @@
 	})
 
 	// After mount, slide in on the next frame. A double rAF guarantees the off-screen start (openness 0)
-	// paints before we flip `entered`, so the CSS transition actually animates.
+	// paints before we flip `entered`, so the CSS transition actually animates. `enterInstant` flips it
+	// before the first paint instead, so the panel appears already in place (no slide).
 	$effect(() => {
 		if (visible && !closing && !entered) {
+			if (enterInstant) {
+				entered = true
+				return
+			}
 			let raf2 = 0
 			const raf1 = requestAnimationFrame(() => (raf2 = requestAnimationFrame(() => (entered = true))))
 			return () => {

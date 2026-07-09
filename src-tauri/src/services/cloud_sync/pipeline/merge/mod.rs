@@ -1,5 +1,7 @@
 //! The merge engine: fold a bucket's remote rows into local state, HLC as the
-//! oracle. One transaction per bucket.
+//! oracle. One transaction per [`merge_bucket`] call — callers pass the whole bucket,
+//! or (for large non-self-referential buckets) chunks of it so the DB mutex is
+//! released between batches (see `pull::pull_and_merge`).
 //!
 //! ## Tie-breaks (must match [`super::rows`]'s serialize-time rule)
 //! - **Entities — DELETE-WINS-TIE:** a delete at HLC `>=` the live row wins; a live

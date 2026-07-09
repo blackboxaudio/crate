@@ -17,19 +17,43 @@ const BUCKET_FLAGS = {
 	settings: 'settings',
 } as const
 
-// During the initial restore of a large account, `cloud-sync-merged` fires once per merge batch —
-// reloading every touched store on each event re-fetches the ENTIRE release list (thousands of
-// rows with nested tracks/tags) over IPC dozens of times in quick succession, which can pressure
-// the WKWebView content process into a jetsam kill. Coalesce: accumulate flags and flush on a
-// trailing debounce, with a max-wait so a long merge stream still paints progressively.
+// Reloading every touched store per `cloud-sync-merged` event re-fetches the release list
+// (thousands of rows with nested tracks/tags) once per sync cycle — and back-to-back cycles
+// (foreground returns, background refresh) would repeat it. Coalesce: accumulate flags and
+// flush on a trailing debounce with a max-wait ceiling.
 const RELOAD_DEBOUNCE_MS = 750
 const RELOAD_MAX_WAIT_MS = 4000
+
+// User actions take priority over sync-triggered reloads: never start a heavy store reload
+// while the user is actively touching the screen — wait for a quiet gap, up to a cap so the
+// reload can't be starved forever by continuous scrolling.
+const INTERACTION_QUIET_MS = 500
+const INTERACTION_DEFER_CAP_MS = 8000
 
 const pendingFlags = new Set<string>()
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let maxWaitTimer: ReturnType<typeof setTimeout> | null = null
+let lastInteractionAt = 0
+let flushDeferredSince = 0
+
+function bumpInteraction(): void {
+	lastInteractionAt = Date.now()
+}
 
 function flushPendingReloads(): void {
+	// Defer while the user is mid-interaction (bounded): reschedule and check again after
+	// the quiet window. The timers are left as-is here — this reschedule IS the new timer.
+	const now = Date.now()
+	if (now - lastInteractionAt < INTERACTION_QUIET_MS) {
+		if (!flushDeferredSince) flushDeferredSince = now
+		if (now - flushDeferredSince < INTERACTION_DEFER_CAP_MS) {
+			if (debounceTimer) clearTimeout(debounceTimer)
+			debounceTimer = setTimeout(flushPendingReloads, INTERACTION_QUIET_MS)
+			return
+		}
+	}
+	flushDeferredSince = 0
+
 	if (debounceTimer) clearTimeout(debounceTimer)
 	if (maxWaitTimer) clearTimeout(maxWaitTimer)
 	debounceTimer = null
@@ -58,10 +82,17 @@ function scheduleReloadForBuckets(buckets: string[]): void {
 }
 
 export async function setupCloudSyncMergeListener(): Promise<UnlistenFn> {
+	window.addEventListener('touchstart', bumpInteraction, { passive: true, capture: true })
+	window.addEventListener('touchmove', bumpInteraction, { passive: true, capture: true })
+	window.addEventListener('pointerdown', bumpInteraction, { passive: true, capture: true })
+
 	const unlisten = await listen<string[]>('cloud-sync-merged', (event) => {
 		scheduleReloadForBuckets(event.payload)
 	})
 	return () => {
+		window.removeEventListener('touchstart', bumpInteraction, { capture: true })
+		window.removeEventListener('touchmove', bumpInteraction, { capture: true })
+		window.removeEventListener('pointerdown', bumpInteraction, { capture: true })
 		if (debounceTimer) clearTimeout(debounceTimer)
 		if (maxWaitTimer) clearTimeout(maxWaitTimer)
 		debounceTimer = null

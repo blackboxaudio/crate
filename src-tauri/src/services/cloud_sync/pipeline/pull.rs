@@ -35,6 +35,11 @@ const LAST_SYNCED_ETAG: &str = "last_synced_manifest_etag";
 /// `sync_state` key: the manifest HLC we last merged (diagnostics / forward-compat).
 const LAST_SYNCED_HLC: &str = "last_synced_manifest_hlc";
 
+/// Max rows merged per transaction / connection-mutex hold (see the chunked merge in
+/// [`pull_and_merge`]). Large enough that a restore stays a handful of transactions per
+/// bucket, small enough that user commands never wait more than one batch.
+const MERGE_CHUNK_ROWS: usize = 500;
+
 /// The result of a pull/merge: whether anything merged, plus any non-trivial overrides
 /// observed (this device's authored values that lost to a higher-HLC remote) for the
 /// override toast. Purely a reporting channel — it does not affect convergence.
@@ -157,7 +162,29 @@ pub async fn pull_and_merge(
         let key = format!("users/{}/vault/{}", session.uid, entry.object_key);
         let bytes = blobs.download(session, &key).await?;
         let parsed = rows::parse_bucket(&bucket, &bytes)?;
-        {
+
+        // Merge big buckets in chunks, releasing the connection mutex between batches: a
+        // whole-bucket transaction over thousands of rows (an initial restore of a large
+        // library) would otherwise block every user-invoked DB command — taps, playback
+        // lookups — for seconds. Chunking is safe: rows merge independently (per-row HLC,
+        // local state re-read per row) and the etag watermark is only written after the
+        // whole pull succeeds, so a failure mid-bucket re-merges idempotently next pull.
+        //
+        // Exception: the self-referential `playlists` bucket (folder trees via
+        // `playlists.parent_id → playlists.id`) must merge in ONE deferred-FK transaction
+        // so a child row can precede its parent. Every other bucket's FKs point at buckets
+        // merged earlier in `merge_order`, so per-chunk commits satisfy them.
+        let chunkable = !matches!(bucket, Bucket::Playlists);
+        if chunkable && parsed.len() > MERGE_CHUNK_ROWS {
+            for chunk in parsed.chunks(MERGE_CHUNK_ROWS) {
+                {
+                    let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+                    overrides.extend(merge_bucket(&guard, &bucket, chunk)?);
+                }
+                // Give queued user commands a chance at the mutex before the next batch.
+                tokio::task::yield_now().await;
+            }
+        } else {
             let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
             overrides.extend(merge_bucket(&guard, &bucket, &parsed)?);
         }

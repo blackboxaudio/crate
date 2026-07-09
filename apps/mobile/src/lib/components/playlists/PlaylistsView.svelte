@@ -5,7 +5,7 @@
 	import type { Playlist, SmartRules } from '$shared/types'
 	import { playlistsStore, getPlaylistChildren } from '$shared/stores/playlists'
 	import { discoveryPlaylistStore } from '$shared/stores/discoveryPlaylist'
-	import { mobileUIStore, scrollTopNonce } from '$lib/stores/mobileUI'
+	import { mobileUIStore, scrollTopNonce, playlistFolderTrail } from '$lib/stores/mobileUI'
 	import { easeFluid } from '$lib/easing'
 	import { swipe, type SwipeOptions } from '$lib/actions/swipe'
 	import { getPlaylistCovers, ensurePlaylistCovers, refreshPlaylistCovers } from '$lib/stores/playlistCovers'
@@ -33,7 +33,9 @@
 
 	const allPlaylists = $derived($playlistsStore.playlists.filter((p) => p.context === 'discovery'))
 
-	let folderStack = $state<string[]>([])
+	// The folder trail lives in `mobileUIStore` (persisted), so it survives both the tab-switch remount
+	// and an app restart — this view only renders it and delegates push/pop.
+	const folderStack = $derived($playlistFolderTrail)
 	const currentFolderId = $derived(folderStack.length > 0 ? folderStack[folderStack.length - 1] : null)
 	const currentFolder = $derived(currentFolderId ? (allPlaylists.find((p) => p.id === currentFolderId) ?? null) : null)
 
@@ -105,7 +107,7 @@
 		;(document.activeElement as HTMLElement | null)?.blur()
 		navDirection = 'forward'
 		query = ''
-		folderStack = [...folderStack, folderId]
+		mobileUIStore.pushPlaylistFolder(folderId)
 	}
 
 	function popFolder() {
@@ -113,7 +115,7 @@
 		;(document.activeElement as HTMLElement | null)?.blur()
 		navDirection = 'back'
 		query = ''
-		folderStack = folderStack.slice(0, -1)
+		mobileUIStore.popPlaylistFolder()
 	}
 
 	// Interactive back-swipe to the parent folder: an edge-swipe from the left edge dragging right, mirroring
@@ -239,7 +241,7 @@
 		})
 		if (!ok) return
 		if (folderStack.includes(playlist.id)) {
-			folderStack = folderStack.slice(0, folderStack.indexOf(playlist.id))
+			mobileUIStore.setPlaylistFolderTrail(folderStack.slice(0, folderStack.indexOf(playlist.id)))
 		}
 		await playlistsStore.delete(playlist.id)
 	}

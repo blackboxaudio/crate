@@ -27,6 +27,8 @@
 	let { source }: Props = $props()
 
 	let open = $state(true)
+	// Boot-restored (this overlay was open when the app was last killed): appear in place, no slide-in.
+	const enterInstant = mobileUIStore.consumeBootRestoredOverlay('follow')
 
 	function domain(url: string): string {
 		try {
@@ -92,6 +94,7 @@
 	direction="right"
 	onClose={startClose}
 	{onClosed}
+	{enterInstant}
 	z={30}
 	scrimZ={20}
 	scrimDismiss={false}

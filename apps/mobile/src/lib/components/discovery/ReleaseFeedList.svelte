@@ -74,6 +74,11 @@
 		scrollEl?.scrollTo({ top: 0, behavior: smooth ? 'smooth' : 'auto' })
 	}
 
+	// Jump to an absolute offset via the virtualizer (the feed's boot restore: anchor scroll + pixel fallback).
+	export function scrollToOffset(offset: number) {
+		virtualList.scrollToOffset(offset)
+	}
+
 	// Coalesce scroll callbacks to one per frame — a fling fires `scroll` far faster than that.
 	let scrollRaf = 0
 	function handleScroll() {

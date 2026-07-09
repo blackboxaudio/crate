@@ -1,8 +1,17 @@
-import { writable, derived } from 'svelte/store'
+import { writable, derived, get } from 'svelte/store'
 import { sortedReleases, discoveryStore } from '$shared/stores/discovery'
 import { discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
 import { followedSources } from '$shared/stores/follow'
 import { releasesFromSource } from '$shared/utils'
+import {
+	getStoredArray,
+	getStoredNumber,
+	getStoredString,
+	removeStored,
+	setStoredArray,
+	setStoredNumber,
+	setStoredString,
+} from '$shared/utils/storage'
 import type { DiscoveryRelease, TagFilterMode } from '$shared/types'
 
 /** The app's primary navigation destinations, surfaced as bottom tabs. Settings is intentionally NOT a
@@ -108,9 +117,22 @@ interface MobileUIState {
 	 * by level.
 	 */
 	overlayPopNonce: number
+	/**
+	 * The Playlists tab's folder trail (root → deepest), lifted out of `PlaylistsView` so it survives both
+	 * the tab-switch remount (`{#key activeTab}`) and — persisted — an app restart. The last entry is the
+	 * folder currently shown; empty means the root level.
+	 */
+	playlistFolderTrail: string[]
+	/**
+	 * One-shot boot anchor for the discovery feed's scroll restore: the release that was topmost when the
+	 * app was last killed, plus the scroll offset within its row. The feed consumes it on its first mount
+	 * (via `consumeDiscoveryAnchor`) once the release streams into the progressively loading list —
+	 * anchoring by ID survives new releases shifting the list, unlike the raw `discoveryScrollTop`.
+	 */
+	discoveryRestoreAnchor: { releaseId: string; offset: number } | null
 }
 
-const initialState: MobileUIState = {
+const defaultState: MobileUIState = {
 	activeTab: 'discovery',
 	detailReleaseId: null,
 	detailCovering: false,
@@ -139,6 +161,119 @@ const initialState: MobileUIState = {
 	queueOrigin: null,
 	scrollTopNonce: 0,
 	overlayPopNonce: 0,
+	playlistFolderTrail: [],
+	discoveryRestoreAnchor: null,
+}
+
+// --- Persisted navigation state (localStorage via shared/utils/storage) -------------------------
+// The persisted slice of the UI state: active tab, open detail overlays, the Playlists folder trail,
+// and the discovery feed's scroll position (raw offset + release-ID anchor) — so a killed app reopens
+// where the user left off. Ephemeral state (multi-select, expanded player, sheets, tag filters, nonces)
+// intentionally resets. Stale IDs (entities deleted from another device) are validated and cleared
+// after the stores load — see `navRestore.ts`.
+const STORAGE_KEYS = {
+	activeTab: 'mobile.nav.activeTab',
+	detailReleaseId: 'mobile.nav.detailReleaseId',
+	detailPlaylistId: 'mobile.nav.detailPlaylistId',
+	detailTagId: 'mobile.nav.detailTagId',
+	detailFollowSourceId: 'mobile.nav.detailFollowSourceId',
+	playlistFolderTrail: 'mobile.nav.playlistFolderTrail',
+	scrollTop: 'mobile.discovery.scrollTop',
+	anchorReleaseId: 'mobile.discovery.anchorReleaseId',
+	anchorOffset: 'mobile.discovery.anchorOffset',
+} as const
+
+/** Row height (px) of the discovery feed's release cards — the feed passes it to `ReleaseFeedList` and
+ *  the scroll persistence derives the anchor row from it, so the two can't drift. */
+export const DISCOVERY_ROW_HEIGHT = 72
+
+function readStoredId(key: string): string | null {
+	return getStoredString(key, '') || null
+}
+
+/** Overlay kinds restored from storage at boot — each detail view consumes its marker once (via
+ *  `consumeBootRestoredOverlay`) to skip the slide-in animation on the restored mount. */
+const bootRestoredOverlays = new Set<'release' | 'playlist' | 'tag' | 'follow'>()
+
+function seedInitialState(): MobileUIState {
+	const detailReleaseId = readStoredId(STORAGE_KEYS.detailReleaseId)
+	const detailPlaylistId = readStoredId(STORAGE_KEYS.detailPlaylistId)
+	const detailTagId = readStoredId(STORAGE_KEYS.detailTagId)
+	const detailFollowSourceId = readStoredId(STORAGE_KEYS.detailFollowSourceId)
+	if (detailReleaseId) bootRestoredOverlays.add('release')
+	if (detailPlaylistId) bootRestoredOverlays.add('playlist')
+	if (detailTagId) bootRestoredOverlays.add('tag')
+	if (detailFollowSourceId) bootRestoredOverlays.add('follow')
+	const anchorReleaseId = readStoredId(STORAGE_KEYS.anchorReleaseId)
+	return {
+		...defaultState,
+		activeTab: getStoredString<MobileTab>(STORAGE_KEYS.activeTab, 'discovery', [
+			'discovery',
+			'following',
+			'playlists',
+			'tags',
+		]),
+		detailReleaseId,
+		detailCovering: detailReleaseId !== null,
+		detailPlaylistId,
+		playlistDetailCovering: detailPlaylistId !== null,
+		detailTagId,
+		tagDetailCovering: detailTagId !== null,
+		detailFollowSourceId,
+		followDetailCovering: detailFollowSourceId !== null,
+		playlistFolderTrail: getStoredArray(STORAGE_KEYS.playlistFolderTrail),
+		discoveryScrollTop: getStoredNumber(STORAGE_KEYS.scrollTop, 0),
+		discoveryRestoreAnchor: anchorReleaseId
+			? { releaseId: anchorReleaseId, offset: getStoredNumber(STORAGE_KEYS.anchorOffset, 0) }
+			: null,
+	}
+}
+
+const initialState: MobileUIState = seedInitialState()
+
+// Debounced scroll persistence: `setDiscoveryScrollTop` fires on every (rAF-coalesced) scroll event, so
+// the localStorage writes trail behind. The anchor is derived at write time from the displayed list:
+// the release whose row spans the saved offset, plus the offset within that row.
+let persistScrollTimer: ReturnType<typeof setTimeout> | null = null
+let pendingScrollTop: number | null = null
+
+function persistDiscoveryScroll(top: number) {
+	// While a boot restore is still pending (anchor unconsumed), last session's stored values remain the
+	// truth — don't let pre-restore scroll events (often a spurious 0 at mount) wipe them before the feed
+	// has scrolled back. Persistence resumes once the feed consumes the anchor (or validation drops it).
+	if (get(mobileUIStore).discoveryRestoreAnchor !== null) return
+	setStoredNumber(STORAGE_KEYS.scrollTop, top)
+	const list = get(mobileDisplayedReleases)
+	const index = Math.min(list.length - 1, Math.floor(top / DISCOVERY_ROW_HEIGHT))
+	const anchor = index >= 0 ? list[index] : undefined
+	setStoredString(STORAGE_KEYS.anchorReleaseId, anchor?.id ?? '')
+	setStoredNumber(STORAGE_KEYS.anchorOffset, anchor ? top - index * DISCOVERY_ROW_HEIGHT : 0)
+}
+
+function schedulePersistDiscoveryScroll(top: number) {
+	pendingScrollTop = top
+	if (persistScrollTimer !== null) clearTimeout(persistScrollTimer)
+	persistScrollTimer = setTimeout(() => {
+		persistScrollTimer = null
+		if (pendingScrollTop !== null) persistDiscoveryScroll(pendingScrollTop)
+		pendingScrollTop = null
+	}, 300)
+}
+
+function cancelPendingScrollPersist() {
+	if (persistScrollTimer !== null) clearTimeout(persistScrollTimer)
+	persistScrollTimer = null
+	pendingScrollTop = null
+}
+
+/** Flush any pending (debounced) scroll persistence immediately — called when the app is backgrounded,
+ *  so a backgrounded-then-killed app still keeps its very latest scroll position. */
+export function flushNavPersistence() {
+	if (persistScrollTimer === null) return
+	clearTimeout(persistScrollTimer)
+	persistScrollTimer = null
+	if (pendingScrollTop !== null) persistDiscoveryScroll(pendingScrollTop)
+	pendingScrollTop = null
 }
 
 function createMobileUIStore() {
@@ -211,9 +346,35 @@ function createMobileUIStore() {
 		consumeScrollTarget() {
 			update((s) => (s.scrollTargetReleaseId === null ? s : { ...s, scrollTargetReleaseId: null }))
 		},
-		/** Remember the discovery feed's scroll offset so it survives the tab-switch remount. */
+		/** Remember the discovery feed's scroll offset so it survives the tab-switch remount. Also persists
+		 *  it (debounced, with the release-ID anchor) so it survives an app restart. */
 		setDiscoveryScrollTop(top: number) {
 			update((s) => (s.discoveryScrollTop === top ? s : { ...s, discoveryScrollTop: top }))
+			schedulePersistDiscoveryScroll(top)
+		},
+		/** Clear the one-shot boot scroll anchor once the feed has applied (or abandoned) it. */
+		consumeDiscoveryAnchor() {
+			update((s) => (s.discoveryRestoreAnchor === null ? s : { ...s, discoveryRestoreAnchor: null }))
+		},
+
+		// --- Playlists folder trail (the Playlists tab's drill-down path) ---------------------------
+		/** Drill into a folder (append it to the trail). */
+		pushPlaylistFolder(folderId: string) {
+			update((s) => ({ ...s, playlistFolderTrail: [...s.playlistFolderTrail, folderId] }))
+		},
+		/** Back out one folder level. */
+		popPlaylistFolder() {
+			update((s) => ({ ...s, playlistFolderTrail: s.playlistFolderTrail.slice(0, -1) }))
+		},
+		/** Replace the trail wholesale (boot validation truncation, folder deleted mid-trail). */
+		setPlaylistFolderTrail(trail: string[]) {
+			update((s) => ({ ...s, playlistFolderTrail: trail }))
+		},
+
+		/** Whether this overlay kind was restored from storage at boot — consumed once, so the restored
+		 *  mount skips its slide-in animation while later in-session opens animate normally. */
+		consumeBootRestoredOverlay(kind: 'release' | 'playlist' | 'tag' | 'follow'): boolean {
+			return bootRestoredOverlays.delete(kind)
 		},
 
 		// --- Tag filtering (client-side over the loaded feed) ---------------------------------------
@@ -398,13 +559,35 @@ function createMobileUIStore() {
 			update((s) => (s.openRowId === id ? s : { ...s, openRowId: id }))
 		},
 
+		/** Back to a pristine state (NOT the storage-seeded boot state), wiping the persisted keys too. */
 		reset() {
-			set(initialState)
+			cancelPendingScrollPersist()
+			for (const key of Object.values(STORAGE_KEYS)) removeStored(key)
+			set(defaultState)
 		},
 	}
 }
 
 export const mobileUIStore = createMobileUIStore()
+
+// Persist the navigation slice on change. One targeted diff-subscribe (rather than a write in every
+// setter) so no transition — present or future — can forget to persist; the diff touches only these
+// six fields, so the Set-valued ephemeral state costs nothing. The scroll offset/anchor persist
+// separately (debounced) from `setDiscoveryScrollTop`.
+let prevPersisted = initialState
+mobileUIStore.subscribe((s) => {
+	if (s.activeTab !== prevPersisted.activeTab) setStoredString(STORAGE_KEYS.activeTab, s.activeTab)
+	if (s.detailReleaseId !== prevPersisted.detailReleaseId)
+		setStoredString(STORAGE_KEYS.detailReleaseId, s.detailReleaseId ?? '')
+	if (s.detailPlaylistId !== prevPersisted.detailPlaylistId)
+		setStoredString(STORAGE_KEYS.detailPlaylistId, s.detailPlaylistId ?? '')
+	if (s.detailTagId !== prevPersisted.detailTagId) setStoredString(STORAGE_KEYS.detailTagId, s.detailTagId ?? '')
+	if (s.detailFollowSourceId !== prevPersisted.detailFollowSourceId)
+		setStoredString(STORAGE_KEYS.detailFollowSourceId, s.detailFollowSourceId ?? '')
+	if (s.playlistFolderTrail !== prevPersisted.playlistFolderTrail)
+		setStoredArray(STORAGE_KEYS.playlistFolderTrail, s.playlistFolderTrail)
+	prevPersisted = s
+})
 
 export const activeTab = derived(mobileUIStore, ($s) => $s.activeTab)
 export const detailReleaseId = derived(mobileUIStore, ($s) => $s.detailReleaseId)
@@ -478,3 +661,4 @@ export const followReleaseId = derived(mobileUIStore, ($s) => $s.followReleaseId
 export const queueOrigin = derived(mobileUIStore, ($s) => $s.queueOrigin)
 export const scrollTopNonce = derived(mobileUIStore, ($s) => $s.scrollTopNonce)
 export const overlayPopNonce = derived(mobileUIStore, ($s) => $s.overlayPopNonce)
+export const playlistFolderTrail = derived(mobileUIStore, ($s) => $s.playlistFolderTrail)

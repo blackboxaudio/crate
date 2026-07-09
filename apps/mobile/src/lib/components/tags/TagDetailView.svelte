@@ -26,6 +26,8 @@
 	let { tag, categoryColor }: Props = $props()
 
 	let open = $state(true)
+	// Boot-restored (this overlay was open when the app was last killed): appear in place, no slide-in.
+	const enterInstant = mobileUIStore.consumeBootRestoredOverlay('tag')
 
 	// Tags inherit their category's color; fall back to the app's default indigo if neither is set.
 	const dotColor = $derived(tag.color ?? categoryColor ?? DEFAULT_TAG_COLOR)
@@ -84,6 +86,7 @@
 	direction="right"
 	onClose={startClose}
 	{onClosed}
+	{enterInstant}
 	z={30}
 	scrimZ={20}
 	scrimDismiss={false}

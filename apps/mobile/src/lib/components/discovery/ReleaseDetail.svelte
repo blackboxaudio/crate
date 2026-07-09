@@ -323,6 +323,8 @@
 	// Open on mount (this is only rendered while a release is selected). Dismissal flips `open` false; the
 	// Drawer slides out, then `onClosed` clears the store so +page's {#if} unmounts only after the anim.
 	let open = $state(true)
+	// Boot-restored (this overlay was open when the app was last killed): appear in place, no slide-in.
+	const enterInstant = mobileUIStore.consumeBootRestoredOverlay('release')
 
 	// Start the dismissal. Besides sliding the drawer out, drop the store's `detailCovering` flag now (not
 	// when the slide-out finishes) so the mini-player begins rising back over the tab bar *as* the detail
@@ -348,6 +350,7 @@
 	direction="right"
 	onClose={startClose}
 	onClosed={mobileUIStore.closeDetail}
+	{enterInstant}
 	z={35}
 	scrimZ={34}
 	scrimDismiss={false}

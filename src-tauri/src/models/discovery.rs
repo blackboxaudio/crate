@@ -95,6 +95,12 @@ pub struct DiscoveryFilter {
     pub search: Option<String>,
     pub tag_ids: Option<Vec<String>>,
     pub tag_filter_mode: Option<String>,
+    /// Page size for chunked loading. `None` returns the full set (legacy behavior). The
+    /// frontend loads large libraries in pages so no single IPC response carries thousands of
+    /// releases at once (a multi-MB payload parsed in one shot can OOM the mobile webview).
+    pub limit: Option<u32>,
+    /// Row offset for chunked loading; only meaningful together with `limit`.
+    pub offset: Option<u32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -260,7 +260,19 @@ impl DiscoveryService {
             }
         }
 
-        sql.push_str(" ORDER BY dr.date_added DESC");
+        // `dr.id` tiebreaker keeps the order stable across paged reads: synced/bulk-imported
+        // releases often share a `date_added`, and without a total order LIMIT/OFFSET pages
+        // could repeat or skip rows.
+        sql.push_str(" ORDER BY dr.date_added DESC, dr.id DESC");
+
+        if let Some(limit) = filter.limit {
+            sql.push_str(" LIMIT ?");
+            params.push(Box::new(limit as i64));
+            if let Some(offset) = filter.offset {
+                sql.push_str(" OFFSET ?");
+                params.push(Box::new(offset as i64));
+            }
+        }
 
         let mut stmt = conn.prepare(&sql)?;
         let param_refs: Vec<&dyn rusqlite::types::ToSql> =

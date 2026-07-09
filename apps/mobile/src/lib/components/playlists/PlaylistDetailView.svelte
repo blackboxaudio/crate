@@ -31,6 +31,8 @@
 	let { playlist }: Props = $props()
 
 	let open = $state(true)
+	// Boot-restored (this overlay was open when the app was last killed): appear in place, no slide-in.
+	const enterInstant = mobileUIStore.consumeBootRestoredOverlay('playlist')
 	let loading = $state(false)
 	let releases = $derived($discoveryPlaylistReleases)
 	let pickerOpen = $state(false)
@@ -135,6 +137,7 @@
 	direction="right"
 	onClose={startClose}
 	{onClosed}
+	{enterInstant}
 	z={30}
 	scrimZ={20}
 	scrimDismiss={false}

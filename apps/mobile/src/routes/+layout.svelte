@@ -9,7 +9,7 @@
 	import { startWebMediaSession } from '$shared/services/webMediaSession'
 	import { playerStore, previewInfo } from '$shared/stores/player'
 	import { isIOS } from '$shared/utils/platform'
-	import { mobileUIStore, isPlayerExpanded } from '$lib/stores/mobileUI'
+	import { mobileUIStore, isPlayerExpanded, flushNavPersistence } from '$lib/stores/mobileUI'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
 	import { setupCloudSyncMergeListener } from '$lib/cloudSyncMerge'
 	// @ts-expect-error — PUBLIC_APP_VERSION is set dynamically by vite.config.ts
@@ -119,6 +119,17 @@
 		pendingReleasesStore.hydrate()
 		pendingReleasesStore.attachNetworkListeners()
 		if (navigator.onLine) void pendingReleasesStore.processQueue()
+	})
+
+	// Navigation persistence (mobileUI store): the discovery scroll position writes behind a debounce, so
+	// flush it the moment the app is backgrounded — mobile apps die backgrounded, not mid-fling, so this is
+	// what makes the very latest scroll position survive an iOS/Android process kill.
+	onMount(() => {
+		const onVisibility = () => {
+			if (document.visibilityState === 'hidden') flushNavPersistence()
+		}
+		document.addEventListener('visibilitychange', onVisibility)
+		return () => document.removeEventListener('visibilitychange', onVisibility)
 	})
 
 	// Mirror the desktop layout: svelte-i18n loads the active locale's dictionary asynchronously, so
