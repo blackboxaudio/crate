@@ -18,6 +18,8 @@
 		805A975319651B2E794A2947 /* libapp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BC3B6015D01C091E6CEE0834 /* libapp.a */; };
 		9B6D53C54A70949BD31306B6 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CA1D63DF01AF66804FBA945E /* CoreGraphics.framework */; };
 		AA54039387D43EA79B08D22E /* MediaPlayer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 204E4B7E298CAB7017205026 /* MediaPlayer.framework */; };
+		D1CECEC4B01DF11EAA000001 /* DeviceCheck.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D1CECEC4F11EAEF000000002 /* DeviceCheck.framework */; };
+		BAC46A0087A5C5B01DF11E03 /* BackgroundTasks.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BAC46A00F11EAEF000000004 /* BackgroundTasks.framework */; };
 		AE1C182A9551C4F7086A4D60 /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E9C9BAA594C04E9F05F191C /* WebKit.framework */; };
 		CAB8DF3B0CD259A9DEB10631 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E2016793BFEBC8B9B1F3F8C7 /* MetalKit.framework */; };
 		D609D4405D6E909CD48F3BE8 /* assets in Resources */ = {isa = PBXBuildFile; fileRef = 23322080E1380BD104312E47 /* assets */; };
@@ -49,6 +51,8 @@
 		1F538C7562C4914CA5792505 /* movement.rs */ = {isa = PBXFileReference; path = movement.rs; sourceTree = "<group>"; };
 		1FE12C28E58E758D07AD509E /* error.rs */ = {isa = PBXFileReference; path = error.rs; sourceTree = "<group>"; };
 		204E4B7E298CAB7017205026 /* MediaPlayer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MediaPlayer.framework; path = System/Library/Frameworks/MediaPlayer.framework; sourceTree = SDKROOT; };
+		D1CECEC4F11EAEF000000002 /* DeviceCheck.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = DeviceCheck.framework; path = System/Library/Frameworks/DeviceCheck.framework; sourceTree = SDKROOT; };
+		BAC46A00F11EAEF000000004 /* BackgroundTasks.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = BackgroundTasks.framework; path = System/Library/Frameworks/BackgroundTasks.framework; sourceTree = SDKROOT; };
 		20681DD86B208D316060DC82 /* menu.rs */ = {isa = PBXFileReference; path = menu.rs; sourceTree = "<group>"; };
 		2096AAD1CB62DD9C3CE84028 /* menu.rs */ = {isa = PBXFileReference; path = menu.rs; sourceTree = "<group>"; };
 		20EFD8D8A31FBD732DF12227 /* mod.rs */ = {isa = PBXFileReference; path = mod.rs; sourceTree = "<group>"; };
@@ -258,6 +262,8 @@
 				554018F963B90A03FAF57385 /* UIKit.framework in Frameworks */,
 				AE1C182A9551C4F7086A4D60 /* WebKit.framework in Frameworks */,
 				AA54039387D43EA79B08D22E /* MediaPlayer.framework in Frameworks */,
+				D1CECEC4B01DF11EAA000001 /* DeviceCheck.framework in Frameworks */,
+				BAC46A0087A5C5B01DF11E03 /* BackgroundTasks.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -433,6 +439,8 @@
 				CA1D63DF01AF66804FBA945E /* CoreGraphics.framework */,
 				BC3B6015D01C091E6CEE0834 /* libapp.a */,
 				204E4B7E298CAB7017205026 /* MediaPlayer.framework */,
+				D1CECEC4F11EAEF000000002 /* DeviceCheck.framework */,
+				BAC46A00F11EAEF000000004 /* BackgroundTasks.framework */,
 				8E593ADB3C5FC33437A609AF /* Metal.framework */,
 				E2016793BFEBC8B9B1F3F8C7 /* MetalKit.framework */,
 				9B1CD00715C5A258D0BD4C78 /* QuartzCore.framework */,
