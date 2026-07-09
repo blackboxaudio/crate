@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { openUrl } from '@tauri-apps/plugin-opener'
-	import { slide, fade } from 'svelte/transition'
+	import { slide, fade, type TransitionConfig } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
 	import {
@@ -13,7 +13,7 @@
 		playbackSpeed,
 		shuffleEnabled,
 	} from '$shared/stores/player'
-	import { canAdvance } from '$shared/stores/playbackQueue'
+	import { canAdvance, upNext, peekUpcoming, peekPrevious, type Pick as QueuePick } from '$shared/stores/playbackQueue'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import { formatDuration } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
@@ -24,6 +24,7 @@
 	import { mobileUIStore, isPlayerExpanded } from '$lib/stores/mobileUI'
 	import { lightTap } from '$lib/utils/haptics'
 	import Drawer from '$lib/components/common/Drawer.svelte'
+	import CoverPager, { type TrackChangeFx } from './CoverPager.svelte'
 	import Slider from '$shared/components/Slider.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
@@ -72,6 +73,125 @@
 	// step, or more context (shuffle pick / next-or-cross-release). The model computes it for us.
 	const canNext = $derived($previewInfo != null && $canAdvance)
 
+	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+	// --- track-change transitions -------------------------------------------------------------------
+	// Everything animates off `$previewInfo` changes (never off the gesture directly), so the transport
+	// buttons, auto-advance, UpNext taps, and iOS lock-screen skips — which land asynchronously via the
+	// native engine's onTrackChanged — all run the identical transition. The swipe pager only registers
+	// a `pendingGesture` before driving the player; the watcher consumes it to attribute the change.
+	let pendingGesture = $state<{ dir: 1 | -1; targetKey: string | null } | null>(null)
+	let changeFx = $state<TrackChangeFx | null>(null)
+	let fxSeq = 0
+	// Untracked snapshot of the last-seen track (and its rendered cover src, kept fresh as the
+	// cache-first resolution flips remote → local) so a change knows what it's transitioning FROM.
+	let lastTrack: { releaseId: string; trackIndex: number; artSrc: string | undefined } | null = null
+
+	// `$effect.pre` runs BEFORE the DOM updates, so the keyed background/title blocks re-render with the
+	// fresh `changeFx` and their in/out transitions get the right direction.
+	$effect.pre(() => {
+		const info = $previewInfo
+		if (!info) {
+			lastTrack = null
+			return
+		}
+		if (lastTrack && lastTrack.releaseId === info.releaseId && lastTrack.trackIndex === info.trackIndex) {
+			lastTrack.artSrc = artSrc
+			return
+		}
+		if (lastTrack) {
+			const kind = lastTrack.releaseId === info.releaseId ? 'same' : 'cross'
+			const pg = pendingGesture
+			let viaGesture = false
+			let dir: 1 | -1
+			if (pg && (pg.targetKey === null || pg.targetKey === `${info.releaseId}:${info.trackIndex}`)) {
+				viaGesture = true
+				dir = pg.dir
+			} else if (kind === 'same') {
+				// Wrapping last → first still reads as "next"; otherwise the index order is the direction.
+				const wrapped = info.trackIndex === 0 && lastTrack.trackIndex === info.release.tracks.length - 1
+				dir = wrapped || info.trackIndex > lastTrack.trackIndex ? 1 : -1
+			} else {
+				dir = 1
+			}
+			changeFx = { kind, dir, viaGesture, outgoingSrc: lastTrack.artSrc, seq: ++fxSeq }
+			pendingGesture = null
+		}
+		lastTrack = { releaseId: info.releaseId, trackIndex: info.trackIndex, artSrc }
+	})
+
+	// Neighbor picks for the pager's peeking covers, re-peeked on every queue emission ($upNext re-emits
+	// on each mutation/advance) so they always match what a swipe would actually play.
+	const nextPick = $derived.by(() => {
+		void $upNext
+		return $previewInfo ? (peekUpcoming(1)[0] ?? null) : null
+	})
+	const prevPick = $derived.by(() => {
+		void $upNext
+		return $previewInfo ? peekPrevious() : null
+	})
+	// "Previous" pages only when a previous pick exists — a swipe never falls into the restart branch.
+	const canPrevPage = $derived(prevPick != null)
+
+	function requestPage(dir: 1 | -1, target: QueuePick | null) {
+		pendingGesture = { dir, targetKey: target ? `${target.release.id}:${target.trackIndex}` : null }
+		if (dir === 1) void playerStore.nextTrack()
+		else void playerStore.previousTrack({ skipRestartThreshold: true })
+	}
+	function onSettleTimeout() {
+		pendingGesture = null
+	}
+
+	// Title/artist text transitions, per line (each line sits in its own overflow-hidden mask, and the
+	// artist trails the title by a beat for a cascade feel). Same-release changes do a masked "ticker
+	// roll": the old line rolls out of the clip while the new one rolls in from the opposite edge, up
+	// for next / down for previous. Cross-release changes slide with the change's direction while
+	// dissolving through a slight blur (sharpening as they land). Params are read when the transition
+	// fires, so outros pick up the direction of the change that replaced them. Reduced motion → instant.
+	function textIn(node: Element, { delay = 0 }: { delay?: number } = {}): TransitionConfig {
+		const fx = changeFx
+		if (reducedMotion || !fx) return { duration: 0 }
+		if (fx.kind === 'same') {
+			const h = node.clientHeight
+			return {
+				delay,
+				duration: 340,
+				easing: easeFluid,
+				css: (t, u) => `transform: translateY(${(u * h * fx.dir).toFixed(2)}px); opacity: ${t}`,
+			}
+		}
+		return {
+			delay,
+			duration: 360,
+			easing: easeFluid,
+			css: (t, u) =>
+				`transform: translateX(${(u * fx.dir * 32).toFixed(2)}px); opacity: ${t}; filter: blur(${(u * 6).toFixed(2)}px)`,
+		}
+	}
+	function textOut(node: Element, { delay = 0 }: { delay?: number } = {}): TransitionConfig {
+		const fx = changeFx
+		if (reducedMotion || !fx) return { duration: 0 }
+		if (fx.kind === 'same') {
+			const h = node.clientHeight
+			return {
+				delay,
+				duration: 340,
+				easing: easeFluid,
+				css: (t, u) => `transform: translateY(${(u * -h * fx.dir).toFixed(2)}px); opacity: ${t}`,
+			}
+		}
+		return {
+			delay,
+			duration: 240,
+			easing: easeFluid,
+			css: (t, u) =>
+				`transform: translateX(${(u * fx.dir * -24).toFixed(2)}px); opacity: ${t}; filter: blur(${(u * 4).toFixed(2)}px)`,
+		}
+	}
+	// The blurred wash crossfades only across releases (it's keyed by releaseId, so same-release changes
+	// never touch it). A short opacity-only fade is kept under reduced motion.
+	const bgFadeMs = reducedMotion ? 150 : 600
+
 	// Scrubbing: while the user drags the slider, show the local value and only commit on release so the
 	// live position updates don't fight the thumb.
 	let scrubbing = $state(false)
@@ -105,6 +225,7 @@
 			showTempo = false
 			showQueue = false
 			menuOpen = false
+			pendingGesture = null
 		}
 	})
 
@@ -169,20 +290,25 @@
 	ariaLabel={$previewInfo?.release.title ?? $translate('common.untitled')}
 	class="h-full overflow-hidden bg-surface-0"
 >
-	{#snippet children({ dragging })}
+	{#snippet children({ dragging, animating })}
 		{#if $previewInfo}
 			<!-- Album-art background: a blurred, slowly drifting wash with a theme-aware legibility scrim.
-			     Full-bleed and first in the DOM; the relative content wrapper below paints over it. -->
-			{#if artSrc}
-				<img
-					src={artSrc}
-					alt=""
-					class="art-wash pointer-events-none absolute inset-0 h-full w-full object-cover blur-2xl"
-				/>
+			     Full-bleed and first in the DOM; the relative content wrapper below paints over it. Keyed by
+			     the RELEASE id: same-release track changes never touch it, while a cross-release change
+			     cross-dissolves the whole layer (slowly, against the cover's fast slide — reads as parallax).
+			     The fresh keyed img restarts the Ken-Burns drift at its base pose, so there's no jump. -->
+			{#key $previewInfo.releaseId}
 				<div
-					class="pointer-events-none absolute inset-0 bg-gradient-to-b from-surface-0/80 via-surface-0/25 to-surface-0/90"
-				></div>
-			{/if}
+					class="pointer-events-none absolute inset-0"
+					in:fade={{ duration: bgFadeMs, easing: easeFluid }}
+					out:fade={{ duration: bgFadeMs, easing: easeFluid }}
+				>
+					{#if artSrc}
+						<img src={artSrc} alt="" class="art-wash absolute inset-0 h-full w-full object-cover blur-2xl" />
+						<div class="absolute inset-0 bg-gradient-to-b from-surface-0/80 via-surface-0/25 to-surface-0/90"></div>
+					{/if}
+				</div>
+			{/key}
 
 			<div class="pt-safe pb-safe relative flex h-full flex-col">
 				<!-- Drag handle: hidden until dragging, near the top; collapse is by dragging the sheet down. -->
@@ -191,20 +317,20 @@
 					style="opacity: {dragging ? 1 : 0}"
 				></span>
 
-				<!-- Artwork -->
-				<div class="flex flex-1 items-center justify-center px-4 pt-3">
-					{#if artSrc}
-						<img src={artSrc} alt="" class="aspect-square w-full max-w-sm rounded-2xl object-cover shadow-2xl" />
-					{:else}
-						<div
-							class="flex aspect-square w-full max-w-sm items-center justify-center rounded-2xl bg-surface-2 text-text-tertiary"
-						>
-							<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
-								<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-							</svg>
-						</div>
-					{/if}
-				</div>
+				<!-- Artwork: a swipeable 3-slot cover strip. Swipe left/right pages next/previous with the
+				     neighboring covers peeking in; store-driven changes (buttons, auto-advance, lock screen)
+				     slide through the same strip. Vertical drags still dismiss the sheet (JS axis-lock). -->
+				<CoverPager
+					{artSrc}
+					{changeFx}
+					{prevPick}
+					{nextPick}
+					{canNext}
+					canPrev={canPrevPage}
+					enabled={$isPlayerExpanded && !dragging && !animating}
+					onRequestPage={requestPage}
+					{onSettleTimeout}
+				/>
 
 				<!-- Track info + transport. No parent gap/space-y: each row carries its own `mt-4`, so the
 				     tempo control's top margin belongs to the sliding element itself and Svelte's `slide`
@@ -212,19 +338,38 @@
 				     the tempo row unmounts, which jumped the control box. -->
 				<div class="flex flex-col px-4 pb-3">
 					<div class="flex items-center gap-3">
-						<div class="flex min-w-0 flex-1 flex-col">
-							<!-- Tap the title to locate the release: collapse the player, scroll the feed to it (behind
-							     the overlay), and open its detail screen. Desktop parity with the player's title locate. -->
-							<button
-								type="button"
-								class="block max-w-full truncate text-left text-xl font-semibold text-text-primary active:opacity-60"
-								onclick={() => $previewInfo && mobileUIStore.locateRelease($previewInfo.releaseId)}
-							>
-								{track?.name ?? $previewInfo.release.title ?? $translate('common.untitled')}
-							</button>
-							<span class="truncate text-base text-text-secondary">
-								{$previewInfo.release.artist ?? $translate('common.unknownArtist')}
-							</span>
+						<!-- Grid-stacked so the outgoing and incoming title layers overlap while they change. Each
+						     line lives in its own overflow-hidden mask and transitions per line, artist a beat after
+						     the title: same-release changes ticker-roll within the clip (up for next, down for
+						     previous), cross-release ones slide with the change's direction through a blur dissolve.
+						     The like button stays outside the keyed block (its state updates in place). -->
+						<div class="grid min-w-0 flex-1">
+							{#key `${$previewInfo.releaseId}:${$previewInfo.trackIndex}`}
+								<div class="col-start-1 row-start-1 flex min-w-0 flex-col">
+									<div class="overflow-hidden">
+										<!-- Tap the title to locate the release: collapse the player, scroll the feed to it (behind
+										     the overlay), and open its detail screen. Desktop parity with the player's title locate. -->
+										<button
+											type="button"
+											class="block max-w-full truncate text-left text-xl font-semibold text-text-primary active:opacity-60"
+											onclick={() => $previewInfo && mobileUIStore.locateRelease($previewInfo.releaseId)}
+											in:textIn
+											out:textOut
+										>
+											{track?.name ?? $previewInfo.release.title ?? $translate('common.untitled')}
+										</button>
+									</div>
+									<div class="overflow-hidden">
+										<span
+											class="block truncate text-base text-text-secondary"
+											in:textIn={{ delay: 60 }}
+											out:textOut={{ delay: 40 }}
+										>
+											{$previewInfo.release.artist ?? $translate('common.unknownArtist')}
+										</span>
+									</div>
+								</div>
+							{/key}
 						</div>
 						<button
 							type="button"

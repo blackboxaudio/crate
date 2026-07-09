@@ -13,9 +13,12 @@
 		release: Pick<DiscoveryRelease, 'id' | 'artwork_url' | 'artwork_cache_path'>
 		class?: string
 		alt?: string
+		/** Decode immediately instead of lazily — for covers that must be ready before they scroll in
+		 *  (the expanded player pre-mounts the neighboring tracks' covers for the swipe pager). */
+		eager?: boolean
 		fallback?: Snippet
 	}
-	let { release, class: className = '', alt = '', fallback }: Props = $props()
+	let { release, class: className = '', alt = '', eager = false, fallback }: Props = $props()
 
 	// Local cache-path state so the download can flip the src remote → local without a prop
 	// round-trip. Reset when the release identity changes (the virtualized feed reuses
@@ -48,7 +51,7 @@
 </script>
 
 {#if src}
-	<img {src} {alt} class={className} loading="lazy" />
+	<img {src} {alt} class={className} loading={eager ? 'eager' : 'lazy'} />
 {:else if fallback}
 	{@render fallback()}
 {/if}

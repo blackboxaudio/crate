@@ -987,12 +987,14 @@ function createPlayerStore() {
 		 * then steps back through the unified play history (which spans the user queue and both shuffle and
 		 * sequential context); at the very start it crosses to the previous context release (sequential) or
 		 * restarts. Shared by the in-app transport, the OS media session, and the iOS native command.
+		 * `skipRestartThreshold` bypasses the restart rule — a swipe gesture is spatial navigation, so it
+		 * always means "previous track" regardless of how far into the current one playback is.
 		 */
-		async previousTrack() {
+		async previousTrack(opts?: { skipRestartThreshold?: boolean }) {
 			const state = getState()
 			if (!state.previewInfo) return
 
-			if (state.playbackState.position_ms > PREVIOUS_RESTART_THRESHOLD_MS) {
+			if (!opts?.skipRestartThreshold && state.playbackState.position_ms > PREVIOUS_RESTART_THRESHOLD_MS) {
 				await this.seek(0)
 				return
 			}

@@ -26,7 +26,7 @@ import { getStoredString, setStoredString } from '../utils/storage'
 
 // One playable unit. `release` is held by reference (live object from the context queue / a queued
 // item), so resolution is synchronous; only ids are persisted (see `persistUserQueue`).
-interface Pick {
+export interface Pick {
 	release: DiscoveryRelease
 	trackIndex: number
 }
@@ -456,6 +456,19 @@ export function advancePrev(): Pick | null {
 /** The next `depth` upcoming picks without consuming — used to build the iOS native sliding window. */
 export function peekUpcoming(depth: number): Pick[] {
 	return upcomingPicks(Math.max(0, depth)).map((u) => u.pick)
+}
+
+/**
+ * The pick `advancePrev` WOULD step to, without mutating anything — the non-consuming mirror of its
+ * history-walk + sequential fallback. Used by the expanded player's swipe pager to render the incoming
+ * previous cover during a drag and to rubber-band when there is no previous (shuffle at history start).
+ */
+export function peekPrevious(): Pick | null {
+	if (historyPos > 0) return history[historyPos - 1]
+	if (shuffleEnabled || !cur) return null
+	return cur.trackIndex > 0
+		? { release: cur.release, trackIndex: cur.trackIndex - 1 }
+		: prevReleaseEndWrap(cur.release.id)
 }
 
 /** Whether at least one explicit user-queue item is pending (affects the native-feed decision). */
