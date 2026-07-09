@@ -268,6 +268,15 @@
 	)
 	const neighborScale = $derived(embellish ? 0.92 + 0.08 * progress : 1)
 	const neighborOpacity = $derived(embellish ? 0.7 + 0.3 * progress : 1)
+	// Outgoing fade: the traveling-away card dissolves over the back half of its journey so it's fully
+	// gone by the time it parks at the edge — the strip's eventual DOM reset is then invisible instead
+	// of a hard pop (its tilted corner otherwise lingers in view while a slow store change resolves).
+	// The center card is the outgoing one during a gesture (progress 0 → 1); during a store slide the
+	// center is the INCOMING cover (kept fully opaque) and the outgoing sits in a neighbor slot with
+	// progress running 1 → 0. Under the drag it's untouched until ~45% travel (rubber-banding never
+	// reaches the fade); once a slide animates, the CSS opacity transition carries it smoothly to 0.
+	const centerOpacity = $derived(embellish && !storeSlide ? Math.max(0, 1 - Math.max(0, progress - 0.45) / 0.55) : 1)
+	const outgoingOpacity = $derived(embellish ? Math.min(1, progress / 0.55) : 1)
 	const slotTransition = $derived(
 		transitionOn && !reducedMotion
 			? `transform ${phase === 'storeSlide' ? STORE_SLIDE_MS : SETTLE_MS}ms var(--ease-fluid), opacity ${
@@ -318,7 +327,7 @@
 			{#if storeSlide?.dir === 1}
 				<div
 					class="absolute inset-0"
-					style="transform: translateX({-slotDist}px) scale({neighborScale}); opacity: {neighborOpacity}; transition: {slotTransition}"
+					style="transform: translateX({-slotDist}px) scale({neighborScale}); opacity: {outgoingOpacity}; transition: {slotTransition}"
 				>
 					{#if storeSlide.outgoingSrc}
 						<img src={storeSlide.outgoingSrc} alt="" class="aspect-square w-full rounded-2xl object-cover shadow-2xl" />
@@ -342,7 +351,10 @@
 
 			<!-- Current track's cover (frozen while a gesture strip is active; a pick when a drag was
 			     re-anchored on a still-pending swipe target). -->
-			<div class="absolute inset-0" style="transform: {centerTransform}; transition: {slotTransition}">
+			<div
+				class="absolute inset-0"
+				style="transform: {centerTransform}; opacity: {centerOpacity}; transition: {slotTransition}"
+			>
 				{#if centerPick}
 					<ReleaseArtwork
 						release={centerPick.release}
@@ -361,7 +373,7 @@
 			{#if storeSlide?.dir === -1}
 				<div
 					class="absolute inset-0"
-					style="transform: translateX({slotDist}px) scale({neighborScale}); opacity: {neighborOpacity}; transition: {slotTransition}"
+					style="transform: translateX({slotDist}px) scale({neighborScale}); opacity: {outgoingOpacity}; transition: {slotTransition}"
 				>
 					{#if storeSlide.outgoingSrc}
 						<img src={storeSlide.outgoingSrc} alt="" class="aspect-square w-full rounded-2xl object-cover shadow-2xl" />
