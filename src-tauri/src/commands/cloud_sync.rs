@@ -17,7 +17,8 @@ use tauri::AppHandle;
 #[cfg(feature = "desktop")]
 use tauri_plugin_opener::OpenerExt;
 
-#[cfg(feature = "desktop")]
+// Desktop: the loopback `sign_in`'s browser-open error. Mobile: `complete_sign_in`'s timeout.
+#[cfg(any(feature = "desktop", feature = "mobile"))]
 use crate::error::CrateError;
 use crate::error::Result;
 use crate::services::cloud_sync::backend::types::DeviceRecord;
