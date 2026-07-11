@@ -27,6 +27,8 @@
 	let { source }: Props = $props()
 
 	let open = $state(true)
+	// Fall back to the type icon when the avatar URL fails to load.
+	let avatarFailed = $state(false)
 	// Boot-restored (this overlay was open when the app was last killed): appear in place, no slide-in.
 	const enterInstant = mobileUIStore.consumeBootRestoredOverlay('follow')
 
@@ -116,8 +118,13 @@
 					<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
 				</svg>
 			</button>
-			{#if source.artworkUrl}
-				<img src={source.artworkUrl} alt="" class="h-8 w-8 flex-shrink-0 rounded object-cover" />
+			{#if source.artworkUrl && !avatarFailed}
+				<img
+					src={source.artworkUrl}
+					alt=""
+					class="h-8 w-8 flex-shrink-0 rounded object-cover"
+					onerror={() => (avatarFailed = true)}
+				/>
 			{:else}
 				<div class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-surface-2 text-text-tertiary">
 					{#if source.followType === 'label'}

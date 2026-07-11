@@ -1,32 +1,53 @@
 <script lang="ts">
+	import ArtworkPlaceholder from '$lib/components/common/ArtworkPlaceholder.svelte'
+
 	// Spotify-style playlist thumbnail: a seamless 2x2 mosaic of the first four distinct release
-	// covers, a single cover when there are fewer than four, or the music-note placeholder when the
+	// covers, a single cover when there are fewer than four, or the artwork placeholder when the
 	// playlist has none. Uses the release `artwork_url` (same field the feed/detail cards render), so
-	// thumbnails match the rest of the UI without needing the app data dir. A smart playlist gets a small
-	// sparkle badge so it reads as rule-based at a glance.
+	// thumbnails match the rest of the UI without needing the app data dir. A cover URL that fails to
+	// load is dropped from the candidate set (the mosaic degrades to fewer covers, never to WebKit's
+	// broken-image icon). A smart playlist gets a small sparkle badge so it reads as rule-based at a glance.
 	type Props = {
 		urls: string[]
 		smart?: boolean
 		class?: string
 	}
 	let { urls, smart = false, class: className = 'h-11 w-11' }: Props = $props()
+
+	// Dead URLs observed via <img onerror>, reset whenever the candidate set changes.
+	let failedUrls = $state<ReadonlySet<string>>(new Set())
+	let lastKey = ''
+	$effect(() => {
+		const key = urls.join('\n')
+		if (key !== lastKey) {
+			lastKey = key
+			failedUrls = new Set()
+		}
+	})
+	function markFailed(url: string) {
+		failedUrls = new Set([...failedUrls, url])
+	}
+
+	let good = $derived(urls.filter((u) => !failedUrls.has(u)))
 </script>
 
 <div class="relative {className}">
-	{#if urls.length >= 4}
+	{#if good.length >= 4}
 		<div class="grid h-full w-full grid-cols-2 grid-rows-2 overflow-hidden rounded">
-			{#each urls.slice(0, 4) as url (url)}
-				<img src={url} alt="" class="h-full w-full object-cover" loading="lazy" />
+			{#each good.slice(0, 4) as url (url)}
+				<img src={url} alt="" class="h-full w-full object-cover" loading="lazy" onerror={() => markFailed(url)} />
 			{/each}
 		</div>
-	{:else if urls.length > 0}
-		<img src={urls[0]} alt="" class="h-full w-full rounded object-cover" loading="lazy" />
+	{:else if good.length > 0}
+		<img
+			src={good[0]}
+			alt=""
+			class="h-full w-full rounded object-cover"
+			loading="lazy"
+			onerror={() => markFailed(good[0])}
+		/>
 	{:else}
-		<div class="flex h-full w-full items-center justify-center rounded bg-surface-2 text-text-tertiary">
-			<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
-				<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-			</svg>
-		</div>
+		<ArtworkPlaceholder class="h-full w-full rounded" />
 	{/if}
 
 	{#if smart}

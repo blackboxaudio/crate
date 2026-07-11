@@ -79,8 +79,17 @@ export async function refreshMetadata(id: string): Promise<DiscoveryRelease> {
 	return invoke<DiscoveryRelease>('refresh_release_metadata', { id })
 }
 
-export async function fetchPreviewStream(releaseId: string, trackPosition: number): Promise<string> {
-	return invoke<string>('fetch_preview_stream', { releaseId, trackPosition })
+/**
+ * Resolve a track's proxied stream URL. `background: true` marks opportunistic resolution
+ * (queue look-ahead, offline pre-caching) that throttles through a small global permit pool
+ * in the backend so it never delays a user-initiated (foreground) fetch.
+ */
+export async function fetchPreviewStream(
+	releaseId: string,
+	trackPosition: number,
+	background = false
+): Promise<string> {
+	return invoke<string>('fetch_preview_stream', { releaseId, trackPosition, background })
 }
 
 export async function invalidatePreviewStreamCache(releaseId: string): Promise<void> {

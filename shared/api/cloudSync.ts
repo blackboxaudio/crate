@@ -27,6 +27,11 @@ export async function getSyncStatus(): Promise<CloudSyncStatus> {
 	return invoke<CloudSyncStatus>('get_sync_status')
 }
 
+/** Human-readable sync diagnostics (status header + sync-log tail) for copy-to-clipboard. */
+export async function getSyncDiagnostics(): Promise<string> {
+	return invoke<string>('get_sync_diagnostics')
+}
+
 export async function syncNow(): Promise<void> {
 	return invoke<void>('sync_now')
 }

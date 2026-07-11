@@ -207,6 +207,19 @@
 			"error": "Synkroniseringsfel",
 			"signedOut": "Inte inloggad"
 		},
+		"errors": {
+			"network": "Kan inte nå synkroniseringstjänsten — försöker igen",
+			"auth": "Din session har upphört — logga ut och logga in igen",
+			"permission": "Synkroniseringstjänsten vägrade denna enhet (behörighet nekad)",
+			"quota": "Synkronisering är begränsad eller kvoten är slut — försöker igen",
+			"toolarge": "Ditt bibliotek är för stort för att ladda upp",
+			"conflict": "En annan enhet synkroniseras just nu — försöker igen",
+			"server": "Synkroniseringstjänsten har problem — försöker igen",
+			"merge": "Kunde inte tillämpa synkroniserade ändringar på denna enhet"
+		},
+		"diagnostics": {
+			"copy": "Kopiera synkroniseringsdiagnostik"
+		},
 		"account": {
 			"title": "Konto",
 			"syncNow": "Synkronisera nu",
@@ -341,6 +354,7 @@
 		"downloadFailed": "Kunde inte ladda ned för offline",
 		"fetchError": "Kunde inte hämta metadata från denna URL",
 		"unsupportedUrl": "Denna URL stöds inte",
+		"shareNoUrl": "Ingen länk hittad i den delade texten",
 		"tracks": "Spår",
 		"trackCount": "{count, plural, =1 {1 spår} other {{count} spår}}",
 		"openInBrowser": "Öppna i webbläsare",

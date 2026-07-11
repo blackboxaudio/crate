@@ -207,6 +207,19 @@
 			"error": "동기화 오류",
 			"signedOut": "로그인하지 않음"
 		},
+		"errors": {
+			"network": "동기화 서비스에 연결할 수 없음 — 다시 시도합니다",
+			"auth": "세션이 만료되었습니다 — 로그아웃 후 다시 로그인하세요",
+			"permission": "동기화 서비스가 이 기기를 거부했습니다 (권한 거부됨)",
+			"quota": "동기화가 제한되었거나 할당량을 초과했습니다 — 다시 시도합니다",
+			"toolarge": "라이브러리가 너무 커서 업로드할 수 없습니다",
+			"conflict": "다른 기기가 현재 동기화 중입니다 — 다시 시도합니다",
+			"server": "동기화 서비스에 문제가 있습니다 — 다시 시도합니다",
+			"merge": "이 기기에서 동기화된 변경 사항을 적용할 수 없습니다"
+		},
+		"diagnostics": {
+			"copy": "동기화 진단 복사"
+		},
 		"account": {
 			"title": "계정",
 			"syncNow": "지금 동기화",
@@ -341,6 +354,7 @@
 		"downloadFailed": "오프라인용 다운로드에 실패했습니다",
 		"fetchError": "이 URL에서 메타데이터를 가져올 수 없습니다",
 		"unsupportedUrl": "이 URL은 지원되지 않습니다",
+		"shareNoUrl": "공유 텍스트에서 링크를 찾을 수 없습니다",
 		"tracks": "트랙",
 		"trackCount": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}}",
 		"openInBrowser": "브라우저에서 열기",

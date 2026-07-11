@@ -19,6 +19,7 @@
 	import { swipePager } from '$lib/actions/swipePager'
 	import { lightTap } from '$lib/utils/haptics'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
+	import ArtworkPlaceholder from '$lib/components/common/ArtworkPlaceholder.svelte'
 
 	// The expanded player's swipeable cover: a 3-slot strip (previous | current | next) that follows the
 	// finger during a horizontal drag with the neighboring tracks' real covers peeking in, rubber-bands
@@ -307,11 +308,7 @@
 </script>
 
 {#snippet fallbackTile()}
-	<div class="flex aspect-square w-full items-center justify-center rounded-2xl bg-surface-2 text-text-tertiary">
-		<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
-			<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-		</svg>
-	</div>
+	<ArtworkPlaceholder class="aspect-square w-full rounded-2xl shadow-2xl" />
 {/snippet}
 
 <div class="flex flex-1 items-center justify-center overflow-hidden px-4 pt-3" use:swipePager={pagerOptions}>

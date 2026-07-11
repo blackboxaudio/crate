@@ -480,3 +480,95 @@ fn no_override_when_local_value_authored_elsewhere() {
     assert_eq!(tc_name(&conn, "c1").as_deref(), Some("Techno"));
     assert!(overrides.is_empty());
 }
+
+// --- orphaned child entities (parent deleted locally) ----------------------
+//
+// Regression: a release deleted locally (tombstone wins over the remote release
+// row) must NOT wedge sync when the remote's discovery_tracks rows still
+// reference it — with deferred FKs the violation surfaced at COMMIT and aborted
+// the whole bucket on every pull ("Cloud sync merge error (discovery_tracks):
+// FOREIGN KEY constraint failed").
+
+fn insert_discovery_release(conn: &Connection, id: &str, hlc: &str) {
+    conn.execute(
+        "INSERT INTO discovery_releases (id, url, source_type, date_added, date_modified, _hlc)
+         VALUES (?1, ?2, 'bandcamp', '2026-01-01', '2026-01-01', ?3)",
+        params![id, format!("https://x.bandcamp.com/album/{id}"), hlc],
+    )
+    .unwrap();
+}
+
+fn dt_live(id: &str, release_id: &str, position: i32, hlc: &str) -> ParsedRow {
+    parsed(json!({
+        "id": id, "release_id": release_id, "name": format!("Track {position}"),
+        "position": position, "duration_ms": null, "video_id": null, "is_liked": false,
+        "_hlc": hlc, "_deleted": false
+    }))
+}
+
+#[test]
+fn orphan_child_entity_is_skipped_not_fatal() {
+    let conn = mem();
+    // "r1" exists locally; "r-deleted" was deleted locally (tombstone, no live row).
+    insert_discovery_release(&conn, "r1", "0005");
+    conn.execute(
+        "INSERT INTO sync_tombstones (entity_type, entity_id, _hlc) VALUES ('discovery_release', 'r-deleted', '0009')",
+        [],
+    )
+    .unwrap();
+
+    // Remote tracks bucket carries rows for BOTH releases (the peer hasn't seen the
+    // delete yet). The orphan must be skipped; the valid row must still apply.
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[
+            dt_live("t-orphan", "r-deleted", 1, "0005"),
+            dt_live("t-ok", "r1", 1, "0005"),
+        ],
+    )
+    .unwrap();
+
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM discovery_tracks", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(count, 1, "only the track with a live parent applies");
+    let ok: Option<String> = conn
+        .query_row(
+            "SELECT release_id FROM discovery_tracks WHERE id = 't-ok'",
+            [],
+            |r| r.get(0),
+        )
+        .optional()
+        .unwrap();
+    assert_eq!(ok.as_deref(), Some("r1"));
+}
+
+#[test]
+fn orphan_child_update_pointing_at_missing_parent_is_skipped() {
+    let conn = mem();
+    insert_discovery_release(&conn, "r1", "0005");
+    // Track exists locally under r1.
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[dt_live("t1", "r1", 1, "0005")],
+    )
+    .unwrap();
+    // Remote update re-parents it onto a release that doesn't exist locally — must
+    // be skipped (not applied, not fatal), keeping the local row intact.
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[dt_live("t1", "r-gone", 1, "0009")],
+    )
+    .unwrap();
+    let release_id: String = conn
+        .query_row(
+            "SELECT release_id FROM discovery_tracks WHERE id = 't1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(release_id, "r1", "local row untouched by the orphan update");
+}

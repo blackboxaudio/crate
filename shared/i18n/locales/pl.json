@@ -207,6 +207,19 @@
 			"error": "Błąd synchronizacji",
 			"signedOut": "Niezalogowany"
 		},
+		"errors": {
+			"network": "Nie można połączyć się z usługą synchronizacji — spróbuję ponownie",
+			"auth": "Twoja sesja wygasła — wyloguj się i zaloguj ponownie",
+			"permission": "Usługa synchronizacji odmówiła dostępu temu urządzeniu (odmowa uprawnień)",
+			"quota": "Synchronizacja jest ograniczona lub przekroczono limit — spróbuję ponownie",
+			"toolarge": "Twoja biblioteka jest zbyt duża do przesłania",
+			"conflict": "Inne urządzenie jest teraz synchronizowane — spróbuję ponownie",
+			"server": "Usługa synchronizacji ma problemy — spróbuję ponownie",
+			"merge": "Nie można zastosować zsynchronizowanych zmian na tym urządzeniu"
+		},
+		"diagnostics": {
+			"copy": "Skopiuj diagnostykę synchronizacji"
+		},
 		"account": {
 			"title": "Konto",
 			"syncNow": "Synchronizuj teraz",
@@ -340,6 +353,8 @@
 		"removeDownload": "Usuń pobranie",
 		"downloadFailed": "Nie udało się pobrać do użytku offline",
 		"fetchError": "Nie można pobrać metadanych z tego adresu URL",
+		"unsupportedUrl": "Ten adres URL nie jest obsługiwany",
+		"shareNoUrl": "Nie znaleziono łącza w udostępnionym tekście",
 		"tracks": "Ścieżki",
 		"trackCount": "{count, plural, =1 {1 ścieżka} other {{count} ścieżek}}",
 		"openInBrowser": "Otwórz w przeglądarce",

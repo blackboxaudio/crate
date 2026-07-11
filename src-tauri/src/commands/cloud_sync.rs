@@ -100,6 +100,13 @@ pub async fn get_sync_status(state: State<'_, Arc<CloudSyncState>>) -> Result<Sy
     Ok(state.get_status().await)
 }
 
+/// Human-readable sync diagnostics (status header + persistent sync-log tail) for the
+/// "Copy sync diagnostics" affordance in both apps.
+#[tauri::command]
+pub async fn get_sync_diagnostics(state: State<'_, Arc<CloudSyncState>>) -> Result<String> {
+    Ok(state.diagnostics().await)
+}
+
 /// Trigger an immediate push ("Sync now").
 #[tauri::command]
 pub async fn sync_now(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {

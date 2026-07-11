@@ -7,10 +7,13 @@
 	import { settingsStore } from '$shared/stores/settings'
 	import { cloudSyncStore } from '$shared/stores/cloudSync'
 	import { startWebMediaSession } from '$shared/services/webMediaSession'
+	import { startAndroidMediaSession } from '$shared/services/androidMediaSession'
 	import { playerStore, previewInfo } from '$shared/stores/player'
-	import { isIOS } from '$shared/utils/platform'
+	import { isAndroid, isIOS } from '$shared/utils/platform'
 	import { mobileUIStore, isPlayerExpanded, flushNavPersistence } from '$lib/stores/mobileUI'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
+	import { initAndroidShareIntake } from '$lib/androidShare'
+	import { initAndroidBack } from '$lib/androidBack'
 	import { setupCloudSyncMergeListener } from '$lib/cloudSyncMerge'
 	// @ts-expect-error — PUBLIC_APP_VERSION is set dynamically by vite.config.ts
 	import { PUBLIC_APP_VERSION } from '$env/static/public'
@@ -26,11 +29,13 @@
 	// Drive the OS lock screen / Control Center, and auto-advance at track end. On iOS, discovery preview
 	// plays through the native AVPlayer engine, which OWNS the Now Playing surface (real prev/next/scrubber
 	// that work while locked) and advances WITHIN a release itself — so we start its event bridge and must
-	// NOT also start the Web Media Session (running both would double-drive Now Playing). Android/web use
-	// the Web Media Session API (WKWebView owns the surface for the HTML5 <audio> element). Either way we
-	// register the same track-end handler: it fires after every track on Android/web, and on iOS only when
-	// the engine's loaded playlist ends (a shuffle track, or a release's last track) — both cases where the
-	// queue/shuffle logic must decide what plays next across the whole list.
+	// NOT also start the Web Media Session (running both would double-drive Now Playing). On Android the
+	// System WebView never surfaces the Web Media Session to the OS, so a native MediaSessionCompat +
+	// foreground service owns the surface instead (androidMediaSession.ts ↔ CrateMediaService.kt, #62).
+	// Other webviews use the Web Media Session API (WKWebView owns the surface for the HTML5 <audio>
+	// element). Either way we register the same track-end handler: it fires after every track on
+	// Android/web, and on iOS only when the engine's loaded playlist ends (a shuffle track, or a release's
+	// last track) — both cases where the queue/shuffle logic must decide what plays next across the list.
 	onMount(() => {
 		playerStore.onTrackEnd(() => void playerStore.nextTrack())
 
@@ -42,9 +47,9 @@
 				playerStore.onTrackEnd(null)
 			}
 		}
-		const stopWebMediaSession = startWebMediaSession()
+		const stopMediaSession = isAndroid() ? startAndroidMediaSession() : startWebMediaSession()
 		return () => {
-			stopWebMediaSession()
+			stopMediaSession()
 			playerStore.onTrackEnd(null)
 		}
 	})
@@ -119,6 +124,22 @@
 		pendingReleasesStore.hydrate()
 		pendingReleasesStore.attachNetworkListeners()
 		if (navigator.onLine) void pendingReleasesStore.processQueue()
+	})
+
+	// Android share-intent intake (#62): drain URLs shared from other apps (queued by MainActivity)
+	// and open the add-release sheet prefilled. Gated on i18n so its toasts can translate — a
+	// cold-start share sits safely in the Kotlin queue until this first drain.
+	$effect(() => {
+		if (!i18nReady || !isAndroid()) return
+		return initAndroidShareIntake()
+	})
+
+	// Android hardware/gesture Back (#62): MainActivity's back callback asks `window.__CRATE_BACK__`
+	// whether the frontend consumed the press (close topmost surface / pop folder / return to
+	// Discovery); an unhandled press backgrounds the app.
+	onMount(() => {
+		if (!isAndroid()) return
+		return initAndroidBack()
 	})
 
 	// Navigation persistence (mobileUI store): the discovery scroll position writes behind a debounce, so

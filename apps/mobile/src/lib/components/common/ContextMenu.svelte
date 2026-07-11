@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte'
 	import { translate } from '$shared/i18n'
 	import { swipeVertical } from '$lib/actions/swipeVertical'
+	import { registerBackLayer } from '$lib/androidBack'
 
 	// A web recreation of the iOS native context menu. Long-press a row → its rect is captured and passed
 	// as `anchorRect`; this overlay dims+blurs the background, lifts a `preview` of the row in place, and
@@ -99,6 +100,12 @@
 		} else if (visible && !closing) {
 			startClose()
 		}
+	})
+
+	// Android Back dismisses the platter (#62) — same lifecycle window as Drawer's registration:
+	// registered while at rest open, unregistered the moment a close starts.
+	$effect(() => {
+		if (visible && !closing) return registerBackLayer(requestClose)
 	})
 
 	// Slide in once mounted AND measured (so the platter springs from the right origin, not from top-left).

@@ -217,11 +217,8 @@ jobs:
   android:
     name: Build Android APK
     needs: validate
-    # TEMP: Android release build disabled for now — remove this `if: false` to re-enable. While
-    # disabled this job reports `skipped`, which the `release` gate treats as non-blocking. Once
-    # re-enabled, an Android build *failure* WILL block the release — a release is only published
-    # when every build (desktop and mobile) succeeds.
-    if: false
+    # NOTE: an Android build failure blocks the release — a release is only published when every
+    # build (desktop and mobile) succeeds.
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -257,7 +254,8 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      # Vendored OpenSSL + SQLCipher need NDK clang/ar for cross-compilation (mirrored from ci.build.yml).
+      # Vendored OpenSSL + SQLCipher need NDK clang/ar for cross-compilation (mirrored from
+      # ci.build.yml). The clang API level matches minSdk 29 (gen/android/app/build.gradle.kts).
       - name: Configure Android NDK toolchain
         run: |
           NDK="$ANDROID_NDK_LATEST_HOME"
@@ -266,10 +264,10 @@ jobs:
           {
             echo "ANDROID_NDK_ROOT=$NDK"
             echo "ANDROID_NDK_HOME=$NDK"
-            echo "CC_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
-            echo "CXX_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android24-clang++"
+            echo "CC_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android29-clang"
+            echo "CXX_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android29-clang++"
             echo "AR_aarch64-linux-android=$TOOLCHAIN/bin/llvm-ar"
-            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
+            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android29-clang"
           } >> "$GITHUB_ENV"
 
       - name: Install dependencies
@@ -282,13 +280,22 @@ jobs:
           GCLOUD_STORAGE_BUCKET: ${{ secrets.GCLOUD_STORAGE_BUCKET }}
           GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
           GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
-          GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
+          GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
           GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_IOS_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
           # Firebase App IDs for mobile App Check (#139). The dev-only appcheck_debug_token is
           # deliberately NOT injected in release — release uses native App Attest / Play Integrity.
           GCLOUD_FIREBASE_IOS_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_IOS_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_IOS_APP_ID }}
-          GCLOUD_FIREBASE_ANDROID_APP_ID: ${{ secrets.GCLOUD_FIREBASE_ANDROID_APP_ID }}
+          GCLOUD_FIREBASE_ANDROID_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_ANDROID_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_ANDROID_APP_ID }}
         run: node scripts/write-cloud-config.mjs
+
+      # Stamp the channel identity (applicationId / label / OAuth redirect scheme) into the
+      # gitignored channel.properties. Must run AFTER write-cloud-config: the OAuth scheme is
+      # derived from the android_oauth_client_id the config file now carries, keeping the manifest
+      # intent-filter and the baked-in Rust client id in agreement per channel.
+      - name: Set Android channel (application id, label, OAuth scheme)
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: node scripts/write-android-channel.mjs --channel "${CHANNEL/production/prod}"
 
       - name: Determine signing availability
         id: signing
@@ -323,10 +330,17 @@ jobs:
           CHANNEL: ${{ needs.validate.outputs.channel }}
         run: node scripts/write-mobile-icons.mjs --platform android --channel "${CHANNEL/production/prod}"
 
+      # The inline --config JSON overlays the release version (a staging prerelease carries its
+      # `-staging.N` in versionName) WITHOUT touching the identifier — the per-channel Tauri
+      # configs must never reach `tauri android` (their identifiers would break the JNI binding;
+      # channel identity lives in Gradle applicationId via channel.properties instead). Note the
+      # derived versionCode ignores prerelease, so successive staging prereleases of one base
+      # version share a versionCode — irrelevant for sideloading; revisit for Play uploads.
       - name: Build Android APK
         env:
           CRATE_ENV: ${{ needs.validate.outputs.channel }}
-        run: yarn tauri android build --apk --features mobile
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: yarn tauri android build --apk --config "{\"version\":\"$VERSION\"}" --features mobile
 
       - name: Prepare release artifacts
         id: artifacts
@@ -401,12 +415,12 @@ jobs:
           GCLOUD_STORAGE_BUCKET: ${{ secrets.GCLOUD_STORAGE_BUCKET }}
           GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
           GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
-          GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
+          GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
           GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_IOS_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
           # Firebase App IDs for mobile App Check (#139). The dev-only appcheck_debug_token is
           # deliberately NOT injected in release — release uses native App Attest / Play Integrity.
           GCLOUD_FIREBASE_IOS_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_IOS_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_IOS_APP_ID }}
-          GCLOUD_FIREBASE_ANDROID_APP_ID: ${{ secrets.GCLOUD_FIREBASE_ANDROID_APP_ID }}
+          GCLOUD_FIREBASE_ANDROID_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_ANDROID_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_ANDROID_APP_ID }}
         run: node scripts/write-cloud-config.mjs
 
       - name: Write iOS Info.plist

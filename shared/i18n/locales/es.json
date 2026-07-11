@@ -207,6 +207,19 @@
 			"error": "Error de sincronización",
 			"signedOut": "No conectado"
 		},
+		"errors": {
+			"network": "No se puede alcanzar el servicio de sincronización — se volverá a intentar",
+			"auth": "Tu sesión ha expirado — cierra sesión y vuelve a iniciarla",
+			"permission": "El servicio de sincronización rechazó este dispositivo (permiso denegado)",
+			"quota": "La sincronización está limitada o se ha agotado la cuota — se volverá a intentar",
+			"toolarge": "Tu biblioteca es demasiado grande para cargar",
+			"conflict": "Otro dispositivo se está sincronizando ahora — se volverá a intentar",
+			"server": "El servicio de sincronización tiene problemas — se volverá a intentar",
+			"merge": "No se pudieron aplicar los cambios sincronizados en este dispositivo"
+		},
+		"diagnostics": {
+			"copy": "Copiar diagnóstico de sincronización"
+		},
 		"account": {
 			"title": "Cuenta",
 			"syncNow": "Sincronizar ahora",
@@ -341,6 +354,7 @@
 		"downloadFailed": "Error al descargar para offline",
 		"fetchError": "No se pudieron obtener los metadatos de esta URL",
 		"unsupportedUrl": "Esta URL no es compatible",
+		"shareNoUrl": "No se encontró ningún enlace en el texto compartido",
 		"tracks": "Pistas",
 		"trackCount": "{count, plural, =1 {1 pista} other {{count} pistas}}",
 		"openInBrowser": "Abrir en navegador",

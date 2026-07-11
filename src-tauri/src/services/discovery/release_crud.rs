@@ -81,9 +81,14 @@ impl DiscoveryService {
         })
     }
 
+    /// Playback-hot read (`fetch_preview_stream`, detail views) — runs on a pooled
+    /// reader inside one snapshot, so its 5 SELECTs stay mutually consistent and never
+    /// queue behind the writer.
     pub fn get_release(&self, id: &str) -> Result<DiscoveryRelease> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        self.db.read(|conn| self.get_release_on(conn, id))
+    }
 
+    fn get_release_on(&self, conn: &Connection, id: &str) -> Result<DiscoveryRelease> {
         let mut release = conn.query_row(
             "SELECT id, url, source_type, artist, title, label, release_date, artwork_url, artwork_path, notes, parent_url, source_page_url, date_added, date_modified, is_new, surfaced_at
              FROM discovery_releases WHERE id = ?1",
@@ -176,9 +181,18 @@ impl DiscoveryService {
         Ok(release)
     }
 
+    /// The paginated feed query (5k-collection hot path) — runs on a pooled reader
+    /// inside one snapshot (page + 4 batch loads stay consistent), so scrolling and
+    /// merge-triggered reloads never queue behind the writer.
     pub fn get_releases(&self, filter: Option<DiscoveryFilter>) -> Result<Vec<DiscoveryRelease>> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        self.db.read(|conn| self.get_releases_on(conn, filter))
+    }
 
+    fn get_releases_on(
+        &self,
+        conn: &Connection,
+        filter: Option<DiscoveryFilter>,
+    ) -> Result<Vec<DiscoveryRelease>> {
         let filter = filter.unwrap_or_default();
 
         // Build query with optional filters
@@ -580,14 +594,14 @@ impl DiscoveryService {
     }
 
     pub fn get_all_release_urls(&self) -> Result<std::collections::HashSet<String>> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        self.db.read(|conn| {
+            let mut stmt = conn.prepare("SELECT url FROM discovery_releases")?;
+            let urls = stmt
+                .query_map([], |row| row.get::<_, String>(0))?
+                .collect::<std::result::Result<std::collections::HashSet<String>, _>>()?;
 
-        let mut stmt = conn.prepare("SELECT url FROM discovery_releases")?;
-        let urls = stmt
-            .query_map([], |row| row.get::<_, String>(0))?
-            .collect::<std::result::Result<std::collections::HashSet<String>, _>>()?;
-
-        Ok(urls)
+            Ok(urls)
+        })
     }
 
     pub fn toggle_track_liked(&self, track_id: &str) -> Result<bool> {

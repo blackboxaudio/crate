@@ -136,6 +136,18 @@ fn merge_entity_row(
     let mut override_event = None;
 
     if !row.deleted {
+        // A live row whose NOT NULL parent is missing locally (deleted here, tombstone
+        // won) can never be applied: parents merge before children (`merge_order`), so
+        // a missing parent is a local delete, and inserting the child would blow up the
+        // deferred FK check at COMMIT — aborting the whole bucket and wedging sync.
+        // Skip it; the deleting device's next push drops it from the remote union.
+        if !writers::entity_parent_exists(tx, bucket, row)? {
+            log::warn!(
+                "cloud_sync merge: skipping orphan {} row {cid} (parent deleted locally)",
+                bucket.as_str()
+            );
+            return Ok(None);
+        }
         // ---- remote LIVE (upsert) ----
         match (local_live, local_tomb) {
             // A tombstone at >= the remote's HLC keeps the entity deleted.

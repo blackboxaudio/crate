@@ -1,3 +1,6 @@
+// Dual-mode (foreground/headless) access to the Android JVM + Context for JNI bridges.
+#[cfg(target_os = "android")]
+mod android_context;
 mod commands;
 mod db;
 mod error;
@@ -17,8 +20,10 @@ use db::Database;
 /// `fetch_preview_stream` can embed it in the URL it returns to the frontend.
 pub(crate) struct ProxyServerPort(pub u16);
 
-/// Tracks in-flight prefetch tasks by release ID to prevent duplicate spawns.
-pub(crate) struct PrefetchTracker(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
+/// Global throttle for BACKGROUND stream-URL resolution (playback-queue look-ahead,
+/// offline pre-caching). Foreground `fetch_preview_stream` calls never take a permit,
+/// so a tap-to-play can't queue behind opportunistic work.
+pub(crate) struct StreamFetchPermits(pub Arc<tokio::sync::Semaphore>);
 
 /// Flag to signal cancellation of a running bulk import operation.
 pub(crate) struct BulkImportCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
@@ -58,9 +63,11 @@ impl ScanEnrichmentCache {
     }
 }
 
-impl PrefetchTracker {
+impl StreamFetchPermits {
+    /// Two concurrent background extractions: enough to keep the queue window warm
+    /// without hammering the source platforms or the DB while the user is playing.
     pub fn new() -> Self {
-        Self(Arc::new(tokio::sync::Mutex::new(HashSet::new())))
+        Self(Arc::new(tokio::sync::Semaphore::new(2)))
     }
 }
 
@@ -377,6 +384,8 @@ pub fn run() {
             commands::backup::get_backup_info,
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
+            // Share-intent intake (#62): Android drains queued shared URLs; empty elsewhere.
+            commands::share::take_shared_texts,
             // Media controls commands (cross-platform; no-op backend where unsupported)
             commands::media_controls::update_now_playing,
             commands::media_controls::update_playback_state,
@@ -411,6 +420,7 @@ pub fn run() {
             commands::cloud_sync::complete_sign_in,
             commands::cloud_sync::sign_out,
             commands::cloud_sync::get_sync_status,
+            commands::cloud_sync::get_sync_diagnostics,
             commands::cloud_sync::sync_now,
             commands::cloud_sync::pull_now,
             commands::cloud_sync::sync_foreground,
@@ -475,7 +485,7 @@ pub fn run() {
             #[cfg(feature = "desktop")]
             let analysis_service = AnalysisService::new(conn.clone());
             let backup_service = BackupService::new(conn.clone());
-            let discovery_service = DiscoveryService::new(conn.clone(), app_data_dir.clone());
+            let discovery_service = DiscoveryService::with_db(db.handle(), app_data_dir.clone());
             let follow_service = FollowService::new(conn.clone(), app_data_dir.clone());
 
             // Load saved audio device setting (desktop-only: no rodio playback on mobile)
@@ -538,7 +548,7 @@ pub fn run() {
                 app_data_dir.clone(),
             );
             app.manage(NsigSolverState::new());
-            app.manage(PrefetchTracker::new());
+            app.manage(StreamFetchPermits::new());
             app.manage(BulkImportCancelFlag(Arc::new(
                 std::sync::atomic::AtomicBool::new(false),
             )));
@@ -606,6 +616,7 @@ pub fn run() {
                     device_name,
                     app_version,
                     app.handle().clone(),
+                    &app_data_dir,
                 ));
                 app.manage(cloud_state.clone());
 
@@ -788,8 +799,23 @@ pub fn run() {
         }
     });
 
-    builder.run(tauri::generate_context!()).unwrap_or_else(|e| {
-        log::error!("Fatal: failed to run Tauri application: {e}");
-        std::process::exit(1);
+    let app = builder
+        .build(tauri::generate_context!())
+        .unwrap_or_else(|e| {
+            log::error!("Fatal: failed to run Tauri application: {e}");
+            std::process::exit(1);
+        });
+    app.run(|app_handle, event| {
+        if let tauri::RunEvent::Exit = event {
+            // WAL: fold the -wal file back into crate.db on clean shutdown so the main
+            // file stays self-contained for users who copy it manually.
+            if let Some(discovery) = app_handle.try_state::<DiscoveryService>() {
+                if let Ok(conn) = discovery.connection().lock() {
+                    if let Err(e) = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);") {
+                        log::warn!("shutdown wal_checkpoint failed: {e}");
+                    }
+                }
+            }
+        }
     });
 }

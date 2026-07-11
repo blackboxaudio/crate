@@ -386,17 +386,7 @@
 			>
 				<!-- Artwork -->
 				<div class="mb-4">
-					<ReleaseArtwork {release} class="aspect-square w-full rounded-xl object-cover shadow-lg">
-						{#snippet fallback()}
-							<div
-								class="flex aspect-square w-full items-center justify-center rounded-xl bg-surface-2 text-text-tertiary"
-							>
-								<svg viewBox="0 0 24 24" class="h-16 w-16" fill="currentColor">
-									<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-								</svg>
-							</div>
-						{/snippet}
-					</ReleaseArtwork>
+					<ReleaseArtwork {release} class="aspect-square w-full rounded-xl object-cover shadow-lg" />
 				</div>
 
 				<!-- Metadata + a "more" action menu (the ⋯ sits to the right of the info block, vertically centered,

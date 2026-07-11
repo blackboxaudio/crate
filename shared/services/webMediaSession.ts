@@ -18,8 +18,10 @@ import { playerStore, previewInfo, isPlaying } from '../stores/player'
 // NOT call setPositionState (providing a seekable timeline biases iOS toward skip). Guaranteed
 // prev/next would require native playback (AVPlayer) + MPRemoteCommandCenter.
 //
-// Used by the mobile app. Desktop uses souvlaki (native, via the `update_now_playing` IPC), so it
-// does not start this — running both would double-drive the OS Now Playing center.
+// Used by the mobile app on non-iOS, non-Android webviews. Desktop uses souvlaki (native, via the
+// `update_now_playing` IPC) and Android uses a native MediaSessionCompat (androidMediaSession.ts —
+// the Android System WebView never surfaces this API to the OS), so neither starts this — running
+// two drivers would double-drive the OS Now Playing center.
 
 type Cleanup = () => void
 

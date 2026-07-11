@@ -207,6 +207,19 @@
 			"error": "Sync error",
 			"signedOut": "Not signed in"
 		},
+		"errors": {
+			"network": "Can't reach the sync service — will retry",
+			"auth": "Your session expired — sign out and sign in again",
+			"permission": "The sync service refused this device (permission denied)",
+			"quota": "Sync is rate-limited or out of quota — will retry",
+			"toolarge": "Your library is too large to upload",
+			"conflict": "Another device is syncing right now — will retry",
+			"server": "The sync service is having trouble — will retry",
+			"merge": "Couldn't apply synced changes on this device"
+		},
+		"diagnostics": {
+			"copy": "Copy sync diagnostics"
+		},
 		"account": {
 			"title": "Account",
 			"syncNow": "Sync now",
@@ -341,6 +354,7 @@
 		"downloadFailed": "Could not download for offline",
 		"fetchError": "Could not fetch metadata from this URL",
 		"unsupportedUrl": "This URL is not supported",
+		"shareNoUrl": "No link found in the shared text",
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "Open in Browser",

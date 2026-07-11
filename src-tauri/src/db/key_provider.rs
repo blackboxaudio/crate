@@ -9,8 +9,11 @@
 //! * **iOS** — stored in the Keychain via `security-framework`, with
 //!   `kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly` accessibility (device-only and
 //!   non-exportable; never synced to iCloud nor migrated to a new device).
-//! * **Android** — *not yet implemented* (returns an error at runtime; tracked as a
-//!   follow-up). It will wrap the key with the Android Keystore.
+//! * **Android** — wrapped by a non-exportable Android Keystore AES-GCM key via a JNI bridge
+//!   to `CrateDbKey.kt` (#144); the wrapped blob lives in app-private SharedPreferences.
+//!   Works on both the foreground (Tauri) and headless (WorkManager) paths — see
+//!   `crate::android_context`. `android:allowBackup` is disabled so a device-transfer can't
+//!   restore a blob whose Keystore wrapping key didn't travel with it.
 //!
 //! Provider selection is gated on `target_os` rather than the `desktop`/`mobile` Cargo
 //! feature, because the correct secure store is fundamentally a per-OS decision. This also
@@ -200,8 +203,12 @@ fn store_key(key: &str) -> Result<()> {
 }
 
 // ---------------------------------------------------------------------------
-// Android: Keystore provider (not yet implemented — tracked as a follow-up).
+// Android: Keystore provider (#144) — JNI bridge to CrateDbKey.kt.
 // ---------------------------------------------------------------------------
+
+/// Fully-qualified JNI class name of the Kotlin helper (see `gen/android/.../CrateDbKey.kt`).
+#[cfg(target_os = "android")]
+const DB_KEY_CLASS: &str = "com/bbx_audio/crateapp/CrateDbKey";
 
 #[cfg(target_os = "android")]
 struct AndroidKeystoreKeyProvider;
@@ -215,13 +222,45 @@ impl AndroidKeystoreKeyProvider {
 
 #[cfg(target_os = "android")]
 impl KeyProvider for AndroidKeystoreKeyProvider {
+    /// Call `CrateDbKey.getOrCreateKey(context)` over JNI. The Kotlin side owns generation,
+    /// Keystore wrapping, and the never-regenerate-over-an-existing-blob policy; a thrown
+    /// exception (locked Keystore, corrupt blob, …) surfaces here as a `KeyStorage` error
+    /// rather than a silent second key that would mismatch the encrypted database.
     fn get_or_create_key(&self) -> Result<String> {
-        // TODO(#144): wrap the key with the Android Keystore via a JNI bridge to a Kotlin
-        // EncryptedSharedPreferences/Keystore helper. Until then, fail loudly rather than
-        // falling back to an insecure plaintext key file.
-        Err(CrateError::KeyStorage(
-            "Android Keystore key provider is not yet implemented".to_string(),
-        ))
+        use jni::objects::{JString, JValue};
+
+        crate::android_context::with_env_and_context(
+            |env, context| {
+                // RECONCILE: signature `(Landroid/content/Context;)Ljava/lang/String;`.
+                let result = env
+                    .call_static_method(
+                        DB_KEY_CLASS,
+                        "getOrCreateKey",
+                        "(Landroid/content/Context;)Ljava/lang/String;",
+                        &[JValue::Object(context)],
+                    )
+                    .map_err(|e| {
+                        CrateError::KeyStorage(format!("CrateDbKey.getOrCreateKey failed: {e}"))
+                    })?;
+
+                let key_obj = result.l().map_err(|e| {
+                    CrateError::KeyStorage(format!("android keystore key object: {e}"))
+                })?;
+                let key: String = env
+                    .get_string(&JString::from(key_obj))
+                    .map_err(|e| {
+                        CrateError::KeyStorage(format!("android keystore key decode: {e}"))
+                    })?
+                    .into();
+                if key.is_empty() {
+                    return Err(CrateError::KeyStorage(
+                        "android keystore returned an empty key".to_string(),
+                    ));
+                }
+                Ok(key)
+            },
+            |m| CrateError::KeyStorage(format!("android keystore: {m}")),
+        )
     }
 }
 

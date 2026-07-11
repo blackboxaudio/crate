@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug override of the main network security config: `yarn dev:android` serves the frontend
+     from the host machine's LAN IP (TAURI_DEV_HOST) over plain HTTP, and that IP can't be
+     enumerated statically — so debug builds allow cleartext everywhere. Release builds use the
+     locked-down main config (loopback-only cleartext for the audio proxy). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

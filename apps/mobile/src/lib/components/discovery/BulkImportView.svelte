@@ -7,6 +7,7 @@
 	import * as discoveryApi from '$shared/api/discovery'
 	import { SvelteSet } from 'svelte/reactivity'
 	import Spinner from '$lib/components/common/Spinner.svelte'
+	import ArtworkPlaceholder from '$lib/components/common/ArtworkPlaceholder.svelte'
 
 	type Props = {
 		scannedPage: ScannedPage
@@ -16,6 +17,8 @@
 	let { scannedPage, onImportComplete, onCancel }: Props = $props()
 
 	let selectedUrls = $state(new Set<string>())
+	// Scanned covers whose URL failed to load — show the placeholder, not a broken image.
+	let failedArtworkUrls = $state<ReadonlySet<string>>(new Set())
 	let importing = $state(false)
 	let progress = $state<BulkImportProgress | null>(null)
 	let result = $state<BulkImportResult | null>(null)
@@ -166,16 +169,15 @@
 					</div>
 
 					<!-- Artwork -->
-					{#if release.artwork_url}
-						<img src={release.artwork_url} alt="" class="h-12 w-12 flex-shrink-0 rounded-md object-cover" />
+					{#if release.artwork_url && !failedArtworkUrls.has(release.artwork_url)}
+						<img
+							src={release.artwork_url}
+							alt=""
+							class="h-12 w-12 flex-shrink-0 rounded-md object-cover"
+							onerror={() => (failedArtworkUrls = new Set([...failedArtworkUrls, release.artwork_url!]))}
+						/>
 					{:else}
-						<div
-							class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md bg-surface-2 text-text-tertiary"
-						>
-							<svg viewBox="0 0 24 24" class="h-5 w-5" fill="currentColor">
-								<path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3h-6zm-2 16a2 2 0 1 1 0-4 2 2 0 0 1 0 4z" />
-							</svg>
-						</div>
+						<ArtworkPlaceholder class="h-12 w-12 flex-shrink-0 rounded-md" />
 					{/if}
 
 					<!-- Text: two-line layout — title bold, artist secondary -->

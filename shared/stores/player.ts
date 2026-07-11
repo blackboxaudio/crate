@@ -329,13 +329,14 @@ function createPlayerStore() {
 
 	// --- iOS native window resolution ---------------------------------------------------------------
 	// Resolve (and session-cache) a track's proxy stream URL. The proxy URLs are stable per release/track,
-	// so the window can be re-fed cheaply on every advance/mutation.
-	async function resolveStreamUrl(release: DiscoveryRelease, trackIndex: number): Promise<string> {
+	// so the window can be re-fed cheaply on every advance/mutation. `background` marks opportunistic
+	// look-ahead resolution, which the backend throttles behind user-initiated fetches.
+	async function resolveStreamUrl(release: DiscoveryRelease, trackIndex: number, background = false): Promise<string> {
 		const cacheKey = `${release.id}:${trackIndex}`
 		const cached = streamUrlCache.get(cacheKey)
 		if (cached) return cached
 		const track = release.tracks[trackIndex]
-		const url = await discoveryApi.fetchPreviewStream(release.id, track.position)
+		const url = await discoveryApi.fetchPreviewStream(release.id, track.position, background)
 		streamUrlCache.set(cacheKey, url)
 		return url
 	}
@@ -345,9 +346,12 @@ function createPlayerStore() {
 	// need an explicit audio/mp4 (their proxy URL is extensionless and AVFoundation can't infer it);
 	// Bandcamp/SoundCloud pass null. Throws if the URL can't be resolved — the caller decides whether that
 	// track is required (the tapped/current one) or best-effort (an upcoming window pick).
-	async function buildOneNativeTrack(p: { release: DiscoveryRelease; trackIndex: number }): Promise<NativeTrack> {
+	async function buildOneNativeTrack(
+		p: { release: DiscoveryRelease; trackIndex: number },
+		background = false
+	): Promise<NativeTrack> {
 		const track = p.release.tracks[p.trackIndex]
-		const url = await resolveStreamUrl(p.release, p.trackIndex)
+		const url = await resolveStreamUrl(p.release, p.trackIndex, background)
 		const mimeType = p.release.source_type === 'discogs' || p.release.source_type === 'youtube' ? 'audio/mp4' : null
 		return {
 			url,
@@ -370,7 +374,9 @@ function createPlayerStore() {
 		const settled = await Promise.all(
 			picks.map(async (pick) => {
 				try {
-					return { pick, track: await buildOneNativeTrack(pick) }
+					// Background priority: window tails are opportunistic and must not
+					// delay the (foreground) current-track resolution.
+					return { pick, track: await buildOneNativeTrack(pick, true) }
 				} catch (e) {
 					console.warn('[native-preview] dropping unresolvable window track:', e)
 					return null

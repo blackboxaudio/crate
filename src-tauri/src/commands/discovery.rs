@@ -22,175 +22,33 @@ use crate::services::{LibraryService, TagService};
 #[cfg(feature = "desktop")]
 use crate::models::ImportResultWithDuplicates;
 use crate::{
-    AvatarCache, BulkImportCancelFlag, EnrichmentSkipIds, PrefetchTracker, ProxyServerPort,
-    ScanEnrichmentCache, ScanPageCancelFlag,
+    AvatarCache, BulkImportCancelFlag, EnrichmentSkipIds, ProxyServerPort, ScanEnrichmentCache,
+    ScanPageCancelFlag, StreamFetchPermits,
 };
 
-/// Spawn background stream prefetch for a release. Shared by single-create and bulk-create.
-async fn spawn_stream_prefetch(
-    release: &DiscoveryRelease,
-    discovery: &DiscoveryService,
-    tracker: &PrefetchTracker,
-    app: &tauri::AppHandle,
-) {
-    if release.tracks.is_empty() {
-        return;
-    }
-
-    // Streamable sources: bandcamp, soundcloud, youtube
-    if matches!(
-        release.source_type.as_str(),
-        "bandcamp" | "soundcloud" | "youtube"
-    ) {
-        let mut inflight = tracker.0.lock().await;
-        if !inflight.contains(&release.id) {
-            inflight.insert(release.id.clone());
-            let conn = discovery.connection();
-            let app_data_dir = discovery.app_data_dir();
-            let release_id = release.id.clone();
-            let release_url = release.url.clone();
-            let source_type = release.source_type.clone();
-            let tracker_ref = tracker.0.clone();
-            let app_handle = app.clone();
-            tokio::spawn(async move {
-                let svc = DiscoveryService::new(conn, app_data_dir.clone());
-                if let Err(e) = prefetch_streams(
-                    &svc,
-                    &release_id,
-                    &release_url,
-                    &source_type,
-                    &app_handle,
-                    &app_data_dir,
-                )
-                .await
-                {
-                    log::warn!("Background stream prefetch failed for {release_id}: {e}");
-                }
-                tracker_ref.lock().await.remove(&release_id);
-            });
-        }
-    }
-
-    // Discogs: per-track prefetch via YouTube video IDs
-    if release.source_type == "discogs" {
-        let mut inflight = tracker.0.lock().await;
-        if !inflight.contains(&release.id) {
-            inflight.insert(release.id.clone());
-            let conn = discovery.connection();
-            let app_data_dir = discovery.app_data_dir();
-            let release_id = release.id.clone();
-            let tracker_ref = tracker.0.clone();
-            let app_handle = app.clone();
-            tokio::spawn(async move {
-                let svc = DiscoveryService::new(conn, app_data_dir.clone());
-                if let Err(e) =
-                    prefetch_discogs_streams(&svc, &release_id, &app_handle, &app_data_dir).await
-                {
-                    log::warn!("Background Discogs stream prefetch failed for {release_id}: {e}");
-                }
-                tracker_ref.lock().await.remove(&release_id);
-            });
-        }
-    }
-}
+// Stream resolution is fully lazy: URLs are fetched when the user plays a track (plus
+// the playback queue's small bounded look-ahead, which calls `fetch_preview_stream`
+// with `background: true`). There is deliberately no import/enrich-time prefetch —
+// resolved stream URLs expire within hours (SoundCloud ~1h, YouTube ~5h, Bandcamp
+// ~6h), so warming thousands of releases was wasted network and DB contention.
 
 #[tauri::command]
 pub async fn create_discovery_release(
     create: DiscoveryReleaseCreate,
-    app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
-    tracker: State<'_, PrefetchTracker>,
 ) -> Result<DiscoveryRelease> {
-    let release = discovery.create_release(create)?;
-    spawn_stream_prefetch(&release, &discovery, &tracker, &app).await;
-    Ok(release)
-}
-
-/// Prefetch and cache stream URLs for a release.
-async fn prefetch_streams(
-    discovery: &DiscoveryService,
-    release_id: &str,
-    url: &str,
-    source_type: &str,
-    app_handle: &tauri::AppHandle,
-    app_data_dir: &std::path::Path,
-) -> Result<()> {
-    let mut stream_infos = match source_type {
-        "bandcamp" => streams::extract_bandcamp_streams(url).await?,
-        "soundcloud" => {
-            let cached_cid = discovery.get_cached_sc_client_id()?;
-            let (infos, new_cid) = streams::extract_soundcloud_streams(url, cached_cid).await?;
-            discovery.cache_sc_client_id(&new_cid)?;
-            infos
-        }
-        "youtube" => streams::extract_youtube_streams(url).await?,
-        _ => return Ok(()),
-    };
-    transform_youtube_n_params(&mut stream_infos, app_handle, app_data_dir).await;
-    discovery.cache_streams(release_id, &stream_infos)?;
-    log::info!(
-        "Prefetched {} stream URLs for release {release_id}",
-        stream_infos.len()
-    );
-    Ok(())
-}
-
-/// Incrementally prefetch and cache stream URLs for a Discogs release.
-///
-/// Each track is fetched and cached individually so that tracks become playable
-/// as soon as their stream is resolved — without waiting for all tracks to complete.
-/// Tracks already cached (e.g. fetched on-demand by a user click) are skipped.
-async fn prefetch_discogs_streams(
-    discovery: &DiscoveryService,
-    release_id: &str,
-    app_handle: &tauri::AppHandle,
-    app_data_dir: &std::path::Path,
-) -> Result<()> {
-    let tracks = discovery.get_all_video_ids_for_release(release_id)?;
-    for (idx, (position, video_id)) in tracks.iter().enumerate() {
-        // Skip tracks already cached (e.g. fetched on-demand by a prior user click)
-        if discovery
-            .get_cached_stream(release_id, *position)?
-            .is_some()
-        {
-            continue;
-        }
-        // Randomized delay between requests to avoid YouTube rate limiting / bot detection
-        if idx > 0 {
-            tokio::time::sleep(metadata::jittered_delay(1500)).await;
-        }
-        match streams::extract_single_youtube_stream(video_id, *position).await {
-            Ok(mut stream) => {
-                transform_youtube_n_params(
-                    std::slice::from_mut(&mut stream),
-                    app_handle,
-                    app_data_dir,
-                )
-                .await;
-                if let Err(e) = discovery.cache_streams(release_id, &[stream]) {
-                    log::warn!(
-                        "Failed to cache Discogs stream for position {position} on {release_id}: {e}"
-                    );
-                } else {
-                    log::info!("Prefetched Discogs stream for position {position} on {release_id}");
-                }
-            }
-            Err(e) => log::warn!(
-                "Failed to prefetch Discogs stream for position {position} on {release_id}: {e}"
-            ),
-        }
-    }
-    Ok(())
+    discovery.create_release(create)
 }
 
 #[tauri::command]
 pub async fn fetch_preview_stream(
     release_id: String,
     track_position: i32,
+    background: Option<bool>,
     app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
     proxy_port: State<'_, ProxyServerPort>,
-    tracker: State<'_, PrefetchTracker>,
+    permits: State<'_, StreamFetchPermits>,
 ) -> Result<String> {
     let port = proxy_port.0;
     let app_data_dir = discovery.app_data_dir();
@@ -219,6 +77,23 @@ pub async fn fetch_preview_stream(
     // Get release to determine source type and URL
     let release = discovery.get_release(&release_id)?;
 
+    // Everything below performs a network extraction. Foreground fetches (the track the
+    // user just tapped) never wait; opportunistic background resolution (queue window
+    // tails, offline pre-caching) throttles through the global permit pool so it can't
+    // starve a tap-to-play or hammer the source platforms.
+    let _permit = if background.unwrap_or(false) {
+        Some(
+            permits
+                .0
+                .clone()
+                .acquire_owned()
+                .await
+                .map_err(|_| CrateError::Discovery("stream fetch permits closed".into()))?,
+        )
+    } else {
+        None
+    };
+
     // YouTube fast path: use stored video_id for single-track fetch (~500ms vs ~8s)
     if release.source_type == "youtube" {
         if let Some(video_id) = discovery.get_video_id_for_track(&release_id, track_position)? {
@@ -232,31 +107,12 @@ pub async fn fetch_preview_stream(
                 stream_url: stream.stream_url.clone(),
                 proxy_ua: stream.proxy_ua.clone(),
             };
-            let result = resolve_stream_url(&cached, &release_id, track_position, port);
-
-            // Background re-prefetch all tracks (skip if already in-flight)
-            let mut inflight = tracker.0.lock().await;
-            if !inflight.contains(&release_id) {
-                inflight.insert(release_id.clone());
-                let conn = discovery.connection();
-                let app_data_dir = app_data_dir.clone();
-                let url = release.url.clone();
-                let rid = release_id.clone();
-                let tracker_ref = tracker.0.clone();
-                let app_handle = app.clone();
-                tokio::spawn(async move {
-                    let svc = DiscoveryService::new(conn, app_data_dir.clone());
-                    if let Err(e) =
-                        prefetch_streams(&svc, &rid, &url, "youtube", &app_handle, &app_data_dir)
-                            .await
-                    {
-                        log::warn!("Background YouTube re-prefetch failed for {rid}: {e}");
-                    }
-                    tracker_ref.lock().await.remove(&rid);
-                });
-            }
-
-            return Ok(result);
+            return Ok(resolve_stream_url(
+                &cached,
+                &release_id,
+                track_position,
+                port,
+            ));
         }
         // Fall through to full extraction for pre-migration releases without video_id
     }
@@ -422,16 +278,19 @@ pub async fn precache_preview_stream(
     app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
     proxy_port: State<'_, ProxyServerPort>,
-    tracker: State<'_, PrefetchTracker>,
+    permits: State<'_, StreamFetchPermits>,
 ) -> Result<()> {
     // Resolve (and cache) the stream URL, and get the localhost proxy URL for the track.
+    // Background priority: a whole-release offline download must never starve a
+    // tap-to-play (cache hits skip the permit entirely).
     let proxy_url = fetch_preview_stream(
         release_id,
         track_position,
+        Some(true),
         app,
         discovery,
         proxy_port,
-        tracker,
+        permits,
     )
     .await?;
 
@@ -773,7 +632,6 @@ pub async fn bulk_create_discovery_releases(
     page_url: Option<String>,
     app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
-    tracker: State<'_, PrefetchTracker>,
     cancel_flag: State<'_, BulkImportCancelFlag>,
     scan_cancel_flag: State<'_, ScanPageCancelFlag>,
     enrichment_cache: State<'_, ScanEnrichmentCache>,
@@ -933,7 +791,6 @@ pub async fn bulk_create_discovery_releases(
                                 release.source_type.clone(),
                             ));
                         }
-                        spawn_stream_prefetch(&release, &discovery, &tracker, &app).await;
                     }
                     Err(CrateError::Database(rusqlite::Error::SqliteFailure(err, _)))
                         if err.code == rusqlite::ffi::ErrorCode::ConstraintViolation =>
@@ -980,17 +837,16 @@ pub async fn bulk_create_discovery_releases(
             .collect();
         let _ = app.emit("discovery-enrichment-queued", &enrichment_ids);
 
-        let conn = discovery.connection();
+        let db = discovery.db();
         let app_data_dir = discovery.app_data_dir();
         let app_handle = app.clone();
-        let tracker_clone = tracker.0.clone();
         let skip_ids = enrichment_skip_ids.0.clone();
         tokio::spawn(async move {
             log::info!(
                 "Starting background enrichment for {} releases",
                 needs_enrichment.len()
             );
-            let svc = DiscoveryService::new(conn, app_data_dir.clone());
+            let svc = DiscoveryService::with_db(db, app_data_dir.clone());
             for (idx, (release_id, url, src_type)) in needs_enrichment.iter().enumerate() {
                 // Skip if the user cancelled this release
                 if skip_ids.lock().await.contains(release_id) {
@@ -1076,72 +932,10 @@ pub async fn bulk_create_discovery_releases(
 
                 match svc.update_release(release_id, update) {
                     Ok(updated_release) => {
-                        // Emit event so the frontend updates in real-time
+                        // Emit event so the frontend updates in real-time. Stream URLs
+                        // resolve lazily on first play — no prefetch here.
                         let _ = app_handle.emit("discovery-release-updated", &updated_release);
                         log::info!("Background enrichment complete for {release_id}");
-
-                        // Spawn stream prefetch for the now-enriched release
-                        if !updated_release.tracks.is_empty() {
-                            if matches!(src_type.as_str(), "bandcamp" | "soundcloud" | "youtube") {
-                                let mut inflight = tracker_clone.lock().await;
-                                if !inflight.contains(release_id) {
-                                    inflight.insert(release_id.clone());
-                                    let pfx_conn = svc.connection();
-                                    let pfx_app_data_dir = app_data_dir.clone();
-                                    let pfx_release_id = release_id.clone();
-                                    let pfx_url = url.clone();
-                                    let pfx_source_type = src_type.clone();
-                                    let pfx_tracker = tracker_clone.clone();
-                                    let pfx_app = app_handle.clone();
-                                    tokio::spawn(async move {
-                                        let pfx_svc = DiscoveryService::new(
-                                            pfx_conn,
-                                            pfx_app_data_dir.clone(),
-                                        );
-                                        if let Err(e) = prefetch_streams(
-                                            &pfx_svc,
-                                            &pfx_release_id,
-                                            &pfx_url,
-                                            &pfx_source_type,
-                                            &pfx_app,
-                                            &pfx_app_data_dir,
-                                        )
-                                        .await
-                                        {
-                                            log::warn!("Background stream prefetch failed for {pfx_release_id}: {e}");
-                                        }
-                                        pfx_tracker.lock().await.remove(&pfx_release_id);
-                                    });
-                                }
-                            } else if src_type == "discogs" {
-                                let mut inflight = tracker_clone.lock().await;
-                                if !inflight.contains(release_id) {
-                                    inflight.insert(release_id.clone());
-                                    let pfx_conn = svc.connection();
-                                    let pfx_app_data_dir = app_data_dir.clone();
-                                    let pfx_release_id = release_id.clone();
-                                    let pfx_tracker = tracker_clone.clone();
-                                    let pfx_app = app_handle.clone();
-                                    tokio::spawn(async move {
-                                        let pfx_svc = DiscoveryService::new(
-                                            pfx_conn,
-                                            pfx_app_data_dir.clone(),
-                                        );
-                                        if let Err(e) = prefetch_discogs_streams(
-                                            &pfx_svc,
-                                            &pfx_release_id,
-                                            &pfx_app,
-                                            &pfx_app_data_dir,
-                                        )
-                                        .await
-                                        {
-                                            log::warn!("Background Discogs stream prefetch failed for {pfx_release_id}: {e}");
-                                        }
-                                        pfx_tracker.lock().await.remove(&pfx_release_id);
-                                    });
-                                }
-                            }
-                        }
                     }
                     Err(e) => {
                         log::warn!(

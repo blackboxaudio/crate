@@ -207,6 +207,19 @@
 			"error": "Senkronizasyon hatası",
 			"signedOut": "Oturum açılmadı"
 		},
+		"errors": {
+			"network": "Senkronizasyon hizmetine ulaşılamıyor — yeniden denenecek",
+			"auth": "Oturumunuz sona erdi — oturum kapatıp yeniden açın",
+			"permission": "Senkronizasyon hizmeti bu cihazı reddetti (izin reddedildi)",
+			"quota": "Senkronizasyon sınırlı veya kota tükendi — yeniden denenecek",
+			"toolarge": "Kütüphaneniz yüklemek için çok büyük",
+			"conflict": "Başka bir cihaz şu anda eşitleniyor — yeniden denenecek",
+			"server": "Senkronizasyon hizmeti sorun yaşıyor — yeniden denenecek",
+			"merge": "Bu cihazda eşitlenen değişiklikler uygulanamadı"
+		},
+		"diagnostics": {
+			"copy": "Senkronizasyon tanılarını kopyala"
+		},
 		"account": {
 			"title": "Hesap",
 			"syncNow": "Şimdi senkronize et",
@@ -340,6 +353,8 @@
 		"removeDownload": "İndirmeyi Kaldır",
 		"downloadFailed": "Çevrimdışı için indirilemedi",
 		"fetchError": "Bu URL'den meta veriler indirilemedi",
+		"unsupportedUrl": "Bu URL desteklenmiyor",
+		"shareNoUrl": "Paylaşılan metinde bağlantı bulunamadı",
 		"tracks": "Şarkılar",
 		"trackCount": "{count, plural, =1 {1 şarkı} other {{count} şarkı}}",
 		"openInBrowser": "Tarayıcıda Aç",

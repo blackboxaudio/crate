@@ -16,8 +16,8 @@ export async function updateNowPlaying(
 	})
 }
 
-export async function updatePlaybackState(isPlaying: boolean): Promise<void> {
-	return invoke('update_playback_state', { isPlaying })
+export async function updatePlaybackState(isPlaying: boolean, positionMs?: number): Promise<void> {
+	return invoke('update_playback_state', { isPlaying, positionMs: positionMs ?? null })
 }
 
 export async function clearNowPlaying(): Promise<void> {

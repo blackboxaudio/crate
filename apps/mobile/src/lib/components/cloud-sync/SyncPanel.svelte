@@ -7,7 +7,10 @@
 		signingIn,
 		cloudSyncError,
 		cloudSyncStore,
+		syncErrorMessageKey,
 	} from '$shared/stores/cloudSync'
+	import { getSyncDiagnostics } from '$shared/api/cloudSync'
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { signInMobile } from '$lib/signInMobile'
 	import { formatRelativeDate } from '$shared/utils/format'
 	import { confirmDialog } from '$lib/utils/dialog'
@@ -26,11 +29,23 @@
 			case 'offline':
 				return $translate('cloudSync.status.offline')
 			case 'error':
-				return $translate('cloudSync.status.error')
+				return $translate(syncErrorMessageKey($syncStatus.last_error_kind))
 			default:
 				return $translate('cloudSync.status.signedOut')
 		}
 	})
+
+	let diagnosticsCopied = $state(false)
+
+	async function copyDiagnostics() {
+		try {
+			await writeText(await getSyncDiagnostics())
+			diagnosticsCopied = true
+			setTimeout(() => (diagnosticsCopied = false), 2000)
+		} catch {
+			// Best-effort — the log is also on disk.
+		}
+	}
 
 	const dotClass = $derived.by(() => {
 		switch ($syncPhase) {
@@ -129,10 +144,23 @@
 			<span class="h-2 w-2 flex-shrink-0 rounded-full {dotClass}"></span>
 			<div class="min-w-0 flex-1">
 				<p class="text-sm text-text-primary">{statusLabel}</p>
+				{#if $syncPhase === 'error' && $syncStatus.last_error}
+					<!-- Sanitized at the error-construction layer (no URLs / API keys). -->
+					<p class="mt-0.5 text-xs break-words text-danger">{$syncStatus.last_error}</p>
+				{/if}
 				{#if lastSynced}
 					<p class="text-xs text-text-tertiary">{lastSynced}</p>
 				{/if}
 			</div>
+			{#if $syncPhase === 'error'}
+				<button
+					type="button"
+					class="flex-shrink-0 rounded-md bg-surface-1 px-2 py-1 text-xs text-text-secondary active:opacity-70"
+					onclick={copyDiagnostics}
+				>
+					{diagnosticsCopied ? $translate('settings.diagnostics.copied') : $translate('cloudSync.diagnostics.copy')}
+				</button>
+			{/if}
 		</div>
 
 		<!-- Auto-sync hint -->

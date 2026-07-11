@@ -15,6 +15,7 @@
 	} from '$lib/stores/mobileUI'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { refreshPlaylistCovers } from '$lib/stores/playlistCovers'
+	import { registerBackLayer } from '$lib/androidBack'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import EmptyState from '$lib/components/common/EmptyState.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
@@ -40,6 +41,12 @@
 
 	const isReorderMode = $derived($playlistReorderMode)
 	const isSelectMode = $derived($selectMode)
+
+	// Android Back exits reorder mode before it closes this drawer (#62): reorder activates after
+	// the drawer opened, so this registration naturally stacks above the drawer's own.
+	$effect(() => {
+		if (isReorderMode) return registerBackLayer(() => mobileUIStore.exitReorderMode())
+	})
 
 	$effect(() => {
 		loadReleases()

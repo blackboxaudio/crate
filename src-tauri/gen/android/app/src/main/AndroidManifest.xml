@@ -1,14 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Background preview playback (#62): CrateMediaService runs as a mediaPlayback foreground
+         service so audio (WebView + Rust proxy) survives backgrounding, with a MediaStyle
+         notification. POST_NOTIFICATIONS is requested at runtime by MainActivity (API 33+). -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- AndroidTV support -->
     <uses-feature android:name="android.software.leanback" android:required="false" />
 
+    <!-- Backups/device-transfer are disabled (see data_extraction_rules.xml): the DB key is
+         wrapped by a non-exportable Keystore key, so restored data would be unopenable. -->
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.crate_app"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:usesCleartextTraffic="${usesCleartextTraffic}">
         <activity
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode"
@@ -26,10 +38,27 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <!-- Must equal reversed_client_id(android_oauth_client_id) — see config.rs -->
-                <data android:scheme="com.googleusercontent.apps.1021114070037-pt8e7tn5ioslpe5v2oq0nua0idkc7kda" />
+                <!-- Must equal reversed_client_id(android_oauth_client_id) — see config.rs.
+                     Filled per channel from channel.properties (scripts/write-android-channel.mjs),
+                     which derives it from the same client id build.rs bakes into the binary. -->
+                <data android:scheme="${oauthRedirectScheme}" />
+            </intent-filter>
+            <!-- Receive URLs shared from other apps (#62) — the Android analog of an iOS share
+                 extension. MainActivity queues the text in ShareIntentQueue; the frontend drains
+                 it and opens the add-release sheet prefilled. -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
             </intent-filter>
         </activity>
+
+        <!-- Foreground media service for preview playback (#62) — MediaSessionCompat, MediaStyle
+             notification, audio focus; driven from Rust (services/media_controls/android.rs). -->
+        <service
+            android:name=".CrateMediaService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
 
         <provider
           android:name="androidx.core.content.FileProvider"

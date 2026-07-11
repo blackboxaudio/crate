@@ -207,6 +207,19 @@
 			"error": "Synchronisatiefout",
 			"signedOut": "Niet aangemeld"
 		},
+		"errors": {
+			"network": "Kan de synchronisatieservice niet bereiken — wordt opnieuw geprobeerd",
+			"auth": "Uw sessie is verlopen — meld u af en meld u opnieuw aan",
+			"permission": "De synchronisatieservice heeft dit apparaat geweigerd (toestemming geweigerd)",
+			"quota": "Synchronisatie is beperkt of het quotum is opgebruikt — wordt opnieuw geprobeerd",
+			"toolarge": "Uw bibliotheek is te groot om te uploaden",
+			"conflict": "Een ander apparaat wordt nu gesynchroniseerd — wordt opnieuw geprobeerd",
+			"server": "De synchronisatieservice heeft problemen — wordt opnieuw geprobeerd",
+			"merge": "Gesynchroniseerde wijzigingen kunnen niet op dit apparaat worden toegepast"
+		},
+		"diagnostics": {
+			"copy": "Synchronisatiediagnostiek kopiëren"
+		},
 		"account": {
 			"title": "Account",
 			"syncNow": "Nu synchroniseren",
@@ -341,6 +354,7 @@
 		"downloadFailed": "Kon niet downloaden voor offline",
 		"fetchError": "Kan metagegevens niet ophalen van deze URL",
 		"unsupportedUrl": "Deze URL wordt niet ondersteund",
+		"shareNoUrl": "Geen link gevonden in de gedeelde tekst",
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
 		"openInBrowser": "In browser openen",

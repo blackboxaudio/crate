@@ -22,6 +22,19 @@ if (keystorePropertiesFile.exists()) {
     keystorePropertiesFile.inputStream().use { keystoreProperties.load(it) }
 }
 
+// Channel identity (application id / label / OAuth redirect scheme) — stamped into the gitignored
+// channel.properties by `scripts/write-android-channel.mjs --channel <dev|staging|prod>`. When the
+// file is absent (fresh clone, bare Android Studio build) the getProperty defaults below make it
+// the dev channel. Only `applicationId` varies per channel — `namespace` stays
+// `com.bbx_audio.crateapp` because the Kotlin package and the hand-written Rust JNI symbols
+// (CrateSyncWorker, CrateDbKey, …) are literal against it.
+// Preserve this block if `tauri android init` regenerates the file.
+val channelProperties = Properties()
+val channelPropertiesFile = file("channel.properties")
+if (channelPropertiesFile.exists()) {
+    channelPropertiesFile.inputStream().use { channelProperties.load(it) }
+}
+
 android {
     compileSdk = 36
     namespace = "com.bbx_audio.crateapp"
@@ -38,9 +51,18 @@ android {
     }
 
     defaultConfig {
+        // Cleartext policy actually lives in res/xml/network_security_config.xml (release scopes
+        // it to the localhost audio proxy; the debug source set opens it up for the LAN dev
+        // server). The placeholder is kept for parity with the tauri template manifest.
         manifestPlaceholders["usesCleartextTraffic"] = "false"
-        applicationId = "com.bbx_audio.crateapp"
-        minSdk = 24
+        manifestPlaceholders["oauthRedirectScheme"] =
+            channelProperties.getProperty("oauthRedirectScheme", "crate.oauth.unset")
+        applicationId = channelProperties.getProperty("applicationId", "com.bbx_audio.crate.dev")
+        // Per-channel display name via resValue — the same-named keys were removed from
+        // res/values/strings.xml (Gradle resValue + strings.xml would be a duplicate resource).
+        resValue("string", "app_name", channelProperties.getProperty("appName", "Crate Dev"))
+        resValue("string", "main_activity_title", channelProperties.getProperty("appName", "Crate Dev"))
+        minSdk = 29
         targetSdk = 36
         versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1").toInt()
         versionName = tauriProperties.getProperty("tauri.android.versionName", "1.0")
@@ -92,6 +114,10 @@ dependencies {
     // WorkManager backs opportunistic background cloud sync (#61): CrateSyncScheduler enqueues a
     // periodic CrateSyncWorker that calls into Rust via JNI (background/android.rs).
     implementation("androidx.work:work-runtime-ktx:2.9.1")
+    // MediaSessionCompat + MediaStyle notification for background preview playback (#62):
+    // CrateMediaService owns the lock-screen/notification surface, driven from Rust
+    // (media_controls/android.rs) since the WebView doesn't surface the Web Media Session API.
+    implementation("androidx.media:media:1.7.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.4")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.0")

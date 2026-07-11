@@ -16,26 +16,27 @@ impl DiscoveryService {
     }
 
     /// Check if audio bytes are cached on disk for a specific track.
-    /// Returns `(content_type, file_size)` if cached.
+    /// Returns `(content_type, file_size)` if cached. Playback-hot path (proxy + the
+    /// `fetch_preview_stream` fast path) — runs on a pooled reader.
     pub fn get_cached_audio_meta(
         &self,
         release_id: &str,
         track_position: i32,
     ) -> Result<Option<(String, i64)>> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        self.db.read(|conn| {
+            let result = conn.query_row(
+                "SELECT content_type, file_size FROM discovery_audio_cache
+                 WHERE release_id = ?1 AND track_position = ?2",
+                rusqlite::params![release_id, track_position],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+            );
 
-        let result = conn.query_row(
-            "SELECT content_type, file_size FROM discovery_audio_cache
-             WHERE release_id = ?1 AND track_position = ?2",
-            rusqlite::params![release_id, track_position],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
-        );
-
-        match result {
-            Ok(meta) => Ok(Some(meta)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(CrateError::Database(e)),
-        }
+            match result {
+                Ok(meta) => Ok(Some(meta)),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(CrateError::Database(e)),
+            }
+        })
     }
 
     /// Record that audio was cached to disk.
@@ -72,23 +73,37 @@ impl DiscoveryService {
         Ok(())
     }
 
+    /// Total cached bytes as tracked in the DB (`SUM(file_size)`). Microseconds vs the
+    /// full-directory scan of [`Self::get_audio_cache_total_size`] — this runs after
+    /// EVERY cache write, so it must not touch the filesystem.
+    fn audio_cache_tracked_size(&self) -> Result<i64> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        Ok(conn.query_row(
+            "SELECT COALESCE(SUM(file_size), 0) FROM discovery_audio_cache",
+            [],
+            |r| r.get(0),
+        )?)
+    }
+
     /// Evict least-recently-accessed cached tracks until the total on-disk audio cache is
     /// under the configurable cap (`discovery_audio_cache_limit_mb`, default 500 MB). Called
     /// after each successful cache write. Best-effort: deletes the disk file then its DB row
     /// for each victim, oldest access first.
     pub fn enforce_audio_cache_limit(&self) -> Result<()> {
         let cap = self.cache_limit_bytes("discovery_audio_cache_limit_mb", DEFAULT_AUDIO_CACHE_MB);
-        let mut total = self.get_audio_cache_total_size()?;
+        let mut total = self.audio_cache_tracked_size()?;
         if total <= cap {
             return Ok(());
         }
 
-        // Oldest-accessed first. NULLs (shouldn't occur post-backfill) sort first so they go early.
+        // Oldest-accessed first, bounded — one enforce pass never needs more victims than
+        // this, and an unbounded scan over thousands of rows on every write adds up.
+        // NULLs (shouldn't occur post-backfill) sort first so they go early.
         let victims: Vec<(String, i32, i64)> = {
             let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
             let mut stmt = conn.prepare(
                 "SELECT release_id, track_position, file_size FROM discovery_audio_cache
-                 ORDER BY last_accessed_at ASC",
+                 ORDER BY last_accessed_at ASC LIMIT 50",
             )?;
             let rows = stmt.query_map([], |row| {
                 Ok((
@@ -159,19 +174,20 @@ impl DiscoveryService {
     /// `(cached_tracks, total_tracks, bytes)`. A release is fully offline-ready when
     /// `total_tracks > 0 && cached_tracks >= total_tracks`.
     pub fn get_release_cache_state(&self, release_id: &str) -> Result<(i64, i64, i64)> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        let total_tracks: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM discovery_tracks WHERE release_id = ?1",
-            [release_id],
-            |r| r.get(0),
-        )?;
-        let (cached_tracks, bytes): (i64, i64) = conn.query_row(
-            "SELECT COUNT(*), COALESCE(SUM(file_size), 0) FROM discovery_audio_cache
-             WHERE release_id = ?1",
-            [release_id],
-            |r| Ok((r.get(0)?, r.get(1)?)),
-        )?;
-        Ok((cached_tracks, total_tracks, bytes))
+        self.db.read(|conn| {
+            let total_tracks: i64 = conn.query_row(
+                "SELECT COUNT(*) FROM discovery_tracks WHERE release_id = ?1",
+                [release_id],
+                |r| r.get(0),
+            )?;
+            let (cached_tracks, bytes): (i64, i64) = conn.query_row(
+                "SELECT COUNT(*), COALESCE(SUM(file_size), 0) FROM discovery_audio_cache
+                 WHERE release_id = ?1",
+                [release_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )?;
+            Ok((cached_tracks, total_tracks, bytes))
+        })
     }
 
     /// Get total size of all cached audio files in bytes (calculated from disk).

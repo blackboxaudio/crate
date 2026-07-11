@@ -118,7 +118,19 @@ impl FirebaseBackend {
     pub fn new(config: &CloudConfig) -> Result<Self> {
         let client = reqwest::Client::builder()
             .connect_timeout(std::time::Duration::from_secs(10))
-            .timeout(std::time::Duration::from_secs(60))
+            // No TOTAL timeout: a multi-MB bucket blob on a slow link legitimately takes
+            // minutes, and a total cap turned every large-library sync into an endless
+            // timeout→Offline→retry loop. Stalls are caught by the inactivity-based
+            // `read_timeout`; the blob paths add explicit size-scaled overall bounds
+            // (`blobs::transfer_timeout`) for the request-body send an inactivity
+            // timeout can't see.
+            .read_timeout(std::time::Duration::from_secs(60))
+            // Google's frontend closes idle HTTP/2 connections sooner than reqwest's default
+            // 90s pool timeout, and reusing a dead one fails the next call with "error sending
+            // request" — a transient error the runtime surfaces as a spurious `Offline`. Drop
+            // idle connections well before Google does, and keepalive-probe active ones.
+            .pool_idle_timeout(std::time::Duration::from_secs(15))
+            .tcp_keepalive(std::time::Duration::from_secs(30))
             .build()
             .map_err(|e| CrateError::CloudSync(format!("failed to build HTTP client: {e}")))?;
         // Mobile-only: `None` on desktop / when no Firebase App ID is configured (#139).

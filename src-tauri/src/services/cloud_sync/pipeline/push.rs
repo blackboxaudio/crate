@@ -41,6 +41,9 @@ const GC_GRACE: Duration = Duration::from_secs(3600);
 pub struct PushOutcome {
     pub overrides: Vec<OverrideEvent>,
     pub merged_buckets: Vec<String>,
+    /// The buckets the successful attempt uploaded, with their uncompressed
+    /// serialized size in bytes (for the sync diagnostics log).
+    pub uploaded: Vec<(String, usize)>,
 }
 
 /// Push all local changes to the cloud. Safe to call repeatedly; clears
@@ -121,6 +124,7 @@ pub async fn push(
                 return Ok(PushOutcome {
                     overrides,
                     merged_buckets,
+                    uploaded: prepared.uploaded_summary,
                 });
             }
             Err(CrateError::CloudSyncConflict) => {
@@ -128,7 +132,13 @@ pub async fn push(
                     "cloud_sync: push CAS conflict (attempt {}/{MAX_RETRIES}), retrying",
                     attempt + 1
                 );
-                tokio::time::sleep(backoff).await;
+                // Jittered so two devices pushing in lockstep de-synchronize instead of
+                // colliding on every retry.
+                let jitter = {
+                    use rand::Rng;
+                    rand::rng().random_range(0.5..1.5)
+                };
+                tokio::time::sleep(backoff.mul_f64(jitter)).await;
                 backoff = (backoff * 2).min(Duration::from_secs(3));
                 continue;
             }
@@ -136,7 +146,9 @@ pub async fn push(
         }
     }
 
-    Err(CrateError::CloudSync("push exceeded CAS retries".into()))
+    // Transient by classification: the claimed dirty rows survive an aborted push, so
+    // the debounce loop retries automatically — this is contention, not a dead end.
+    Err(CrateError::CloudSyncConflict)
 }
 
 /// A snapshot taken for one push attempt: the manifest to write, the blobs to upload,
@@ -149,6 +161,8 @@ struct PreparedPush {
     uploads: Vec<(String, Vec<u8>)>,
     gc_enqueue: Vec<GcEntry>,
     claimed_dirty: Vec<(String, String)>,
+    /// Plain bucket names + uncompressed sizes of `uploads` (diagnostics).
+    uploaded_summary: Vec<(String, usize)>,
 }
 
 /// Recompute the local manifest and serialize every bucket that differs from `remote`.
@@ -175,6 +189,7 @@ fn prepare_uploads(
     let diff = diff_manifest(&local, &base);
 
     let mut uploads = Vec::new();
+    let mut uploaded_summary = Vec::new();
     let mut gc_enqueue = Vec::new();
     let delete_after = SystemTime::now() + GC_GRACE;
 
@@ -182,6 +197,15 @@ fn prepare_uploads(
         let bucket = Bucket::parse(name)
             .ok_or_else(|| CrateError::CloudSync(format!("bad bucket {name}")))?;
         let bytes = rows::serialize_bucket(&guard, &bucket)?;
+        // Soft observability guard only — a hard local block would brick sync for the
+        // account permanently; an oversized upload surfaces as the server's 413 instead.
+        if bytes.len() > 64 * 1024 * 1024 {
+            log::warn!(
+                "cloud_sync: bucket {name} serialized to {} MiB (uncompressed) — approaching upload limits",
+                bytes.len() / (1024 * 1024)
+            );
+        }
+        uploaded_summary.push((name.clone(), bytes.len()));
         let hash = rows::bucket_hash(&bytes);
         // Full storage key (BucketEntry.object_key is relative — see manifest.rs).
         let key = format!(
@@ -222,6 +246,7 @@ fn prepare_uploads(
         uploads,
         gc_enqueue,
         claimed_dirty,
+        uploaded_summary,
     })
 }
 

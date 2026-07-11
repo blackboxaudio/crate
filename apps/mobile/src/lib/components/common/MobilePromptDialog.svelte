@@ -3,6 +3,7 @@
 	import { fade, scale } from 'svelte/transition'
 	import { translate } from '$shared/i18n'
 	import { easeFluid } from '$lib/easing'
+	import { registerBackLayer } from '$lib/androidBack'
 
 	// A centered iOS-alert-style prompt with a single text field (the UIAlertController-with-text-field
 	// pattern used by Files' "New Folder", Music's "New Playlist", etc.). Replaces the bottom-sheet modal
@@ -82,6 +83,12 @@
 			onCancel()
 		}
 	}
+
+	// Android Back cancels the prompt (#62). With the keyboard up, the IME consumes the first Back
+	// itself; the next one lands here.
+	$effect(() => {
+		if (open) return registerBackLayer(onCancel)
+	})
 </script>
 
 {#if open}

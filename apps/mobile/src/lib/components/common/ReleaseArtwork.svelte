@@ -4,11 +4,14 @@
 	import { getDiscoveryArtworkSrc } from '$shared/utils/artwork'
 	import { cacheReleaseArtwork } from '$shared/api/discovery'
 	import { mobileAppDataDir } from '$lib/stores/appData'
+	import ArtworkPlaceholder from './ArtworkPlaceholder.svelte'
 
 	// Cache-first cover for a discovery release: renders the on-disk cached copy when present
 	// (so it shows offline / in airplane mode), otherwise the remote URL — and downloads the
 	// remote cover to disk on first display so it's cached next time. The caller supplies the
-	// image `class` and an optional `fallback` snippet (rendered when there's no artwork at all).
+	// image `class`; when there's no artwork at all OR the image fails to load (dead URL,
+	// offline and uncached), a polished placeholder renders in its place — the optional
+	// `fallback` snippet overrides it for callers that need a different shape.
 	type Props = {
 		release: Pick<DiscoveryRelease, 'id' | 'artwork_url' | 'artwork_cache_path'>
 		class?: string
@@ -39,6 +42,15 @@
 		getDiscoveryArtworkSrc({ artwork_url: release.artwork_url, artwork_cache_path: cachePath }, $mobileAppDataDir)
 	)
 
+	// A failed load (dead/expired URL, offline and uncached) must not leave WebKit's
+	// broken-image icon on screen. Reset whenever `src` changes — the remote → cached-copy
+	// flip below can succeed even when the webview's own fetch failed, so the retry is free.
+	let failed = $state(false)
+	$effect(() => {
+		void src
+		failed = false
+	})
+
 	// On first display of an uncached-but-remote cover, cache it to disk (idempotent, soft-fail).
 	$effect(() => {
 		if (!cachePath && release.artwork_url) {
@@ -50,8 +62,10 @@
 	})
 </script>
 
-{#if src}
-	<img {src} {alt} class={className} loading={eager ? 'eager' : 'lazy'} />
+{#if src && !failed}
+	<img {src} {alt} class={className} loading={eager ? 'eager' : 'lazy'} onerror={() => (failed = true)} />
 {:else if fallback}
 	{@render fallback()}
+{:else}
+	<ArtworkPlaceholder class={className} />
 {/if}

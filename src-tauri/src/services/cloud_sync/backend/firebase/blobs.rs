@@ -49,6 +49,25 @@ fn gunzip(data: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
+/// Overall bound for one blob upload, scaled to its size (assume ≥ 32 KiB/s sustained,
+/// floor 120s — an 8 MiB blob gets ~4.5 min). The shared client deliberately has no
+/// total timeout (a large blob on a slow link must be allowed to finish; its
+/// `read_timeout` kills stalls), so this is the explicit ceiling for the send path,
+/// which an inactivity timeout can't cover.
+fn transfer_timeout(bytes: usize) -> std::time::Duration {
+    std::time::Duration::from_secs(120.max(30 + (bytes / (32 * 1024)) as u64))
+}
+
+/// Overall bound for one blob download (size unknown up front; stalls are already
+/// killed by the client's `read_timeout`).
+const DOWNLOAD_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(600);
+
+/// The blob's basename (e.g. `discovery_releases-ab12….jsonl.gz`) for logging — the
+/// full key embeds the uid, which doesn't belong in logs.
+fn basename(key: &str) -> &str {
+    key.rsplit('/').next().unwrap_or(key)
+}
+
 #[async_trait]
 impl BlobStore for FirebaseBlobs {
     async fn upload(
@@ -59,19 +78,27 @@ impl BlobStore for FirebaseBlobs {
         _content_type: &str,
     ) -> Result<()> {
         let compressed = gzip(&data)?;
+        log::info!(
+            "cloud_sync: uploading blob {} ({:.1} KiB gz / {:.1} KiB raw)",
+            basename(key),
+            compressed.len() as f64 / 1024.0,
+            data.len() as f64 / 1024.0
+        );
         let url = format!(
             "{}?name={}",
             self.inner.storage_base(),
             rest::percent_encode(key)
         );
-        let resp = self
+        let deadline = transfer_timeout(compressed.len());
+        let request = self
             .inner
             .authed(reqwest::Method::POST, &url, s)
             .await
             .header(reqwest::header::CONTENT_TYPE, "application/gzip")
-            .body(compressed)
-            .send()
+            .body(compressed);
+        let resp = tokio::time::timeout(deadline, request.send())
             .await
+            .map_err(|_| CrateError::CloudSyncNetwork("blob upload timed out".into()))?
             .map_err(|e| rest::send_error("blob upload request", e))?;
         if !resp.status().is_success() {
             return Err(rest::http_error("blob upload", resp).await);
@@ -85,23 +112,29 @@ impl BlobStore for FirebaseBlobs {
             self.inner.storage_base(),
             rest::percent_encode(key)
         );
-        let resp = self
-            .inner
-            .authed(reqwest::Method::GET, &url, s)
-            .await
-            .send()
-            .await
-            .map_err(|e| rest::send_error("blob download request", e))?;
-        if resp.status() == StatusCode::NOT_FOUND {
-            return Err(CrateError::CloudSyncBlobNotFound(key.to_string()));
-        }
-        if !resp.status().is_success() {
-            return Err(rest::http_error("blob download", resp).await);
-        }
-        let compressed = resp
-            .bytes()
-            .await
-            .map_err(|e| CrateError::CloudSync(format!("blob download body: {e}")))?;
+        let request = self.inner.authed(reqwest::Method::GET, &url, s).await;
+        let compressed = tokio::time::timeout(DOWNLOAD_TIMEOUT, async {
+            let resp = request
+                .send()
+                .await
+                .map_err(|e| rest::send_error("blob download request", e))?;
+            if resp.status() == StatusCode::NOT_FOUND {
+                return Err(CrateError::CloudSyncBlobNotFound(key.to_string()));
+            }
+            if !resp.status().is_success() {
+                return Err(rest::http_error("blob download", resp).await);
+            }
+            resp.bytes()
+                .await
+                .map_err(|e| CrateError::CloudSyncNetwork(format!("blob download body: {e}")))
+        })
+        .await
+        .map_err(|_| CrateError::CloudSyncNetwork("blob download timed out".into()))??;
+        log::info!(
+            "cloud_sync: downloaded blob {} ({:.1} KiB gz)",
+            basename(key),
+            compressed.len() as f64 / 1024.0
+        );
         Ok(Bytes::from(gunzip(&compressed)?))
     }
 

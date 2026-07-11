@@ -207,6 +207,19 @@
 			"error": "同步错误",
 			"signedOut": "未登录"
 		},
+		"errors": {
+			"network": "无法连接到同步服务 — 将重试",
+			"auth": "您的会话已过期 — 请退出并重新登录",
+			"permission": "同步服务拒绝了此设备 (权限被拒)",
+			"quota": "同步受到限制或配额已用尽 — 将重试",
+			"toolarge": "您的库太大，无法上传",
+			"conflict": "另一个设备正在同步 — 将重试",
+			"server": "同步服务出现问题 — 将重试",
+			"merge": "无法应用此设备上的同步更改"
+		},
+		"diagnostics": {
+			"copy": "复制同步诊断信息"
+		},
 		"account": {
 			"title": "账户",
 			"syncNow": "立即同步",
@@ -341,6 +354,7 @@
 		"downloadFailed": "无法下载以供离线使用",
 		"fetchError": "无法从此URL获取元数据",
 		"unsupportedUrl": "不支持此URL",
+		"shareNoUrl": "在共享文本中未找到链接",
 		"tracks": "曲目",
 		"trackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}",
 		"openInBrowser": "在浏览器中打开",

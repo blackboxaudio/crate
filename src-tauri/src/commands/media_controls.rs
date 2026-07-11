@@ -37,6 +37,7 @@ pub async fn update_now_playing(
 #[tauri::command]
 pub async fn update_playback_state(
     is_playing: bool,
+    position_ms: Option<u64>,
     media_controls: State<'_, MediaControlsService>,
 ) -> Result<()> {
     let status = if is_playing {
@@ -44,7 +45,7 @@ pub async fn update_playback_state(
     } else {
         PlaybackStatus::Paused
     };
-    media_controls.set_playback(status, None);
+    media_controls.set_playback(status, position_ms.map(Duration::from_millis));
 
     Ok(())
 }

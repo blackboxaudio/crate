@@ -161,7 +161,20 @@ pub async fn pull_and_merge(
         // BucketEntry.object_key is relative; prepend the per-user vault prefix.
         let key = format!("users/{}/vault/{}", session.uid, entry.object_key);
         let bytes = blobs.download(session, &key).await?;
-        let parsed = rows::parse_bucket(&bucket, &bytes)?;
+        // Attribute local parse/apply failures to the bucket they happened in, so a bad
+        // row surfaces as "merge error (discovery_tracks): …" instead of a bare SQL
+        // error. Transport/auth errors keep their classification (transience matters).
+        let attribute = |e: CrateError| match e {
+            e @ (CrateError::CloudSyncNetwork(_)
+            | CrateError::CloudSyncHttp { .. }
+            | CrateError::CloudSyncAuth(_)
+            | CrateError::LockPoisoned) => e,
+            other => CrateError::CloudSyncMerge {
+                bucket: name.clone(),
+                message: other.to_string(),
+            },
+        };
+        let parsed = rows::parse_bucket(&bucket, &bytes).map_err(attribute)?;
 
         // Merge big buckets in chunks, releasing the connection mutex between batches: a
         // whole-bucket transaction over thousands of rows (an initial restore of a large
@@ -179,14 +192,14 @@ pub async fn pull_and_merge(
             for chunk in parsed.chunks(MERGE_CHUNK_ROWS) {
                 {
                     let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-                    overrides.extend(merge_bucket(&guard, &bucket, chunk)?);
+                    overrides.extend(merge_bucket(&guard, &bucket, chunk).map_err(attribute)?);
                 }
                 // Give queued user commands a chance at the mutex before the next batch.
                 tokio::task::yield_now().await;
             }
         } else {
             let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-            overrides.extend(merge_bucket(&guard, &bucket, &parsed)?);
+            overrides.extend(merge_bucket(&guard, &bucket, &parsed).map_err(attribute)?);
         }
         merged_buckets.push(name);
     }

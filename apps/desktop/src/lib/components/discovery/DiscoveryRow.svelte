@@ -355,7 +355,9 @@
 								: undefined}
 							onmouseenter={canPlay
 								? () => {
-										discoveryApi.fetchPreviewStream(release.id, track.position).catch(() => {})
+										// Speculative warm-up: background priority so hovering rows
+										// never competes with the track actually being played.
+										discoveryApi.fetchPreviewStream(release.id, track.position, true).catch(() => {})
 									}
 								: undefined}
 							oncontextmenu={(e) => {

@@ -11,9 +11,8 @@ impl DiscoveryService {
         title: Option<&str>,
         parent_url: Option<&str>,
     ) -> Result<Vec<DiscoveryRelease>> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-
-        let mut matched_ids: Vec<String> = Vec::new();
+        let matched_ids = self.db.read(|conn| {
+            let mut matched_ids: Vec<String> = Vec::new();
 
         // Check 0: Exact URL match
         if let Some(u) = url {
@@ -57,11 +56,11 @@ impl DiscoveryService {
             matched_ids.extend(ids);
         }
 
-        // Deduplicate IDs
-        matched_ids.sort();
-        matched_ids.dedup();
-
-        drop(conn);
+            // Deduplicate IDs
+            matched_ids.sort();
+            matched_ids.dedup();
+            Ok(matched_ids)
+        })?;
 
         // Fetch full release objects
         matched_ids.iter().map(|id| self.get_release(id)).collect()
@@ -289,37 +288,39 @@ impl DiscoveryService {
     }
 
     /// Get the stored `video_id` for a specific track by release ID and position.
+    /// Preview fast path — runs on a pooled reader.
     pub fn get_video_id_for_track(
         &self,
         release_id: &str,
         track_position: i32,
     ) -> Result<Option<String>> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        self.db.read(|conn| {
+            let result = conn.query_row(
+                "SELECT video_id FROM discovery_tracks WHERE release_id = ?1 AND position = ?2",
+                rusqlite::params![release_id, track_position],
+                |row| row.get::<_, Option<String>>(0),
+            );
 
-        let result = conn.query_row(
-            "SELECT video_id FROM discovery_tracks WHERE release_id = ?1 AND position = ?2",
-            rusqlite::params![release_id, track_position],
-            |row| row.get::<_, Option<String>>(0),
-        );
-
-        match result {
-            Ok(video_id) => Ok(video_id),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(CrateError::Database(e)),
-        }
+            match result {
+                Ok(video_id) => Ok(video_id),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(CrateError::Database(e)),
+            }
+        })
     }
 
     /// Get all stored `(position, video_id)` pairs for a release, ordered by position.
     pub fn get_all_video_ids_for_release(&self, release_id: &str) -> Result<Vec<(i32, String)>> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        let mut stmt = conn.prepare(
-            "SELECT position, video_id FROM discovery_tracks
-             WHERE release_id = ?1 AND video_id IS NOT NULL ORDER BY position",
-        )?;
-        let rows = stmt
-            .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-        Ok(rows)
+        self.db.read(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT position, video_id FROM discovery_tracks
+                 WHERE release_id = ?1 AND video_id IS NOT NULL ORDER BY position",
+            )?;
+            let rows = stmt
+                .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+                .collect::<std::result::Result<Vec<_>, _>>()?;
+            Ok(rows)
+        })
     }
 
     /// Backfill NULL `video_id` values from fetched metadata, matching by position.

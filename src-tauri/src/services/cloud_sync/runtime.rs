@@ -22,6 +22,7 @@ use super::backend::CloudBackend;
 use super::config::CloudConfig;
 use super::pipeline::merge::OverrideEvent;
 use super::pipeline::{gc, pull, push};
+use super::synclog::SyncLog;
 
 /// Coarse sync state surfaced to the UI (Phase 4) + status indicator.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -52,6 +53,72 @@ fn phase_for_error(e: &CrateError) -> SyncPhase {
     }
 }
 
+/// A coarse category for the last sync failure, so the UI can show a meaningful,
+/// actionable message instead of a generic "Sync error" (the sanitized detail rides
+/// along in `last_error`).
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum SyncErrorKind {
+    /// Transport-level connectivity failure (connect/timeout/DNS).
+    Network,
+    /// The session is invalid — the user needs to sign in again.
+    Auth,
+    /// The backend refused the request (security rules / App Check).
+    Permission,
+    /// Rate-limited or out of quota.
+    Quota,
+    /// The server rejected an upload as too large.
+    TooLarge,
+    /// Manifest CAS retries exhausted — another device kept winning the race.
+    Conflict,
+    /// The backend returned a server error.
+    Server,
+    /// A pulled bucket failed to apply to the local database.
+    Merge,
+    Unknown,
+}
+
+impl SyncErrorKind {
+    fn as_str(self) -> &'static str {
+        match self {
+            SyncErrorKind::Network => "network",
+            SyncErrorKind::Auth => "auth",
+            SyncErrorKind::Permission => "permission",
+            SyncErrorKind::Quota => "quota",
+            SyncErrorKind::TooLarge => "toolarge",
+            SyncErrorKind::Conflict => "conflict",
+            SyncErrorKind::Server => "server",
+            SyncErrorKind::Merge => "merge",
+            SyncErrorKind::Unknown => "unknown",
+        }
+    }
+}
+
+/// True when an op failed because the backend rejected the access token outright —
+/// worth one silent session refresh + retry before surfacing an auth error.
+fn is_unauthorized(r: &Result<()>) -> bool {
+    matches!(r, Err(CrateError::CloudSyncHttp { status: 401, .. }))
+}
+
+fn classify_error(e: &CrateError) -> SyncErrorKind {
+    match e {
+        CrateError::CloudSyncNetwork(_) => SyncErrorKind::Network,
+        CrateError::CloudSyncAuth(_) => SyncErrorKind::Auth,
+        CrateError::CloudSyncHttp { status, code, .. } => match status {
+            401 => SyncErrorKind::Auth,
+            403 => SyncErrorKind::Permission,
+            413 => SyncErrorKind::TooLarge,
+            429 => SyncErrorKind::Quota,
+            _ if *status >= 500 => SyncErrorKind::Server,
+            _ if code.contains("QUOTA") => SyncErrorKind::Quota,
+            _ => SyncErrorKind::Unknown,
+        },
+        CrateError::CloudSyncConflict => SyncErrorKind::Conflict,
+        CrateError::CloudSyncMerge { .. } | CrateError::Database(_) => SyncErrorKind::Merge,
+        _ => SyncErrorKind::Unknown,
+    }
+}
+
 /// First-sign-in onboarding hint, surfaced ONLY on the sign-in response (never persisted
 /// or polled), so it fires exactly once for the UI that initiated the sign-in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -74,6 +141,8 @@ pub struct SyncStatus {
     pub device_id: String,
     pub device_name: String,
     pub last_error: Option<String>,
+    /// Category of `last_error`, when the last operation failed.
+    pub last_error_kind: Option<SyncErrorKind>,
     /// RFC 3339 timestamp of the last successful push, if any.
     pub last_synced_at: Option<String>,
     /// Onboarding hint — set ONLY on the [`CloudSyncState::sign_in`] response, always
@@ -110,6 +179,8 @@ pub struct CloudSyncState {
     app_handle: AppHandle,
     session: RwLock<Option<AuthSession>>,
     status: RwLock<SyncStatus>,
+    /// Persistent rotating log of sync outcomes (see [`SyncLog`]).
+    sync_log: SyncLog,
     /// Serializes sync operations (the poll loop's pull/push plus a manual "Sync now")
     /// so they never overlap or fight over [`SyncStatus`]. Held across the whole op.
     sync_lock: tokio::sync::Mutex<()>,
@@ -124,6 +195,7 @@ pub struct CloudSyncState {
 }
 
 impl CloudSyncState {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         backend: Option<Arc<dyn CloudBackend>>,
         config: Option<CloudConfig>,
@@ -132,6 +204,7 @@ impl CloudSyncState {
         device_name: String,
         app_version: String,
         app_handle: AppHandle,
+        app_data_dir: &std::path::Path,
     ) -> Self {
         let phase = if backend.is_some() {
             SyncPhase::SignedOut
@@ -146,6 +219,7 @@ impl CloudSyncState {
             device_id: device_id.clone(),
             device_name: device_name.clone(),
             last_error: None,
+            last_error_kind: None,
             last_synced_at: None,
             onboarding: None,
         };
@@ -159,6 +233,7 @@ impl CloudSyncState {
             app_handle,
             session: RwLock::new(None),
             status: RwLock::new(status),
+            sync_log: SyncLog::new(app_data_dir),
             sync_lock: tokio::sync::Mutex::new(()),
             override_buffer: RwLock::new(VecDeque::new()),
             #[cfg(feature = "mobile")]
@@ -184,6 +259,25 @@ impl CloudSyncState {
     /// The last ~20 override notices (oldest first), kept in memory for diagnostics.
     pub async fn recent_overrides(&self) -> Vec<OverrideNotice> {
         self.override_buffer.read().await.iter().cloned().collect()
+    }
+
+    /// Human-readable diagnostics for the "Copy sync diagnostics" affordance: a status
+    /// header plus the tail of the persistent sync log. Everything in here is already
+    /// sanitized at the error-construction layer (no URLs / API keys).
+    pub async fn diagnostics(&self) -> String {
+        let st = self.status.read().await.clone();
+        format!(
+            "Crate sync diagnostics\nversion: {}\nplatform: {}\ndevice: {} ({})\nphase: {:?}\nlast_error: {}\nlast_error_kind: {}\nlast_synced_at: {}\n--- sync.log (tail) ---\n{}",
+            self.app_version,
+            std::env::consts::OS,
+            st.device_name,
+            st.device_id,
+            st.phase,
+            st.last_error.as_deref().unwrap_or("-"),
+            st.last_error_kind.map(|k| k.as_str()).unwrap_or("-"),
+            st.last_synced_at.as_deref().unwrap_or("-"),
+            self.sync_log.tail(64 * 1024),
+        )
     }
 
     /// Restore a persisted session at startup (no-op if signed out / unconfigured).
@@ -213,6 +307,7 @@ impl CloudSyncState {
                         st.display_name = display_name;
                         st.photo_url = photo_url;
                         st.last_error = Some(e.to_string());
+                        st.last_error_kind = Some(classify_error(&e));
                     }
                 }
             }
@@ -352,6 +447,7 @@ impl CloudSyncState {
             st.display_name = session.display_name.clone();
             st.photo_url = session.photo_url.clone();
             st.last_error = None;
+            st.last_error_kind = None;
         }
 
         // Onboarding hint (return-only): does this account already have a vault?
@@ -393,6 +489,7 @@ impl CloudSyncState {
         st.display_name = None;
         st.photo_url = None;
         st.last_error = None;
+        st.last_error_kind = None;
         Ok(())
     }
 
@@ -403,10 +500,24 @@ impl CloudSyncState {
     pub async fn run_push(&self) -> Result<()> {
         let backend = self.require_backend()?;
         let _sync = self.sync_lock.lock().await;
-        let result = self.do_push(&backend).await;
-        if let Err(e) = &result {
-            self.set_phase(phase_for_error(e), Some(e.to_string()))
-                .await;
+        let started = std::time::Instant::now();
+        let mut result = self.do_push(&backend).await;
+        if is_unauthorized(&result) {
+            // The token was rejected even though `ensure_fresh` considered it valid
+            // (clock skew / server-side revocation). Drop the cached session so the
+            // retry re-mints from the stored refresh token; a second 401 is a real
+            // auth failure and surfaces as such.
+            self.sync_log
+                .append("push got HTTP 401 — refreshing session, retrying once");
+            *self.session.write().await = None;
+            result = self.do_push(&backend).await;
+        }
+        match &result {
+            Ok(()) => self.sync_log.append(&format!(
+                "push ok in {:.1}s",
+                started.elapsed().as_secs_f32()
+            )),
+            Err(e) => self.set_error_status("push", e).await,
         }
         result
     }
@@ -425,6 +536,15 @@ impl CloudSyncState {
 
         self.set_phase(SyncPhase::Syncing, None).await;
         let outcome = push::push(self.conn.clone(), backend, &session, &self.device_id).await?;
+        if !outcome.uploaded.is_empty() {
+            let summary: Vec<String> = outcome
+                .uploaded
+                .iter()
+                .map(|(name, bytes)| format!("{name} ({:.1} KiB raw)", *bytes as f64 / 1024.0))
+                .collect();
+            self.sync_log
+                .append(&format!("push uploaded: {}", summary.join(", ")));
+        }
         let record = self.device_record().await;
         let _ = backend.devices().upsert(&session, &record).await;
         self.emit_overrides(backend, &session, outcome.overrides)
@@ -449,13 +569,16 @@ impl CloudSyncState {
     pub async fn run_pull(&self) -> Result<()> {
         let backend = self.require_backend()?;
         let _sync = self.sync_lock.lock().await;
-        let result = self.do_pull(&backend).await;
+        let mut result = self.do_pull(&backend).await;
+        if is_unauthorized(&result) {
+            self.sync_log
+                .append("pull got HTTP 401 — refreshing session, retrying once");
+            *self.session.write().await = None;
+            result = self.do_pull(&backend).await;
+        }
         match &result {
             Ok(()) => self.clear_offline_phase().await,
-            Err(e) => {
-                self.set_phase(phase_for_error(e), Some(e.to_string()))
-                    .await
-            }
+            Err(e) => self.set_error_status("pull", e).await,
         }
         result
     }
@@ -485,6 +608,10 @@ impl CloudSyncState {
         }
         let outcome = pull::pull(self.conn.clone(), backend, &session, &self.device_id).await?;
         let merged = outcome.merged;
+        if merged {
+            self.sync_log
+                .append(&format!("pull merged: {}", outcome.buckets.join(", ")));
+        }
         self.emit_overrides(backend, &session, outcome.overrides)
             .await;
         // Tell the UI which stores to reload so a peer's change shows without a restart.
@@ -675,10 +802,32 @@ impl CloudSyncState {
         }
     }
 
+    /// Record a failed sync op: phase (Offline vs Error), the sanitized error text, its
+    /// category for the UI, and a sync-log line for later diagnosis.
+    async fn set_error_status(&self, op: &str, e: &CrateError) {
+        let phase = phase_for_error(e);
+        let kind = classify_error(e);
+        self.sync_log.append(&format!(
+            "{op} failed kind={} phase={:?}: {e}",
+            kind.as_str(),
+            phase
+        ));
+        if e.is_transient() {
+            log::debug!("cloud_sync: {op} failed (transient): {e}");
+        } else {
+            log::warn!("cloud_sync: {op} failed: {e}");
+        }
+        let mut st = self.status.write().await;
+        st.phase = phase;
+        st.last_error = Some(e.to_string());
+        st.last_error_kind = Some(kind);
+    }
+
     async fn mark_synced(&self) {
         let mut st = self.status.write().await;
         st.phase = SyncPhase::Idle;
         st.last_error = None;
+        st.last_error_kind = None;
         st.last_synced_at = Some(chrono::Utc::now().to_rfc3339());
     }
 
@@ -690,6 +839,7 @@ impl CloudSyncState {
         if st.phase == SyncPhase::Offline {
             st.phase = SyncPhase::Idle;
             st.last_error = None;
+            st.last_error_kind = None;
         }
     }
 

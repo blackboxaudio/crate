@@ -207,6 +207,19 @@
 			"error": "Erreur de synchronisation",
 			"signedOut": "Non connecté"
 		},
+		"errors": {
+			"network": "Impossible de joindre le service de synchronisation — nouvelle tentative",
+			"auth": "Votre session a expiré — déconnectez-vous et reconnectez-vous",
+			"permission": "Le service de synchronisation a refusé cet appareil (permission refusée)",
+			"quota": "La synchronisation est limitée ou le quota est dépassé — nouvelle tentative",
+			"toolarge": "Votre bibliothèque est trop volumineuse pour être chargée",
+			"conflict": "Un autre appareil se synchronise actuellement — nouvelle tentative",
+			"server": "Le service de synchronisation a des problèmes — nouvelle tentative",
+			"merge": "Impossible d'appliquer les modifications synchronisées sur cet appareil"
+		},
+		"diagnostics": {
+			"copy": "Copier les diagnostics de synchronisation"
+		},
 		"account": {
 			"title": "Compte",
 			"syncNow": "Synchroniser maintenant",
@@ -341,6 +354,7 @@
 		"downloadFailed": "Impossible de télécharger hors ligne",
 		"fetchError": "Impossible de récupérer les métadonnées à partir de cette URL",
 		"unsupportedUrl": "Cette URL n'est pas supportée",
+		"shareNoUrl": "Aucun lien trouvé dans le texte partagé",
 		"tracks": "Pistes",
 		"trackCount": "{count, plural, =1 {1 piste} other {{count} pistes}}",
 		"openInBrowser": "Ouvrir dans le navigateur",

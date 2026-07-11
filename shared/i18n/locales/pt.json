@@ -207,6 +207,19 @@
 			"error": "Erro de sincronização",
 			"signedOut": "Não conectado"
 		},
+		"errors": {
+			"network": "Não é possível acessar o serviço de sincronização — será repetido",
+			"auth": "Sua sessão expirou — faça logout e login novamente",
+			"permission": "O serviço de sincronização recusou este dispositivo (permissão negada)",
+			"quota": "A sincronização é limitada ou a cota foi excedida — será repetido",
+			"toolarge": "Sua biblioteca é muito grande para ser enviada",
+			"conflict": "Outro dispositivo está sincronizando agora — será repetido",
+			"server": "O serviço de sincronização está com problemas — será repetido",
+			"merge": "Não foi possível aplicar as alterações sincronizadas neste dispositivo"
+		},
+		"diagnostics": {
+			"copy": "Copiar diagnóstico de sincronização"
+		},
 		"account": {
 			"title": "Conta",
 			"syncNow": "Sincronizar agora",
@@ -341,6 +354,7 @@
 		"downloadFailed": "Não foi possível baixar para offline",
 		"fetchError": "Não foi possível obter metadados desta URL",
 		"unsupportedUrl": "Esta URL não é suportada",
+		"shareNoUrl": "Nenhum link encontrado no texto compartilhado",
 		"tracks": "Faixas",
 		"trackCount": "{count, plural, =1 {1 faixa} other {{count} faixas}}",
 		"openInBrowser": "Abrir no navegador",

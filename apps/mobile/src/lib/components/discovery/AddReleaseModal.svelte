@@ -16,7 +16,7 @@
 	import { formatDurationCompact } from '$shared/utils/format'
 	import { listen } from '@tauri-apps/api/event'
 	import { onMount, tick } from 'svelte'
-	import { mobileUIStore, addReleaseOpen } from '$lib/stores/mobileUI'
+	import { mobileUIStore, addReleaseOpen, addReleasePrefillUrl } from '$lib/stores/mobileUI'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
@@ -34,6 +34,13 @@
 	let fetchError = $state('')
 	let fetchedData = $state<FetchedMetadata | null>(null)
 	let artworkPreview = $state('')
+	// Hide the preview instead of showing a broken image when the fetched URL is dead;
+	// reset whenever the preview target changes.
+	let artworkPreviewFailed = $state(false)
+	$effect(() => {
+		void artworkPreview
+		artworkPreviewFailed = false
+	})
 	let tracks = $state<DiscoveryTrackCreate[]>([])
 	let fetchDebounceTimer: ReturnType<typeof setTimeout> | null = null
 	let lastFetchedUrl = ''
@@ -247,6 +254,22 @@
 		if ($addReleaseOpen) resetForm()
 	})
 
+	// Prefill from a shared URL (Android share intent, #62). MUST come after the reset-on-open effect —
+	// effects run in creation order, so the reset wipes the blank form first and the prefill then lands on
+	// top of it. Reacting to `$addReleasePrefillUrl` (not just open) also handles a second share arriving
+	// while the sheet is already open: it overwrites the form and refetches. Skips the typing debounce —
+	// a shared URL is complete by definition.
+	$effect(() => {
+		if (!$addReleaseOpen || $addReleasePrefillUrl === null) return
+		const shared = mobileUIStore.consumeAddReleasePrefill()
+		if (!shared) return
+		resetForm()
+		url = shared
+		sourceType = detectSourceType(shared)
+		unsupportedUrl = shared.startsWith('http') && !isSupportedDiscoveryUrl(shared)
+		if (!unsupportedUrl && $autoFetchMetadata) void autoFetch(shared)
+	})
+
 	// Focus the URL field as the sheet mounts. `preventScroll` is the crux: the panel starts off-screen and
 	// slides up, so a plain focus makes iOS scroll the document to "reveal" the field — dragging the settled
 	// form off the top. `preventScroll` suppresses exactly that reveal-scroll while still raising the keyboard.
@@ -376,9 +399,14 @@
 					{/if}
 
 					<!-- Artwork preview -->
-					{#if artworkPreview}
+					{#if artworkPreview && !artworkPreviewFailed}
 						<div class="flex justify-center">
-							<img src={artworkPreview} alt="" class="h-36 w-36 rounded-lg object-cover shadow-md" />
+							<img
+								src={artworkPreview}
+								alt=""
+								class="h-36 w-36 rounded-lg object-cover shadow-md"
+								onerror={() => (artworkPreviewFailed = true)}
+							/>
 						</div>
 					{/if}
 

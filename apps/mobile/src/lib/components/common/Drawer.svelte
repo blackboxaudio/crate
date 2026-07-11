@@ -5,6 +5,7 @@
 	import { translate } from '$shared/i18n'
 	import { swipe, type SwipeOptions } from '$lib/actions/swipe'
 	import { swipeVertical, type SwipeVerticalOptions } from '$lib/actions/swipeVertical'
+	import { registerBackLayer } from '$lib/androidBack'
 
 	// The single baseline behind every mobile drawer-like surface (nav drawers, the release-detail push,
 	// the bottom-sheet modal, the expanded player). It owns the one shared motion "feel": slide-in on open,
@@ -200,6 +201,13 @@
 		}
 		window.addEventListener('keydown', onKey)
 		return () => window.removeEventListener('keydown', onKey)
+	})
+
+	// Android Back closes the topmost open surface (#62). Registered while at rest open — the
+	// effect's cleanup unregisters the moment a close starts (`closing` flips), so a rapid second
+	// Back falls through to the next layer instead of re-closing this one.
+	$effect(() => {
+		if (visible && !closing) return registerBackLayer(requestClose)
 	})
 
 	// Begin the slide-out (animation only — the parent already knows, e.g. it set `open=false`).

@@ -14,6 +14,7 @@ use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
 
+use crate::db::Db;
 use crate::error::{CrateError, Result};
 use crate::models::{
     DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate,
@@ -31,6 +32,11 @@ pub struct CachedStream {
 }
 
 pub struct DiscoveryService {
+    /// Read/write-split handle: hot read paths go through `db.read` (pooled snapshot
+    /// readers under WAL), writes through the shared writer.
+    db: Db,
+    /// The legacy writer Arc (`== db.writer()`), kept so write paths and not-yet-
+    /// migrated reads stay untouched.
     conn: Arc<Mutex<Connection>>,
     artwork_service: ArtworkService,
     app_data_dir: PathBuf,
@@ -47,7 +53,14 @@ pub struct DiscoveryService {
 }
 
 impl DiscoveryService {
+    /// Construct from the legacy writer Arc alone (no reader pool — reads fall back to
+    /// the writer mutex). Kept so background construction sites (follow watch, spawned
+    /// enrichment tasks) compile unchanged; prefer [`Self::with_db`].
     pub fn new(conn: Arc<Mutex<Connection>>, app_data_dir: PathBuf) -> Self {
+        Self::with_db(Db::from_writer(conn), app_data_dir)
+    }
+
+    pub fn with_db(db: Db, app_data_dir: PathBuf) -> Self {
         let artwork_service = ArtworkService::new(app_data_dir.clone());
 
         let streams_dir = app_data_dir.join("discovery").join("streams");
@@ -66,7 +79,8 @@ impl DiscoveryService {
             .unwrap_or_default();
 
         Self {
-            conn,
+            conn: db.writer(),
+            db,
             artwork_service,
             app_data_dir,
             artwork_http,
@@ -84,15 +98,16 @@ impl DiscoveryService {
     /// Shared by the audio and artwork LRU sweeps so their caps are user-configurable.
     fn cache_limit_bytes(&self, key: &str, default_mb: i64) -> i64 {
         let mb = self
-            .conn
-            .lock()
-            .ok()
-            .and_then(|c| {
-                c.query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
-                    row.get::<_, String>(0)
-                })
-                .ok()
+            .db
+            .read(|conn| {
+                Ok(conn
+                    .query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
+                        row.get::<_, String>(0)
+                    })
+                    .ok())
             })
+            .ok()
+            .flatten()
             .and_then(|v| v.parse::<i64>().ok())
             .filter(|mb| *mb > 0)
             .unwrap_or(default_mb);
@@ -102,6 +117,12 @@ impl DiscoveryService {
     /// Get a clone of the database connection Arc for use in background tasks.
     pub fn connection(&self) -> Arc<Mutex<Connection>> {
         self.conn.clone()
+    }
+
+    /// The read/write-split handle, for spawning sibling services in background tasks
+    /// without losing the reader pool.
+    pub fn db(&self) -> Db {
+        self.db.clone()
     }
 
     pub fn assign_tags(&self, release_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {

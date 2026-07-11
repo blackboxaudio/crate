@@ -164,11 +164,24 @@
 		if (!ok) return
 		await followStore.unfollow(source.id)
 	}
+
+	// Avatar URLs that failed to load — fall back to the type icon instead of WebKit's
+	// broken-image placeholder.
+	let failedAvatarUrls = $state<ReadonlySet<string>>(new Set())
+	function markAvatarFailed(url: string) {
+		failedAvatarUrls = new Set([...failedAvatarUrls, url])
+	}
 </script>
 
 {#snippet avatar(source: FollowedSource)}
-	{#if source.artworkUrl}
-		<img src={source.artworkUrl} alt="" class="h-11 w-11 flex-shrink-0 rounded object-cover" loading="lazy" />
+	{#if source.artworkUrl && !failedAvatarUrls.has(source.artworkUrl)}
+		<img
+			src={source.artworkUrl}
+			alt=""
+			class="h-11 w-11 flex-shrink-0 rounded object-cover"
+			loading="lazy"
+			onerror={() => markAvatarFailed(source.artworkUrl!)}
+		/>
 	{:else}
 		<div class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded bg-surface-2 text-text-tertiary">
 			{#if source.followType === 'label'}

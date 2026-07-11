@@ -22,6 +22,8 @@ pub mod native_preview;
 pub mod playback;
 pub mod playlist;
 pub mod settings;
+// Android share-intent intake (#62): a JNI drain on Android, an empty list everywhere else.
+pub mod share;
 #[cfg(feature = "desktop")]
 pub mod sync;
 pub mod tag;

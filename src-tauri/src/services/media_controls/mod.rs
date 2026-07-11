@@ -4,12 +4,14 @@
 //! - **desktop** (`feature = "desktop"`): souvlaki — OS Now Playing + hardware media keys.
 //! - **iOS** (`target_os = "ios"`): `AVAudioSession` + `MPNowPlayingInfoCenter` +
 //!   `MPRemoteCommandCenter` (#79).
-//! - **everything else** (Android, flagless host/test builds): a no-op.
+//! - **Android** (`target_os = "android"`): JNI bridge to a Kotlin `MediaSessionCompat` +
+//!   MediaStyle-notification foreground service (#62).
+//! - **everything else** (flagless host/test builds): a no-op.
 //!
 //! Every backend emits the same `media-toggle` / `media-play` / `media-pause` / `media-next` /
-//! `media-previous` (and, on iOS, `media-seek`) Tauri events, so the frontend handler is shared.
-//! Metadata flows in via the `update_now_playing` / `update_playback_state` / `clear_now_playing`
-//! commands (frontend IPC), which call the methods below.
+//! `media-previous` (and, on iOS/Android, `media-seek`) Tauri events, so the frontend handler is
+//! shared. Metadata flows in via the `update_now_playing` / `update_playback_state` /
+//! `clear_now_playing` commands (frontend IPC), which call the methods below.
 
 use std::time::Duration;
 
@@ -17,9 +19,15 @@ use tauri::AppHandle;
 
 // Exactly one backend is selected by `MediaControlsService::new` below; gate each module so only
 // the relevant one (and its native deps) compiles per platform.
+#[cfg(target_os = "android")]
+mod android;
 #[cfg(target_os = "ios")]
 mod ios;
-#[cfg(not(any(all(feature = "desktop", not(target_os = "ios")), target_os = "ios")))]
+#[cfg(not(any(
+    all(feature = "desktop", not(target_os = "ios")),
+    target_os = "ios",
+    target_os = "android"
+)))]
 mod noop;
 #[cfg(all(feature = "desktop", not(target_os = "ios")))]
 mod souvlaki;
@@ -76,10 +84,17 @@ impl MediaControlsService {
     pub fn new(app_handle: &AppHandle) -> Self {
         #[cfg(target_os = "ios")]
         let backend: Box<dyn MediaSession> = Box::new(ios::IosMediaSession::new(app_handle));
+        #[cfg(target_os = "android")]
+        let backend: Box<dyn MediaSession> =
+            Box::new(android::AndroidMediaSession::new(app_handle));
         #[cfg(all(feature = "desktop", not(target_os = "ios")))]
         let backend: Box<dyn MediaSession> =
             Box::new(souvlaki::SouvlakiMediaSession::new(app_handle));
-        #[cfg(not(any(all(feature = "desktop", not(target_os = "ios")), target_os = "ios")))]
+        #[cfg(not(any(
+            all(feature = "desktop", not(target_os = "ios")),
+            target_os = "ios",
+            target_os = "android"
+        )))]
         let backend: Box<dyn MediaSession> = {
             let _ = app_handle;
             Box::new(noop::NoopMediaSession)

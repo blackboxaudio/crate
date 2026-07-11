@@ -11,7 +11,10 @@
 		isSignedIn,
 		cloudDevices,
 		libraryRoots,
+		syncErrorMessageKey,
 	} from '$shared/stores/cloudSync'
+	import { getSyncDiagnostics } from '$shared/api/cloudSync'
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { translate } from '$shared/i18n'
 	import { get } from 'svelte/store'
 	import { formatRelativeDate } from '$shared/utils'
@@ -64,6 +67,18 @@
 	function handleDeleteVault() {
 		cloudSyncStore.deleteCloudVault()
 		deleteVaultOpen = false
+	}
+
+	let diagnosticsCopied = $state(false)
+
+	async function copyDiagnostics() {
+		try {
+			await writeText(await getSyncDiagnostics())
+			diagnosticsCopied = true
+			setTimeout(() => (diagnosticsCopied = false), 2000)
+		} catch {
+			// Best-effort — the log is also on disk.
+		}
 	}
 
 	function formatDeviceLastSeen(lastSeen: { secs_since_epoch: number; nanos_since_epoch: number }): string {
@@ -122,14 +137,32 @@
 			{/if}
 			{#if $syncPhase === 'offline' || $syncPhase === 'error'}
 				{@const isOffline = $syncPhase === 'offline'}
-				<!-- Show a friendly, phase-appropriate message rather than the raw `last_error`:
-				     the backend error embeds a request URL that carries a secret API key. -->
 				<div
 					class="mt-2 rounded-md px-3 py-2 text-sm {isOffline
 						? 'bg-amber-500/10 text-amber-500'
 						: 'bg-red-500/10 text-red-500'}"
 				>
-					{isOffline ? $translate('cloudSync.status.offline') : $translate('cloudSync.status.error')}
+					<div class="flex items-center justify-between gap-2">
+						<span>
+							{isOffline
+								? $translate('cloudSync.status.offline')
+								: $translate(syncErrorMessageKey($syncStatus.last_error_kind))}
+						</span>
+						{#if !isOffline}
+							<button
+								class="flex-shrink-0 rounded px-1.5 py-0.5 text-xs text-text-secondary hover:bg-surface-2"
+								onclick={copyDiagnostics}
+							>
+								{diagnosticsCopied
+									? $translate('settings.diagnostics.copied')
+									: $translate('cloudSync.diagnostics.copy')}
+							</button>
+						{/if}
+					</div>
+					{#if !isOffline && $syncStatus.last_error}
+						<!-- Sanitized at the error-construction layer (no URLs / API keys). -->
+						<p class="mt-1 text-xs break-words opacity-75">{$syncStatus.last_error}</p>
+					{/if}
 				</div>
 			{/if}
 		</section>

@@ -964,6 +964,18 @@ export type CloudSyncPhase = 'disabled' | 'signedout' | 'idle' | 'syncing' | 'of
 /** First-sign-in onboarding hint — only present on the sign-in response. */
 export type CloudSyncOnboarding = 'initial' | 'restore'
 
+/** Category of the last sync failure (mirrors the backend's `SyncErrorKind`). */
+export type CloudSyncErrorKind =
+	| 'network'
+	| 'auth'
+	| 'permission'
+	| 'quota'
+	| 'toolarge'
+	| 'conflict'
+	| 'server'
+	| 'merge'
+	| 'unknown'
+
 export interface CloudSyncStatus {
 	phase: CloudSyncPhase
 	email: string | null
@@ -972,6 +984,7 @@ export interface CloudSyncStatus {
 	device_id: string
 	device_name: string
 	last_error: string | null
+	last_error_kind: CloudSyncErrorKind | null
 	last_synced_at: string | null
 	onboarding: CloudSyncOnboarding | null
 }

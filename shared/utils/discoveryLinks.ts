@@ -22,6 +22,18 @@ export function getReleasePlatformName(sourceType: DiscoverySourceType): string 
 	}
 }
 
+/**
+ * Pull the first http(s) URL out of free-form text. Share sheets rarely hand over a bare URL —
+ * apps typically wrap it in prose ("Check out X by Y: https://…") — so the share-intent intake
+ * extracts before validating. Trailing punctuation that prose tends to glue onto a URL is
+ * trimmed. Returns null when no URL is present.
+ */
+export function extractFirstUrl(text: string): string | null {
+	const match = text.match(/https?:\/\/\S+/i)
+	if (!match) return null
+	return match[0].replace(/[)\]}>.,;:!?'"]+$/, '')
+}
+
 export function isSupportedDiscoveryUrl(input: string): boolean {
 	const lower = input.toLowerCase()
 	return (

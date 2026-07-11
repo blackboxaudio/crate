@@ -207,6 +207,19 @@
 			"error": "Synchronisierungsfehler",
 			"signedOut": "Nicht angemeldet"
 		},
+		"errors": {
+			"network": "Kann den Synchronisierungsdienst nicht erreichen — wird wiederholt",
+			"auth": "Ihre Sitzung ist abgelaufen — melden Sie sich ab und erneut an",
+			"permission": "Der Synchronisierungsdienst hat dieses Gerät abgelehnt (Berechtigung verweigert)",
+			"quota": "Die Synchronisierung ist begrenzt oder das Kontingent ist erschöpft — wird wiederholt",
+			"toolarge": "Ihre Bibliothek ist zu groß zum Hochladen",
+			"conflict": "Ein anderes Gerät wird gerade synchronisiert — wird wiederholt",
+			"server": "Der Synchronisierungsdienst hat Probleme — wird wiederholt",
+			"merge": "Synchronisierte Änderungen konnten auf diesem Gerät nicht angewendet werden"
+		},
+		"diagnostics": {
+			"copy": "Synchronisierungsdiagnose kopieren"
+		},
 		"account": {
 			"title": "Konto",
 			"syncNow": "Jetzt synchronisieren",
@@ -341,6 +354,7 @@
 		"downloadFailed": "Offline-Download fehlgeschlagen",
 		"fetchError": "Metadaten von dieser URL konnten nicht abgerufen werden",
 		"unsupportedUrl": "Diese URL wird nicht unterstützt",
+		"shareNoUrl": "Kein Link im gemeinsam genutzten Text gefunden",
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 Track} other {{count} Tracks}}",
 		"openInBrowser": "Im Browser öffnen",

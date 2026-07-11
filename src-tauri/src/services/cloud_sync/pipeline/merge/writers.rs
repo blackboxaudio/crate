@@ -401,6 +401,39 @@ pub(super) fn delete_junction(tx: &Connection, bucket: &Bucket, cid: &str) -> Re
     Ok(())
 }
 
+/// Whether a live entity row's NOT NULL parent (FK target) exists locally. Mirrors
+/// [`junction_endpoints_exist`] for child ENTITY buckets: a remote row whose parent was
+/// deleted locally (the local tombstone outranked the remote parent row) must be
+/// skipped, not inserted — with FK checks deferred, the violation only surfaces at
+/// COMMIT, aborting the WHOLE bucket and wedging sync in a permanent retry loop.
+/// Convergence: the deleting device's cascade removed these children from its live
+/// rows, so its next push rewrites the remote bucket without them.
+pub(super) fn entity_parent_exists(
+    tx: &Connection,
+    bucket: &Bucket,
+    row: &ParsedRow,
+) -> Result<bool> {
+    let (parent_table, fk_field) = match bucket {
+        Bucket::DiscoveryTracks => ("discovery_releases", "release_id"),
+        Bucket::Cues => ("tracks", "track_id"),
+        Bucket::Tags => ("tag_categories", "category_id"),
+        // `playlists.parent_id` is a nullable SELF-reference resolved by the deferred-FK
+        // single-transaction merge of its own bucket; `tracks.library_root_id` is
+        // nullable ON DELETE SET NULL and never written by the merge UPSERT.
+        _ => return Ok(true),
+    };
+    let Some(parent_id) = row.value.get(fk_field).and_then(|v| v.as_str()) else {
+        // Malformed row: let the typed writer surface a proper deserialize error.
+        return Ok(true);
+    };
+    let exists: bool = tx.query_row(
+        &format!("SELECT EXISTS(SELECT 1 FROM {parent_table} WHERE id=?1)"),
+        [parent_id],
+        |r| r.get(0),
+    )?;
+    Ok(exists)
+}
+
 /// Whether both of a junction row's endpoints exist locally. A junction is only
 /// inserted when this holds, so a concurrent re-add over a cascade-deleted parent
 /// is skipped instead of violating an FK at commit.

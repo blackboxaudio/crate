@@ -14,8 +14,7 @@ import kotlinx.coroutines.withContext
  * passes its app Context + data dir into Rust, which rebuilds the sync dependencies headlessly
  * (see services/cloud_sync/background/android.rs).
  *
- * Returns retry() on any failure so WorkManager backs off and tries again — offline, or (until
- * #144) before the Android Keystore DB-key provider can open the encrypted database.
+ * Returns retry() on any failure so WorkManager backs off and tries again (e.g. offline).
  */
 class CrateSyncWorker(appContext: Context, params: WorkerParameters) :
     CoroutineWorker(appContext, params) {

@@ -62,6 +62,12 @@ interface MobileUIState {
 	selectedReleaseIds: Set<string>
 	/** Whether the add-release sheet is open. The sheet is a placeholder this pass; #56 fills it in. */
 	addReleaseOpen: boolean
+	/**
+	 * One-shot URL to prefill the add-release sheet with (Android share-intent intake, #62). Set by
+	 * `openAddReleaseWithUrl`; the sheet consumes it after its reset-on-open effect. Ephemeral —
+	 * deliberately not persisted, so a share never replays after a restart.
+	 */
+	addReleasePrefillUrl: string | null
 	/** The one release row whose swipe-to-delete action is revealed — opening another closes it. */
 	openRowId: string | null
 	/** Whether the settings drawer is mounted (a full-width right-side overlay). Mirrors `detailReleaseId`
@@ -144,6 +150,7 @@ const defaultState: MobileUIState = {
 	selectMode: false,
 	selectedReleaseIds: new Set(),
 	addReleaseOpen: false,
+	addReleasePrefillUrl: null,
 	openRowId: null,
 	settingsOpen: false,
 	settingsScrollTarget: null,
@@ -423,6 +430,29 @@ function createMobileUIStore() {
 		closeAddRelease() {
 			update((s) => ({ ...s, addReleaseOpen: false }))
 		},
+		/**
+		 * Open the add-release sheet prefilled with a shared URL (Android share intent, #62) in one
+		 * update: the sheet only mounts inside the Discovery tab, and the expanded player would paint
+		 * over it, so both are forced alongside the open.
+		 */
+		openAddReleaseWithUrl(url: string) {
+			update((s) => ({
+				...s,
+				activeTab: 'discovery',
+				playerExpanded: false,
+				addReleaseOpen: true,
+				addReleasePrefillUrl: url,
+			}))
+		},
+		/** Take (and clear) the one-shot prefill URL — called by the sheet once it has applied it. */
+		consumeAddReleasePrefill(): string | null {
+			let url: string | null = null
+			update((s) => {
+				url = s.addReleasePrefillUrl
+				return url === null ? s : { ...s, addReleasePrefillUrl: null }
+			})
+			return url
+		},
 
 		// --- Settings drawer (right-side overlay; mirrors the release detail mount pattern) ------------
 		/** Open the settings drawer, optionally requesting a scroll to a named section (e.g. 'sync').
@@ -646,6 +676,7 @@ export const selectMode = derived(mobileUIStore, ($s) => $s.selectMode)
 export const selectedReleaseIds = derived(mobileUIStore, ($s) => $s.selectedReleaseIds)
 export const selectedReleaseCount = derived(mobileUIStore, ($s) => $s.selectedReleaseIds.size)
 export const addReleaseOpen = derived(mobileUIStore, ($s) => $s.addReleaseOpen)
+export const addReleasePrefillUrl = derived(mobileUIStore, ($s) => $s.addReleasePrefillUrl)
 export const openRowId = derived(mobileUIStore, ($s) => $s.openRowId)
 export const detailPlaylistId = derived(mobileUIStore, ($s) => $s.detailPlaylistId)
 export const playlistDetailCovering = derived(mobileUIStore, ($s) => $s.playlistDetailCovering)

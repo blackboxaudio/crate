@@ -1,6 +1,6 @@
 import { writable, derived, get } from 'svelte/store'
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-import type { CloudSyncStatus, CloudSyncPhase, CloudDeviceRecord, LibraryRoot } from '../types'
+import type { CloudSyncStatus, CloudSyncPhase, CloudSyncErrorKind, CloudDeviceRecord, LibraryRoot } from '../types'
 import * as cloudSyncApi from '../api/cloudSync'
 import { translate } from '../i18n'
 import { toastStore } from './toast'
@@ -65,8 +65,29 @@ const initialStatus: CloudSyncStatus = {
 	device_id: '',
 	device_name: '',
 	last_error: null,
+	last_error_kind: null,
 	last_synced_at: null,
 	onboarding: null,
+}
+
+/**
+ * The i18n key for a sync failure's headline, by error category. Falls back to the
+ * generic `cloudSync.status.error` when the backend didn't classify the failure.
+ */
+export function syncErrorMessageKey(kind: CloudSyncErrorKind | null | undefined): string {
+	switch (kind) {
+		case 'network':
+		case 'auth':
+		case 'permission':
+		case 'quota':
+		case 'toolarge':
+		case 'conflict':
+		case 'server':
+		case 'merge':
+			return `cloudSync.errors.${kind}`
+		default:
+			return 'cloudSync.status.error'
+	}
 }
 
 const initialState: CloudSyncState = {

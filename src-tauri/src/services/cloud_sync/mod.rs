@@ -22,6 +22,7 @@ pub mod hlc;
 pub mod pipeline;
 pub mod resolution;
 pub mod runtime;
+pub mod synclog;
 
 // Opportunistic background sync (iOS BGTaskScheduler / Android WorkManager). Mobile-only —
 // desktop uses the always-on poll loop in `lib.rs` instead. Gated so desktop and featureless

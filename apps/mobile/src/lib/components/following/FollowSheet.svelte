@@ -79,6 +79,18 @@
 	)
 	const platformName = $derived(displayed ? getReleasePlatformName(displayed.source_type) : '')
 
+	// Fall back to the type icon when the avatar URL fails to load; reset when the
+	// avatar target changes (artist ↔ label toggle or a different release).
+	let avatarFailed = $state(false)
+	let lastAvatarUrl: string | null | undefined = null
+	$effect(() => {
+		const url = currentFollow?.artworkUrl
+		if (url !== lastAvatarUrl) {
+			lastAvatarUrl = url
+			avatarFailed = false
+		}
+	})
+
 	let busy = $state(false)
 	async function toggle() {
 		if (busy || !currentUrl || !displayed) return
@@ -104,8 +116,13 @@
 			<div class="flex flex-col gap-4">
 				<!-- Target row: avatar + name + type/platform + follow/unfollow toggle. -->
 				<div class="flex items-center gap-3">
-					{#if currentFollow?.artworkUrl}
-						<img src={currentFollow.artworkUrl} alt="" class="h-12 w-12 flex-shrink-0 rounded object-cover" />
+					{#if currentFollow?.artworkUrl && !avatarFailed}
+						<img
+							src={currentFollow.artworkUrl}
+							alt=""
+							class="h-12 w-12 flex-shrink-0 rounded object-cover"
+							onerror={() => (avatarFailed = true)}
+						/>
 					{:else}
 						<div
 							class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded bg-surface-2 text-text-tertiary"

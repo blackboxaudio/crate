@@ -5,18 +5,17 @@
 //! is no managed `CloudSyncState`, so the entry rebuilds `{conn, config, backend, session}` from
 //! scratch and calls the bare [`super::run_background_sync`] core.
 //!
-//! ## ⚠️ Blocked on #144 (Android Keystore DB-key provider)
-//! [`crate::db::Database::new`] opens the SQLCipher DB using `db::key_provider::for_platform`, which
-//! on Android is `AndroidKeystoreKeyProvider` — currently unimplemented (returns an error, #144). So
-//! [`run_headless`] fails at DB-open until #144 lands and the Worker just retries. Scheduling +
-//! Kotlin wiring are complete so this activates the moment #144 does.
+//! ## Headless JNI context
+//! In a headless Worker, `ndk_context::android_context()` is unset, so [`runBackgroundSync`]
+//! adopts the Worker's `Context` into [`crate::android_context`] before running — that is what
+//! lets the Keystore DB-key provider (#144) open the SQLCipher DB on this path.
+//! ([`ensure_scheduled`]/[`cancel_scheduled`] run on the foreground command path where
+//! `ndk_context` IS populated, so they don't need it.)
 //!
-//! ## Deferred: headless App Check context
-//! In a headless Worker, `ndk_context::android_context()` is unset, so App Check (Play Integrity)
-//! minting during pull/push has no `Context`. The Worker passes its `Context` into [`runBackgroundSync`]
-//! for this reason; threading it into a headless App Check mint path is follow-up work bundled with #144.
-//! ([`ensure_scheduled`]/[`cancel_scheduled`] run on the foreground command path where `ndk_context`
-//! IS populated, so scheduling works today.)
+//! ## Deferred: headless App Check mint
+//! App Check (Play Integrity) minting still reads `ndk_context` directly (`play_integrity.rs`),
+//! so a headless mint has no `Context` until it is routed through `android_context` too —
+//! follow-up work; until then a headless pass relies on a still-valid cached App Check token.
 
 use std::path::PathBuf;
 
@@ -78,9 +77,12 @@ fn call_scheduler(method: &str) -> Result<()> {
 pub extern "system" fn Java_com_bbx_1audio_crateapp_CrateSyncWorker_runBackgroundSync(
     mut env: JNIEnv,
     _class: JClass,
-    _context: JObject,
+    context: JObject,
     files_dir: JString,
 ) -> jboolean {
+    // Adopt the Worker's Context so JNI bridges (Keystore DB key, #144) work headlessly.
+    crate::android_context::adopt_headless(&env, &context);
+
     let path: String = match env.get_string(&files_dir) {
         Ok(s) => s.into(),
         Err(e) => {
@@ -102,7 +104,9 @@ pub extern "system" fn Java_com_bbx_1audio_crateapp_CrateSyncWorker_runBackgroun
 /// `files_dir` must be the SAME directory the app's `.setup()` uses for `crate.db`, or a second
 /// empty DB opens and the pass silently no-ops.
 fn run_headless(files_dir: PathBuf) -> Result<()> {
-    let db = crate::db::Database::new(files_dir.join("crate.db"))?; // blocked on #144 (Keystore key)
+    // Writer-only: this short-lived pass never uses pooled readers, and each reader
+    // open would pay the SQLCipher KDF. Keystore key via adopted Context (#144).
+    let db = crate::db::Database::new_writer_only(files_dir.join("crate.db"))?;
     let conn = db.connection();
 
     let config = crate::services::cloud_sync::config::load_cloud_config(None)?

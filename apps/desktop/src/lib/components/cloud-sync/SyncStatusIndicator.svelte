@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { Tooltip } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { syncPhase, isSyncAvailable, isSignedIn } from '$shared/stores/cloudSync'
+	import { syncPhase, isSyncAvailable, isSignedIn, syncStatus, syncErrorMessageKey } from '$shared/stores/cloudSync'
 	import { translate } from '$shared/i18n'
 
 	type Props = {
@@ -19,7 +19,7 @@
 			case 'offline':
 				return $translate('cloudSync.status.offline')
 			case 'error':
-				return $translate('cloudSync.status.error')
+				return $translate(syncErrorMessageKey($syncStatus.last_error_kind))
 			case 'signedout':
 				return $translate('cloudSync.status.signedOut')
 			default:

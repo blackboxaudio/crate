@@ -1,4 +1,5 @@
 <resources>
-    <string name="app_name">Crate</string>
-    <string name="main_activity_title">Crate</string>
+    <!-- app_name / main_activity_title are provided per channel as Gradle resValues in
+         app/build.gradle.kts (from channel.properties, stamped by scripts/write-android-channel.mjs).
+         Defining them here too would be a duplicate-resource build error. -->
 </resources>

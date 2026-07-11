@@ -207,6 +207,19 @@
 			"error": "Eroare de sincronizare",
 			"signedOut": "Nu sunteți conectat"
 		},
+		"errors": {
+			"network": "Nu se poate ajunge la serviciul de sincronizare — va reîncerca",
+			"auth": "Sesiunea dvs. a expirat — deconectați-vă și conectați-vă din nou",
+			"permission": "Serviciul de sincronizare a refuzat acest dispozitiv (permisiune refuzată)",
+			"quota": "Sincronizarea este limitată sau cota a fost depășită — va reîncerca",
+			"toolarge": "Biblioteca dvs. este prea mare pentru a fi încărcată",
+			"conflict": "Un alt dispozitiv se sincronizează acum — va reîncerca",
+			"server": "Serviciul de sincronizare are probleme — va reîncerca",
+			"merge": "Nu s-au putut aplica modificările sincronizate pe acest dispozitiv"
+		},
+		"diagnostics": {
+			"copy": "Copiați diagnosticul de sincronizare"
+		},
 		"account": {
 			"title": "Cont",
 			"syncNow": "Sincronizați acum",
@@ -340,6 +353,8 @@
 		"removeDownload": "Elimină descărcarea",
 		"downloadFailed": "Descărcarea pentru offline a eșuat",
 		"fetchError": "Nu s-au putut prelua metadatele din acest URL",
+		"unsupportedUrl": "Acest URL nu este suportat",
+		"shareNoUrl": "Nicio legătură găsită în textul partajat",
 		"tracks": "Melodii",
 		"trackCount": "{count, plural, =1 {1 melodie} other {{count} melodii}}",
 		"openInBrowser": "Deschide în Browser",

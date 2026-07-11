@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
-	import { syncStatus, syncPhase, isSyncAvailable, isSignedIn } from '$shared/stores/cloudSync'
+	import { syncStatus, syncPhase, isSyncAvailable, isSignedIn, syncErrorMessageKey } from '$shared/stores/cloudSync'
 	import { mobileUIStore } from '$lib/stores/mobileUI'
 
 	const dotClass = $derived.by(() => {
@@ -27,7 +27,7 @@
 			case 'offline':
 				return $translate('cloudSync.status.offline')
 			case 'error':
-				return $translate('cloudSync.status.error')
+				return $translate(syncErrorMessageKey($syncStatus.last_error_kind))
 			default:
 				return $translate('cloudSync.status.signedOut')
 		}

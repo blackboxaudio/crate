@@ -23,21 +23,22 @@ impl DiscoveryService {
         self.artwork_cache_dir().join(format!("{release_id}.{ext}"))
     }
 
-    /// `(ext, file_size)` if a cover is cached on disk for this release.
+    /// `(ext, file_size)` if a cover is cached on disk for this release. Called per
+    /// visible row while scrolling — runs on a pooled reader.
     pub fn get_cached_artwork_meta(&self, release_id: &str) -> Result<Option<(String, i64)>> {
-        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        self.db.read(|conn| {
+            let result = conn.query_row(
+                "SELECT ext, file_size FROM discovery_artwork_cache WHERE release_id = ?1",
+                [release_id],
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
+            );
 
-        let result = conn.query_row(
-            "SELECT ext, file_size FROM discovery_artwork_cache WHERE release_id = ?1",
-            [release_id],
-            |row| Ok((row.get::<_, String>(0)?, row.get::<_, i64>(1)?)),
-        );
-
-        match result {
-            Ok(meta) => Ok(Some(meta)),
-            Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
-            Err(e) => Err(CrateError::Database(e)),
-        }
+            match result {
+                Ok(meta) => Ok(Some(meta)),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(CrateError::Database(e)),
+            }
+        })
     }
 
     /// Record that a cover was cached to disk (sets `cached_at` + `last_accessed_at` to now).
@@ -72,6 +73,19 @@ impl DiscoveryService {
         Ok(())
     }
 
+    /// Total cached bytes as tracked in the DB (`SUM(file_size)`). Microseconds vs the
+    /// full-directory scan of [`Self::get_artwork_cache_total_size`] — this runs after
+    /// EVERY cover write (i.e. while scrolling an uncached feed), so it must not touch
+    /// the filesystem.
+    fn artwork_cache_tracked_size(&self) -> Result<i64> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        Ok(conn.query_row(
+            "SELECT COALESCE(SUM(file_size), 0) FROM discovery_artwork_cache",
+            [],
+            |r| r.get(0),
+        )?)
+    }
+
     /// Evict least-recently-accessed covers until the total on-disk artwork cache is under the
     /// configurable cap (`discovery_artwork_cache_limit_mb`, default 250 MB). Called after each
     /// successful cache write. Best-effort: deletes the disk file then its DB row for each
@@ -79,17 +93,19 @@ impl DiscoveryService {
     pub fn enforce_artwork_cache_limit(&self) -> Result<()> {
         let cap =
             self.cache_limit_bytes("discovery_artwork_cache_limit_mb", DEFAULT_ARTWORK_CACHE_MB);
-        let mut total = self.get_artwork_cache_total_size()?;
+        let mut total = self.artwork_cache_tracked_size()?;
         if total <= cap {
             return Ok(());
         }
 
-        // Oldest-accessed first.
+        // Oldest-accessed first, bounded — one enforce pass never needs more victims
+        // than this (covers are small), and an unbounded full-table scan per write
+        // amplifies exactly the scroll that triggers it.
         let victims: Vec<(String, String, i64)> = {
             let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
             let mut stmt = conn.prepare(
                 "SELECT release_id, ext, file_size FROM discovery_artwork_cache
-                 ORDER BY last_accessed_at ASC",
+                 ORDER BY last_accessed_at ASC LIMIT 50",
             )?;
             let rows = stmt.query_map([], |row| {
                 Ok((
@@ -242,18 +258,17 @@ impl DiscoveryService {
         }
 
         // Look up the remote URL (skip silently if the release is gone or has none).
-        let artwork_url: Option<String> = {
-            let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let artwork_url: Option<String> = self.db.read(|conn| {
             match conn.query_row(
                 "SELECT artwork_url FROM discovery_releases WHERE id = ?1",
                 [release_id],
                 |row| row.get::<_, Option<String>>(0),
             ) {
-                Ok(v) => v,
-                Err(rusqlite::Error::QueryReturnedNoRows) => None,
-                Err(e) => return Err(CrateError::Database(e)),
+                Ok(v) => Ok(v),
+                Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
+                Err(e) => Err(CrateError::Database(e)),
             }
-        };
+        })?;
         let Some(artwork_url) = artwork_url.filter(|u| !u.is_empty()) else {
             return Ok(None);
         };
