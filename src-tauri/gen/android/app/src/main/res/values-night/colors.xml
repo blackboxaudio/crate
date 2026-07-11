@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- App background (dark) for the launch/splash screen — matches --surface-0 dark (#09090b). -->
+    <!-- App background (dark) for the launch/splash screen — matches the dark surface-0 token (#09090b). -->
     <color name="splash_background">#FF09090B</color>
 </resources>

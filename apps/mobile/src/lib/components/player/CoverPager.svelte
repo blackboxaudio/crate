@@ -97,7 +97,11 @@
 	let storeLanded = false
 	let settleTargetKey: string | null = null
 	let lastCommitDir: 1 | -1 = 1
-	let lastFxSeq = 0
+	// Seed with the change already present at mount. The pager remounts every time the player opens
+	// (Drawer gates its children on `visible`), but `changeFx` lives in the always-mounted ExpandedPlayer
+	// and still holds the last track change — swallowing it here means opening the player never slides the
+	// artwork; only prev/next changes that land WHILE it's open (a fresh seq) animate.
+	let lastFxSeq = changeFx?.seq ?? 0
 	let fallbackTimer: ReturnType<typeof setTimeout> | null = null
 	let watchdogTimer: ReturnType<typeof setTimeout> | null = null
 	let slideRaf = 0
