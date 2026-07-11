@@ -340,7 +340,7 @@ jobs:
         env:
           CRATE_ENV: ${{ needs.validate.outputs.channel }}
           VERSION: ${{ needs.validate.outputs.version }}
-        run: yarn tauri android build --apk --config "{\"version\":\"$VERSION\"}" --features mobile
+        run: yarn tauri android build --apk true --config "{\"version\":\"$VERSION\"}" --features mobile
 
       - name: Prepare release artifacts
         id: artifacts
