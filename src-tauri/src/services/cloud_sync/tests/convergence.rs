@@ -777,7 +777,10 @@ async fn dangling_manifest_reference_self_heals() -> Result<()> {
     // A pushes, then the playlists blob vanishes out from under the manifest.
     push_remote(a.clone(), &backend, &session, "A").await?;
     let (manifest, _) = backend.manifest().read(&session).await?.expect("manifest");
-    let dead = manifest.bucket("playlists").expect("playlists entry").clone();
+    let dead = manifest
+        .bucket("playlists")
+        .expect("playlists entry")
+        .clone();
     backend
         .blobs()
         .delete(
@@ -811,7 +814,10 @@ async fn dangling_manifest_reference_self_heals() -> Result<()> {
     push_remote(b.clone(), &backend, &session, "B").await?;
     let (manifest, _) = backend.manifest().read(&session).await?.expect("manifest");
     let repaired = manifest.bucket("playlists").expect("playlists entry");
-    assert_ne!(repaired.blob_hash, dead.blob_hash, "manifest entry rewritten");
+    assert_ne!(
+        repaired.blob_hash, dead.blob_hash,
+        "manifest entry rewritten"
+    );
     assert!(
         backend
             .blobs()
@@ -834,7 +840,9 @@ async fn dangling_manifest_reference_self_heals() -> Result<()> {
     );
     push_remote(a.clone(), &backend, &session, "A").await?;
     assert!(
-        pull_remote(b.clone(), &backend, &session, "B").await?.merged,
+        pull_remote(b.clone(), &backend, &session, "B")
+            .await?
+            .merged,
         "B merges the restored rows"
     );
     assert_eq!(
