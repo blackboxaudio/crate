@@ -612,6 +612,12 @@ impl CloudSyncState {
             self.sync_log
                 .append(&format!("pull merged: {}", outcome.buckets.join(", ")));
         }
+        if !outcome.skipped.is_empty() {
+            self.sync_log.append(&format!(
+                "pull skipped missing blob(s): {} (re-upload scheduled)",
+                outcome.skipped.join(", ")
+            ));
+        }
         self.emit_overrides(backend, &session, outcome.overrides)
             .await;
         // Tell the UI which stores to reload so a peer's change shows without a restart.

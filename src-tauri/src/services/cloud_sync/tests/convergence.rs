@@ -15,7 +15,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::error::{CrateError, Result};
 use crate::services::cloud_sync::backend::mock::MockCloudBackend;
-use crate::services::cloud_sync::backend::types::{GcEntry, Manifest};
+use crate::services::cloud_sync::backend::types::{BucketEntry, GcEntry, Manifest};
 use crate::services::cloud_sync::backend::CloudBackend;
 use crate::services::cloud_sync::hlc::Hlc;
 use crate::services::cloud_sync::pipeline::buckets::{self, Bucket};
@@ -690,6 +690,162 @@ async fn gc_sweep_reclaims_due_blobs() -> Result<()> {
             .await?
             .is_empty(),
         "queue drained"
+    );
+    Ok(())
+}
+
+/// The sweep must never delete a blob the CURRENT manifest references: keys are
+/// content-addressed, so a key enqueued at supersession can re-enter the manifest later
+/// (a bucket serializing back to earlier bytes), and deleting it would dangle the
+/// manifest and wedge every pull. The entry is acked without deleting.
+#[tokio::test]
+async fn gc_sweep_spares_still_referenced_blobs() -> Result<()> {
+    let backend: Arc<dyn CloudBackend> = Arc::new(MockCloudBackend::new());
+    let session = test_session();
+    let relative = "playlists-cafebabe.jsonl.gz";
+    let key = format!("users/test-uid/vault/{relative}");
+
+    backend
+        .blobs()
+        .upload(
+            &session,
+            &key,
+            Bytes::from_static(b"live"),
+            "application/x-ndjson",
+        )
+        .await?;
+
+    // The manifest references the key while a stale, past-due GC entry names it too.
+    let mut manifest = Manifest::empty("A");
+    manifest.buckets.insert(
+        "playlists".to_string(),
+        BucketEntry {
+            blob_hash: "cafebabe".into(),
+            object_key: relative.to_string(),
+            count: 1,
+            hlc: String::new(),
+        },
+    );
+    let past = SystemTime::now() - Duration::from_secs(120);
+    backend
+        .manifest()
+        .write(
+            &session,
+            &manifest,
+            None,
+            &[GcEntry {
+                object_key: key.clone(),
+                delete_after: past,
+            }],
+        )
+        .await?;
+
+    assert_eq!(
+        gc::gc_sweep(&backend, &session).await?,
+        1,
+        "entry processed (acked)"
+    );
+    assert!(
+        backend.blobs().download(&session, &key).await.is_ok(),
+        "still-referenced blob spared"
+    );
+    assert!(
+        backend
+            .manifest()
+            .dequeue_gc(&session, SystemTime::now() + Duration::from_secs(3600), 100)
+            .await?
+            .is_empty(),
+        "stale entry still drained from the queue"
+    );
+    Ok(())
+}
+
+/// A manifest entry whose blob is gone (a dangling reference — e.g. reclaimed by a
+/// pre-guard GC sweep) must not wedge sync. The pull skips the bucket and marks it
+/// dirty; the next push re-uploads local content and rewrites the manifest; and the
+/// device still holding the lost rows re-pushes its union after merging the repaired
+/// (older) blob via the post-merge anti-entropy mark. Nothing is lost, all converge.
+#[tokio::test]
+async fn dangling_manifest_reference_self_heals() -> Result<()> {
+    let backend: Arc<dyn CloudBackend> = Arc::new(MockCloudBackend::new());
+    let session = test_session();
+    let a_conn = new_device(0x0A);
+    create_playlist(&a_conn, 0x0A, 5, "p", "Lost");
+    let a = Arc::new(Mutex::new(a_conn));
+    let b = Arc::new(Mutex::new(new_device(0x0B)));
+
+    // A pushes, then the playlists blob vanishes out from under the manifest.
+    push_remote(a.clone(), &backend, &session, "A").await?;
+    let (manifest, _) = backend.manifest().read(&session).await?.expect("manifest");
+    let dead = manifest.bucket("playlists").expect("playlists entry").clone();
+    backend
+        .blobs()
+        .delete(
+            &session,
+            &format!("users/{}/vault/{}", session.uid, dead.object_key),
+        )
+        .await?;
+
+    // B's pull survives: the bucket is skipped and scheduled for re-upload.
+    let outcome = pull_remote(b.clone(), &backend, &session, "B").await?;
+    assert_eq!(
+        outcome.skipped,
+        vec!["playlists".to_string()],
+        "dangling bucket skipped, not fatal"
+    );
+    let dirty_count = |conn: &Connection| -> i64 {
+        conn.query_row(
+            "SELECT COUNT(*) FROM sync_dirty_buckets WHERE bucket = 'playlists'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+    };
+    assert_eq!(
+        dirty_count(&b.lock().unwrap()),
+        1,
+        "skipped bucket marked dirty on B"
+    );
+
+    // B's push repairs the manifest: playlists points at a live blob again.
+    push_remote(b.clone(), &backend, &session, "B").await?;
+    let (manifest, _) = backend.manifest().read(&session).await?.expect("manifest");
+    let repaired = manifest.bucket("playlists").expect("playlists entry");
+    assert_ne!(repaired.blob_hash, dead.blob_hash, "manifest entry rewritten");
+    assert!(
+        backend
+            .blobs()
+            .download(
+                &session,
+                &format!("users/{}/vault/{}", session.uid, repaired.object_key),
+            )
+            .await
+            .is_ok(),
+        "repaired blob is live"
+    );
+
+    // A merges the repaired (empty) blob, keeps its playlist, and the anti-entropy
+    // mark schedules the union push that restores the lost rows to the cloud.
+    pull_remote(a.clone(), &backend, &session, "A").await?;
+    assert_eq!(
+        dirty_count(&a.lock().unwrap()),
+        1,
+        "A marked dirty after merging a remote that lacks its rows"
+    );
+    push_remote(a.clone(), &backend, &session, "A").await?;
+    assert!(
+        pull_remote(b.clone(), &backend, &session, "B").await?.merged,
+        "B merges the restored rows"
+    );
+    assert_eq!(
+        playlist_name(&b.lock().unwrap(), "p").as_deref(),
+        Some("Lost"),
+        "lost rows recovered from their authoring device"
+    );
+    assert_eq!(
+        state_hash(&a.lock().unwrap())?,
+        state_hash(&b.lock().unwrap())?,
+        "A and B converged"
     );
     Ok(())
 }
