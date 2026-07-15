@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, tick } from 'svelte'
+	import { onMount, onDestroy, tick } from 'svelte'
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease } from '$shared/types'
@@ -11,6 +11,7 @@
 		mobileDisplayedReleases,
 		scrollTopNonce,
 		discoveryViewMode,
+		openRowId,
 		DISCOVERY_ROW_HEIGHT,
 		type ScrollGeom,
 	} from '$lib/stores/mobileUI'
@@ -135,14 +136,19 @@
 		mobileUIStore.consumeScrollTarget()
 	})
 
-	// A scroll closes any revealed swipe row (no-op when none is open) and persists the offset — the
-	// shell remounts this view on tab return, so the feed list restores from the store on mount. The
-	// live geometry rides along so the persisted release-ID anchor maps offsets correctly in grid mode.
+	// A scroll closes any revealed swipe row and stages the offset for the debounced restart persistence.
+	// Both store touches are avoided on the per-frame path: `setOpenRow` only when a row is actually open
+	// (an update() notifies every derived selector even when nothing changed), and the offset is STAGED
+	// (`stageDiscoveryScrollTop`, no store write) rather than set — the reactive `discoveryScrollTop` is
+	// only read at mount, so it's committed once at unmount (below) for the tab-return remount to restore
+	// from. The live geometry rides along so the release-ID anchor maps offsets correctly in grid mode.
 	function handleScroll(scrollTop: number) {
 		currentScrollTop = scrollTop
-		mobileUIStore.setOpenRow(null)
-		mobileUIStore.setDiscoveryScrollTop(scrollTop, geom)
+		if ($openRowId !== null) mobileUIStore.setOpenRow(null)
+		mobileUIStore.stageDiscoveryScrollTop(scrollTop, geom)
 	}
+
+	onDestroy(() => mobileUIStore.setDiscoveryScrollTop(currentScrollTop, geom))
 
 	// iOS "re-tap the active tab to scroll to top": the tab bar bumps `scrollTopNonce` when the active tab is
 	// re-tapped with nothing to pop. Ignore the initial value so a normal mount (or scroll restore) doesn't

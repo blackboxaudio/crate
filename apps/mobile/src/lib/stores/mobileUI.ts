@@ -424,9 +424,17 @@ function createMobileUIStore() {
 		},
 		/** Remember the discovery feed's scroll offset so it survives the tab-switch remount. Also persists
 		 *  it (debounced, with the release-ID anchor) so it survives an app restart. Grid mode passes its
-		 *  own geometry so the anchor maps pixel offsets to the right release. */
+		 *  own geometry so the anchor maps pixel offsets to the right release. Call at COMMIT points
+		 *  (feed unmount, layout toggle) — live scrolling goes through `stageDiscoveryScrollTop`. */
 		setDiscoveryScrollTop(top: number, geom: ScrollGeom = LIST_SCROLL_GEOM) {
 			update((s) => (s.discoveryScrollTop === top ? s : { ...s, discoveryScrollTop: top }))
+			schedulePersistDiscoveryScroll(top, geom)
+		},
+		/** Per-scroll-frame variant of the above: feeds the debounced restart persistence WITHOUT touching
+		 *  the reactive store. Nothing subscribes to `discoveryScrollTop` live (restores read it via `get()`
+		 *  at mount), but a store update per scrolled frame would still notify every derived selector —
+		 *  `safe_not_equal` treats objects as always-changed — for nothing. */
+		stageDiscoveryScrollTop(top: number, geom: ScrollGeom = LIST_SCROLL_GEOM) {
 			schedulePersistDiscoveryScroll(top, geom)
 		},
 		/** Clear the one-shot boot scroll anchor once the feed has applied (or abandoned) it. */

@@ -53,6 +53,8 @@
 		if (e.pointerId !== pointerId) return
 
 		if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex) {
+			// Drop tick, completing the pickup tick in onPointerDown — only when the order actually changed.
+			void lightTap()
 			const reordered = [...items]
 			const [moved] = reordered.splice(dragIndex, 1)
 			reordered.splice(overIndex, 0, moved)

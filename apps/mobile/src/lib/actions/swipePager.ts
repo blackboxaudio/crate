@@ -51,6 +51,18 @@ export const swipePager: Action<HTMLElement, SwipePagerOptions> = (node, initial
 	let velocity = 0
 	let claimed = false
 	let abandoned = false
+	// Coalesce per-move drag reports to one callback per frame (see swipe.ts) — `teardownWindow`
+	// drops any pending flush before `onCommit`/`onCancel`, so a stale dx can't land mid-settle.
+	let dragRaf = 0
+	let pendingDx: number | null = null
+
+	function flushDrag() {
+		dragRaf = 0
+		if (pendingDx === null) return
+		const v = pendingDx
+		pendingDx = null
+		opts.onDrag?.(v)
+	}
 
 	function pageWidth(): number {
 		return opts.width?.() ?? node.clientWidth ?? 0
@@ -107,7 +119,8 @@ export const swipePager: Action<HTMLElement, SwipePagerOptions> = (node, initial
 		lastX = e.clientX
 		lastT = now
 
-		opts.onDrag?.(reportDx(dx))
+		pendingDx = reportDx(dx)
+		if (!dragRaf) dragRaf = requestAnimationFrame(flushDrag)
 	}
 
 	function onPointerUp(e: PointerEvent) {
@@ -144,6 +157,9 @@ export const swipePager: Action<HTMLElement, SwipePagerOptions> = (node, initial
 		window.removeEventListener('pointermove', onPointerMove)
 		window.removeEventListener('pointerup', onPointerUp)
 		window.removeEventListener('pointercancel', onPointerCancel)
+		if (dragRaf) cancelAnimationFrame(dragRaf)
+		dragRaf = 0
+		pendingDx = null
 	}
 
 	function applyTouchAction() {

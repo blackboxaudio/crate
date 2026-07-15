@@ -157,6 +157,13 @@
 
 	function startClose() {
 		if (closing) return
+		// Fade the developed blur out instead of snapping it off (the effect above drops `blurOn` once
+		// `shown` flips; `blurExit` holds the filter through the brief opacity fade).
+		if (blurOn) {
+			blurExit = true
+			if (blurExitTimer) clearTimeout(blurExitTimer)
+			blurExitTimer = setTimeout(() => (blurExit = false), 170)
+		}
 		closing = true
 		// Back up transitionend so reduced motion (no transition → no event) still finalizes.
 		setTimeout(() => closing && finalize(), DURATION + 40)
@@ -258,26 +265,58 @@
 			: `transform ${dur}ms ${shown ? 'var(--ease-spring)' : 'var(--ease-fluid)'}, opacity ${dur}ms ease`
 	)
 	const previewTransition = $derived(
-		reduceMotion
-			? `opacity ${dur}ms ease`
-			: `transform ${dur}ms var(--ease-fluid), box-shadow ${dur}ms ease, opacity ${dur}ms ease`
+		reduceMotion ? `opacity ${dur}ms ease` : `transform ${dur}ms var(--ease-fluid), opacity ${dur}ms ease`
 	)
+
+	// The backdrop blur is deferred while the menu animates in: opacity-fading a full-viewport
+	// backdrop-filter layer makes WebKit re-rasterize the blurred scene every frame, so the heavy pop
+	// frames (lift + platter spring) run over the plain dim, and the blur's own fade starts just before
+	// the spring lands — overlapping its subtle tail so dim → blur reads as ONE continuous settle, not
+	// pop-then-blur. The blur layer sits at the BOTTOM of the stack (below the dim), so its backdrop
+	// input is only the frozen feed: nothing it samples changes during its fade. Timeout-based so it
+	// fires under reduced motion too. On close it fades back out over a short window (`blurExit` keeps
+	// the filter applied so the opacity fade is visible, then removes it) — quicker than the platter's
+	// exit so most of the dismissal still runs blur-free.
+	let blurOn = $state(false)
+	let blurExit = $state(false)
+	let blurExitTimer: ReturnType<typeof setTimeout> | null = null
+	$effect(() => {
+		if (!shown) {
+			blurOn = false
+			return
+		}
+		const t = setTimeout(() => (blurOn = true), Math.max(0, dur - 80))
+		return () => clearTimeout(t)
+	})
 </script>
 
 {#if visible}
-	<!-- Backdrop: a light frosted blur + faint dim so the content behind stays recognizable (iOS-style),
-	     NOT the opaque `glass-strong` sheet material. Tap / swipe-down to dismiss; covering everything, it
-	     also locks the feed behind from scrolling. Blur radius is constant (animating it janks WKWebView) —
-	     only opacity fades. -->
-	<!-- All three layers portal to <body>: an instance mounted inside a detail drawer (playlist/tag/
+	<!-- Backdrop: a faint dim that animates with the open/close, over a frosted-blur layer that develops
+	     as the menu lands (iOS-style; see `blurOn` above — animating anything on a live backdrop-filter
+	     janks WKWebView). The blur layer comes FIRST so the dim fades ABOVE it (dimmed blurred feed ≈
+	     blurred dimmed feed, but the dim's fade never invalidates the blur's sampled backdrop). Tap /
+	     swipe-down on the dim dismisses; covering everything, it also locks the feed behind from
+	     scrolling. -->
+	<!-- All layers portal to <body>: an instance mounted inside a detail drawer (playlist/tag/
 	     follow rows) would otherwise be capped at that drawer's z-30 stacking context and render
-	     under the z-40 mini player. Mount order (backdrop → preview → platter) keeps their relative
-	     layering, since all three share z-60. -->
+	     under the z-40 mini player. Mount order (blur → dim → preview → platter) keeps their
+	     relative layering, since all share z-60. -->
+	<div
+		aria-hidden="true"
+		class="pointer-events-none fixed inset-0 z-[60]"
+		style="-webkit-backdrop-filter: {blurOn || blurExit
+			? 'blur(12px) saturate(150%)'
+			: 'none'}; backdrop-filter: {blurOn || blurExit ? 'blur(12px) saturate(150%)' : 'none'}; opacity: {blurOn
+			? 1
+			: 0}; transition: {blurOn ? 'opacity 200ms ease-out' : blurExit ? 'opacity 150ms ease' : 'none'};"
+		use:portalToBody
+	></div>
+
 	<button
 		type="button"
 		aria-label={$translate('common.close')}
 		class="fixed inset-0 z-[60]"
-		style="background-color: rgba(0, 0, 0, 0.18); -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%); opacity: {fade}; transition: opacity {dur}ms ease;"
+		style="background-color: rgba(0, 0, 0, 0.18); opacity: {fade}; transition: opacity {dur}ms ease;"
 		onclick={() => armed && requestClose()}
 		use:portalToBody
 		use:swipeVertical={{ onSwipeDown: () => armed && requestClose(), enabled: true }}
@@ -288,9 +327,7 @@
 			aria-hidden="true"
 			use:portalToBody
 			class="pointer-events-none fixed z-[60] flex items-center gap-3 overflow-hidden rounded-xl bg-surface-0 px-4"
-			style="{previewStyle} opacity: {fade}; transform: scale({previewScale}); transform-origin: center; box-shadow: {shown
-				? '0 10px 40px -8px rgba(0,0,0,0.45)'
-				: '0 0 0 rgba(0,0,0,0)'}; transition: {previewTransition};"
+			style="{previewStyle} opacity: {fade}; transform: scale({previewScale}); transform-origin: center; box-shadow: 0 10px 40px -8px rgba(0,0,0,0.45); transition: {previewTransition};"
 		>
 			{@render preview()}
 		</div>

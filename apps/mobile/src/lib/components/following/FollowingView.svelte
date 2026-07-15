@@ -210,6 +210,7 @@
 			alt=""
 			class="h-11 w-11 flex-shrink-0 rounded object-cover"
 			loading="lazy"
+			decoding="async"
 			onerror={() => markAvatarFailed(source.artworkUrl!)}
 		/>
 	{:else}

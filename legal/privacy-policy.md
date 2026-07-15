@@ -28,9 +28,9 @@ The data controller responsible for your information is:
 
 **Black Box Audio, LLC**
 United States
-Email: matthew@bbx-audio.com
+Email: support@bbx-audio.com
 
-For privacy questions or to exercise your rights, contact us at **matthew@bbx-audio.com**.
+For privacy questions or to exercise your rights, contact us at **support@bbx-audio.com**.
 
 ## 2. Scope
 
@@ -226,7 +226,7 @@ a passcode or biometrics helps keep them safe. No method of transmission or stor
   hold no personal data about you.
 - **Turn off sync** at any time in the App's settings.
 - **Delete your account and synced data** at any time — see our Account Deletion page at
-  <https://crate.bbx-audio.com/account-deletion>.
+  <https://crate.bbx-audio.com/account-deletion/index.html>.
 
 Depending on where you live, you may have some or all of the following rights regarding
 personal information we hold:
@@ -239,7 +239,7 @@ personal information we hold:
 - **Withdraw consent** where processing is based on consent.
 - **Lodge a complaint** with a data-protection authority.
 
-To exercise any of these rights, email **matthew@bbx-audio.com**. We will respond within
+To exercise any of these rights, email **support@bbx-audio.com**. We will respond within
 the timeframe required by applicable law. We will not discriminate against you for
 exercising your rights.
 
@@ -269,7 +269,7 @@ in Section 5. You have the right to lodge a complaint with your local supervisor
 
 Crate is not directed to children. We do not knowingly collect personal information from
 children under 13 (or under 16 in the EEA/UK). If you believe a child has provided us
-personal information, contact us at matthew@bbx-audio.com and we will delete it.
+personal information, contact us at support@bbx-audio.com and we will delete it.
 
 ## 12. Changes to this policy
 
@@ -280,4 +280,4 @@ Your continued use of the App after an update means you accept the revised polic
 ## 13. Contact us
 
 **Black Box Audio, LLC**
-Email: **matthew@bbx-audio.com**
+Email: **support@bbx-audio.com**

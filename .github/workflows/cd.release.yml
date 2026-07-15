@@ -684,3 +684,9 @@ jobs:
             --cache-control="public, max-age=300"
           gcloud storage cp -r web/assets "gs://${BUCKET}/" \
             --cache-control="public, max-age=31536000"
+          gcloud storage cp web/privacy/index.html "gs://${BUCKET}/privacy/index.html" \
+            --content-type="text/html" \
+            --cache-control="public, max-age=3600"
+          gcloud storage cp web/account-deletion/index.html "gs://${BUCKET}/account-deletion/index.html" \
+            --content-type="text/html" \
+            --cache-control="public, max-age=3600"

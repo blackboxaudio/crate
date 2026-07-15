@@ -29,17 +29,26 @@
 	// an already-resolved path back to null.
 	let lastId = $state(release.id)
 	let cachePath = $state<string | null>(release.artwork_cache_path)
+	// Once the REMOTE url has decoded successfully, keep showing it for this mount: flipping `src`
+	// to the freshly cached local copy would make WebKit reload + re-decode the same pixels (a
+	// per-cover double decode and a visible swap, mid-scroll). The cached path still lands in
+	// `cachePath` for the next mount / offline. The `onload` guard below only locks when the loaded
+	// src IS the remote url, so a cached-copy load can never lock local → remote.
+	let remoteLocked = $state(false)
 	$effect(() => {
 		if (release.id !== lastId) {
 			lastId = release.id
 			cachePath = release.artwork_cache_path
+			remoteLocked = false
 		} else if (release.artwork_cache_path && !cachePath) {
 			cachePath = release.artwork_cache_path
 		}
 	})
 
 	let src = $derived(
-		getDiscoveryArtworkSrc({ artwork_url: release.artwork_url, artwork_cache_path: cachePath }, $mobileAppDataDir)
+		remoteLocked
+			? (release.artwork_url ?? undefined)
+			: getDiscoveryArtworkSrc({ artwork_url: release.artwork_url, artwork_cache_path: cachePath }, $mobileAppDataDir)
 	)
 
 	// A failed load (dead/expired URL, offline and uncached) must not leave WebKit's
@@ -63,7 +72,17 @@
 </script>
 
 {#if src && !failed}
-	<img {src} {alt} class={className} loading={eager ? 'eager' : 'lazy'} onerror={() => (failed = true)} />
+	<img
+		{src}
+		{alt}
+		class={className}
+		loading={eager ? 'eager' : 'lazy'}
+		decoding="async"
+		onload={() => {
+			if (src === release.artwork_url) remoteLocked = true
+		}}
+		onerror={() => (failed = true)}
+	/>
 {:else if fallback}
 	{@render fallback()}
 {:else}

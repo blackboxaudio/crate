@@ -96,6 +96,19 @@ export const swipe: Action<HTMLElement, SwipeOptions> = (node, initial) => {
 	let velocity = 0
 	let claimed = false
 	let abandoned = false
+	// Progress callbacks write Svelte $state, and pointermove outruns the display on 120Hz devices —
+	// coalesce to at most one callback per frame (latest value wins). `teardownWindow` cancels any
+	// pending flush BEFORE the release callbacks resolve, so no stale progress fires after an end.
+	let progressRaf = 0
+	let pendingProgress: number | null = null
+
+	function flushProgress() {
+		progressRaf = 0
+		if (pendingProgress === null) return
+		const v = pendingProgress
+		pendingProgress = null
+		opts.onProgress?.(v)
+	}
 
 	// Sign of the "opening" direction along x: left drawer opens with +dx, right drawer with -dx.
 	const dir = () => (opts.side === 'left' ? 1 : -1)
@@ -173,7 +186,8 @@ export const swipe: Action<HTMLElement, SwipeOptions> = (node, initial) => {
 		lastX = e.clientX
 		lastT = now
 
-		opts.onProgress?.(opennessFor(dx))
+		pendingProgress = opennessFor(dx)
+		if (!progressRaf) progressRaf = requestAnimationFrame(flushProgress)
 	}
 
 	function onPointerUp(e: PointerEvent) {
@@ -206,6 +220,9 @@ export const swipe: Action<HTMLElement, SwipeOptions> = (node, initial) => {
 		window.removeEventListener('pointermove', onPointerMove)
 		window.removeEventListener('pointerup', onPointerUp)
 		window.removeEventListener('pointercancel', onPointerUp)
+		if (progressRaf) cancelAnimationFrame(progressRaf)
+		progressRaf = 0
+		pendingProgress = null
 	}
 
 	function applyTouchAction() {

@@ -35,7 +35,14 @@
 	{#if good.length >= 4}
 		<div class="grid h-full w-full grid-cols-2 grid-rows-2 overflow-hidden rounded">
 			{#each good.slice(0, 4) as url (url)}
-				<img src={url} alt="" class="h-full w-full object-cover" loading="lazy" onerror={() => markFailed(url)} />
+				<img
+					src={url}
+					alt=""
+					class="h-full w-full object-cover"
+					loading="lazy"
+					decoding="async"
+					onerror={() => markFailed(url)}
+				/>
 			{/each}
 		</div>
 	{:else if good.length > 0}
@@ -44,6 +51,7 @@
 			alt=""
 			class="h-full w-full rounded object-cover"
 			loading="lazy"
+			decoding="async"
 			onerror={() => markFailed(good[0])}
 		/>
 	{:else}

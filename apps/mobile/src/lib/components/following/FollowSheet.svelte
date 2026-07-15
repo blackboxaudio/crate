@@ -121,6 +121,7 @@
 							src={currentFollow.artworkUrl}
 							alt=""
 							class="h-12 w-12 flex-shrink-0 rounded object-cover"
+							decoding="async"
 							onerror={() => (avatarFailed = true)}
 						/>
 					{:else}

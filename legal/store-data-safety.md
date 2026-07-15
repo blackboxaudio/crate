@@ -16,7 +16,7 @@ the desktop app does — not relevant to the store forms).
 - Cloud data lives with **Google Firebase**, acting as our processor → in Google Play terms
   this is **collected, not "shared."**
 - Data in transit is **encrypted (HTTPS/TLS)**. Users can **request deletion**
-  (`https://crate.bbx-audio.com/account-deletion`).
+  (`https://crate.bbx-audio.com/account-deletion/index.html`).
 
 ---
 
@@ -72,7 +72,7 @@ and are never uploaded), Files and docs, Calendar, Contacts, **Web browsing**,
 
 - **Is all of the user data collected by your app encrypted in transit?** → **Yes.**
 - **Do you provide a way for users to request that their data be deleted?** → **Yes.**
-  Deletion URL: `https://crate.bbx-audio.com/account-deletion`
+  Deletion URL: `https://crate.bbx-audio.com/account-deletion/index.html`
 - **Is data collection required to use the app, or can users choose?** → **Users can
   choose** (cloud sync is optional).
 - **Has your app been independently validated against a global security standard?** → No

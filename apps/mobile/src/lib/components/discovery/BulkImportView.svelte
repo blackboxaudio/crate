@@ -174,6 +174,8 @@
 							src={release.artwork_url}
 							alt=""
 							class="h-12 w-12 flex-shrink-0 rounded-md object-cover"
+							loading="lazy"
+							decoding="async"
 							onerror={() => (failedArtworkUrls = new Set([...failedArtworkUrls, release.artwork_url!]))}
 						/>
 					{:else}

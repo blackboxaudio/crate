@@ -38,12 +38,13 @@
 	})
 </script>
 
+<!-- No `fade`: the panel is opaque while it moves (Drawer suspends the glass mid-slide), and a solid
+     sheet sliding up/down IS the native presentation — cross-fading it would show content through it. -->
 <Drawer
 	{open}
 	{onClose}
 	direction="bottom"
 	z={50}
-	fade
 	panelDrag={false}
 	portal
 	ariaLabel={title ?? $translate('common.close')}

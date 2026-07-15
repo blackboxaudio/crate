@@ -73,6 +73,7 @@
 							alt=""
 							class="h-full w-full object-cover"
 							referrerpolicy="no-referrer"
+							decoding="async"
 							onerror={() => (photoError = true)}
 						/>
 					{:else}

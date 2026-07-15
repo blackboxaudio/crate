@@ -56,6 +56,18 @@ export const swipeVertical: Action<HTMLElement, SwipeVerticalOptions> = (node, i
 	let velocity = 0
 	let claimed = false
 	let abandoned = false
+	// Coalesce per-move progress to one callback per frame (see swipe.ts) — the release-path
+	// `onProgress(0)` below stays synchronous, after `teardownWindow` has dropped any pending move.
+	let progressRaf = 0
+	let pendingProgress: number | null = null
+
+	function flushProgress() {
+		progressRaf = 0
+		if (pendingProgress === null) return
+		const v = pendingProgress
+		pendingProgress = null
+		opts.onProgress?.(v)
+	}
 
 	function onPointerDown(e: PointerEvent) {
 		if (!opts.enabled || pointerId !== null) return
@@ -101,7 +113,8 @@ export const swipeVertical: Action<HTMLElement, SwipeVerticalOptions> = (node, i
 		lastY = e.clientY
 		lastT = now
 
-		opts.onProgress?.(dy)
+		pendingProgress = dy
+		if (!progressRaf) progressRaf = requestAnimationFrame(flushProgress)
 	}
 
 	function onPointerUp(e: PointerEvent) {
@@ -132,6 +145,9 @@ export const swipeVertical: Action<HTMLElement, SwipeVerticalOptions> = (node, i
 		window.removeEventListener('pointermove', onPointerMove)
 		window.removeEventListener('pointerup', onPointerUp)
 		window.removeEventListener('pointercancel', onPointerUp)
+		if (progressRaf) cancelAnimationFrame(progressRaf)
+		progressRaf = 0
+		pendingProgress = null
 	}
 
 	function applyTouchAction() {

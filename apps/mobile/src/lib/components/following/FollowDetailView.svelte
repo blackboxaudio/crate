@@ -140,6 +140,7 @@
 					src={source.artworkUrl}
 					alt=""
 					class="h-8 w-8 flex-shrink-0 rounded object-cover"
+					decoding="async"
 					onerror={() => (avatarFailed = true)}
 				/>
 			{:else}

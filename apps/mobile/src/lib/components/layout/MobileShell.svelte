@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import { fade, slide } from 'svelte/transition'
+	import { fade, fly } from 'svelte/transition'
+	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
 	import {
 		activeTab,
@@ -71,11 +72,14 @@
 
 	<!-- Offline banner: a slim overlay strip under the header (no layout shift — content scrolls
 	     beneath it) whenever the browser reports no connectivity. Downloaded releases keep playing;
-	     this just explains why everything else won't. Sits under drawers/overlays (z-30+). -->
+	     this just explains why everything else won't. Sits under drawers/overlays (z-30+).
+	     Solid (not glass): a fixed backdrop-blur strip over a scrolling feed re-blurs every scrolled
+	     frame — exactly while offline. `fly` by its own height slides it out from behind the opaque
+	     header (a transform, where `slide` would re-layout per frame). -->
 	{#if !$isOnline}
 		<div
-			transition:slide={{ duration: 180 }}
-			class="glass fixed inset-x-0 z-20 flex h-7 items-center justify-center border-b border-stroke-subtle text-xs font-medium text-text-secondary"
+			transition:fly={{ y: -28, duration: 180, easing: easeFluid }}
+			class="fixed inset-x-0 z-20 flex h-7 items-center justify-center border-b border-stroke-subtle bg-surface-1 text-xs font-medium text-text-secondary"
 			style="top: calc(3.5rem + env(safe-area-inset-top))"
 		>
 			{$translate('common.offline')}

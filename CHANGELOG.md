@@ -20,10 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- Made the mobile app render at native-feel smoothness: bottom sheets and drawers animate faster and no longer drop frames (their frosted-glass material pauses its blur while a sheet is in motion and returns seamlessly at rest), long-press menus dim first and gain their background blur once open, finger-drags on sheets and the player's cover pager track the display's full frame rate, the mini-player repositions without competing with the animation beneath it, and release covers decode off the main thread — without re-decoding or flashing when a cover is cached — so scrolling stays smooth while artwork streams in
 - Restructured mobile Settings into iOS-style pages: the root is now a grouped list that opens General (a new language picker — the stored language finally applies on mobile — and a date-format choice), Appearance, Following (check cadence, release-day reminders, new-releases summary, and a "Check all now" button, previously desktop-only), Cloud Sync (the account chip in the header now jumps straight to it), Storage (the audio/artwork caches), and About (which now also shows the build environment) — with the platform back conventions throughout (header chevron, iOS edge-swipe, Android back button popping one level at a time)
 
 ### Fixed
 
+- Fixed refreshing a sorted list briefly scrambling its order: reloading the releases (pull-to-refresh, or after a tag change) published each page of the reload as it arrived, so a custom-sorted feed visibly collapsed to a partial, recency-flavored list and then snapped back — a reload now keeps showing the current list and swaps to the fresh one in a single step (first loads still fill in progressively)
 - Fixed track preview failures showing two error toasts on mobile — one failure now surfaces exactly one message, and when the cause is being offline it says so ("This track isn't available offline") instead of a generic stream error
 - Fixed a playback error deleting a release's downloaded audio: the automatic retry after a transient player error wiped the on-disk copy before re-fetching (which then also failed offline), so a downloaded release could destroy itself in airplane mode — the retry now only refreshes stream links and replays from the intact download, and a corrupted cache entry is repaired per-track instead of discarding the whole release
 

@@ -91,7 +91,7 @@
 		portal = false,
 	}: Props = $props()
 
-	const DURATION = 500 // ms — the one shared slide duration; keep in sync with the `duration-500` class below
+	const DURATION = 340 // ms — the one shared slide duration; keep in sync with the `duration-[340ms]` classes below
 	const horizontal = $derived(direction === 'left' || direction === 'right')
 	const effectiveScrimZ = $derived(scrimZ ?? z)
 	const clampUnit = (v: number) => Math.min(1, Math.max(0, v))
@@ -119,6 +119,11 @@
 	// Disable the CSS transition while a finger is driving the panel, so it tracks 1:1 instead of lagging.
 	const transitionOn = $derived(closeDrag === null && openProgress == null)
 	const dragging = $derived(closeDrag !== null)
+	// Suspend the glass material while the panel is in motion (sliding open/closed or under a finger).
+	// A backdrop-filter that moves forces WKWebView to re-blur the scene behind it every frame — the
+	// main sheet-jank source — so the `[data-glass-suspend]` override in style.css swaps the glass for
+	// an opaque surface until the panel settles at rest. Inert on panels without a glass class.
+	const glassSuspend = $derived(!settled || closing || dragging)
 
 	const anchorClass = $derived(
 		{
@@ -144,16 +149,18 @@
 	})
 	// When `fade` is on, the panel's opacity rides `openness` so a translucent sheet dissolves as it slides.
 	// A `posSlide` sheet instead slides by its `bottom` offset (a layout move, so a focused field's caret follows
-	// it): `bottom: -100%` parks it fully below the viewport, `0%` is open. Both literal class strings are spelled
-	// out so Tailwind can see them.
+	// it): `bottom: -100%` parks it fully below the viewport, `0%` is open. `background-color` is in the
+	// transition list so a glass panel's blur hand-off is seamless: when `glassSuspend` drops at rest, the bg
+	// fades opaque → translucent while the backdrop-filter switches on hidden UNDERNEATH the still-opaque bg.
+	// All literal class strings are spelled out so Tailwind can see them.
 	const panelTransitionClass = $derived(
 		!transitionOn
 			? ''
 			: posSlide
-				? 'ease-fluid transition-[bottom] duration-500 motion-reduce:transition-none'
+				? 'ease-fluid transition-[bottom] duration-[340ms] motion-reduce:transition-none'
 				: fade
-					? 'ease-fluid transition-[transform,opacity] duration-500 motion-reduce:transition-none'
-					: 'ease-fluid transition-transform duration-500 motion-reduce:transition-none'
+					? 'ease-fluid transition-[transform,opacity,background-color] duration-[340ms] motion-reduce:transition-none'
+					: 'ease-fluid transition-[transform,background-color] duration-[340ms] motion-reduce:transition-none'
 	)
 	const panelStyle = $derived(
 		posSlide
@@ -192,9 +199,11 @@
 	})
 
 	// Mark the sheet settled once the open slide has had time to land (the `transitionend` below sets it sooner
-	// when a transition actually runs; this is the fallback for reduced motion, where no transition fires).
+	// when a transition actually runs; this is the fallback when none fires — reduced motion, or a dismiss drag
+	// released exactly where it started so the snap-back transition is a no-op). Reading `closeDrag` re-arms the
+	// timeout after every drag, so a cancelled drag can't leave the sheet un-settled (glass stuck suspended).
 	$effect(() => {
-		if (entered && !closing) {
+		if (entered && !closing && closeDrag === null) {
 			const t = setTimeout(() => {
 				if (entered && !closing) settled = true
 			}, DURATION + 20)
@@ -270,7 +279,12 @@
 		mode: 'close',
 		closeEdgeSize,
 		closeEdgeFrom,
-		onProgress: (o) => (closeDrag = o),
+		onProgress: (o) => {
+			// Un-settle at drag start so the post-release snap-back re-settles via transitionend — otherwise
+			// glass (and `transform: none`) would return at finger-lift, mid-snap-back.
+			settled = false
+			closeDrag = o
+		},
 		onOpen: () => (closeDrag = null),
 		onClose: () => {
 			closeDrag = null
@@ -283,6 +297,8 @@
 				closeDrag = null
 				return
 			}
+			// Un-settle at drag start (see swipeClose above) — the release snap-back re-settles the sheet.
+			settled = false
 			const d = direction === 'bottom' ? Math.max(0, dy) : Math.max(0, -dy)
 			closeDrag = clampUnit(1 - d / (panelH || 1))
 		},
@@ -324,7 +340,7 @@
 			type="button"
 			aria-label={$translate('common.close')}
 			class="fixed inset-0 bg-black {transitionOn
-				? 'ease-fluid transition-opacity duration-500 motion-reduce:transition-none'
+				? 'ease-fluid transition-opacity duration-[340ms] motion-reduce:transition-none'
 				: ''}"
 			style="z-index: {effectiveScrimZ}; opacity: {scrimOpacity * openness}"
 			onclick={requestClose}
@@ -333,7 +349,7 @@
 	{:else}
 		<div
 			class="pointer-events-none fixed inset-0 bg-black {transitionOn
-				? 'ease-fluid transition-opacity duration-500 motion-reduce:transition-none'
+				? 'ease-fluid transition-opacity duration-[340ms] motion-reduce:transition-none'
 				: ''}"
 			style="z-index: {effectiveScrimZ}; opacity: {scrimOpacity * openness}"
 			use:portalToBody={portal}
@@ -349,6 +365,7 @@
 		aria-label={ariaLabel}
 		class="fixed {anchorClass} {className} {panelTransitionClass}"
 		style={panelStyle}
+		data-glass-suspend={glassSuspend ? '' : undefined}
 		ontransitionstart={onTransformStart}
 		ontransitionend={onTransformEnd}
 		ontransitioncancel={onTransformCancel}

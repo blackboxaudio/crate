@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { DRAG_THRESHOLD } from '$shared/utils/drag'
+	import { lightTap } from '$lib/utils/haptics'
 	import Spinner from './Spinner.svelte'
 
 	// iOS-style pull-to-refresh. Rendered as an overlay INSIDE a `relative` wrapper that also holds the
@@ -128,7 +129,11 @@
 
 			// Own the gesture now: stop the scroll container from also panning.
 			if (e.cancelable) e.preventDefault()
+			const before = distance
 			distance = Math.min(dy * RESIST, MAX)
+			// Tick as the pull crosses the commit point ("release to refresh") — and again on a
+			// re-cross if the user backs off below it, matching the native refresh-control feel.
+			if (before < THRESHOLD && distance >= THRESHOLD) void lightTap()
 		}
 
 		function onTouchEnd() {

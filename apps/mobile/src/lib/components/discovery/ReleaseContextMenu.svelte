@@ -56,6 +56,17 @@
 	$effect(() => {
 		if (release) displayed = release
 	})
+	// Latch the anchor the same way: the store's rect clears the moment anything closes the menu, and
+	// ContextMenu positions (and shows) the platter/preview from it — passing the live value snaps the
+	// menu invisible at close instead of letting the dismiss animation play.
+	let displayedAnchor = $state<{ top: number; left: number; width: number; height: number } | null>(null)
+	$effect(() => {
+		if (anchorRect) displayedAnchor = anchorRect
+	})
+	function handleClosed() {
+		displayed = null
+		displayedAnchor = null
+	}
 	const platformName = $derived(displayed ? getReleasePlatformName(displayed.source_type) : null)
 
 	// Whether the release exposes a followable artist/label page (Bandcamp / SoundCloud, or a known label
@@ -174,7 +185,7 @@
 	}
 </script>
 
-<ContextMenu {open} {anchorRect} onClose={close} onClosed={() => (displayed = null)}>
+<ContextMenu {open} anchorRect={displayedAnchor} onClose={close} onClosed={handleClosed}>
 	{#snippet preview()}
 		{#if displayed}
 			<ReleaseCardContent release={displayed} />

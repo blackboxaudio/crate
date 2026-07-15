@@ -3,7 +3,7 @@
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { shareUrl } from '$shared/api/app'
 	import { toastStore } from '$shared/stores/toast'
-	import { slide, fade, type TransitionConfig } from 'svelte/transition'
+	import { fly, fade, type TransitionConfig } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
 	import {
@@ -159,8 +159,9 @@
 	// artist trails the title by a beat for a cascade feel). Same-release changes do a masked "ticker
 	// roll": the old line rolls out of the clip while the new one rolls in from the opposite edge, up
 	// for next / down for previous. Cross-release changes slide with the change's direction while
-	// dissolving through a slight blur (sharpening as they land). Params are read when the transition
-	// fires, so outros pick up the direction of the change that replaced them. Reduced motion → instant.
+	// dissolving. Transform + opacity ONLY — an animated `filter: blur()` re-rasterizes the text every
+	// frame in WKWebView. Params are read when the transition fires, so outros pick up the direction
+	// of the change that replaced them. Reduced motion → instant.
 	function textIn(node: Element, { delay = 0 }: { delay?: number } = {}): TransitionConfig {
 		const fx = changeFx
 		if (reducedMotion || !fx) return { duration: 0 }
@@ -177,8 +178,7 @@
 			delay,
 			duration: 360,
 			easing: easeFluid,
-			css: (t, u) =>
-				`transform: translateX(${(u * fx.dir * 32).toFixed(2)}px); opacity: ${t}; filter: blur(${(u * 6).toFixed(2)}px)`,
+			css: (t, u) => `transform: translateX(${(u * fx.dir * 32).toFixed(2)}px); opacity: ${t}`,
 		}
 	}
 	function textOut(node: Element, { delay = 0 }: { delay?: number } = {}): TransitionConfig {
@@ -197,8 +197,7 @@
 			delay,
 			duration: 240,
 			easing: easeFluid,
-			css: (t, u) =>
-				`transform: translateX(${(u * fx.dir * -24).toFixed(2)}px); opacity: ${t}; filter: blur(${(u * 4).toFixed(2)}px)`,
+			css: (t, u) => `transform: translateX(${(u * fx.dir * -24).toFixed(2)}px); opacity: ${t}`,
 		}
 	}
 	// The blurred wash crossfades only across releases (it's keyed by releaseId, so same-release changes
@@ -336,7 +335,12 @@
 					out:fade={{ duration: bgFadeMs, easing: easeFluid }}
 				>
 					{#if artSrc}
-						<img src={artSrc} alt="" class="art-wash absolute inset-0 h-full w-full object-cover blur-2xl" />
+						<img
+							src={artSrc}
+							alt=""
+							class="art-wash absolute inset-0 h-full w-full object-cover blur-2xl"
+							decoding="async"
+						/>
 						<div class="absolute inset-0 bg-gradient-to-b from-surface-0/80 via-surface-0/25 to-surface-0/90"></div>
 					{/if}
 				</div>
@@ -572,11 +576,13 @@
 						</button>
 					</div>
 
-					<!-- Tempo (±10% speed fader): revealed by the metronome toggle, slides down into view. The
-					     slider is bipolar — its fill grows out from the centre (0%) toward the thumb, with a small
-					     detent at zero. The readout on the left balances the reset on the right. -->
+					<!-- Tempo (±10% speed fader): revealed by the metronome toggle, dropping into view via
+					     transform (`slide` animates height, re-laying-out and rescaling the flex-1 cover pager
+					     every frame — the pager resizes once instead). The slider is bipolar — its fill grows out
+					     from the centre (0%) toward the thumb, with a small detent at zero. The readout on the
+					     left balances the reset on the right. -->
 					{#if showTempo}
-						<div class="mt-4" transition:slide={{ duration: 250, easing: easeFluid }}>
+						<div class="mt-4" transition:fly={{ y: -12, duration: 200, easing: easeFluid }}>
 							<div class="flex items-center gap-3" out:fade={{ duration: 120, easing: easeFluid }}>
 								<span class="w-12 flex-shrink-0 text-right text-xs text-text-secondary tabular-nums">
 									{tempoPct >= 0 ? '+' : ''}{tempoPct.toFixed(1)}%

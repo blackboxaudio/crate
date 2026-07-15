@@ -467,6 +467,7 @@
 								src={artworkPreview}
 								alt=""
 								class="h-36 w-36 rounded-lg object-cover shadow-md"
+								decoding="async"
 								onerror={() => (artworkPreviewFailed = true)}
 							/>
 						</div>

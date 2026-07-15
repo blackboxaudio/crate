@@ -3,6 +3,7 @@
 	import { translate } from '$shared/i18n'
 	import { tagsStore } from '$shared/stores/tags'
 	import type { TagFilterMode } from '$shared/types'
+	import { lightTap } from '$lib/utils/haptics'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 
 	// Generalized filter sheet (liked / downloaded toggles + tag chips with AND/OR matching).
@@ -35,6 +36,13 @@
 
 	const active = $derived(new Set(tags?.activeIds ?? []))
 	const hasActiveFilters = $derived(active.size > 0 || !!liked?.value || !!downloaded?.value)
+
+	// Selection tick: filters commit instantly (no confirm step), so acknowledge each toggle the way
+	// the app's other sheets do (playlist picker, queue actions, sort options).
+	function tick(fn: () => void) {
+		void lightTap()
+		fn()
+	}
 </script>
 
 <MobileModal {open} {onClose} title={$translate('filters.title')}>
@@ -57,7 +65,7 @@
 				type="button"
 				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
 				aria-pressed={liked.value}
-				onclick={liked.onToggle}
+				onclick={() => tick(liked.onToggle)}
 			>
 				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
 					<svg
@@ -89,7 +97,7 @@
 				type="button"
 				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
 				aria-pressed={downloaded.value}
-				onclick={downloaded.onToggle}
+				onclick={() => tick(downloaded.onToggle)}
 			>
 				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
 					<svg
@@ -149,7 +157,7 @@
 							? 'pointer-events-none opacity-40'
 							: ''}"
 						disabled={active.size < 2}
-						onclick={tags.onToggleMode}
+						onclick={() => tick(tags.onToggleMode)}
 					>
 						<span
 							class="absolute inset-y-0.5 rounded-full bg-brand-primary transition-all duration-200 ease-out"
@@ -190,7 +198,7 @@
 											: 'border border-stroke bg-surface-2 text-text-secondary'}"
 										style={on ? `background-color: ${color}20; color: ${color}; border: 1px solid ${color}40;` : ''}
 										aria-pressed={on}
-										onclick={() => tags.onToggleTag(tag.id)}
+										onclick={() => tick(() => tags.onToggleTag(tag.id))}
 									>
 										{#if on}
 											<svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">

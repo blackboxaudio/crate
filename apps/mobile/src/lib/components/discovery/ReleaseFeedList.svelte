@@ -53,7 +53,7 @@
 		onScroll,
 		scrollLocked = false,
 		onRefresh,
-		overscan = 8,
+		overscan = 4,
 		class: className = '',
 	}: Props = $props()
 

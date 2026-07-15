@@ -85,7 +85,16 @@ function createDiscoveryStore() {
 
 		async loadReleases(filter?: DiscoveryFilter) {
 			const generation = ++loadGeneration
-			update((state) => ({ ...state, loading: true, error: null }))
+			// Publish pages progressively only while the feed is EMPTY (first load / boot restore). Pages
+			// arrive in backend (date-added) order, so publishing them mid-RELOAD visibly collapses a
+			// custom-sorted list to a re-sorted subset of the newest page and then snaps back once the
+			// last page lands — the "sort flash" on pull-to-refresh. With content already on screen,
+			// keep showing it untouched and swap to the fresh set once, at the end.
+			let progressive = true
+			update((state) => {
+				progressive = state.releases.length === 0
+				return { ...state, loading: true, error: null }
+			})
 
 			try {
 				let offset = 0
@@ -97,17 +106,18 @@ function createDiscoveryStore() {
 					accumulated = offset === 0 ? page : accumulated.concat(page)
 					const done = page.length < pageSize
 					const releases = accumulated
-					// Publish each page as it lands so the feed fills progressively; `loading`
-					// stays true until the last page so empty-state logic still waits for a
-					// complete load. NOTE: an in-place mutation (delete/update) landing mid-load
-					// can be transiently overwritten by the next page publish — it self-heals on
-					// the next reload, and the window is sub-second per page.
-					update((state) => ({
-						...state,
-						releases,
-						loading: !done,
-						filter: filter ?? {},
-					}))
+					// `loading` stays true until the last page so empty-state logic still waits for a
+					// complete load. NOTE: an in-place mutation (delete/update) landing mid-load can be
+					// transiently overwritten by the next publish — it self-heals on the next reload;
+					// the window is sub-second per page (progressive) or one load (buffered reload).
+					if (progressive || done) {
+						update((state) => ({
+							...state,
+							releases,
+							loading: !done,
+							filter: filter ?? {},
+						}))
+					}
 					if (done) break
 					offset += page.length
 					pageSize = PAGE_SIZE

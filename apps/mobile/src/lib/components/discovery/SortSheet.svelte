@@ -2,6 +2,7 @@
 	import { translate } from '$shared/i18n'
 	import type { SortDirection } from '$shared/types'
 	import type { SortOption } from '$lib/utils/listControls'
+	import { lightTap } from '$lib/utils/haptics'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 
 	// Generalized sort sheet shared by the discovery feed and the detail views (playlist / tag /
@@ -20,6 +21,7 @@
 	let { open, onClose, options, current, onSelect, titleKey = 'discovery.sortBy' }: Props = $props()
 
 	function choose(opt: SortOption) {
+		void lightTap()
 		if (!opt.directionless && current?.field === opt.field) {
 			onSelect(opt.field, current.direction === 'asc' ? 'desc' : 'asc')
 		} else {

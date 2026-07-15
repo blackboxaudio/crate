@@ -20,7 +20,7 @@ This permanently deletes your account and all synced data from our servers.
 
 ## Option 2 — Request deletion by email
 
-If you can't access the App, email **matthew@bbx-audio.com** from the email address
+If you can't access the App, email **support@bbx-audio.com** from the email address
 associated with your account (or tell us the email you used to sign in) with the subject
 line **"Delete my account."** We will verify your request and delete your account.
 
@@ -45,4 +45,4 @@ In-app deletions take effect immediately. Email requests are completed within 30
 
 ---
 
-Questions? Contact **matthew@bbx-audio.com**.
+Questions? Contact **support@bbx-audio.com**.

@@ -72,18 +72,38 @@
    Liquid-glass surface (iOS-style): a translucent, blurred, slightly saturated
    material that lets content scroll through behind it. Theme-aware via the
    surface token, with both -webkit- and standard backdrop-filter for WKWebView.
+
+   `[data-glass-suspend]` (set by Drawer while its panel slides / is dragged)
+   swaps the glass for the opaque surface: a backdrop-filter that MOVES forces
+   WKWebView to re-blur the whole scene behind it every frame — the top sheet-
+   jank source. The sheet travels solid; the blur returns once it settles, under
+   a background-color fade (Drawer transitions background-color), so the glass
+   "develops" at rest instead of popping in. No `transition` here — it would
+   out-specificity the panel's own transition classes.
    ============================================================================= */
 
 @utility glass {
 	background-color: color-mix(in srgb, var(--surface-1) 72%, transparent);
-	-webkit-backdrop-filter: blur(24px) saturate(180%);
-	backdrop-filter: blur(24px) saturate(180%);
+	-webkit-backdrop-filter: blur(16px) saturate(180%);
+	backdrop-filter: blur(16px) saturate(180%);
+
+	&[data-glass-suspend] {
+		background-color: var(--surface-1);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
 }
 
 @utility glass-strong {
 	background-color: color-mix(in srgb, var(--surface-1) 85%, transparent);
 	-webkit-backdrop-filter: blur(32px) saturate(180%);
 	backdrop-filter: blur(32px) saturate(180%);
+
+	&[data-glass-suspend] {
+		background-color: var(--surface-1);
+		-webkit-backdrop-filter: none;
+		backdrop-filter: none;
+	}
 }
 
 /* =============================================================================

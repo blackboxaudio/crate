@@ -2,7 +2,7 @@
 
 Source-of-truth legal documents for releasing the Crate mobile app on the Apple App Store
 and Google Play. Publisher: **Black Box Audio, LLC** (United States). Privacy contact:
-**matthew@bbx-audio.com**.
+**support@bbx-audio.com**.
 
 > These documents were drafted from an audit of the app's actual data behavior. They are a
 > solid, accurate starting point — not legal advice. Because the app has user accounts and
@@ -11,33 +11,45 @@ and Google Play. Publisher: **Black Box Audio, LLC** (United States). Privacy co
 
 ## Files
 
-| File | What it is | Where it goes |
+| File | What it is | Where it lives / goes |
 |---|---|---|
-| `privacy-policy.md` | Privacy policy — editable source of truth | — |
-| `privacy-policy.html` | Same content, self-contained styled page | Host at `https://crate.bbx-audio.com/privacy` |
-| `account-deletion.md` | Account-deletion instructions — editable source | — |
-| `account-deletion.html` | Same content, self-contained styled page | Host at `https://crate.bbx-audio.com/account-deletion` |
-| `store-data-safety.md` | Exact answers for Apple App Privacy + Google Data safety forms | Internal reference (do not host) |
+| `legal/privacy-policy.md` | Privacy policy — editable source of truth | — |
+| `legal/account-deletion.md` | Account-deletion instructions — editable source | — |
+| `legal/store-data-safety.md` | Exact answers for Apple App Privacy + Google Data safety forms | Internal reference (do not host) |
+| `web/privacy/index.html` | Deployable privacy page (self-contained) | Live at `https://crate.bbx-audio.com/privacy/index.html` |
+| `web/account-deletion/index.html` | Deployable account-deletion page (self-contained) | Live at `https://crate.bbx-audio.com/account-deletion/index.html` |
 
-The `.html` pages are fully self-contained (no external fonts, scripts, or images) and use
-the Crate brand palette, so a privacy page makes zero third-party requests of its own. Edit
-the `.md` source first, then mirror changes into the `.html`.
+The deployable `.html` pages live under `web/` (next to the marketing `index.html`) so the
+site deploy publishes them; the editable Markdown sources and the data-safety cheat sheet
+stay in `legal/`. The pages are fully self-contained (no external fonts, scripts, or images)
+and use the Crate brand palette. Edit the `.md` source first, then mirror changes into the
+matching `web/**/index.html`.
 
-## Hosting
+## Hosting & deployment
 
-The URLs above assume your product site (`crate.bbx-audio.com`) serves these paths. If you
-host elsewhere, update the URLs referenced inside `privacy-policy.*` (the account-deletion
-link) and `store-data-safety.md`, and point the store consoles at wherever you host them.
+The pages deploy to the `crate-web` Google Cloud Storage bucket (which serves
+`crate.bbx-audio.com` via Cloudflare) in the **Deploy landing page** step of
+`.github/workflows/cd.release.yml`, so they refresh automatically on every release. They
+were also uploaded once manually on 2026-07-15 and are **already live**:
+
+- Privacy policy → `https://crate.bbx-audio.com/privacy/index.html`
+- Account deletion → `https://crate.bbx-audio.com/account-deletion/index.html`
+
+**Use the `/index.html` URLs.** The domain (Cloudflare → GCS) maps URL paths literally to
+bucket object keys, with no directory-index resolution except at the root, so the
+extensionless `https://crate.bbx-audio.com/privacy` returns 404. For clean URLs, add a
+Cloudflare rewrite rule (`/privacy` → `/privacy/index.html`, `/account-deletion` →
+`/account-deletion/index.html`); until then the `/index.html` URLs are canonical.
 
 ## Release checklist
 
-### Documents (this folder)
-- [ ] Host the privacy policy at a public HTTPS URL.
-- [ ] Host the account-deletion page at a public HTTPS URL.
-- [ ] Paste the privacy-policy URL into **App Store Connect** (App Privacy → Privacy Policy URL)
-      and **Google Play Console** (App content → Privacy policy).
+### Documents (this folder) — hosting done
+- [x] Pages hosted at public HTTPS URLs (deployed to `gs://crate-web`; auto-deploys on release).
+- [ ] Paste `https://crate.bbx-audio.com/privacy/index.html` into **App Store Connect**
+      (App Privacy → Privacy Policy URL) and **Google Play Console** (App content → Privacy policy).
 - [ ] Fill in **Apple App Privacy** and **Google Data safety** using `store-data-safety.md`.
-- [ ] Add the account-deletion URL in **Play Console → App content → Data deletion**.
+- [ ] Add `https://crate.bbx-audio.com/account-deletion/index.html` in
+      **Play Console → App content → Data deletion**.
 
 ### Engineering / store requirements still needed for approval
 - [ ] **In-app account deletion.** Apple (Guideline 5.1.1(v)) and Google both require an

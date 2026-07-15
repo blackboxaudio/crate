@@ -289,6 +289,11 @@
 				}ms var(--ease-fluid)`
 			: 'none'
 	)
+	// Promote the strip + slots to compositor layers only while motion is live: the finger-follow phase
+	// mutates transforms per frame with NO CSS transition, which WebKit won't auto-promote — without the
+	// hint every frame repaints the large shadow-2xl tiles. Dropped at idle so the layers (and their
+	// memory) don't outlive the gesture.
+	const willChange = $derived(phase !== 'idle' ? 'transform' : 'auto')
 
 	// What each slot shows. While a frozen strip exists (drag/settle) it wins; during a store slide the
 	// outgoing cover occupies the slot the strip parked on and the other neighbor is hidden (its peeked
@@ -319,7 +324,7 @@
 	<div class="relative aspect-square w-full max-w-sm" bind:clientWidth={coverW}>
 		<div
 			class="absolute inset-0"
-			style="transform: translateX({dragX}px); transition: {transitionOn && !reducedMotion
+			style="transform: translateX({dragX}px); will-change: {willChange}; transition: {transitionOn && !reducedMotion
 				? `transform ${phase === 'storeSlide' ? STORE_SLIDE_MS : SETTLE_MS}ms var(--ease-fluid)`
 				: 'none'}"
 			ontransitionend={onTransitionEnd}
@@ -328,10 +333,15 @@
 			{#if storeSlide?.dir === 1}
 				<div
 					class="absolute inset-0"
-					style="transform: translateX({-slotDist}px) scale({neighborScale}); opacity: {outgoingOpacity}; transition: {slotTransition}"
+					style="transform: translateX({-slotDist}px) scale({neighborScale}); opacity: {outgoingOpacity}; will-change: {willChange}; transition: {slotTransition}"
 				>
 					{#if storeSlide.outgoingSrc}
-						<img src={storeSlide.outgoingSrc} alt="" class="aspect-square w-full rounded-2xl object-cover shadow-2xl" />
+						<img
+							src={storeSlide.outgoingSrc}
+							alt=""
+							class="aspect-square w-full rounded-2xl object-cover shadow-2xl"
+							decoding="async"
+						/>
 					{:else}
 						{@render fallbackTile()}
 					{/if}
@@ -339,7 +349,7 @@
 			{:else if prevSlotPick}
 				<div
 					class="absolute inset-0"
-					style="transform: translateX({-slotDist}px) scale({neighborScale}); opacity: {neighborOpacity}; transition: {slotTransition}"
+					style="transform: translateX({-slotDist}px) scale({neighborScale}); opacity: {neighborOpacity}; will-change: {willChange}; transition: {slotTransition}"
 				>
 					<ReleaseArtwork
 						release={prevSlotPick.release}
@@ -354,7 +364,7 @@
 			     re-anchored on a still-pending swipe target). -->
 			<div
 				class="absolute inset-0"
-				style="transform: {centerTransform}; opacity: {centerOpacity}; transition: {slotTransition}"
+				style="transform: {centerTransform}; opacity: {centerOpacity}; will-change: {willChange}; transition: {slotTransition}"
 			>
 				{#if centerPick}
 					<ReleaseArtwork
@@ -364,7 +374,12 @@
 						fallback={fallbackTile}
 					/>
 				{:else if centerSrc}
-					<img src={centerSrc} alt="" class="aspect-square w-full rounded-2xl object-cover shadow-2xl" />
+					<img
+						src={centerSrc}
+						alt=""
+						class="aspect-square w-full rounded-2xl object-cover shadow-2xl"
+						decoding="async"
+					/>
 				{:else}
 					{@render fallbackTile()}
 				{/if}
@@ -374,10 +389,15 @@
 			{#if storeSlide?.dir === -1}
 				<div
 					class="absolute inset-0"
-					style="transform: translateX({slotDist}px) scale({neighborScale}); opacity: {outgoingOpacity}; transition: {slotTransition}"
+					style="transform: translateX({slotDist}px) scale({neighborScale}); opacity: {outgoingOpacity}; will-change: {willChange}; transition: {slotTransition}"
 				>
 					{#if storeSlide.outgoingSrc}
-						<img src={storeSlide.outgoingSrc} alt="" class="aspect-square w-full rounded-2xl object-cover shadow-2xl" />
+						<img
+							src={storeSlide.outgoingSrc}
+							alt=""
+							class="aspect-square w-full rounded-2xl object-cover shadow-2xl"
+							decoding="async"
+						/>
 					{:else}
 						{@render fallbackTile()}
 					{/if}
@@ -385,7 +405,7 @@
 			{:else if nextSlotPick}
 				<div
 					class="absolute inset-0"
-					style="transform: translateX({slotDist}px) scale({neighborScale}); opacity: {neighborOpacity}; transition: {slotTransition}"
+					style="transform: translateX({slotDist}px) scale({neighborScale}); opacity: {neighborOpacity}; will-change: {willChange}; transition: {slotTransition}"
 				>
 					<ReleaseArtwork
 						release={nextSlotPick.release}
