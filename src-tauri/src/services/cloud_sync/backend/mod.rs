@@ -40,6 +40,11 @@ pub trait AuthBackend: Send + Sync {
     /// user — used to refresh the cached avatar after the user updates their Google
     /// account info.
     async fn lookup_profile(&self, session: &AuthSession) -> Result<ProfileInfo>;
+
+    /// Permanently delete the signed-in user's auth account (Identity Toolkit
+    /// `accounts:delete`). The runtime treats an "already gone" response as success
+    /// (idempotent account deletion).
+    async fn delete_account(&self, session: &AuthSession) -> Result<()>;
 }
 
 #[async_trait]
@@ -94,6 +99,11 @@ pub trait BlobStore: Send + Sync {
     /// when the key is absent.
     async fn download(&self, session: &AuthSession, key: &str) -> Result<Bytes>;
     async fn delete(&self, session: &AuthSession, key: &str) -> Result<()>;
+
+    /// List every object key under `prefix` (recursive, flat — no delimiter). Used by
+    /// vault/account teardown to sweep blobs the manifest or GC queue may no longer
+    /// reference. Returns full keys ready for [`Self::delete`].
+    async fn list_prefix(&self, session: &AuthSession, prefix: &str) -> Result<Vec<String>>;
 }
 
 #[async_trait]

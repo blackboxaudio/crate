@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Added a swipe-right quick action to mobile release rows: swiping right reveals Play Next (complementing the existing swipe-left Add to Queue / Delete), with a haptic tick when a row opens
 - Added a Like button to the iOS lock screen / CarPlay for the playing preview track: it toggles the track's liked state even while the phone is locked, stays in sync with likes made in the app, and syncs across devices like any other like
 - Added clipboard intake to the mobile Add Release flow: a "Paste link" button fills the URL field from the clipboard (an explicit tap, so iOS's paste-permission prompt only appears when you asked for it), and on Android an eligible copied link prefills automatically when the form opens
+- Added in-app account deletion: signed-in users can permanently delete their account and all synced data (tracks, playlists, tags, discovery) from the cloud via Settings → Cloud Sync → Delete account on both mobile and desktop, while the audio files and library on the device are left untouched — satisfying the App Store and Google Play requirement that in-app account creation come with in-app deletion
 
 ### Changed
 

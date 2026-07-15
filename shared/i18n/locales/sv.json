@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Ta permanent bort all synkroniserad data från molnet. Ditt lokala bibliotek påverkas inte.",
 			"confirmTitle": "Ta bort molnvalv?",
 			"confirmMessage": "Detta tar permanent bort all din synkroniserad data från molnet och loggar ut dig. Ditt lokala bibliotek förblir intakt. Den här åtgärden kan inte ångras.",
-			"error": "Det gick inte att ta bort ditt molnvalv"
+			"error": "Det gick inte att ta bort ditt molnvalv",
+			"deleteAccount": "Ta bort konto",
+			"deleteAccountDescription": "Ta permanent bort ditt konto och all synkroniserad data från molnet. Detta påverkar inte ljudfilerna eller biblioteket på den här enheten.",
+			"deleteAccountConfirmTitle": "Ta bort ditt konto?",
+			"deleteAccountConfirmMessage": "Detta tar permanent bort ditt konto och tar bort all din synkroniserade data — spår, spellistor, taggar och upptäckter — från varje enhet du är inloggad på. Dina lokala filer förblir på den här enheten. Den här åtgärden kan inte ångras.",
+			"deletingAccount": "Tar bort konto…",
+			"deleteAccountSuccess": "Ditt konto har tagits bort",
+			"deleteAccountError": "Det gick inte att ta bort ditt konto"
 		}
 	},
 	"player": {

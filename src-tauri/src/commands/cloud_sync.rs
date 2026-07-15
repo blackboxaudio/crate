@@ -184,6 +184,14 @@ pub async fn delete_cloud_vault(state: State<'_, Arc<CloudSyncState>>) -> Result
     state.delete_cloud_vault().await
 }
 
+/// Permanently delete the user's account: all cloud data + the Firebase Auth user, then
+/// every local auth trace. The in-app "Delete account" flow (App Store Guideline 5.1.1(v)
+/// / Google Play). Local library data is untouched.
+#[tauri::command]
+pub async fn delete_account(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
+    state.delete_account().await
+}
+
 // =============================================================================
 // Library roots (Phase 4)
 // =============================================================================

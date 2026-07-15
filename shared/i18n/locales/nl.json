@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Verwijder permanent alle gesynchroniseerde gegevens uit de cloud. Uw lokale bibliotheek wordt niet beïnvloed.",
 			"confirmTitle": "Cloudkluis verwijderen?",
 			"confirmMessage": "Hiermee verwijdert u permanent alle uw gesynchroniseerde gegevens uit de cloud en meldt u af. Uw lokale bibliotheek blijft intact. Deze actie kan niet ongedaan worden gemaakt.",
-			"error": "Kon uw cloudkluis niet verwijderen"
+			"error": "Kon uw cloudkluis niet verwijderen",
+			"deleteAccount": "Account verwijderen",
+			"deleteAccountDescription": "Verwijder permanent uw account en alle gesynchroniseerde gegevens uit de cloud. Dit heeft geen invloed op de audiobestanden of bibliotheek op dit apparaat.",
+			"deleteAccountConfirmTitle": "Account verwijderen?",
+			"deleteAccountConfirmMessage": "Hiermee verwijdert u permanent uw account en wist u alle gesynchroniseerde gegevens — nummers, afspeellijsten, labels en ontdekkingen — van elk apparaat waarbij u bent aangemeld. Uw lokale bestanden blijven op dit apparaat. Deze actie kan niet ongedaan worden gemaakt.",
+			"deletingAccount": "Account verwijderen…",
+			"deleteAccountSuccess": "Uw account is verwijderd",
+			"deleteAccountError": "Kon uw account niet verwijderen"
 		}
 	},
 	"player": {

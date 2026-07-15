@@ -12,6 +12,7 @@
 		cloudDevices,
 		libraryRoots,
 		syncErrorMessageKey,
+		deletingAccount,
 	} from '$shared/stores/cloudSync'
 	import { getSyncDiagnostics } from '$shared/api/cloudSync'
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
@@ -23,6 +24,7 @@
 	let newDeviceName = $state('')
 	let confirmRevokeDeviceId = $state<string | null>(null)
 	let deleteVaultOpen = $state(false)
+	let deleteAccountOpen = $state(false)
 
 	$effect(() => {
 		// Reload on sign-in and whenever a sync completes, so a fresh-device restore pull
@@ -67,6 +69,11 @@
 	function handleDeleteVault() {
 		cloudSyncStore.deleteCloudVault()
 		deleteVaultOpen = false
+	}
+
+	function handleDeleteAccount() {
+		cloudSyncStore.deleteAccount()
+		deleteAccountOpen = false
 	}
 
 	let diagnosticsCopied = $state(false)
@@ -118,12 +125,12 @@
 							{$translate('cloudSync.account.syncing')}
 						</div>
 					{:else}
-						<Button variant="secondary" size="sm" onclick={handleSyncNow}>
+						<Button variant="secondary" size="sm" disabled={$deletingAccount} onclick={handleSyncNow}>
 							<Icon name="refresh" class="mr-1.5 h-3.5 w-3.5" />
 							{$translate('cloudSync.account.syncNow')}
 						</Button>
 					{/if}
-					<Button variant="ghost-danger" size="sm" onclick={handleSignOut}>
+					<Button variant="ghost-danger" size="sm" disabled={$deletingAccount} onclick={handleSignOut}>
 						{$translate('cloudSync.account.signOut')}
 					</Button>
 				</div>
@@ -237,14 +244,40 @@
 		<!-- Danger Zone -->
 		<section>
 			<Text variant="header-3" class="mb-2">{$translate('cloudSync.danger.title')}</Text>
-			<div class="flex items-center justify-between gap-4 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
-				<div class="min-w-0 flex-1">
-					<Text variant="body-2" class="font-medium">{$translate('cloudSync.danger.deleteVault')}</Text>
-					<Text variant="caption" as="p" class="mt-0.5">{$translate('cloudSync.danger.deleteVaultDescription')}</Text>
+			<div class="space-y-3">
+				<div class="flex items-center justify-between gap-4 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+					<div class="min-w-0 flex-1">
+						<Text variant="body-2" class="font-medium">{$translate('cloudSync.danger.deleteVault')}</Text>
+						<Text variant="caption" as="p" class="mt-0.5">{$translate('cloudSync.danger.deleteVaultDescription')}</Text>
+					</div>
+					<Button variant="ghost-danger" size="sm" disabled={$deletingAccount} onclick={() => (deleteVaultOpen = true)}>
+						{$translate('cloudSync.danger.deleteVault')}
+					</Button>
 				</div>
-				<Button variant="ghost-danger" size="sm" onclick={() => (deleteVaultOpen = true)}>
-					{$translate('cloudSync.danger.deleteVault')}
-				</Button>
+				<div class="flex items-center justify-between gap-4 rounded-lg border border-red-500/30 bg-red-500/5 p-4">
+					<div class="min-w-0 flex-1">
+						<Text variant="body-2" class="font-medium">{$translate('cloudSync.danger.deleteAccount')}</Text>
+						<Text variant="caption" as="p" class="mt-0.5"
+							>{$translate('cloudSync.danger.deleteAccountDescription')}</Text
+						>
+					</div>
+					<Button
+						variant="ghost-danger"
+						size="sm"
+						disabled={$deletingAccount}
+						onclick={() => (deleteAccountOpen = true)}
+					>
+						{#if $deletingAccount}
+							<svg class="mr-1.5 h-3.5 w-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+								<circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+								<path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+							</svg>
+							{$translate('cloudSync.danger.deletingAccount')}
+						{:else}
+							{$translate('cloudSync.danger.deleteAccount')}
+						{/if}
+					</Button>
+				</div>
 			</div>
 		</section>
 	</div>
@@ -268,4 +301,14 @@
 	destructive
 	onConfirm={handleDeleteVault}
 	onCancel={() => (deleteVaultOpen = false)}
+/>
+
+<ConfirmModal
+	open={deleteAccountOpen}
+	title={$translate('cloudSync.danger.deleteAccountConfirmTitle')}
+	message={$translate('cloudSync.danger.deleteAccountConfirmMessage')}
+	confirmLabel={$translate('cloudSync.danger.deleteAccount')}
+	destructive
+	onConfirm={handleDeleteAccount}
+	onCancel={() => (deleteAccountOpen = false)}
 />

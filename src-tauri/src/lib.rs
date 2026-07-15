@@ -438,6 +438,7 @@ pub fn run() {
             commands::cloud_sync::rename_device,
             commands::cloud_sync::revoke_device,
             commands::cloud_sync::delete_cloud_vault,
+            commands::cloud_sync::delete_account,
             commands::cloud_sync::list_library_roots,
             commands::cloud_sync::create_library_root,
             commands::cloud_sync::rename_library_root,

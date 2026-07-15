@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Exclua permanentemente todos os seus dados sincronizados da nuvem. Sua biblioteca local não é afetada.",
 			"confirmTitle": "Excluir cofre em nuvem?",
 			"confirmMessage": "Isso exclui permanentemente todos os seus dados sincronizados da nuvem e faz logout. Sua biblioteca local permanece intacta. Esta ação não pode ser desfeita.",
-			"error": "Não foi possível excluir seu cofre em nuvem"
+			"error": "Não foi possível excluir seu cofre em nuvem",
+			"deleteAccount": "Excluir conta",
+			"deleteAccountDescription": "Exclua permanentemente sua conta e todos os seus dados sincronizados da nuvem. Isso não afeta os arquivos de áudio ou biblioteca neste dispositivo.",
+			"deleteAccountConfirmTitle": "Excluir sua conta?",
+			"deleteAccountConfirmMessage": "Isso exclui permanentemente sua conta e apaga todos os seus dados sincronizados — faixas, playlists, tags e descobertas — de cada dispositivo em que você está conectado. Seus arquivos locais permanecem neste dispositivo. Esta ação não pode ser desfeita.",
+			"deletingAccount": "Excluindo conta…",
+			"deleteAccountSuccess": "Sua conta foi excluída",
+			"deleteAccountError": "Não foi possível excluir sua conta"
 		}
 	},
 	"player": {

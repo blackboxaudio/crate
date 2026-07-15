@@ -186,6 +186,27 @@ impl AuthBackend for FirebaseAuth {
             photo_url: user.photo_url,
         })
     }
+
+    async fn delete_account(&self, session: &AuthSession) -> Result<()> {
+        let url = format!(
+            "https://identitytoolkit.googleapis.com/v1/accounts:delete?key={}",
+            self.inner.config.web_api_key
+        );
+        // idToken only — deleting by `localId` is a privileged (service-account) operation
+        // that would 403 with a user idToken. A success returns an empty body (no decode).
+        let body = json!({ "idToken": session.access_token });
+        let resp = self
+            .inner
+            .with_appcheck(self.inner.client.post(&url).json(&body))
+            .await
+            .send()
+            .await
+            .map_err(|e| rest::send_error("accounts:delete request", e))?;
+        if !resp.status().is_success() {
+            return Err(auth_http_error("accounts:delete", resp).await);
+        }
+        Ok(())
+    }
 }
 
 /// `accounts:lookup` response — only the fields we care about for the profile card.

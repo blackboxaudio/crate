@@ -54,6 +54,7 @@ interface CloudSyncState {
 	libraryRoots: LibraryRoot[]
 	signingIn: boolean
 	loading: boolean
+	deletingAccount: boolean
 	error: string | null
 }
 
@@ -96,6 +97,7 @@ const initialState: CloudSyncState = {
 	libraryRoots: [],
 	signingIn: false,
 	loading: false,
+	deletingAccount: false,
 	error: null,
 }
 
@@ -307,6 +309,24 @@ function createCloudSyncStore() {
 			}
 		},
 
+		async deleteAccount() {
+			update((s) => ({ ...s, deletingAccount: true }))
+			try {
+				await cloudSyncApi.deleteAccount()
+				// The backend deletes the account then signs out; reflect the signed-out state.
+				const status = await cloudSyncApi.getSyncStatus()
+				update((s) => ({ ...s, status, devices: [], libraryRoots: [], error: null }))
+				disarmBackgroundSync()
+				// Deletion looks identical to a plain sign-out in the UI, so confirm it explicitly.
+				toastStore.success(get(translate)('cloudSync.danger.deleteAccountSuccess'))
+			} catch (error) {
+				console.error('Failed to delete account:', error)
+				toastStore.error(get(translate)('cloudSync.danger.deleteAccountError'))
+			} finally {
+				update((s) => ({ ...s, deletingAccount: false }))
+			}
+		},
+
 		async loadLibraryRoots() {
 			try {
 				const libraryRoots = await cloudSyncApi.listLibraryRoots()
@@ -425,6 +445,9 @@ export const isSignedIn = derived(
 )
 
 export const isSyncAvailable = derived(cloudSyncStore, ($s) => $s.status.phase !== 'disabled')
+
+/** True while an account-deletion request is in flight — both platforms show a progress state. */
+export const deletingAccount = derived(cloudSyncStore, ($s) => $s.deletingAccount)
 
 export const cloudDevices = derived(cloudSyncStore, ($s) => $s.devices)
 

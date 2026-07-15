@@ -119,6 +119,24 @@ fn classify_error(e: &CrateError) -> SyncErrorKind {
     }
 }
 
+/// A hard auth error meaning the user's credential is gone / unusable — from `accounts:delete`
+/// OR a session-refresh rejection — so account deletion is a no-op on the server and we just
+/// clear local state. Deliberately EXCLUDES `CREDENTIAL_TOO_OLD_LOGIN_AGAIN` and permission /
+/// App Check (403 `PERMISSION_DENIED`) failures: those must abort and keep local state rather
+/// than falsely report the account deleted.
+fn is_already_deleted_auth_error(e: &CrateError) -> bool {
+    matches!(
+        e,
+        CrateError::CloudSyncAuth(msg)
+            if msg.contains("USER_NOT_FOUND")        // accounts:delete / refresh: user is gone
+                || msg.contains("INVALID_ID_TOKEN")      // accounts:delete: idToken no longer valid
+                || msg.contains("EMAIL_NOT_FOUND")       // accounts:delete: user is gone
+                || msg.contains("INVALID_REFRESH_TOKEN") // refresh: credential revoked
+                || msg.contains("TOKEN_EXPIRED")         // refresh: credential expired
+                || msg.contains("USER_DISABLED")         // refresh: account disabled (can't self-delete)
+    )
+}
+
 /// First-sign-in onboarding hint, surfaced ONLY on the sign-in response (never persisted
 /// or polled), so it fires exactly once for the UI that initiated the sign-in.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize)]
@@ -936,26 +954,44 @@ impl CloudSyncState {
         Ok(())
     }
 
-    /// Delete the user's entire cloud vault: every Storage blob (current + superseded),
-    /// the Firestore manifest, the GC queue, and all device records. Local library data
-    /// is left untouched. Signs out afterward — the account has no vault now; signing in
-    /// again re-creates it from the local library.
-    pub async fn delete_cloud_vault(&self) -> Result<()> {
-        let backend = self.require_backend()?;
-        let session = self
-            .ensure_session(&backend)
-            .await?
-            .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
-
-        let _sync = self.sync_lock.lock().await;
+    /// Remote vault teardown + local watermark reset, shared by [`Self::delete_cloud_vault`]
+    /// and [`Self::delete_account`]. The caller MUST already hold `self.sync_lock`. Does NOT
+    /// sign out and does NOT clear the persisted profile keys — each caller owns its tail.
+    ///
+    /// A best-effort complete sweep runs first (every object under `users/{uid}/vault/`,
+    /// covering blobs the manifest / GC queue may no longer reference), then the manifest +
+    /// GC-queue enumeration as a fallback. Every delete is 404-idempotent, so re-running the
+    /// whole teardown after a later-step failure is harmless.
+    async fn teardown_vault_locked(
+        &self,
+        session: &AuthSession,
+        backend: &Arc<dyn CloudBackend>,
+    ) -> Result<()> {
         let store = backend.manifest();
         let blobs = backend.blobs();
 
+        // 0. Complete sweep: list & delete every object under the vault prefix. Best-effort —
+        // if listing is denied (Storage rules) or fails, fall through to the manifest / GC
+        // enumeration below so teardown can never be *blocked* by a missing list permission.
+        let prefix = format!("users/{}/vault/", session.uid);
+        match blobs.list_prefix(session, &prefix).await {
+            Ok(keys) => {
+                for key in keys {
+                    if let Err(e) = blobs.delete(session, &key).await {
+                        log::warn!("cloud_sync: vault sweep delete failed: {e}");
+                    }
+                }
+            }
+            Err(e) => log::warn!(
+                "cloud_sync: vault blob list failed ({e}); falling back to manifest/GC enumeration"
+            ),
+        }
+
         // 1. Delete the current bucket blobs referenced by the manifest.
-        if let Some((manifest, _)) = store.read(&session).await? {
+        if let Some((manifest, _)) = store.read(session).await? {
             for entry in manifest.buckets.values() {
                 let key = format!("users/{}/vault/{}", session.uid, entry.object_key);
-                if let Err(e) = blobs.delete(&session, &key).await {
+                if let Err(e) = blobs.delete(session, &key).await {
                     log::warn!("cloud_sync: vault delete blob failed: {e}");
                 }
             }
@@ -966,23 +1002,23 @@ impl CloudSyncState {
         let far_future =
             std::time::SystemTime::now() + std::time::Duration::from_secs(100 * 365 * 24 * 3600);
         for _ in 0..100 {
-            let due = store.dequeue_gc(&session, far_future, 300).await?;
+            let due = store.dequeue_gc(session, far_future, 300).await?;
             if due.is_empty() {
                 break;
             }
             for (id, entry) in due {
-                let _ = blobs.delete(&session, &entry.object_key).await;
-                let _ = store.ack_gc(&session, id).await;
+                let _ = blobs.delete(session, &entry.object_key).await;
+                let _ = store.ack_gc(session, id).await;
             }
         }
 
         // 3. Delete the manifest document.
-        store.delete(&session).await?;
+        store.delete(session).await?;
 
         // 4. Remove every device record (including this one).
-        if let Ok(devices) = backend.devices().list(&session).await {
+        if let Ok(devices) = backend.devices().list(session).await {
             for d in devices {
-                let _ = backend.devices().remove(&session, &d.device_id).await;
+                let _ = backend.devices().remove(session, &d.device_id).await;
             }
         }
 
@@ -995,9 +1031,90 @@ impl CloudSyncState {
                 [],
             )?;
         }
+        Ok(())
+    }
 
-        // 6. Sign out — the account has no vault now.
+    /// Delete the user's entire cloud vault: every Storage blob (current + superseded),
+    /// the Firestore manifest, the GC queue, and all device records. Local library data
+    /// is left untouched. Signs out afterward — the account has no vault now; signing in
+    /// again re-creates it from the local library.
+    pub async fn delete_cloud_vault(&self) -> Result<()> {
+        let backend = self.require_backend()?;
+        let session = self
+            .ensure_session(&backend)
+            .await?
+            .ok_or_else(|| CrateError::CloudSyncAuth("not signed in".into()))?;
+
+        let _sync = self.sync_lock.lock().await;
+        self.teardown_vault_locked(&session, &backend).await?;
+        // The account still exists — keep the cached profile keys for a clean re-sign-in.
         self.sign_out().await?;
         Ok(())
+    }
+
+    /// Permanently delete the user's account: all cloud data (vault teardown) followed by
+    /// the Firebase Auth user itself (Identity Toolkit `accounts:delete`), then every local
+    /// auth/profile trace. The in-app "Delete account" flow required by App Store Guideline
+    /// 5.1.1(v) / Google Play. Local library data is left untouched.
+    ///
+    /// Idempotent + tolerant of already-deleted resources: if the session can't be refreshed
+    /// (credential already revoked) or `accounts:delete` reports the user is already gone, the
+    /// local state is still cleared and the call succeeds. Genuine / transient failures abort
+    /// and keep local state so the user can retry.
+    pub async fn delete_account(&self) -> Result<()> {
+        let backend = self.require_backend()?;
+
+        // Resolve the session, tolerating an already-invalid credential (idempotency 1 of 2).
+        // For a Google-sign-in-only app a refresh rejection (INVALID_REFRESH_TOKEN /
+        // USER_NOT_FOUND / USER_DISABLED / TOKEN_EXPIRED) means the account is already gone or
+        // unusable — clear local state and report success. Transient errors abort / retry.
+        let session = match self.ensure_session(&backend).await {
+            Ok(Some(s)) => s,
+            Ok(None) => return self.finalize_account_deletion().await,
+            Err(ref e) if is_already_deleted_auth_error(e) => {
+                log::warn!(
+                    "cloud_sync: delete_account: session unusable ({e}); treating as already-deleted"
+                );
+                return self.finalize_account_deletion().await;
+            }
+            Err(e) => return Err(e),
+        };
+
+        let _sync = self.sync_lock.lock().await;
+
+        // 1. Tear down all cloud data while the session is still valid.
+        self.teardown_vault_locked(&session, &backend).await?;
+
+        // 2. Delete the Firebase Auth user — MUST run before any local sign-out (it needs the
+        // live idToken). An "already gone" auth error (idempotency 2 of 2) is success; a stale-
+        // credential (CREDENTIAL_TOO_OLD_LOGIN_AGAIN) or transient error aborts so the user can
+        // retry after re-authenticating, with local state preserved.
+        match backend.auth().delete_account(&session).await {
+            Ok(()) => {}
+            Err(e) if is_already_deleted_auth_error(&e) => {
+                log::warn!(
+                    "cloud_sync: delete_account: auth user already gone ({e}); treating as success"
+                );
+            }
+            Err(e) => return Err(e),
+        }
+
+        // 3. Clear every local auth/profile trace and reset to signed-out.
+        self.finalize_account_deletion().await
+    }
+
+    /// Clear ALL persisted auth/profile state + reset the in-memory session/status to
+    /// signed-out. Unlike [`Self::sign_out`] alone, this also drops the cached profile keys a
+    /// permanently-deleted account can never reuse (`delete_cloud_vault` deliberately keeps
+    /// them for a re-sign-in).
+    async fn finalize_account_deletion(&self) -> Result<()> {
+        {
+            let guard = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+            guard.execute(
+                "DELETE FROM sync_state WHERE key IN ('cloud_uid', 'cloud_email', 'cloud_display_name', 'cloud_photo_url')",
+                [],
+            )?;
+        } // drop the guard before sign_out (auth::sign_out re-locks conn)
+        self.sign_out().await
     }
 }

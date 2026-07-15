@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Löschen Sie alle synchronisierten Daten aus der Cloud dauerhaft. Ihre lokale Bibliothek ist nicht betroffen.",
 			"confirmTitle": "Cloud-Tresor löschen?",
 			"confirmMessage": "Dies löscht alle Ihre synchronisierten Daten aus der Cloud dauerhaft und meldet Sie ab. Ihre lokale Bibliothek bleibt erhalten. Dies kann nicht rückgängig gemacht werden.",
-			"error": "Cloud-Tresor konnte nicht gelöscht werden"
+			"error": "Cloud-Tresor konnte nicht gelöscht werden",
+			"deleteAccount": "Konto löschen",
+			"deleteAccountDescription": "Löschen Sie Ihr Konto und alle synchronisierten Daten aus der Cloud dauerhaft. Dies hat keine Auswirkungen auf die Audiodateien oder Bibliothek auf diesem Gerät.",
+			"deleteAccountConfirmTitle": "Konto löschen?",
+			"deleteAccountConfirmMessage": "Dies löscht Ihr Konto dauerhaft und löscht alle Ihre synchronisierten Daten — Tracks, Playlists, Tags und Discovery — von jedem Gerät, bei dem es angemeldet ist. Ihre lokalen Dateien bleiben auf diesem Gerät. Dies kann nicht rückgängig gemacht werden.",
+			"deletingAccount": "Konto wird gelöscht…",
+			"deleteAccountSuccess": "Ihr Konto wurde gelöscht",
+			"deleteAccountError": "Konto konnte nicht gelöscht werden"
 		}
 	},
 	"player": {

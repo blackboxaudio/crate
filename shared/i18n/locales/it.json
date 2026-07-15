@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Elimina permanentemente tutti i tuoi dati sincronizzati dal cloud. La tua libreria locale non è interessata.",
 			"confirmTitle": "Eliminare il vault cloud?",
 			"confirmMessage": "Questo elimina permanentemente tutti i tuoi dati sincronizzati dal cloud e ti disconnette. La tua libreria locale rimane intatta. Questa azione non può essere annullata.",
-			"error": "Non è stato possibile eliminare il tuo vault cloud"
+			"error": "Non è stato possibile eliminare il tuo vault cloud",
+			"deleteAccount": "Elimina account",
+			"deleteAccountDescription": "Elimina permanentemente il tuo account e tutti i tuoi dati sincronizzati dal cloud. Questo non influisce sui file audio o sulla libreria su questo dispositivo.",
+			"deleteAccountConfirmTitle": "Eliminare il tuo account?",
+			"deleteAccountConfirmMessage": "Questo elimina permanentemente il tuo account e cancella tutti i tuoi dati sincronizzati — tracce, playlist, tag e scoperte — da ogni dispositivo in cui hai effettuato l'accesso. I tuoi file locali rimangono su questo dispositivo. Questa azione non può essere annullata.",
+			"deletingAccount": "Eliminazione account in corso…",
+			"deleteAccountSuccess": "Il tuo account è stato eliminato",
+			"deleteAccountError": "Non è stato possibile eliminare il tuo account"
 		}
 	},
 	"player": {

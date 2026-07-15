@@ -89,6 +89,9 @@ impl AuthBackend for MockCloudBackend {
     ) -> Result<crate::services::cloud_sync::backend::types::ProfileInfo> {
         Ok(Default::default())
     }
+    async fn delete_account(&self, _session: &AuthSession) -> Result<()> {
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -181,6 +184,18 @@ impl BlobStore for MockCloudBackend {
     async fn delete(&self, _session: &AuthSession, key: &str) -> Result<()> {
         self.state.lock().await.blobs.remove(key);
         Ok(())
+    }
+
+    async fn list_prefix(&self, _session: &AuthSession, prefix: &str) -> Result<Vec<String>> {
+        Ok(self
+            .state
+            .lock()
+            .await
+            .blobs
+            .keys()
+            .filter(|k| k.starts_with(prefix))
+            .cloned()
+            .collect())
     }
 }
 

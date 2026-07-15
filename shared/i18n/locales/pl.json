@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Trwale usuń wszystkie zsynchronizowane dane z chmury. Twoja lokalna biblioteka nie jest zagrożona.",
 			"confirmTitle": "Usunąć sejf w chmurze?",
 			"confirmMessage": "To trwale usuwa wszystkie twoje zsynchronizowane dane z chmury i wylogowuje cię. Twoja lokalna biblioteka pozostaje niezmieniona. Tej czynności nie można cofnąć.",
-			"error": "Nie udało się usunąć sejfu w chmurze"
+			"error": "Nie udało się usunąć sejfu w chmurze",
+			"deleteAccount": "Usuń konto",
+			"deleteAccountDescription": "Trwale usuń swoje konto i wszystkie zsynchronizowane dane z chmury. Nie dotyczy to plików audio lub biblioteki na tym urządzeniu.",
+			"deleteAccountConfirmTitle": "Usunąć swoje konto?",
+			"deleteAccountConfirmMessage": "To trwale usuwa twoje konto i kasuje wszystkie twoje zsynchronizowane dane — utwory, listy odtwarzania, tagi i odkrycia — z każdego urządzenia, na którym się zalogowałeś. Twoje pliki lokalne pozostają na tym urządzeniu. Tej czynności nie można cofnąć.",
+			"deletingAccount": "Usuwanie konta…",
+			"deleteAccountSuccess": "Twoje konto zostało usunięte",
+			"deleteAccountError": "Nie udało się usunąć konta"
 		}
 	},
 	"player": {

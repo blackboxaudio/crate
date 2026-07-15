@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "동기화된 모든 데이터를 클라우드에서 영구적으로 삭제합니다. 로컬 라이브러리는 영향을 받지 않습니다.",
 			"confirmTitle": "클라우드 저장소를 삭제하시겠습니까?",
 			"confirmMessage": "동기화된 모든 데이터를 클라우드에서 영구적으로 삭제하고 로그아웃합니다. 로컬 라이브러리는 그대로 유지됩니다. 이 작업은 실행 취소할 수 없습니다.",
-			"error": "클라우드 저장소를 삭제할 수 없습니다"
+			"error": "클라우드 저장소를 삭제할 수 없습니다",
+			"deleteAccount": "계정 삭제",
+			"deleteAccountDescription": "계정과 클라우드에서 동기화된 모든 데이터를 영구적으로 삭제합니다. 이 기기의 오디오 파일이나 라이브러리에는 영향을 주지 않습니다.",
+			"deleteAccountConfirmTitle": "계정을 삭제하시겠습니까?",
+			"deleteAccountConfirmMessage": "계정을 영구적으로 삭제하고 로그인한 모든 기기에서 동기화된 모든 데이터(트랙, 플레이리스트, 태그 및 발견)를 삭제합니다. 로컬 파일은 이 기기에 남아 있습니다. 이 작업은 실행 취소할 수 없습니다.",
+			"deletingAccount": "계정 삭제 중…",
+			"deleteAccountSuccess": "계정이 삭제되었습니다",
+			"deleteAccountError": "계정을 삭제할 수 없습니다"
 		}
 	},
 	"player": {

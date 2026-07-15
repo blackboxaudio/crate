@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "从云中永久删除所有同步的数据。您的本地曲库不受影响。",
 			"confirmTitle": "删除云存储库?",
 			"confirmMessage": "这将从云中永久删除您的所有同步数据并将您登出。您的本地曲库保持不变。此操作无法撤销。",
-			"error": "无法删除您的云存储库"
+			"error": "无法删除您的云存储库",
+			"deleteAccount": "删除账户",
+			"deleteAccountDescription": "永久删除您的账户和云中的所有同步数据。这不会影响此设备上的音频文件或曲库。",
+			"deleteAccountConfirmTitle": "删除您的账户?",
+			"deleteAccountConfirmMessage": "这将永久删除您的账户并删除所有同步的数据——曲目、播放列表、标签和发现——从您登录的每个设备。您的本地文件保留在此设备上。此操作无法撤销。",
+			"deletingAccount": "正在删除账户…",
+			"deleteAccountSuccess": "您的账户已被删除",
+			"deleteAccountError": "无法删除您的账户"
 		}
 	},
 	"player": {

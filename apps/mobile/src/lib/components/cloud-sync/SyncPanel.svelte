@@ -8,6 +8,7 @@
 		cloudSyncError,
 		cloudSyncStore,
 		syncErrorMessageKey,
+		deletingAccount,
 	} from '$shared/stores/cloudSync'
 	import { getSyncDiagnostics } from '$shared/api/cloudSync'
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
@@ -104,6 +105,18 @@
 		void cloudSyncStore.signOut()
 		onSignedOut?.()
 	}
+
+	async function handleDeleteAccount() {
+		const t = get(translate)
+		const confirmed = await confirmDialog(t('cloudSync.danger.deleteAccountConfirmMessage'), {
+			title: t('cloudSync.danger.deleteAccountConfirmTitle'),
+			confirmLabel: t('cloudSync.danger.deleteAccount'),
+			kind: 'error',
+		})
+		if (!confirmed) return
+		void cloudSyncStore.deleteAccount()
+		onSignedOut?.()
+	}
 </script>
 
 {#if $isSignedIn}
@@ -173,16 +186,30 @@
 				type="button"
 				class="w-full rounded-md bg-brand-primary px-3 py-2.5 text-sm font-medium text-white active:opacity-80 disabled:opacity-50"
 				onclick={() => void cloudSyncStore.syncNow()}
-				disabled={syncing}
+				disabled={syncing || $deletingAccount}
 			>
 				{syncing ? $translate('cloudSync.account.syncing') : $translate('cloudSync.account.syncNow')}
 			</button>
 			<button
 				type="button"
-				class="w-full rounded-md bg-surface-2 px-3 py-2.5 text-sm font-medium text-text-secondary active:opacity-70"
+				class="w-full rounded-md bg-surface-2 px-3 py-2.5 text-sm font-medium text-text-secondary active:opacity-70 disabled:opacity-50"
 				onclick={handleSignOut}
+				disabled={$deletingAccount}
 			>
 				{$translate('cloudSync.account.signOut')}
+			</button>
+			<button
+				type="button"
+				class="flex w-full items-center justify-center gap-2 rounded-md px-3 py-2.5 text-sm font-medium text-danger active:opacity-70 disabled:opacity-50"
+				onclick={handleDeleteAccount}
+				disabled={$deletingAccount}
+			>
+				{#if $deletingAccount}
+					<Spinner class="h-4 w-4 text-danger" />
+					{$translate('cloudSync.danger.deletingAccount')}
+				{:else}
+					{$translate('cloudSync.danger.deleteAccount')}
+				{/if}
 			</button>
 		</div>
 	</div>

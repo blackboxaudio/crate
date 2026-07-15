@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Ștergeți permanent toate datele sincronizate din cloud. Biblioteca dvs. locală nu este afectată.",
 			"confirmTitle": "Ștergeți seiful cloud?",
 			"confirmMessage": "Aceasta șterge permanent toate datele sincronizate din cloud și vă deconectează. Biblioteca dvs. locală rămâne intactă. Această acțiune nu poate fi anulată.",
-			"error": "Nu s-a putut șterge seiful dvs. cloud"
+			"error": "Nu s-a putut șterge seiful dvs. cloud",
+			"deleteAccount": "Ștergeți contul",
+			"deleteAccountDescription": "Ștergeți permanent contul și toate datele sincronizate din cloud. Aceasta nu afectează fișierele audio sau biblioteca de pe acest dispozitiv.",
+			"deleteAccountConfirmTitle": "Ștergeți contul?",
+			"deleteAccountConfirmMessage": "Aceasta șterge permanent contul și știerge toate datele sincronizate — piese, liste de redare, etichete și descoperiri — de pe fiecare dispozitiv pe care v-ați conectat. Fișierele dvs. locale rămân pe acest dispozitiv. Această acțiune nu poate fi anulată.",
+			"deletingAccount": "Se șterge contul…",
+			"deleteAccountSuccess": "Contul dvs. a fost șters",
+			"deleteAccountError": "Nu s-a putut șterge contul"
 		}
 	},
 	"player": {

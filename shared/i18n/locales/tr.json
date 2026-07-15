@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Tüm senkronize edilmiş verileri buluttan kalıcı olarak sil. Yerel kütüphanene dokunulmaz.",
 			"confirmTitle": "Bulut kasası silinsin mi?",
 			"confirmMessage": "Bu, tüm senkronize edilmiş verilerinizi buluttan kalıcı olarak siler ve seni oturumu kapatır. Yerel kütüphanene dokunulmaz. Bu işlem geri alınamaz.",
-			"error": "Bulut kasası silinemedi"
+			"error": "Bulut kasası silinemedi",
+			"deleteAccount": "Hesabı sil",
+			"deleteAccountDescription": "Hesabını ve tüm senkronize edilmiş verilerinizi buluttan kalıcı olarak sil. Bu, bu cihazdaki ses dosyalarını veya kütüphanenizi etkilemez.",
+			"deleteAccountConfirmTitle": "Hesap silinsin mi?",
+			"deleteAccountConfirmMessage": "Bu, hesabını kalıcı olarak siler ve tüm senkronize edilmiş verilerinizi — parçalar, çalma listeleri, etiketler ve keşifler — oturum açtığın her cihazdan siler. Yerel dosyaların bu cihazdaki kalır. Bu işlem geri alınamaz.",
+			"deletingAccount": "Hesap siliniyor…",
+			"deleteAccountSuccess": "Hesabın silindi",
+			"deleteAccountError": "Hesap silinemedi"
 		}
 	},
 	"player": {

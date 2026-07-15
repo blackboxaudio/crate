@@ -156,4 +156,56 @@ impl BlobStore for FirebaseBlobs {
         }
         Ok(())
     }
+
+    async fn list_prefix(&self, s: &AuthSession, prefix: &str) -> Result<Vec<String>> {
+        #[derive(serde::Deserialize)]
+        struct ListResponse {
+            #[serde(default)]
+            items: Vec<ListItem>,
+            #[serde(rename = "nextPageToken", default)]
+            next_page_token: Option<String>,
+        }
+        #[derive(serde::Deserialize)]
+        struct ListItem {
+            name: String,
+        }
+
+        let mut names = Vec::new();
+        let mut page_token: Option<String> = None;
+        // Pagination backstop: 1000 pages of 1000 ≫ any real vault.
+        for _ in 0..1000 {
+            let mut url = format!(
+                "{}?prefix={}&maxResults=1000",
+                self.inner.storage_base(),
+                rest::percent_encode(prefix)
+            );
+            if let Some(tok) = &page_token {
+                url.push_str("&pageToken=");
+                url.push_str(&rest::percent_encode(tok));
+            }
+            let resp = self
+                .inner
+                .authed(reqwest::Method::GET, &url, s)
+                .await
+                .send()
+                .await
+                .map_err(|e| rest::send_error("blob list request", e))?;
+            if resp.status() == StatusCode::NOT_FOUND {
+                break;
+            }
+            if !resp.status().is_success() {
+                return Err(rest::http_error("blob list", resp).await);
+            }
+            let page: ListResponse = resp
+                .json()
+                .await
+                .map_err(|e| CrateError::CloudSync(format!("blob list decode: {e}")))?;
+            names.extend(page.items.into_iter().map(|i| i.name));
+            match page.next_page_token {
+                Some(tok) if !tok.is_empty() => page_token = Some(tok),
+                _ => break,
+            }
+        }
+        Ok(names)
+    }
 }

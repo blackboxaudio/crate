@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Elimina permanentemente todos tus datos sincronizados de la nube. Tu biblioteca local no se verá afectada.",
 			"confirmTitle": "¿Eliminar bóveda en la nube?",
 			"confirmMessage": "Esto elimina permanentemente todos tus datos sincronizados de la nube y te desconecta. Tu biblioteca local permanecerá intacta. Esto no se puede deshacer.",
-			"error": "No se pudo eliminar tu bóveda en la nube"
+			"error": "No se pudo eliminar tu bóveda en la nube",
+			"deleteAccount": "Eliminar cuenta",
+			"deleteAccountDescription": "Elimina permanentemente tu cuenta y todos tus datos sincronizados de la nube. Esto no afecta los archivos de audio o la biblioteca en este dispositivo.",
+			"deleteAccountConfirmTitle": "¿Eliminar tu cuenta?",
+			"deleteAccountConfirmMessage": "Esto elimina permanentemente tu cuenta y borra todos tus datos sincronizados — pistas, listas de reproducción, etiquetas y descubrimientos — de cada dispositivo en el que haya iniciado sesión. Tus archivos locales permanecen en este dispositivo. Esto no se puede deshacer.",
+			"deletingAccount": "Eliminando cuenta…",
+			"deleteAccountSuccess": "Tu cuenta fue eliminada",
+			"deleteAccountError": "No se pudo eliminar tu cuenta"
 		}
 	},
 	"player": {

@@ -259,7 +259,14 @@
 			"deleteVaultDescription": "Supprimez définitivement toutes vos données synchronisées du cloud. Votre bibliothèque locale n'est pas affectée.",
 			"confirmTitle": "Supprimer le coffre cloud?",
 			"confirmMessage": "Cela supprime définitivement toutes vos données synchronisées du cloud et vous déconnecte. Votre bibliothèque locale reste intacte. Cette action ne peut pas être annulée.",
-			"error": "Impossible de supprimer votre coffre cloud"
+			"error": "Impossible de supprimer votre coffre cloud",
+			"deleteAccount": "Supprimer le compte",
+			"deleteAccountDescription": "Supprimez définitivement votre compte et toutes vos données synchronisées du cloud. Cela n'affecte pas les fichiers audio ou votre bibliothèque sur cet appareil.",
+			"deleteAccountConfirmTitle": "Supprimer votre compte?",
+			"deleteAccountConfirmMessage": "Cela supprime définitivement votre compte et efface toutes vos données synchronisées — pistes, listes de lecture, étiquettes et découvertes — de chaque appareil connecté. Vos fichiers locaux restent sur cet appareil. Cette action ne peut pas être annulée.",
+			"deletingAccount": "Suppression du compte…",
+			"deleteAccountSuccess": "Votre compte a été supprimé",
+			"deleteAccountError": "Impossible de supprimer votre compte"
 		}
 	},
 	"player": {

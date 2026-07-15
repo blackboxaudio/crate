@@ -77,6 +77,11 @@ export async function deleteCloudVault(): Promise<void> {
 	return invoke<void>('delete_cloud_vault')
 }
 
+/** Permanently delete the user's account (all cloud data + the auth user) and sign out. */
+export async function deleteAccount(): Promise<void> {
+	return invoke<void>('delete_account')
+}
+
 // Library roots
 
 export async function listLibraryRoots(): Promise<LibraryRoot[]> {
