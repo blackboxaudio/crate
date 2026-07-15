@@ -24,7 +24,8 @@
 		"back": "Geri",
 		"more": "Daha fazla",
 		"select": "Seç",
-		"noResults": "Sonuç bulunamadı"
+		"noResults": "Sonuç bulunamadı",
+		"offline": "Çevrimdışısınız"
 	},
 	"nav": {
 		"library": "Kütüphane",
@@ -43,6 +44,7 @@
 			"appearance": "Görünüm",
 			"sound": "Ses",
 			"cloudSync": "Bulut Senkronizasyonu",
+			"storage": "Depolama",
 			"diagnostics": "Tanılamalar",
 			"about": "Hakkında"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Yeniden sırala",
 		"clearQueue": "Temizle",
 		"empty": "Sırada hiçbir şey yok",
-		"emptyHint": "Eklediğin şarkılar sonra oynatılacak"
+		"emptyHint": "Eklediğin şarkılar sonra oynatılacak",
+		"upcoming": "Yaklaşan",
+		"history": "Geçmiş",
+		"historyEmpty": "Henüz hiçbir şey oynatılmadı"
 	},
 	"library": {
 		"searchPlaceholder": "Şarkıları ara...",
@@ -361,6 +366,11 @@
 		"openInApp": "{app}'da Aç",
 		"copyUrl": "URL'yi Kopyala",
 		"copiedUrl": "URL panoya kopyalandı",
+		"share": "Paylaş",
+		"viewAsGrid": "Izgarada Görüntüle",
+		"viewAsList": "Liste Olarak Görüntüle",
+		"pasteLink": "Bağlantıyı Yapıştır",
+		"clipboardNoUrl": "Panoda bağlantı yok",
 		"like": "Beğenilenlere Ekle",
 		"unlike": "Beğenilenleri Kaldır",
 		"playPreview": "Önizlemeyi Oynat",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filtreler",
 		"liked": "Beğenilen",
-		"new": "Yeni"
+		"new": "Yeni",
+		"downloaded": "İndirildi"
 	},
 	"playlists": {
 		"newPlaylist": "Yeni Çalma Listesi",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Çalma listelerinde ara…",
 		"emptyHint": "Keşiflerinizi düzenlemek için çalma listeleri oluşturun",
 		"detailEmptyHint": "Çalma listesine eklemek için Keşfet'te bir yayına uzun basın",
-		"exportToDevice": "Cihaza Dışa Aktar"
+		"exportToDevice": "Cihaza Dışa Aktar",
+		"playlistOrder": "Çalma Listesi Sırası",
+		"sort": {
+			"dateCreated": "Oluşturma Tarihi",
+			"dateModified": "Değiştirilme Tarihi"
+		}
 	},
 	"tags": {
 		"newCategory": "Yeni Kategori",
@@ -670,6 +686,7 @@
 		"exportInProgress": "Dışa aktarma zaten devam ediyor",
 		"tagNameConflict": "Bu ada sahip bir etiket hedef kategoride zaten var",
 		"previewStreamFailed": "Önizleme akışı yüklenmesi başarısız",
+		"previewNotAvailableOffline": "Bu şarkı çevrimdışı olarak kullanılamıyor",
 		"updateCheckFailed": "Güncellemeleri denetlemesi başarısız",
 		"updateInstallFailed": "Güncellemeyi yüklemesi başarısız"
 	},

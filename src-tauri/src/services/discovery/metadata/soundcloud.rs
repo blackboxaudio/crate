@@ -86,6 +86,10 @@ pub(super) fn parse_sc_hydration(html: &str) -> Option<FetchedMetadata> {
             position: 1,
             duration_ms,
             video_id: None,
+            url: sound_data
+                .get("permalink_url")
+                .and_then(|u| u.as_str())
+                .map(|s| s.to_string()),
         }]
     } else {
         Vec::new()
@@ -208,6 +212,12 @@ pub(super) fn parse_sc_playlist_hydration(html: &str) -> Option<FetchedMetadata>
                         position: (idx + 1) as i32,
                         duration_ms,
                         video_id: None,
+                        // SoundCloud hydrates only the first handful of set tracks fully; the
+                        // id-stub rest stay None and heal on a later metadata refresh.
+                        url: track
+                            .get("permalink_url")
+                            .and_then(|u| u.as_str())
+                            .map(|s| s.to_string()),
                     })
                 })
                 .collect::<Vec<_>>()

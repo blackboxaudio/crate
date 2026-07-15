@@ -38,6 +38,9 @@ pub struct FetchedTrack {
     pub position: i32,
     pub duration_ms: Option<i64>,
     pub video_id: Option<String>,
+    /// The track's own page URL (Bandcamp `/track/...`, SoundCloud permalink) when the source
+    /// provides one; `None` for YouTube/Discogs — consumers fall back to the release URL.
+    pub url: Option<String>,
 }
 
 pub(super) fn is_compilation(artist: &Option<String>) -> bool {

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
-	import { fade } from 'svelte/transition'
+	import { fade, slide } from 'svelte/transition'
+	import { translate } from '$shared/i18n'
 	import {
 		activeTab,
 		selectMode,
@@ -9,6 +10,7 @@
 		detailTagId,
 		detailFollowSourceId,
 	} from '$lib/stores/mobileUI'
+	import { isOnline } from '$lib/stores/connectivity'
 	import { previewInfo } from '$shared/stores/player'
 	import { sortedReleases } from '$shared/stores/discovery'
 	import Header from './Header.svelte'
@@ -66,6 +68,19 @@
 
 <div class="relative h-dvh w-screen overflow-hidden bg-surface-0" style="--mini-player-inset: {miniPlayerInset}">
 	<Header />
+
+	<!-- Offline banner: a slim overlay strip under the header (no layout shift — content scrolls
+	     beneath it) whenever the browser reports no connectivity. Downloaded releases keep playing;
+	     this just explains why everything else won't. Sits under drawers/overlays (z-30+). -->
+	{#if !$isOnline}
+		<div
+			transition:slide={{ duration: 180 }}
+			class="glass fixed inset-x-0 z-20 flex h-7 items-center justify-center border-b border-stroke-subtle text-xs font-medium text-text-secondary"
+			style="top: calc(3.5rem + env(safe-area-inset-top))"
+		>
+			{$translate('common.offline')}
+		</div>
+	{/if}
 
 	<main
 		class="relative h-full overflow-hidden"

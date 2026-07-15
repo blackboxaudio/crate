@@ -405,5 +405,18 @@ CREATE TABLE discovery_artwork_cache (
     last_accessed_at TEXT    NOT NULL
 );
 "#,
+        // Migration 9: pinned downloads. `pinned = 1` marks tracks cached via the explicit
+        // "Download for Offline" action; the LRU eviction sweep skips them so heavy listening
+        // can never silently evict a download (only "Remove Download" / "Clear cache" delete
+        // them). Device-local — the cache is never synced.
+        r#"
+ALTER TABLE discovery_audio_cache ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
+"#,
+        // Migration 10: per-track page URLs (Bandcamp `/track/...`, SoundCloud permalinks) for
+        // track-level share/copy. Nullable — YouTube/Discogs tracks have no page of their own,
+        // and pre-existing rows backfill lazily on metadata refresh. Synced (`_hlc` table).
+        r#"
+ALTER TABLE discovery_tracks ADD COLUMN url TEXT;
+"#,
     ]
 }

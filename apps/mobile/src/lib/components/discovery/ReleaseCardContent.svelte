@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$shared/types'
 	import { translate } from '$shared/i18n'
+	import { fullyCachedIds } from '$lib/stores/offlineCache'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 
 	// The visual interior of a discovery row — artwork + title/artist/label. Extracted so the live
@@ -33,8 +34,27 @@
 		{release.artist ?? $translate('common.unknownArtist')}
 	</span>
 	<!-- Label line is always rendered (a non-breaking space when absent) so every row keeps the fixed
-	     height the virtualizer estimates — a conditional line would desync row heights while scrolling. -->
-	<span class="truncate text-xs text-text-tertiary" aria-hidden={!release.label}>
-		{release.label ?? ' '}
+	     height the virtualizer estimates — a conditional line would desync row heights while scrolling.
+	     The downloaded badge leads it when the release's audio is fully cached (offline-ready); the icon
+	     is smaller than the line height, so the row height never changes. -->
+	<span class="flex min-w-0 items-center gap-1 text-xs text-text-tertiary">
+		{#if $fullyCachedIds.has(release.id)}
+			<svg
+				class="h-3 w-3 flex-shrink-0"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<circle cx="12" cy="12" r="9" />
+				<path d="M12 8v7M8.5 12l3.5 3.5L15.5 12" />
+			</svg>
+		{/if}
+		<span class="truncate" aria-hidden={!release.label}>
+			{release.label ?? ' '}
+		</span>
 	</span>
 </div>

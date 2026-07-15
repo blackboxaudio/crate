@@ -96,15 +96,38 @@ export async function invalidatePreviewStreamCache(releaseId: string): Promise<v
 	return invoke<void>('invalidate_preview_stream_cache', { releaseId })
 }
 
+/** Delete a release's downloaded audio bytes + cached stream URLs ("Remove Download"). */
+export async function purgeReleaseAudioCache(releaseId: string): Promise<void> {
+	return invoke<void>('purge_release_audio_cache', { releaseId })
+}
+
 /** Per-release audio-cache state for the "downloaded for offline" indicator. */
 export interface ReleaseCacheState {
 	cached_tracks: number
 	total_tracks: number
 	bytes: number
+	/** Any track pinned via "Download for Offline" (excluded from LRU eviction). */
+	pinned: boolean
 }
 
 export async function getReleaseCacheState(releaseId: string): Promise<ReleaseCacheState> {
 	return invoke<ReleaseCacheState>('get_release_cache_state', { releaseId })
+}
+
+/**
+ * Bulk cached-state for list badges / the Downloaded filter: one entry per release with at
+ * least one cached track. Refetch on the `discovery-cache-changed` Tauri event.
+ */
+export interface CachedReleaseState {
+	release_id: string
+	cached_tracks: number
+	total_tracks: number
+	fully_cached: boolean
+	pinned: boolean
+}
+
+export async function getCachedReleaseStates(): Promise<CachedReleaseState[]> {
+	return invoke<CachedReleaseState[]>('get_cached_release_states')
 }
 
 /** Proactively download + cache one track's audio for offline playback. Idempotent. */

@@ -753,7 +753,7 @@ fn read_live_discovery_releases(
 
 fn read_live_discovery_tracks(conn: &Connection) -> Result<Vec<(String, DiscoveryTrack, String)>> {
     let mut stmt = conn.prepare(
-        "SELECT id, release_id, name, position, duration_ms, video_id, is_liked, _hlc \
+        "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, _hlc \
          FROM discovery_tracks",
     )?;
     let rows = stmt.query_map([], |r| {
@@ -764,9 +764,10 @@ fn read_live_discovery_tracks(conn: &Connection) -> Result<Vec<(String, Discover
             position: r.get(3)?,
             duration_ms: r.get(4)?,
             video_id: r.get(5)?,
-            is_liked: r.get(6)?,
+            url: r.get(6)?,
+            is_liked: r.get(7)?,
         };
-        let hlc: String = r.get(7)?;
+        let hlc: String = r.get(8)?;
         Ok((d.id.clone(), d, hlc))
     })?;
     rows.collect::<std::result::Result<Vec<_>, _>>()

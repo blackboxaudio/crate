@@ -24,7 +24,8 @@
 		"back": "Zurück",
 		"more": "Mehr",
 		"select": "Auswählen",
-		"noResults": "Keine Ergebnisse"
+		"noResults": "Keine Ergebnisse",
+		"offline": "Du bist offline"
 	},
 	"nav": {
 		"library": "Bibliothek",
@@ -43,6 +44,7 @@
 			"appearance": "Erscheinung",
 			"sound": "Ton",
 			"cloudSync": "Cloud-Synchronisierung",
+			"storage": "Speicher",
 			"diagnostics": "Diagnose",
 			"about": "Über"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Neu anordnen",
 		"clearQueue": "Löschen",
 		"empty": "Nichts übernächstes",
-		"emptyHint": "Die Lieder, die du hinzufügst, werden als nächstes abgespielt"
+		"emptyHint": "Die Lieder, die du hinzufügst, werden als nächstes abgespielt",
+		"upcoming": "Bevorstehend",
+		"history": "Verlauf",
+		"historyEmpty": "Noch nichts abgespielt"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks suchen...",
@@ -361,6 +366,11 @@
 		"openInApp": "In {app} öffnen",
 		"copyUrl": "URL kopieren",
 		"copiedUrl": "URL in Zwischenablage kopiert",
+		"share": "Teilen",
+		"viewAsGrid": "Als Raster anzeigen",
+		"viewAsList": "Als Liste anzeigen",
+		"pasteLink": "Link einfügen",
+		"clipboardNoUrl": "Kein Link in der Zwischenablage",
 		"like": "Markieren",
 		"unlike": "Markierung entfernen",
 		"playPreview": "Vorschau abspielen",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filter",
 		"liked": "Gefällt mir",
-		"new": "Neu"
+		"new": "Neu",
+		"downloaded": "Heruntergeladen"
 	},
 	"playlists": {
 		"newPlaylist": "Neue Playlist",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Playlists durchsuchen…",
 		"emptyHint": "Erstellen Sie Playlists, um Ihre Entdeckungen zu organisieren",
 		"detailEmptyHint": "Halten Sie lange ein Release in Entdeckungen gedrückt, um es zu einer Playlist hinzuzufügen",
-		"exportToDevice": "Auf Gerät exportieren"
+		"exportToDevice": "Auf Gerät exportieren",
+		"playlistOrder": "Playlist-Reihenfolge",
+		"sort": {
+			"dateCreated": "Erstellungsdatum",
+			"dateModified": "Änderungsdatum"
+		}
 	},
 	"tags": {
 		"newCategory": "Neue Kategorie",
@@ -669,6 +685,7 @@
 		"exportInProgress": "Export läuft bereits",
 		"tagNameConflict": "Ein Tag mit diesem Namen existiert bereits in der Zielkategorie",
 		"previewStreamFailed": "Fehler beim Laden des Vorschau-Streams",
+		"previewNotAvailableOffline": "Dieser Track ist offline nicht verfügbar",
 		"updateCheckFailed": "Fehler beim Prüfen auf Updates",
 		"updateInstallFailed": "Fehler beim Installieren des Updates"
 	},

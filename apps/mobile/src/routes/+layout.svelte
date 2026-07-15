@@ -3,7 +3,7 @@
 	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
-	import { initializeI18n } from '$shared/i18n'
+	import { initializeI18n, type Language } from '$shared/i18n'
 	import { settingsStore } from '$shared/stores/settings'
 	import { cloudSyncStore } from '$shared/stores/cloudSync'
 	import { startWebMediaSession } from '$shared/services/webMediaSession'
@@ -11,6 +11,7 @@
 	import { playerStore, previewInfo } from '$shared/stores/player'
 	import { isAndroid, isIOS } from '$shared/utils/platform'
 	import { mobileUIStore, isPlayerExpanded, flushNavPersistence } from '$lib/stores/mobileUI'
+	import { offlineCacheStore } from '$lib/stores/offlineCache'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
 	import { initAndroidShareIntake } from '$lib/androidShare'
 	import { initAndroidBack } from '$lib/androidBack'
@@ -126,6 +127,26 @@
 		if (navigator.onLine) void pendingReleasesStore.processQueue()
 	})
 
+	// Offline-cache state (row badges / the Downloaded filter): seed on boot, then refetch whenever
+	// the backend reports a cache change (play-through download, precache pin, purge, clear,
+	// eviction). Debounced — a whole-release download fires one event per track.
+	onMount(() => {
+		void offlineCacheStore.refresh()
+		let unlisten: UnlistenFn | undefined
+		let timer: ReturnType<typeof setTimeout> | null = null
+		void listen('discovery-cache-changed', () => {
+			if (timer) clearTimeout(timer)
+			timer = setTimeout(() => {
+				timer = null
+				void offlineCacheStore.refresh()
+			}, 500)
+		}).then((u) => (unlisten = u))
+		return () => {
+			if (timer) clearTimeout(timer)
+			unlisten?.()
+		}
+	})
+
 	// Android share-intent intake (#62): drain URLs shared from other apps (queued by MainActivity)
 	// and open the add-release sheet prefilled. Gated on i18n so its toasts can translate — a
 	// cold-start share sits safely in the Kotlin queue until this first drain.
@@ -160,14 +181,19 @@
 		// Hold the splash for at least a beat so a fast boot doesn't flash it (mirrors desktop's 1s floor).
 		const splashStart = Date.now()
 
-		await initializeI18n()
+		// Boot with the cached language (the same key setLanguage writes) so a non-English UI paints
+		// correctly from the first frame — mirrors desktop's +layout. Without this, a stored language
+		// never applied on mobile.
+		await initializeI18n(localStorage.getItem('crate-language') as Language | null)
 		i18nReady = true
 
 		// Reconcile the store with persisted settings (theme/accent/font/language). The inline script
 		// in app.html already applied the correct theme pre-paint; this keeps the Svelte store in sync
 		// so settings controls reflect the real values. load() is mobile-safe (the desktop-only
-		// audio-devices call is guarded), so it resolves rather than rejecting on mobile.
-		await settingsStore.load({ skipLanguage: true })
+		// audio-devices call is guarded), so it resolves rather than rejecting on mobile. Language is
+		// NOT skipped anymore: the DB value is authoritative (it may have synced from another device),
+		// and the desktop-only menu rebuild inside setLanguage is caught on mobile.
+		await settingsStore.load()
 
 		// Boot done — dismiss the splash (honoring the minimum on-screen time); it scale-fades out.
 		const elapsed = Date.now() - splashStart

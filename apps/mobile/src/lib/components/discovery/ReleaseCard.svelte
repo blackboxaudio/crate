@@ -6,7 +6,7 @@
 	import { DRAG_THRESHOLD } from '$shared/utils/drag'
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { toastStore } from '$shared/stores/toast'
-	import { mobileUIStore, selectMode, selectedReleaseIds, openRowId } from '$lib/stores/mobileUI'
+	import { mobileUIStore, selectMode, selectedReleaseIds, openRowId, openRowSide } from '$lib/stores/mobileUI'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import Spinner from '$lib/components/common/Spinner.svelte'
@@ -14,9 +14,9 @@
 
 	// A discovery feed row. Shows artwork + title + artist + label and hosts ONE combined pointer gesture
 	// that disambiguates between: vertical scroll (always wins for the list), a plain tap (open the detail,
-	// or toggle selection in select mode), a long-press (enter multi-select), and a swipe-left that reveals
-	// the trailing actions (Add-to-queue + Delete). We don't compose two Svelte actions for this — `swipe`
-	// + a `longpress` would both
+	// or toggle selection in select mode), a long-press (context menu / multi-select), a swipe-left that
+	// reveals the trailing actions (Add-to-queue + Delete), and a swipe-right that reveals the leading
+	// action (Play next). We don't compose two Svelte actions for this — `swipe` + a `longpress` would both
 	// claim the node's `touch-action` and race on the same dx/dy decision — so it's a single state machine,
 	// modelled on the axis-lock / velocity-flick approach in `$lib/actions/swipe.ts`.
 	type Props = {
@@ -37,11 +37,14 @@
 
 	// --- Gesture state --------------------------------------------------------------------------------
 	const LONG_PRESS_MS = 450
-	const ACTION_W = 88 // width of one revealed trailing action
-	const REVEAL_PX = ACTION_W * 2 // swipe-left reveals two actions (Add-to-queue + Delete); fully-open offset
+	const ACTION_W = 88 // width of one revealed action button
+	const TRAIL_W = ACTION_W * 2 // swipe-left reveals two trailing actions (Add-to-queue + Delete)
+	const LEAD_W = ACTION_W // swipe-right reveals one leading action (Play next)
 	const FLICK_VELOCITY = 0.4 // px/ms — a flick this fast commits in its direction regardless of distance
 
-	let revealPx = $state(0) // how far the foreground is shifted left (0 = closed, REVEAL_PX = open)
+	// Signed foreground offset: 0 = closed, -TRAIL_W = trailing actions revealed, +LEAD_W = leading
+	// action revealed. One gesture never crosses sides — a fully-open row must settle closed first.
+	let offsetX = $state(0)
 	let dragging = $state(false) // true only while the finger is actively driving the swipe (disables the CSS ease)
 	let pressed = $state(false) // tap press-highlight
 
@@ -53,6 +56,9 @@
 	let lastT = 0
 	let velocity = 0
 	let openAtStart = 0
+	// The claimed gesture's allowed offset range (one side only), fixed when the swipe is claimed.
+	let minX = 0
+	let maxX = 0
 	let longPressTimer = 0
 	let foregroundEl = $state<HTMLElement | null>(null) // the row's foreground div; its rect anchors the context menu
 
@@ -63,12 +69,14 @@
 	}
 
 	// Keep the row in sync with the store's single-open invariant: when another row opens (or a scroll
-	// closes everything), animate this one shut. Bails while the finger is dragging so it never fights the
-	// live follow.
+	// closes everything), animate this one shut — and restore the correct SIDE when the virtualizer
+	// recycles this row back into view while it's the open one. Bails while the finger is dragging so
+	// it never fights the live follow.
 	$effect(() => {
 		const openId = $openRowId
+		const side = $openRowSide
 		if (dragging) return
-		revealPx = openId === release.id ? REVEAL_PX : 0
+		offsetX = openId === release.id ? (side === 'lead' ? LEAD_W : -TRAIL_W) : 0
 	})
 
 	// Safety net: tear down listeners / timer if the row unmounts mid-gesture (the virtualizer recycles rows).
@@ -99,23 +107,25 @@
 		pointerId = null
 	}
 
-	function settle(open: boolean) {
+	function settle(side: 'lead' | 'trail' | null) {
 		mode = 'idle'
 		dragging = false
-		if (open) {
-			revealPx = REVEAL_PX
-			mobileUIStore.setOpenRow(release.id)
-		} else {
-			revealPx = 0
+		if (side === null) {
+			offsetX = 0
 			if ($openRowId === release.id) mobileUIStore.setOpenRow(null)
+			return
 		}
+		const wasOpenHere = $openRowId === release.id && $openRowSide === side
+		offsetX = side === 'lead' ? LEAD_W : -TRAIL_W
+		if (!wasOpenHere) void lightTap()
+		mobileUIStore.setOpenRow(release.id, side)
 	}
 
 	function onLongPress() {
 		longPressTimer = 0
 		if (mode !== 'pending') return
 		void rigidTap()
-		// Snapshot the row's viewport rect so the context menu can lift a preview of it in place. `revealPx`
+		// Snapshot the row's viewport rect so the context menu can lift a preview of it in place. `offsetX`
 		// is 0 here (long-press only arms from a closed row), so the foreground sits at its resting position.
 		const r = foregroundEl?.getBoundingClientRect()
 		const rect = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
@@ -134,12 +144,12 @@
 		startY = e.clientY
 		lastT = e.timeStamp
 		velocity = 0
-		openAtStart = revealPx
+		openAtStart = offsetX
 		mode = 'pending'
 		pressed = true
 		// Long-press only makes sense from a closed row outside select mode (in select mode a tap toggles).
 		clearLongPress()
-		if (!isSelectMode && revealPx === 0) longPressTimer = window.setTimeout(onLongPress, LONG_PRESS_MS)
+		if (!isSelectMode && offsetX === 0) longPressTimer = window.setTimeout(onLongPress, LONG_PRESS_MS)
 		window.addEventListener('pointermove', onPointerMove, { passive: false })
 		window.addEventListener('pointerup', onPointerUp)
 		window.addEventListener('pointercancel', onPointerUp)
@@ -160,15 +170,19 @@
 				abandon()
 				return
 			}
-			// Horizontal: swipe-to-delete is left-only, and disabled in select mode. From an already-open
-			// row a rightward drag is allowed (it closes the row).
+			// Horizontal. Swipes are disabled in select mode. From closed, the initial direction picks
+			// the side (left = queue/delete, right = play-next) and the gesture stays one-sided; from an
+			// open row the drag can only travel back toward closed — never across to the other side.
 			if (isSelectMode) {
 				abandon()
 				return
 			}
-			if (openAtStart === 0 && dx >= 0) {
-				abandon()
-				return
+			if (openAtStart < 0 || (openAtStart === 0 && dx < 0)) {
+				minX = -TRAIL_W
+				maxX = 0
+			} else {
+				minX = 0
+				maxX = LEAD_W
 			}
 			mode = 'swipe'
 			dragging = true
@@ -180,7 +194,7 @@
 			if (now > lastT) velocity = (e.clientX - lastX) / (now - lastT)
 			lastX = e.clientX
 			lastT = now
-			revealPx = clamp(openAtStart - dx, 0, REVEAL_PX)
+			offsetX = clamp(openAtStart + dx, minX, maxX)
 		}
 	}
 
@@ -197,10 +211,17 @@
 		pressed = false
 
 		if (wasSwipe) {
-			// Commit: a flick wins by direction; otherwise snap to whichever side we're past the midpoint of.
-			if (velocity < -FLICK_VELOCITY) settle(true)
-			else if (velocity > FLICK_VELOCITY) settle(false)
-			else settle(revealPx > REVEAL_PX / 2)
+			// Commit: a flick wins by direction; otherwise snap to whichever side of the midpoint we're on.
+			// The claimed range tells the side apart (trailing gestures live in negative space).
+			if (minX < 0) {
+				if (velocity < -FLICK_VELOCITY) settle('trail')
+				else if (velocity > FLICK_VELOCITY) settle(null)
+				else settle(offsetX < -TRAIL_W / 2 ? 'trail' : null)
+			} else {
+				if (velocity > FLICK_VELOCITY) settle('lead')
+				else if (velocity < -FLICK_VELOCITY) settle(null)
+				else settle(offsetX > LEAD_W / 2 ? 'lead' : null)
+			}
 			return
 		}
 
@@ -210,8 +231,8 @@
 		// Stationary release → a tap.
 		if (isSelectMode) {
 			mobileUIStore.toggleReleaseSelected(release.id)
-		} else if (revealPx > 0) {
-			settle(false) // tapping an open row just closes it
+		} else if (offsetX !== 0) {
+			settle(null) // tapping an open row just closes it
 		} else {
 			void lightTap()
 			mobileUIStore.openDetail(release.id)
@@ -231,27 +252,58 @@
 			confirmLabel: $translate('common.delete'),
 		})
 		if (!ok) return
-		settle(false)
+		settle(null)
 		await discoveryStore.deleteRelease(release.id)
 	}
 
 	// Release-level "Add to queue": enqueue all of the release's tracks, in order (the granular per-track
 	// actions live in the detail screen). Closes the swipe row and confirms with a toast (queue isn't on screen).
 	function queueRelease() {
-		settle(false)
+		settle(null)
 		if (release.tracks.length === 0) return
 		void lightTap()
 		playbackQueue.addReleaseToQueue(release)
 		toastStore.success($translate('queue.addedToQueue'))
 	}
+
+	// Leading-swipe "Play next": queue the whole release right after the current track (mirrors the
+	// context menu's action). Closes the row and confirms with a toast (the queue isn't on screen).
+	function playNextRelease() {
+		settle(null)
+		if (release.tracks.length === 0) return
+		void lightTap()
+		playbackQueue.playReleaseNext(release)
+		toastStore.success($translate('queue.playingNext'))
+	}
 </script>
 
 <div class="relative h-full overflow-hidden">
-	<!-- Revealed-on-swipe Delete action, anchored to the right edge behind the foreground. Only mounted
-	     while the row is open or being swiped (revealPx > 0): the foreground uses a *translucent* highlight
+	<!-- Leading (swipe-right) Play-next action, anchored to the left edge behind the foreground. Like the
+	     trailing pair, it's only mounted while revealed so it can't bleed through the foreground's
+	     translucent highlight tint on a closed row. -->
+	{#if offsetX > 0}
+		<div class="absolute inset-y-0 left-0 flex">
+			<button
+				type="button"
+				class="flex flex-col items-center justify-center gap-1 bg-brand-primary px-1 text-center text-[10px] leading-tight font-semibold text-white"
+				style="width: {ACTION_W}px"
+				aria-label={$translate('queue.playNext')}
+				onclick={playNextRelease}
+			>
+				<svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+					<path d="M5 5l11 7-11 7z" />
+					<rect x="17.5" y="5" width="2" height="14" rx="1" />
+				</svg>
+				{$translate('queue.playNext')}
+			</button>
+		</div>
+	{/if}
+
+	<!-- Revealed-on-swipe trailing actions, anchored to the right edge behind the foreground. Only mounted
+	     while the row is open or being swiped (offsetX < 0): the foreground uses a *translucent* highlight
 	     (bg-brand-muted) when the release is selected or the current preview, so a Delete button left painted
 	     behind a closed row would bleed through that tint and look perpetually half-revealed. -->
-	{#if revealPx > 0}
+	{#if offsetX < 0}
 		<div class="absolute inset-y-0 right-0 flex">
 			<button
 				type="button"
@@ -284,7 +336,7 @@
 		</div>
 	{/if}
 
-	<!-- Foreground: the card itself, translated left to reveal the Delete action. Owns the pointer FSM.
+	<!-- Foreground: the card itself, translated to reveal an action side. Owns the pointer FSM.
 	     `touch-pan-y` lets the browser keep handling vertical scroll until we claim a horizontal swipe. -->
 	<div
 		bind:this={foregroundEl}
@@ -295,7 +347,7 @@
 		class="relative flex h-full w-full touch-pan-y items-center gap-3 px-4 text-left {bgClass} {dragging
 			? ''
 			: 'transition-transform duration-200 ease-out'}"
-		style="transform: translateX(-{revealPx}px)"
+		style="transform: translateX({offsetX}px)"
 		onpointerdown={onPointerDown}
 		onkeydown={onKeyDown}
 	>

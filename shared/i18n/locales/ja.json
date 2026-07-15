@@ -24,7 +24,8 @@
 		"back": "戻る",
 		"more": "その他",
 		"select": "選択",
-		"noResults": "結果なし"
+		"noResults": "結果なし",
+		"offline": "オフラインです"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -43,6 +44,7 @@
 			"appearance": "外観",
 			"sound": "サウンド",
 			"cloudSync": "クラウド同期",
+			"storage": "ストレージ",
 			"diagnostics": "診断",
 			"about": "情報"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "並べ替え",
 		"clearQueue": "クリア",
 		"empty": "次はありません",
-		"emptyHint": "追加した曲が次に再生されます"
+		"emptyHint": "追加した曲が次に再生されます",
+		"upcoming": "今後",
+		"history": "履歴",
+		"historyEmpty": "まだ再生されていません"
 	},
 	"library": {
 		"searchPlaceholder": "トラックを検索...",
@@ -361,6 +366,11 @@
 		"openInApp": "{app}で開く",
 		"copyUrl": "URLをコピー",
 		"copiedUrl": "URLをコピーしました",
+		"share": "シェア",
+		"viewAsGrid": "グリッドで表示",
+		"viewAsList": "リストで表示",
+		"pasteLink": "リンクを貼り付け",
+		"clipboardNoUrl": "クリップボードにリンクがありません",
 		"like": "お気に入りに追加",
 		"unlike": "お気に入りから削除",
 		"playPreview": "プレビューを再生",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "フィルター",
 		"liked": "いいね",
-		"new": "新着"
+		"new": "新着",
+		"downloaded": "ダウンロード済み"
 	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "プレイリストを検索…",
 		"emptyHint": "プレイリストを作成してディスカバリーを整理しましょう",
 		"detailEmptyHint": "ディスカバリーのリリースを長押ししてプレイリストに追加してください",
-		"exportToDevice": "デバイスにエクスポート"
+		"exportToDevice": "デバイスにエクスポート",
+		"playlistOrder": "プレイリストの順序",
+		"sort": {
+			"dateCreated": "作成日",
+			"dateModified": "更新日"
+		}
 	},
 	"tags": {
 		"newCategory": "新しいカテゴリ",
@@ -670,6 +686,7 @@
 		"exportInProgress": "エクスポートが既に進行中です",
 		"tagNameConflict": "同じ名前のタグが移動先のカテゴリに既に存在します",
 		"previewStreamFailed": "プレビューストリームの読み込みに失敗しました",
+		"previewNotAvailableOffline": "このトラックはオフラインでは利用できません",
 		"updateCheckFailed": "アップデートの確認に失敗しました",
 		"updateInstallFailed": "アップデートのインストールに失敗しました"
 	},

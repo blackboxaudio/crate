@@ -36,6 +36,15 @@ pub struct NativeTrackEntry {
     /// SoundCloud are unambiguous `audio/mpeg`).
     #[serde(default)]
     pub mime_type: Option<String>,
+    /// Identity + liked state for the lock-screen Like (feedback) command: the engine toggles the
+    /// DB natively while the WebView's JS is suspended, so it needs the track's row id in hand.
+    /// Defaults keep older/partial payloads deserializable; a `None` id disables Like for that entry.
+    #[serde(default)]
+    pub track_id: Option<String>,
+    #[serde(default)]
+    pub release_id: Option<String>,
+    #[serde(default)]
+    pub is_liked: bool,
 }
 
 /// Send+Sync Tauri-state handle to the native playback engine. All real work happens on the main
@@ -99,6 +108,15 @@ impl NativePreviewEngine {
             with_engine_mut(|e| e.set_rate(rate as f32))
         });
     }
+
+    /// Reflect an in-app like toggle on the engine's entries + the lock-screen glyph. The reverse
+    /// direction (a lock-screen press) toggles natively in `like_pressed` and notifies JS via
+    /// `native-preview-like-changed`.
+    pub fn set_liked(&self, track_id: String, liked: bool) {
+        run_on_main(&self.app, move || {
+            with_engine_mut(|e| e.apply_liked(&track_id, liked))
+        });
+    }
 }
 
 /// Run `f` on the main thread (where all AVPlayer / objc-UI mutation must happen). Best-effort.
@@ -157,6 +175,24 @@ pub(super) fn emit_error(app: &AppHandle, message: String) {
         message: String,
     }
     let _ = app.emit("native-preview-error", Payload { message });
+}
+
+/// A lock-screen Like press toggled the DB natively; tell JS (best-effort — if it's suspended,
+/// stores re-read from the DB on next launch anyway) so the in-memory stores catch up.
+pub(super) fn emit_like_changed(app: &AppHandle, track_id: &str, is_liked: bool) {
+    #[derive(Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Payload {
+        track_id: String,
+        is_liked: bool,
+    }
+    let _ = app.emit(
+        "native-preview-like-changed",
+        Payload {
+            track_id: track_id.to_string(),
+            is_liked,
+        },
+    );
 }
 
 /// Temporary diagnostic channel (#54 debugging): log to the Rust logger AND push to the frontend so

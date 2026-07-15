@@ -5,7 +5,15 @@
 	import type { Playlist, SmartRules } from '$shared/types'
 	import { playlistsStore, getPlaylistChildren } from '$shared/stores/playlists'
 	import { discoveryPlaylistStore } from '$shared/stores/discoveryPlaylist'
-	import { mobileUIStore, scrollTopNonce, playlistFolderTrail } from '$lib/stores/mobileUI'
+	import {
+		mobileUIStore,
+		scrollTopNonce,
+		playlistFolderTrail,
+		playlistsSort,
+		type PlaylistsSortField,
+	} from '$lib/stores/mobileUI'
+	import type { SortOption } from '$lib/utils/listControls'
+	import SortSheet from '$lib/components/discovery/SortSheet.svelte'
 	import { easeFluid } from '$lib/easing'
 	import { swipe, type SwipeOptions } from '$lib/actions/swipe'
 	import { getPlaylistCovers, ensurePlaylistCovers, refreshPlaylistCovers } from '$lib/stores/playlistCovers'
@@ -39,15 +47,33 @@
 	const currentFolderId = $derived(folderStack.length > 0 ? folderStack[folderStack.length - 1] : null)
 	const currentFolder = $derived(currentFolderId ? (allPlaylists.find((p) => p.id === currentFolderId) ?? null) : null)
 
+	// The current level, folders-first, then the user's chosen sort within each group (persisted
+	// in mobileUI so it survives remounts and restarts). Name ties break date sorts for stability.
 	const children = $derived.by(() => {
 		const items = currentFolderId
 			? getPlaylistChildren(allPlaylists, currentFolderId)
 			: allPlaylists.filter((p) => p.parent_id === null)
+		const { field, direction } = $playlistsSort
+		const dir = direction === 'asc' ? 1 : -1
 		return [...items].sort((a, b) => {
 			if (a.is_folder !== b.is_folder) return a.is_folder ? -1 : 1
+			if (field === 'name') return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) * dir
+			// ISO timestamps — string comparison is chronological.
+			const aVal = a[field] ?? ''
+			const bVal = b[field] ?? ''
+			if (aVal < bVal) return -1 * dir
+			if (aVal > bVal) return 1 * dir
 			return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 		})
 	})
+
+	// Folder-listing sort sheet (name / created / modified) — shares the generalized SortSheet.
+	let sortOpen = $state(false)
+	const playlistsSortOptions: SortOption[] = [
+		{ field: 'name', labelKey: 'discovery.following.sort.name', defaultDir: 'asc' },
+		{ field: 'date_created', labelKey: 'playlists.sort.dateCreated', defaultDir: 'desc' },
+		{ field: 'date_modified', labelKey: 'playlists.sort.dateModified', defaultDir: 'desc' },
+	]
 
 	// Client-side search over the current level's playlists / folders (by name). Scoped to the level the
 	// user is in — drilling into or out of a folder clears it (see push/popFolder) so each level starts
@@ -296,6 +322,24 @@
 		/>
 		<button
 			type="button"
+			aria-label={$translate('discovery.sortBy')}
+			class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
+			onclick={() => (sortOpen = true)}
+		>
+			<svg
+				viewBox="0 0 24 24"
+				class="h-5 w-5"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M3 8l4-4 4 4M7 4v16M21 16l-4 4-4-4M17 20V4" />
+			</svg>
+		</button>
+		<button
+			type="button"
 			class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
 			aria-label={$translate('common.create')}
 			onclick={openAddMenu}
@@ -305,6 +349,14 @@
 			</svg>
 		</button>
 	</div>
+
+	<SortSheet
+		open={sortOpen}
+		onClose={() => (sortOpen = false)}
+		options={playlistsSortOptions}
+		current={$playlistsSort}
+		onSelect={(field, direction) => mobileUIStore.setPlaylistsSort({ field: field as PlaylistsSortField, direction })}
+	/>
 
 	<!-- Sliding content: each level owns its own scroll container so levels slide over one another on
 	     folder navigation. Inside a folder the level leads with a back row naming the folder — it slides

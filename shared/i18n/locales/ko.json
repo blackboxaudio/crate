@@ -24,7 +24,8 @@
 		"back": "뒤로",
 		"more": "더 보기",
 		"select": "선택",
-		"noResults": "결과 없음"
+		"noResults": "결과 없음",
+		"offline": "오프라인입니다"
 	},
 	"nav": {
 		"library": "라이브러리",
@@ -43,6 +44,7 @@
 			"appearance": "모양",
 			"sound": "사운드",
 			"cloudSync": "클라우드 동기화",
+			"storage": "저장소",
 			"diagnostics": "진단",
 			"about": "정보"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "다시 정렬",
 		"clearQueue": "지우기",
 		"empty": "다음이 없습니다",
-		"emptyHint": "추가하는 곡이 다음에 재생됩니다"
+		"emptyHint": "추가하는 곡이 다음에 재생됩니다",
+		"upcoming": "예정",
+		"history": "재생 기록",
+		"historyEmpty": "아직 재생된 것이 없습니다"
 	},
 	"library": {
 		"searchPlaceholder": "트랙 검색...",
@@ -361,6 +366,11 @@
 		"openInApp": "{app}에서 열기",
 		"copyUrl": "URL 복사",
 		"copiedUrl": "URL이 클립보드에 복사되었습니다",
+		"share": "공유",
+		"viewAsGrid": "그리드로 보기",
+		"viewAsList": "목록으로 보기",
+		"pasteLink": "링크 붙여넣기",
+		"clipboardNoUrl": "클립보드에 링크가 없습니다",
 		"like": "좋아요 추가",
 		"unlike": "좋아요 제거",
 		"playPreview": "미리보기 재생",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "필터",
 		"liked": "좋아요",
-		"new": "새로운"
+		"new": "새로운",
+		"downloaded": "다운로드됨"
 	},
 	"playlists": {
 		"newPlaylist": "새 재생목록",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "재생목록 검색…",
 		"emptyHint": "재생목록을 만들어 발견을 정리하세요",
 		"detailEmptyHint": "발견에서 릴리스를 길게 눌러 재생목록에 추가하세요",
-		"exportToDevice": "장치로 내보내기"
+		"exportToDevice": "장치로 내보내기",
+		"playlistOrder": "재생목록 순서",
+		"sort": {
+			"dateCreated": "생성 날짜",
+			"dateModified": "수정 날짜"
+		}
 	},
 	"tags": {
 		"newCategory": "새 카테고리",
@@ -669,6 +685,7 @@
 		"exportInProgress": "내보내기가 이미 진행 중입니다",
 		"tagNameConflict": "대상 카테고리에 같은 이름의 태그가 이미 존재합니다",
 		"previewStreamFailed": "미리보기 스트림을 로드하지 못했습니다",
+		"previewNotAvailableOffline": "이 트랙은 오프라인에서 사용할 수 없습니다",
 		"updateCheckFailed": "업데이트 확인 실패",
 		"updateInstallFailed": "업데이트 설치 실패"
 	},

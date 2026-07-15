@@ -4,12 +4,17 @@
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { translate } from '$shared/i18n'
 	import type { FollowedSource } from '$shared/types'
-	import { followStore, sortedFollowedSources } from '$shared/stores/follow'
+	import { followStore, sortedFollowedSources, type FollowSort } from '$shared/stores/follow'
 	import { discoveryStore } from '$shared/stores/discovery'
+	import { toastStore } from '$shared/stores/toast'
+	import { shareUrl } from '$shared/api/app'
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { formatRelativeDate } from '$shared/utils'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import { mobileUIStore, scrollTopNonce } from '$lib/stores/mobileUI'
+	import type { SortOption } from '$lib/utils/listControls'
+	import SortSheet from '$lib/components/discovery/SortSheet.svelte'
 	import MobileList from '$lib/components/common/MobileList.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
@@ -29,18 +34,26 @@
 		followStore.load()
 	})
 
+	// The displayed roster: the store's derived applies BOTH its search and sort, so the query and
+	// the sort choice survive tab remounts (matching Discovery, whose search also lives in its store).
 	const sources = $derived($sortedFollowedSources)
-	const hasSources = $derived(sources.length > 0)
+	// Toolbar/pull-to-refresh visibility keys off the RAW roster — an active search that matches
+	// nothing must not hide the search box that created it.
+	const hasSources = $derived($followStore.sources.length > 0)
 
-	// Client-side roster search over the loaded sources — matches on the display name or the source URL
-	// (mirrors the desktop Following search). The empty roster shows its own CTA, so search is only offered
-	// once there's a roster to filter.
-	let query = $state('')
-	const filteredSources = $derived.by(() => {
-		const q = query.trim().toLowerCase()
-		if (!q) return sources
-		return sources.filter((s) => (s.name ?? '').toLowerCase().includes(q) || s.url.toLowerCase().includes(q))
-	})
+	// Roster sort: the followStore's existing machinery (newCount / name / recentlyReleased) finally
+	// gets mobile UI. Fixed-direction options, so they render directionless in the sheet.
+	let sortOpen = $state(false)
+	const followSortOptions: SortOption[] = [
+		{ field: 'newCount', labelKey: 'discovery.following.sort.newCount', defaultDir: 'desc', directionless: true },
+		{ field: 'name', labelKey: 'discovery.following.sort.name', defaultDir: 'asc', directionless: true },
+		{
+			field: 'recentlyReleased',
+			labelKey: 'discovery.following.sort.recentlyReleased',
+			defaultDir: 'desc',
+			directionless: true,
+		},
+	]
 
 	// The roster's own scroll element, handed to PullToRefresh so a pull-down checks every source, and used
 	// for the tab re-tap scroll-to-top.
@@ -153,6 +166,23 @@
 		void followStore.check(source.id)
 	}
 
+	function shareSource(source: FollowedSource) {
+		actionsOpen = false
+		// The OS share sheet is the feedback — no toast.
+		void shareUrl(source.url, source.name ?? undefined).catch(() => {})
+	}
+
+	async function copySourceUrl(source: FollowedSource) {
+		actionsOpen = false
+		try {
+			await writeText(source.url)
+			// Exception to the sparing-toasts rule: a clipboard write has no other visible feedback.
+			toastStore.info($translate('discovery.copiedUrl'))
+		} catch {
+			// Clipboard denied — nothing useful to surface.
+		}
+	}
+
 	async function unfollow(source: FollowedSource) {
 		actionsOpen = false
 		// Reuse the desktop copy that already explains unfollowing keeps existing releases, so it reads as
@@ -238,10 +268,28 @@
 	{#if hasSources}
 		<div class="glass flex items-center gap-2 border-b border-stroke-subtle px-3 py-2">
 			<MobileSearchInput
-				value={query}
-				oninput={(v) => (query = v)}
+				value={$followStore.search}
+				oninput={(v) => followStore.setSearch(v)}
 				placeholder={$translate('discovery.following.searchPlaceholder')}
 			/>
+			<button
+				type="button"
+				aria-label={$translate('discovery.following.sortBy')}
+				class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
+				onclick={() => (sortOpen = true)}
+			>
+				<svg
+					viewBox="0 0 24 24"
+					class="h-5 w-5"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M3 8l4-4 4 4M7 4v16M21 16l-4 4-4-4M17 20V4" />
+				</svg>
+			</button>
 			<button
 				type="button"
 				class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
@@ -268,10 +316,10 @@
 			style="padding-bottom: var(--mini-player-inset, 0px)"
 		>
 			<MobileList isEmpty={!hasSources} empty={emptyState}>
-				{#if hasSources && filteredSources.length === 0}
+				{#if hasSources && sources.length === 0}
 					<div class="px-4 py-10 text-center text-sm text-text-secondary">{$translate('common.noResults')}</div>
 				{/if}
-				{#each filteredSources as source (source.id)}
+				{#each sources as source (source.id)}
 					<!-- Only an individual "Check now" spins this row; a pull-to-refresh (check-all) is already
 				     represented by the single pull spinner, so don't light up every row for it. -->
 					{@const checking = $followStore.checkingIds.has(source.id)}
@@ -298,6 +346,15 @@
 		</div>
 	</div>
 </div>
+
+<SortSheet
+	open={sortOpen}
+	onClose={() => (sortOpen = false)}
+	options={followSortOptions}
+	current={{ field: $followStore.sort, direction: 'asc' }}
+	onSelect={(field) => followStore.setSort(field as FollowSort)}
+	titleKey="discovery.following.sortBy"
+/>
 
 {#snippet emptyState()}
 	<EmptyState
@@ -382,6 +439,42 @@
 				/>
 				<polyline points="15 3 21 3 21 9" stroke-linecap="round" stroke-linejoin="round" />
 				<line x1="10" y1="14" x2="21" y2="3" stroke-linecap="round" stroke-linejoin="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={() => actionTarget && shareSource(actionTarget)}>
+		{$translate('discovery.share')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M12 3v12M8 7l4-4 4 4" />
+				<path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={() => actionTarget && copySourceUrl(actionTarget)}>
+		{$translate('discovery.copyUrl')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<rect x="9" y="9" width="11" height="11" rx="2" />
+				<path d="M5 15V5a2 2 0 012-2h10" />
 			</svg>
 		{/snippet}
 	</ContextMenuItem>

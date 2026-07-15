@@ -86,3 +86,16 @@ pub async fn native_preview_set_rate(
     engine.set_rate(rate);
     Ok(())
 }
+
+/// Reflect an in-app like toggle on the native engine (window entries + lock-screen glyph).
+/// The reverse direction — a lock-screen Like press — toggles the DB natively and notifies the
+/// frontend via the `native-preview-like-changed` event.
+#[tauri::command]
+pub async fn native_preview_set_liked(
+    track_id: String,
+    liked: bool,
+    engine: State<'_, NativePreviewEngine>,
+) -> Result<()> {
+    engine.set_liked(track_id, liked);
+    Ok(())
+}

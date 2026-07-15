@@ -24,7 +24,8 @@
 		"back": "Back",
 		"more": "More",
 		"select": "Select",
-		"noResults": "No results"
+		"noResults": "No results",
+		"offline": "You're offline"
 	},
 	"nav": {
 		"library": "Library",
@@ -43,6 +44,7 @@
 			"appearance": "Appearance",
 			"sound": "Sound",
 			"cloudSync": "Cloud Sync",
+			"storage": "Storage",
 			"diagnostics": "Diagnostics",
 			"about": "About"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Reorder",
 		"clearQueue": "Clear",
 		"empty": "Nothing up next",
-		"emptyHint": "Songs you add will play next"
+		"emptyHint": "Songs you add will play next",
+		"upcoming": "Upcoming",
+		"history": "History",
+		"historyEmpty": "Nothing played yet"
 	},
 	"library": {
 		"searchPlaceholder": "Search tracks...",
@@ -361,6 +366,11 @@
 		"openInApp": "Open in {app}",
 		"copyUrl": "Copy URL",
 		"copiedUrl": "URL copied to clipboard",
+		"share": "Share",
+		"viewAsGrid": "View as grid",
+		"viewAsList": "View as list",
+		"pasteLink": "Paste link",
+		"clipboardNoUrl": "No link on the clipboard",
 		"like": "Like",
 		"unlike": "Unlike",
 		"playPreview": "Play Preview",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filters",
 		"liked": "Liked",
-		"new": "New"
+		"new": "New",
+		"downloaded": "Downloaded"
 	},
 	"playlists": {
 		"newPlaylist": "New Playlist",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Search playlists…",
 		"emptyHint": "Create playlists to organize your discoveries",
 		"detailEmptyHint": "Long-press a release in Discovery to add it to a playlist",
-		"exportToDevice": "Export to Device"
+		"exportToDevice": "Export to Device",
+		"playlistOrder": "Playlist order",
+		"sort": {
+			"dateCreated": "Date created",
+			"dateModified": "Date modified"
+		}
 	},
 	"tags": {
 		"newCategory": "New Category",
@@ -670,6 +686,7 @@
 		"exportInProgress": "Export already in progress",
 		"tagNameConflict": "A tag with this name already exists in the target category",
 		"previewStreamFailed": "Failed to load preview stream",
+		"previewNotAvailableOffline": "This track isn't available offline",
 		"updateCheckFailed": "Failed to check for updates",
 		"updateInstallFailed": "Failed to install update"
 	},

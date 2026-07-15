@@ -201,6 +201,7 @@
 					position: t.position,
 					duration_ms: t.duration_ms ?? undefined,
 					video_id: t.video_id ?? undefined,
+					url: t.url ?? undefined,
 				}))
 			}
 			if (data.source_type && data.source_type !== 'other') {

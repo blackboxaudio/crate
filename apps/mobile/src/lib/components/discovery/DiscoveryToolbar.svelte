@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, likedOnly } from '$shared/stores/discovery'
-	import { mobileUIStore, tagFilterIds } from '$lib/stores/mobileUI'
+	import type { DiscoverySortField } from '$shared/types'
+	import { discoveryViewMode, downloadedOnly, mobileUIStore, tagFilterIds, tagFilterMode } from '$lib/stores/mobileUI'
+	import { RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
 	import SortSheet from './SortSheet.svelte'
 	import FilterSheet from './FilterSheet.svelte'
@@ -18,9 +20,9 @@
 	// of truth. (A tag assign/remove reloads the feed and resets `filter.search`; binding to the store keeps
 	// the box in lock-step instead of showing a stale query the feed no longer applies.)
 
-	// Active-filter count for the trigger badge: tag filters plus the liked-only toggle (mirrors the desktop
-	// FilterDropdown badge) so the button reads as "active" whenever any filter is applied.
-	const activeFilterCount = $derived($tagFilterIds.length + ($likedOnly ? 1 : 0))
+	// Active-filter count for the trigger badge: tag filters plus the liked/downloaded toggles (mirrors the
+	// desktop FilterDropdown badge) so the button reads as "active" whenever any filter is applied.
+	const activeFilterCount = $derived($tagFilterIds.length + ($likedOnly ? 1 : 0) + ($downloadedOnly ? 1 : 0))
 	const hasActiveFilters = $derived(activeFilterCount > 0)
 </script>
 
@@ -84,6 +86,35 @@
 
 	<button
 		type="button"
+		aria-label={$translate($discoveryViewMode === 'grid' ? 'discovery.viewAsList' : 'discovery.viewAsGrid')}
+		class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
+		onclick={() => mobileUIStore.setDiscoveryViewMode($discoveryViewMode === 'grid' ? 'list' : 'grid')}
+	>
+		{#if $discoveryViewMode === 'grid'}
+			<!-- Currently grid → offer list -->
+			<svg
+				viewBox="0 0 24 24"
+				class="h-5 w-5"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+			>
+				<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01" />
+			</svg>
+		{:else}
+			<!-- Currently list → offer grid -->
+			<svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2">
+				<rect x="3" y="3" width="7" height="7" rx="1" />
+				<rect x="14" y="3" width="7" height="7" rx="1" />
+				<rect x="3" y="14" width="7" height="7" rx="1" />
+				<rect x="14" y="14" width="7" height="7" rx="1" />
+			</svg>
+		{/if}
+	</button>
+
+	<button
+		type="button"
 		aria-label={$translate('discovery.addRelease')}
 		class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-brand-primary text-white active:opacity-90"
 		onclick={mobileUIStore.openAddRelease}
@@ -94,5 +125,27 @@
 	</button>
 </div>
 
-<SortSheet open={sortOpen} onClose={() => (sortOpen = false)} />
-<FilterSheet open={filterOpen} onClose={() => (filterOpen = false)} />
+<SortSheet
+	open={sortOpen}
+	onClose={() => (sortOpen = false)}
+	options={RELEASE_SORT_OPTIONS}
+	current={$discoveryStore.sort}
+	onSelect={(field, direction) => discoveryStore.setSort({ field: field as DiscoverySortField, direction })}
+/>
+<FilterSheet
+	open={filterOpen}
+	onClose={() => (filterOpen = false)}
+	liked={{ value: $likedOnly, onToggle: discoveryStore.toggleLikedFilter }}
+	downloaded={{ value: $downloadedOnly, onToggle: mobileUIStore.toggleDownloadedFilter }}
+	tags={{
+		activeIds: $tagFilterIds,
+		mode: $tagFilterMode,
+		onToggleTag: (id) => mobileUIStore.toggleTagFilter(id),
+		onToggleMode: mobileUIStore.toggleTagFilterMode,
+	}}
+	onClearAll={() => {
+		if ($likedOnly) discoveryStore.toggleLikedFilter()
+		if ($downloadedOnly) mobileUIStore.toggleDownloadedFilter()
+		mobileUIStore.clearTagFilters()
+	}}
+/>

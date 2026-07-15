@@ -6,7 +6,7 @@ use std::sync::Arc;
 use crate::error::{CrateError, Result};
 use crate::services::DiscoveryService;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 
 /// Size of each sequential download chunk (~4 MB).
 /// With n-param transformation, YouTube CDN allows full downloads for ANDROID_VR client URLs.
@@ -115,9 +115,10 @@ async fn proxy_http_handler_inner(
                 )
                 .await;
             }
+            // Only this track's entry is stale — leave the release's other cached (possibly
+            // pinned/downloaded) tracks alone.
             log::warn!("Audio cache file size mismatch for {cache_key}, removing stale entry");
-            let _ = std::fs::remove_file(&file_path);
-            let _ = discovery.delete_cached_audio_files(release_id);
+            let _ = discovery.delete_cached_audio_track(release_id, track_position);
         }
     }
 
@@ -169,6 +170,9 @@ async fn proxy_http_handler_inner(
                             if let Err(e) = discovery.enforce_audio_cache_limit() {
                                 log::warn!("Failed to enforce audio cache limit: {e}");
                             }
+                            // Covers organic play-writes, precache downloads, AND evictions —
+                            // cached-state consumers (badges / downloaded filter) refetch on this.
+                            let _ = state_clone.app_handle.emit("discovery-cache-changed", ());
                         }
                         true
                     }

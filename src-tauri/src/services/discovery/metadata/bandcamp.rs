@@ -678,6 +678,8 @@ pub(super) fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                                 position: 1,
                                 duration_ms,
                                 video_id: None,
+                                // The page URL IS this track's URL; release-URL fallback covers it.
+                                url: None,
                             });
                         }
                     }
@@ -768,11 +770,19 @@ fn parse_bandcamp_tracks(
                     .and_then(|d| d.as_str())
                     .and_then(parse_iso_duration);
 
+                // Per-track page URL — same `@id`-then-`url` fallback as `inAlbum` above.
+                let url = track_item
+                    .get("@id")
+                    .or_else(|| track_item.get("url"))
+                    .and_then(|u| u.as_str())
+                    .map(|s| s.to_string());
+
                 Some(FetchedTrack {
                     name,
                     position,
                     duration_ms,
                     video_id: None,
+                    url,
                 })
             })
             .collect();

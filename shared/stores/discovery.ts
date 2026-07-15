@@ -9,6 +9,7 @@ import type {
 } from '../types'
 import * as discoveryApi from '../api/discovery'
 import * as followApi from '../api/follow'
+import { sortDiscoveryReleases } from '../utils/sorting'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
@@ -280,19 +281,27 @@ function createDiscoveryStore() {
 		async toggleTrackLiked(releaseId: string, trackId: string) {
 			try {
 				const isLiked = await discoveryApi.toggleTrackLiked(trackId)
-				update((state) => ({
-					...state,
-					releases: state.releases.map((r) =>
-						r.id === releaseId
-							? { ...r, tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)) }
-							: r
-					),
-				}))
-				playerStore.setPreviewTrackLiked(trackId, isLiked)
-				discoveryPlaylistStore.updateTrackLiked(releaseId, trackId, isLiked)
+				this.applyTrackLiked(releaseId, trackId, isLiked)
 			} catch (error) {
 				console.error('Failed to toggle track liked:', error)
 			}
+		},
+
+		/**
+		 * Apply an is_liked change that already happened in the DB (the API toggle above, or the iOS
+		 * lock-screen Like, which the native engine writes directly) to every in-memory holder.
+		 */
+		applyTrackLiked(releaseId: string, trackId: string, isLiked: boolean) {
+			update((state) => ({
+				...state,
+				releases: state.releases.map((r) =>
+					r.id === releaseId
+						? { ...r, tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)) }
+						: r
+				),
+			}))
+			playerStore.setPreviewTrackLiked(trackId, isLiked)
+			discoveryPlaylistStore.updateTrackLiked(releaseId, trackId, isLiked)
 		},
 
 		toggleLikedFilter() {
@@ -487,6 +496,13 @@ export const discoveryStore = createDiscoveryStore()
 // on this store: discovery already imports playerStore, so wiring it the other way would be circular.
 playerStore.setPreviewPlayedHandler((releaseId) => discoveryStore.clearNew(releaseId))
 
+// iOS lock-screen Like: the native engine has already toggled the DB; mirror the change into the
+// in-memory stores once JS is running again. Same inversion rationale as above.
+playerStore.setNativeLikeChangedHandler((trackId, isLiked) => {
+	const release = get(discoveryStore).releases.find((r) => r.tracks.some((t) => t.id === trackId))
+	if (release) discoveryStore.applyTrackLiked(release.id, trackId, isLiked)
+})
+
 // =============================================================================
 // Derived Stores
 // =============================================================================
@@ -494,33 +510,6 @@ playerStore.setPreviewPlayedHandler((releaseId) => discoveryStore.clearNew(relea
 export const likedOnly = derived(discoveryStore, ($discovery) => $discovery.likedOnly)
 
 export const newOnly = derived(discoveryStore, ($discovery) => $discovery.newOnly)
-
-function sortReleases(releases: DiscoveryRelease[], sort: DiscoverySortConfig): DiscoveryRelease[] {
-	const { field, direction } = sort
-	const dir = direction === 'asc' ? 1 : -1
-
-	return [...releases].sort((a, b) => {
-		let cmp = 0
-		if (field === 'release_date') {
-			const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
-			const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
-			const aValid = !isNaN(aDate)
-			const bValid = !isNaN(bDate)
-			if (!aValid && !bValid) cmp = 0
-			else if (!aValid) return 1
-			else if (!bValid) return -1
-			else if (aDate < bDate) cmp = -1 * dir
-			else if (aDate > bDate) cmp = 1 * dir
-		} else {
-			const aVal = a[field] ?? ''
-			const bVal = b[field] ?? ''
-			if (aVal < bVal) cmp = -1 * dir
-			else if (aVal > bVal) cmp = 1 * dir
-		}
-		if (cmp !== 0) return cmp
-		return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
-	})
-}
 
 export const sortedReleases = derived(discoveryStore, ($discovery) => {
 	let releases = [...$discovery.releases]
@@ -549,7 +538,7 @@ export const sortedReleases = derived(discoveryStore, ($discovery) => {
 	}
 
 	// Apply sorting
-	return sortReleases(releases, $discovery.sort)
+	return sortDiscoveryReleases(releases, $discovery.sort)
 })
 
 export const displayedReleases = derived(
@@ -592,7 +581,7 @@ export const displayedReleases = derived(
 			)
 		}
 
-		return sortReleases(releases, $discovery.sort)
+		return sortDiscoveryReleases(releases, $discovery.sort)
 	}
 )
 

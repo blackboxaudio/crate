@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
-	import type { Playlist } from '$shared/types'
+	import type { DiscoverySortConfig, DiscoverySortField, Playlist } from '$shared/types'
 	import { playlistsStore } from '$shared/stores/playlists'
 	import { getSmartPlaylistReleases } from '$shared/api/playlists'
 	import { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
+	import { sortDiscoveryReleases } from '$shared/utils/sorting'
 	import {
 		mobileUIStore,
 		playlistReorderMode,
@@ -13,6 +14,14 @@
 		overlayPopNonce,
 		detailReleaseId,
 	} from '$lib/stores/mobileUI'
+	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import {
+		applyViewFilter,
+		emptyViewFilter,
+		hasActiveViewFilter,
+		RELEASE_SORT_OPTIONS,
+		type SortOption,
+	} from '$lib/utils/listControls'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import { registerBackLayer } from '$lib/androidBack'
@@ -22,6 +31,7 @@
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
 	import ReleaseFeedList from '$lib/components/discovery/ReleaseFeedList.svelte'
 	import ReleaseContextMenu from '$lib/components/discovery/ReleaseContextMenu.svelte'
+	import ListControlsBar from '$lib/components/discovery/ListControlsBar.svelte'
 	import SelectionBar from '$lib/components/discovery/SelectionBar.svelte'
 	import PlaylistPickerSheet from './PlaylistPickerSheet.svelte'
 	import SortableReleaseList from './SortableReleaseList.svelte'
@@ -41,6 +51,34 @@
 
 	const isReorderMode = $derived($playlistReorderMode)
 	const isSelectMode = $derived($selectMode)
+
+	// View-level (session-local) sort + filter over the playlist's releases. Sort is
+	// non-destructive — null = the playlist's own order (junction positions, or smart-rule
+	// order) — and never writes positions. Reset naturally on close (the component unmounts).
+	let viewSort = $state<DiscoverySortConfig | null>(null)
+	let viewFilter = $state(emptyViewFilter())
+	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds))
+	const displayed = $derived(viewSort ? sortDiscoveryReleases(filtered, viewSort) : filtered)
+	// Manual reorder writes junction positions, which is only meaningful while the user is looking
+	// at the unfiltered natural order — a sorted/filtered list would persist a misleading result.
+	const canReorder = $derived(!playlist.is_smart && viewSort === null && !hasActiveViewFilter(viewFilter))
+
+	// "Playlist order" leads the sort options as the directionless natural-order choice.
+	const sortOptions: SortOption[] = [
+		{ field: 'playlist_order', labelKey: 'playlists.playlistOrder', defaultDir: 'asc', directionless: true },
+		...RELEASE_SORT_OPTIONS,
+	]
+
+	function onSelectSort(field: string, direction: 'asc' | 'desc') {
+		viewSort = field === 'playlist_order' ? null : { field: field as DiscoverySortField, direction }
+	}
+
+	// Publish the displayed list so playback started from this view queues exactly what's on
+	// screen (sorted/filtered); cleared when the view unmounts or before each re-publish.
+	$effect(() => {
+		mobileUIStore.setOverlayReleases(displayed)
+		return () => mobileUIStore.setOverlayReleases(null)
+	})
 
 	// Android Back exits reorder mode before it closes this drawer (#62): reorder activates after
 	// the drawer opened, so this registration naturally stacks above the drawer's own.
@@ -169,8 +207,10 @@
 				</button>
 				<h1 class="truncate text-lg font-semibold text-text-primary">{playlist.name}</h1>
 			</div>
-			<!-- Reorder only applies to manual playlists — a smart playlist's order is rule-derived. -->
-			{#if !playlist.is_smart}
+			<!-- Reorder only applies to manual playlists in their natural, unfiltered order — a smart
+			     playlist's order is rule-derived, and reordering a sorted/filtered view would persist
+			     a misleading result. -->
+			{#if canReorder}
 				<div class="flex items-center gap-1">
 					{#if isReorderMode}
 						<button
@@ -201,6 +241,16 @@
 		     would nest scrollers and double the mini-player inset. Loading / empty / reorder keep their own
 		     scrollable wrapper; reorder stays non-virtualized because SortableReleaseList's drag math needs
 		     every row present. -->
+		{#if !loading && releases.length > 0 && !isReorderMode}
+			<ListControlsBar
+				{sortOptions}
+				currentSort={viewSort ?? { field: 'playlist_order', direction: 'asc' }}
+				{onSelectSort}
+				filter={viewFilter}
+				onFilterChange={(f) => (viewFilter = f)}
+			/>
+		{/if}
+
 		{#if loading}
 			<div class="flex flex-1 items-center justify-center py-12">
 				<Spinner class="h-6 w-6 text-text-tertiary" />
@@ -225,8 +275,18 @@
 			>
 				<SortableReleaseList {releases} onReorder={handleReorder} />
 			</div>
+		{:else if displayed.length === 0}
+			<!-- The playlist has releases, but the active view filter hides them all. -->
+			<div class="flex-1 px-4 py-8">
+				<p class="text-center text-sm text-text-secondary">{$translate('discovery.noResults')}</p>
+			</div>
 		{:else}
-			<ReleaseFeedList {releases} scrollLocked={animating} row={releaseRow} />
+			<ReleaseFeedList
+				releases={displayed}
+				scrollLocked={animating}
+				row={releaseRow}
+				onScroll={() => mobileUIStore.setOpenRow(null)}
+			/>
 		{/if}
 	{/snippet}
 </Drawer>
@@ -249,6 +309,7 @@
 	context="playlist"
 	{releases}
 	playlistId={playlist.is_smart ? null : playlist.id}
+	{canReorder}
 	onAddToPlaylist={openPickerForSingle}
 	onRemoveFromPlaylist={removeFromPlaylist}
 />

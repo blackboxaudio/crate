@@ -24,7 +24,8 @@
 		"back": "Retour",
 		"more": "Plus",
 		"select": "Sélectionner",
-		"noResults": "Aucun résultat"
+		"noResults": "Aucun résultat",
+		"offline": "Vous êtes hors ligne"
 	},
 	"nav": {
 		"library": "Bibliothèque",
@@ -43,6 +44,7 @@
 			"appearance": "Apparence",
 			"sound": "Son",
 			"cloudSync": "Synchronisation cloud",
+			"storage": "Stockage",
 			"diagnostics": "Diagnostics",
 			"about": "À propos"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Réorganiser",
 		"clearQueue": "Effacer",
 		"empty": "Rien à suivre",
-		"emptyHint": "Les chansons que vous ajoutez seront lues ensuite"
+		"emptyHint": "Les chansons que vous ajoutez seront lues ensuite",
+		"upcoming": "À venir",
+		"history": "Historique",
+		"historyEmpty": "Rien n'a été lu encore"
 	},
 	"library": {
 		"searchPlaceholder": "Rechercher des pistes...",
@@ -361,6 +366,11 @@
 		"openInApp": "Ouvrir dans {app}",
 		"copyUrl": "Copier l'URL",
 		"copiedUrl": "URL copiée dans le presse-papiers",
+		"share": "Partager",
+		"viewAsGrid": "Afficher en grille",
+		"viewAsList": "Afficher en liste",
+		"pasteLink": "Coller un lien",
+		"clipboardNoUrl": "Aucun lien dans le presse-papiers",
 		"like": "Ajouter aux favoris",
 		"unlike": "Retirer des favoris",
 		"playPreview": "Écouter l'aperçu",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filtres",
 		"liked": "Aimés",
-		"new": "Nouveau"
+		"new": "Nouveau",
+		"downloaded": "Téléchargé"
 	},
 	"playlists": {
 		"newPlaylist": "Nouvelle playlist",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Rechercher des playlists…",
 		"emptyHint": "Créez des playlists pour organiser vos découvertes",
 		"detailEmptyHint": "Appuyez longtemps sur une sortie dans Découvertes pour l'ajouter à une playlist",
-		"exportToDevice": "Exporter vers l'appareil"
+		"exportToDevice": "Exporter vers l'appareil",
+		"playlistOrder": "Ordre de la playlist",
+		"sort": {
+			"dateCreated": "Date de création",
+			"dateModified": "Date de modification"
+		}
 	},
 	"tags": {
 		"newCategory": "Nouvelle catégorie",
@@ -669,6 +685,7 @@
 		"exportInProgress": "Exportation déjà en cours",
 		"tagNameConflict": "Un tag portant ce nom existe déjà dans la catégorie cible",
 		"previewStreamFailed": "Échec du chargement du flux d'aperçu",
+		"previewNotAvailableOffline": "Cette piste n'est pas disponible hors ligne",
 		"updateCheckFailed": "Échec de la vérification des mises à jour",
 		"updateInstallFailed": "Échec de l'installation de la mise à jour"
 	},

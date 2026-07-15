@@ -95,8 +95,26 @@ function createPlayerStore() {
 	// "new" flag (listened → no longer new). Injected to avoid a circular import: the discovery store
 	// already depends on this player store, so it registers the handler rather than us importing it.
 	let onPreviewPlayed: ((releaseId: string) => void) | null = null
+	// Called when the iOS lock-screen Like toggled a track natively (DB already updated by the
+	// engine); the discovery store registers this to mirror the change into the JS stores. Same
+	// inversion as onPreviewPlayed — this store must not import the discovery store.
+	let onNativeLikeChanged: ((trackId: string, isLiked: boolean) => void) | null = null
 	let previewRetryAttempted = false
 	let previewRetrying = false
+	// One playback failure can surface through more than one layer in quick succession (engine event,
+	// element error, resolution catch), and offline auto-advance can fail several picks back-to-back.
+	// Collapse them so the user sees exactly one error toast per failure burst.
+	let lastPreviewErrorToastAt = 0
+	function toastPreviewError(message: string) {
+		const now = Date.now()
+		if (now - lastPreviewErrorToastAt < 1500) return
+		lastPreviewErrorToastAt = now
+		toastStore.error(message)
+	}
+	// "Definitely offline" signal for graceful degradation: cached tracks still play through the
+	// local proxy, uncached ones get a clear offline toast / are skipped by auto-advance instead
+	// of a generic network error. No reachability polling — false only means "not sure".
+	const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false
 	let previewSpeedCommitTimeout: ReturnType<typeof setTimeout> | null = null
 	let isRestoredFromStorage = false
 	let lastPositionWriteTime = 0
@@ -314,7 +332,7 @@ function createPlayerStore() {
 				error: msg,
 				playbackState: { ...s.playbackState, is_playing: false },
 			}))
-			toastStore.error(get(translate)('errors.previewStreamFailed'))
+			toastPreviewError(get(translate)('errors.previewStreamFailed'))
 		})
 	}
 
@@ -361,6 +379,9 @@ function createPlayerStore() {
 			durationMs: track.duration_ms ?? 0,
 			artworkUrl: p.release.artwork_url ?? null,
 			mimeType,
+			trackId: track.id ?? null,
+			releaseId: p.release.id,
+			isLiked: track.is_liked ?? false,
 		}
 	}
 
@@ -537,17 +558,22 @@ function createPlayerStore() {
 		 * the track (0 = from the start); it's non-zero only when resuming a session restored from storage,
 		 * so the track picks up where it left off. Currently honored on the iOS native path (the HTML5
 		 * restore path seeks in `resume()` itself).
+		 *
+		 * Returns true when playback started — superseded transitions also report true, since a stale
+		 * failure must not look real to nextTrack's offline skip loop — and false when it failed.
+		 * `opts.silentError` suppresses the failure toast (the skip loop's non-first attempts).
 		 */
 		async playPreview(
 			release: DiscoveryRelease,
 			trackIndex: number = 0,
 			queue?: DiscoveryRelease[],
-			startPositionMs = 0
-		) {
+			startPositionMs = 0,
+			opts?: { silentError?: boolean }
+		): Promise<boolean> {
 			previewRetryAttempted = false
 			const state = getState()
 			const track = release.tracks[trackIndex]
-			if (!track) return
+			if (!track) return false
 			// Last-request-wins: rapid next/previous can overlap transitions whose stream fetches finish
 			// out of order. Only the newest transition may start audio / write state; the queue (already
 			// advanced synchronously by the caller) stays the single source of truth.
@@ -583,7 +609,7 @@ function createPlayerStore() {
 			if (useNative) {
 				try {
 					await feedNativeWindow({ release, trackIndex }, 'reload', startPositionMs, gen)
-					if (gen !== previewLoadGen) return // superseded — the newer transition owns audio + state
+					if (gen !== previewLoadGen) return true // superseded — the newer transition owns audio + state
 					await nativePreviewPlayer.setVolume(state.isMuted ? 0 : state.playbackState.volume)
 					// Apply the active/persisted tempo: native_preview_play starts a fresh AVPlayer item at
 					// 1.0x, so without this a (re)start — including restore-then-resume, or starting a new
@@ -615,19 +641,23 @@ function createPlayerStore() {
 					// Listened → clear the release's "new" flag (desktop/mobile agnostic; no-op if unset).
 					onPreviewPlayed?.(release.id)
 				} catch (error) {
-					if (gen !== previewLoadGen) return // superseded — a failure of a stale transition is noise
+					if (gen !== previewLoadGen) return true // superseded — a failure of a stale transition is noise
 					const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
 					console.error('[native-preview] playPreview failed before/at native play:', errorMsg)
 					update((s) => ({ ...s, error: errorMsg, previewLoading: null }))
-					// Show the real error during debugging (normally the generic string).
-					toastStore.error(`Preview failed: ${errorMsg}`)
+					if (!opts?.silentError) {
+						toastPreviewError(
+							get(translate)(isOffline() ? 'errors.previewNotAvailableOffline' : 'errors.previewStreamFailed')
+						)
+					}
+					return false
 				}
-				return
+				return true
 			}
 
 			try {
 				const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
-				if (gen !== previewLoadGen) return // superseded — the newer transition owns audio + state
+				if (gen !== previewLoadGen) return true // superseded — the newer transition owns audio + state
 
 				wirePreviewEvents()
 
@@ -663,11 +693,17 @@ function createPlayerStore() {
 				// Listened → clear the release's "new" flag (desktop/mobile agnostic; no-op if unset).
 				onPreviewPlayed?.(release.id)
 			} catch (error) {
-				if (gen !== previewLoadGen) return // superseded — a failure of a stale transition is noise
+				if (gen !== previewLoadGen) return true // superseded — a failure of a stale transition is noise
 				const errorMsg = error instanceof Error ? error.message : 'Failed to fetch preview stream'
 				update((s) => ({ ...s, error: errorMsg, previewLoading: null }))
-				toastStore.error(get(translate)('errors.previewStreamFailed'))
+				if (!opts?.silentError) {
+					toastPreviewError(
+						get(translate)(isOffline() ? 'errors.previewNotAvailableOffline' : 'errors.previewStreamFailed')
+					)
+				}
+				return false
 			}
+			return true
 		},
 
 		/**
@@ -1094,8 +1130,20 @@ function createPlayerStore() {
 				scheduleNativeSlide()
 				return
 			}
-			const pick = playbackQueue.advanceNext()
-			if (pick) await this.playPreview(pick.release, pick.trackIndex)
+			// Offline, uncached picks fail fast — skip past them (bounded) so auto-advance lands on the
+			// next cached track instead of halting with an error per pick. The first failure toasts
+			// ("not available offline"); skipped iterations stay silent (silentError).
+			const MAX_OFFLINE_SKIPS = 30
+			let pick = playbackQueue.advanceNext()
+			let skips = 0
+			while (pick) {
+				const ok = await this.playPreview(pick.release, pick.trackIndex, undefined, 0, {
+					silentError: skips > 0,
+				})
+				if (ok || !isOffline() || ++skips >= MAX_OFFLINE_SKIPS) return
+				console.warn('[offline] skipping uncached track', pick.release.id, pick.trackIndex)
+				pick = playbackQueue.advanceNext()
+			}
 		},
 
 		/**
@@ -1181,6 +1229,15 @@ function createPlayerStore() {
 		},
 
 		/**
+		 * Register a handler for iOS lock-screen Like presses (the engine has ALREADY toggled the DB
+		 * natively; the handler only mirrors the change into in-memory stores). The discovery store
+		 * wires this; same import-inversion rationale as setPreviewPlayedHandler.
+		 */
+		setNativeLikeChangedHandler(handler: ((trackId: string, isLiked: boolean) => void) | null) {
+			onNativeLikeChanged = handler
+		},
+
+		/**
 		 * Update is_liked for a preview track (keeps player store in sync with discovery store)
 		 */
 		setPreviewTrackLiked(trackId: string, isLiked: boolean) {
@@ -1197,6 +1254,10 @@ function createPlayerStore() {
 					},
 				}
 			})
+			// Keep the iOS lock-screen glyph honest when the user likes from the in-app UI.
+			// apply_liked is id-keyed and idempotent, so the echo from a lock-screen-initiated
+			// toggle is harmless.
+			if (useNative) void nativePreviewPlayer.setLiked(trackId, isLiked)
 		},
 
 		/**
@@ -1242,7 +1303,8 @@ function createPlayerStore() {
 				}))
 				// Seed the queue module so transport + Up Next work after a restore: the context is just this
 				// release (the feed isn't persisted), then re-hydrate the persisted explicit user queue.
-				playbackQueue.startSession(release, restoredPreviewTrackIndex, [release])
+				// logPlay: false — re-anchoring the last session's track isn't a new listen for the log.
+				playbackQueue.startSession(release, restoredPreviewTrackIndex, [release], { logPlay: false })
 				void playbackQueue.hydrate()
 			} catch {
 				// Release no longer exists — clear stale persistence silently
@@ -1333,7 +1395,10 @@ function createPlayerStore() {
 					}))
 					// User-facing generic string (the raw AVPlayer error is kept in console + state.error for
 					// diagnostics); mirrors the HTML5 preview path's error toast.
-					toastStore.error(get(translate)('errors.previewStreamFailed'))
+					toastPreviewError(get(translate)('errors.previewStreamFailed'))
+				},
+				onLikeChanged: (trackId, isLiked) => {
+					onNativeLikeChanged?.(trackId, isLiked)
 				},
 				onDebug: (message) => {
 					// Console only — a per-load/tick toast would bury real errors now that the mobile toast host

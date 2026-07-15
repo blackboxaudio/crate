@@ -1,15 +1,19 @@
 <script lang="ts">
 	import { get } from 'svelte/store'
-	import type { Tag } from '$shared/types'
+	import type { DiscoverySortConfig, DiscoverySortField, Tag } from '$shared/types'
 	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
+	import { sortDiscoveryReleases } from '$shared/utils/sorting'
 	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
+	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { applyViewFilter, emptyViewFilter, RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
 	import ReleaseFeedList from '$lib/components/discovery/ReleaseFeedList.svelte'
 	import ReleaseContextMenu from '$lib/components/discovery/ReleaseContextMenu.svelte'
+	import ListControlsBar from '$lib/components/discovery/ListControlsBar.svelte'
 	import SelectionBar from '$lib/components/discovery/SelectionBar.svelte'
 	import PlaylistPickerSheet from '$lib/components/playlists/PlaylistPickerSheet.svelte'
 
@@ -34,6 +38,19 @@
 
 	// Releases carrying this tag, taken from the shared discovery set (re-derives as tags change / sync lands).
 	const releases = $derived($discoveryStore.releases.filter((r) => r.tags.some((t) => t.id === tag.id)))
+
+	// View-level (session-local) sort + filter — same controls as the feed; the tags facet is
+	// omitted (filtering a tag's own list by tags is noise). null sort = the derived natural order.
+	let viewSort = $state<DiscoverySortConfig | null>(null)
+	let viewFilter = $state(emptyViewFilter())
+	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds))
+	const displayed = $derived(viewSort ? sortDiscoveryReleases(filtered, viewSort) : filtered)
+
+	// Publish the displayed list so playback started from this view queues exactly what's on screen.
+	$effect(() => {
+		mobileUIStore.setOverlayReleases(displayed)
+		return () => mobileUIStore.setOverlayReleases(null)
+	})
 
 	const isSelectMode = $derived($selectMode)
 
@@ -112,6 +129,17 @@
 			<h1 class="truncate text-lg font-semibold text-text-primary">{tag.name}</h1>
 		</div>
 
+		{#if releases.length > 0}
+			<ListControlsBar
+				sortOptions={RELEASE_SORT_OPTIONS}
+				currentSort={viewSort}
+				onSelectSort={(field, direction) => (viewSort = { field: field as DiscoverySortField, direction })}
+				filter={viewFilter}
+				onFilterChange={(f) => (viewFilter = f)}
+				showTags={false}
+			/>
+		{/if}
+
 		<!-- Content: the same virtualized list the Discovery feed uses, fed this tag's releases. -->
 		{#if $isDiscoveryLoading && $discoveryStore.releases.length === 0}
 			<div class="flex flex-1 items-center justify-center py-12">
@@ -121,8 +149,18 @@
 			<div class="flex-1 px-4 py-12 text-center text-sm text-text-secondary">
 				{$translate('discovery.noReleasesYet')}
 			</div>
+		{:else if displayed.length === 0}
+			<div class="flex-1 px-4 py-12 text-center text-sm text-text-secondary">
+				{$translate('discovery.noResults')}
+			</div>
 		{:else}
-			<ReleaseFeedList {releases} scrollLocked={animating} onRefresh={refreshReleases} row={releaseRow} />
+			<ReleaseFeedList
+				releases={displayed}
+				scrollLocked={animating}
+				onRefresh={refreshReleases}
+				row={releaseRow}
+				onScroll={() => mobileUIStore.setOpenRow(null)}
+			/>
 		{/if}
 	{/snippet}
 </Drawer>

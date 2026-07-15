@@ -12,11 +12,19 @@ import {
 	setStoredNumber,
 	setStoredString,
 } from '$shared/utils/storage'
-import type { DiscoveryRelease, TagFilterMode } from '$shared/types'
+import type { DiscoveryRelease, SortDirection, TagFilterMode } from '$shared/types'
+import { fullyCachedIds } from './offlineCache'
 
 /** The app's primary navigation destinations, surfaced as bottom tabs. Settings is intentionally NOT a
  *  tab — it opens as a right-side drawer from the Header's gear button (see `openSettings`). */
 export type MobileTab = 'discovery' | 'following' | 'playlists' | 'tags'
+
+/** Sort field for the Playlists tab's folder listing (applied within the folders-first grouping). */
+export type PlaylistsSortField = 'name' | 'date_created' | 'date_modified'
+
+/** Settings drawer pages: a root grouped list plus flat sub-pages. The IA is exactly two levels, so
+ *  a single value (not a trail) is enough. */
+export type SettingsPage = 'root' | 'general' | 'appearance' | 'following' | 'cloudSync' | 'storage' | 'about'
 
 /** Where a preview-playback session was started from — selects which list scopes next / shuffle, and
  *  whether the discovery feed's live filter changes should keep re-scoping it. */
@@ -56,6 +64,8 @@ interface MobileUIState {
 	tagFilterIds: string[]
 	/** Whether the tag filter requires ALL selected tags (`and`) or ANY (`or`). */
 	tagFilterMode: TagFilterMode
+	/** Downloaded-only feed filter: show just the releases whose audio is fully cached (offline-ready). */
+	downloadedOnly: boolean
 	/** Whether the feed is in multi-select mode (entered by long-pressing a release). */
 	selectMode: boolean
 	/** Releases selected while in multi-select mode (batch delete / batch tag). */
@@ -68,15 +78,20 @@ interface MobileUIState {
 	 * deliberately not persisted, so a share never replays after a restart.
 	 */
 	addReleasePrefillUrl: string | null
-	/** The one release row whose swipe-to-delete action is revealed — opening another closes it. */
+	/** The one release row whose swipe actions are revealed — opening another closes it. */
 	openRowId: string | null
+	/** Which side of the open row is revealed: 'trail' = swipe-left (queue/delete), 'lead' =
+	 *  swipe-right (play next). Meaningful only while `openRowId` is non-null. */
+	openRowSide: 'lead' | 'trail'
 	/** Whether the settings drawer is mounted (a full-width right-side overlay). Mirrors `detailReleaseId`
 	 *  as the mount flag; stays set until the slide-out animation finishes so `+page` keeps it mounted. The
 	 *  drawer is opaque and sits above the mini-player (z-45 > z-40), so — unlike the detail overlays that
 	 *  the mini-player floats *above* — no `covering` flag is needed: it simply covers the mini-player. */
 	settingsOpen: boolean
-	/** One-shot: settings section to scroll into view after the settings drawer opens. */
-	settingsScrollTarget: string | null
+	/** The settings drawer's current page ('root' = the grouped list; sub-pages slide in-place). Not
+	 *  persisted — the drawer itself never survives a restart, and `openSettings` always sets the page
+	 *  explicitly (gear → root, sync chip → cloudSync), so the entry points stay deterministic. */
+	settingsPage: SettingsPage
 	/** Discovery playlist whose detail screen is open (full-screen overlay), or null. */
 	detailPlaylistId: string | null
 	/** Whether the playlist detail is in its covering position (mirrors detailCovering). */
@@ -136,6 +151,17 @@ interface MobileUIState {
 	 * anchoring by ID survives new releases shifting the list, unlike the raw `discoveryScrollTop`.
 	 */
 	discoveryRestoreAnchor: { releaseId: string; offset: number } | null
+	/** Sort for the Playlists tab's folder listing. Persisted. */
+	playlistsSort: { field: PlaylistsSortField; direction: SortDirection }
+	/** Discovery feed layout: classic rows or the 3-column artwork grid. Persisted. */
+	discoveryViewMode: 'list' | 'grid'
+	/**
+	 * The displayed (sorted/filtered) list of the OPEN detail overlay (playlist/tag/follow), published
+	 * by the overlay while mounted so `activePlaybackContext` scopes playback to exactly what's on
+	 * screen — not the raw unsorted set. Null when no overlay is open (or it hasn't published yet).
+	 * Ephemeral by design.
+	 */
+	overlayDisplayedReleases: DiscoveryRelease[] | null
 }
 
 const defaultState: MobileUIState = {
@@ -147,13 +173,15 @@ const defaultState: MobileUIState = {
 	discoveryScrollTop: 0,
 	tagFilterIds: [],
 	tagFilterMode: 'or',
+	downloadedOnly: false,
 	selectMode: false,
 	selectedReleaseIds: new Set(),
 	addReleaseOpen: false,
 	addReleasePrefillUrl: null,
 	openRowId: null,
+	openRowSide: 'trail',
 	settingsOpen: false,
-	settingsScrollTarget: null,
+	settingsPage: 'root',
 	detailPlaylistId: null,
 	playlistDetailCovering: false,
 	playlistReorderMode: false,
@@ -170,6 +198,9 @@ const defaultState: MobileUIState = {
 	overlayPopNonce: 0,
 	playlistFolderTrail: [],
 	discoveryRestoreAnchor: null,
+	playlistsSort: { field: 'name', direction: 'asc' },
+	discoveryViewMode: 'list',
+	overlayDisplayedReleases: null,
 }
 
 // --- Persisted navigation state (localStorage via shared/utils/storage) -------------------------
@@ -188,11 +219,43 @@ const STORAGE_KEYS = {
 	scrollTop: 'mobile.discovery.scrollTop',
 	anchorReleaseId: 'mobile.discovery.anchorReleaseId',
 	anchorOffset: 'mobile.discovery.anchorOffset',
+	playlistsSort: 'mobile.playlists.sort',
+	discoveryViewMode: 'mobile.discovery.viewMode',
 } as const
 
-/** Row height (px) of the discovery feed's release cards — the feed passes it to `ReleaseFeedList` and
- *  the scroll persistence derives the anchor row from it, so the two can't drift. */
+/** Row height (px) of the discovery feed's release cards (list mode) — the feed passes it to
+ *  `ReleaseFeedList` and the scroll persistence derives the anchor row from it, so the two can't
+ *  drift. Grid mode passes its own geometry via `setDiscoveryScrollTop`'s `geom` parameter. */
 export const DISCOVERY_ROW_HEIGHT = 72
+
+/** Feed scroll geometry: virtual row height + releases per row (1 in list mode, 3 in grid mode).
+ *  The scroll persistence uses it to translate a pixel offset into a release-ID anchor. */
+export interface ScrollGeom {
+	rowHeight: number
+	cols: number
+}
+
+const LIST_SCROLL_GEOM: ScrollGeom = { rowHeight: DISCOVERY_ROW_HEIGHT, cols: 1 }
+
+const PLAYLISTS_SORT_FIELDS: PlaylistsSortField[] = ['name', 'date_created', 'date_modified']
+
+function readStoredPlaylistsSort(): { field: PlaylistsSortField; direction: SortDirection } {
+	try {
+		const raw = getStoredString(STORAGE_KEYS.playlistsSort, '')
+		if (raw) {
+			const parsed = JSON.parse(raw) as { field?: string; direction?: string }
+			if (
+				PLAYLISTS_SORT_FIELDS.includes(parsed.field as PlaylistsSortField) &&
+				(parsed.direction === 'asc' || parsed.direction === 'desc')
+			) {
+				return { field: parsed.field as PlaylistsSortField, direction: parsed.direction }
+			}
+		}
+	} catch {
+		// Malformed stored value — fall through to the default.
+	}
+	return { field: 'name', direction: 'asc' }
+}
 
 function readStoredId(key: string): string | null {
 	return getStoredString(key, '') || null
@@ -233,6 +296,8 @@ function seedInitialState(): MobileUIState {
 		discoveryRestoreAnchor: anchorReleaseId
 			? { releaseId: anchorReleaseId, offset: getStoredNumber(STORAGE_KEYS.anchorOffset, 0) }
 			: null,
+		playlistsSort: readStoredPlaylistsSort(),
+		discoveryViewMode: getStoredString<'list' | 'grid'>(STORAGE_KEYS.discoveryViewMode, 'list', ['list', 'grid']),
 	}
 }
 
@@ -243,26 +308,30 @@ const initialState: MobileUIState = seedInitialState()
 // the release whose row spans the saved offset, plus the offset within that row.
 let persistScrollTimer: ReturnType<typeof setTimeout> | null = null
 let pendingScrollTop: number | null = null
+let pendingScrollGeom: ScrollGeom = LIST_SCROLL_GEOM
 
-function persistDiscoveryScroll(top: number) {
+function persistDiscoveryScroll(top: number, geom: ScrollGeom) {
 	// While a boot restore is still pending (anchor unconsumed), last session's stored values remain the
 	// truth — don't let pre-restore scroll events (often a spurious 0 at mount) wipe them before the feed
 	// has scrolled back. Persistence resumes once the feed consumes the anchor (or validation drops it).
 	if (get(mobileUIStore).discoveryRestoreAnchor !== null) return
 	setStoredNumber(STORAGE_KEYS.scrollTop, top)
 	const list = get(mobileDisplayedReleases)
-	const index = Math.min(list.length - 1, Math.floor(top / DISCOVERY_ROW_HEIGHT))
+	const rowIndex = Math.floor(top / geom.rowHeight)
+	// Anchor = the first release of the top visible virtual row (grid rows span `cols` releases).
+	const index = Math.min(list.length - 1, rowIndex * geom.cols)
 	const anchor = index >= 0 ? list[index] : undefined
 	setStoredString(STORAGE_KEYS.anchorReleaseId, anchor?.id ?? '')
-	setStoredNumber(STORAGE_KEYS.anchorOffset, anchor ? top - index * DISCOVERY_ROW_HEIGHT : 0)
+	setStoredNumber(STORAGE_KEYS.anchorOffset, anchor ? top - rowIndex * geom.rowHeight : 0)
 }
 
-function schedulePersistDiscoveryScroll(top: number) {
+function schedulePersistDiscoveryScroll(top: number, geom: ScrollGeom) {
 	pendingScrollTop = top
+	pendingScrollGeom = geom
 	if (persistScrollTimer !== null) clearTimeout(persistScrollTimer)
 	persistScrollTimer = setTimeout(() => {
 		persistScrollTimer = null
-		if (pendingScrollTop !== null) persistDiscoveryScroll(pendingScrollTop)
+		if (pendingScrollTop !== null) persistDiscoveryScroll(pendingScrollTop, pendingScrollGeom)
 		pendingScrollTop = null
 	}, 300)
 }
@@ -279,7 +348,7 @@ export function flushNavPersistence() {
 	if (persistScrollTimer === null) return
 	clearTimeout(persistScrollTimer)
 	persistScrollTimer = null
-	if (pendingScrollTop !== null) persistDiscoveryScroll(pendingScrollTop)
+	if (pendingScrollTop !== null) persistDiscoveryScroll(pendingScrollTop, pendingScrollGeom)
 	pendingScrollTop = null
 }
 
@@ -354,10 +423,11 @@ function createMobileUIStore() {
 			update((s) => (s.scrollTargetReleaseId === null ? s : { ...s, scrollTargetReleaseId: null }))
 		},
 		/** Remember the discovery feed's scroll offset so it survives the tab-switch remount. Also persists
-		 *  it (debounced, with the release-ID anchor) so it survives an app restart. */
-		setDiscoveryScrollTop(top: number) {
+		 *  it (debounced, with the release-ID anchor) so it survives an app restart. Grid mode passes its
+		 *  own geometry so the anchor maps pixel offsets to the right release. */
+		setDiscoveryScrollTop(top: number, geom: ScrollGeom = LIST_SCROLL_GEOM) {
 			update((s) => (s.discoveryScrollTop === top ? s : { ...s, discoveryScrollTop: top }))
-			schedulePersistDiscoveryScroll(top)
+			schedulePersistDiscoveryScroll(top, geom)
 		},
 		/** Clear the one-shot boot scroll anchor once the feed has applied (or abandoned) it. */
 		consumeDiscoveryAnchor() {
@@ -376,6 +446,18 @@ function createMobileUIStore() {
 		/** Replace the trail wholesale (boot validation truncation, folder deleted mid-trail). */
 		setPlaylistFolderTrail(trail: string[]) {
 			update((s) => ({ ...s, playlistFolderTrail: trail }))
+		},
+		/** Set the Playlists tab's folder-listing sort (persisted via the nav-persistence subscribe). */
+		setPlaylistsSort(sort: { field: PlaylistsSortField; direction: SortDirection }) {
+			update((s) => ({ ...s, playlistsSort: sort }))
+		},
+		/** Switch the discovery feed between list rows and the 3-column artwork grid (persisted). */
+		setDiscoveryViewMode(mode: 'list' | 'grid') {
+			update((s) => (s.discoveryViewMode === mode ? s : { ...s, discoveryViewMode: mode }))
+		},
+		/** Publish (or clear, with null) the open detail overlay's displayed list — see the state doc. */
+		setOverlayReleases(releases: DiscoveryRelease[] | null) {
+			update((s) => (s.overlayDisplayedReleases === releases ? s : { ...s, overlayDisplayedReleases: releases }))
 		},
 
 		/** Whether this overlay kind was restored from storage at boot — consumed once, so the restored
@@ -401,6 +483,10 @@ function createMobileUIStore() {
 		/** Clear every active tag filter. */
 		clearTagFilters() {
 			update((s) => (s.tagFilterIds.length === 0 ? s : { ...s, tagFilterIds: [] }))
+		},
+		/** Show only fully-downloaded (offline-ready) releases in the feed. Ephemeral, like tag filters. */
+		toggleDownloadedFilter() {
+			update((s) => ({ ...s, downloadedOnly: !s.downloadedOnly }))
 		},
 
 		// --- Multi-select -------------------------------------------------------------------------
@@ -455,13 +541,13 @@ function createMobileUIStore() {
 		},
 
 		// --- Settings drawer (right-side overlay; mirrors the release detail mount pattern) ------------
-		/** Open the settings drawer, optionally requesting a scroll to a named section (e.g. 'sync').
-		 *  Closes any swipe-open delete row so it isn't left revealed behind the overlay. */
-		openSettings(section?: string) {
+		/** Open the settings drawer on a page ('root' from the gear; 'cloudSync' from the sync chip).
+		 *  Closes any swipe-open action row so it isn't left revealed behind the overlay. */
+		openSettings(page: SettingsPage = 'root') {
 			update((s) => ({
 				...s,
 				settingsOpen: true,
-				settingsScrollTarget: section ?? null,
+				settingsPage: page,
 				openRowId: null,
 			}))
 		},
@@ -469,9 +555,9 @@ function createMobileUIStore() {
 		closeSettings() {
 			update((s) => ({ ...s, settingsOpen: false }))
 		},
-		/** Clear the one-shot settings scroll target once the view has scrolled to it. */
-		consumeSettingsScrollTarget() {
-			update((s) => (s.settingsScrollTarget === null ? s : { ...s, settingsScrollTarget: null }))
+		/** Navigate within the settings drawer (root ⇄ sub-page). */
+		setSettingsPage(page: SettingsPage) {
+			update((s) => (s.settingsPage === page ? s : { ...s, settingsPage: page }))
 		},
 
 		// --- Playlist detail overlay (mirrors release detail pattern) ---------------------------------
@@ -582,11 +668,11 @@ function createMobileUIStore() {
 			update((s) => (s.queueOrigin === origin ? s : { ...s, queueOrigin: origin }))
 		},
 
-		// --- Swipe-to-delete single-open invariant --------------------------------------------------
-		/** Record which row's delete action is revealed; opening one row closes any other. Pass null to
-		 *  close the open row (e.g. on scroll). */
-		setOpenRow(id: string | null) {
-			update((s) => (s.openRowId === id ? s : { ...s, openRowId: id }))
+		// --- Swipe-action single-open invariant -----------------------------------------------------
+		/** Record which row's swipe actions are revealed (and which side); opening one row closes any
+		 *  other. Pass null to close the open row (e.g. on scroll). */
+		setOpenRow(id: string | null, side: 'lead' | 'trail' = 'trail') {
+			update((s) => (s.openRowId === id && s.openRowSide === side ? s : { ...s, openRowId: id, openRowSide: side }))
 		},
 
 		/** Back to a pristine state (NOT the storage-seeded boot state), wiping the persisted keys too. */
@@ -616,6 +702,10 @@ mobileUIStore.subscribe((s) => {
 		setStoredString(STORAGE_KEYS.detailFollowSourceId, s.detailFollowSourceId ?? '')
 	if (s.playlistFolderTrail !== prevPersisted.playlistFolderTrail)
 		setStoredArray(STORAGE_KEYS.playlistFolderTrail, s.playlistFolderTrail)
+	if (s.playlistsSort !== prevPersisted.playlistsSort)
+		setStoredString(STORAGE_KEYS.playlistsSort, JSON.stringify(s.playlistsSort))
+	if (s.discoveryViewMode !== prevPersisted.discoveryViewMode)
+		setStoredString(STORAGE_KEYS.discoveryViewMode, s.discoveryViewMode)
 	prevPersisted = s
 })
 
@@ -625,12 +715,13 @@ export const detailCovering = derived(mobileUIStore, ($s) => $s.detailCovering)
 export const isPlayerExpanded = derived(mobileUIStore, ($s) => $s.playerExpanded)
 export const scrollTargetReleaseId = derived(mobileUIStore, ($s) => $s.scrollTargetReleaseId)
 export const settingsOpen = derived(mobileUIStore, ($s) => $s.settingsOpen)
-export const settingsScrollTarget = derived(mobileUIStore, ($s) => $s.settingsScrollTarget)
+export const settingsPage = derived(mobileUIStore, ($s) => $s.settingsPage)
 export const tagFilterIds = derived(mobileUIStore, ($s) => $s.tagFilterIds)
 export const tagFilterMode = derived(mobileUIStore, ($s) => $s.tagFilterMode)
 
-/** Client-side tag filter over the loaded feed (AND = all selected tags, OR = any). */
-function applyTagFilter(list: DiscoveryRelease[], ids: string[], mode: TagFilterMode): DiscoveryRelease[] {
+/** Client-side tag filter over the loaded feed (AND = all selected tags, OR = any). Exported so the
+ *  detail views' per-view filters (see `utils/listControls.ts`) apply the exact same semantics. */
+export function applyTagFilter(list: DiscoveryRelease[], ids: string[], mode: TagFilterMode): DiscoveryRelease[] {
 	if (ids.length === 0) return list
 	const set = new Set(ids)
 	return mode === 'and'
@@ -638,14 +729,21 @@ function applyTagFilter(list: DiscoveryRelease[], ids: string[], mode: TagFilter
 		: list.filter((r) => r.tags.some((t) => set.has(t.id)))
 }
 
+export const downloadedOnly = derived(mobileUIStore, ($s) => $s.downloadedOnly)
+
 /**
  * The discovery feed's displayed list: the shared `sortedReleases` (search + liked/new + sort) with the
- * mobile-only tag filter applied. Single source of truth for both the rendered feed and the playback
- * queue captured when a preview starts — so "play / shuffle the whole list" spans exactly what's on screen.
+ * mobile-only tag + downloaded filters applied. Single source of truth for both the rendered feed and the
+ * playback queue captured when a preview starts — so "play / shuffle the whole list" spans exactly what's
+ * on screen.
  */
 export const mobileDisplayedReleases = derived(
-	[sortedReleases, tagFilterIds, tagFilterMode],
-	([$sorted, $ids, $mode]) => applyTagFilter($sorted, $ids, $mode)
+	[sortedReleases, tagFilterIds, tagFilterMode, downloadedOnly, fullyCachedIds],
+	([$sorted, $ids, $mode, $downloadedOnly, $cached]) => {
+		let list = applyTagFilter($sorted, $ids, $mode)
+		if ($downloadedOnly) list = list.filter((r) => $cached.has(r.id))
+		return list
+	}
 )
 
 /**
@@ -660,15 +758,24 @@ export const activePlaybackContext = derived(
 		origin: PlaybackContextOrigin
 		releases: DiscoveryRelease[]
 	} => {
+		// An open overlay that has published its displayed (sorted/filtered) list wins — playback
+		// should span exactly what the user sees, not the raw unsorted set.
 		if ($ui.detailFollowSourceId) {
 			const source = $follows.find((s) => s.id === $ui.detailFollowSourceId)
-			if (source) return { origin: 'follow', releases: releasesFromSource($disc.releases, source.url) }
+			if (source)
+				return {
+					origin: 'follow',
+					releases: $ui.overlayDisplayedReleases ?? releasesFromSource($disc.releases, source.url),
+				}
 		}
 		if ($ui.detailTagId) {
 			const tagId = $ui.detailTagId
-			return { origin: 'tag', releases: $disc.releases.filter((r) => r.tags.some((t) => t.id === tagId)) }
+			return {
+				origin: 'tag',
+				releases: $ui.overlayDisplayedReleases ?? $disc.releases.filter((r) => r.tags.some((t) => t.id === tagId)),
+			}
 		}
-		if ($ui.detailPlaylistId) return { origin: 'playlist', releases: $playlistReleases }
+		if ($ui.detailPlaylistId) return { origin: 'playlist', releases: $ui.overlayDisplayedReleases ?? $playlistReleases }
 		return { origin: 'discovery', releases: $displayed }
 	}
 )
@@ -678,6 +785,9 @@ export const selectedReleaseCount = derived(mobileUIStore, ($s) => $s.selectedRe
 export const addReleaseOpen = derived(mobileUIStore, ($s) => $s.addReleaseOpen)
 export const addReleasePrefillUrl = derived(mobileUIStore, ($s) => $s.addReleasePrefillUrl)
 export const openRowId = derived(mobileUIStore, ($s) => $s.openRowId)
+export const openRowSide = derived(mobileUIStore, ($s) => $s.openRowSide)
+export const playlistsSort = derived(mobileUIStore, ($s) => $s.playlistsSort)
+export const discoveryViewMode = derived(mobileUIStore, ($s) => $s.discoveryViewMode)
 export const detailPlaylistId = derived(mobileUIStore, ($s) => $s.detailPlaylistId)
 export const playlistDetailCovering = derived(mobileUIStore, ($s) => $s.playlistDetailCovering)
 export const playlistReorderMode = derived(mobileUIStore, ($s) => $s.playlistReorderMode)

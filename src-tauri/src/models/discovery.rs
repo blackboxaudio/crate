@@ -8,6 +8,11 @@ pub struct DiscoveryTrack {
     pub position: i32,
     pub duration_ms: Option<i64>,
     pub video_id: Option<String>,
+    /// The track's own page URL (Bandcamp track page, SoundCloud permalink) when the source
+    /// provides one; `None` otherwise — share/copy consumers fall back to the release URL.
+    /// `serde(default)` keeps payloads from older peers/backups deserializable.
+    #[serde(default)]
+    pub url: Option<String>,
     #[serde(default)]
     pub is_liked: bool,
 }
@@ -77,6 +82,8 @@ pub struct DiscoveryTrackCreate {
     pub position: i32,
     pub duration_ms: Option<i64>,
     pub video_id: Option<String>,
+    #[serde(default)]
+    pub url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

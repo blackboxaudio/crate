@@ -53,7 +53,8 @@
 			label: get(translate)('discovery.openReleaseInBrowser'),
 			icon: 'external-link',
 			action: () => {
-				openUrl(release.url)
+				// Prefer the track's own page when the source provides one (Bandcamp/SoundCloud).
+				openUrl(track.url ?? release.url)
 			},
 		},
 		{
@@ -61,7 +62,7 @@
 			label: get(translate)('discovery.copyReleaseUrl'),
 			icon: 'copy',
 			action: () => {
-				writeText(release.url).then(() => {
+				writeText(track.url ?? release.url).then(() => {
 					toastStore.info(get(translate)('discovery.copiedUrl'))
 				})
 			},

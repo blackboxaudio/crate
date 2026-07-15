@@ -24,7 +24,8 @@
 		"back": "Terug",
 		"more": "Meer",
 		"select": "Selecteren",
-		"noResults": "Geen resultaten"
+		"noResults": "Geen resultaten",
+		"offline": "U bent offline"
 	},
 	"nav": {
 		"library": "Bibliotheek",
@@ -43,6 +44,7 @@
 			"appearance": "Uiterlijk",
 			"sound": "Geluid",
 			"cloudSync": "Cloudsynchronisatie",
+			"storage": "Opslag",
 			"diagnostics": "Diagnostiek",
 			"about": "Over"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Opnieuw ordenen",
 		"clearQueue": "Wissen",
 		"empty": "Niets volgende",
-		"emptyHint": "Nummers die je toevoegt worden hierna afgespeeld"
+		"emptyHint": "Nummers die je toevoegt worden hierna afgespeeld",
+		"upcoming": "Aankomend",
+		"history": "Geschiedenis",
+		"historyEmpty": "Nog niets afgespeeld"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks zoeken...",
@@ -361,6 +366,11 @@
 		"openInApp": "In {app} openen",
 		"copyUrl": "URL kopiëren",
 		"copiedUrl": "URL gekopieerd naar klembord",
+		"share": "Delen",
+		"viewAsGrid": "Weergeven als raster",
+		"viewAsList": "Weergeven als lijst",
+		"pasteLink": "Link plakken",
+		"clipboardNoUrl": "Geen link in klembord",
 		"like": "Toevoegen aan favorieten",
 		"unlike": "Verwijderen uit favorieten",
 		"playPreview": "Voorbeeld afspelen",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filters",
 		"liked": "Geliked",
-		"new": "Nieuw"
+		"new": "Nieuw",
+		"downloaded": "Gedownload"
 	},
 	"playlists": {
 		"newPlaylist": "Nieuwe afspeellijst",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Afspeellijsten zoeken…",
 		"emptyHint": "Maak afspeellijsten om je ontdekkingen in te delen",
 		"detailEmptyHint": "Houd een release in Ontdekkingen ingedrukt om het aan een afspeellijst toe te voegen",
-		"exportToDevice": "Exporteren naar apparaat"
+		"exportToDevice": "Exporteren naar apparaat",
+		"playlistOrder": "Afspeellijstvolgorde",
+		"sort": {
+			"dateCreated": "Aanmaakdatum",
+			"dateModified": "Wijzigingsdatum"
+		}
 	},
 	"tags": {
 		"newCategory": "Nieuwe categorie",
@@ -669,6 +685,7 @@
 		"exportInProgress": "Exporteren is al bezig",
 		"tagNameConflict": "Een tag met deze naam bestaat al in de doelcategorie",
 		"previewStreamFailed": "Voorbeeldstream kon niet worden geladen",
+		"previewNotAvailableOffline": "Dit nummer is offline niet beschikbaar",
 		"updateCheckFailed": "Controleren op updates mislukt",
 		"updateInstallFailed": "Update installeren mislukt"
 	},

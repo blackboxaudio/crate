@@ -59,6 +59,15 @@ pub fn configure(_app: &AppHandle) -> Vec<Retained<AnyObject>> {
             engine::with_engine_mut(|e| e.previous())
         }));
 
+        // Lock-screen Like (MPFeedbackCommand). Where iOS surfaces it varies by version
+        // (reliable in CarPlay; some lock screens hide feedback commands) — enabling it is
+        // harmless when hidden. RECONCILE: `likeCommand` accessor + MPFeedbackCommand deref.
+        let like = center.likeCommand();
+        like.setEnabled(true);
+        targets.push(add_handler(&like, || {
+            engine::with_engine_mut(|e| e.like_pressed())
+        }));
+
         // Suppress the default ±10s skip buttons so prev/next show on the lock screen.
         center.skipForwardCommand().setEnabled(false);
         center.skipBackwardCommand().setEnabled(false);
@@ -70,6 +79,18 @@ pub fn configure(_app: &AppHandle) -> Vec<Retained<AnyObject>> {
     }
 
     targets
+}
+
+/// Reflect the current track's liked state on the lock-screen Like glyph. Main thread only.
+/// RECONCILE: `setActive` (MPFeedbackCommand.active) against objc2-media-player on device; fall
+/// back to `msg_send![&*like, setActive: liked]` if the typed accessor isn't generated.
+pub(super) fn set_like_state(liked: bool) {
+    // SAFETY: MPRemoteCommandCenter accessors; every caller runs on the main thread.
+    unsafe {
+        let center = MPRemoteCommandCenter::sharedCommandCenter();
+        let like = center.likeCommand();
+        like.setActive(liked);
+    }
 }
 
 /// Register a no-argument command handler that always reports success.

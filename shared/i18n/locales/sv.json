@@ -24,7 +24,8 @@
 		"back": "Tillbaka",
 		"more": "Mer",
 		"select": "Välj",
-		"noResults": "Inga resultat"
+		"noResults": "Inga resultat",
+		"offline": "Du är offline"
 	},
 	"nav": {
 		"library": "Bibliotek",
@@ -43,6 +44,7 @@
 			"appearance": "Utseende",
 			"sound": "Ljud",
 			"cloudSync": "Molnsynkronisering",
+			"storage": "Lagring",
 			"diagnostics": "Diagnostik",
 			"about": "Om"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Sortera om",
 		"clearQueue": "Rensa",
 		"empty": "Inget upp nästa",
-		"emptyHint": "Låtar du lägger till kommer spelas nästa"
+		"emptyHint": "Låtar du lägger till kommer spelas nästa",
+		"upcoming": "Kommande",
+		"history": "Historik",
+		"historyEmpty": "Inget spelade ännu"
 	},
 	"library": {
 		"searchPlaceholder": "Sök spår...",
@@ -361,6 +366,11 @@
 		"openInApp": "Öppna i {app}",
 		"copyUrl": "Kopiera URL",
 		"copiedUrl": "URL kopierad till urklipp",
+		"share": "Dela",
+		"viewAsGrid": "Visa som rutnät",
+		"viewAsList": "Visa som lista",
+		"pasteLink": "Klistra in länk",
+		"clipboardNoUrl": "Ingen länk i urklipp",
 		"like": "Lägg till i gillat",
 		"unlike": "Ta bort från gillat",
 		"playPreview": "Spela förhandsgranskning",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filter",
 		"liked": "Gillad",
-		"new": "Ny"
+		"new": "Ny",
+		"downloaded": "Nedladdat"
 	},
 	"playlists": {
 		"newPlaylist": "Ny spellista",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Sök spellistor…",
 		"emptyHint": "Skapa spellistor för att organisera dina upptäckter",
 		"detailEmptyHint": "Håll ned en utgåva i Upptäckter för att lägga till den i en spellista",
-		"exportToDevice": "Exportera till enhet"
+		"exportToDevice": "Exportera till enhet",
+		"playlistOrder": "Spellistans ordning",
+		"sort": {
+			"dateCreated": "Skapandedatum",
+			"dateModified": "Ändrings datum"
+		}
 	},
 	"tags": {
 		"newCategory": "Ny kategori",
@@ -669,6 +685,7 @@
 		"exportInProgress": "Export är redan i gång",
 		"tagNameConflict": "En tagg med detta namn finns redan i målkategorin",
 		"previewStreamFailed": "Misslyckades att ladda förhandsvisningsströmmen",
+		"previewNotAvailableOffline": "Denna låt är inte tillgänglig offline",
 		"updateCheckFailed": "Misslyckades att söka efter uppdateringar",
 		"updateInstallFailed": "Misslyckades att installera uppdateringen"
 	},

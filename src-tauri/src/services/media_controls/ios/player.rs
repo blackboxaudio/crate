@@ -18,7 +18,7 @@ use objc2_av_foundation::{
 };
 use objc2_core_media::CMTime;
 use objc2_foundation::{NSDictionary, NSError, NSMutableDictionary, NSString, NSURL};
-use tauri::AppHandle;
+use tauri::{AppHandle, Manager};
 
 use super::engine::{self, NativeTrackEntry, StatePayload};
 use super::{now_playing, observers, remote_command};
@@ -42,6 +42,10 @@ pub struct PlaybackEngineInner {
     // Bumped on every `play_index`. The load watchdog captures the value at spawn time and bails if
     // it no longer matches — so a watchdog for a superseded track can't report a stale failure.
     epoch: u64,
+    // Epoch whose failure has already been surfaced. `fail` is reachable from BOTH the load watchdog
+    // and the `FailedToPlayToEndTime` notification for the same item; this latch collapses them into
+    // one emitted error (= one user-facing toast). Cleared on every new item.
+    failed_epoch: Option<u64>,
     rate: f32,
     playing: bool,
     // True from a programmatic `seek` until its completion handler reports the seek landed. AVPlayer's
@@ -74,6 +78,7 @@ impl PlaybackEngineInner {
             entries: Vec::new(),
             index: 0,
             epoch: 0,
+            failed_epoch: None,
             rate: 1.0,
             playing: false,
             seeking: false,
@@ -148,6 +153,7 @@ impl PlaybackEngineInner {
         };
         self.index = i;
         self.epoch = self.epoch.wrapping_add(1);
+        self.failed_epoch = None;
         // New item ⇒ any in-flight seek on the previous one is moot; clear the guard so its late
         // completion handler (or a stale flag) can't suppress tracking on the fresh track.
         self.seeking = false;
@@ -195,6 +201,7 @@ impl PlaybackEngineInner {
         self.playing = true;
         let start_secs = start_position_ms as f64 / 1000.0;
         now_playing::update(&self.app, &entry, start_secs, self.rate);
+        remote_command::set_like_state(entry.is_liked);
         engine::emit_track_changed(&self.app, self.index);
         // Position the item at the restore offset BEFORE starting playback. `self.seek` queues the seek
         // (AVPlayer applies it once the item is ready), sets the `seeking` guard so the periodic observer
@@ -254,8 +261,13 @@ impl PlaybackEngineInner {
 
     /// Surface a playback failure: log it (→ `yarn dev:ios` terminal via env_logger/stderr), tell the
     /// frontend (→ error toast), and drop out of the fake "playing" state. Shared by the load
-    /// watchdog and the `FailedToPlayToEndTime` notification.
+    /// watchdog and the `FailedToPlayToEndTime` notification; duplicate reports for the same item are
+    /// collapsed via `failed_epoch` so one failure never emits two errors.
     pub(super) fn fail(&mut self, message: String) {
+        if self.failed_epoch == Some(self.epoch) {
+            return;
+        }
+        self.failed_epoch = Some(self.epoch);
         log::error!(
             "native preview: playback failed on track {}: {message}",
             self.index
@@ -270,6 +282,58 @@ impl PlaybackEngineInner {
                 duration_ms: 0,
             },
         );
+    }
+
+    /// Lock-screen Like: toggle the current track's liked state natively — this must work while
+    /// the WebView's JS is suspended, so the DB write happens here, not via a JS round-trip. The
+    /// write runs off the main thread; the glyph update + frontend notification hop back onto it
+    /// (same thread dance as the Now Playing artwork download).
+    pub(super) fn like_pressed(&mut self) {
+        let Some(entry) = self.entries.get(self.index) else {
+            return;
+        };
+        let Some(track_id) = entry.track_id.clone() else {
+            engine::emit_debug(
+                &self.app,
+                "like pressed but current entry has no track_id".into(),
+            );
+            return;
+        };
+        let app = self.app.clone();
+        tauri::async_runtime::spawn(async move {
+            let toggled = {
+                let discovery = app.state::<crate::services::DiscoveryService>();
+                discovery.toggle_track_liked(&track_id)
+            };
+            match toggled {
+                Ok(liked) => {
+                    let app2 = app.clone();
+                    let tid = track_id.clone();
+                    let _ = app.run_on_main_thread(move || {
+                        engine::with_engine_mut(|e| e.apply_liked(&tid, liked));
+                        engine::emit_like_changed(&app2, &tid, liked);
+                    });
+                }
+                Err(e) => log::warn!("native preview: like toggle failed: {e}"),
+            }
+        });
+    }
+
+    /// Set liked on every entry with this track id (the window can hold repeats); refresh the
+    /// lock-screen glyph when it's the current one.
+    pub(super) fn apply_liked(&mut self, track_id: &str, liked: bool) {
+        let mut is_current = false;
+        for (i, entry) in self.entries.iter_mut().enumerate() {
+            if entry.track_id.as_deref() == Some(track_id) {
+                entry.is_liked = liked;
+                if i == self.index {
+                    is_current = true;
+                }
+            }
+        }
+        if is_current {
+            remote_command::set_like_state(liked);
+        }
     }
 
     pub fn pause(&mut self) {

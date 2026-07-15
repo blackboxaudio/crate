@@ -24,7 +24,8 @@
 		"back": "Voltar",
 		"more": "Mais",
 		"select": "Selecionar",
-		"noResults": "Nenhum resultado"
+		"noResults": "Nenhum resultado",
+		"offline": "Você está offline"
 	},
 	"nav": {
 		"library": "Biblioteca",
@@ -43,6 +44,7 @@
 			"appearance": "Aparência",
 			"sound": "Som",
 			"cloudSync": "Sincronização na nuvem",
+			"storage": "Armazenamento",
 			"diagnostics": "Diagnósticos",
 			"about": "Sobre"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Reordenar",
 		"clearQueue": "Limpar",
 		"empty": "Nada próximo",
-		"emptyHint": "As músicas que você adicionar serão reproduzidas a seguir"
+		"emptyHint": "As músicas que você adicionar serão reproduzidas a seguir",
+		"upcoming": "Próximo",
+		"history": "Histórico",
+		"historyEmpty": "Nada foi reproduzido ainda"
 	},
 	"library": {
 		"searchPlaceholder": "Buscar faixas...",
@@ -361,6 +366,11 @@
 		"openInApp": "Abrir em {app}",
 		"copyUrl": "Copiar URL",
 		"copiedUrl": "URL copiada para a área de transferência",
+		"share": "Compartilhar",
+		"viewAsGrid": "Visualizar como grade",
+		"viewAsList": "Visualizar como lista",
+		"pasteLink": "Colar link",
+		"clipboardNoUrl": "Nenhum link na área de transferência",
 		"like": "Adicionar às curtidas",
 		"unlike": "Remover das curtidas",
 		"playPreview": "Reproduzir prévia",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filtros",
 		"liked": "Curtidos",
-		"new": "Novo"
+		"new": "Novo",
+		"downloaded": "Baixado"
 	},
 	"playlists": {
 		"newPlaylist": "Nova playlist",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Pesquisar playlists…",
 		"emptyHint": "Crie playlists para organizar suas descobertas",
 		"detailEmptyHint": "Pressione e mantenha um lançamento em Descobertas para adicioná-lo a uma playlist",
-		"exportToDevice": "Exportar para dispositivo"
+		"exportToDevice": "Exportar para dispositivo",
+		"playlistOrder": "Ordem da playlist",
+		"sort": {
+			"dateCreated": "Data de criação",
+			"dateModified": "Data de modificação"
+		}
 	},
 	"tags": {
 		"newCategory": "Nova categoria",
@@ -669,6 +685,7 @@
 		"exportInProgress": "Exportação já em progresso",
 		"tagNameConflict": "Já existe uma tag com este nome na categoria de destino",
 		"previewStreamFailed": "Falha ao carregar o fluxo de visualização",
+		"previewNotAvailableOffline": "Esta faixa não está disponível offline",
 		"updateCheckFailed": "Falha ao verificar atualizações",
 		"updateInstallFailed": "Falha ao instalar a atualização"
 	},

@@ -24,7 +24,8 @@
 		"back": "返回",
 		"more": "更多",
 		"select": "选择",
-		"noResults": "无结果"
+		"noResults": "无结果",
+		"offline": "您已离线"
 	},
 	"nav": {
 		"library": "曲库",
@@ -43,6 +44,7 @@
 			"appearance": "外观",
 			"sound": "声音",
 			"cloudSync": "云同步",
+			"storage": "存储",
 			"diagnostics": "诊断",
 			"about": "关于"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "重新排列",
 		"clearQueue": "清除",
 		"empty": "接下来没有内容",
-		"emptyHint": "您添加的歌曲将接下来播放"
+		"emptyHint": "您添加的歌曲将接下来播放",
+		"upcoming": "即将推出",
+		"history": "历史记录",
+		"historyEmpty": "还没有播放任何内容"
 	},
 	"library": {
 		"searchPlaceholder": "搜索曲目...",
@@ -361,6 +366,11 @@
 		"openInApp": "在 {app} 中打开",
 		"copyUrl": "复制URL",
 		"copiedUrl": "已复制URL到剪贴板",
+		"share": "分享",
+		"viewAsGrid": "以网格形式查看",
+		"viewAsList": "以列表形式查看",
+		"pasteLink": "粘贴链接",
+		"clipboardNoUrl": "剪贴板中没有链接",
 		"like": "添加到已赞",
 		"unlike": "从已赞中移除",
 		"playPreview": "播放预览",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "筛选",
 		"liked": "已喜欢",
-		"new": "新"
+		"new": "新",
+		"downloaded": "已下载"
 	},
 	"playlists": {
 		"newPlaylist": "新建播放列表",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "搜索播放列表…",
 		"emptyHint": "创建播放列表来整理你的发现",
 		"detailEmptyHint": "在发现中长按发行来将其添加到播放列表",
-		"exportToDevice": "导出到设备"
+		"exportToDevice": "导出到设备",
+		"playlistOrder": "播放列表顺序",
+		"sort": {
+			"dateCreated": "创建日期",
+			"dateModified": "修改日期"
+		}
 	},
 	"tags": {
 		"newCategory": "新建分类",
@@ -669,6 +685,7 @@
 		"exportInProgress": "导出已在进行中",
 		"tagNameConflict": "目标分类中已存在同名标签",
 		"previewStreamFailed": "无法加载预览流",
+		"previewNotAvailableOffline": "此曲目离线不可用",
 		"updateCheckFailed": "检查更新失败",
 		"updateInstallFailed": "安装更新失败"
 	},

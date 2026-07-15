@@ -12,7 +12,14 @@
 	import { autoFetchMetadata } from '$shared/stores/settings'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import * as discoveryApi from '$shared/api/discovery'
-	import { isSupportedDiscoveryUrl, isDiscoveryPageUrl, detectSourceType } from '$shared/utils/discoveryLinks'
+	import {
+		isSupportedDiscoveryUrl,
+		isDiscoveryPageUrl,
+		detectSourceType,
+		extractFirstUrl,
+	} from '$shared/utils/discoveryLinks'
+	import { isAndroid } from '$shared/utils/platform'
+	import { readText } from '@tauri-apps/plugin-clipboard-manager'
 	import { formatDurationCompact } from '$shared/utils/format'
 	import { listen } from '@tauri-apps/api/event'
 	import { onMount, tick } from 'svelte'
@@ -183,6 +190,7 @@
 					position: t.position,
 					duration_ms: t.duration_ms ?? undefined,
 					video_id: t.video_id ?? undefined,
+					url: t.url ?? undefined,
 				}))
 			}
 			if (data.source_type && data.source_type !== 'other') {
@@ -251,7 +259,10 @@
 
 	// Reset on open so the sheet always starts blank. (The URL field focuses itself via `use:focusOnOpen` below.)
 	$effect(() => {
-		if ($addReleaseOpen) resetForm()
+		if ($addReleaseOpen) {
+			resetForm()
+			clipboardMiss = false
+		}
 	})
 
 	// Prefill from a shared URL (Android share intent, #62). MUST come after the reset-on-open effect —
@@ -268,6 +279,45 @@
 		sourceType = detectSourceType(shared)
 		unsupportedUrl = shared.startsWith('http') && !isSupportedDiscoveryUrl(shared)
 		if (!unsupportedUrl && $autoFetchMetadata) void autoFetch(shared)
+	})
+
+	// Clipboard intake. Explicit "Paste link" button everywhere (iOS 16+ shows a system paste-
+	// permission prompt on ANY programmatic clipboard read, so tying the read to a user tap keeps
+	// that prompt expected — never auto-read on open on iOS). A miss leaves the field untouched and
+	// shows a quiet inline line instead of a toast.
+	let clipboardMiss = $state(false)
+
+	async function pasteFromClipboard() {
+		clipboardMiss = false
+		try {
+			const text = await readText()
+			const found = text ? extractFirstUrl(text) : null
+			if (!found) {
+				clipboardMiss = true
+				return
+			}
+			url = found
+			handleUrlInput()
+		} catch {
+			clipboardMiss = true
+		}
+	}
+
+	// Android-only auto-prefill from the clipboard (no read prompt there; Android 12+ just shows the
+	// passive "app pasted" notice). Ordered after the share-intent effect so a shared URL wins, and
+	// it never overwrites a non-empty field. Silent on a miss — auto-detect shouldn't nag.
+	$effect(() => {
+		if (!$addReleaseOpen || !isAndroid()) return
+		if ($addReleasePrefillUrl !== null || url.trim()) return
+		void readText()
+			.then((text) => {
+				const found = text ? extractFirstUrl(text) : null
+				if (found && !url.trim()) {
+					url = found
+					handleUrlInput()
+				}
+			})
+			.catch(() => {})
 	})
 
 	// Focus the URL field as the sheet mounts. `preventScroll` is the crux: the panel starts off-screen and
@@ -344,9 +394,18 @@
 				<div class="flex flex-col gap-4 px-4 py-4">
 					<!-- URL input -->
 					<div>
-						<label for="add-url" class="mb-1.5 block text-xs font-medium text-text-secondary">
-							{$translate('discovery.url')}
-						</label>
+						<div class="mb-1.5 flex items-center justify-between">
+							<label for="add-url" class="block text-xs font-medium text-text-secondary">
+								{$translate('discovery.url')}
+							</label>
+							<button
+								type="button"
+								class="text-xs font-medium text-brand-primary active:opacity-70"
+								onclick={pasteFromClipboard}
+							>
+								{$translate('discovery.pasteLink')}
+							</button>
+						</div>
 						<input
 							id="add-url"
 							type="url"
@@ -356,6 +415,9 @@
 							placeholder="https://..."
 							class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
 						/>
+						{#if clipboardMiss}
+							<p class="mt-1.5 text-xs text-text-tertiary">{$translate('discovery.clipboardNoUrl')}</p>
+						{/if}
 						{#if fetching}
 							<div class="mt-2 flex items-center gap-2">
 								<Spinner class="h-3.5 w-3.5" />

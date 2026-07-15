@@ -60,7 +60,7 @@
 		type="button"
 		class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full active:opacity-70"
 		aria-label={statusLabel}
-		onclick={() => mobileUIStore.openSettings('sync')}
+		onclick={() => mobileUIStore.openSettings('cloudSync')}
 	>
 		{#if $isSignedIn}
 			<span class="relative">

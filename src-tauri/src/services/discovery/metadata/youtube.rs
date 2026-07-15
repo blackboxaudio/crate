@@ -471,6 +471,7 @@ async fn fetch_youtube_playlist(
             },
             duration_ms: v.duration_ms,
             video_id: Some(v.video_id),
+            url: None,
         })
         .collect();
 
@@ -518,6 +519,7 @@ fn strip_youtube_track_artist_prefix(
                 position: t.position,
                 duration_ms: t.duration_ms,
                 video_id: t.video_id.clone(),
+                url: t.url.clone(),
             })
             .collect();
         let stripped_count = stripped
@@ -629,6 +631,7 @@ async fn fetch_youtube_single(
             position: 1,
             duration_ms,
             video_id: Some(video_id.to_string()),
+            url: None,
         }]
     } else {
         Vec::new()

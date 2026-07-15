@@ -353,8 +353,10 @@ pub fn run() {
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
             commands::discovery::invalidate_preview_stream_cache,
+            commands::discovery::purge_release_audio_cache,
             commands::discovery::precache_preview_stream,
             commands::discovery::get_release_cache_state,
+            commands::discovery::get_cached_release_states,
             commands::discovery::get_discovery_audio_cache_size,
             commands::discovery::clear_discovery_audio_cache,
             commands::discovery::cache_release_artwork,
@@ -386,6 +388,7 @@ pub fn run() {
             commands::backup::restore_from_backup,
             // Share-intent intake (#62): Android drains queued shared URLs; empty elsewhere.
             commands::share::take_shared_texts,
+            commands::share::share_url,
             // Media controls commands (cross-platform; no-op backend where unsupported)
             commands::media_controls::update_now_playing,
             commands::media_controls::update_playback_state,
@@ -411,6 +414,8 @@ pub fn run() {
             commands::native_preview::native_preview_set_volume,
             #[cfg(target_os = "ios")]
             commands::native_preview::native_preview_set_rate,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_liked,
             // Cloud sync commands
             #[cfg(feature = "desktop")]
             commands::cloud_sync::sign_in,
@@ -722,6 +727,26 @@ pub fn run() {
             app.manage(services::media_controls::NativePreviewEngine::new(
                 app.handle().clone(),
             ));
+
+            // Sweep orphaned partial downloads (`*.part`) from a previous crash/kill. Runs once
+            // HERE, before the proxy below can start new downloads, so it can never touch a live
+            // `.part` — do NOT move this into DiscoveryService construction: background tasks
+            // build sibling service instances mid-session, which would race in-flight downloads.
+            let streams_dir = app_data_dir.join("discovery").join("streams");
+            if let Ok(entries) = std::fs::read_dir(&streams_dir) {
+                for entry in entries.flatten() {
+                    if entry.path().extension().and_then(|e| e.to_str()) == Some("part") {
+                        if let Err(e) = std::fs::remove_file(entry.path()) {
+                            log::warn!(
+                                "Failed to remove orphaned .part {}: {e}",
+                                entry.path().display()
+                            );
+                        } else {
+                            log::info!("Removed orphaned partial download {}", entry.path().display());
+                        }
+                    }
+                }
+            }
 
             // Bind a stream proxy HTTP server on a random OS-assigned port. Real HTTP is required
             // for WKWebView's AVFoundation media layer to correctly handle Range requests during

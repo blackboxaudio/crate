@@ -74,13 +74,11 @@ impl DiscoveryService {
         })
     }
 
-    /// Invalidate cached stream URLs and audio files for a release, forcing re-fetch on next play.
+    /// Invalidate a release's cached stream URLs (URL-level only), forcing re-resolution on next
+    /// play. Deliberately never touches on-disk audio bytes: the playback-error auto-retry calls
+    /// this, and a transient/offline error must not destroy a downloaded copy. Use
+    /// [`Self::purge_release_audio`] when the bytes themselves should go.
     pub fn invalidate_stream_cache(&self, release_id: &str) -> Result<()> {
-        // Also clear disk-cached audio so the retry re-downloads fresh
-        if let Err(e) = self.delete_cached_audio_files(release_id) {
-            log::warn!("Failed to clean up cached audio during invalidation for {release_id}: {e}");
-        }
-
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         conn.execute(
@@ -89,6 +87,14 @@ impl DiscoveryService {
         )?;
 
         Ok(())
+    }
+
+    /// Remove a release's downloaded audio bytes AND its cached stream URLs. This is the
+    /// destructive path ("Remove Download" / corrupt-content recovery) — the transient-error
+    /// retry must use [`Self::invalidate_stream_cache`] instead.
+    pub fn purge_release_audio(&self, release_id: &str) -> Result<()> {
+        self.delete_cached_audio_files(release_id)?;
+        self.invalidate_stream_cache(release_id)
     }
 
     /// Cache a SoundCloud client_id.

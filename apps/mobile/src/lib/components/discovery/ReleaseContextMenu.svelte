@@ -5,7 +5,9 @@
 	import { discoveryStore } from '$shared/stores/discovery'
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { toastStore } from '$shared/stores/toast'
+	import { shareUrl } from '$shared/api/app'
 	import { openUrl } from '@tauri-apps/plugin-opener'
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { deriveArtistUrl, deriveLabelUrl, isCompilation } from '$shared/utils'
 	import { mobileUIStore, actionsReleaseId, actionsContext, actionsAnchorRect } from '$lib/stores/mobileUI'
@@ -28,10 +30,20 @@
 		context: 'feed' | 'playlist' | 'tag' | 'follow'
 		releases: DiscoveryRelease[]
 		playlistId?: string | null
+		/** Playlist context only: whether manual reorder is currently meaningful (natural order, no
+		 *  active view sort/filter). The Reorder item hides when false. */
+		canReorder?: boolean
 		onAddToPlaylist?: (releaseId: string) => void
 		onRemoveFromPlaylist?: (releaseId: string) => void
 	}
-	let { context, releases, playlistId = null, onAddToPlaylist, onRemoveFromPlaylist }: Props = $props()
+	let {
+		context,
+		releases,
+		playlistId = null,
+		canReorder = true,
+		onAddToPlaylist,
+		onRemoveFromPlaylist,
+	}: Props = $props()
 
 	const releaseId = $derived($actionsReleaseId)
 	const anchorRect = $derived($actionsAnchorRect)
@@ -139,6 +151,27 @@
 		void openUrl(r.url).catch(() => {})
 		close()
 	}
+
+	function handleShare() {
+		const r = release
+		if (!r) return
+		close()
+		// The OS share sheet is the feedback — no toast.
+		void shareUrl(r.url, r.title ?? undefined).catch(() => {})
+	}
+
+	async function handleCopyUrl() {
+		const r = release
+		if (!r) return
+		close()
+		try {
+			await writeText(r.url)
+			// Exception to the sparing-toasts rule: a clipboard write has no other visible feedback.
+			toastStore.info(get(translate)('discovery.copiedUrl'))
+		} catch {
+			// Clipboard denied — nothing useful to surface.
+		}
+	}
 </script>
 
 <ContextMenu {open} {anchorRect} onClose={close} onClosed={() => (displayed = null)}>
@@ -197,7 +230,7 @@
 		</ContextMenuItem>
 	{/if}
 
-	{#if context === 'playlist' && playlistId}
+	{#if context === 'playlist' && playlistId && canReorder}
 		<ContextMenuItem onclick={handleReorder}>
 			{$translate('queue.reorder')}
 			{#snippet icon()}
@@ -237,6 +270,42 @@
 			: $translate('discovery.openInBrowser')}
 		{#snippet icon()}
 			{#if displayed}<SourceIcon source={displayed.source_type} />{/if}
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={handleShare}>
+		{$translate('discovery.share')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M12 3v12M8 7l4-4 4 4" />
+				<path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={handleCopyUrl}>
+		{$translate('discovery.copyUrl')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<rect x="9" y="9" width="11" height="11" rx="2" />
+				<path d="M5 15V5a2 2 0 012-2h10" />
+			</svg>
 		{/snippet}
 	</ContextMenuItem>
 

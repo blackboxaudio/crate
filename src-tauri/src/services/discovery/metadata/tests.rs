@@ -202,6 +202,37 @@ fn test_bandcamp_type_as_array() {
     assert_eq!(meta.tracks[0].duration_ms, Some(180_000));
 }
 
+#[test]
+fn test_bandcamp_track_urls_captured() {
+    // Real Bandcamp JSON-LD track items carry their page URL as `@id` (sometimes `url`);
+    // both spellings must land in FetchedTrack.url, and absence must stay None.
+    let html = make_bandcamp_json_ld_html(
+        r#"{
+                "@type": "MusicAlbum",
+                "name": "Url Album",
+                "byArtist": {"name": "Test Artist"},
+                "track": {
+                    "itemListElement": [
+                        {"position": 1, "item": {"@id": "https://artist.bandcamp.com/track/one", "name": "One", "duration": "PT3M00S"}},
+                        {"position": 2, "item": {"url": "https://artist.bandcamp.com/track/two", "name": "Two"}},
+                        {"position": 3, "item": {"name": "Three"}}
+                    ]
+                }
+            }"#,
+    );
+    let meta = parse_bandcamp_json_ld(&html).expect("should parse MusicAlbum");
+    assert_eq!(meta.tracks.len(), 3);
+    assert_eq!(
+        meta.tracks[0].url.as_deref(),
+        Some("https://artist.bandcamp.com/track/one")
+    );
+    assert_eq!(
+        meta.tracks[1].url.as_deref(),
+        Some("https://artist.bandcamp.com/track/two")
+    );
+    assert_eq!(meta.tracks[2].url, None);
+}
+
 // =========================================================================
 // Discogs helpers
 // =========================================================================

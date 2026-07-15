@@ -102,8 +102,8 @@ impl DiscoveryService {
                 }
                 let track_id = uuid::Uuid::new_v4().to_string();
                 conn.execute(
-                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                    rusqlite::params![track_id, release_id, track.name, next_position, track.duration_ms, track.video_id, hlc],
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    rusqlite::params![track_id, release_id, track.name, next_position, track.duration_ms, track.video_id, track.url, hlc],
                 )?;
                 next_position += 1;
             }
@@ -163,22 +163,28 @@ impl DiscoveryService {
             for source_id in &source_ids {
                 // Copy tracks from source, deduplicating
                 let mut stmt = conn.prepare(
-                    "SELECT name, position, duration_ms, video_id FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
+                    "SELECT name, position, duration_ms, video_id, url FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
                 )?;
-                let source_tracks: Vec<(String, i32, Option<i64>, Option<String>)> = stmt
-                    .query_map([source_id.as_str()], |row| {
-                        Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?))
+                let source_tracks: Vec<(String, i32, Option<i64>, Option<String>, Option<String>)> =
+                    stmt.query_map([source_id.as_str()], |row| {
+                        Ok((
+                            row.get(0)?,
+                            row.get(1)?,
+                            row.get(2)?,
+                            row.get(3)?,
+                            row.get(4)?,
+                        ))
                     })?
                     .collect::<std::result::Result<Vec<_>, _>>()?;
 
-                for (name, _, duration_ms, video_id) in &source_tracks {
+                for (name, _, duration_ms, video_id, url) in &source_tracks {
                     if existing_names.contains(&name.to_lowercase()) {
                         continue;
                     }
                     let track_id = uuid::Uuid::new_v4().to_string();
                     conn.execute(
-                        "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                        rusqlite::params![track_id, target_id, name, next_position, duration_ms, video_id, hlc],
+                        "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                        rusqlite::params![track_id, target_id, name, next_position, duration_ms, video_id, url, hlc],
                     )?;
                     existing_names.push(name.to_lowercase());
                     next_position += 1;
@@ -351,6 +357,52 @@ impl DiscoveryService {
                     )?;
                 }
             }
+        }
+
+        Ok(())
+    }
+
+    /// Backfill NULL `url` values from fetched metadata, matching by position. Write-once
+    /// (NULL-only) like the video_id backfill, but this one bumps `_hlc` + marks the bucket
+    /// dirty so peers receive it: an old-build peer's whole-row LWW write can null the urls
+    /// back out, and the next refresh + push must be able to heal them everywhere.
+    pub fn update_track_urls(
+        &self,
+        release_id: &str,
+        fetched_tracks: &[FetchedTrack],
+    ) -> Result<()> {
+        if fetched_tracks.is_empty() {
+            return Ok(());
+        }
+
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+
+        let mut stmt = conn.prepare(
+            "SELECT id, position FROM discovery_tracks WHERE release_id = ?1 AND url IS NULL",
+        )?;
+        let null_tracks: Vec<(String, i32)> = stmt
+            .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+
+        if null_tracks.is_empty() {
+            return Ok(());
+        }
+
+        let hlc = dirty::next_hlc(&conn)?;
+        let mut changed = false;
+        for (track_id, position) in &null_tracks {
+            if let Some(fetched) = fetched_tracks.iter().find(|ft| ft.position == *position) {
+                if let Some(ref url) = fetched.url {
+                    conn.execute(
+                        "UPDATE discovery_tracks SET url = ?1, _hlc = ?2 WHERE id = ?3",
+                        rusqlite::params![url, hlc, track_id],
+                    )?;
+                    changed = true;
+                }
+            }
+        }
+        if changed {
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
         }
 
         Ok(())

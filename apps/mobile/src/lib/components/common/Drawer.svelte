@@ -5,6 +5,7 @@
 	import { translate } from '$shared/i18n'
 	import { swipe, type SwipeOptions } from '$lib/actions/swipe'
 	import { swipeVertical, type SwipeVerticalOptions } from '$lib/actions/swipeVertical'
+	import { portalToBody } from '$lib/actions/portal'
 	import { registerBackLayer } from '$lib/androidBack'
 
 	// The single baseline behind every mobile drawer-like surface (nav drawers, the release-detail push,
@@ -61,6 +62,11 @@
 		 *  off, not as a fresh navigation). Close still animates. Applies to every open of this instance —
 		 *  fine for surfaces mounted via `{#if}` per open, which is how the detail views use it. */
 		enterInstant?: boolean
+		/** Re-parent the scrim + panel to `<body>` on mount. A drawer panel (fixed + inline z-index) is a
+		 *  stacking context, so a drawer nested INSIDE another drawer's subtree is capped at the ancestor's
+		 *  layer regardless of its own z — a sheet opened inside a z-30 detail drawer would render under
+		 *  the z-40 mini player. Top-layer surfaces (bottom sheets) set this so their z wins globally. */
+		portal?: boolean
 	}
 	let {
 		open,
@@ -82,6 +88,7 @@
 		closeEdgeSize,
 		closeEdgeFrom,
 		enterInstant = false,
+		portal = false,
 	}: Props = $props()
 
 	const DURATION = 500 // ms — the one shared slide duration; keep in sync with the `duration-500` class below
@@ -321,6 +328,7 @@
 				: ''}"
 			style="z-index: {effectiveScrimZ}; opacity: {scrimOpacity * openness}"
 			onclick={requestClose}
+			use:portalToBody={portal}
 		></button>
 	{:else}
 		<div
@@ -328,6 +336,7 @@
 				? 'ease-fluid transition-opacity duration-500 motion-reduce:transition-none'
 				: ''}"
 			style="z-index: {effectiveScrimZ}; opacity: {scrimOpacity * openness}"
+			use:portalToBody={portal}
 		></div>
 	{/if}
 {/if}
@@ -343,6 +352,7 @@
 		ontransitionstart={onTransformStart}
 		ontransitionend={onTransformEnd}
 		ontransitioncancel={onTransformCancel}
+		use:portalToBody={portal}
 		use:gesture={{ horizontal, swipe: panelSwipe, vertical: panelVertical }}
 	>
 		{@render children({ openness, dragging, drag, animating: animatingSlide && closeDrag === null })}

@@ -24,7 +24,8 @@
 		"back": "Înapoi",
 		"more": "Mai mult",
 		"select": "Selectează",
-		"noResults": "Niciun rezultat"
+		"noResults": "Niciun rezultat",
+		"offline": "Ești offline"
 	},
 	"nav": {
 		"library": "Bibliotecă",
@@ -43,6 +44,7 @@
 			"appearance": "Aspect",
 			"sound": "Sunet",
 			"cloudSync": "Sincronizare în cloud",
+			"storage": "Stocare",
 			"diagnostics": "Diagnosticare",
 			"about": "Despre"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Reordonează",
 		"clearQueue": "Șterge",
 		"empty": "Nimic mai departe",
-		"emptyHint": "Melodiile pe care le adaugi vor fi redate mai departe"
+		"emptyHint": "Melodiile pe care le adaugi vor fi redate mai departe",
+		"upcoming": "Viitoare",
+		"history": "Istoric",
+		"historyEmpty": "Nimic nu a fost redat încă"
 	},
 	"library": {
 		"searchPlaceholder": "Caută melodii...",
@@ -361,6 +366,11 @@
 		"openInApp": "Deschide în {app}",
 		"copyUrl": "Copiază URL",
 		"copiedUrl": "URL copiat în clipboard",
+		"share": "Partajează",
+		"viewAsGrid": "Vizualizare ca grilă",
+		"viewAsList": "Vizualizare ca listă",
+		"pasteLink": "Lipește link",
+		"clipboardNoUrl": "Nicio legătură în clipboard",
 		"like": "Adaugă la Apreciate",
 		"unlike": "Scoate din Apreciate",
 		"playPreview": "Redă Previzualizare",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filtre",
 		"liked": "Apreciate",
-		"new": "Nou"
+		"new": "Nou",
+		"downloaded": "Descărcat"
 	},
 	"playlists": {
 		"newPlaylist": "Nou Playlist",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Caută playlisturi…",
 		"emptyHint": "Creați playlisturi pentru a vă organiza descoperirile",
 		"detailEmptyHint": "Apăsați lung pe o lansare în Descoperiri pentru a o adăuga la un playlist",
-		"exportToDevice": "Exportă pe Dispozitiv"
+		"exportToDevice": "Exportă pe Dispozitiv",
+		"playlistOrder": "Ordinea playlistului",
+		"sort": {
+			"dateCreated": "Data creării",
+			"dateModified": "Data modificării"
+		}
 	},
 	"tags": {
 		"newCategory": "Categorie Nouă",
@@ -670,6 +686,7 @@
 		"exportInProgress": "Export deja în curs",
 		"tagNameConflict": "O etichetă cu acest nume există deja în categoria țintă",
 		"previewStreamFailed": "Eșec la încărcarea fluxului de previzualizare",
+		"previewNotAvailableOffline": "Acest cântec nu este disponibil offline",
 		"updateCheckFailed": "Eșec la verificarea actualizărilor",
 		"updateInstallFailed": "Eșec la instalarea actualizării"
 	},

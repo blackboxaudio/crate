@@ -170,7 +170,7 @@ impl PlaylistService {
 
         // Load tracks
         let mut stmt = conn.prepare(&format!(
-            "SELECT id, release_id, name, position, duration_ms, video_id, is_liked FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
         let all_tracks: Vec<DiscoveryTrack> = stmt
             .query_map(param_refs.as_slice(), |row| {
@@ -181,7 +181,8 @@ impl PlaylistService {
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
                     video_id: row.get(5)?,
-                    is_liked: row.get(6)?,
+                    url: row.get(6)?,
+                    is_liked: row.get(7)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;

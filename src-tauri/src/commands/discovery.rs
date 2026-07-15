@@ -1,7 +1,7 @@
 use std::path::PathBuf;
 use std::sync::atomic::Ordering;
 
-use tauri::{Emitter, State};
+use tauri::{Emitter, Manager, State};
 
 use crate::error::{CrateError, Result};
 use crate::models::{
@@ -205,8 +205,13 @@ pub async fn get_discovery_audio_cache_size(discovery: State<'_, DiscoveryServic
 }
 
 #[tauri::command]
-pub async fn clear_discovery_audio_cache(discovery: State<'_, DiscoveryService>) -> Result<()> {
-    discovery.clear_audio_cache()
+pub async fn clear_discovery_audio_cache(
+    app: tauri::AppHandle,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    discovery.clear_audio_cache()?;
+    let _ = app.emit("discovery-cache-changed", ());
+    Ok(())
 }
 
 /// Download + cache a release's remote cover to disk for offline (airplane-mode) rendering.
@@ -241,12 +246,26 @@ pub async fn invalidate_preview_stream_cache(
     discovery.invalidate_stream_cache(&release_id)
 }
 
+/// Delete a release's downloaded audio bytes and cached stream URLs ("Remove Download").
+#[tauri::command]
+pub async fn purge_release_audio_cache(
+    release_id: String,
+    app: tauri::AppHandle,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    discovery.purge_release_audio(&release_id)?;
+    let _ = app.emit("discovery-cache-changed", ());
+    Ok(())
+}
+
 /// Per-release cache state for the "downloaded for offline" indicator.
 #[derive(serde::Serialize)]
 pub struct ReleaseCacheState {
     pub cached_tracks: i64,
     pub total_tracks: i64,
     pub bytes: i64,
+    /// Any track pinned via "Download for Offline" (excluded from LRU eviction).
+    pub pinned: bool,
 }
 
 /// Report how many of a release's tracks have their audio cached on disk (drives the
@@ -256,12 +275,44 @@ pub async fn get_release_cache_state(
     release_id: String,
     discovery: State<'_, DiscoveryService>,
 ) -> Result<ReleaseCacheState> {
-    let (cached_tracks, total_tracks, bytes) = discovery.get_release_cache_state(&release_id)?;
+    let (cached_tracks, total_tracks, bytes, pinned) =
+        discovery.get_release_cache_state(&release_id)?;
     Ok(ReleaseCacheState {
         cached_tracks,
         total_tracks,
         bytes,
+        pinned,
     })
+}
+
+/// Bulk cached-state for list badges / the Downloaded filter: one entry per release that has
+/// at least one track's audio on disk. Consumers refetch on `discovery-cache-changed`.
+#[derive(serde::Serialize)]
+pub struct CachedReleaseState {
+    pub release_id: String,
+    pub cached_tracks: i64,
+    pub total_tracks: i64,
+    pub fully_cached: bool,
+    pub pinned: bool,
+}
+
+#[tauri::command]
+pub async fn get_cached_release_states(
+    discovery: State<'_, DiscoveryService>,
+) -> Result<Vec<CachedReleaseState>> {
+    Ok(discovery
+        .get_cached_release_states()?
+        .into_iter()
+        .map(
+            |(release_id, cached_tracks, total_tracks, pinned)| CachedReleaseState {
+                release_id,
+                cached_tracks,
+                total_tracks,
+                fully_cached: total_tracks > 0 && cached_tracks >= total_tracks,
+                pinned,
+            },
+        )
+        .collect())
 }
 
 /// Proactively download and cache a track's audio bytes for offline playback ("Download for
@@ -280,11 +331,15 @@ pub async fn precache_preview_stream(
     proxy_port: State<'_, ProxyServerPort>,
     permits: State<'_, StreamFetchPermits>,
 ) -> Result<()> {
+    // The handle outlives the state borrows moved into `fetch_preview_stream` below; the
+    // pin + event need the service again afterwards.
+    let app_handle = app.clone();
+
     // Resolve (and cache) the stream URL, and get the localhost proxy URL for the track.
     // Background priority: a whole-release offline download must never starve a
     // tap-to-play (cache hits skip the permit entirely).
     let proxy_url = fetch_preview_stream(
-        release_id,
+        release_id.clone(),
         track_position,
         Some(true),
         app,
@@ -306,6 +361,16 @@ pub async fn precache_preview_stream(
         .map_err(|e| CrateError::Discovery(format!("Precache proxy request failed: {e:#}")))?
         .error_for_status()
         .map_err(|e| CrateError::Discovery(format!("Precache proxy returned error: {e:#}")))?;
+
+    // Explicit download ⇒ pin, excluding the track from LRU eviction until "Remove Download"
+    // (or "Clear cache"). The proxy recorded the cache row before responding, so the pin
+    // always lands; the event covers the already-cached → pin-only case where the proxy
+    // serves from disk without a fresh download.
+    let discovery = app_handle.state::<DiscoveryService>();
+    if let Err(e) = discovery.set_audio_cache_pinned(&release_id, track_position, true) {
+        log::warn!("Failed to pin downloaded track {release_id}/{track_position}: {e}");
+    }
+    let _ = app_handle.emit("discovery-cache-changed", ());
 
     Ok(())
 }
@@ -459,13 +524,15 @@ pub async fn refresh_release_metadata(
                 position: t.position,
                 duration_ms: t.duration_ms,
                 video_id: t.video_id.clone(),
+                url: t.url.clone(),
             })
             .collect();
         discovery.add_tracks_to_release(&id, track_creates)?;
     } else {
-        // Backfill any missing track durations and video_ids from fetched data
+        // Backfill any missing track durations, video_ids, and track urls from fetched data
         discovery.update_track_durations(&id, &fetched.tracks)?;
         discovery.update_track_video_ids(&id, &fetched.tracks)?;
+        discovery.update_track_urls(&id, &fetched.tracks)?;
     }
 
     let mut update = DiscoveryReleaseUpdate::default();
@@ -702,6 +769,7 @@ pub async fn bulk_create_discovery_releases(
                                     position: t.position,
                                     duration_ms: t.duration_ms,
                                     video_id: t.video_id.clone(),
+                                    url: t.url.clone(),
                                 })
                                 .collect(),
                         )
@@ -762,6 +830,7 @@ pub async fn bulk_create_discovery_releases(
                                         position: t.position,
                                         duration_ms: t.duration_ms,
                                         video_id: t.video_id.clone(),
+                                        url: t.url.clone(),
                                     })
                                     .collect(),
                             )
@@ -899,6 +968,7 @@ pub async fn bulk_create_discovery_releases(
                             position: t.position,
                             duration_ms: t.duration_ms,
                             video_id: t.video_id.clone(),
+                            url: t.url.clone(),
                         })
                         .collect();
                     if let Err(e) = svc.add_tracks_to_release(release_id, track_creates) {
@@ -907,9 +977,10 @@ pub async fn bulk_create_discovery_releases(
                         );
                     }
                 } else if !existing.tracks.is_empty() {
-                    // Backfill missing durations and video IDs
+                    // Backfill missing durations, video IDs, and track urls
                     let _ = svc.update_track_durations(release_id, &fetched.tracks);
                     let _ = svc.update_track_video_ids(release_id, &fetched.tracks);
+                    let _ = svc.update_track_urls(release_id, &fetched.tracks);
                 }
 
                 // Update release metadata fields

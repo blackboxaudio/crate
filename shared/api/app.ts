@@ -15,6 +15,14 @@ export async function getAppInfo(): Promise<AppInfo> {
 }
 
 /**
+ * Open the native share sheet for a URL (iOS UIActivityViewController / Android ACTION_SEND
+ * chooser). Safe no-op on desktop, which keeps its own Open/Copy URL menu items instead.
+ */
+export async function shareUrl(url: string, title?: string): Promise<void> {
+	return invoke('share_url', { url, title: title ?? null })
+}
+
+/**
  * Open browser developer tools (only available in dev mode)
  */
 export async function openDevTools(): Promise<void> {

@@ -718,6 +718,8 @@ export interface DiscoveryTrack {
 	position: number
 	duration_ms: number | null
 	video_id: string | null
+	/** The track's own page URL (Bandcamp track page, SoundCloud permalink) when the source provides one; share/copy falls back to the release URL. */
+	url: string | null
 	is_liked: boolean
 }
 
@@ -764,6 +766,7 @@ export interface DiscoveryTrackCreate {
 	position: number
 	duration_ms?: number
 	video_id?: string
+	url?: string
 }
 
 export interface FetchedMetadata {
@@ -783,6 +786,7 @@ export interface FetchedTrack {
 	position: number
 	duration_ms: number | null
 	video_id: string | null
+	url: string | null
 }
 
 export interface DiscoveryReleaseUpdate {
@@ -948,7 +952,14 @@ export interface BackupProgress {
 	status: BackupStatus
 }
 
-export type DiscoverySortField = 'artist' | 'title' | 'label' | 'release_date' | 'source_type' | 'date_added'
+export type DiscoverySortField =
+	| 'artist'
+	| 'title'
+	| 'label'
+	| 'release_date'
+	| 'source_type'
+	| 'date_added'
+	| 'track_count'
 
 export interface DiscoverySortConfig {
 	field: DiscoverySortField

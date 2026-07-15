@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Delete Your Account — Crate</title>
+  <meta name="description" content="How to delete your Crate account and associated data." />
+  <meta name="robots" content="index, follow" />
+  <style>
+    /* Self-contained: no external requests (fonts, scripts, or images) are loaded by this page. */
+    :root {
+      --bg: #181818;
+      --surface: #202020;
+      --stroke: #303030;
+      --text: #e0e0e0;
+      --muted: #6c6c6c;
+      --brand: #555fd2;
+      --brand-2: #ff5672;
+    }
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Space Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      line-height: 1.7;
+      font-size: 16px;
+    }
+    .wrap { max-width: 820px; margin: 0 auto; padding: 2rem 1.25rem 4rem; }
+    header.site {
+      display: flex; align-items: baseline; gap: 0.75rem;
+      border-bottom: 3px solid var(--stroke); padding-bottom: 1rem; margin-bottom: 2rem;
+    }
+    .brand { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+    .brand a { color: var(--text); text-decoration: none; }
+    .by { color: var(--muted); font-size: 0.8rem; }
+    h1 { font-size: 2rem; line-height: 1.2; margin: 0.5rem 0 0.25rem; }
+    .updated { color: var(--muted); font-size: 0.85rem; margin-bottom: 2rem; }
+    h2 {
+      font-size: 1.25rem; margin: 2.5rem 0 0.75rem;
+      padding-left: 0.75rem; border-left: 4px solid var(--brand);
+    }
+    p, li { color: var(--text); }
+    a { color: var(--brand); text-decoration: underline; text-underline-offset: 2px; word-break: break-word; }
+    a:hover { filter: brightness(1.35); }
+    strong { color: #ffffff; }
+    ul, ol { padding-left: 1.25rem; }
+    li { margin: 0.35rem 0; }
+    hr { border: none; border-top: 1px solid var(--stroke); margin: 2.5rem 0; }
+    footer.site {
+      border-top: 3px solid var(--stroke); margin-top: 3rem; padding-top: 1.25rem;
+      color: var(--muted); font-size: 0.8rem; text-align: center;
+    }
+    @media (max-width: 640px) {
+      body { font-size: 15px; }
+      .wrap { padding: 1.5rem 1rem 3rem; }
+      h1 { font-size: 1.6rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="site">
+      <span class="brand"><a href="https://crate.bbx-audio.com">Crate</a></span>
+      <span class="by">by Black Box Audio, LLC</span>
+    </header>
+
+    <main>
+      <h1>Delete Your Crate Account</h1>
+      <p class="updated">Last updated: July 15, 2026</p>
+
+      <p>Crate is local-first, and cloud sync (which requires an account) is optional. If you never enabled cloud sync,
+        you do not have an account with us, and there is nothing to delete on our side &mdash; simply uninstalling the
+        App removes your local data.</p>
+      <p>If you signed in and used cloud sync, here is how to delete your account and all associated data.</p>
+
+      <h2>Option 1 &mdash; Delete in the app (recommended)</h2>
+      <ol>
+        <li>Open Crate.</li>
+        <li>Go to <strong>Settings &rarr; Account</strong>.</li>
+        <li>Tap <strong>Delete Account</strong>.</li>
+        <li>Confirm.</li>
+      </ol>
+      <p>This permanently deletes your account and all synced data from our servers.</p>
+
+      <h2>Option 2 &mdash; Request deletion by email</h2>
+      <p>If you can&rsquo;t access the App, email <a href="mailto:matthew@bbx-audio.com">matthew@bbx-audio.com</a> from
+        the email address associated with your account (or tell us the email you used to sign in) with the subject line
+        <strong>&ldquo;Delete my account.&rdquo;</strong> We will verify your request and delete your account.</p>
+
+      <h2>What gets deleted</h2>
+      <p>When your account is deleted, we permanently remove the following from our cloud service:</p>
+      <ul>
+        <li>Your account record (email address, name, profile photo link, and account identifier).</li>
+        <li>All synced content (saved releases, playlists, tags, notes, followed artists and labels, and synced settings).</li>
+        <li>Your device records.</li>
+      </ul>
+      <p>Backups and server logs, if any, are purged within 30 days.</p>
+      <p>Data stored locally on your own devices is not affected by server-side deletion. To remove it, sign out and/or
+        uninstall the App from each device.</p>
+
+      <h2>Timing</h2>
+      <p>In-app deletions take effect immediately. Email requests are completed within 30 days (typically much sooner).</p>
+
+      <hr />
+      <p>Questions? Contact <a href="mailto:matthew@bbx-audio.com">matthew@bbx-audio.com</a>.</p>
+    </main>
+
+    <footer class="site">
+      Copyright &copy; 2026 Black Box Audio, LLC. All Rights Reserved.
+    </footer>
+  </div>
+</body>
+</html>

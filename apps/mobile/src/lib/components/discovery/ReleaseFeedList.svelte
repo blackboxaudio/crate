@@ -1,13 +1,18 @@
-<script lang="ts">
+<script lang="ts" generics="T extends { id: string }">
 	import { tick } from 'svelte'
 	import type { Snippet } from 'svelte'
-	import type { DiscoveryRelease } from '$shared/types'
 	import { createVirtualList } from '$shared/utils/virtualizer.svelte'
 	import PullToRefresh from '$lib/components/common/PullToRefresh.svelte'
 
 	// Shared VIRTUALIZED release list used by BOTH the Discovery feed and the playlist detail. Only the
 	// rows in view mount, so a large synced collection (thousands of releases) stays responsive — the
 	// playlist detail used to render every row, which froze the UI on big playlists.
+	//
+	// Generic over the item (`T extends { id: string }`): the item is normally a DiscoveryRelease, but
+	// the feed's grid mode passes CHUNKED rows (three releases per virtual row) through the exact same
+	// machinery — PullToRefresh, scroll restore, the exported scroll methods — with a taller rowHeight.
+	// NOTE: `rowHeight` is captured by the virtualizer's estimate closure at creation and is NOT
+	// reactive — hosts that change it (the feed's list↔grid toggle) must remount (`{#key mode}`).
 	//
 	// The virtualizer must own the scroll element (it builds a ResizeObserver on it), so this component
 	// owns the scroll container and the parent reaches in only through the exported `scrollToIndex`
@@ -17,8 +22,8 @@
 	// the host overlays on the list (so rows scroll behind it); it's applied via PullToRefresh, which owns
 	// the scroll element's padding-top — so it takes effect only when `onRefresh` is provided (the feed's case).
 	type Props = {
-		releases: DiscoveryRelease[]
-		row: Snippet<[{ release: DiscoveryRelease; index: number }]>
+		releases: T[]
+		row: Snippet<[{ release: T; index: number }]>
 		rowHeight?: number
 		topInset?: number
 		leading?: Snippet

@@ -1,4 +1,12 @@
-import type { Track, SortConfig, TrackSortField, SortDirection, TrackColor } from '../types'
+import type {
+	DiscoveryRelease,
+	DiscoverySortConfig,
+	SortConfig,
+	SortDirection,
+	Track,
+	TrackColor,
+	TrackSortField,
+} from '../types'
 import { COLOR_SORT_ORDER } from '../types'
 
 /**
@@ -56,6 +64,49 @@ function getTrackSortValue(track: Track, field: TrackSortField): string | number
 		default:
 			return null
 	}
+}
+
+/**
+ * Sort discovery releases by the given configuration. ONE comparator shared by the discovery
+ * feed's derived stores and the mobile per-view (playlist/tag/follow detail) sort controls, so
+ * every surface orders identically: invalid/missing release dates always sink to the end
+ * regardless of direction, and ties break by id so paginated re-renders stay stable.
+ */
+export function sortDiscoveryReleases(releases: DiscoveryRelease[], sort: DiscoverySortConfig): DiscoveryRelease[] {
+	const { field, direction } = sort
+	const dir = direction === 'asc' ? 1 : -1
+
+	return [...releases].sort((a, b) => {
+		let cmp = 0
+		if (field === 'release_date') {
+			const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
+			const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
+			const aValid = !isNaN(aDate)
+			const bValid = !isNaN(bDate)
+			if (!aValid && !bValid) cmp = 0
+			else if (!aValid) return 1
+			else if (!bValid) return -1
+			else if (aDate < bDate) cmp = -1 * dir
+			else if (aDate > bDate) cmp = 1 * dir
+		} else if (field === 'track_count') {
+			cmp = (a.tracks.length - b.tracks.length) * dir
+		} else {
+			const aVal = a[field] ?? ''
+			const bVal = b[field] ?? ''
+			if (aVal < bVal) cmp = -1 * dir
+			else if (aVal > bVal) cmp = 1 * dir
+		}
+		if (cmp !== 0) return cmp
+		// Grouping sorts (artist / label / platform / track count) tie constantly — order within a
+		// group alphabetically by title so it reads intentionally instead of by opaque id.
+		if (field !== 'title') {
+			const aTitle = a.title ?? ''
+			const bTitle = b.title ?? ''
+			if (aTitle < bTitle) return -1
+			if (aTitle > bTitle) return 1
+		}
+		return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
+	})
 }
 
 /**

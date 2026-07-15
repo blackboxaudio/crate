@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte'
 	import { translate } from '$shared/i18n'
 	import { swipeVertical } from '$lib/actions/swipeVertical'
+	import { portalToBody } from '$lib/actions/portal'
 	import { registerBackLayer } from '$lib/androidBack'
 
 	// A web recreation of the iOS native context menu. Long-press a row → its rect is captured and passed
@@ -268,18 +269,24 @@
 	     NOT the opaque `glass-strong` sheet material. Tap / swipe-down to dismiss; covering everything, it
 	     also locks the feed behind from scrolling. Blur radius is constant (animating it janks WKWebView) —
 	     only opacity fades. -->
+	<!-- All three layers portal to <body>: an instance mounted inside a detail drawer (playlist/tag/
+	     follow rows) would otherwise be capped at that drawer's z-30 stacking context and render
+	     under the z-40 mini player. Mount order (backdrop → preview → platter) keeps their relative
+	     layering, since all three share z-60. -->
 	<button
 		type="button"
 		aria-label={$translate('common.close')}
 		class="fixed inset-0 z-[60]"
 		style="background-color: rgba(0, 0, 0, 0.18); -webkit-backdrop-filter: blur(12px) saturate(150%); backdrop-filter: blur(12px) saturate(150%); opacity: {fade}; transition: opacity {dur}ms ease;"
 		onclick={() => armed && requestClose()}
+		use:portalToBody
 		use:swipeVertical={{ onSwipeDown: () => armed && requestClose(), enabled: true }}
 	></button>
 
 	{#if anchorRect && preview}
 		<div
 			aria-hidden="true"
+			use:portalToBody
 			class="pointer-events-none fixed z-[60] flex items-center gap-3 overflow-hidden rounded-xl bg-surface-0 px-4"
 			style="{previewStyle} opacity: {fade}; transform: scale({previewScale}); transform-origin: center; box-shadow: {shown
 				? '0 10px 40px -8px rgba(0,0,0,0.45)'
@@ -293,6 +300,7 @@
 		bind:this={platterEl}
 		role="menu"
 		tabindex="-1"
+		use:portalToBody
 		class="fixed z-[60] overflow-y-auto overscroll-contain rounded-2xl border border-stroke-subtle bg-surface-1 shadow-2xl select-none"
 		style="top: {placement?.top ?? 0}px; left: {placement?.left ?? 0}px; width: {placement?.width ??
 			PLATTER_MAX_W}px; max-height: {placement?.maxH ??

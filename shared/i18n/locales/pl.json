@@ -24,7 +24,8 @@
 		"back": "Wstecz",
 		"more": "Więcej",
 		"select": "Wybierz",
-		"noResults": "Brak wyników"
+		"noResults": "Brak wyników",
+		"offline": "Jesteś w trybie offline"
 	},
 	"nav": {
 		"library": "Biblioteka",
@@ -43,6 +44,7 @@
 			"appearance": "Wygląd",
 			"sound": "Dźwięk",
 			"cloudSync": "Synchronizacja w chmurze",
+			"storage": "Magazyn",
 			"diagnostics": "Diagnostyka",
 			"about": "Informacje"
 		},
@@ -292,7 +294,10 @@
 		"reorder": "Zmień kolejność",
 		"clearQueue": "Wyczyść",
 		"empty": "Nic kolejnego",
-		"emptyHint": "Utwory, które dodasz będą odtwarzane dalej"
+		"emptyHint": "Utwory, które dodasz będą odtwarzane dalej",
+		"upcoming": "Nadchodzące",
+		"history": "Historia",
+		"historyEmpty": "Nic nie zostało jeszcze odtworzone"
 	},
 	"library": {
 		"searchPlaceholder": "Szukaj ścieżek...",
@@ -361,6 +366,11 @@
 		"openInApp": "Otwórz w {app}",
 		"copyUrl": "Skopiuj URL",
 		"copiedUrl": "URL skopiowany do schowka",
+		"share": "Udostępnij",
+		"viewAsGrid": "Wyświetl jako siatkę",
+		"viewAsList": "Wyświetl jako listę",
+		"pasteLink": "Wklej link",
+		"clipboardNoUrl": "Brak linku w schowku",
 		"like": "Dodaj do polubionych",
 		"unlike": "Usuń z polubionych",
 		"playPreview": "Odtwórz podgląd",
@@ -477,7 +487,8 @@
 	"filters": {
 		"title": "Filtry",
 		"liked": "Polubione",
-		"new": "Nowe"
+		"new": "Nowe",
+		"downloaded": "Pobrane"
 	},
 	"playlists": {
 		"newPlaylist": "Nowa playlista",
@@ -495,7 +506,12 @@
 		"searchPlaceholder": "Szukaj playlist…",
 		"emptyHint": "Utwórz playlisty, aby zorganizować swoje odkrycia",
 		"detailEmptyHint": "Naciśnij i przytrzymaj wydanie w Odkrywaniu, aby dodać je do playlisty",
-		"exportToDevice": "Eksportuj na urządzenie"
+		"exportToDevice": "Eksportuj na urządzenie",
+		"playlistOrder": "Kolejność playlisty",
+		"sort": {
+			"dateCreated": "Data utworzenia",
+			"dateModified": "Data modyfikacji"
+		}
 	},
 	"tags": {
 		"newCategory": "Nowa kategoria",
@@ -670,6 +686,7 @@
 		"exportInProgress": "Eksport jest już w trakcie",
 		"tagNameConflict": "Tag z tą nazwą już istnieje w docelowej kategorii",
 		"previewStreamFailed": "Nie udało się załadować strumienia podglądu",
+		"previewNotAvailableOffline": "Ten utwór nie jest dostępny w trybie offline",
 		"updateCheckFailed": "Nie udało się sprawdzić dostępnych aktualizacji",
 		"updateInstallFailed": "Nie udało się zainstalować aktualizację"
 	},

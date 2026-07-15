@@ -1,5 +1,8 @@
 <script lang="ts">
 	import { openUrl } from '@tauri-apps/plugin-opener'
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
+	import { shareUrl } from '$shared/api/app'
+	import { toastStore } from '$shared/stores/toast'
 	import { slide, fade, type TransitionConfig } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
@@ -288,6 +291,25 @@
 	function menuOpenInSource() {
 		menuOpen = false
 		if ($previewInfo) void openUrl($previewInfo.release.url).catch(() => {})
+	}
+	function menuShare() {
+		menuOpen = false
+		const info = $previewInfo
+		if (!info) return
+		// The OS share sheet is the feedback — no toast.
+		void shareUrl(info.release.url, info.release.title ?? undefined).catch(() => {})
+	}
+	async function menuCopyUrl() {
+		menuOpen = false
+		const info = $previewInfo
+		if (!info) return
+		try {
+			await writeText(info.release.url)
+			// Exception to the sparing-toasts rule: a clipboard write has no other visible feedback.
+			toastStore.info($translate('discovery.copiedUrl'))
+		} catch {
+			// Clipboard denied — nothing useful to surface.
+		}
 	}
 </script>
 
@@ -656,6 +678,42 @@
 			: $translate('discovery.openInBrowser')}
 		{#snippet icon()}
 			{#if $previewInfo}<SourceIcon source={$previewInfo.release.source_type} />{/if}
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuShare}>
+		{$translate('discovery.share')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M12 3v12M8 7l4-4 4 4" />
+				<path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuCopyUrl}>
+		{$translate('discovery.copyUrl')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<rect x="9" y="9" width="11" height="11" rx="2" />
+				<path d="M5 15V5a2 2 0 012-2h10" />
+			</svg>
 		{/snippet}
 	</ContextMenuItem>
 </ContextMenu>

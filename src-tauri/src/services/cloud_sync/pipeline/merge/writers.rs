@@ -209,16 +209,20 @@ fn upsert_discovery_release(tx: &Connection, d: &DiscoveryReleaseRow, hlc: &str)
 }
 
 fn upsert_discovery_track(tx: &Connection, d: &DiscoveryTrack, hlc: &str) -> Result<()> {
+    // Whole-row LWW: a peer on an older build (no `url` in its snapshot → deserialized None)
+    // can null a backfilled url out; accepted — the NULL-only `update_track_urls` backfill
+    // re-populates on the next metadata refresh and pushes the heal back to peers.
     tx.execute(
         "INSERT INTO discovery_tracks \
-            (id, release_id, name, position, duration_ms, video_id, is_liked, _hlc) \
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8) \
+            (id, release_id, name, position, duration_ms, video_id, url, is_liked, _hlc) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9) \
          ON CONFLICT(id) DO UPDATE SET \
             release_id=excluded.release_id, name=excluded.name, position=excluded.position, \
-            duration_ms=excluded.duration_ms, video_id=excluded.video_id, is_liked=excluded.is_liked, \
-            _hlc=excluded._hlc",
+            duration_ms=excluded.duration_ms, video_id=excluded.video_id, url=excluded.url, \
+            is_liked=excluded.is_liked, _hlc=excluded._hlc",
         params![
-            d.id, d.release_id, d.name, d.position, d.duration_ms, d.video_id, d.is_liked, hlc,
+            d.id, d.release_id, d.name, d.position, d.duration_ms, d.video_id, d.url, d.is_liked,
+            hlc,
         ],
     )?;
     Ok(())

@@ -45,6 +45,7 @@
 	z={50}
 	fade
 	panelDrag={false}
+	portal
 	ariaLabel={title ?? $translate('common.close')}
 	class="pb-safe glass-strong flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-stroke"
 >

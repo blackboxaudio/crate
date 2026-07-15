@@ -41,8 +41,8 @@ impl DiscoveryService {
             for tc in track_creates {
                 let track_id = uuid::Uuid::new_v4().to_string();
                 conn.execute(
-                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
-                    rusqlite::params![track_id, id, tc.name, tc.position, tc.duration_ms, tc.video_id, hlc],
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    rusqlite::params![track_id, id, tc.name, tc.position, tc.duration_ms, tc.video_id, tc.url, hlc],
                 )?;
                 tracks.push(DiscoveryTrack {
                     id: track_id,
@@ -51,6 +51,7 @@ impl DiscoveryService {
                     position: tc.position,
                     duration_ms: tc.duration_ms,
                     video_id: tc.video_id,
+                    url: tc.url,
                     is_liked: false,
                 });
             }
@@ -126,7 +127,7 @@ impl DiscoveryService {
 
         // Load tracks
         let mut stmt = conn.prepare(
-            "SELECT id, release_id, name, position, duration_ms, video_id, is_liked FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
         )?;
         release.tracks = stmt
             .query_map([id], |row| {
@@ -137,7 +138,8 @@ impl DiscoveryService {
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
                     video_id: row.get(5)?,
-                    is_liked: row.get::<_, i32>(6).map(|v| v != 0)?,
+                    url: row.get(6)?,
+                    is_liked: row.get::<_, i32>(7).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -332,7 +334,7 @@ impl DiscoveryService {
             .join(", ");
 
         let mut stmt = conn.prepare(&format!(
-            "SELECT id, release_id, name, position, duration_ms, video_id, is_liked FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
         let track_params: Vec<&dyn rusqlite::types::ToSql> = release_ids
             .iter()
@@ -347,7 +349,8 @@ impl DiscoveryService {
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
                     video_id: row.get(5)?,
-                    is_liked: row.get::<_, i32>(6).map(|v| v != 0)?,
+                    url: row.get(6)?,
+                    is_liked: row.get::<_, i32>(7).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;

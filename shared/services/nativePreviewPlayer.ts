@@ -28,6 +28,14 @@ export interface NativeTrack {
 	 * unambiguous and pass null.
 	 */
 	mimeType: string | null
+	/**
+	 * Identity + liked state for the lock-screen Like command: the engine toggles the DB natively
+	 * while JS is suspended, so it needs the track's row id in hand. A null id disables Like for
+	 * that entry.
+	 */
+	trackId: string | null
+	releaseId: string | null
+	isLiked: boolean
 }
 
 export interface NativeStateEvent {
@@ -41,6 +49,8 @@ export interface NativeBridgeHandlers {
 	onTrackChanged: (index: number) => void
 	onEnded: () => void
 	onError: (message: string) => void
+	/** A lock-screen Like press toggled the DB natively; mirror it into the JS stores. */
+	onLikeChanged?: (trackId: string, isLiked: boolean) => void
 	/** Temporary diagnostic channel (#54 debugging): engine traces routed to the webview console. */
 	onDebug?: (message: string) => void
 }
@@ -95,6 +105,11 @@ export async function setRate(rate: number): Promise<void> {
 	await invoke('native_preview_set_rate', { rate })
 }
 
+/** Reflect an in-app like toggle on the native engine (window entries + lock-screen glyph). */
+export async function setLiked(trackId: string, liked: boolean): Promise<void> {
+	await invoke('native_preview_set_liked', { trackId, liked })
+}
+
 /**
  * Subscribe to the native engine's events and forward them to the provided handlers. Returns a
  * cleanup function that detaches all listeners.
@@ -107,6 +122,13 @@ export async function startNativePreviewBridge(handlers: NativeBridgeHandlers): 
 	)
 	unlisten.push(await listen('native-preview-ended', () => handlers.onEnded()))
 	unlisten.push(await listen<{ message: string }>('native-preview-error', (e) => handlers.onError(e.payload.message)))
+	if (handlers.onLikeChanged) {
+		unlisten.push(
+			await listen<{ trackId: string; isLiked: boolean }>('native-preview-like-changed', (e) =>
+				handlers.onLikeChanged!(e.payload.trackId, e.payload.isLiked)
+			)
+		)
+	}
 	if (handlers.onDebug) {
 		unlisten.push(
 			await listen<{ message: string }>('native-preview-debug', (e) => handlers.onDebug!(e.payload.message))

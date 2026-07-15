@@ -40,6 +40,9 @@ interface UserEntry {
 }
 
 const USER_QUEUE_KEY = 'player.userQueue'
+const RECENT_KEY = 'player.recentlyPlayed'
+// Bounds the persistent listening log ("Recently played" in the queue sheet).
+const RECENT_CAP = 50
 // How many upcoming CONTEXT items the Up Next surface previews beyond the user queue. The whole user
 // queue is always shown; this only bounds the (potentially looping) context forecast.
 const DISPLAY_CONTEXT_DEPTH = 20
@@ -76,6 +79,55 @@ export const upNext: Readable<UpNextEntry[]> = { subscribe: upNextStore.subscrib
 export const userQueueCount: Readable<number> = { subscribe: userQueueCountStore.subscribe }
 /** Whether a "next" exists (user queue, a forward-replay step, or more context). Drives transport. */
 export const canAdvance: Readable<boolean> = { subscribe: canAdvanceStore.subscribe }
+
+// --- Recently played (persistent listening log) ------------------------------------------------------
+// Distinct from `history`, which is per-session prev/next machinery and resets on every startSession.
+// Ids only — the UI resolves them against the loaded discovery set and drops what no longer exists.
+
+/** One listening-log entry. Newest LAST internally; the UI renders the list reversed. */
+export interface RecentPlay {
+	releaseId: string
+	trackIndex: number
+	at: number
+}
+
+function readRecent(): RecentPlay[] {
+	const raw = getStoredString(RECENT_KEY, '')
+	if (!raw) return []
+	try {
+		const parsed = JSON.parse(raw)
+		if (!Array.isArray(parsed)) return []
+		return parsed.filter(
+			(e): e is RecentPlay =>
+				typeof e?.releaseId === 'string' && typeof e?.trackIndex === 'number' && typeof e?.at === 'number'
+		)
+	} catch {
+		return []
+	}
+}
+
+let recent: RecentPlay[] = readRecent()
+const recentlyPlayedStore = writable<RecentPlay[]>([...recent])
+export const recentlyPlayed: Readable<RecentPlay[]> = { subscribe: recentlyPlayedStore.subscribe }
+
+function logRecent(pick: Pick) {
+	const last = recent[recent.length - 1]
+	// Dedupe consecutive repeats (re-taps, single-track loops) so the log reads as a timeline.
+	if (last && last.releaseId === pick.release.id && last.trackIndex === pick.trackIndex) return
+	recent.push({ releaseId: pick.release.id, trackIndex: pick.trackIndex, at: Date.now() })
+	if (recent.length > RECENT_CAP) recent.splice(0, recent.length - RECENT_CAP)
+	setStoredString(RECENT_KEY, JSON.stringify(recent))
+	recentlyPlayedStore.set([...recent])
+}
+
+/** Wipe the persistent listening log. The session history / queues are untouched — and vice versa:
+ *  stopping playback (`clearAll`) deliberately does NOT forget what was listened to. */
+export function clearRecentlyPlayed() {
+	if (recent.length === 0) return
+	recent = []
+	setStoredString(RECENT_KEY, JSON.stringify(recent))
+	recentlyPlayedStore.set([])
+}
 
 // --- Small helpers ---------------------------------------------------------------------------------
 function trackKey(releaseId: string, trackIndex: number): string {
@@ -284,15 +336,22 @@ export function currentPick(): Pick | null {
 /**
  * Begin a session from a user-initiated play: capture the context list, anchor the current track and
  * a fresh play history, and reset the shuffle bag/lookahead. The user queue is intentionally KEPT —
- * explicitly queued items survive starting a new track.
+ * explicitly queued items survive starting a new track. `opts.logPlay: false` skips the listening log
+ * (the relaunch restore re-anchors the last session's track without the user playing anything).
  */
-export function startSession(release: DiscoveryRelease, trackIndex: number, contextReleases: DiscoveryRelease[]) {
+export function startSession(
+	release: DiscoveryRelease,
+	trackIndex: number,
+	contextReleases: DiscoveryRelease[],
+	opts?: { logPlay?: boolean }
+) {
 	contextQueue = contextReleases
 	cur = { release, trackIndex }
 	history = [cur]
 	historyPos = 0
 	contextLookahead = []
 	shufflePlayed = shuffleEnabled ? new Set([trackKey(release.id, trackIndex)]) : new Set()
+	if (opts?.logPlay !== false) logRecent(cur)
 	refresh()
 }
 
@@ -409,6 +468,7 @@ export function advanceNext(): Pick | null {
 	if (historyPos < history.length - 1) {
 		historyPos++
 		cur = history[historyPos]
+		logRecent(cur)
 		refresh()
 		return cur
 	}
@@ -426,6 +486,7 @@ export function advanceNext(): Pick | null {
 	}
 	pushHistory(pick)
 	cur = pick
+	logRecent(cur)
 	refresh()
 	return pick
 }
