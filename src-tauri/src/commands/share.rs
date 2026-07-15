@@ -73,9 +73,9 @@ pub fn share_url(url: String, title: Option<String>, app: tauri::AppHandle) -> R
 
 #[cfg(target_os = "ios")]
 mod share_imp {
+    use objc2::msg_send;
     use objc2::rc::{Allocated, Retained};
     use objc2::runtime::{AnyClass, AnyObject};
-    use objc2::msg_send;
     use objc2_foundation::{NSArray, NSString, NSURL};
     use tauri::AppHandle;
 

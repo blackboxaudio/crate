@@ -743,7 +743,10 @@ pub fn run() {
                                 entry.path().display()
                             );
                         } else {
-                            log::info!("Removed orphaned partial download {}", entry.path().display());
+                            log::info!(
+                                "Removed orphaned partial download {}",
+                                entry.path().display()
+                            );
                         }
                     }
                 }

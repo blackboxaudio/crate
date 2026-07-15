@@ -221,7 +221,14 @@ fn upsert_discovery_track(tx: &Connection, d: &DiscoveryTrack, hlc: &str) -> Res
             duration_ms=excluded.duration_ms, video_id=excluded.video_id, url=excluded.url, \
             is_liked=excluded.is_liked, _hlc=excluded._hlc",
         params![
-            d.id, d.release_id, d.name, d.position, d.duration_ms, d.video_id, d.url, d.is_liked,
+            d.id,
+            d.release_id,
+            d.name,
+            d.position,
+            d.duration_ms,
+            d.video_id,
+            d.url,
+            d.is_liked,
             hlc,
         ],
     )?;
