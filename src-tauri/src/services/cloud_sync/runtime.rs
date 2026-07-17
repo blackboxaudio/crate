@@ -426,6 +426,50 @@ impl CloudSyncState {
         self.finish_session_setup(backend, session).await
     }
 
+    /// Native iOS **Sign in with Apple**: present the AuthenticationServices sheet, exchange the
+    /// Apple identity token into Firebase (`providerId = apple.com`, with the raw nonce), then run
+    /// the shared session-setup tail. Apple returns the user's name only on the FIRST authorization
+    /// and its identity token carries none, so capture it — falling back to the name cached on the
+    /// first sign-in — and persist it as the display name, otherwise
+    /// [`finish_sign_in`](auth::finish_sign_in)'s profile write would blank it on later sign-ins.
+    #[cfg(target_os = "ios")]
+    pub async fn sign_in_with_apple(&self) -> Result<SyncStatus> {
+        let backend = self.require_backend()?;
+        // Fail fast if sync isn't configured (mirrors begin_sign_in).
+        let _config = self
+            .config
+            .clone()
+            .ok_or_else(|| CrateError::CloudSync("cloud sync not configured".into()))?;
+
+        let cred = auth::apple_native::request_apple_credential(&self.app_handle).await?;
+
+        // Prefer the freshly-captured name; on repeat sign-ins (where Apple omits it) fall back to
+        // the name we cached the first time.
+        let cached_name = auth::read_profile(&self.conn)?.1;
+        let name = cred.full_name.clone().or(cached_name);
+
+        let mut session = auth::finish_sign_in(
+            &backend,
+            "apple.com",
+            Some(&cred.raw_nonce),
+            self.conn.clone(),
+            &cred.identity_token,
+        )
+        .await?;
+
+        // Reflect + persist the resolved name: the Apple token has no name claim, so
+        // finish_sign_in's persist_profile just wrote it blank.
+        session.display_name = session.display_name.or_else(|| name.clone());
+        auth::persist_profile_fields(
+            &self.conn,
+            session.email.as_deref(),
+            name.as_deref(),
+            session.photo_url.as_deref(),
+        )?;
+
+        self.finish_session_setup(backend, session).await
+    }
+
     /// Shared post-token tail for desktop and mobile sign-in: fire the best-effort device
     /// heartbeat, update status, compute the one-shot onboarding hint, store the session, and
     /// return the status snapshot (with `onboarding` set).

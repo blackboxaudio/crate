@@ -423,6 +423,9 @@ pub fn run() {
             commands::cloud_sync::begin_sign_in,
             #[cfg(feature = "mobile")]
             commands::cloud_sync::complete_sign_in,
+            // Native iOS Sign in with Apple (App Store Guideline 4.8); AuthenticationServices via objc2.
+            #[cfg(target_os = "ios")]
+            commands::cloud_sync::sign_in_with_apple,
             commands::cloud_sync::sign_out,
             commands::cloud_sync::get_sync_status,
             commands::cloud_sync::get_sync_diagnostics,

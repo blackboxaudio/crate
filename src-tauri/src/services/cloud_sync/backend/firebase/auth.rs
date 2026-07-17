@@ -74,13 +74,25 @@ async fn auth_http_error(context: &str, resp: reqwest::Response) -> CrateError {
 
 #[async_trait]
 impl AuthBackend for FirebaseAuth {
-    async fn sign_in_with_idp(&self, provider_id: &str, id_token: &str) -> Result<AuthSession> {
+    async fn sign_in_with_idp(
+        &self,
+        provider_id: &str,
+        id_token: &str,
+        nonce: Option<&str>,
+    ) -> Result<AuthSession> {
         let url = format!(
             "https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key={}",
             self.inner.config.web_api_key
         );
+        // Apple embeds `SHA256(raw_nonce)` in the identity token's `nonce` claim; passing the
+        // raw nonce here lets Firebase re-hash and validate it. The raw nonce is base64url/hex,
+        // so it needs no percent-encoding in the `postBody` querystring.
+        let mut post_body = format!("id_token={id_token}&providerId={provider_id}");
+        if let Some(nonce) = nonce {
+            post_body.push_str(&format!("&nonce={nonce}"));
+        }
         let body = json!({
-            "postBody": format!("id_token={id_token}&providerId={provider_id}"),
+            "postBody": post_body,
             "requestUri": "http://127.0.0.1",
             "returnIdpCredential": true,
             "returnSecureToken": true,

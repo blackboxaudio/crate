@@ -88,6 +88,26 @@ pub async fn complete_sign_in(
     }
 }
 
+/// Native iOS **Sign in with Apple** (App Store Guideline 4.8): present the AuthenticationServices
+/// sheet, exchange the Apple identity token into Firebase, and return the updated status. iOS-only
+/// (the native flow uses AuthenticationServices via objc2); Android keeps the Google OAuth flow.
+///
+/// Bounded like [`complete_sign_in`]: the native sheet waits on the user (Face ID / consent) and the
+/// Firebase exchange follows, so the whole thing is capped — the frontend's invoke promise must
+/// always settle. The generous bound sits just above the native module's own 300s authorization
+/// timeout so that inner timeout surfaces first.
+#[cfg(target_os = "ios")]
+#[tauri::command]
+pub async fn sign_in_with_apple(state: State<'_, Arc<CloudSyncState>>) -> Result<SyncStatus> {
+    const SIGN_IN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(360);
+    match tokio::time::timeout(SIGN_IN_TIMEOUT, state.sign_in_with_apple()).await {
+        Ok(result) => result,
+        Err(_) => Err(CrateError::CloudSyncAuth(format!(
+            "apple sign-in timed out after {SIGN_IN_TIMEOUT:?}"
+        ))),
+    }
+}
+
 /// Sign out and clear the stored refresh token.
 #[tauri::command]
 pub async fn sign_out(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {

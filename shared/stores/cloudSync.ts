@@ -233,6 +233,27 @@ function createCloudSyncStore() {
 			}
 		},
 
+		/**
+		 * Native iOS Sign in with Apple (App Store Guideline 4.8). Single-step and fully native — the
+		 * backend presents the AuthenticationServices sheet and does the Firebase exchange, so unlike
+		 * `signInMobile` there's no `authenticate`/web-auth plugin to inject. Dismissing the sheet
+		 * surfaces the backend's cancel sentinel, which is swallowed silently (no error toast).
+		 */
+		async signInApple() {
+			update((s) => ({ ...s, signingIn: true, error: null }))
+			try {
+				const status = await cloudSyncApi.signInWithApple()
+				applyStatusAfterSignIn(status)
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error)
+				update((s) => ({
+					...s,
+					signingIn: false,
+					error: message.includes('sign-in canceled') ? null : describeError(error, 'Sign-in failed'),
+				}))
+			}
+		},
+
 		async signOut() {
 			try {
 				await cloudSyncApi.signOut()

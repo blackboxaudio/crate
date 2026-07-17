@@ -1,13 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <!--
-  App Check / App Attest (#139): the App Attest entitlement is stamped per channel by
-  scripts/write-ios-entitlements.mjs (run before `tauri ios dev|build`). The dev channel omits it
-  (App Check uses a debug token there); staging/prod use the `production` App Attest environment.
-  App Attest is a restricted entitlement — `production` needs the channel's App ID to permit App
-  Attest and a matching provisioning profile, or code signing fails. Edit CHANNELS in the script,
-  not this generated file.
+  iOS entitlements, stamped per release channel by scripts/write-ios-entitlements.mjs (run before
+  `tauri ios dev|build`). Edit CHANNELS / the script, NOT this generated file.
+
+  - Sign in with Apple (com.apple.developer.applesignin): present on EVERY channel (App Store
+    Guideline 4.8, the native sign-in flow). The App ID for each channel must enable the
+    "Sign in with Apple" capability, or code signing fails.
+  - App Check / App Attest (#139): the dev channel omits it (App Check uses a debug token there);
+    staging/prod use the `production` App Attest environment, which needs the channel's App ID to
+    permit App Attest and a matching provisioning profile.
 -->
 <plist version="1.0">
-<dict/>
+<dict>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+</dict>
 </plist>

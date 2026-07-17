@@ -74,7 +74,12 @@ impl CloudBackend for MockCloudBackend {
 
 #[async_trait]
 impl AuthBackend for MockCloudBackend {
-    async fn sign_in_with_idp(&self, _provider_id: &str, _id_token: &str) -> Result<AuthSession> {
+    async fn sign_in_with_idp(
+        &self,
+        _provider_id: &str,
+        _id_token: &str,
+        _nonce: Option<&str>,
+    ) -> Result<AuthSession> {
         Ok(mock_session())
     }
     async fn refresh(&self, _refresh_token: &str) -> Result<AuthSession> {

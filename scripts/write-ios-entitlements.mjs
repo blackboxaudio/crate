@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Stamp the iOS app's entitlements for the given release channel, controlling the **App Attest**
- * (Firebase App Check, #139) entitlement per channel:
+ * Stamp the iOS app's entitlements for the given release channel. Every channel gets **Sign in with
+ * Apple** (`com.apple.developer.applesignin`, App Store Guideline 4.8 — the native sign-in flow);
+ * the **App Attest** (Firebase App Check, #139) entitlement is per channel:
  *   dev     -> no App Attest entitlement (uses an App Check *debug token* instead; works on device
  *              and simulator with no attestation/provisioning setup, so `yarn dev:ios` signing is
  *              unchanged)
@@ -33,7 +34,8 @@ import { fileURLToPath } from 'node:url'
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 const entitlementsPath = resolve(repoRoot, 'src-tauri/gen/apple/crate-app_iOS/crate-app_iOS.entitlements')
 
-// Per-channel App Attest environment (null = omit the entitlement entirely).
+// Per-channel App Attest environment (null = omit the App Attest entitlement entirely). Sign in
+// with Apple is added for every channel regardless (see the dict assembly below).
 const CHANNELS = {
 	dev: { appAttestEnv: null },
 	staging: { appAttestEnv: 'production' },
@@ -50,24 +52,30 @@ if (!target) {
 	process.exit(1)
 }
 
-// The explanatory comment documenting the App Attest entitlement, kept above the <dict> so the file
-// stays self-describing whichever channel it's currently stamped for.
+// The explanatory comment documenting the entitlements, kept above the <dict> so the file stays
+// self-describing whichever channel it's currently stamped for.
 const comment = `<!--
-  App Check / App Attest (#139): the App Attest entitlement is stamped per channel by
-  scripts/write-ios-entitlements.mjs (run before \`tauri ios dev|build\`). The dev channel omits it
-  (App Check uses a debug token there); staging/prod use the \`production\` App Attest environment.
-  App Attest is a restricted entitlement — \`production\` needs the channel's App ID to permit App
-  Attest and a matching provisioning profile, or code signing fails. Edit CHANNELS in the script,
-  not this generated file.
+  iOS entitlements, stamped per release channel by scripts/write-ios-entitlements.mjs (run before
+  \`tauri ios dev|build\`). Edit CHANNELS / the script, NOT this generated file.
+
+  - Sign in with Apple (com.apple.developer.applesignin): present on EVERY channel (App Store
+    Guideline 4.8, the native sign-in flow). The App ID for each channel must enable the
+    "Sign in with Apple" capability, or code signing fails.
+  - App Check / App Attest (#139): the dev channel omits it (App Check uses a debug token there);
+    staging/prod use the \`production\` App Attest environment, which needs the channel's App ID to
+    permit App Attest and a matching provisioning profile.
 -->`
 
-const dictBody =
-	target.appAttestEnv === null
-		? '<dict/>'
-		: `<dict>
-	<key>com.apple.developer.devicecheck.appattest-environment</key>
-	<string>${target.appAttestEnv}</string>
-</dict>`
+// Sign in with Apple is required on every channel; App Attest is added for staging/prod only.
+const entries = [
+	'\t<key>com.apple.developer.applesignin</key>\n\t<array>\n\t\t<string>Default</string>\n\t</array>',
+]
+if (target.appAttestEnv !== null) {
+	entries.push(
+		`\t<key>com.apple.developer.devicecheck.appattest-environment</key>\n\t<string>${target.appAttestEnv}</string>`,
+	)
+}
+const dictBody = `<dict>\n${entries.join('\n')}\n</dict>`
 
 const entitlements = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -87,7 +95,7 @@ try {
 
 writeFileSync(entitlementsPath, entitlements)
 console.log(
-	`[write-ios-entitlements] channel "${channel}": App Attest environment ${
+	`[write-ios-entitlements] channel "${channel}": Sign in with Apple enabled; App Attest ${
 		target.appAttestEnv === null ? 'omitted (debug-token dev)' : `"${target.appAttestEnv}"`
 	}`,
 )

@@ -19,6 +19,14 @@ export async function completeSignIn(code: string, oauthState: string): Promise<
 	return invoke<CloudSyncStatus>('complete_sign_in', { code, oauthState })
 }
 
+// Native iOS Sign in with Apple (App Store Guideline 4.8). Single-step: the backend presents the
+// AuthenticationServices sheet and exchanges the Apple identity token into Firebase, returning the
+// updated status. The `sign_in_with_apple` command exists only on iOS.
+
+export async function signInWithApple(): Promise<CloudSyncStatus> {
+	return invoke<CloudSyncStatus>('sign_in_with_apple')
+}
+
 export async function signOut(): Promise<void> {
 	return invoke<void>('sign_out')
 }

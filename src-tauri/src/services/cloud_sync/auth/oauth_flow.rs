@@ -297,8 +297,10 @@ fn build_token_params<'a>(
 
 // --- PKCE + query helpers -------------------------------------------------------
 
-/// `n_bytes` of randomness, base64url-no-pad (a valid PKCE verifier / state token).
-fn random_b64url(n_bytes: usize) -> String {
+/// `n_bytes` of randomness, base64url-no-pad (a valid PKCE verifier / state token — also the raw
+/// OIDC nonce for native Sign in with Apple, where url-safe output needs no percent-encoding in
+/// the Firebase `postBody`; see [`super::apple_native`]).
+pub(super) fn random_b64url(n_bytes: usize) -> String {
     let bytes: Vec<u8> = (0..n_bytes).map(|_| rand::random::<u8>()).collect();
     base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(bytes)
 }
