@@ -1,6 +1,6 @@
 [package]
 name = "crate-app"
-version = "0.3.0-staging.25"
+version = "0.3.0-staging.26"
 description = "Cross-platform DJ library manager with music discovery, track analysis, and USB export"
 authors = ["you"]
 edition = "2021"
@@ -181,6 +181,23 @@ objc2-media-player = { version = "0.3.2", features = [
 # trades for a Firebase App Check token. `block2` backs the generateKey / attestKey /
 # generateAssertion completion handlers. Reconcile against `cargo check --target aarch64-apple-ios`.
 objc2-device-check = { version = "0.3.2", features = ["DCAppAttestService", "block2"] }
+# Native Sign in with Apple (App Store Guideline 4.8): ASAuthorizationController /
+# ASAuthorizationAppleIDProvider mint an Apple identity token that the Rust auth flow exchanges into
+# Firebase via signInWithIdp (services/cloud_sync/auth/apple_native.rs). `default-features = false` +
+# an explicit feature list keeps the surface minimal (this crate, unlike the others, defaults to
+# nearly all features on). No `block2`: the result arrives via a delegate, not a completion block.
+# The `ASAuthorizationController` feature also gates the delegate/presentation protocols;
+# `ASAuthorizationOpenIDRequest` gates the setNonce/setRequestedScopes setters. Reconcile the exact
+# feature set against `cargo check --target aarch64-apple-ios`.
+objc2-authentication-services = { version = "0.3.2", default-features = false, features = [
+  "ASAuthorizationController",
+  "ASAuthorizationAppleIDProvider",
+  "ASAuthorizationAppleIDRequest",
+  "ASAuthorizationOpenIDRequest",
+  "ASAuthorizationRequest",
+  "ASAuthorizationAppleIDCredential",
+  "ASAuthorization",
+] }
 # iOS unified logging: a normally-launched app's stderr is discarded by iOS, so `env_logger`
 # output never reaches Console.app and on-device builds are undebuggable. `oslog` routes the
 # `log` facade to os_log (subsystem `com.bbx-audio.crate`), making cloud-sync / App Check
