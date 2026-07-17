@@ -73,7 +73,14 @@ pub async fn sign_in(
         open_url,
     )
     .await?;
-    finish_sign_in(backend, provider.firebase_provider_id(), None, conn, &id_token).await
+    finish_sign_in(
+        backend,
+        provider.firebase_provider_id(),
+        None,
+        conn,
+        &id_token,
+    )
+    .await
 }
 
 /// Complete a native mobile sign-in: exchange the authorization `code` (captured by the native
@@ -93,7 +100,14 @@ pub async fn complete_sign_in_with_code(
 ) -> Result<AuthSession> {
     let id_token =
         oauth_flow::complete(provider, client_id, None, redirect_uri, code, verifier).await?;
-    finish_sign_in(backend, provider.firebase_provider_id(), None, conn, &id_token).await
+    finish_sign_in(
+        backend,
+        provider.firebase_provider_id(),
+        None,
+        conn,
+        &id_token,
+    )
+    .await
 }
 
 /// Sign out: best-effort backend sign-out, then clear the stored refresh token.

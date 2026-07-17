@@ -28,7 +28,9 @@ use std::cell::RefCell;
 
 use objc2::rc::Retained;
 use objc2::runtime::{AnyClass, AnyObject, NSObject, NSObjectProtocol, ProtocolObject};
-use objc2::{define_class, msg_send, sel, AnyThread, DefinedClass, MainThreadMarker, MainThreadOnly};
+use objc2::{
+    define_class, msg_send, sel, AnyThread, DefinedClass, MainThreadMarker, MainThreadOnly,
+};
 use objc2_authentication_services::{
     ASAuthorization, ASAuthorizationAppleIDProvider, ASAuthorizationController,
     ASAuthorizationControllerDelegate, ASAuthorizationRequest, ASAuthorizationScopeEmail,
@@ -228,10 +230,7 @@ define_class!(
 );
 
 impl SignInDelegate {
-    fn new(
-        mtm: MainThreadMarker,
-        tx: oneshot::Sender<Result<CredentialFields>>,
-    ) -> Retained<Self> {
+    fn new(mtm: MainThreadMarker, tx: oneshot::Sender<Result<CredentialFields>>) -> Retained<Self> {
         let this = Self::alloc(mtm).set_ivars(DelegateIvars {
             tx: RefCell::new(Some(tx)),
         });
