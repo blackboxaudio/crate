@@ -3,15 +3,23 @@
  * Configure manual distribution code-signing in the iOS Xcode project for CI release builds.
  *
  * Tauri uses the committed `project.pbxproj` as-is at `tauri ios build` — it does NOT regenerate it
- * from `project.yml` (a `project.yml` change to the signing settings had no effect). Tauri applies
- * the bundle id and switches on manual signing MODE, but it never selects a provisioning profile,
- * so a non-interactive CI archive fails with: "requires a provisioning profile. Select a
- * provisioning profile in the Signing & Capabilities editor." This rewrites the iOS target's
- * signing in the pbxproj to manual + Apple Distribution + the channel's named profile.
+ * from `project.yml` (a `project.yml` signing change has no effect). Tauri applies the bundle id and
+ * switches manual-signing MODE on, but never selects a provisioning profile, so a non-interactive CI
+ * archive fails with: "requires a provisioning profile. Select a provisioning profile in the Signing
+ * & Capabilities editor." This rewrites the iOS target's signing to manual + Apple Distribution + the
+ * channel's named profile.
  *
- * CI-ONLY: intentionally NOT wired into the local `dev:ios` / `build:*:ios` scripts, so the
- * committed pbxproj keeps automatic/development signing and local on-device `yarn dev:ios` is
- * unaffected. The edit happens on the CI runner's checkout and is never committed.
+ * Robust to whichever automatic/development signing the committed pbxproj carries. Opening the
+ * project in Xcode and touching signing rewrites this block — e.g. `CODE_SIGN_IDENTITY` flips from
+ * "iPhone Developer" to "Apple Development", and `CODE_SIGN_STYLE = Automatic` /
+ * `PROVISIONING_PROFILE_SPECIFIER = ""` get added — so this matches ANY identity value, forces
+ * `CODE_SIGN_STYLE = Manual`, points the specifier at the profile, and injects the style/specifier
+ * keys if an older single-line structure lacks them. `DEVELOPMENT_TEAM` is left untouched (the
+ * distribution team is the same one the committed project already signs with).
+ *
+ * CI-ONLY: intentionally NOT wired into the local `dev:ios` / `build:*:ios` scripts, so the committed
+ * pbxproj keeps automatic/development signing and local on-device `yarn dev:ios` is unaffected. The
+ * edit happens on the CI runner's checkout and is never committed. Idempotent.
  *
  * Usage: IOS_PROVISIONING_PROFILE_NAME="<profile name>" node scripts/write-ios-signing.mjs
  */
@@ -44,28 +52,47 @@ try {
 	process.exit(1)
 }
 
-// The committed project signs automatically with a development identity (`iPhone Developer`).
-// Replace that line in each target build config (debug + release) with manual Apple Distribution
-// signing + the named profile, reusing the captured indentation. CI archives the release config;
-// debug gets the same settings, harmlessly.
-const pattern = /^([\t ]*)CODE_SIGN_IDENTITY = "iPhone Developer";$/gm
-const count = (pbx.match(pattern) || []).length
-if (count === 0) {
+// Anchor on CODE_SIGN_IDENTITY — always present, once per build config — matching whatever value the
+// committed project carries ("Apple Development", "iPhone Developer", …). It also captures the
+// indentation used to inject the style/specifier keys when an older pbxproj structure lacks them.
+const identityPattern = /^([\t ]*)CODE_SIGN_IDENTITY = "[^"]*";$/gm
+const identityCount = (pbx.match(identityPattern) || []).length
+if (identityCount === 0) {
 	console.error(
-		'[write-ios-signing] `CODE_SIGN_IDENTITY = "iPhone Developer";` not found in pbxproj — the ' +
-			'project structure changed; update this script.',
+		'[write-ios-signing] no `CODE_SIGN_IDENTITY = "...";` line in pbxproj — the project structure ' +
+			'changed; update this script.',
 	)
 	process.exit(1)
 }
-pbx = pbx.replace(
-	pattern,
-	(_match, indent) =>
-		`${indent}CODE_SIGN_IDENTITY = "${SIGN_IDENTITY}";\n` +
-		`${indent}CODE_SIGN_STYLE = Manual;\n` +
-		`${indent}PROVISIONING_PROFILE_SPECIFIER = "${profileName}";`,
-)
+
+// Detect the current structure BEFORE mutating (Xcode-written projects already carry these keys;
+// older single-line ones don't and need them injected next to the identity line).
+const hadStyle = /^[\t ]*CODE_SIGN_STYLE = \w+;$/m.test(pbx)
+const hadSpecifier = /^[\t ]*PROVISIONING_PROFILE_SPECIFIER = "[^"]*";$/m.test(pbx)
+
+// 1. Identity -> Apple Distribution (+ inject Manual style / profile specifier iff the structure
+//    doesn't already have them, so we never create duplicate keys).
+pbx = pbx.replace(identityPattern, (_match, indent) => {
+	let out = `${indent}CODE_SIGN_IDENTITY = "${SIGN_IDENTITY}";`
+	if (!hadStyle) out += `\n${indent}CODE_SIGN_STYLE = Manual;`
+	if (!hadSpecifier) out += `\n${indent}PROVISIONING_PROFILE_SPECIFIER = "${profileName}";`
+	return out
+})
+
+// 2. Force any existing CODE_SIGN_STYLE (Xcode writes `Automatic`) to Manual.
+if (hadStyle) {
+	pbx = pbx.replace(/^([\t ]*)CODE_SIGN_STYLE = \w+;$/gm, `$1CODE_SIGN_STYLE = Manual;`)
+}
+
+// 3. Point any existing PROVISIONING_PROFILE_SPECIFIER (Xcode writes an empty string) at the profile.
+if (hadSpecifier) {
+	pbx = pbx.replace(
+		/^([\t ]*)PROVISIONING_PROFILE_SPECIFIER = "[^"]*";$/gm,
+		`$1PROVISIONING_PROFILE_SPECIFIER = "${profileName}";`,
+	)
+}
 
 writeFileSync(pbxprojPath, pbx)
 console.log(
-	`[write-ios-signing] configured manual signing (${SIGN_IDENTITY}, profile "${profileName}") in ${count} build config(s)`,
+	`[write-ios-signing] configured manual signing (${SIGN_IDENTITY}, profile "${profileName}") in ${identityCount} build config(s)`,
 )
