@@ -85,6 +85,8 @@
 	// mode itself is persisted, so a boot restore always replays under the geometry it was saved with.
 	let currentScrollTop = $state(savedScrollTop)
 
+	// Intentional initial snapshot: the effect below compares against it and keeps it current.
+	// svelte-ignore state_referenced_locally
 	let prevMode = mode
 	$effect.pre(() => {
 		const m = mode

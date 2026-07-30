@@ -101,6 +101,7 @@
 	// (Drawer gates its children on `visible`), but `changeFx` lives in the always-mounted ExpandedPlayer
 	// and still holds the last track change — swallowing it here means opening the player never slides the
 	// artwork; only prev/next changes that land WHILE it's open (a fresh seq) animate.
+	// svelte-ignore state_referenced_locally
 	let lastFxSeq = changeFx?.seq ?? 0
 	let fallbackTimer: ReturnType<typeof setTimeout> | null = null
 	let watchdogTimer: ReturnType<typeof setTimeout> | null = null

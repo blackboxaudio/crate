@@ -63,6 +63,10 @@
 		count: () => releases.length,
 		getScrollElement: () => scrollEl,
 		estimateSize: () => () => rowHeight,
+		// Intentional initial snapshot: the virtualizer reads overscan once at creation and never
+		// updates it, so a reactive reference would change nothing.
+		/* eslint-disable svelte/no-unused-svelte-ignore */
+		// svelte-ignore state_referenced_locally
 		overscan,
 		getItemKey: (index) => releases[index]?.id ?? index,
 	})

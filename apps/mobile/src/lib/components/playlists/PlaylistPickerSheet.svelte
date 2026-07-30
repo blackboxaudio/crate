@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { get } from 'svelte/store'
-	import { untrack } from 'svelte'
+	import { tick, untrack } from 'svelte'
 	import { fade } from 'svelte/transition'
 	import { translate } from '$shared/i18n'
 	import { playlistsStore, getPlaylistChildren } from '$shared/stores/playlists'
@@ -85,6 +85,12 @@
 		// Seed the name with the current query so "search, then create what you typed" is one tap.
 		newName = query.trim()
 		creating = true
+	}
+
+	// Focus the name field the moment the create row expands — user-initiated (they just tapped
+	// "create"), so it doesn't carry the a11y surprise of the `autofocus` attribute.
+	function focusOnMount(node: HTMLInputElement) {
+		tick().then(() => node.focus())
 	}
 
 	async function addTo(playlistId: string) {
@@ -236,7 +242,7 @@
 				placeholder={$translate('modals.createPlaylist.placeholder')}
 				class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
 				onkeydown={(e) => e.key === 'Enter' && createAndAdd()}
-				autofocus
+				use:focusOnMount
 			/>
 			<button
 				type="button"

@@ -27,7 +27,10 @@
 	// round-trip. Reset when the release identity changes (the virtualized feed reuses
 	// instances across rows); adopt a non-null prop value if it catches up, but never clobber
 	// an already-resolved path back to null.
+	// (Both seeds below are intentional initial snapshots — the sync $effect keeps them current.)
+	// svelte-ignore state_referenced_locally
 	let lastId = $state(release.id)
+	// svelte-ignore state_referenced_locally
 	let cachePath = $state<string | null>(release.artwork_cache_path)
 	// Once the REMOTE url has decoded successfully, keep showing it for this mount: flipping `src`
 	// to the freshly cached local copy would make WebKit reload + re-decode the same pixels (a
