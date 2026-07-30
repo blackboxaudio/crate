@@ -1,8 +1,11 @@
 mod artwork_cache;
 mod audio_cache;
+mod dedupe;
 mod release_crud;
 mod release_ops;
 mod stream_cache;
+
+pub use dedupe::dedupe_discovery_tracks;
 
 pub mod metadata;
 pub mod n_transform;

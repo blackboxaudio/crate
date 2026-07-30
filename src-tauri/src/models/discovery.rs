@@ -1,6 +1,42 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// Fixed namespace for content-derived discovery-track ids (arbitrary; never change it —
+/// every device must mint identical ids from identical inputs, forever).
+pub const DISCOVERY_TRACK_ID_NAMESPACE: uuid::Uuid =
+    uuid::Uuid::from_u128(0x5f1e_d0aa_9c3b_42d7_8a6e_2b91_c4f7_03d5);
+
+/// Fixed namespace for content-derived discovery-release ids (same never-change rule).
+pub const DISCOVERY_RELEASE_ID_NAMESPACE: uuid::Uuid =
+    uuid::Uuid::from_u128(0x7c42_d9be_51f0_4aa3_9b0d_d6f8_e2a4_1c77);
+
+/// Canonical track-name normalization for identity and dedup: trim + Unicode lowercase.
+/// Every producer and consumer (id minting, insert-time dedup, sync merge matching, the
+/// startup dedupe sweep) MUST use this — SQL `LOWER()` is ASCII-only and would disagree
+/// with it on non-ASCII names.
+pub fn normalized_track_name(name: &str) -> String {
+    name.trim().to_lowercase()
+}
+
+/// Deterministic track id: UUIDv5 over `release_id|normalized_name`. Two devices that
+/// independently fetch the same release mint IDENTICAL ids, so the sync merge's
+/// `ON CONFLICT(id)` path collapses them instead of unioning duplicate rows.
+pub fn deterministic_track_id(release_id: &str, name: &str) -> String {
+    uuid::Uuid::new_v5(
+        &DISCOVERY_TRACK_ID_NAMESPACE,
+        format!("{release_id}|{}", normalized_track_name(name)).as_bytes(),
+    )
+    .to_string()
+}
+
+/// Deterministic release id: UUIDv5 over the normalized URL (the release's natural key —
+/// `discovery_releases.url` is UNIQUE). Two devices that independently add the same URL
+/// mint the same id, so cloud sync converges on one row instead of skipping each other's
+/// copy on the UNIQUE(url) collision and splitting the release id across the fleet.
+pub fn deterministic_release_id(normalized_url: &str) -> String {
+    uuid::Uuid::new_v5(&DISCOVERY_RELEASE_ID_NAMESPACE, normalized_url.as_bytes()).to_string()
+}
+
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DiscoveryTrack {
     pub id: String,
     pub release_id: String,

@@ -857,3 +857,292 @@ async fn dangling_manifest_reference_self_heals() -> Result<()> {
     );
     Ok(())
 }
+
+// --- discovery duplicate collapse -----------------------------------------
+//
+// Discovery tracks/releases historically minted random v4 ids with no natural-key
+// uniqueness, so two devices independently materializing the same content produced
+// duplicate rows (tracks) or a UNIQUE(url)-skip id split-brain (releases). These
+// cases exercise the content-based collapse in the merge engine plus the startup
+// dedupe sweep. Seeding helpers mirror the real mutation sites (stamp + dirty).
+
+fn create_discovery_release(conn: &Connection, node: u32, wall: u64, id: &str, url: &str) {
+    conn.execute(
+        "INSERT INTO discovery_releases (id, url, source_type, date_added, date_modified, _hlc) \
+         VALUES (?1, ?2, 'bandcamp', ?3, ?3, ?4)",
+        params![id, url, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::DISCOVERY_RELEASES).unwrap();
+}
+
+fn create_discovery_track(
+    conn: &Connection,
+    node: u32,
+    wall: u64,
+    id: &str,
+    release_id: &str,
+    name: &str,
+    position: i32,
+) {
+    conn.execute(
+        "INSERT INTO discovery_tracks (id, release_id, name, position, _hlc) \
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![id, release_id, name, position, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::DISCOVERY_TRACKS).unwrap();
+}
+
+fn like_discovery_track(conn: &Connection, node: u32, wall: u64, id: &str) {
+    conn.execute(
+        "UPDATE discovery_tracks SET is_liked = 1, _hlc = ?1 WHERE id = ?2",
+        params![hlc(node, wall), id],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::DISCOVERY_TRACKS).unwrap();
+}
+
+fn add_discovery_release_tag(conn: &Connection, node: u32, wall: u64, release: &str, tag: &str) {
+    conn.execute(
+        "INSERT INTO discovery_release_tags (release_id, tag_id, _hlc) VALUES (?1, ?2, ?3) \
+         ON CONFLICT(release_id, tag_id) DO UPDATE SET _hlc = excluded._hlc",
+        params![release, tag, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::DISCOVERY_RELEASE_TAGS).unwrap();
+}
+
+/// `(id, name, is_liked)` of a release's live tracks, ordered by id.
+fn discovery_tracks_for(conn: &Connection, release: &str) -> Vec<(String, String, bool)> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, name, is_liked FROM discovery_tracks WHERE release_id = ?1 ORDER BY id",
+        )
+        .unwrap();
+    stmt.query_map([release], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, i32>(2)? != 0,
+        ))
+    })
+    .unwrap()
+    .collect::<std::result::Result<Vec<_>, _>>()
+    .unwrap()
+}
+
+fn discovery_release_ids(conn: &Connection) -> Vec<String> {
+    let mut stmt = conn
+        .prepare("SELECT id FROM discovery_releases ORDER BY id")
+        .unwrap();
+    stmt.query_map([], |r| r.get::<_, String>(0))
+        .unwrap()
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn tombstone_exists(conn: &Connection, entity_type: &str, id: &str) -> bool {
+    conn.query_row(
+        "SELECT 1 FROM sync_tombstones WHERE entity_type = ?1 AND entity_id = ?2",
+        params![entity_type, id],
+        |_| Ok(()),
+    )
+    .optional()
+    .unwrap()
+    .is_some()
+}
+
+fn release_tag_exists(conn: &Connection, release: &str, tag: &str) -> bool {
+    conn.query_row(
+        "SELECT 1 FROM discovery_release_tags WHERE release_id = ?1 AND tag_id = ?2",
+        params![release, tag],
+        |_| Ok(()),
+    )
+    .optional()
+    .unwrap()
+    .is_some()
+}
+
+/// Both devices independently populate the same (synced) release's tracks — the
+/// pre-deterministic-id bug shape. The merge must collapse the two id sets into
+/// one row per track, keeping the like and tombstoning the losing id.
+#[tokio::test]
+async fn independent_track_fetches_collapse_to_one_row() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    create_discovery_release(&a, 0x0A, 5, "rel-1", "https://x.bandcamp.com/album/y");
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+
+    // Same logical track, different ids, different name case; B also likes its copy.
+    create_discovery_track(&a, 0x0A, 10, "aaaa-track", "rel-1", "Intro", 1);
+    create_discovery_track(&b, 0x0B, 20, "bbbb-track", "rel-1", "intro", 1);
+    like_discovery_track(&b, 0x0B, 25, "bbbb-track");
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        let tracks = discovery_tracks_for(conn, "rel-1");
+        assert_eq!(tracks.len(), 1, "duplicates collapsed to one row");
+        let (id, _, liked) = &tracks[0];
+        assert_eq!(id, "aaaa-track", "smaller id survives");
+        assert!(*liked, "the like on the losing copy was folded in");
+        assert!(tombstone_exists(conn, "discovery_tracks", "bbbb-track"));
+    }
+    Ok(())
+}
+
+/// Same as above with the push order mirrored — the collapse rule must be
+/// direction-independent (same survivor, byte-identical buckets).
+#[tokio::test]
+async fn independent_track_fetches_collapse_mirrored_order() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    create_discovery_release(&a, 0x0A, 5, "rel-1", "https://x.bandcamp.com/album/y");
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+
+    create_discovery_track(&a, 0x0A, 10, "aaaa-track", "rel-1", "Intro", 1);
+    create_discovery_track(&b, 0x0B, 20, "bbbb-track", "rel-1", "intro", 1);
+    like_discovery_track(&b, 0x0B, 25, "bbbb-track");
+
+    // B pushes first this time.
+    push(&b, &cloud, "B").await?;
+    pull(&a, &cloud).await?;
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+    push(&b, &cloud, "B").await?;
+    pull(&a, &cloud).await?;
+    assert_eq!(state_hash(&a)?, state_hash(&b)?);
+
+    for conn in [&a, &b] {
+        let tracks = discovery_tracks_for(conn, "rel-1");
+        assert_eq!(tracks.len(), 1);
+        assert_eq!(tracks[0].0, "aaaa-track", "same survivor in both directions");
+        assert!(tracks[0].2);
+    }
+    Ok(())
+}
+
+/// Existing (already-synced) duplicates, swept on one device while the OTHER
+/// device concurrently likes the copy the sweep removed. The like must not be
+/// destroyed by the sweep's tombstone — it outranks it, survives the pull, and
+/// the merge collapse folds it into the survivor.
+#[tokio::test]
+async fn sweep_preserves_concurrent_like_on_removed_copy() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    // Seed identical (converged) duplicate state on both devices, as if it had
+    // synced before the fix shipped. Same node in the stamps → same bytes.
+    for conn in [&a, &b] {
+        create_discovery_release(conn, 0x0A, 5, "rel-1", "https://x.bandcamp.com/album/y");
+        create_discovery_track(conn, 0x0A, 10, "xxxx-track", "rel-1", "Intro", 1);
+        create_discovery_track(conn, 0x0A, 20, "yyyy-track", "rel-1", "Intro", 1);
+    }
+    assert_eq!(state_hash(&a)?, state_hash(&b)?, "seeded converged");
+
+    // B likes the copy A's sweep is about to remove.
+    like_discovery_track(&b, 0x0B, 30, "yyyy-track");
+
+    let removed = crate::services::discovery::dedupe_discovery_tracks(&a)?;
+    assert_eq!(removed, 1, "A's sweep removed the duplicate");
+    assert_eq!(
+        discovery_tracks_for(&a, "rel-1").len(),
+        1,
+        "one row left on A"
+    );
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        let tracks = discovery_tracks_for(conn, "rel-1");
+        assert_eq!(tracks.len(), 1);
+        assert_eq!(tracks[0].0, "xxxx-track", "smallest id survives everywhere");
+        assert!(tracks[0].2, "B's like on the removed copy was preserved");
+    }
+
+    // A later sweep on B is a no-op — nothing left to collapse.
+    assert_eq!(crate::services::discovery::dedupe_discovery_tracks(&b)?, 0);
+    assert_eq!(state_hash(&a)?, state_hash(&b)?);
+    Ok(())
+}
+
+/// A new-build device minting a content-derived (v5) id meets an old device's
+/// legacy random id for the same track: they collapse like any other pair.
+#[tokio::test]
+async fn deterministic_id_meets_legacy_v4_id() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    create_discovery_release(&a, 0x0A, 5, "rel-1", "https://x.bandcamp.com/album/y");
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+
+    let det_id = crate::models::deterministic_track_id("rel-1", "Intro");
+    create_discovery_track(&a, 0x0A, 10, "zzzz-legacy", "rel-1", "Intro", 1);
+    create_discovery_track(&b, 0x0B, 20, &det_id, "rel-1", "Intro", 1);
+    like_discovery_track(&b, 0x0B, 25, &det_id);
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    // Hex uuids sort below "zzzz-…", so the deterministic id is the survivor.
+    for conn in [&a, &b] {
+        let tracks = discovery_tracks_for(conn, "rel-1");
+        assert_eq!(tracks.len(), 1);
+        assert_eq!(tracks[0].0, det_id);
+        assert!(tracks[0].2);
+        assert!(tombstone_exists(conn, "discovery_tracks", "zzzz-legacy"));
+    }
+    Ok(())
+}
+
+/// Two devices independently add the SAME release URL before syncing (the release
+/// split-brain the UNIQUE(url) merge-skip used to cause). The merge must collapse
+/// the two release ids into one, re-parent children (tracks, tag links) onto the
+/// survivor, and collapse the now-sibling duplicate tracks — no permanent id
+/// divergence, no lost likes or tags.
+#[tokio::test]
+async fn same_url_releases_collapse_and_reparent_children() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    let url = "https://x.bandcamp.com/album/split-brain";
+    create_discovery_release(&a, 0x0A, 5, "p-rel", url);
+    create_discovery_track(&a, 0x0A, 6, "aaaa-track", "p-rel", "Intro", 1);
+
+    create_discovery_release(&b, 0x0B, 7, "q-rel", url);
+    create_discovery_track(&b, 0x0B, 8, "bbbb-track", "q-rel", "Intro", 1);
+    like_discovery_track(&b, 0x0B, 9, "bbbb-track");
+    create_tag_category(&b, 0x0B, 9, "cat", "Genre");
+    create_tag(&b, 0x0B, 9, "tag-house", "cat", "House");
+    add_discovery_release_tag(&b, 0x0B, 9, "q-rel", "tag-house");
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        assert_eq!(
+            discovery_release_ids(conn),
+            vec!["p-rel".to_string()],
+            "one release, smaller id"
+        );
+        assert!(tombstone_exists(conn, "discovery_releases", "q-rel"));
+        let tracks = discovery_tracks_for(conn, "p-rel");
+        assert_eq!(tracks.len(), 1, "re-parented duplicate tracks collapsed");
+        assert_eq!(tracks[0].0, "aaaa-track");
+        assert!(tracks[0].2, "like survived the re-parent + collapse");
+        assert!(
+            release_tag_exists(conn, "p-rel", "tag-house"),
+            "tag link re-parented onto the survivor"
+        );
+    }
+    Ok(())
+}

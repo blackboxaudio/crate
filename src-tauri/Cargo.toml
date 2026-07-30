@@ -102,7 +102,7 @@ axum = "0.7"
 regex = "1"
 
 # Utilities
-uuid = { version = "1.19.0", features = ["v4", "serde"] }
+uuid = { version = "1.19.0", features = ["v4", "v5", "serde"] }
 chrono = { version = "0.4.42", features = ["serde"] }
 thiserror = "2.0.17"
 log = "0.4.29"

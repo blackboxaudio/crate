@@ -27,6 +27,7 @@ use super::buckets::{Bucket, BucketKind};
 use super::dirty;
 use super::rows::{self, ParsedRow};
 
+mod collapse;
 mod writers;
 
 #[cfg(test)]
@@ -152,13 +153,24 @@ fn merge_entity_row(
         match (local_live, local_tomb) {
             // A tombstone at >= the remote's HLC keeps the entity deleted.
             (_, Some(t)) if hlc_ge(&t, &row.hlc) => {}
-            // Tombstone strictly older than the remote → resurrect.
-            (_, Some(_)) => {
-                writers::delete_tombstone(tx, bucket, &cid)?;
-                writers::upsert_entity(tx, bucket, row)?;
+            // Tombstone strictly older than the remote → resurrect. For discovery rows,
+            // first check whether a local live row already carries this row's natural key
+            // (same release + track name, or same release URL): that means the "resurrected"
+            // row is a duplicate identity being pushed back by a peer — collapse the two
+            // into one instead of re-splitting them (see `collapse`).
+            (live, Some(_)) => {
+                if live.is_some() || !collapse::try_collapse(tx, bucket, row)? {
+                    writers::delete_tombstone(tx, bucket, &cid)?;
+                    writers::upsert_entity(tx, bucket, row)?;
+                }
             }
-            // Brand new.
-            (None, None) => writers::upsert_entity(tx, bucket, row)?,
+            // Brand new — unless a local live row carries the same natural key, in which
+            // case the unknown id is a duplicate identity to collapse, not a new entity.
+            (None, None) => {
+                if !collapse::try_collapse(tx, bucket, row)? {
+                    writers::upsert_entity(tx, bucket, row)?;
+                }
+            }
             // Present locally: LWW, remote wins only if strictly newer.
             (Some(l), None) => {
                 if hlc_gt(&row.hlc, &l) {

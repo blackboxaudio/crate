@@ -86,9 +86,12 @@ impl DiscoveryService {
                 })?
                 .collect::<std::result::Result<Vec<_>, _>>()?;
 
-            let existing_names: Vec<String> = existing
+            // Normalized (trim + Unicode lowercase) to match the id-derivation rule, and
+            // grown as we insert so a batch carrying the same name twice can't collide on
+            // the content-derived id.
+            let mut existing_names: std::collections::HashSet<String> = existing
                 .iter()
-                .map(|(name, _)| name.to_lowercase())
+                .map(|(name, _)| crate::models::normalized_track_name(name))
                 .collect();
             let max_position = existing.iter().map(|(_, pos)| *pos).max().unwrap_or(0);
 
@@ -97,10 +100,10 @@ impl DiscoveryService {
             let mut next_position = max_position + 1;
 
             for track in &tracks {
-                if existing_names.contains(&track.name.to_lowercase()) {
+                if !existing_names.insert(crate::models::normalized_track_name(&track.name)) {
                     continue;
                 }
-                let track_id = uuid::Uuid::new_v4().to_string();
+                let track_id = crate::models::deterministic_track_id(release_id, &track.name);
                 conn.execute(
                     "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                     rusqlite::params![track_id, release_id, track.name, next_position, track.duration_ms, track.video_id, track.url, hlc],
@@ -135,15 +138,19 @@ impl DiscoveryService {
             let now = chrono::Utc::now().to_rfc3339();
             let hlc = dirty::next_hlc(&conn)?;
 
-            // Get existing target track names for dedup
+            // Get existing target track names for dedup (normalized in Rust — SQL LOWER()
+            // is ASCII-only and must not feed the id-derivation rule)
             let mut stmt = conn.prepare(
-                "SELECT LOWER(name), MAX(position) FROM discovery_tracks WHERE release_id = ?1 GROUP BY LOWER(name)",
+                "SELECT name, MAX(position) FROM discovery_tracks WHERE release_id = ?1 GROUP BY LOWER(name)",
             )?;
             let existing: Vec<(String, i32)> = stmt
                 .query_map([target_id], |row| Ok((row.get(0)?, row.get(1)?)))?
                 .collect::<std::result::Result<Vec<_>, _>>()?;
 
-            let mut existing_names: Vec<String> = existing.iter().map(|(n, _)| n.clone()).collect();
+            let mut existing_names: Vec<String> = existing
+                .iter()
+                .map(|(n, _)| crate::models::normalized_track_name(n))
+                .collect();
             let mut next_position = existing.iter().map(|(_, p)| *p).max().unwrap_or(0) + 1;
 
             // Get target notes
@@ -178,15 +185,15 @@ impl DiscoveryService {
                     .collect::<std::result::Result<Vec<_>, _>>()?;
 
                 for (name, _, duration_ms, video_id, url) in &source_tracks {
-                    if existing_names.contains(&name.to_lowercase()) {
+                    if existing_names.contains(&crate::models::normalized_track_name(name)) {
                         continue;
                     }
-                    let track_id = uuid::Uuid::new_v4().to_string();
+                    let track_id = crate::models::deterministic_track_id(target_id, name);
                     conn.execute(
                         "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                         rusqlite::params![track_id, target_id, name, next_position, duration_ms, video_id, url, hlc],
                     )?;
-                    existing_names.push(name.to_lowercase());
+                    existing_names.push(crate::models::normalized_track_name(name));
                     next_position += 1;
                 }
 
@@ -257,7 +264,10 @@ impl DiscoveryService {
     }
 
     /// Update missing track durations by matching fetched tracks by name (case-insensitive).
-    /// Only fills in `duration_ms` for tracks that currently have `NULL` duration.
+    /// Only fills in `duration_ms` for tracks that currently have `NULL` duration. Bumps
+    /// `_hlc` + marks the bucket dirty (like `update_track_urls`): an unstamped write changes
+    /// the serialized bucket bytes without advancing the row clock, which the anti-entropy
+    /// hash check then bounces between devices forever.
     pub fn update_track_durations(
         &self,
         release_id: &str,
@@ -276,6 +286,12 @@ impl DiscoveryService {
             .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
+        if null_tracks.is_empty() {
+            return Ok(());
+        }
+
+        let hlc = dirty::next_hlc(&conn)?;
+        let mut changed = false;
         for (track_id, track_name) in &null_tracks {
             if let Some(fetched) = fetched_tracks
                 .iter()
@@ -283,11 +299,15 @@ impl DiscoveryService {
             {
                 if let Some(duration_ms) = fetched.duration_ms {
                     conn.execute(
-                        "UPDATE discovery_tracks SET duration_ms = ?1 WHERE id = ?2",
-                        rusqlite::params![duration_ms, track_id],
+                        "UPDATE discovery_tracks SET duration_ms = ?1, _hlc = ?2 WHERE id = ?3",
+                        rusqlite::params![duration_ms, hlc, track_id],
                     )?;
+                    changed = true;
                 }
             }
+        }
+        if changed {
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
         }
 
         Ok(())
@@ -329,7 +349,9 @@ impl DiscoveryService {
         })
     }
 
-    /// Backfill NULL `video_id` values from fetched metadata, matching by position.
+    /// Backfill NULL `video_id` values from fetched metadata, matching by position. Bumps
+    /// `_hlc` + marks the bucket dirty (like `update_track_urls`) so the write propagates
+    /// instead of ping-ponging the anti-entropy hash check.
     pub fn update_track_video_ids(
         &self,
         release_id: &str,
@@ -348,15 +370,25 @@ impl DiscoveryService {
             .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
+        if null_tracks.is_empty() {
+            return Ok(());
+        }
+
+        let hlc = dirty::next_hlc(&conn)?;
+        let mut changed = false;
         for (track_id, position) in &null_tracks {
             if let Some(fetched) = fetched_tracks.iter().find(|ft| ft.position == *position) {
                 if let Some(ref vid) = fetched.video_id {
                     conn.execute(
-                        "UPDATE discovery_tracks SET video_id = ?1 WHERE id = ?2",
-                        rusqlite::params![vid, track_id],
+                        "UPDATE discovery_tracks SET video_id = ?1, _hlc = ?2 WHERE id = ?3",
+                        rusqlite::params![vid, hlc, track_id],
                     )?;
+                    changed = true;
                 }
             }
+        }
+        if changed {
+            dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
         }
 
         Ok(())

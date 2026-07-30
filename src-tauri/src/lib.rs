@@ -470,6 +470,18 @@ pub fn run() {
             })?;
             let conn = db.connection();
 
+            // Heal historically duplicated discovery tracks (random-id rows unioned by
+            // cloud sync): collapse local duplicates, preserving likes, and tombstone the
+            // removed ids so peers drop them too. Best-effort — never blocks launch.
+            match conn.lock() {
+                Ok(guard) => match services::discovery::dedupe_discovery_tracks(&guard) {
+                    Ok(0) => {}
+                    Ok(n) => log::info!("discovery: collapsed {n} duplicate track rows"),
+                    Err(e) => log::warn!("discovery: track dedupe sweep failed: {e}"),
+                },
+                Err(_) => log::warn!("discovery: track dedupe sweep skipped (lock poisoned)"),
+            }
+
             // Initialize services. Desktop-only services (file import/analysis, audio
             // playback, USB export/sync, device detection, diagnostics) are gated out of
             // the mobile build along with their commands and backing crates.

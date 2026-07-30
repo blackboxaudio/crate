@@ -208,7 +208,7 @@ fn upsert_discovery_release(tx: &Connection, d: &DiscoveryReleaseRow, hlc: &str)
     Ok(())
 }
 
-fn upsert_discovery_track(tx: &Connection, d: &DiscoveryTrack, hlc: &str) -> Result<()> {
+pub(super) fn upsert_discovery_track(tx: &Connection, d: &DiscoveryTrack, hlc: &str) -> Result<()> {
     // Whole-row LWW: a peer on an older build (no `url` in its snapshot → deserialized None)
     // can null a backfilled url out; accepted — the NULL-only `update_track_urls` backfill
     // re-populates on the next metadata refresh and pushes the heal back to peers.

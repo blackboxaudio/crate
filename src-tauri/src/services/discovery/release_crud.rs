@@ -6,8 +6,10 @@ impl DiscoveryService {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let now = chrono::Utc::now().to_rfc3339();
-        let id = uuid::Uuid::new_v4().to_string();
         let normalized_url = normalize_url(&create.url);
+        // Content-derived id: two devices independently adding the same URL mint the
+        // same row identity, so cloud sync converges instead of splitting the release.
+        let id = crate::models::deterministic_release_id(&normalized_url);
         let source_type = create
             .source_type
             .unwrap_or_else(|| detect_source_type(&normalized_url));
@@ -35,11 +37,17 @@ impl DiscoveryService {
         )?;
         dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
 
-        // Insert tracks if provided
+        // Insert tracks if provided. Ids are content-derived, so a raw batch carrying the
+        // same name twice would PK-collide — first occurrence wins, matching the
+        // name-dedup rule every other track-insert path already applies.
         let mut tracks = Vec::new();
+        let mut seen_names = std::collections::HashSet::new();
         if let Some(track_creates) = create.tracks {
             for tc in track_creates {
-                let track_id = uuid::Uuid::new_v4().to_string();
+                if !seen_names.insert(crate::models::normalized_track_name(&tc.name)) {
+                    continue;
+                }
+                let track_id = crate::models::deterministic_track_id(&id, &tc.name);
                 conn.execute(
                     "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
                     rusqlite::params![track_id, id, tc.name, tc.position, tc.duration_ms, tc.video_id, tc.url, hlc],

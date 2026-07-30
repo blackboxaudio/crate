@@ -75,7 +75,7 @@ pub struct TagCategoryRow {
     pub sort_order: i32,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DiscoveryReleaseRow {
     pub id: String,
     pub url: String,
