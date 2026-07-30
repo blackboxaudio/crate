@@ -34,7 +34,6 @@ export interface NativeTrack {
 	 * that entry.
 	 */
 	trackId: string | null
-	releaseId: string | null
 	isLiked: boolean
 }
 

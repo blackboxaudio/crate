@@ -380,7 +380,6 @@ function createPlayerStore() {
 			artworkUrl: p.release.artwork_url ?? null,
 			mimeType,
 			trackId: track.id ?? null,
-			releaseId: p.release.id,
 			isLiked: track.is_liked ?? false,
 		}
 	}

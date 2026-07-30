@@ -1023,7 +1023,10 @@ async fn independent_track_fetches_collapse_mirrored_order() -> Result<()> {
     for conn in [&a, &b] {
         let tracks = discovery_tracks_for(conn, "rel-1");
         assert_eq!(tracks.len(), 1);
-        assert_eq!(tracks[0].0, "aaaa-track", "same survivor in both directions");
+        assert_eq!(
+            tracks[0].0, "aaaa-track",
+            "same survivor in both directions"
+        );
         assert!(tracks[0].2);
     }
     Ok(())

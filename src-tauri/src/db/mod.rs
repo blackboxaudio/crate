@@ -138,6 +138,7 @@ impl Database {
     /// Writer-only open (no reader pool): for short-lived headless contexts (the Android
     /// WorkManager sync) where pooled readers would never be used but each would still
     /// pay the SQLCipher KDF.
+    #[cfg_attr(not(target_os = "android"), allow(dead_code))]
     pub fn new_writer_only(db_path: PathBuf) -> Result<Self> {
         Self::new_inner(db_path, false)
     }

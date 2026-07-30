@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
-	import type { DiscoverySortConfig, DiscoverySortField, Playlist } from '$shared/types'
+	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySortField, Playlist } from '$shared/types'
 	import { playlistsStore } from '$shared/stores/playlists'
 	import { getSmartPlaylistReleases } from '$shared/api/playlists'
 	import { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
@@ -291,7 +291,7 @@
 	{/snippet}
 </Drawer>
 
-{#snippet releaseRow({ release })}
+{#snippet releaseRow({ release }: { release: DiscoveryRelease })}
 	<ReleaseCard {release} playlistId={playlist.id} context="playlist" />
 {/snippet}
 

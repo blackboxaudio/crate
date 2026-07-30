@@ -78,9 +78,7 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
         // Winner-first: highest `_hlc`, ties to the smaller id (same rule as the merge
         // collapse). The smallest id in the group survives regardless of who wins —
         // "keep smallest id" is what makes independent sweeps on two devices commute.
-        members.sort_by(|(a, a_hlc), (b, b_hlc)| {
-            b_hlc.cmp(a_hlc).then_with(|| a.id.cmp(&b.id))
-        });
+        members.sort_by(|(a, a_hlc), (b, b_hlc)| b_hlc.cmp(a_hlc).then_with(|| a.id.cmp(&b.id)));
         let group_max_hlc = members[0].1.clone();
         let survivor_id = members
             .iter()
@@ -232,7 +230,10 @@ mod tests {
         assert_eq!(id, "aaaa", "smallest id survives");
         assert!(*liked, "like OR-ed from a removed copy");
         assert_eq!(*duration, Some(1000), "duration coalesced from the winner");
-        assert!(*hlc > h(30), "changed survivor re-stamped above the group max");
+        assert!(
+            *hlc > h(30),
+            "changed survivor re-stamped above the group max"
+        );
 
         // Tombstones strictly outrank the removed copies, so identical copies on
         // peers are deleted — but only minimally, so a newer edit there survives.
@@ -246,7 +247,10 @@ mod tests {
                 )
                 .unwrap();
             assert!(tomb > h(wall));
-            assert!(tomb < h(wall + 1), "minimal dominance: below the next wall tick");
+            assert!(
+                tomb < h(wall + 1),
+                "minimal dominance: below the next wall tick"
+            );
         }
     }
 

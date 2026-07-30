@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { get } from 'svelte/store'
-	import type { DiscoverySortConfig, DiscoverySortField, Tag } from '$shared/types'
+	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySortField, Tag } from '$shared/types'
 	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
@@ -165,7 +165,7 @@
 	{/snippet}
 </Drawer>
 
-{#snippet releaseRow({ release })}
+{#snippet releaseRow({ release }: { release: DiscoveryRelease })}
 	<ReleaseCard {release} context="tag" />
 {/snippet}
 

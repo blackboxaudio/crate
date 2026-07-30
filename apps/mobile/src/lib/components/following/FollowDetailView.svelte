@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { get } from 'svelte/store'
-	import type { DiscoverySortConfig, DiscoverySortField, FollowedSource } from '$shared/types'
+	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySortField, FollowedSource } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
 	import { followStore } from '$shared/stores/follow'
@@ -206,7 +206,7 @@
 	{/snippet}
 </Drawer>
 
-{#snippet releaseRow({ release })}
+{#snippet releaseRow({ release }: { release: DiscoveryRelease })}
 	<ReleaseCard {release} context="follow" />
 {/snippet}
 

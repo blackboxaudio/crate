@@ -492,9 +492,19 @@ mod tests {
         assert_eq!(c1.survivor_hlc, c2.survivor_hlc);
         assert_eq!(c1.survivor.id, "p-rel");
         assert_eq!(c1.loser_id, "q-rel");
-        assert_eq!(c1.survivor.artist.as_deref(), Some("Artist"), "null coalesced");
-        assert_eq!(c1.survivor.date_added, "2019-06-01T00:00:00Z", "earliest added");
-        assert_eq!(c1.survivor.date_modified, "2020-01-01T00:00:00Z", "latest modified");
+        assert_eq!(
+            c1.survivor.artist.as_deref(),
+            Some("Artist"),
+            "null coalesced"
+        );
+        assert_eq!(
+            c1.survivor.date_added, "2019-06-01T00:00:00Z",
+            "earliest added"
+        );
+        assert_eq!(
+            c1.survivor.date_modified, "2020-01-01T00:00:00Z",
+            "latest modified"
+        );
         assert!(!c1.survivor.is_new, "reviewed on either device -> not new");
     }
 }

@@ -1,6 +1,10 @@
 use super::*;
 use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
+/// A `discovery_tracks` row as read during a release merge: (name, position, duration_ms,
+/// video_id, url).
+type SourceTrackRow = (String, i32, Option<i64>, Option<String>, Option<String>);
+
 impl DiscoveryService {
     /// Find existing releases that may overlap with the given metadata.
     /// Checks by exact URL, parent_url match, and artist+title match.
@@ -172,8 +176,8 @@ impl DiscoveryService {
                 let mut stmt = conn.prepare(
                     "SELECT name, position, duration_ms, video_id, url FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
                 )?;
-                let source_tracks: Vec<(String, i32, Option<i64>, Option<String>, Option<String>)> =
-                    stmt.query_map([source_id.as_str()], |row| {
+                let source_tracks: Vec<SourceTrackRow> = stmt
+                    .query_map([source_id.as_str()], |row| {
                         Ok((
                             row.get(0)?,
                             row.get(1)?,
@@ -332,20 +336,6 @@ impl DiscoveryService {
                 Err(rusqlite::Error::QueryReturnedNoRows) => Ok(None),
                 Err(e) => Err(CrateError::Database(e)),
             }
-        })
-    }
-
-    /// Get all stored `(position, video_id)` pairs for a release, ordered by position.
-    pub fn get_all_video_ids_for_release(&self, release_id: &str) -> Result<Vec<(i32, String)>> {
-        self.db.read(|conn| {
-            let mut stmt = conn.prepare(
-                "SELECT position, video_id FROM discovery_tracks
-                 WHERE release_id = ?1 AND video_id IS NOT NULL ORDER BY position",
-            )?;
-            let rows = stmt
-                .query_map([release_id], |row| Ok((row.get(0)?, row.get(1)?)))?
-                .collect::<std::result::Result<Vec<_>, _>>()?;
-            Ok(rows)
         })
     }
 

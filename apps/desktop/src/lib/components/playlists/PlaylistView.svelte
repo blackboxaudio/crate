@@ -18,6 +18,7 @@
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$shared/i18n'
+	import { sortDiscoveryReleases } from '$shared/utils/sorting'
 	import { expandedReleaseIds } from '$lib/stores'
 
 	type Props = {
@@ -143,32 +144,8 @@
 			)
 		}
 
-		// Apply sorting
-		const { field, direction } = discoverySortConfig
-		const dir = direction === 'asc' ? 1 : -1
-		result.sort((a, b) => {
-			let cmp = 0
-			if (field === 'release_date') {
-				const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
-				const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
-				const aValid = !isNaN(aDate)
-				const bValid = !isNaN(bDate)
-				if (!aValid && !bValid) cmp = 0
-				else if (!aValid) return 1
-				else if (!bValid) return -1
-				else if (aDate < bDate) cmp = -1 * dir
-				else if (aDate > bDate) cmp = 1 * dir
-			} else {
-				const aVal = a[field] ?? ''
-				const bVal = b[field] ?? ''
-				if (aVal < bVal) cmp = -1 * dir
-				else if (aVal > bVal) cmp = 1 * dir
-			}
-			if (cmp !== 0) return cmp
-			return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
-		})
-
-		return result
+		// Apply sorting via the one shared comparator (handles release_date validity, track_count, ties).
+		return sortDiscoveryReleases(result, discoverySortConfig)
 	})
 
 	const hasExpandableReleases = $derived(filteredReleases.some((r) => r.tracks.length > 0))

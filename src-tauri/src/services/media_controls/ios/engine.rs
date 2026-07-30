@@ -42,8 +42,6 @@ pub struct NativeTrackEntry {
     #[serde(default)]
     pub track_id: Option<String>,
     #[serde(default)]
-    pub release_id: Option<String>,
-    #[serde(default)]
     pub is_liked: bool,
 }
 
