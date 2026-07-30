@@ -25,6 +25,9 @@
 
 				// Theme colors (set before style.css loads so the first paint uses correct values)
 				var s = document.documentElement.style
+				// Paint the page canvas immediately: body's background only arrives with style.css, so
+				// without this the splash's fade-in reveals a white page (a visible flash in dark mode).
+				s.setProperty('background', 'var(--surface-0)')
 				if (theme === 'light') {
 					s.setProperty('--surface-0', '#ffffff')
 					s.setProperty('--text-primary', '#18181b')
