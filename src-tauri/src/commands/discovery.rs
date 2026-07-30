@@ -50,63 +50,25 @@ pub async fn fetch_preview_stream(
     proxy_port: State<'_, ProxyServerPort>,
     permits: State<'_, StreamFetchPermits>,
 ) -> Result<String> {
-    let port = proxy_port.0;
-    let app_data_dir = discovery.app_data_dir();
+    let result = async {
+        let port = proxy_port.0;
+        let app_data_dir = discovery.app_data_dir();
 
-    // Check if audio bytes are already cached on disk — skip stream URL resolution entirely
-    if discovery
-        .get_cached_audio_meta(&release_id, track_position)
-        .unwrap_or(None)
-        .is_some()
-    {
-        return Ok(format!(
-            "http://127.0.0.1:{port}/{release_id}/{track_position}"
-        ));
-    }
+        // Check if audio bytes are already cached on disk — skip stream URL resolution entirely
+        if discovery
+            .get_cached_audio_meta(&release_id, track_position)
+            .unwrap_or(None)
+            .is_some()
+        {
+            log::info!("Preview stream {release_id}/{track_position}: serving from audio cache");
+            return Ok(format!(
+                "http://127.0.0.1:{port}/{release_id}/{track_position}"
+            ));
+        }
 
-    // Check stream URL cache
-    if let Some(cached) = discovery.get_cached_stream(&release_id, track_position)? {
-        return Ok(resolve_stream_url(
-            &cached,
-            &release_id,
-            track_position,
-            port,
-        ));
-    }
-
-    // Get release to determine source type and URL
-    let release = discovery.get_release(&release_id)?;
-
-    // Everything below performs a network extraction. Foreground fetches (the track the
-    // user just tapped) never wait; opportunistic background resolution (queue window
-    // tails, offline pre-caching) throttles through the global permit pool so it can't
-    // starve a tap-to-play or hammer the source platforms.
-    let _permit = if background.unwrap_or(false) {
-        Some(
-            permits
-                .0
-                .clone()
-                .acquire_owned()
-                .await
-                .map_err(|_| CrateError::Discovery("stream fetch permits closed".into()))?,
-        )
-    } else {
-        None
-    };
-
-    // YouTube fast path: use stored video_id for single-track fetch (~500ms vs ~8s)
-    if release.source_type == "youtube" {
-        if let Some(video_id) = discovery.get_video_id_for_track(&release_id, track_position)? {
-            let mut stream =
-                streams::extract_single_youtube_stream(&video_id, track_position).await?;
-            transform_youtube_n_params(std::slice::from_mut(&mut stream), &app, &app_data_dir)
-                .await;
-            discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
-
-            let cached = CachedStream {
-                stream_url: stream.stream_url.clone(),
-                proxy_ua: stream.proxy_ua.clone(),
-            };
+        // Check stream URL cache
+        if let Some(cached) = discovery.get_cached_stream(&release_id, track_position)? {
+            log::info!("Preview stream {release_id}/{track_position}: using cached stream URL");
             return Ok(resolve_stream_url(
                 &cached,
                 &release_id,
@@ -114,77 +76,138 @@ pub async fn fetch_preview_stream(
                 port,
             ));
         }
-        // Fall through to full extraction for pre-migration releases without video_id
-    }
 
-    // Discogs: stream via stored YouTube video_id
-    if release.source_type == "discogs" {
-        return match discovery.get_video_id_for_track(&release_id, track_position)? {
-            Some(video_id) => {
+        // Get release to determine source type and URL
+        let release = discovery.get_release(&release_id)?;
+        log::info!(
+            "Preview stream {release_id}/{track_position}: resolving fresh ({})",
+            release.source_type
+        );
+
+        // Everything below performs a network extraction. Foreground fetches (the track the
+        // user just tapped) never wait; opportunistic background resolution (queue window
+        // tails, offline pre-caching) throttles through the global permit pool so it can't
+        // starve a tap-to-play or hammer the source platforms.
+        let _permit = if background.unwrap_or(false) {
+            Some(
+                permits
+                    .0
+                    .clone()
+                    .acquire_owned()
+                    .await
+                    .map_err(|_| CrateError::Discovery("stream fetch permits closed".into()))?,
+            )
+        } else {
+            None
+        };
+
+        // YouTube fast path: use stored video_id for single-track fetch (~500ms vs ~8s)
+        if release.source_type == "youtube" {
+            if let Some(video_id) = discovery.get_video_id_for_track(&release_id, track_position)? {
                 let mut stream =
                     streams::extract_single_youtube_stream(&video_id, track_position).await?;
                 transform_youtube_n_params(std::slice::from_mut(&mut stream), &app, &app_data_dir)
                     .await;
                 discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
+
                 let cached = CachedStream {
                     stream_url: stream.stream_url.clone(),
                     proxy_ua: stream.proxy_ua.clone(),
                 };
-                Ok(resolve_stream_url(
+                return Ok(resolve_stream_url(
                     &cached,
                     &release_id,
                     track_position,
                     port,
-                ))
+                ));
             }
-            None => Err(CrateError::Discovery(
-                "No YouTube video available for this Discogs track".into(),
-            )),
+            // Fall through to full extraction for pre-migration releases without video_id
+        }
+
+        // Discogs: stream via stored YouTube video_id
+        if release.source_type == "discogs" {
+            return match discovery.get_video_id_for_track(&release_id, track_position)? {
+                Some(video_id) => {
+                    let mut stream =
+                        streams::extract_single_youtube_stream(&video_id, track_position).await?;
+                    transform_youtube_n_params(
+                        std::slice::from_mut(&mut stream),
+                        &app,
+                        &app_data_dir,
+                    )
+                    .await;
+                    discovery.cache_streams(&release_id, std::slice::from_ref(&stream))?;
+                    let cached = CachedStream {
+                        stream_url: stream.stream_url.clone(),
+                        proxy_ua: stream.proxy_ua.clone(),
+                    };
+                    Ok(resolve_stream_url(
+                        &cached,
+                        &release_id,
+                        track_position,
+                        port,
+                    ))
+                }
+                None => Err(CrateError::Discovery(
+                    "No YouTube video available for this Discogs track".into(),
+                )),
+            };
+        }
+
+        let mut stream_infos = match release.source_type.as_str() {
+            "bandcamp" => streams::extract_bandcamp_streams(&release.url).await?,
+            "soundcloud" => {
+                let cached_cid = discovery.get_cached_sc_client_id()?;
+                let (infos, new_cid) =
+                    streams::extract_soundcloud_streams(&release.url, cached_cid).await?;
+                discovery.cache_sc_client_id(&new_cid)?;
+                infos
+            }
+            "youtube" => streams::extract_youtube_streams(&release.url).await?,
+            other => {
+                return Err(CrateError::Discovery(format!(
+                    "Preview not supported for source type: {other}"
+                )));
+            }
         };
+
+        transform_youtube_n_params(&mut stream_infos, &app, &app_data_dir).await;
+
+        // Cache all extracted streams
+        discovery.cache_streams(&release_id, &stream_infos)?;
+
+        // Return the requested track's URL (direct or proxied)
+        let stream = stream_infos
+            .iter()
+            .find(|s| s.track_position == track_position)
+            .ok_or_else(|| {
+                CrateError::Discovery(format!(
+                    "No stream found for track position {track_position}"
+                ))
+            })?;
+
+        let cached = CachedStream {
+            stream_url: stream.stream_url.clone(),
+            proxy_ua: stream.proxy_ua.clone(),
+        };
+        Ok(resolve_stream_url(
+            &cached,
+            &release_id,
+            track_position,
+            port,
+        ))
     }
+    .await;
 
-    let mut stream_infos = match release.source_type.as_str() {
-        "bandcamp" => streams::extract_bandcamp_streams(&release.url).await?,
-        "soundcloud" => {
-            let cached_cid = discovery.get_cached_sc_client_id()?;
-            let (infos, new_cid) =
-                streams::extract_soundcloud_streams(&release.url, cached_cid).await?;
-            discovery.cache_sc_client_id(&new_cid)?;
-            infos
-        }
-        "youtube" => streams::extract_youtube_streams(&release.url).await?,
-        other => {
-            return Err(CrateError::Discovery(format!(
-                "Preview not supported for source type: {other}"
-            )));
-        }
-    };
-
-    transform_youtube_n_params(&mut stream_infos, &app, &app_data_dir).await;
-
-    // Cache all extracted streams
-    discovery.cache_streams(&release_id, &stream_infos)?;
-
-    // Return the requested track's URL (direct or proxied)
-    let stream = stream_infos
-        .iter()
-        .find(|s| s.track_position == track_position)
-        .ok_or_else(|| {
-            CrateError::Discovery(format!(
-                "No stream found for track position {track_position}"
-            ))
-        })?;
-
-    let cached = CachedStream {
-        stream_url: stream.stream_url.clone(),
-        proxy_ua: stream.proxy_ua.clone(),
-    };
-    Ok(resolve_stream_url(
-        &cached,
-        &release_id,
-        track_position,
-        port,
-    ))
+    // Resolution failures were previously invisible in device logs — the error only surfaced
+    // as a generic toast in the webview, making field failures undiagnosable.
+    if let Err(e) = &result {
+        log::warn!(
+            "Preview stream {release_id}/{track_position} resolution failed (background={}): {e}",
+            background.unwrap_or(false)
+        );
+    }
+    result
 }
 
 /// Always route through the localhost proxy for unified disk caching.

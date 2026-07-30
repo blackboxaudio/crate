@@ -478,6 +478,9 @@ function createPlayerStore() {
 	// so the queue can never be consulted while a native advance is still un-reconciled).
 	function applyNativeTrackChange(pick: { release: DiscoveryRelease; trackIndex: number }) {
 		pendingNativeSeek = null
+		// A new current track gets a fresh auto-retry budget (engine advances bypass playPreview,
+		// which is where the HTML5 path resets this).
+		previewRetryAttempted = false
 		setStoredNumber('player.previewTrackIndex', pick.trackIndex)
 		setStoredString('player.previewReleaseId', pick.release.id)
 		persistPositionImmediate(0)
@@ -1382,11 +1385,46 @@ function createPlayerStore() {
 					// (wired in +layout) so playback continues across the queue / shuffle.
 					onTrackEndCallback?.()
 				},
-				onError: (message) => {
+				onError: async (message) => {
 					console.error('[native-preview] engine error:', message)
 					// A windowed item failed to load (e.g. an expired/stale upstream stream). Drop the cached
 					// proxy URLs so the next feed re-resolves them fresh rather than re-handing the bad ones.
 					streamUrlCache.clear()
+					// Ignore duplicate error callbacks fired while a retry is in-flight.
+					if (previewRetrying) return
+					const state = getState()
+					// One-shot auto-retry with fresh stream resolution, mirroring the HTML5 path's setOnError:
+					// a cached stream URL can be dead before its recorded expiry (network change, CDN whim), so
+					// invalidate the release's cached URLs and re-feed before surfacing an error to the user.
+					// `previewRetryAttempted` is reset per track (applyNativeTrackChange / playPreview), so a
+					// repeat failure on the same track falls through to the toast instead of looping.
+					if (state.playbackSource === 'preview' && state.previewInfo && !previewRetryAttempted) {
+						previewRetryAttempted = true
+						previewRetrying = true
+						const { release, trackIndex } = state.previewInfo
+						const gen = ++previewLoadGen
+						console.warn(`[native-preview] stream error, retrying with fresh resolution: ${message}`)
+						try {
+							await discoveryApi.invalidatePreviewStreamCache(release.id)
+							await feedNativeWindow({ release, trackIndex }, 'reload', 0, gen)
+							if (gen !== previewLoadGen) return // superseded — the newer transition owns audio + state
+							await nativePreviewPlayer.setVolume(state.isMuted ? 0 : state.playbackState.volume)
+							void nativePreviewPlayer.setRate(state.playbackState.speed)
+							update((s) => ({
+								...s,
+								error: null,
+								playbackState: { ...s.playbackState, is_playing: true, position_ms: 0 },
+								previewLoading: null,
+							}))
+							return
+						} catch (e) {
+							if (gen !== previewLoadGen) return // superseded — a failure of a stale retry is noise
+							console.error('[native-preview] retry after engine error failed:', e)
+							// Fall through to show error
+						} finally {
+							previewRetrying = false
+						}
+					}
 					update((s) => ({
 						...s,
 						error: message,

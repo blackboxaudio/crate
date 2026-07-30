@@ -178,6 +178,14 @@ async fn proxy_http_handler_inner(
                     }
                     Err(e) => {
                         log::warn!("Stream download failed for {key}: {e}");
+                        // A cached stream URL can die before its recorded expiry (CDN signatures
+                        // are often bound to the resolving IP, so a WiFi↔cellular hop invalidates
+                        // them). Without this, every replay re-serves the same dead URL until the
+                        // expiry timestamp passes — even across app restarts. URL-level only:
+                        // never touches downloaded audio bytes.
+                        if let Err(e) = discovery.invalidate_stream_cache(&rid) {
+                            log::warn!("Failed to invalidate stream cache for {rid}: {e}");
+                        }
                         false
                     }
                 };

@@ -908,7 +908,7 @@
 				CODE_SIGN_ENTITLEMENTS = "crate-app_iOS/crate-app_iOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 883V548CV2;
+				DEVELOPMENT_TEAM = "883V548CV2";
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -934,7 +934,7 @@
 					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME)",
 					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bbx-audio.crate.dev";
+				PRODUCT_BUNDLE_IDENTIFIER = com.bbx-audio.crate.dev;
 				PRODUCT_NAME = "Crate Dev";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;
@@ -952,7 +952,7 @@
 				CODE_SIGN_ENTITLEMENTS = "crate-app_iOS/crate-app_iOS.entitlements";
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = 883V548CV2;
+				DEVELOPMENT_TEAM = "883V548CV2";
 				ENABLE_BITCODE = NO;
 				"EXCLUDED_ARCHS[sdk=iphoneos*]" = x86_64;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -978,7 +978,7 @@
 					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/$(PLATFORM_NAME)",
 					"$(DEVELOPER_DIR)/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift-5.0/$(PLATFORM_NAME)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bbx-audio.crate.dev";
+				PRODUCT_BUNDLE_IDENTIFIER = com.bbx-audio.crate.dev;
 				PRODUCT_NAME = "Crate Dev";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = iphoneos;

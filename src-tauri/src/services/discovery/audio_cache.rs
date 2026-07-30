@@ -142,6 +142,8 @@ impl DiscoveryService {
             rows.collect::<std::result::Result<Vec<_>, _>>()?
         };
 
+        let mut evicted_count = 0u32;
+        let mut evicted_bytes = 0i64;
         for (release_id, track_position, file_size) in victims {
             if total <= cap {
                 break;
@@ -159,6 +161,16 @@ impl DiscoveryService {
                 );
             }
             total -= file_size;
+            evicted_count += 1;
+            evicted_bytes += file_size;
+        }
+
+        if evicted_count > 0 {
+            log::info!(
+                "Audio cache: evicted {evicted_count} tracks ({} MB) to stay under {} MB cap",
+                evicted_bytes / (1024 * 1024),
+                cap / (1024 * 1024),
+            );
         }
 
         Ok(())
