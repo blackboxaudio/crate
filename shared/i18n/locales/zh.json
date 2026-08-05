@@ -150,6 +150,23 @@
 			"newReleasesSummary": "新发行摘要",
 			"discogsRateLimitNote": "Discogs 限制检查频率，因此大型关注列表可能会逐步更新。"
 		},
+		"collection": {
+			"title": "集合",
+			"description": "关联你的公开 Bandcamp 集合，让你购买过的发行和曲目显示为已拥有。",
+			"linkAccount": "关联 Bandcamp 账号",
+			"linkPrompt": "关联集合",
+			"linkPromptInfo": "输入你的 Bandcamp 用户名，或粘贴你的粉丝主页链接（bandcamp.com/你的用户名）",
+			"linkPlaceholder": "你的用户名",
+			"link": "关联",
+			"noAccounts": "还没有关联任何账号",
+			"itemCount": "{count, plural, other {{count} 个项目}}",
+			"refreshCadenceDescription": "检查集合中新购买内容的频率",
+			"refreshNow": "刷新集合",
+			"removeConfirmTitle": "取消关联账号",
+			"removeConfirmMessage": "该账号的购买内容将不再显示为已拥有。",
+			"enabledToggle": "将购买内容计为已拥有",
+			"privacyNote": "仅读取你的公开 Bandcamp 集合。私密购买和隐藏项目不可见。"
+		},
 		"appearance": {
 			"font": "字体",
 			"fontDescription": "选择应用程序中使用的字体。",
@@ -495,7 +512,24 @@
 		"title": "筛选",
 		"liked": "已喜欢",
 		"new": "新",
-		"downloaded": "已下载"
+		"downloaded": "已下载",
+		"purchased": "已购买"
+	},
+	"collection": {
+		"notInCrate": "不在 {appName} 中",
+		"addToDiscovery": "添加到发现",
+		"emptyTitle": "未关联任何集合",
+		"emptyHint": "关联你的 Bandcamp 集合以在此处查看你的购买内容",
+		"noItems": "还没有购买",
+		"ownedBadge": "已拥有",
+		"partialBadge": "{owned}/{total} 已拥有",
+		"gap": {
+			"title": "库中缺失",
+			"missingCount": "{count, plural, other {{count} 件购买内容不在你的库中}}",
+			"missingOnly": "仅缺失",
+			"inLibrary": "在库中",
+			"notInLibrary": "不在库中"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "新建播放列表",
@@ -673,6 +707,7 @@
 		"replacedExisting": "已替换现有项目",
 		"deviceConnected": "{name} 已连接",
 		"deviceDisconnected": "{name} 已断开",
+		"audioDeviceDisconnected": "{name} 已断开 — 播放已暂停",
 		"deviceEjected": "{name} 已弹出",
 		"deviceEjectFailed": "弹出 {name} 失败",
 		"relocated": "\"{title}\"已重新定位",
@@ -694,7 +729,8 @@
 		"previewStreamFailed": "无法加载预览流",
 		"previewNotAvailableOffline": "此曲目离线不可用",
 		"updateCheckFailed": "检查更新失败",
-		"updateInstallFailed": "安装更新失败"
+		"updateInstallFailed": "安装更新失败",
+		"generic": "发生错误"
 	},
 	"devices": {
 		"title": "设备",

@@ -13,17 +13,22 @@ use crate::services::discovery::metadata::{bandcamp_fan, build_client};
 use crate::services::discovery::normalize_url;
 use crate::services::CollectionService;
 
-/// Link a pasted Bandcamp fan-page URL: fetch the page inline to validate it (wrong
-/// URLs and private/empty collections fail here, keeping the link dialog open), create
-/// the account with its profile, seed the first item batch, and walk the rest of the
-/// collection in the background.
+/// Link a Bandcamp collection from a username or a pasted fan-page URL: fetch the page
+/// inline to validate it (bad usernames, wrong URLs, and private/empty collections fail
+/// here, keeping the link dialog open), create the account with its profile, seed the
+/// first item batch, and walk the rest of the collection in the background.
 #[tauri::command]
 pub async fn link_collection_account(
     url: String,
     app: AppHandle,
     collection: State<'_, CollectionService>,
 ) -> Result<CollectionAccount> {
-    let normalized = normalize_url(&url);
+    let resolved = bandcamp_fan::fan_input_to_url(&url).ok_or_else(|| {
+        CrateError::Discovery(
+            "Enter your Bandcamp username or fan page URL (bandcamp.com/username)".into(),
+        )
+    })?;
+    let normalized = normalize_url(&resolved);
     if !bandcamp_fan::is_bandcamp_fan_url(&normalized) {
         return Err(CrateError::Discovery(
             "Not a Bandcamp fan page URL (expected bandcamp.com/username)".into(),

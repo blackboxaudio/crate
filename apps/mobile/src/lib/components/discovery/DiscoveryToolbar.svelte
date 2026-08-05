@@ -150,6 +150,12 @@
 	purchased={$hasLinkedCollection
 		? { value: $purchasedOnly, onToggle: mobileUIStore.togglePurchasedFilter }
 		: undefined}
+	purchasedSetup={$hasLinkedCollection
+		? undefined
+		: () => {
+				filterOpen = false
+				mobileUIStore.openSettings('collection')
+			}}
 	tags={{
 		activeIds: $tagFilterIds,
 		mode: $tagFilterMode,

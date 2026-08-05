@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Підсумок нових видань",
 			"discogsRateLimitNote": "Discogs обмежує частоту перевірки, тому великі списки стеження можуть оновлюватися поступово."
 		},
+		"collection": {
+			"title": "Колекція",
+			"description": "Пов'яжіть свою публічну колекцію Bandcamp, щоб релізи та треки, які ви придбали, відображалися як власні.",
+			"linkAccount": "Пов'язати обліковий запис Bandcamp",
+			"linkPrompt": "Пов'язати колекцію",
+			"linkPromptInfo": "Введіть ваше ім'я користувача Bandcamp або вставте URL вашої фан-сторінки (bandcamp.com/ім'я користувача)",
+			"linkPlaceholder": "ім'я користувача",
+			"link": "Пов'язати",
+			"noAccounts": "Поки немає пов'язаних облікових записів",
+			"itemCount": "{count, plural, one {1 елемент} few {{count} елементи} many {{count} елементів} other {{count} елементів}}",
+			"refreshCadenceDescription": "Як часто перевіряти колекції на наявність нових покупок",
+			"refreshNow": "Оновити колекцію",
+			"removeConfirmTitle": "Від'єднати обліковий запис",
+			"removeConfirmMessage": "Покупки з цього облікового запису більше не будуть відображатися як власні.",
+			"enabledToggle": "Рахувати покупки як власні",
+			"privacyNote": "Читається тільки ваша публічна колекція Bandcamp. Приватні покупки та приховані елементи не видимі."
+		},
 		"appearance": {
 			"font": "Шрифт",
 			"fontDescription": "Виберіть шрифт, який використовується в усій програмі.",
@@ -691,6 +708,7 @@
 		"replacedExisting": "Замінено існуючий елемент",
 		"deviceConnected": "{name} підключено",
 		"deviceDisconnected": "{name} відключено",
+		"audioDeviceDisconnected": "{name} відключено — відтворення призупинено",
 		"deviceEjected": "{name} видалено",
 		"deviceEjectFailed": "Не вдалося видалити {name}",
 		"relocated": "Переміщено \"{title}\"",
@@ -712,7 +730,8 @@
 		"previewStreamFailed": "Не вдалося завантажити потік попереднього перегляду",
 		"previewNotAvailableOffline": "Цей трек недоступний у режимі без підключення",
 		"updateCheckFailed": "Не вдалося перевірити наявність оновлень",
-		"updateInstallFailed": "Не вдалося встановити оновлення"
+		"updateInstallFailed": "Не вдалося встановити оновлення",
+		"generic": "Щось пішло не так"
 	},
 	"devices": {
 		"title": "Пристрої",

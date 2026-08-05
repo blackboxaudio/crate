@@ -23,6 +23,9 @@
 		showPurchasedFilter?: boolean
 		purchasedOnly?: boolean
 		onTogglePurchasedFilter?: () => void
+		/** No collection account linked yet: render a "link your collection" action row
+		 *  instead of the toggle (the feature's discoverable entry point). */
+		onSetupPurchased?: () => void
 	}
 
 	let {
@@ -42,6 +45,7 @@
 		showPurchasedFilter = false,
 		purchasedOnly = false,
 		onTogglePurchasedFilter,
+		onSetupPurchased,
 	}: Props = $props()
 
 	const allTags = $derived(tagCategories.flatMap((c) => c.tags))
@@ -352,12 +356,21 @@
 					</button>
 				{/if}
 
-				<!-- Purchased filter (owned in the linked collection) -->
+				<!-- Purchased filter (owned in the linked collection). Always visible so the
+				     feature is discoverable: unlinked, the row becomes a "link your collection"
+				     action that opens Settings → Discovery. -->
 				{#if showPurchasedFilter}
 					<button
 						type="button"
 						class="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:cursor-pointer hover:bg-surface-2"
-						onclick={() => onTogglePurchasedFilter?.()}
+						onclick={() => {
+							if (onSetupPurchased) {
+								open = false
+								onSetupPurchased()
+							} else {
+								onTogglePurchasedFilter?.()
+							}
+						}}
 					>
 						<div class="flex items-center gap-2">
 							<svg
@@ -372,17 +385,31 @@
 								<path d="M6 8h12l-1.2 12H7.2L6 8z" />
 								<path d="M9 8V6a3 3 0 0 1 6 0v2" />
 							</svg>
-							<span class="text-xs text-text-tertiary">{$translate('filters.purchased')}</span>
+							<span class="text-xs text-text-tertiary">
+								{$translate(onSetupPurchased ? 'settings.collection.linkAccount' : 'filters.purchased')}
+							</span>
 						</div>
-						<div
-							class="flex h-4 w-7 items-center rounded-full p-0.5 transition-colors {purchasedOnly
-								? 'bg-brand-primary'
-								: 'bg-stroke'}"
-						>
+						{#if onSetupPurchased}
+							<svg
+								class="h-3 w-3 text-text-tertiary"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2.5"
+							>
+								<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
+							</svg>
+						{:else}
 							<div
-								class="h-3 w-3 rounded-full bg-white transition-transform {purchasedOnly ? 'translate-x-3' : ''}"
-							></div>
-						</div>
+								class="flex h-4 w-7 items-center rounded-full p-0.5 transition-colors {purchasedOnly
+									? 'bg-brand-primary'
+									: 'bg-stroke'}"
+							>
+								<div
+									class="h-3 w-3 rounded-full bg-white transition-transform {purchasedOnly ? 'translate-x-3' : ''}"
+								></div>
+							</div>
+						{/if}
 					</button>
 				{/if}
 

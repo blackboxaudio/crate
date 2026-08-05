@@ -4,8 +4,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.AudioAttributes
@@ -64,12 +66,32 @@ class CrateMediaService : Service() {
         }
     }
 
+    /**
+     * ACTION_AUDIO_BECOMING_NOISY: the audio route is about to fall back to the built-in speaker
+     * because headphones were unplugged or a Bluetooth device disconnected. Android requires media
+     * apps to pause here — otherwise the user's music suddenly blasts out of the phone speaker.
+     * Mirrors the iOS route-change handling (`OldDeviceUnavailable` → pause).
+     */
+    private val becomingNoisyReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                emit("pause")
+            }
+        }
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onCreate() {
         super.onCreate()
         instance = this
         createChannel()
+        ContextCompat.registerReceiver(
+            this,
+            becomingNoisyReceiver,
+            IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY),
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         session = MediaSessionCompat(this, "CrateMediaService").apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() = emit("play")
@@ -100,6 +122,7 @@ class CrateMediaService : Service() {
 
     override fun onDestroy() {
         instance = null
+        runCatching { unregisterReceiver(becomingNoisyReceiver) }
         session?.release()
         session = null
         super.onDestroy()

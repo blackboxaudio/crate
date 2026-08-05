@@ -15,8 +15,11 @@
 		onClose: () => void
 		liked?: { value: boolean; onToggle: () => void }
 		downloaded?: { value: boolean; onToggle: () => void }
-		/** Purchased-only facet — hosts pass it only when a collection account is linked. */
+		/** Purchased-only facet, shown when a collection account is linked. */
 		purchased?: { value: boolean; onToggle: () => void }
+		/** No account linked yet: render a "link your collection" action row instead of the
+		 *  toggle (the feature's discoverable entry point — jumps to Settings → Collection). */
+		purchasedSetup?: () => void
 		tags?: {
 			activeIds: string[]
 			mode: TagFilterMode
@@ -25,7 +28,7 @@
 		}
 		onClearAll: () => void
 	}
-	let { open, onClose, liked, downloaded, purchased, tags, onClearAll }: Props = $props()
+	let { open, onClose, liked, downloaded, purchased, purchasedSetup, tags, onClearAll }: Props = $props()
 
 	// Lazy-load categories the first time the sheet opens (only when the tags facet is shown).
 	let loadedOnce = $state(false)
@@ -158,6 +161,40 @@
 					<span class="h-4 w-4 rounded-full bg-white transition-transform {purchased.value ? 'translate-x-4' : ''}"
 					></span>
 				</span>
+			</button>
+		{/if}
+
+		{#if purchasedSetup}
+			<!-- Not linked yet: the Purchased slot doubles as the feature's front door. -->
+			<button
+				type="button"
+				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
+				onclick={() => tick(purchasedSetup)}
+			>
+				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
+					<svg
+						class="h-4 w-4 text-text-tertiary"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M6 8h12l-1.2 12H7.2L6 8z" />
+						<path d="M9 8V6a3 3 0 0 1 6 0v2" />
+					</svg>
+					{$translate('settings.collection.linkAccount')}
+				</span>
+				<svg
+					class="h-3.5 w-3.5 text-text-tertiary"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+				>
+					<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
 			</button>
 		{/if}
 

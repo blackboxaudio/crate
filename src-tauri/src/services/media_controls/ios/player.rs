@@ -48,6 +48,10 @@ pub struct PlaybackEngineInner {
     failed_epoch: Option<u64>,
     rate: f32,
     playing: bool,
+    // Whether playback was active when an audio-session interruption began. `pause()` clobbers
+    // `playing`, so without this latch the `.ended` handler can't tell "resume what the phone call
+    // interrupted" from "start playing something the user had deliberately paused".
+    playing_before_interruption: bool,
     // True from a programmatic `seek` until its completion handler reports the seek landed. AVPlayer's
     // `currentTime` keeps returning the pre-seek position until then, so `tick` is suppressed while this
     // is set — otherwise the periodic position emit flashes the playhead back to the old spot.
@@ -81,6 +85,7 @@ impl PlaybackEngineInner {
             failed_epoch: None,
             rate: 1.0,
             playing: false,
+            playing_before_interruption: false,
             seeking: false,
             time_observer: None,
             _command_targets: command_targets,
@@ -345,6 +350,14 @@ impl PlaybackEngineInner {
     }
 
     pub fn resume(&mut self) {
+        // Nothing loaded — refuse to "resume". The lock-screen play/toggle commands stay enabled
+        // for the process lifetime (the engine thread-local is never cleared), and Bluetooth/AVRCP
+        // devices routinely send PLAY on connect, so an unguarded resume here would start audio the
+        // user never asked for.
+        if self.entries.is_empty() {
+            return;
+        }
+
         // SAFETY: AVPlayer.play / setRate are main-thread safe.
         unsafe {
             self.player.play();
@@ -355,6 +368,32 @@ impl PlaybackEngineInner {
         self.playing = true;
         now_playing::set_playback(self.position_secs(), self.rate);
         self.emit_current_state();
+    }
+
+    /// Pause because an audio-session interruption began (phone call, Siri, another app taking the
+    /// session), remembering whether we were actually playing so `resume_after_interruption` can
+    /// restore exactly that.
+    pub fn pause_for_interruption(&mut self) {
+        self.playing_before_interruption = self.playing;
+        self.pause();
+    }
+
+    /// Resume after an interruption ended — only if we were playing when it began. iOS setting
+    /// `ShouldResume` means "you may resume", not "start playing".
+    pub fn resume_after_interruption(&mut self) {
+        if !self.playing_before_interruption {
+            return;
+        }
+        self.playing_before_interruption = false;
+        self.resume();
+    }
+
+    /// Pause because the output route we were playing on disappeared (headphones unplugged,
+    /// Bluetooth device powered off). Clears the interruption latch so an unrelated interruption
+    /// ending later can't resurrect playback onto the built-in speaker.
+    pub fn pause_for_route_loss(&mut self) {
+        self.playing_before_interruption = false;
+        self.pause();
     }
 
     /// play/pause toggle — used by the lock-screen togglePlayPause command.

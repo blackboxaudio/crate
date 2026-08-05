@@ -580,6 +580,18 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				}
 			}
 		},
+		// OS transport variants. A media key, a Bluetooth device, or a route change can
+		// deliver these without the user ever touching Crate, so unlike `playPause` above
+		// they never escalate to "start playing something" — an OS event must only ever
+		// act on what is already loaded.
+		mediaPlayPause: () => {
+			if (get(currentTrack) || get(previewInfo)) playerStore.togglePlayPause()
+		},
+		mediaPlay: () => {
+			if (get(currentTrack) || get(previewInfo)) playerStore.resume()
+		},
+		mediaPause: () => playerStore.pause(),
+
 		stop: () => playerStore.stop(),
 		seekForward: () => playerStore.seekRelative(10000),
 		seekBackward: () => playerStore.seekRelative(-10000),
@@ -660,6 +672,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				devicesStore,
 				syncStore,
 				discoveryStore,
+				playerStore,
 			},
 			toastStore,
 			onExternalFileDrop: trackController.handleExternalFileDrop,
@@ -867,7 +880,9 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		})
 
 		const cleanupMediaKeys = await useMediaKeys({
-			onPlayPause: handlers.playPause,
+			onPlayPause: handlers.mediaPlayPause,
+			onPlay: handlers.mediaPlay,
+			onPause: handlers.mediaPause,
 			onNextTrack: playNextTrack,
 			onPreviousTrack: playPreviousTrack,
 		})
@@ -876,6 +891,11 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		// work during preview playback. WKWebView's HTML5 Audio element creates its
 		// own media session that takes priority over souvlaki — without these
 		// handlers, next/previous keys are silently consumed by the webview.
+		//
+		// Note both sessions are attached at once during preview playback, so a single
+		// OS command can arrive twice (once via souvlaki, once via the webview). These
+		// handlers are idempotent, so that is harmless — but it's why the transport
+		// handlers above must never toggle.
 		if ('mediaSession' in navigator) {
 			navigator.mediaSession.setActionHandler('nexttrack', playNextTrack)
 			navigator.mediaSession.setActionHandler('previoustrack', playPreviousTrack)

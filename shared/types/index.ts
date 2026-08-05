@@ -349,6 +349,21 @@ export interface PlaybackState {
 	current_track_path: string | null
 }
 
+/**
+ * Payload of the `audio-output-device-lost` event: the output device library playback was
+ * using disappeared. The backend has already rebuilt the stream on the new default and left
+ * it paused, so `playbackState` is authoritative and always has `is_playing: false`.
+ */
+export interface AudioDeviceLostPayload {
+	/** Device playback was on when it died; null if the name couldn't be read. */
+	lostDevice: string | null
+	/** Device the stream was rebuilt on; null when no output device exists at all. */
+	newDevice: string | null
+	/** False when playback was already paused — fix up state silently, don't toast. */
+	wasPlaying: boolean
+	playbackState: PlaybackState
+}
+
 // =============================================================================
 // Cue Types
 // =============================================================================

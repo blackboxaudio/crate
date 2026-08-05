@@ -177,7 +177,7 @@ fn handle_interruption(note: NonNull<NSNotification>) {
         let interruption_type: u64 = msg_send![type_val, unsignedIntegerValue];
 
         if interruption_type == INTERRUPTION_TYPE_BEGAN {
-            engine::with_engine_mut(|e| e.pause());
+            engine::with_engine_mut(|e| e.pause_for_interruption());
             return;
         }
 
@@ -192,7 +192,9 @@ fn handle_interruption(note: NonNull<NSNotification>) {
         }
         if should_resume {
             reactivate_session();
-            engine::with_engine_mut(|e| e.resume());
+            // Only resumes if we were actually playing when the interruption began — iOS setting
+            // `ShouldResume` is permission to resume, not an instruction to start playing.
+            engine::with_engine_mut(|e| e.resume_after_interruption());
         }
     }
 }
@@ -213,7 +215,7 @@ fn handle_route_change(note: NonNull<NSNotification>) {
         }
         let reason: u64 = msg_send![reason_val, unsignedIntegerValue];
         if reason == ROUTE_CHANGE_REASON_OLD_DEVICE_UNAVAILABLE {
-            engine::with_engine_mut(|e| e.pause());
+            engine::with_engine_mut(|e| e.pause_for_route_loss());
         }
     }
 }

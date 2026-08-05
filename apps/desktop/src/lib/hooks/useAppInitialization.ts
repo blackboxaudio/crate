@@ -1,6 +1,6 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import type { DiscoveryRelease, FollowedReleasesFound, UsbDevice } from '$shared/types'
+import type { AudioDeviceLostPayload, DiscoveryRelease, FollowedReleasesFound, UsbDevice } from '$shared/types'
 import type { appStore as AppStoreType } from '$lib/stores/app'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
 import type { tagsStore as TagsStoreType } from '$shared/stores/tags'
@@ -10,6 +10,7 @@ import type { devicesStore as DevicesStoreType } from '$lib/stores/devices'
 import type { syncStore as SyncStoreType } from '$lib/stores/sync'
 import type { toastStore as ToastStoreType } from '$shared/stores/toast'
 import type { discoveryStore as DiscoveryStoreType } from '$shared/stores/discovery'
+import type { playerStore as PlayerStoreType } from '$shared/stores/player'
 import { followStore } from '$shared/stores/follow'
 import { collectionStore } from '$shared/stores/collection'
 import { uiStore } from '$shared/stores/ui'
@@ -30,6 +31,7 @@ export interface AppInitConfig {
 		devicesStore: typeof DevicesStoreType
 		syncStore: typeof SyncStoreType
 		discoveryStore: typeof DiscoveryStoreType
+		playerStore: typeof PlayerStoreType
 	}
 	toastStore: typeof ToastStoreType
 	onExternalFileDrop: (audioPaths: string[]) => Promise<void>
@@ -56,8 +58,17 @@ export let hasAudioDrag = false
  */
 export async function useAppInitialization(config: AppInitConfig): Promise<() => void> {
 	const { stores, toastStore, onExternalFileDrop, onDragStateChange } = config
-	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore, syncStore, discoveryStore } =
-		stores
+	const {
+		appStore,
+		libraryStore,
+		tagsStore,
+		playlistsStore,
+		settingsStore,
+		devicesStore,
+		syncStore,
+		discoveryStore,
+		playerStore,
+	} = stores
 
 	// Store unlisten functions
 	let unlistenDevices: UnlistenFn | undefined
@@ -67,6 +78,8 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenCloudSyncMerge: UnlistenFn | undefined
 	let unlistenFollowed: UnlistenFn | undefined
 	let unlistenCollection: UnlistenFn | undefined
+	let unlistenAudioOutputLost: UnlistenFn | undefined
+	let unlistenAudioDevices: UnlistenFn | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -149,7 +162,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 
 					// Suppress toast if a reformat is in progress
 					if (!reformattingId) {
-						toastStore.info(`${device.name} connected`)
+						toastStore.info(get(translate)('toast.deviceConnected', { values: { name: device.name } }))
 					}
 
 					// Trigger auto-sync on device connected (if enabled)
@@ -168,7 +181,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 
 					// Suppress toast if this device is being reformatted
 					if (reformattingId !== device.id) {
-						toastStore.info(`${device.name} disconnected`)
+						toastStore.info(get(translate)('toast.deviceDisconnected', { values: { name: device.name } }))
 					}
 				}
 			}
@@ -287,9 +300,39 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		})
 	}
 
+	// Audio output listeners: the backend pauses library playback when the output device it was
+	// playing on disappears (Bluetooth headphones powering off, interface unplugged) and rebuilds
+	// the stream on the new default, so we mirror the paused state rather than follow the user's
+	// headphones out onto the built-in speakers.
+	async function setupAudioOutputListener(): Promise<void> {
+		unlistenAudioOutputLost = await listen<AudioDeviceLostPayload>('audio-output-device-lost', (event) => {
+			const { wasPlaying, lostDevice, newDevice, playbackState } = event.payload
+
+			playerStore.applyExternalPause(playbackState)
+			void settingsStore.refreshAudioDevices()
+
+			// Silent when we were already paused — nothing the user could hear changed.
+			if (wasPlaying) {
+				toastStore.info(
+					get(translate)('toast.audioDeviceDisconnected', {
+						values: { name: lostDevice ?? get(translate)('common.unknown') },
+					})
+				)
+			}
+			if (!newDevice) {
+				console.warn('[audio] no output device available after disconnect')
+			}
+		})
+
+		unlistenAudioDevices = await listen('audio-devices-changed', () => {
+			void settingsStore.refreshAudioDevices()
+		})
+	}
+
 	// Initialize listeners
 	await setupDragDrop()
 	await setupDeviceListener()
+	await setupAudioOutputListener()
 	await setupDiscoveryUpdateListener()
 	await setupEnrichmentQueuedListener()
 	await setupCloudSyncMergeListener()
@@ -305,5 +348,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenCloudSyncMerge?.()
 		unlistenFollowed?.()
 		unlistenCollection?.()
+		unlistenAudioOutputLost?.()
+		unlistenAudioDevices?.()
 	}
 }

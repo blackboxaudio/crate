@@ -7,7 +7,14 @@
 	import Text from '$lib/components/common/Text.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$shared/i18n'
-	import { expandedReleaseIds, newOnly, purchasedOnly, hasLinkedCollection, discoveryStore } from '$lib/stores'
+	import {
+		expandedReleaseIds,
+		newOnly,
+		purchasedOnly,
+		hasLinkedCollection,
+		discoveryStore,
+		pageActions,
+	} from '$lib/stores'
 	import { FollowingButton } from '$lib/components/follow'
 
 	type Props = {
@@ -185,9 +192,12 @@
 				showNewFilter
 				newOnly={$newOnly}
 				onToggleNewFilter={() => discoveryStore.toggleNewFilter()}
-				showPurchasedFilter={$hasLinkedCollection}
+				showPurchasedFilter
 				purchasedOnly={$purchasedOnly}
 				onTogglePurchasedFilter={() => discoveryStore.togglePurchasedFilter()}
+				onSetupPurchased={$hasLinkedCollection
+					? undefined
+					: () => $pageActions?.getModalOrchestrator()?.openSettingsModal('discovery')}
 			/>
 			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />

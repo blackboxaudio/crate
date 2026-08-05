@@ -751,6 +751,15 @@ pub fn run() {
                 device_service.start_monitoring(app.handle().clone());
             }
 
+            // Start audio output monitoring (desktop-only: pause when the output device we're
+            // playing on disappears, e.g. Bluetooth headphones powering off). Runs after the
+            // saved device is applied above, so the watcher's initial snapshot is accurate.
+            #[cfg(feature = "desktop")]
+            {
+                let audio_service = app.state::<AudioService>();
+                audio_service.start_device_monitoring(app.handle().clone());
+            }
+
             // Build and set the application menu (desktop-only: no native menu on mobile)
             #[cfg(feature = "desktop")]
             {

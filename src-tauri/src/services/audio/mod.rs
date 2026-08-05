@@ -1,4 +1,7 @@
+mod device_watch;
 mod fade;
+
+pub use device_watch::DeviceLostPayload;
 
 use std::fs::File;
 use std::io::BufReader;
@@ -21,6 +24,7 @@ use symphonia::core::probe::Hint;
 use crate::error::{CrateError, Result};
 use crate::models::AudioDevice;
 
+use device_watch::DeviceEvent;
 use fade::{FadeOutEnding, FadeState, PauseFade};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -62,6 +66,14 @@ enum AudioCommand {
     SetVolume(f32),
     SetSpeed(f32),
     SetDevice(Option<String>),
+    /// The output device backing stream generation `epoch` disappeared. Rebuild on the
+    /// current default and leave the sink PAUSED at the live position.
+    HandleDeviceLost {
+        epoch: u64,
+    },
+    /// The system default output device changed while we were following it
+    /// (`selected_device == None`). Rebuild on the new default, preserving play/pause.
+    DefaultDeviceChanged,
     GetState,
     #[allow(dead_code)]
     Shutdown,
@@ -70,6 +82,9 @@ enum AudioCommand {
 #[derive(Debug)]
 enum AudioResponse {
     State(PlaybackState),
+    /// `None` = the event was stale (a newer stream already replaced that generation) or
+    /// there was no player — nothing to tell the frontend.
+    DeviceLost(Box<Option<DeviceLostPayload>>),
     Error(String),
     Ok,
 }
@@ -77,33 +92,71 @@ enum AudioResponse {
 pub struct AudioService {
     command_tx: Sender<AudioCommand>,
     response_rx: Arc<Mutex<Receiver<AudioResponse>>>,
+    /// Consumed by `start_device_monitoring`. Held here rather than returned from `new`
+    /// so the constructor signature stays unchanged for its single caller in `lib.rs`.
+    device_event_rx: Arc<Mutex<Option<Receiver<DeviceEvent>>>>,
 }
 
 impl AudioService {
     pub fn new() -> Result<Self> {
         let (command_tx, command_rx) = mpsc::channel::<AudioCommand>();
         let (response_tx, response_rx) = mpsc::channel::<AudioResponse>();
+        let (device_event_tx, device_event_rx) = mpsc::channel::<DeviceEvent>();
 
         // Spawn audio thread
         thread::spawn(move || {
-            audio_thread(command_rx, response_tx);
+            audio_thread(command_rx, response_tx, device_event_tx);
         });
 
         Ok(Self {
             command_tx,
             response_rx: Arc::new(Mutex::new(response_rx)),
+            device_event_rx: Arc::new(Mutex::new(Some(device_event_rx))),
         })
     }
 
-    fn send_command(&self, cmd: AudioCommand) -> Result<AudioResponse> {
-        self.command_tx
-            .send(cmd)
-            .map_err(|e| CrateError::Audio(format!("Failed to send command: {e}")))?;
+    /// Spawn the output-device watcher (pause-on-disconnect + device-list refresh).
+    /// Idempotent — the receiver is consumed on the first call.
+    pub fn start_device_monitoring(&self, app_handle: tauri::AppHandle) {
+        let Ok(mut slot) = self.device_event_rx.lock() else {
+            log::warn!("audio: device event receiver lock poisoned; monitoring not started");
+            return;
+        };
+        let Some(events) = slot.take() else {
+            return;
+        };
+        device_watch::start(app_handle, self.clone(), events);
+    }
 
+    /// Rebuild the stream after the device backing `epoch` vanished, leaving it paused.
+    /// Called only from the device watcher thread.
+    fn handle_device_lost(&self, epoch: u64) -> Result<Option<DeviceLostPayload>> {
+        match self.send_command(AudioCommand::HandleDeviceLost { epoch })? {
+            AudioResponse::DeviceLost(payload) => Ok(*payload),
+            AudioResponse::Error(e) => Err(CrateError::Audio(e)),
+            _ => Ok(None),
+        }
+    }
+
+    /// Follow the system default output onto its new device. No-op when a device is pinned.
+    fn notify_default_changed(&self) -> Result<()> {
+        self.send_command(AudioCommand::DefaultDeviceChanged)?;
+        Ok(())
+    }
+
+    fn send_command(&self, cmd: AudioCommand) -> Result<AudioResponse> {
+        // Take the response lock BEFORE sending so each command/response pair is atomic.
+        // Sending first would let two concurrent callers pick up each other's response —
+        // harmless while every command came from the UI thread, but the device watcher
+        // issues commands from its own thread.
         let rx = self
             .response_rx
             .lock()
             .map_err(|_| CrateError::Audio("Failed to acquire response lock".to_string()))?;
+
+        self.command_tx
+            .send(cmd)
+            .map_err(|e| CrateError::Audio(format!("Failed to send command: {e}")))?;
 
         rx.recv_timeout(Duration::from_secs(5))
             .map_err(|e| CrateError::Audio(format!("Failed to receive response: {e}")))
@@ -124,7 +177,7 @@ impl AudioService {
         })? {
             AudioResponse::State(state) => Ok(state),
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
-            AudioResponse::Ok => Ok(PlaybackState::default()),
+            _ => Ok(PlaybackState::default()),
         }
     }
 
@@ -189,7 +242,7 @@ impl AudioService {
         match self.send_command(AudioCommand::Pause)? {
             AudioResponse::State(state) => Ok(state),
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
-            AudioResponse::Ok => Ok(PlaybackState::default()),
+            _ => Ok(PlaybackState::default()),
         }
     }
 
@@ -197,7 +250,7 @@ impl AudioService {
         match self.send_command(AudioCommand::Resume)? {
             AudioResponse::State(state) => Ok(state),
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
-            AudioResponse::Ok => Ok(PlaybackState::default()),
+            _ => Ok(PlaybackState::default()),
         }
     }
 
@@ -205,7 +258,7 @@ impl AudioService {
         match self.send_command(AudioCommand::Stop)? {
             AudioResponse::State(state) => Ok(state),
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
-            AudioResponse::Ok => Ok(PlaybackState::default()),
+            _ => Ok(PlaybackState::default()),
         }
     }
 
@@ -213,7 +266,7 @@ impl AudioService {
         match self.send_command(AudioCommand::Seek(position_ms))? {
             AudioResponse::State(state) => Ok(state),
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
-            AudioResponse::Ok => Ok(PlaybackState::default()),
+            _ => Ok(PlaybackState::default()),
         }
     }
 
@@ -221,7 +274,7 @@ impl AudioService {
         match self.send_command(AudioCommand::SetVolume(volume))? {
             AudioResponse::State(state) => Ok(state),
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
-            AudioResponse::Ok => Ok(PlaybackState::default()),
+            _ => Ok(PlaybackState::default()),
         }
     }
 
@@ -229,7 +282,7 @@ impl AudioService {
         match self.send_command(AudioCommand::SetSpeed(speed))? {
             AudioResponse::State(state) => Ok(state),
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
-            AudioResponse::Ok => Ok(PlaybackState::default()),
+            _ => Ok(PlaybackState::default()),
         }
     }
 
@@ -237,7 +290,7 @@ impl AudioService {
         match self.send_command(AudioCommand::GetState)? {
             AudioResponse::State(state) => Ok(state),
             AudioResponse::Error(e) => Err(CrateError::Audio(e)),
-            AudioResponse::Ok => Ok(PlaybackState::default()),
+            _ => Ok(PlaybackState::default()),
         }
     }
 
@@ -320,6 +373,7 @@ impl Clone for AudioService {
         Self {
             command_tx: self.command_tx.clone(),
             response_rx: self.response_rx.clone(),
+            device_event_rx: self.device_event_rx.clone(),
         }
     }
 }
@@ -333,6 +387,15 @@ struct AudioPlayer {
     // For tracking playback position
     started_at: Option<Instant>,
     started_position_ms: u64,
+    /// Name of the device the stream is ACTUALLY open on, resolved at creation time.
+    /// This is what makes a `selected_device: None` player comparable against the system
+    /// default — `selected_device` alone says "follow the default", not *which* device that
+    /// resolved to. Also records the silent fallback when a pinned device is missing.
+    /// `None` only when the name couldn't be read.
+    active_device: Option<String>,
+    /// Monotonic id of this stream generation, carried by the cpal error callback so a
+    /// callback fired by an already-replaced stream is discarded instead of pausing the new one.
+    epoch: u64,
 }
 
 impl AudioPlayer {
@@ -351,11 +414,16 @@ impl AudioPlayer {
     }
 }
 
-fn audio_thread(command_rx: Receiver<AudioCommand>, response_tx: Sender<AudioResponse>) {
+fn audio_thread(
+    command_rx: Receiver<AudioCommand>,
+    response_tx: Sender<AudioResponse>,
+    device_events: Sender<DeviceEvent>,
+) {
     let mut player: Option<AudioPlayer> = None;
     let mut current_volume: f32 = 1.0;
     let mut current_speed: f32 = 1.0;
     let mut selected_device: Option<String> = None;
+    let mut next_epoch: u64 = 0;
 
     loop {
         match command_rx.recv() {
@@ -366,6 +434,8 @@ fn audio_thread(command_rx: Receiver<AudioCommand>, response_tx: Sender<AudioRes
                     &mut current_volume,
                     &mut current_speed,
                     &mut selected_device,
+                    &mut next_epoch,
+                    &device_events,
                 );
 
                 // Check if we should shutdown
@@ -393,13 +463,46 @@ fn find_device_by_name(name: &str) -> Option<rodio::cpal::Device> {
         .find(|d| d.name().ok().as_deref() == Some(name))
 }
 
+fn default_device_name() -> Option<String> {
+    rodio::cpal::default_host()
+        .default_output_device()
+        .and_then(|d| d.name().ok())
+}
+
+/// Open an output stream and return it alongside the *resolved* device name.
+///
+/// The error callback attached here is the whole device-loss detector: cpal already
+/// registers a native `kAudioDevicePropertyDeviceIsAlive` listener per stream on macOS (and
+/// maps WASAPI's `AUDCLNT_E_DEVICE_INVALIDATED` on Windows) and reports the loss as
+/// [`rodio::cpal::StreamError::DeviceNotAvailable`]. Without a callback rodio swallows it in
+/// its default `eprintln!` handler, which is why a dead Bluetooth device used to leave the
+/// sink reporting `is_playing: true` forever.
 fn create_output_stream(
     selected_device: &Option<String>,
-) -> std::result::Result<OutputStream, String> {
+    epoch: u64,
+    events: &Sender<DeviceEvent>,
+) -> std::result::Result<(OutputStream, Option<String>), String> {
+    // SAFETY-CRITICAL: this closure runs on a CoreAudio HAL notification thread (macOS) or the
+    // WASAPI run loop (Windows), *while cpal holds its stream mutex*. It must do nothing but
+    // send and return — a blocking `send_command` here would deadlock against the audio thread
+    // dropping the stream (which removes this very listener and frees the boxed callback).
+    let make_callback = |epoch: u64| {
+        let tx = events.clone();
+        move |err: rodio::cpal::StreamError| {
+            let _ = tx.send(match err {
+                rodio::cpal::StreamError::DeviceNotAvailable => DeviceEvent::StreamLost { epoch },
+                _ => DeviceEvent::StreamError { epoch },
+            });
+        }
+    };
+
     if let Some(ref device_name) = selected_device {
         if let Some(device) = find_device_by_name(device_name) {
-            match OutputStreamBuilder::from_device(device).and_then(|b| b.open_stream()) {
-                Ok(s) => return Ok(s),
+            match OutputStreamBuilder::from_device(device)
+                .map(|b| b.with_error_callback(make_callback(epoch)))
+                .and_then(|b| b.open_stream())
+            {
+                Ok(s) => return Ok((s, Some(device_name.clone()))),
                 Err(e) => {
                     log::warn!(
                         "Failed to use device '{device_name}': {e}, falling back to default"
@@ -411,8 +514,35 @@ fn create_output_stream(
         }
     }
 
-    OutputStreamBuilder::open_default_stream()
-        .map_err(|e| format!("Failed to create audio output: {e}"))
+    // Default path. This deliberately does NOT use `OutputStreamBuilder::open_default_stream`,
+    // which hard-codes rodio's own error callback and would drop the detector; instead it
+    // replicates that helper's two-tier fallback with our callback attached.
+    let resolved = default_device_name();
+    match OutputStreamBuilder::from_default_device()
+        .map(|b| b.with_error_callback(make_callback(epoch)))
+        .and_then(|b| b.open_stream())
+    {
+        Ok(s) => return Ok((s, resolved)),
+        Err(e) => log::warn!("Failed to open default output device: {e}, trying others"),
+    }
+
+    // Last resort: any device that will open. `StreamError::NoDevice` from the call above is
+    // the non-panicking "there is no output device at all" signal, and this loop yields nothing.
+    let host = rodio::cpal::default_host();
+    let devices = host
+        .output_devices()
+        .map_err(|e| format!("Failed to enumerate devices: {e}"))?;
+    for device in devices {
+        let name = device.name().ok();
+        if let Ok(stream) = OutputStreamBuilder::from_device(device)
+            .map(|b| b.with_error_callback(make_callback(epoch)))
+            .and_then(|b| b.open_stream())
+        {
+            return Ok((stream, name));
+        }
+    }
+
+    Err("No audio output device available".to_string())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -425,8 +555,10 @@ fn create_player(
     volume: f32,
     speed: f32,
     selected_device: &Option<String>,
+    epoch: u64,
+    events: &Sender<DeviceEvent>,
 ) -> std::result::Result<AudioPlayer, String> {
-    let stream = create_output_stream(selected_device)?;
+    let (stream, active_device) = create_output_stream(selected_device, epoch, events)?;
     let sink = Sink::connect_new(stream.mixer());
 
     let file = File::open(file_path).map_err(|e| format!("Failed to open file: {e}"))?;
@@ -471,7 +603,54 @@ fn create_player(
             None
         },
         started_position_ms: position_ms,
+        active_device,
+        epoch,
     })
+}
+
+/// Rebuild the current player's stream in place, preserving track identity and seeking back to
+/// `position_ms`. Bumps the stream generation so any in-flight error callback from the old
+/// stream is discarded. The old player is dropped *before* the new stream is opened, so the
+/// dead device's audio unit and its property listener are released first.
+#[allow(clippy::too_many_arguments)]
+fn rebuild_player(
+    player: &mut Option<AudioPlayer>,
+    position_ms: u64,
+    is_playing: bool,
+    volume: f32,
+    speed: f32,
+    selected_device: &Option<String>,
+    next_epoch: &mut u64,
+    events: &Sender<DeviceEvent>,
+) -> std::result::Result<(), String> {
+    let Some(p) = player.as_ref() else {
+        return Ok(());
+    };
+    let duration_ms = p.state.duration_ms;
+    let (Some(id), Some(path)) = (
+        p.state.current_track_id.clone(),
+        p.state.current_track_path.clone(),
+    ) else {
+        return Ok(());
+    };
+
+    *player = None;
+    *next_epoch += 1;
+
+    let new_player = create_player(
+        id,
+        &path,
+        duration_ms,
+        position_ms,
+        is_playing,
+        volume,
+        speed,
+        selected_device,
+        *next_epoch,
+        events,
+    )?;
+    *player = Some(new_player);
+    Ok(())
 }
 
 /// Polls the atomic fade state at 1ms intervals, returning `true` if the
@@ -489,12 +668,15 @@ fn wait_for_fade_state(fade_state: &AtomicU8, target: FadeState, timeout: Durati
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn handle_command(
     cmd: AudioCommand,
     player: &mut Option<AudioPlayer>,
     current_volume: &mut f32,
     current_speed: &mut f32,
     selected_device: &mut Option<String>,
+    next_epoch: &mut u64,
+    device_events: &Sender<DeviceEvent>,
 ) -> AudioResponse {
     match cmd {
         AudioCommand::Play {
@@ -503,6 +685,7 @@ fn handle_command(
             duration_ms,
         } => {
             *player = None;
+            *next_epoch += 1;
 
             match create_player(
                 track_id,
@@ -513,6 +696,8 @@ fn handle_command(
                 *current_volume,
                 *current_speed,
                 selected_device,
+                *next_epoch,
+                device_events,
             ) {
                 Ok(p) => {
                     let state = p.state.clone();
@@ -606,6 +791,7 @@ fn handle_command(
                         let file_path = p.state.current_track_path.clone().unwrap_or_default();
                         let duration_ms = p.state.duration_ms;
                         let is_playing = !p.sink.is_paused() && !p.sink.empty();
+                        *next_epoch += 1;
 
                         match create_player(
                             track_id,
@@ -616,6 +802,8 @@ fn handle_command(
                             *current_volume,
                             *current_speed,
                             selected_device,
+                            *next_epoch,
+                            device_events,
                         ) {
                             Ok(new_player) => {
                                 let state = new_player.state.clone();
@@ -680,34 +868,124 @@ fn handle_command(
         AudioCommand::SetDevice(device_name) => {
             *selected_device = device_name;
 
-            if let Some(ref p) = player {
-                let is_playing = !p.sink.is_paused() && !p.sink.empty();
-                let current_pos = p.get_current_position_ms();
-                let track_id = p.state.current_track_id.clone();
-                let track_path = p.state.current_track_path.clone();
-                let duration_ms = p.state.duration_ms;
+            // Snapshot first so the shared borrow of `player` ends before `rebuild_player`
+            // takes it mutably.
+            let snapshot = player
+                .as_ref()
+                .map(|p| (!p.sink.is_paused() && !p.sink.empty(), p.get_current_position_ms()));
 
-                if let (Some(id), Some(path)) = (track_id, track_path) {
-                    *player = None;
-
-                    match create_player(
-                        id,
-                        &path,
-                        duration_ms,
-                        current_pos,
-                        is_playing,
-                        *current_volume,
-                        *current_speed,
-                        selected_device,
-                    ) {
-                        Ok(new_player) => {
-                            *player = Some(new_player);
-                        }
-                        Err(e) => {
-                            log::warn!("Failed to switch device: {e}");
-                        }
-                    }
+            if let Some((is_playing, current_pos)) = snapshot {
+                if let Err(e) = rebuild_player(
+                    player,
+                    current_pos,
+                    is_playing,
+                    *current_volume,
+                    *current_speed,
+                    selected_device,
+                    next_epoch,
+                    device_events,
+                ) {
+                    log::warn!("Failed to switch device: {e}");
                 }
+            }
+
+            AudioResponse::Ok
+        }
+
+        AudioCommand::HandleDeviceLost { epoch } => {
+            let Some(p) = player.as_ref() else {
+                return AudioResponse::DeviceLost(Box::new(None));
+            };
+            // A callback from a stream we have already replaced — the current stream is
+            // healthy, so pausing it here would be the bug this guard exists to prevent.
+            if p.epoch != epoch {
+                log::debug!("audio: stale device-lost for epoch {epoch}, ignoring");
+                return AudioResponse::DeviceLost(Box::new(None));
+            }
+
+            let lost_device = p.active_device.clone();
+            let was_playing = !p.sink.is_paused() && !p.sink.empty();
+            let position_ms = p.get_current_position_ms();
+            let track_id = p.state.current_track_id.clone();
+            let track_path = p.state.current_track_path.clone();
+            let duration_ms = p.state.duration_ms;
+
+            // No fade-out: the device is already gone (cpal stopped the audio unit before
+            // calling us), so waiting on the fade would stall the audio thread for nothing.
+
+            // Rebuild PAUSED. `create_player` with `is_playing: false` pauses the sink,
+            // sets `state.is_playing = false`, and leaves `started_at` unset — while still
+            // seeking to `position_ms` — so `GetState` correctly reports paused and a later
+            // Resume plays from where the audio actually stopped.
+            if let Err(e) = rebuild_player(
+                player,
+                position_ms,
+                false,
+                *current_volume,
+                *current_speed,
+                selected_device,
+                next_epoch,
+                device_events,
+            ) {
+                // No usable output device at all. Don't panic and don't lose the track:
+                // report a synthesized paused state carrying the track identity so the UI
+                // keeps showing it instead of blanking.
+                log::warn!("audio: no output device after loss ({e}); playback stopped");
+                return AudioResponse::DeviceLost(Box::new(Some(DeviceLostPayload {
+                    lost_device,
+                    new_device: None,
+                    was_playing,
+                    playback_state: PlaybackState {
+                        is_playing: false,
+                        position_ms,
+                        duration_ms,
+                        volume: *current_volume,
+                        speed: *current_speed,
+                        current_track_id: track_id,
+                        current_track_path: track_path,
+                    },
+                })));
+            }
+
+            let (new_device, playback_state) = match player.as_ref() {
+                Some(np) => (np.active_device.clone(), np.state.clone()),
+                None => (None, PlaybackState::default()),
+            };
+            AudioResponse::DeviceLost(Box::new(Some(DeviceLostPayload {
+                lost_device,
+                new_device,
+                was_playing,
+                playback_state,
+            })))
+        }
+
+        AudioCommand::DefaultDeviceChanged => {
+            // An explicitly pinned device must not be yanked away because the OS default moved.
+            if selected_device.is_some() {
+                return AudioResponse::Ok;
+            }
+            let Some(p) = player.as_ref() else {
+                return AudioResponse::Ok;
+            };
+            if default_device_name() == p.active_device {
+                return AudioResponse::Ok;
+            }
+
+            // The old device is still alive — this is a route change, not a loss, so keep
+            // playing and just follow the default onto its new device.
+            let is_playing = !p.sink.is_paused() && !p.sink.empty();
+            let position_ms = p.get_current_position_ms();
+            if let Err(e) = rebuild_player(
+                player,
+                position_ms,
+                is_playing,
+                *current_volume,
+                *current_speed,
+                selected_device,
+                next_epoch,
+                device_events,
+            ) {
+                log::warn!("audio: failed to follow default device change: {e}");
             }
 
             AudioResponse::Ok

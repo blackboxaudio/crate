@@ -304,16 +304,21 @@ function createPlayerStore() {
 				previewRetrying = true
 				const { release, trackIndex } = state.previewInfo
 				const track = release.tracks[trackIndex]
+				// A route change (Bluetooth disconnect) can fault the element, so a retry must restore
+				// whatever state we were in — never force playback on. Re-resolving a paused track is
+				// fine; starting it is not.
+				const wasPlaying = state.playbackState.is_playing
 				if (track) {
 					console.warn(`Preview stream error, retrying: ${msg}`)
 					try {
 						await discoveryApi.invalidatePreviewStreamCache(release.id)
 						const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
 						previewPlayer.play(streamUrl)
+						if (!wasPlaying) previewPlayer.pause()
 						update((s) => ({
 							...s,
 							error: null,
-							playbackState: { ...s.playbackState, is_playing: true, position_ms: 0 },
+							playbackState: { ...s.playbackState, is_playing: wasPlaying, position_ms: 0 },
 						}))
 						return
 					} catch {
@@ -740,6 +745,25 @@ function createPlayerStore() {
 					error: error instanceof Error ? error.message : 'Failed to pause',
 				}))
 			}
+		},
+
+		/**
+		 * The backend paused library playback on its own because the output device it was
+		 * playing on disappeared (Bluetooth headphones powered off, interface unplugged).
+		 * Rust has already rebuilt the stream on the new default and left it paused at this
+		 * position — we only mirror that state, we don't issue another transport command.
+		 *
+		 * Preview playback is a WebView <audio> element the OS re-routes on its own, so this
+		 * must never touch it: forcing `is_playing: false` there would desync the store from
+		 * an element that is very likely still playing on the new route.
+		 */
+		applyExternalPause(playbackState: PlaybackState) {
+			const state = getState()
+			if (state.playbackSource !== 'library') return
+
+			stopPositionTracking()
+			persistPositionImmediate(playbackState.position_ms)
+			update((s) => ({ ...s, playbackState, error: null }))
 		},
 
 		/**
@@ -1402,6 +1426,9 @@ function createPlayerStore() {
 						previewRetrying = true
 						const { release, trackIndex } = state.previewInfo
 						const gen = ++previewLoadGen
+						// A route change (AirPods removed, Bluetooth device off) can fault the item and land
+						// here, so the retry must restore the state we were in rather than force playback on.
+						const wasPlaying = state.playbackState.is_playing
 						console.warn(`[native-preview] stream error, retrying with fresh resolution: ${message}`)
 						try {
 							await discoveryApi.invalidatePreviewStreamCache(release.id)
@@ -1409,10 +1436,11 @@ function createPlayerStore() {
 							if (gen !== previewLoadGen) return // superseded — the newer transition owns audio + state
 							await nativePreviewPlayer.setVolume(state.isMuted ? 0 : state.playbackState.volume)
 							void nativePreviewPlayer.setRate(state.playbackState.speed)
+							if (!wasPlaying) await nativePreviewPlayer.pause()
 							update((s) => ({
 								...s,
 								error: null,
-								playbackState: { ...s.playbackState, is_playing: true, position_ms: 0 },
+								playbackState: { ...s.playbackState, is_playing: wasPlaying, position_ms: 0 },
 								previewLoading: null,
 							}))
 							return

@@ -43,6 +43,30 @@ const RESERVED_FAN_PATHS: &[&str] = &[
     "videoframe",
 ];
 
+/// Resolve the link dialog's free-form input to a fan-page URL: a bare username
+/// (optionally `@`-prefixed) becomes `https://bandcamp.com/<username>`; anything
+/// URL-shaped passes through for the usual fan-URL checks. `None` for input that is
+/// neither (spaces, dots outside a URL, empty). Usernames are lowercased — Bandcamp
+/// assigns them lowercase, so this forgives a capitalized retype.
+pub fn fan_input_to_url(input: &str) -> Option<String> {
+    let trimmed = input.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    if trimmed.contains("://") || trimmed.to_lowercase().contains("bandcamp.com") {
+        return Some(trimmed.to_string());
+    }
+    let handle = trimmed.strip_prefix('@').unwrap_or(trimmed);
+    if !handle.is_empty()
+        && handle
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
+    {
+        return Some(format!("https://bandcamp.com/{}", handle.to_lowercase()));
+    }
+    None
+}
+
 /// Returns `true` only for Bandcamp *fan* pages: `bandcamp.com/<username>` on the bare
 /// domain (artist/label pages always live on `*.bandcamp.com` subdomains or custom
 /// domains), with exactly one path segment that isn't a reserved site path.
@@ -348,6 +372,38 @@ fn parse_purchased_date(raw: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn fan_input_accepts_usernames_and_urls() {
+        // Bare usernames (with optional @, any case) become fan-page URLs.
+        assert_eq!(
+            fan_input_to_url("akatten").as_deref(),
+            Some("https://bandcamp.com/akatten")
+        );
+        assert_eq!(
+            fan_input_to_url(" @Akatten ").as_deref(),
+            Some("https://bandcamp.com/akatten")
+        );
+        assert_eq!(
+            fan_input_to_url("some_fan-99").as_deref(),
+            Some("https://bandcamp.com/some_fan-99")
+        );
+        // URL-shaped input passes through untouched for the fan-URL checks.
+        assert_eq!(
+            fan_input_to_url("https://bandcamp.com/akatten").as_deref(),
+            Some("https://bandcamp.com/akatten")
+        );
+        assert_eq!(
+            fan_input_to_url("bandcamp.com/akatten").as_deref(),
+            Some("bandcamp.com/akatten")
+        );
+        // Neither a handle nor a URL.
+        assert_eq!(fan_input_to_url(""), None);
+        assert_eq!(fan_input_to_url("   "), None);
+        assert_eq!(fan_input_to_url("not a username"), None);
+        assert_eq!(fan_input_to_url("example.com/foo"), None);
+        assert_eq!(fan_input_to_url("@"), None);
+    }
 
     #[test]
     fn fan_url_detection() {
