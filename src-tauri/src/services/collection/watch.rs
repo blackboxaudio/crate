@@ -174,8 +174,13 @@ pub fn start_watching(app_handle: AppHandle, conn: Arc<Mutex<Connection>>, app_d
                         waited += Duration::from_secs(30);
                     }
                 }
-                if let Err(e) =
-                    refresh_all(conn.clone(), app_handle.clone(), app_data_dir.clone(), false).await
+                if let Err(e) = refresh_all(
+                    conn.clone(),
+                    app_handle.clone(),
+                    app_data_dir.clone(),
+                    false,
+                )
+                .await
                 {
                     log::warn!("collection: background refresh failed: {e}");
                 }

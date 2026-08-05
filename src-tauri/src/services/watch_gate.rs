@@ -111,8 +111,18 @@ mod tests {
     #[test]
     fn never_checked_source_is_never_skipped() {
         let now = at("2026-07-05T12:00:00Z");
-        assert!(!should_skip_scan(now, &gate(None, "unknown", 0), false, COOLDOWN));
-        assert!(!should_skip_scan(now, &gate(None, "unknown", 0), true, COOLDOWN));
+        assert!(!should_skip_scan(
+            now,
+            &gate(None, "unknown", 0),
+            false,
+            COOLDOWN
+        ));
+        assert!(!should_skip_scan(
+            now,
+            &gate(None, "unknown", 0),
+            true,
+            COOLDOWN
+        ));
     }
 
     #[test]

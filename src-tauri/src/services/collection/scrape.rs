@@ -177,12 +177,7 @@ async fn run_sync(
         }
     }
 
-    service.mark_checked(
-        account_id,
-        FollowHealth::Ok,
-        None,
-        total.map(|t| t as i64),
-    )?;
+    service.mark_checked(account_id, FollowHealth::Ok, None, total.map(|t| t as i64))?;
     Ok(ScrapeOutcome {
         new_items,
         total_seen,

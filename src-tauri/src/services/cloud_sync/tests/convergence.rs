@@ -1221,7 +1221,9 @@ fn collection_item_titles(conn: &Connection, account_id: &str) -> Vec<String> {
     let mut stmt = conn
         .prepare("SELECT title FROM collection_items WHERE account_id = ?1 ORDER BY title")
         .unwrap();
-    let rows = stmt.query_map([account_id], |r| r.get::<_, String>(0)).unwrap();
+    let rows = stmt
+        .query_map([account_id], |r| r.get::<_, String>(0))
+        .unwrap();
     rows.collect::<std::result::Result<Vec<_>, _>>().unwrap()
 }
 
@@ -1280,7 +1282,11 @@ async fn same_collection_account_converges_by_deterministic_id() -> Result<()> {
         assert!(collection_account_exists(conn, &acct));
         assert_eq!(
             collection_item_titles(conn, &acct),
-            vec!["AOnly".to_string(), "BOnly".to_string(), "Shared".to_string()],
+            vec![
+                "AOnly".to_string(),
+                "BOnly".to_string(),
+                "Shared".to_string()
+            ],
             "identical ids collapsed the shared item; disjoint items unioned"
         );
     }

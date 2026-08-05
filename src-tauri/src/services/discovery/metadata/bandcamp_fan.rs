@@ -180,11 +180,10 @@ struct CollectionItemsRequest<'a> {
 
 /// Fetch a fan page and parse its profile + first collection batch.
 pub async fn fetch_fan_page(client: &reqwest::Client, url: &str) -> Result<FanPage> {
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Failed to fetch Bandcamp fan page: {e}")))?;
+    let response =
+        client.get(url).send().await.map_err(|e| {
+            CrateError::Discovery(format!("Failed to fetch Bandcamp fan page: {e}"))
+        })?;
 
     if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
         return Err(CrateError::Discovery(
@@ -289,7 +288,11 @@ pub(super) fn parse_fan_pagedata(json: &str) -> Result<FanPage> {
     };
 
     let (item_count, last_token, sequence) = match data.collection_data {
-        Some(cd) => (cd.item_count, cd.last_token, cd.sequence.unwrap_or_default()),
+        Some(cd) => (
+            cd.item_count,
+            cd.last_token,
+            cd.sequence.unwrap_or_default(),
+        ),
         None => (None, None, Vec::new()),
     };
 
@@ -309,7 +312,11 @@ pub(super) fn parse_fan_pagedata(json: &str) -> Result<FanPage> {
     }
     let mut stragglers: Vec<(String, RawCollectionItem)> = cache.drain().collect();
     stragglers.sort_by(|(a, _), (b, _)| a.cmp(b));
-    items.extend(stragglers.into_iter().filter_map(|(_, raw)| convert_item(raw)));
+    items.extend(
+        stragglers
+            .into_iter()
+            .filter_map(|(_, raw)| convert_item(raw)),
+    );
 
     Ok(FanPage {
         profile,
@@ -410,7 +417,9 @@ mod tests {
         assert!(is_bandcamp_fan_url("https://bandcamp.com/akatten"));
         assert!(is_bandcamp_fan_url("https://www.bandcamp.com/akatten/"));
         assert!(is_bandcamp_fan_url("bandcamp.com/some_fan"));
-        assert!(is_bandcamp_fan_url("https://bandcamp.com/akatten?from=fanthanks"));
+        assert!(is_bandcamp_fan_url(
+            "https://bandcamp.com/akatten?from=fanthanks"
+        ));
 
         // Reserved site paths are not fan pages.
         assert!(!is_bandcamp_fan_url("https://bandcamp.com/discover"));
@@ -421,7 +430,9 @@ mod tests {
         assert!(!is_bandcamp_fan_url("https://aphextwin.bandcamp.com/music"));
         // Release pages and the bare root are not fan pages.
         assert!(!is_bandcamp_fan_url("https://bandcamp.com"));
-        assert!(!is_bandcamp_fan_url("https://bandcamp.com/akatten/following"));
+        assert!(!is_bandcamp_fan_url(
+            "https://bandcamp.com/akatten/following"
+        ));
         assert!(!is_bandcamp_fan_url("https://example.com/akatten"));
     }
 
@@ -490,7 +501,10 @@ mod tests {
             Some("https://f4.bcbits.com/img/42512952_42.jpg")
         );
         assert_eq!(page.item_count, Some(3));
-        assert_eq!(page.last_token.as_deref(), Some("1737882955:1966255171:a::"));
+        assert_eq!(
+            page.last_token.as_deref(),
+            Some("1737882955:1966255171:a::")
+        );
 
         // Private item dropped; the rest follow `sequence` order.
         assert_eq!(page.items.len(), 3);
@@ -519,7 +533,8 @@ mod tests {
 
     #[test]
     fn extracts_pagedata_blob_from_html() {
-        let html = r#"<html><div id="pagedata" data-blob="{&quot;fan_data&quot;: null}"></div></html>"#;
+        let html =
+            r#"<html><div id="pagedata" data-blob="{&quot;fan_data&quot;: null}"></div></html>"#;
         assert_eq!(
             extract_pagedata_blob(html).as_deref(),
             Some(r#"{"fan_data": null}"#)
@@ -541,7 +556,10 @@ mod tests {
         // Empty-URL item dropped.
         assert_eq!(batch.items.len(), 1);
         assert!(batch.more_available);
-        assert_eq!(batch.last_token.as_deref(), Some("1669834876:856384793:t::"));
+        assert_eq!(
+            batch.last_token.as_deref(),
+            Some("1669834876:856384793:t::")
+        );
     }
 
     /// Scrape-fragility canary: run manually against a freshly saved fan page with

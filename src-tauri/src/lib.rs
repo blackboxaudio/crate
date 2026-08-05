@@ -584,9 +584,9 @@ pub fn run() {
             app.manage(collection_service);
             // Managed BEFORE the watch loop spawns — its mobile foreground gate reads this
             // state, and `state::<T>()` panics if it isn't managed yet.
-            app.manage(AppForegroundFlag(Arc::new(std::sync::atomic::AtomicBool::new(
-                true,
-            ))));
+            app.manage(AppForegroundFlag(Arc::new(
+                std::sync::atomic::AtomicBool::new(true),
+            )));
             // Background watch loop: poll followed sources on the configured cadence.
             // No-ops (and makes no network requests) when nothing is followed.
             crate::services::follow::watch::start_watching(

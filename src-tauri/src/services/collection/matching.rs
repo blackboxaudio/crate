@@ -70,9 +70,7 @@ fn owned_urls(conn: &Connection) -> Result<(HashSet<String>, HashSet<String>)> {
         "SELECT ci.item_type, ci.url FROM collection_items ci \
          JOIN collection_accounts ca ON ca.id = ci.account_id AND ca.enabled = 1",
     )?;
-    let rows = stmt.query_map([], |r| {
-        Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
-    })?;
+    let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
     let mut albums = HashSet::new();
     let mut tracks = HashSet::new();
     for row in rows {
@@ -269,7 +267,13 @@ mod tests {
             conn.execute(
                 "INSERT INTO discovery_tracks (id, release_id, name, position, url) \
                  VALUES (?1, ?2, ?3, ?4, ?5)",
-                params![format!("{id}-t{i}"), id, format!("t{i}"), i as i32, track_url],
+                params![
+                    format!("{id}-t{i}"),
+                    id,
+                    format!("t{i}"),
+                    i as i32,
+                    track_url
+                ],
             )
             .unwrap();
         }
@@ -280,7 +284,12 @@ mod tests {
         let svc = service();
         seed_account(&svc, "acct", true);
         seed_item(&svc, "acct", "album", "https://a.bandcamp.com/album/x");
-        seed_release(&svc, "rel", "https://a.bandcamp.com/album/x", &[Some("https://a.bandcamp.com/track/one")]);
+        seed_release(
+            &svc,
+            "rel",
+            "https://a.bandcamp.com/album/x",
+            &[Some("https://a.bandcamp.com/track/one")],
+        );
         seed_release(&svc, "other", "https://b.bandcamp.com/album/y", &[]);
 
         let o = svc.compute_ownership().unwrap();

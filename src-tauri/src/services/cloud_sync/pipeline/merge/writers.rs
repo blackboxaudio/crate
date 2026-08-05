@@ -22,8 +22,8 @@ use super::super::buckets::Bucket;
 use super::super::dirty;
 use super::super::rows::{
     CollectionAccountRow, CollectionItemRow, CueRow, DiscoveryReleaseRow,
-    DiscoveryReleaseSourceRow, FollowedSourceRow, LibraryRootRow,
-    ParsedRow, PlaylistRow, TagCategoryRow,
+    DiscoveryReleaseSourceRow, FollowedSourceRow, LibraryRootRow, ParsedRow, PlaylistRow,
+    TagCategoryRow,
 };
 
 // SQLite extended result codes for the constraint violations we tolerate.
@@ -286,8 +286,17 @@ fn upsert_collection_account(tx: &Connection, a: &CollectionAccountRow, hlc: &st
             enabled=excluded.enabled, date_added=excluded.date_added, \
             date_modified=excluded.date_modified, _hlc=excluded._hlc",
         params![
-            a.id, a.url, a.source_type, a.external_id, a.username, a.name, a.avatar_url, a.enabled,
-            a.date_added, a.date_modified, hlc,
+            a.id,
+            a.url,
+            a.source_type,
+            a.external_id,
+            a.username,
+            a.name,
+            a.avatar_url,
+            a.enabled,
+            a.date_added,
+            a.date_modified,
+            hlc,
         ],
     )?;
     // An account synced in from another device has no local refresh state yet. Seed a
@@ -313,8 +322,19 @@ fn upsert_collection_item(tx: &Connection, i: &CollectionItemRow, hlc: &str) -> 
             purchased_at=excluded.purchased_at, date_added=excluded.date_added, \
             date_modified=excluded.date_modified, _hlc=excluded._hlc",
         params![
-            i.id, i.account_id, i.source_type, i.item_type, i.url, i.external_id, i.artist,
-            i.title, i.artwork_url, i.purchased_at, i.date_added, i.date_modified, hlc,
+            i.id,
+            i.account_id,
+            i.source_type,
+            i.item_type,
+            i.url,
+            i.external_id,
+            i.artist,
+            i.title,
+            i.artwork_url,
+            i.purchased_at,
+            i.date_added,
+            i.date_modified,
+            hlc,
         ],
     )?;
     Ok(())

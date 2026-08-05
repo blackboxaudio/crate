@@ -870,9 +870,12 @@ fn handle_command(
 
             // Snapshot first so the shared borrow of `player` ends before `rebuild_player`
             // takes it mutably.
-            let snapshot = player
-                .as_ref()
-                .map(|p| (!p.sink.is_paused() && !p.sink.empty(), p.get_current_position_ms()));
+            let snapshot = player.as_ref().map(|p| {
+                (
+                    !p.sink.is_paused() && !p.sink.empty(),
+                    p.get_current_position_ms(),
+                )
+            });
 
             if let Some((is_playing, current_pos)) = snapshot {
                 if let Err(e) = rebuild_player(

@@ -151,8 +151,7 @@ impl CollectionService {
         let hlc = dirty::next_hlc(&conn)?;
 
         let item_ids: Vec<String> = {
-            let mut stmt =
-                conn.prepare("SELECT id FROM collection_items WHERE account_id = ?1")?;
+            let mut stmt = conn.prepare("SELECT id FROM collection_items WHERE account_id = ?1")?;
             let rows = stmt.query_map([id], |r| r.get::<_, String>(0))?;
             rows.collect::<std::result::Result<Vec<_>, _>>()?
         };
@@ -212,11 +211,7 @@ impl CollectionService {
     /// Upsert a scraped batch. One HLC per batch (one logical mutation); rows whose
     /// content is unchanged are left untouched so steady-state rescans don't churn
     /// `_hlc` (and re-upload the bucket) for nothing. Returns how many were NEW.
-    pub fn upsert_items(
-        &self,
-        account_id: &str,
-        items: &[ScrapedCollectionItem],
-    ) -> Result<usize> {
+    pub fn upsert_items(&self, account_id: &str, items: &[ScrapedCollectionItem]) -> Result<usize> {
         if items.is_empty() {
             return Ok(0);
         }
