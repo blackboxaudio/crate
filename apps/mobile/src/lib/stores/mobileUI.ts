@@ -13,6 +13,7 @@ import {
 	setStoredString,
 } from '$shared/utils/storage'
 import type { DiscoveryRelease, SortDirection, TagFilterMode } from '$shared/types'
+import { ownedReleaseIds } from '$shared/stores/collection'
 import { fullyCachedIds } from './offlineCache'
 
 /** The app's primary navigation destinations, surfaced as bottom tabs. Settings is intentionally NOT a
@@ -24,7 +25,15 @@ export type PlaylistsSortField = 'name' | 'date_created' | 'date_modified'
 
 /** Settings drawer pages: a root grouped list plus flat sub-pages. The IA is exactly two levels, so
  *  a single value (not a trail) is enough. */
-export type SettingsPage = 'root' | 'general' | 'appearance' | 'following' | 'cloudSync' | 'storage' | 'about'
+export type SettingsPage =
+	| 'root'
+	| 'general'
+	| 'appearance'
+	| 'following'
+	| 'collection'
+	| 'cloudSync'
+	| 'storage'
+	| 'about'
 
 /** Where a preview-playback session was started from — selects which list scopes next / shuffle, and
  *  whether the discovery feed's live filter changes should keep re-scoping it. */
@@ -66,6 +75,8 @@ interface MobileUIState {
 	tagFilterMode: TagFilterMode
 	/** Downloaded-only feed filter: show just the releases whose audio is fully cached (offline-ready). */
 	downloadedOnly: boolean
+	/** Purchased-only feed filter: swap the feed for the linked Bandcamp collection (the Purchased view). */
+	purchasedOnly: boolean
 	/** Whether the feed is in multi-select mode (entered by long-pressing a release). */
 	selectMode: boolean
 	/** Releases selected while in multi-select mode (batch delete / batch tag). */
@@ -174,6 +185,7 @@ const defaultState: MobileUIState = {
 	tagFilterIds: [],
 	tagFilterMode: 'or',
 	downloadedOnly: false,
+	purchasedOnly: false,
 	selectMode: false,
 	selectedReleaseIds: new Set(),
 	addReleaseOpen: false,
@@ -496,6 +508,10 @@ function createMobileUIStore() {
 		toggleDownloadedFilter() {
 			update((s) => ({ ...s, downloadedOnly: !s.downloadedOnly }))
 		},
+		/** Swap the feed for the Purchased view (the linked Bandcamp collection). Ephemeral. */
+		togglePurchasedFilter() {
+			update((s) => ({ ...s, purchasedOnly: !s.purchasedOnly }))
+		},
 
 		// --- Multi-select -------------------------------------------------------------------------
 		/** Enter multi-select mode, seeding the selection with the long-pressed release (one update,
@@ -738,18 +754,22 @@ export function applyTagFilter(list: DiscoveryRelease[], ids: string[], mode: Ta
 }
 
 export const downloadedOnly = derived(mobileUIStore, ($s) => $s.downloadedOnly)
+export const purchasedOnly = derived(mobileUIStore, ($s) => $s.purchasedOnly)
 
 /**
  * The discovery feed's displayed list: the shared `sortedReleases` (search + liked/new + sort) with the
- * mobile-only tag + downloaded filters applied. Single source of truth for both the rendered feed and the
- * playback queue captured when a preview starts — so "play / shuffle the whole list" spans exactly what's
- * on screen.
+ * mobile-only tag + downloaded + purchased filters applied. Single source of truth for both the rendered
+ * feed and the playback queue captured when a preview starts — so "play / shuffle the whole list" spans
+ * exactly what's on screen. (When the Purchased filter is active, the feed component ALSO appends the
+ * unmatched collection items as its own separate section — those aren't releases and never enter this
+ * list or the playback context.)
  */
 export const mobileDisplayedReleases = derived(
-	[sortedReleases, tagFilterIds, tagFilterMode, downloadedOnly, fullyCachedIds],
-	([$sorted, $ids, $mode, $downloadedOnly, $cached]) => {
+	[sortedReleases, tagFilterIds, tagFilterMode, downloadedOnly, purchasedOnly, fullyCachedIds, ownedReleaseIds],
+	([$sorted, $ids, $mode, $downloadedOnly, $purchasedOnly, $cached, $owned]) => {
 		let list = applyTagFilter($sorted, $ids, $mode)
 		if ($downloadedOnly) list = list.filter((r) => $cached.has(r.id))
+		if ($purchasedOnly) list = list.filter((r) => $owned.has(r.id))
 		return list
 	}
 )

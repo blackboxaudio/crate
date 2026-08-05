@@ -10,6 +10,10 @@ pub(super) fn is_bandcamp_page_url(url: &str) -> bool {
     if !lower.contains("bandcamp.com") {
         return false;
     }
+    // Fan profiles (bandcamp.com/<username>) are collection accounts, not artist/label pages.
+    if super::bandcamp_fan::is_bandcamp_fan_url(url) {
+        return false;
+    }
     // If the path contains /album/ or /track/, it's a release page
     !lower.contains("/album/") && !lower.contains("/track/")
 }

@@ -495,7 +495,24 @@
 		"title": "Фільтри",
 		"liked": "Вподобані",
 		"new": "Нове",
-		"downloaded": "Завантажено"
+		"downloaded": "Завантажено",
+		"purchased": "Придбано"
+	},
+	"collection": {
+		"notInCrate": "Немає в {appName}",
+		"addToDiscovery": "Додати до Збільшення",
+		"emptyTitle": "Немає пов'язаної колекції",
+		"emptyHint": "Пов'яжіть свою колекцію Bandcamp, щоб побачити свої покупки тут",
+		"noItems": "Поки немає покупок",
+		"ownedBadge": "Володіння",
+		"partialBadge": "{owned}/{total} володіння",
+		"gap": {
+			"title": "Відсутній у бібліотеці",
+			"missingCount": "{count, plural, one {1 покупка не в вашій бібліотеці} few {{count} покупки не в вашій бібліотеці} many {{count} покупок не в вашій бібліотеці} other {{count} покупок не в вашій бібліотеці}}",
+			"missingOnly": "Тільки відсутні",
+			"inLibrary": "У бібліотеці",
+			"notInLibrary": "Немає в бібліотеці"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Новий плейлист",

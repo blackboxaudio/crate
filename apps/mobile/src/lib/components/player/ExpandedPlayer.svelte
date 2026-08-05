@@ -47,12 +47,27 @@
 	// Cache-first cover for both the blurred wash and the foreground art: prefers the on-disk
 	// cached copy (renders offline) and falls back to the remote URL, downloading it to disk on
 	// first display so it's cached next time. Local state so the download flips the src without a
-	// store round-trip; re-tracked whenever the active release changes.
+	// store round-trip; reset only when the release IDENTITY changes — the store's release object
+	// never learns the cached path, so unconditionally re-seeding from it on every effect run
+	// clobbered the resolved path back to null and re-invoked cacheReleaseArtwork, which resolved
+	// and re-triggered the effect: an infinite IPC loop (thousands of invokes/sec, each touching
+	// the DB) that pegged the CPU and got the app killed by iOS. Mirrors ReleaseArtwork.svelte.
 	let artCachePath = $state<string | null>(null)
+	let artReleaseId = $state<string | null>(null)
 	$effect(() => {
 		const rel = $previewInfo?.release
-		artCachePath = rel?.artwork_cache_path ?? null
-		if (rel && !artCachePath && rel.artwork_url) {
+		if (!rel) {
+			artReleaseId = null
+			artCachePath = null
+			return
+		}
+		if (rel.id !== artReleaseId) {
+			artReleaseId = rel.id
+			artCachePath = rel.artwork_cache_path
+		} else if (rel.artwork_cache_path && !artCachePath) {
+			artCachePath = rel.artwork_cache_path
+		}
+		if (!artCachePath && rel.artwork_url) {
 			const id = rel.id
 			void cacheReleaseArtwork(id).then((path) => {
 				if (path && $previewInfo?.release.id === id) artCachePath = path

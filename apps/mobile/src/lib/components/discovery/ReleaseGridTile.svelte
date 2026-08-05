@@ -3,6 +3,7 @@
 	import { translate } from '$shared/i18n'
 	import { previewInfo } from '$shared/stores/player'
 	import { DRAG_THRESHOLD } from '$shared/utils/drag'
+	import { fullyOwnedReleaseIds, partiallyOwnedReleaseIds } from '$shared/stores/collection'
 	import { mobileUIStore, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
 	import { fullyCachedIds } from '$lib/stores/offlineCache'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
@@ -111,6 +112,26 @@
 		/>
 		{#if release.is_new}
 			<span class="absolute top-1 left-1 h-2 w-2 rounded-full bg-brand-primary"></span>
+		{/if}
+		{#if $fullyOwnedReleaseIds.has(release.id) || $partiallyOwnedReleaseIds.has(release.id)}
+			<!-- Owned chip (bottom-left; bottom-right is the downloaded chip, top-right is select). -->
+			<span
+				class="absolute bottom-1 left-1 flex h-4 w-4 items-center justify-center rounded-full bg-black/55 text-white"
+			>
+				<svg
+					class="h-2.5 w-2.5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					aria-hidden="true"
+				>
+					<path d="M6 8h12l-1.2 12H7.2L6 8z" />
+					<path d="M9 8V6a3 3 0 0 1 6 0v2" />
+				</svg>
+			</span>
 		{/if}
 		{#if $fullyCachedIds.has(release.id)}
 			<span

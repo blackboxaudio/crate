@@ -9,7 +9,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 use rusqlite::Connection;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
@@ -20,78 +20,23 @@ use crate::models::{
     SourceCheckResult,
 };
 use crate::services::discovery::{metadata, DiscoveryService};
+use crate::services::watch_gate::{health_for_error, should_skip_scan};
 use crate::services::SettingsService;
 
-use super::{diff, CheckGate, FollowService, SourceToCheck};
+use super::{diff, FollowService, SourceToCheck};
 
 /// Don't re-fetch a source's page more often than this on automatic sweeps — the cache
 /// window that keeps a relaunch loop or a spammed "Check all" from hammering a platform
 /// into a rate limit. A user's explicit single-source "Check now" bypasses it (`force`).
+/// The failure backoff lives in `watch_gate` and is shared with the collection loop.
 const RESCAN_COOLDOWN_SECS: i64 = 30 * 60;
-/// Base backoff after a failure, doubled per consecutive failure (capped). Rate-limit
-/// responses (HTTP 429) start longer than transient errors; both are honored even for a
-/// forced manual check so a user can't hammer a source the platform is already throttling.
-const BACKOFF_BASE_ERROR_SECS: i64 = 5 * 60;
-const BACKOFF_BASE_RATE_LIMITED_SECS: i64 = 15 * 60;
-const BACKOFF_MAX_SECS: i64 = 6 * 60 * 60;
 
-/// Classify a scan error as a rate-limit (so the UI shows it and backoff runs longer) or
-/// a generic failure. Bandcamp/SoundCloud/Discogs all surface 429s with a "rate limit"
-/// / "429" marker in the message (see the metadata fetchers).
-fn health_for_error(msg: &str) -> FollowHealth {
-    let m = msg.to_lowercase();
-    if m.contains("rate limit") || m.contains("429") || m.contains("too many requests") {
-        FollowHealth::RateLimited
-    } else {
-        FollowHealth::Error
-    }
-}
-
-/// Seconds elapsed since an RFC3339 timestamp, or `None` if it can't be parsed or is in
-/// the future (a clock jump — treat as "unknown", i.e. don't skip).
-fn seconds_since(now: DateTime<Utc>, ts: &str) -> Option<i64> {
-    DateTime::parse_from_rfc3339(ts)
-        .ok()
-        .map(|t| {
-            now.signed_duration_since(t.with_timezone(&Utc))
-                .num_seconds()
-        })
-        .filter(|&s| s >= 0)
-}
-
-/// The backoff window (seconds) implied by the last check's health + failure streak.
-/// Zero when the last check succeeded (`consecutive_failures == 0`).
-fn backoff_window_secs(health: &str, consecutive_failures: i64) -> i64 {
-    if consecutive_failures < 1 {
-        return 0;
-    }
-    let base = if health == "rate_limited" {
-        BACKOFF_BASE_RATE_LIMITED_SECS
-    } else {
-        BACKOFF_BASE_ERROR_SECS
-    };
-    let shift = (consecutive_failures - 1).min(10) as u32;
-    base.saturating_mul(1i64 << shift).min(BACKOFF_MAX_SECS)
-}
-
-/// Whether to skip a source's network scan right now. A failure backoff applies even to a
-/// forced manual check; the plain re-scan cooldown applies only to automatic sweeps
-/// (`force == false`). Returns `false` when there's no prior check to gate against.
-fn should_skip_scan(now: DateTime<Utc>, gate: &CheckGate, force: bool) -> bool {
-    let elapsed = match gate
-        .last_checked_at
-        .as_deref()
-        .and_then(|ts| seconds_since(now, ts))
-    {
-        Some(e) => e,
-        None => return false,
-    };
-    let backoff = backoff_window_secs(&gate.health, gate.consecutive_failures);
-    if backoff > 0 && elapsed < backoff {
-        return true;
-    }
-    !force && elapsed < RESCAN_COOLDOWN_SECS
-}
+/// At most one full sweep runs at a time. The watch loop's launch sweep, the frontend's
+/// pull-to-refresh, and "Check all now" can otherwise race and scan every source
+/// concurrently — the per-source cooldown can't stop that because both sweeps read the
+/// gate before either has marked anything checked. A caller that loses the race skips
+/// (the winner's results land via `followed-releases-found` anyway).
+static SWEEP_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// Scan a page for the forward-looking baseline: the full current page contents,
 /// independent of what is already in Discovery.
@@ -225,7 +170,7 @@ pub async fn check_one(
     // Bandcamp/SoundCloud/Discogs into a rate limit. A missing state row → never checked
     // → scan. Returns the last known health/error unchanged (no DB write, no clock reset).
     if let Ok(gate) = follow.get_check_gate(&source.id) {
-        if should_skip_scan(Utc::now(), &gate, force) {
+        if should_skip_scan(Utc::now(), &gate, force, RESCAN_COOLDOWN_SECS) {
             return (
                 SourceCheckResult {
                     source_id: source.id,
@@ -354,6 +299,16 @@ pub async fn check_all(
     app: AppHandle,
     app_data_dir: PathBuf,
 ) -> Result<FollowedReleasesFound> {
+    let Ok(_sweep) = SWEEP_LOCK.try_lock() else {
+        log::info!("follow: sweep already in progress — skipping duplicate check_all");
+        return Ok(FollowedReleasesFound {
+            total_new: 0,
+            by_source: Vec::new(),
+            release_ids: Vec::new(),
+            checked_at: chrono::Utc::now().to_rfc3339(),
+        });
+    };
+
     let follow = FollowService::new(conn.clone(), app_data_dir.clone());
     let sources = follow.enabled_sources()?;
 
@@ -364,7 +319,7 @@ pub async fn check_all(
         // scanned — a gated-out source makes no network call, so it needs no delay.
         let will_scan = follow
             .get_check_gate(&source.id)
-            .map(|g| !should_skip_scan(Utc::now(), &g, false))
+            .map(|g| !should_skip_scan(Utc::now(), &g, false, RESCAN_COOLDOWN_SECS))
             .unwrap_or(true);
         if will_scan {
             let base_ms = match source.source_type.as_str() {
@@ -426,6 +381,28 @@ pub fn start_watching(app_handle: AppHandle, conn: Arc<Mutex<Connection>>, app_d
                 interval.is_some()
             };
             if should_check {
+                // Mobile: an automatic sweep landing while the app is backgrounded (easy to
+                // hit — the launch sweep fires 30s after boot, and background audio keeps the
+                // process and its timers alive) burns background CPU that iOS hard-kills at
+                // 80% over 60s. Wait for the webview to be foregrounded first — bounded, and
+                // fail-OPEN so a stale flag degrades to a delayed sweep rather than a silently
+                // dead cadence (the background summary notification relies on sweeps still
+                // running eventually).
+                #[cfg(feature = "mobile")]
+                {
+                    use std::sync::atomic::Ordering;
+                    let cap = Duration::from_secs(15 * 60);
+                    let mut waited = Duration::ZERO;
+                    while !app_handle
+                        .state::<crate::AppForegroundFlag>()
+                        .0
+                        .load(Ordering::Relaxed)
+                        && waited < cap
+                    {
+                        tokio::time::sleep(Duration::from_secs(30)).await;
+                        waited += Duration::from_secs(30);
+                    }
+                }
                 if let Ok(found) =
                     check_all(conn.clone(), app_handle.clone(), app_data_dir.clone()).await
                 {
@@ -450,7 +427,8 @@ pub fn start_watching(app_handle: AppHandle, conn: Arc<Mutex<Connection>>, app_d
 }
 
 /// `(run_on_launch, periodic_interval)` for a cadence. "Daily" is on-launch + every 24h.
-fn cadence_schedule(cadence: FollowCheckCadence) -> (bool, Option<Duration>) {
+/// Shared with the collection refresh loop, which reuses `FollowCheckCadence`.
+pub(crate) fn cadence_schedule(cadence: FollowCheckCadence) -> (bool, Option<Duration>) {
     match cadence {
         FollowCheckCadence::Manual => (false, None),
         FollowCheckCadence::OnLaunch => (true, None),
@@ -506,94 +484,4 @@ fn fire_summary_notification(app: &AppHandle, found: &FollowedReleasesFound) {
         .title(title)
         .body("Open Crate to review")
         .show();
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn at(ts: &str) -> DateTime<Utc> {
-        DateTime::parse_from_rfc3339(ts)
-            .unwrap()
-            .with_timezone(&Utc)
-    }
-
-    fn gate(last_checked_at: Option<&str>, health: &str, failures: i64) -> CheckGate {
-        CheckGate {
-            last_checked_at: last_checked_at.map(|s| s.to_string()),
-            health: health.to_string(),
-            last_error: None,
-            consecutive_failures: failures,
-        }
-    }
-
-    #[test]
-    fn never_checked_source_is_never_skipped() {
-        let now = at("2026-07-05T12:00:00Z");
-        assert!(!should_skip_scan(now, &gate(None, "unknown", 0), false));
-        assert!(!should_skip_scan(now, &gate(None, "unknown", 0), true));
-    }
-
-    #[test]
-    fn cooldown_skips_recent_ok_check_only_on_automatic_sweeps() {
-        let now = at("2026-07-05T12:00:00Z");
-        // Checked 10 min ago, healthy: within the 30-min cooldown.
-        let recent = gate(Some("2026-07-05T11:50:00Z"), "ok", 0);
-        assert!(should_skip_scan(now, &recent, false)); // automatic sweep: skip
-        assert!(!should_skip_scan(now, &recent, true)); // forced manual: scan
-    }
-
-    #[test]
-    fn cooldown_expires_after_the_window() {
-        let now = at("2026-07-05T12:00:00Z");
-        // Checked 31 min ago, healthy: past the cooldown.
-        let old = gate(Some("2026-07-05T11:29:00Z"), "ok", 0);
-        assert!(!should_skip_scan(now, &old, false));
-    }
-
-    #[test]
-    fn rate_limit_backoff_is_honored_even_when_forced() {
-        let now = at("2026-07-05T12:00:00Z");
-        // Rate-limited 5 min ago, first failure → 15-min backoff window.
-        let limited = gate(Some("2026-07-05T11:55:00Z"), "rate_limited", 1);
-        assert!(should_skip_scan(now, &limited, false));
-        assert!(should_skip_scan(now, &limited, true)); // forced still backs off
-    }
-
-    #[test]
-    fn backoff_grows_with_consecutive_failures_and_caps() {
-        // error base 5m: failure #1 → 5m, #2 → 10m, #3 → 20m.
-        assert_eq!(backoff_window_secs("error", 1), 5 * 60);
-        assert_eq!(backoff_window_secs("error", 2), 10 * 60);
-        assert_eq!(backoff_window_secs("error", 3), 20 * 60);
-        // rate_limited base 15m: failure #1 → 15m.
-        assert_eq!(backoff_window_secs("rate_limited", 1), 15 * 60);
-        // A large streak saturates at the cap, never overflows.
-        assert_eq!(backoff_window_secs("rate_limited", 100), BACKOFF_MAX_SECS);
-        // A successful last check (no streak) implies no backoff.
-        assert_eq!(backoff_window_secs("ok", 0), 0);
-    }
-
-    #[test]
-    fn future_timestamp_from_clock_jump_does_not_skip() {
-        let now = at("2026-07-05T12:00:00Z");
-        let future = gate(Some("2026-07-05T12:30:00Z"), "ok", 0);
-        assert!(!should_skip_scan(now, &future, false));
-    }
-
-    #[test]
-    fn error_messages_classify_rate_limits() {
-        assert_eq!(
-            health_for_error("Bandcamp rate limit exceeded (429)"),
-            FollowHealth::RateLimited
-        );
-        assert_eq!(
-            health_for_error("Discogs API returned status 429 Too Many Requests"),
-            FollowHealth::RateLimited
-        );
-        assert_eq!(
-            health_for_error("Failed to fetch page: connection reset"),
-            FollowHealth::Error
-        );
-    }
 }

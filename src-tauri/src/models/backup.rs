@@ -104,6 +104,51 @@ pub struct BackupDiscoveryReleaseSource {
     pub source_id: String,
 }
 
+/// A linked collection account (synced). `_hlc` omitted (see `BackupFollowedSource`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupCollectionAccount {
+    pub id: String,
+    pub url: String,
+    pub source_type: String,
+    pub external_id: Option<String>,
+    pub username: Option<String>,
+    pub name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub enabled: bool,
+    pub date_added: String,
+    pub date_modified: String,
+}
+
+/// An owned collection item (synced). `_hlc` omitted (see `BackupFollowedSource`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupCollectionItem {
+    pub id: String,
+    pub account_id: String,
+    pub source_type: String,
+    pub item_type: String,
+    pub url: String,
+    pub external_id: Option<String>,
+    pub artist: Option<String>,
+    pub title: Option<String>,
+    pub artwork_url: Option<String>,
+    pub purchased_at: Option<String>,
+    pub date_added: String,
+    pub date_modified: String,
+}
+
+/// Per-device refresh bookkeeping for a collection account (local table). Captured so a
+/// same-device restore preserves check health/backoff.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupCollectionAccountState {
+    pub account_id: String,
+    pub last_checked_at: Option<String>,
+    pub last_success_at: Option<String>,
+    pub health: String,
+    pub last_error: Option<String>,
+    pub consecutive_failures: i64,
+    pub last_item_count: Option<i64>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BackupCounts {
     pub tracks: usize,
@@ -145,6 +190,14 @@ pub struct BackupData {
     pub followed_source_releases: Vec<BackupFollowedSourceRelease>,
     #[serde(default)]
     pub discovery_release_sources: Vec<BackupDiscoveryReleaseSource>,
+    /// Purchased-collection data. All `#[serde(default)]` so backups created before the
+    /// collection feature still deserialize (the Vecs default to empty).
+    #[serde(default)]
+    pub collection_accounts: Vec<BackupCollectionAccount>,
+    #[serde(default)]
+    pub collection_items: Vec<BackupCollectionItem>,
+    #[serde(default)]
+    pub collection_account_state: Vec<BackupCollectionAccountState>,
     /// Base64-encoded artwork files keyed by relative path (e.g. "artwork/abc.webp").
     /// `None` for backups created before artwork support was added.
     #[serde(default)]

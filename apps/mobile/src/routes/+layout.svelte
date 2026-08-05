@@ -2,6 +2,7 @@
 	import '../style.css'
 	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
+	import { invoke } from '@tauri-apps/api/core'
 	import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 	import { initializeI18n, type Language } from '$shared/i18n'
 	import { settingsStore } from '$shared/stores/settings'
@@ -11,6 +12,7 @@
 	import { playerStore, previewInfo } from '$shared/stores/player'
 	import { isAndroid, isIOS } from '$shared/utils/platform'
 	import { mobileUIStore, isPlayerExpanded, flushNavPersistence } from '$lib/stores/mobileUI'
+	import { collectionStore } from '$shared/stores/collection'
 	import { offlineCacheStore } from '$lib/stores/offlineCache'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
 	import { initAndroidShareIntake } from '$lib/androidShare'
@@ -147,6 +149,27 @@
 		}
 	})
 
+	// Purchased-collection state (owned badges / the Purchased view): seed on boot, then refetch
+	// whenever the backend reports a change (link, unlink, background refresh finding new items).
+	// Debounced — an initial multi-batch scrape fires an event per completed sync, not per batch,
+	// but a refresh-all of several accounts still lands a burst.
+	onMount(() => {
+		void collectionStore.load()
+		let unlisten: UnlistenFn | undefined
+		let timer: ReturnType<typeof setTimeout> | null = null
+		void listen('collection-changed', () => {
+			if (timer) clearTimeout(timer)
+			timer = setTimeout(() => {
+				timer = null
+				void collectionStore.refresh()
+			}, 500)
+		}).then((u) => (unlisten = u))
+		return () => {
+			if (timer) clearTimeout(timer)
+			unlisten?.()
+		}
+	})
+
 	// Android share-intent intake (#62): drain URLs shared from other apps (queued by MainActivity)
 	// and open the add-release sheet prefilled. Gated on i18n so its toasts can translate — a
 	// cold-start share sits safely in the Kotlin queue until this first drain.
@@ -165,10 +188,13 @@
 
 	// Navigation persistence (mobileUI store): the discovery scroll position writes behind a debounce, so
 	// flush it the moment the app is backgrounded — mobile apps die backgrounded, not mid-fling, so this is
-	// what makes the very latest scroll position survive an iOS/Android process kill.
+	// what makes the very latest scroll position survive an iOS/Android process kill. The same signal also
+	// tells the backend whether the app is foregrounded (set_app_foreground), so Rust-side loops like the
+	// follow watch sweep don't burn background CPU while background audio keeps the process alive.
 	onMount(() => {
 		const onVisibility = () => {
 			if (document.visibilityState === 'hidden') flushNavPersistence()
+			void invoke('set_app_foreground', { foreground: document.visibilityState === 'visible' }).catch(() => {})
 		}
 		document.addEventListener('visibilitychange', onVisibility)
 		return () => document.removeEventListener('visibilitychange', onVisibility)

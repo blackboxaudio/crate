@@ -418,5 +418,62 @@ ALTER TABLE discovery_audio_cache ADD COLUMN pinned INTEGER NOT NULL DEFAULT 0;
         r#"
 ALTER TABLE discovery_tracks ADD COLUMN url TEXT;
 "#,
+        // Migration 11: purchased-collection accounts (Bandcamp fan pages in v1;
+        // `source_type` discriminates future purchase sources). `collection_accounts` and
+        // `collection_items` SYNC — they carry `_hlc` and are registered as sync buckets
+        // (see pipeline::buckets). Per-device refresh bookkeeping
+        // (`collection_account_state`) stays LOCAL, mirroring `followed_source_state`.
+        // Ownership of discovery releases/tracks is DERIVED from `collection_items.url`
+        // at read time — no ownership columns are added anywhere else.
+        r#"
+-- SYNCED: linked collection accounts (a Bandcamp fan page URL each).
+CREATE TABLE collection_accounts (
+    id            TEXT PRIMARY KEY,               -- deterministic v5 of the normalized url
+    url           TEXT NOT NULL UNIQUE,           -- normalize_url()'d fan-page URL
+    source_type   TEXT NOT NULL DEFAULT 'bandcamp',
+    external_id   TEXT,                           -- source-native account id (Bandcamp fan_id)
+    username      TEXT,                           -- source-native handle
+    name          TEXT,                           -- display name
+    avatar_url    TEXT,
+    enabled       INTEGER NOT NULL DEFAULT 1,     -- 0 = paused: items stop counting as owned (syncs)
+    date_added    TEXT NOT NULL,
+    date_modified TEXT NOT NULL,
+    _hlc          TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_collection_accounts_hlc ON collection_accounts(_hlc);
+
+-- SYNCED: every owned item across all linked accounts. The same release owned on two
+-- accounts is two rows (ids encode account|url) so unlinking one account never deletes
+-- the other's copy; reads union by url.
+CREATE TABLE collection_items (
+    id            TEXT PRIMARY KEY,               -- deterministic v5 of "account_id|normalized url"
+    account_id    TEXT NOT NULL REFERENCES collection_accounts(id) ON DELETE CASCADE,
+    source_type   TEXT NOT NULL DEFAULT 'bandcamp',
+    item_type     TEXT NOT NULL,                  -- 'album' | 'track'
+    url           TEXT NOT NULL,                  -- normalize_url()'d item page URL (the match key)
+    external_id   TEXT,                           -- source-native item id
+    artist        TEXT,
+    title         TEXT,
+    artwork_url   TEXT,
+    purchased_at  TEXT,                           -- RFC 3339 when the source date parses
+    date_added    TEXT NOT NULL,
+    date_modified TEXT NOT NULL,
+    _hlc          TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX idx_collection_items_hlc ON collection_items(_hlc);
+CREATE INDEX idx_collection_items_account ON collection_items(account_id);
+CREATE INDEX idx_collection_items_url ON collection_items(url);
+
+-- LOCAL ONLY: per-device refresh bookkeeping for each linked account.
+CREATE TABLE collection_account_state (
+    account_id           TEXT PRIMARY KEY REFERENCES collection_accounts(id) ON DELETE CASCADE,
+    last_checked_at      TEXT,
+    last_success_at      TEXT,
+    health               TEXT NOT NULL DEFAULT 'unknown', -- 'ok'|'error'|'rate_limited'|'unknown'
+    last_error           TEXT,
+    consecutive_failures INTEGER NOT NULL DEFAULT 0,
+    last_item_count      INTEGER
+);
+"#,
     ]
 }

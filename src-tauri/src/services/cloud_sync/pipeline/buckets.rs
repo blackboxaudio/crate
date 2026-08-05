@@ -29,6 +29,8 @@ pub const LIBRARY_ROOTS: &str = "library_roots";
 pub const SETTINGS: &str = "settings";
 pub const FOLLOWED_SOURCES: &str = "followed_sources";
 pub const DISCOVERY_RELEASE_SOURCES: &str = "discovery_release_sources";
+pub const COLLECTION_ACCOUNTS: &str = "collection_accounts";
+pub const COLLECTION_ITEMS: &str = "collection_items";
 
 /// Canonical bucket name for a track id, e.g. `"tracks/3"`. Sharded by the first
 /// hex char of the (UUID) id so a single-track edit re-uploads ~1/16th of the
@@ -86,6 +88,8 @@ pub enum Bucket {
     LibraryRoots,
     FollowedSources,
     DiscoveryReleaseSources,
+    CollectionAccounts,
+    CollectionItems,
     Settings,
 }
 
@@ -113,6 +117,8 @@ impl Bucket {
             Bucket::LibraryRoots => LIBRARY_ROOTS.to_string(),
             Bucket::FollowedSources => FOLLOWED_SOURCES.to_string(),
             Bucket::DiscoveryReleaseSources => DISCOVERY_RELEASE_SOURCES.to_string(),
+            Bucket::CollectionAccounts => COLLECTION_ACCOUNTS.to_string(),
+            Bucket::CollectionItems => COLLECTION_ITEMS.to_string(),
             Bucket::Settings => SETTINGS.to_string(),
         }
     }
@@ -142,6 +148,8 @@ impl Bucket {
             LIBRARY_ROOTS => Bucket::LibraryRoots,
             FOLLOWED_SOURCES => Bucket::FollowedSources,
             DISCOVERY_RELEASE_SOURCES => Bucket::DiscoveryReleaseSources,
+            COLLECTION_ACCOUNTS => Bucket::CollectionAccounts,
+            COLLECTION_ITEMS => Bucket::CollectionItems,
             SETTINGS => Bucket::Settings,
             _ => return None,
         })
@@ -166,6 +174,8 @@ impl Bucket {
             Bucket::LibraryRoots,
             Bucket::FollowedSources,
             Bucket::DiscoveryReleaseSources,
+            Bucket::CollectionAccounts,
+            Bucket::CollectionItems,
             Bucket::Settings,
         ]);
         v
@@ -180,10 +190,17 @@ impl Bucket {
             Bucket::LibraryRoots,
             Bucket::DiscoveryReleases,
             Bucket::FollowedSources,
+            Bucket::CollectionAccounts,
         ];
         // rank 1 — depend only on rank 0
         v.extend((0u8..TRACK_SHARDS as u8).map(Bucket::Tracks));
-        v.extend([Bucket::Tags, Bucket::Playlists, Bucket::DiscoveryTracks]);
+        v.extend([
+            Bucket::Tags,
+            Bucket::Playlists,
+            Bucket::DiscoveryTracks,
+            // collection_items depends only on collection_accounts (rank 0)
+            Bucket::CollectionItems,
+        ]);
         // rank 2 — children / junctions
         v.extend([
             Bucket::Cues,
@@ -228,6 +245,8 @@ impl Bucket {
             Bucket::LibraryRoots => "library_roots",
             Bucket::FollowedSources => "followed_sources",
             Bucket::DiscoveryReleaseSources => "discovery_release_sources",
+            Bucket::CollectionAccounts => "collection_accounts",
+            Bucket::CollectionItems => "collection_items",
             Bucket::Settings => "settings",
         }
     }
@@ -251,6 +270,8 @@ impl Bucket {
             Bucket::LibraryRoots => LIBRARY_ROOTS,
             Bucket::FollowedSources => FOLLOWED_SOURCES,
             Bucket::DiscoveryReleaseSources => DISCOVERY_RELEASE_SOURCES,
+            Bucket::CollectionAccounts => COLLECTION_ACCOUNTS,
+            Bucket::CollectionItems => COLLECTION_ITEMS,
             Bucket::Settings => SETTINGS,
         }
     }
@@ -260,7 +281,7 @@ impl Bucket {
     /// produce overrides), where it defaults to `"name"`.
     pub fn label_column(&self) -> &'static str {
         match self {
-            Bucket::Tracks(_) | Bucket::DiscoveryReleases => "title",
+            Bucket::Tracks(_) | Bucket::DiscoveryReleases | Bucket::CollectionItems => "title",
             _ => "name",
         }
     }
@@ -299,6 +320,8 @@ impl Bucket {
                 | Bucket::PlaylistDiscoveryReleases
                 | Bucket::DiscoveryReleaseSources
                 | Bucket::FollowedSources
+                | Bucket::CollectionAccounts
+                | Bucket::CollectionItems
                 | Bucket::Playlists
                 | Bucket::Tags
                 | Bucket::TagCategories
@@ -370,9 +393,9 @@ mod tests {
     }
 
     #[test]
-    fn bucket_count_is_30() {
-        assert_eq!(Bucket::all().len(), 30); // 16 shards + 14
-        assert_eq!(Bucket::merge_order().len(), 30);
+    fn bucket_count_is_32() {
+        assert_eq!(Bucket::all().len(), 32); // 16 shards + 16
+        assert_eq!(Bucket::merge_order().len(), 32);
     }
 
     #[test]
@@ -398,6 +421,8 @@ mod tests {
             "playlist_discovery_releases",
             "discovery_release_sources",
             "followed_sources",
+            "collection_accounts",
+            "collection_items",
             "playlists",
             "tags",
             "tag_categories",
@@ -407,9 +432,9 @@ mod tests {
         .map(String::from)
         .collect();
         assert_eq!(synced, expected);
-        // 10 sync; the other 20 (16 track shards + cues/playlist_tracks/track_tags/
+        // 12 sync; the other 20 (16 track shards + cues/playlist_tracks/track_tags/
         // library_roots) never do.
-        assert_eq!(synced.len(), 10);
+        assert_eq!(synced.len(), 12);
         assert_eq!(Bucket::all().len() - synced.len(), 20);
     }
 

@@ -405,6 +405,9 @@ pub struct AppSettings {
     pub transfer_tags_on_import: bool,
     pub remove_release_after_import: bool,
     pub follow_check_cadence: FollowCheckCadence,
+    /// Auto-refresh cadence for linked purchase collections (reuses the follow cadence
+    /// vocabulary). Device-local, like `follow_check_cadence`.
+    pub collection_refresh_cadence: FollowCheckCadence,
     pub auto_follow_on_import: AutoFollowOnImport,
     pub release_day_reminders: bool,
     pub new_releases_summary: bool,
@@ -438,6 +441,7 @@ impl Default for AppSettings {
             transfer_tags_on_import: true,
             remove_release_after_import: true,
             follow_check_cadence: FollowCheckCadence::default(),
+            collection_refresh_cadence: FollowCheckCadence::default(),
             auto_follow_on_import: AutoFollowOnImport::default(),
             release_day_reminders: true,
             new_releases_summary: true,

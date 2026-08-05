@@ -34,6 +34,17 @@ pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
     })
 }
 
+/// The frontend reports webview visibility here (`visibilitychange`) so backend loops
+/// (the follow watch sweep) can avoid heavy work while the app is backgrounded — on
+/// mobile, background audio keeps the process alive and iOS kills sustained background
+/// CPU. Registered on both platforms; desktop simply never calls it.
+#[tauri::command]
+pub fn set_app_foreground(state: tauri::State<'_, crate::AppForegroundFlag>, foreground: bool) {
+    state
+        .0
+        .store(foreground, std::sync::atomic::Ordering::Relaxed);
+}
+
 #[tauri::command]
 pub fn open_dev_tools(app: tauri::AppHandle) {
     #[cfg(feature = "devtools")]

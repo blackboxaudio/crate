@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Résumé des nouvelles sorties",
 			"discogsRateLimitNote": "Discogs limite la fréquence de vérification, donc les listes de suivi volumineux peuvent être mises à jour progressivement."
 		},
+		"collection": {
+			"title": "Collection",
+			"description": "Liez votre collection Bandcamp publique pour que les sorties et pistes que vous avez achetées s'affichent comme possédées.",
+			"linkAccount": "Lier le compte Bandcamp",
+			"linkPrompt": "Lier la collection",
+			"linkPromptInfo": "Collez l'URL de votre page de fan Bandcamp (bandcamp.com/nomutilisateur)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Lier",
+			"noAccounts": "Aucun compte lié pour le moment",
+			"itemCount": "{count, plural, =1 {1 élément} other {{count} éléments}}",
+			"refreshCadenceDescription": "Fréquence de vérification de vos collections pour les nouveaux achats",
+			"refreshNow": "Actualiser la collection",
+			"removeConfirmTitle": "Délier le compte",
+			"removeConfirmMessage": "Les achats de ce compte ne s'afficheront plus comme possédés.",
+			"enabledToggle": "Compter les achats comme possédés",
+			"privacyNote": "Seule votre collection Bandcamp publique est lue. Les achats privés et les éléments cachés ne sont pas visibles."
+		},
 		"appearance": {
 			"font": "Police",
 			"fontDescription": "Choisissez la police utilisée dans l'application.",
@@ -495,7 +512,24 @@
 		"title": "Filtres",
 		"liked": "Aimés",
 		"new": "Nouveau",
-		"downloaded": "Téléchargé"
+		"downloaded": "Téléchargé",
+		"purchased": "Acheté"
+	},
+	"collection": {
+		"notInCrate": "Pas dans {appName}",
+		"addToDiscovery": "Ajouter à la Découverte",
+		"emptyTitle": "Aucune collection liée",
+		"emptyHint": "Liez votre collection Bandcamp pour voir vos achats ici",
+		"noItems": "Pas encore d'achats",
+		"ownedBadge": "Possédé",
+		"partialBadge": "{owned}/{total} possédés",
+		"gap": {
+			"title": "Manquant de la bibliothèque",
+			"missingCount": "{count, plural, =1 {1 achat introuvable dans votre bibliothèque} other {{count} achats introuvables dans votre bibliothèque}}",
+			"missingOnly": "Seulement manquants",
+			"inLibrary": "Dans la bibliothèque",
+			"notInLibrary": "Pas dans la bibliothèque"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nouvelle playlist",
@@ -694,7 +728,8 @@
 		"previewStreamFailed": "Échec du chargement du flux d'aperçu",
 		"previewNotAvailableOffline": "Cette piste n'est pas disponible hors ligne",
 		"updateCheckFailed": "Échec de la vérification des mises à jour",
-		"updateInstallFailed": "Échec de l'installation de la mise à jour"
+		"updateInstallFailed": "Échec de l'installation de la mise à jour",
+		"generic": "Une erreur s'est produite"
 	},
 	"devices": {
 		"title": "Appareils",

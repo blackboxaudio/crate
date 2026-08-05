@@ -11,6 +11,7 @@ import type { syncStore as SyncStoreType } from '$lib/stores/sync'
 import type { toastStore as ToastStoreType } from '$shared/stores/toast'
 import type { discoveryStore as DiscoveryStoreType } from '$shared/stores/discovery'
 import { followStore } from '$shared/stores/follow'
+import { collectionStore } from '$shared/stores/collection'
 import { uiStore } from '$shared/stores/ui'
 import { translate } from '$shared/i18n'
 import { get } from 'svelte/store'
@@ -65,6 +66,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenEnrichmentQueued: UnlistenFn | undefined
 	let unlistenCloudSyncMerge: UnlistenFn | undefined
 	let unlistenFollowed: UnlistenFn | undefined
+	let unlistenCollection: UnlistenFn | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -78,6 +80,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		settingsStore.load(),
 		devicesStore.loadDevices(),
 		followStore.load(),
+		collectionStore.load(),
 	])
 
 	// Set up Tauri's native drag-drop event listener for external file drops
@@ -223,7 +226,8 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 
 	// Map merged sync buckets to the stores that must reload. Tag name/color and track-tag
 	// links are embedded on tracks and discovery releases, so a tag-related merge reloads
-	// those stores too.
+	// those stores too. Ownership badges derive from collection items AND discovery
+	// releases/tracks, so merges touching either refresh the collection store.
 	function reloadStoresForBuckets(buckets: string[]): void {
 		let library = false
 		let playlists = false
@@ -231,6 +235,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		let discovery = false
 		let settings = false
 		let follow = false
+		let collection = false
 
 		for (const bucket of buckets) {
 			if (bucket.startsWith('tracks/') || bucket === 'cues' || bucket === 'library_roots') {
@@ -252,11 +257,14 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 				discovery = true
 			} else if (bucket === 'discovery_releases' || bucket === 'discovery_tracks') {
 				discovery = true
+				collection = true
 			} else if (bucket === 'followed_sources') {
 				follow = true
 			} else if (bucket === 'discovery_release_sources') {
 				follow = true
 				discovery = true
+			} else if (bucket === 'collection_accounts' || bucket === 'collection_items') {
+				collection = true
 			} else if (bucket === 'settings') {
 				settings = true
 			}
@@ -268,6 +276,15 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		if (discovery) discoveryStore.loadReleases()
 		if (settings) settingsStore.load()
 		if (follow) followStore.load()
+		if (collection) void collectionStore.refresh()
+	}
+
+	// Collection-changed listener: link/unlink/refresh landed new purchase data (locally or
+	// from a background sweep) — refresh accounts, items, and the derived ownership badges.
+	async function setupCollectionListener(): Promise<void> {
+		unlistenCollection = await listen('collection-changed', () => {
+			void collectionStore.refresh()
+		})
 	}
 
 	// Initialize listeners
@@ -277,6 +294,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	await setupEnrichmentQueuedListener()
 	await setupCloudSyncMergeListener()
 	await setupFollowedReleasesListener()
+	await setupCollectionListener()
 
 	// Return cleanup function
 	return () => {
@@ -286,5 +304,6 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenEnrichmentQueued?.()
 		unlistenCloudSyncMerge?.()
 		unlistenFollowed?.()
+		unlistenCollection?.()
 	}
 }

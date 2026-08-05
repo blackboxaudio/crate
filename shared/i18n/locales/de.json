@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Zusammenfassung neuer Releases",
 			"discogsRateLimitNote": "Discogs beschränkt, wie oft es geprüft werden kann, daher können große Follow-Listen schrittweise aktualisiert werden."
 		},
+		"collection": {
+			"title": "Sammlung",
+			"description": "Verknüpfen Sie Ihre öffentliche Bandcamp-Sammlung, um Releases und Tracks, die Sie gekauft haben, als besessen anzuzeigen.",
+			"linkAccount": "Bandcamp-Konto verknüpfen",
+			"linkPrompt": "Sammlung verknüpfen",
+			"linkPromptInfo": "Fügen Sie die URL Ihrer Bandcamp-Fan-Seite ein (bandcamp.com/benutzername)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Verknüpfen",
+			"noAccounts": "Noch keine Konten verknüpft",
+			"itemCount": "{count, plural, =1 {1 Element} other {{count} Elemente}}",
+			"refreshCadenceDescription": "Wie oft Ihre Sammlungen auf neue Einkäufe überprüft werden sollen",
+			"refreshNow": "Sammlung aktualisieren",
+			"removeConfirmTitle": "Konto entfernen",
+			"removeConfirmMessage": "Einkäufe von diesem Konto werden nicht mehr als besessen angezeigt.",
+			"enabledToggle": "Einkäufe als besessen zählen",
+			"privacyNote": "Nur Ihre öffentliche Bandcamp-Sammlung wird gelesen. Private Einkäufe und ausgeblendete Elemente sind nicht sichtbar."
+		},
 		"appearance": {
 			"font": "Schriftart",
 			"fontDescription": "Wählen Sie die in der Anwendung verwendete Schriftart.",
@@ -495,7 +512,24 @@
 		"title": "Filter",
 		"liked": "Gefällt mir",
 		"new": "Neu",
-		"downloaded": "Heruntergeladen"
+		"downloaded": "Heruntergeladen",
+		"purchased": "Gekauft"
+	},
+	"collection": {
+		"notInCrate": "Nicht in {appName}",
+		"addToDiscovery": "Zu Entdeckung hinzufügen",
+		"emptyTitle": "Keine Sammlung verknüpft",
+		"emptyHint": "Verknüpfen Sie Ihre Bandcamp-Sammlung, um Ihre Einkäufe hier anzuzeigen",
+		"noItems": "Noch keine Einkäufe",
+		"ownedBadge": "Besessen",
+		"partialBadge": "{owned}/{total} besessen",
+		"gap": {
+			"title": "Fehlt in der Bibliothek",
+			"missingCount": "{count, plural, =1 {1 Einkauf nicht in Ihrer Bibliothek} other {{count} Einkäufe nicht in Ihrer Bibliothek}}",
+			"missingOnly": "Nur fehlende",
+			"inLibrary": "In Bibliothek",
+			"notInLibrary": "Nicht in Bibliothek"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Neue Playlist",
@@ -694,7 +728,8 @@
 		"previewStreamFailed": "Fehler beim Laden des Vorschau-Streams",
 		"previewNotAvailableOffline": "Dieser Track ist offline nicht verfügbar",
 		"updateCheckFailed": "Fehler beim Prüfen auf Updates",
-		"updateInstallFailed": "Fehler beim Installieren des Updates"
+		"updateInstallFailed": "Fehler beim Installieren des Updates",
+		"generic": "Etwas ist schief gelaufen"
 	},
 	"devices": {
 		"title": "Geräte",

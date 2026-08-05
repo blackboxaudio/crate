@@ -21,7 +21,8 @@ use crate::models::{
 use super::super::buckets::Bucket;
 use super::super::dirty;
 use super::super::rows::{
-    CueRow, DiscoveryReleaseRow, DiscoveryReleaseSourceRow, FollowedSourceRow, LibraryRootRow,
+    CollectionAccountRow, CollectionItemRow, CueRow, DiscoveryReleaseRow,
+    DiscoveryReleaseSourceRow, FollowedSourceRow, LibraryRootRow,
     ParsedRow, PlaylistRow, TagCategoryRow,
 };
 
@@ -87,6 +88,8 @@ fn upsert_entity_inner(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Res
         Bucket::DiscoveryReleases => upsert_discovery_release(tx, &de(v)?, hlc),
         Bucket::DiscoveryTracks => upsert_discovery_track(tx, &de(v)?, hlc),
         Bucket::FollowedSources => upsert_followed_source(tx, &de(v)?, hlc),
+        Bucket::CollectionAccounts => upsert_collection_account(tx, &de(v)?, hlc),
+        Bucket::CollectionItems => upsert_collection_item(tx, &de(v)?, hlc),
         Bucket::LibraryRoots => upsert_library_root(tx, &de(v)?, hlc),
         _ => Err(CrateError::CloudSync(format!(
             "upsert_entity on non-entity bucket {}",
@@ -271,6 +274,52 @@ fn upsert_followed_source(tx: &Connection, f: &FollowedSourceRow, hlc: &str) -> 
     Ok(())
 }
 
+fn upsert_collection_account(tx: &Connection, a: &CollectionAccountRow, hlc: &str) -> Result<()> {
+    tx.execute(
+        "INSERT INTO collection_accounts \
+            (id, url, source_type, external_id, username, name, avatar_url, enabled, \
+             date_added, date_modified, _hlc) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11) \
+         ON CONFLICT(id) DO UPDATE SET \
+            url=excluded.url, source_type=excluded.source_type, external_id=excluded.external_id, \
+            username=excluded.username, name=excluded.name, avatar_url=excluded.avatar_url, \
+            enabled=excluded.enabled, date_added=excluded.date_added, \
+            date_modified=excluded.date_modified, _hlc=excluded._hlc",
+        params![
+            a.id, a.url, a.source_type, a.external_id, a.username, a.name, a.avatar_url, a.enabled,
+            a.date_added, a.date_modified, hlc,
+        ],
+    )?;
+    // An account synced in from another device has no local refresh state yet. Seed a
+    // default row so the refresh loop can gate on it; OR IGNORE leaves existing local
+    // state untouched.
+    tx.execute(
+        "INSERT OR IGNORE INTO collection_account_state (account_id) VALUES (?1)",
+        params![a.id],
+    )?;
+    Ok(())
+}
+
+fn upsert_collection_item(tx: &Connection, i: &CollectionItemRow, hlc: &str) -> Result<()> {
+    tx.execute(
+        "INSERT INTO collection_items \
+            (id, account_id, source_type, item_type, url, external_id, artist, title, \
+             artwork_url, purchased_at, date_added, date_modified, _hlc) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13) \
+         ON CONFLICT(id) DO UPDATE SET \
+            account_id=excluded.account_id, source_type=excluded.source_type, \
+            item_type=excluded.item_type, url=excluded.url, external_id=excluded.external_id, \
+            artist=excluded.artist, title=excluded.title, artwork_url=excluded.artwork_url, \
+            purchased_at=excluded.purchased_at, date_added=excluded.date_added, \
+            date_modified=excluded.date_modified, _hlc=excluded._hlc",
+        params![
+            i.id, i.account_id, i.source_type, i.item_type, i.url, i.external_id, i.artist,
+            i.title, i.artwork_url, i.purchased_at, i.date_added, i.date_modified, hlc,
+        ],
+    )?;
+    Ok(())
+}
+
 /// Hard-delete an entity by its single PK. FK `ON DELETE CASCADE` removes its
 /// children/junction rows (mirroring what the deleting device did).
 pub(super) fn hard_delete_entity(tx: &Connection, bucket: &Bucket, cid: &str) -> Result<()> {
@@ -428,6 +477,7 @@ pub(super) fn entity_parent_exists(
         Bucket::DiscoveryTracks => ("discovery_releases", "release_id"),
         Bucket::Cues => ("tracks", "track_id"),
         Bucket::Tags => ("tag_categories", "category_id"),
+        Bucket::CollectionItems => ("collection_accounts", "account_id"),
         // `playlists.parent_id` is a nullable SELF-reference resolved by the deferred-FK
         // single-transaction merge of its own bucket; `tracks.library_root_id` is
         // nullable ON DELETE SET NULL and never written by the merge UPSERT.

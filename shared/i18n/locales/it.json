@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Riepilogo nuovi rilasci",
 			"discogsRateLimitNote": "Discogs limita la frequenza di controllo, quindi gli elenchi di seguiti voluminosi potrebbero essere aggiornati gradualmente."
 		},
+		"collection": {
+			"title": "Raccolta",
+			"description": "Collega la tua raccolta Bandcamp pubblica in modo che i rilasci e i brani che hai acquistato vengono visualizzati come posseduti.",
+			"linkAccount": "Collega account Bandcamp",
+			"linkPrompt": "Collega raccolta",
+			"linkPromptInfo": "Incolla l'URL della tua pagina fan Bandcamp (bandcamp.com/nomeutente)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Collega",
+			"noAccounts": "Nessun account collegato ancora",
+			"itemCount": "{count, plural, =1 {1 elemento} other {{count} elementi}}",
+			"refreshCadenceDescription": "Frequenza di controllo delle tue raccolte per i nuovi acquisti",
+			"refreshNow": "Aggiorna raccolta",
+			"removeConfirmTitle": "Scollega account",
+			"removeConfirmMessage": "Gli acquisti da questo account non verranno più visualizzati come posseduti.",
+			"enabledToggle": "Conta gli acquisti come posseduti",
+			"privacyNote": "Solo la tua raccolta Bandcamp pubblica viene letta. Gli acquisti privati e gli elementi nascosti non sono visibili."
+		},
 		"appearance": {
 			"font": "Carattere",
 			"fontDescription": "Scegli il carattere utilizzato nell'applicazione.",
@@ -495,7 +512,24 @@
 		"title": "Filtri",
 		"liked": "Preferiti",
 		"new": "Nuovo",
-		"downloaded": "Scaricato"
+		"downloaded": "Scaricato",
+		"purchased": "Acquistato"
+	},
+	"collection": {
+		"notInCrate": "Non in {appName}",
+		"addToDiscovery": "Aggiungi a Scoperta",
+		"emptyTitle": "Nessuna raccolta collegata",
+		"emptyHint": "Collega la tua raccolta Bandcamp per vedere i tuoi acquisti qui",
+		"noItems": "Nessun acquisto ancora",
+		"ownedBadge": "Posseduto",
+		"partialBadge": "{owned}/{total} posseduti",
+		"gap": {
+			"title": "Mancante dalla biblioteca",
+			"missingCount": "{count, plural, =1 {1 acquisto non nella tua biblioteca} other {{count} acquisti non nella tua biblioteca}}",
+			"missingOnly": "Solo mancanti",
+			"inLibrary": "In biblioteca",
+			"notInLibrary": "Non in biblioteca"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nuova playlist",
@@ -694,7 +728,8 @@
 		"previewStreamFailed": "Impossibile caricare il flusso di anteprima",
 		"previewNotAvailableOffline": "Questo brano non è disponibile offline",
 		"updateCheckFailed": "Impossibile controllare gli aggiornamenti",
-		"updateInstallFailed": "Impossibile installare l'aggiornamento"
+		"updateInstallFailed": "Impossibile installare l'aggiornamento",
+		"generic": "Qualcosa è andato storto"
 	},
 	"devices": {
 		"title": "Dispositivi",

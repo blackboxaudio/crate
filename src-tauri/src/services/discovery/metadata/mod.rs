@@ -1,4 +1,5 @@
 mod bandcamp;
+pub mod bandcamp_fan;
 mod common;
 mod discogs;
 mod soundcloud;
@@ -52,7 +53,7 @@ pub(super) fn is_compilation(artist: &Option<String>) -> bool {
     )
 }
 
-pub(super) fn build_client() -> Result<reqwest::Client> {
+pub(crate) fn build_client() -> Result<reqwest::Client> {
     reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(10))
         .timeout(std::time::Duration::from_secs(15))
@@ -102,6 +103,15 @@ pub async fn scan_page(
 ) -> Result<crate::models::ScannedPage> {
     log::info!("Starting page scan for URL: {url}");
     let client = build_client()?;
+
+    // Fan profiles (bandcamp.com/<username>) would otherwise pass the artist-page check
+    // below and produce a follow of the bare bandcamp.com origin.
+    if bandcamp_fan::is_bandcamp_fan_url(url) {
+        return Err(CrateError::Discovery(
+            "This is a Bandcamp fan page — link it as a collection account in Settings instead"
+                .into(),
+        ));
+    }
 
     if bandcamp::is_bandcamp_page_url(url) {
         let (mut releases, page_name, avatar_url) =

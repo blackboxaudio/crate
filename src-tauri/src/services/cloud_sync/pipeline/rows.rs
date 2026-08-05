@@ -127,6 +127,39 @@ pub struct DiscoveryReleaseSourceRow {
     pub source_id: String,
 }
 
+/// `collection_accounts` wire row — only the synced columns (the per-device refresh
+/// state in `collection_account_state` is never serialized).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CollectionAccountRow {
+    pub id: String,
+    pub url: String,
+    pub source_type: String,
+    pub external_id: Option<String>,
+    pub username: Option<String>,
+    pub name: Option<String>,
+    pub avatar_url: Option<String>,
+    pub enabled: bool,
+    pub date_added: String,
+    pub date_modified: String,
+}
+
+/// `collection_items` wire row (one owned item of a collection account).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CollectionItemRow {
+    pub id: String,
+    pub account_id: String,
+    pub source_type: String,
+    pub item_type: String,
+    pub url: String,
+    pub external_id: Option<String>,
+    pub artist: Option<String>,
+    pub title: Option<String>,
+    pub artwork_url: Option<String>,
+    pub purchased_at: Option<String>,
+    pub date_added: String,
+    pub date_modified: String,
+}
+
 /// `settings` wire row — `{ key, value, _hlc }`. Settings are never deleted, so
 /// there is no `_deleted` field and no tombstone path.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -264,6 +297,8 @@ pub fn serialize_bucket(conn: &Connection, bucket: &Bucket) -> Result<Vec<u8>> {
         Bucket::DiscoveryReleaseSources => {
             emit(bucket, read_live_discovery_release_sources(conn)?, tombs)
         }
+        Bucket::CollectionAccounts => emit(bucket, read_live_collection_accounts(conn)?, tombs),
+        Bucket::CollectionItems => emit(bucket, read_live_collection_items(conn)?, tombs),
         Bucket::Settings => unreachable!("handled above"),
     }
 }
@@ -881,6 +916,62 @@ fn read_live_followed_sources(
         };
         let hlc: String = r.get(10)?;
         Ok((f.id.clone(), f, hlc))
+    })?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Into::into)
+}
+
+fn read_live_collection_accounts(
+    conn: &Connection,
+) -> Result<Vec<(String, CollectionAccountRow, String)>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, url, source_type, external_id, username, name, avatar_url, enabled, \
+         date_added, date_modified, _hlc FROM collection_accounts",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        let a = CollectionAccountRow {
+            id: r.get(0)?,
+            url: r.get(1)?,
+            source_type: r.get(2)?,
+            external_id: r.get(3)?,
+            username: r.get(4)?,
+            name: r.get(5)?,
+            avatar_url: r.get(6)?,
+            enabled: r.get(7)?,
+            date_added: r.get(8)?,
+            date_modified: r.get(9)?,
+        };
+        let hlc: String = r.get(10)?;
+        Ok((a.id.clone(), a, hlc))
+    })?;
+    rows.collect::<std::result::Result<Vec<_>, _>>()
+        .map_err(Into::into)
+}
+
+fn read_live_collection_items(
+    conn: &Connection,
+) -> Result<Vec<(String, CollectionItemRow, String)>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, account_id, source_type, item_type, url, external_id, artist, title, \
+         artwork_url, purchased_at, date_added, date_modified, _hlc FROM collection_items",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        let i = CollectionItemRow {
+            id: r.get(0)?,
+            account_id: r.get(1)?,
+            source_type: r.get(2)?,
+            item_type: r.get(3)?,
+            url: r.get(4)?,
+            external_id: r.get(5)?,
+            artist: r.get(6)?,
+            title: r.get(7)?,
+            artwork_url: r.get(8)?,
+            purchased_at: r.get(9)?,
+            date_added: r.get(10)?,
+            date_modified: r.get(11)?,
+        };
+        let hlc: String = r.get(12)?;
+        Ok((i.id.clone(), i, hlc))
     })?;
     rows.collect::<std::result::Result<Vec<_>, _>>()
         .map_err(Into::into)

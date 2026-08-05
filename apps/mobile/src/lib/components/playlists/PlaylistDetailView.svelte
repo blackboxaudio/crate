@@ -15,6 +15,7 @@
 		detailReleaseId,
 	} from '$lib/stores/mobileUI'
 	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { ownedReleaseIds } from '$shared/stores/collection'
 	import {
 		applyViewFilter,
 		emptyViewFilter,
@@ -57,7 +58,7 @@
 	// order) — and never writes positions. Reset naturally on close (the component unmounts).
 	let viewSort = $state<DiscoverySortConfig | null>(null)
 	let viewFilter = $state(emptyViewFilter())
-	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds))
+	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds, $ownedReleaseIds))
 	const displayed = $derived(viewSort ? sortDiscoveryReleases(filtered, viewSort) : filtered)
 	// Manual reorder writes junction positions, which is only meaningful while the user is looking
 	// at the unfiltered natural order — a sorted/filtered list would persist a misleading result.

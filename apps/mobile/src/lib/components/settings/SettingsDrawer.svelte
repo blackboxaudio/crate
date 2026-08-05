@@ -29,6 +29,7 @@
 		general: 'settings.tabs.general',
 		appearance: 'settings.tabs.appearance',
 		following: 'settings.following.title',
+		collection: 'settings.collection.title',
 		cloudSync: 'settings.tabs.cloudSync',
 		storage: 'settings.tabs.storage',
 		about: 'settings.tabs.about',

@@ -1,4 +1,5 @@
 pub mod backup;
+pub mod collection;
 pub mod cue;
 // Models backing desktop-only services (USB device, diagnostics, Pioneer export) are gated
 // so they don't get compiled into the mobile binary.
@@ -18,6 +19,7 @@ pub mod track;
 
 #[allow(unused_imports)]
 pub use backup::*;
+pub use collection::*;
 pub use cue::*;
 #[cfg(feature = "desktop")]
 pub use device::*;

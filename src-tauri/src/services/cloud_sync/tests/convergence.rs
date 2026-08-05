@@ -1149,3 +1149,176 @@ async fn same_url_releases_collapse_and_reparent_children() -> Result<()> {
     }
     Ok(())
 }
+
+// --- purchased-collection cases --------------------------------------------
+//
+// Collection accounts/items mint deterministic v5 ids from their natural keys
+// (account: normalized fan URL; item: account_id|normalized item URL), so two
+// devices independently linking and scraping the SAME account must converge on
+// identical rows by PK — never via the UNIQUE(url) collision-skip path. Seeding
+// helpers mirror the real mutation sites (stamp + dirty + state seeding).
+
+fn link_collection_account_row(conn: &Connection, node: u32, wall: u64, id: &str, url: &str) {
+    conn.execute(
+        "INSERT INTO collection_accounts (id, url, source_type, enabled, date_added, date_modified, _hlc) \
+         VALUES (?1, ?2, 'bandcamp', 1, ?3, ?3, ?4)",
+        params![id, url, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT OR IGNORE INTO collection_account_state (account_id) VALUES (?1)",
+        [id],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::COLLECTION_ACCOUNTS).unwrap();
+}
+
+fn add_collection_item(
+    conn: &Connection,
+    node: u32,
+    wall: u64,
+    id: &str,
+    account_id: &str,
+    url: &str,
+    title: &str,
+) {
+    conn.execute(
+        "INSERT INTO collection_items \
+            (id, account_id, source_type, item_type, url, title, date_added, date_modified, _hlc) \
+         VALUES (?1, ?2, 'bandcamp', 'album', ?3, ?4, ?5, ?5, ?6)",
+        params![id, account_id, url, title, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::COLLECTION_ITEMS).unwrap();
+}
+
+/// Mirrors `CollectionService::unlink_account`: item tombstones + account tombstone
+/// under one HLC, then the cascading delete.
+fn unlink_collection_account_row(conn: &Connection, node: u32, wall: u64, id: &str) {
+    let h = hlc(node, wall);
+    let item_ids: Vec<String> = {
+        let mut stmt = conn
+            .prepare("SELECT id FROM collection_items WHERE account_id = ?1")
+            .unwrap();
+        let rows = stmt
+            .query_map([id], |r| r.get::<_, String>(0))
+            .unwrap()
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .unwrap();
+        rows
+    };
+    for item_id in &item_ids {
+        dirty::record_tombstone(conn, buckets::COLLECTION_ITEMS, item_id, &h).unwrap();
+    }
+    dirty::record_tombstone(conn, buckets::COLLECTION_ACCOUNTS, id, &h).unwrap();
+    conn.execute("DELETE FROM collection_accounts WHERE id = ?1", [id])
+        .unwrap();
+    dirty::mark_dirty(conn, buckets::COLLECTION_ACCOUNTS).unwrap();
+    dirty::mark_dirty(conn, buckets::COLLECTION_ITEMS).unwrap();
+}
+
+fn collection_item_titles(conn: &Connection, account_id: &str) -> Vec<String> {
+    let mut stmt = conn
+        .prepare("SELECT title FROM collection_items WHERE account_id = ?1 ORDER BY title")
+        .unwrap();
+    let rows = stmt.query_map([account_id], |r| r.get::<_, String>(0)).unwrap();
+    rows.collect::<std::result::Result<Vec<_>, _>>().unwrap()
+}
+
+fn collection_account_exists(conn: &Connection, id: &str) -> bool {
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM collection_accounts WHERE id = ?1)",
+        [id],
+        |r| r.get(0),
+    )
+    .unwrap()
+}
+
+#[tokio::test]
+async fn same_collection_account_converges_by_deterministic_id() -> Result<()> {
+    use crate::models::{deterministic_account_id, deterministic_collection_item_id};
+
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    // Both devices link the SAME fan page and scrape overlapping item sets.
+    let fan_url = "https://bandcamp.com/somefan";
+    let acct = deterministic_account_id(fan_url);
+    let shared_url = "https://artist.bandcamp.com/album/shared";
+    let shared_item = deterministic_collection_item_id(&acct, shared_url);
+
+    link_collection_account_row(&a, 0x0A, 5, &acct, fan_url);
+    add_collection_item(&a, 0x0A, 6, &shared_item, &acct, shared_url, "Shared");
+    let a_only = deterministic_collection_item_id(&acct, "https://x.bandcamp.com/album/a-only");
+    add_collection_item(
+        &a,
+        0x0A,
+        6,
+        &a_only,
+        &acct,
+        "https://x.bandcamp.com/album/a-only",
+        "AOnly",
+    );
+
+    link_collection_account_row(&b, 0x0B, 7, &acct, fan_url);
+    add_collection_item(&b, 0x0B, 8, &shared_item, &acct, shared_url, "Shared");
+    let b_only = deterministic_collection_item_id(&acct, "https://y.bandcamp.com/album/b-only");
+    add_collection_item(
+        &b,
+        0x0B,
+        8,
+        &b_only,
+        &acct,
+        "https://y.bandcamp.com/album/b-only",
+        "BOnly",
+    );
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        assert!(collection_account_exists(conn, &acct));
+        assert_eq!(
+            collection_item_titles(conn, &acct),
+            vec!["AOnly".to_string(), "BOnly".to_string(), "Shared".to_string()],
+            "identical ids collapsed the shared item; disjoint items unioned"
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn unlink_collection_account_propagates() -> Result<()> {
+    use crate::models::{deterministic_account_id, deterministic_collection_item_id};
+
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    let fan_url = "https://bandcamp.com/somefan";
+    let acct = deterministic_account_id(fan_url);
+    let item = deterministic_collection_item_id(&acct, "https://z.bandcamp.com/album/one");
+
+    link_collection_account_row(&a, 0x0A, 5, &acct, fan_url);
+    add_collection_item(
+        &a,
+        0x0A,
+        6,
+        &item,
+        &acct,
+        "https://z.bandcamp.com/album/one",
+        "One",
+    );
+    assert_converged(&a, &b, &cloud).await?;
+    assert!(collection_account_exists(&b, &acct));
+
+    // B unlinks; the delete (and the cascaded items) must reach A.
+    unlink_collection_account_row(&b, 0x0B, 20, &acct);
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        assert!(!collection_account_exists(conn, &acct));
+        assert!(collection_item_titles(conn, &acct).is_empty());
+    }
+    Ok(())
+}

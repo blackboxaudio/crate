@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Sammanfattning av nya utgåvor",
 			"discogsRateLimitNote": "Discogs begränsar hur ofta det kan kontrolleras, så stora följlistor kan uppdateras gradvis."
 		},
+		"collection": {
+			"title": "Samling",
+			"description": "Länka din offentliga Bandcamp-samling så att utgåvor och spår du har köpt visas som ägda.",
+			"linkAccount": "Länka Bandcamp-konto",
+			"linkPrompt": "Länka samling",
+			"linkPromptInfo": "Klistra in webbadressen till din Bandcamp-fansida (bandcamp.com/användarnamn)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Länka",
+			"noAccounts": "Inga konton länkade än",
+			"itemCount": "{count, plural, =1 {1 objekt} other {{count} objekt}}",
+			"refreshCadenceDescription": "Hur ofta dina samlingar ska kontrolleras för nya köp",
+			"refreshNow": "Uppdatera samling",
+			"removeConfirmTitle": "Avlänka konto",
+			"removeConfirmMessage": "Köp från det här kontot visas inte längre som ägda.",
+			"enabledToggle": "Räkna köp som ägda",
+			"privacyNote": "Endast din offentliga Bandcamp-samling läses. Privata köp och dolda objekt är inte synliga."
+		},
 		"appearance": {
 			"font": "Typsnitt",
 			"fontDescription": "Välj typsnitt som används i programmet.",
@@ -495,7 +512,24 @@
 		"title": "Filter",
 		"liked": "Gillad",
 		"new": "Ny",
-		"downloaded": "Nedladdat"
+		"downloaded": "Nedladdat",
+		"purchased": "Köpt"
+	},
+	"collection": {
+		"notInCrate": "Inte i {appName}",
+		"addToDiscovery": "Lägg till i Upptäckande",
+		"emptyTitle": "Ingen samling länkad",
+		"emptyHint": "Länka din Bandcamp-samling för att se dina köp här",
+		"noItems": "Inga köp än",
+		"ownedBadge": "Ägd",
+		"partialBadge": "{owned}/{total} ägda",
+		"gap": {
+			"title": "Saknas från bibliotek",
+			"missingCount": "{count, plural, =1 {1 köp inte i ditt bibliotek} other {{count} köp inte i ditt bibliotek}}",
+			"missingOnly": "Bara saknat",
+			"inLibrary": "I bibliotek",
+			"notInLibrary": "Inte i bibliotek"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Ny spellista",
@@ -694,7 +728,8 @@
 		"previewStreamFailed": "Misslyckades att ladda förhandsvisningsströmmen",
 		"previewNotAvailableOffline": "Denna låt är inte tillgänglig offline",
 		"updateCheckFailed": "Misslyckades att söka efter uppdateringar",
-		"updateInstallFailed": "Misslyckades att installera uppdateringen"
+		"updateInstallFailed": "Misslyckades att installera uppdateringen",
+		"generic": "Något gick fel"
 	},
 	"devices": {
 		"title": "Enheter",

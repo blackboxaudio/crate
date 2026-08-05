@@ -91,6 +91,7 @@ export {
 	isDiscoveryLoading,
 	refreshingReleaseIds,
 	newOnly,
+	purchasedOnly,
 } from '$shared/stores/discovery'
 export {
 	followStore,
@@ -100,6 +101,16 @@ export {
 	sortedFollowedSources,
 } from '$shared/stores/follow'
 export type { FollowSort } from '$shared/stores/follow'
+export {
+	collectionStore,
+	collectionAccounts,
+	collectionItems,
+	hasLinkedCollection,
+	fullyOwnedReleaseIds,
+	partiallyOwnedReleaseIds,
+	ownedReleaseIds,
+	ownedTrackIds,
+} from '$shared/stores/collection'
 export { updaterStore, updateStatus, updateAvailable } from './updater'
 export { expandedReleaseIds } from '$shared/stores/expandedReleases'
 export { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'

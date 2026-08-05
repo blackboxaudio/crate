@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Rezumat lansări noi",
 			"discogsRateLimitNote": "Discogs limitează cât de des poate fi verificat, deci listele mari de urmărire pot fi actualizate treptat."
 		},
+		"collection": {
+			"title": "Colecție",
+			"description": "Legați colecția Bandcamp publică pentru ca lansările și piesele pe care le-ați cumpărat să apară ca deținute.",
+			"linkAccount": "Legați contul Bandcamp",
+			"linkPrompt": "Legați colecția",
+			"linkPromptInfo": "Lipiți URL-ul paginii fanului Bandcamp (bandcamp.com/numedeutilizator)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Legați",
+			"noAccounts": "Nicio cont legat încă",
+			"itemCount": "{count, plural, =1 {1 articol} other {{count} articole}}",
+			"refreshCadenceDescription": "Cât de des să verifici colecțiile pentru achizițiile noi",
+			"refreshNow": "Reîmprosprătați colecția",
+			"removeConfirmTitle": "Desfaceți contul",
+			"removeConfirmMessage": "Achizițiile din acest cont nu vor mai apărea ca deținute.",
+			"enabledToggle": "Numărați achizițiile ca deținute",
+			"privacyNote": "Doar colecția Bandcamp publică este citită. Achizițiile private și articolele ascunse nu sunt vizibile."
+		},
 		"appearance": {
 			"font": "Font",
 			"fontDescription": "Alegeți fontul folosit în toată aplicația.",
@@ -495,7 +512,24 @@
 		"title": "Filtre",
 		"liked": "Apreciate",
 		"new": "Nou",
-		"downloaded": "Descărcat"
+		"downloaded": "Descărcat",
+		"purchased": "Cumpărat"
+	},
+	"collection": {
+		"notInCrate": "Nu este în {appName}",
+		"addToDiscovery": "Adăugați la Descoperire",
+		"emptyTitle": "Nicio colecție legată",
+		"emptyHint": "Legați-vă colecția Bandcamp pentru a-vă vedea achizițiile aici",
+		"noItems": "Nicio achiziție deocamdată",
+		"ownedBadge": "Deținut",
+		"partialBadge": "{owned}/{total} deținut",
+		"gap": {
+			"title": "Lipsă din Bibliotecă",
+			"missingCount": "{count, plural, =1 {1 achiziție nu este în biblioteca dumneavoastră} other {{count} achiziții nu sunt în biblioteca dumneavoastră}}",
+			"missingOnly": "Doar lipsă",
+			"inLibrary": "În bibliotecă",
+			"notInLibrary": "Nu este în bibliotecă"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nou Playlist",
@@ -695,7 +729,8 @@
 		"previewStreamFailed": "Eșec la încărcarea fluxului de previzualizare",
 		"previewNotAvailableOffline": "Acest cântec nu este disponibil offline",
 		"updateCheckFailed": "Eșec la verificarea actualizărilor",
-		"updateInstallFailed": "Eșec la instalarea actualizării"
+		"updateInstallFailed": "Eșec la instalarea actualizării",
+		"generic": "Ceva a mers prost"
 	},
 	"devices": {
 		"title": "Dispozitive",

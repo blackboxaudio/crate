@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
 	import type { SortDirection } from '$shared/types'
+	import { hasLinkedCollection } from '$shared/stores/collection'
 	import { countActiveViewFilters, type ReleaseViewFilter, type SortOption } from '$lib/utils/listControls'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
 	import SortSheet from './SortSheet.svelte'
@@ -107,6 +108,12 @@
 		value: filter.downloadedOnly,
 		onToggle: () => onFilterChange({ ...filter, downloadedOnly: !filter.downloadedOnly }),
 	}}
+	purchased={$hasLinkedCollection
+		? {
+				value: filter.purchasedOnly,
+				onToggle: () => onFilterChange({ ...filter, purchasedOnly: !filter.purchasedOnly }),
+			}
+		: undefined}
 	tags={showTags
 		? {
 				activeIds: filter.tagIds,
@@ -115,5 +122,6 @@
 				onToggleMode: () => onFilterChange({ ...filter, tagMode: filter.tagMode === 'or' ? 'and' : 'or' }),
 			}
 		: undefined}
-	onClearAll={() => onFilterChange({ ...filter, likedOnly: false, downloadedOnly: false, tagIds: [] })}
+	onClearAll={() =>
+		onFilterChange({ ...filter, likedOnly: false, downloadedOnly: false, purchasedOnly: false, tagIds: [] })}
 />

@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Samenvatting nieuwe releases",
 			"discogsRateLimitNote": "Discogs beperkt hoe vaak het kan worden gecontroleerd, dus grote volgende lijsten kunnen geleidelijk worden bijgewerkt."
 		},
+		"collection": {
+			"title": "Verzameling",
+			"description": "Koppel uw openbare Bandcamp-verzameling zodat releases en nummers die u hebt gekocht als bezeten worden weergegeven.",
+			"linkAccount": "Bandcamp-account koppelen",
+			"linkPrompt": "Verzameling koppelen",
+			"linkPromptInfo": "Plak de URL van uw Bandcamp-fanpagina (bandcamp.com/gebruikersnaam)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Koppelen",
+			"noAccounts": "Nog geen accounts gekoppeld",
+			"itemCount": "{count, plural, =1 {1 item} other {{count} items}}",
+			"refreshCadenceDescription": "Hoe vaak uw verzamelingen moeten worden gecontroleerd op nieuwe aankopen",
+			"refreshNow": "Verzameling vernieuwen",
+			"removeConfirmTitle": "Account ontkoppelen",
+			"removeConfirmMessage": "Aankopen van dit account worden niet langer als bezeten weergegeven.",
+			"enabledToggle": "Aankopen als bezeten tellen",
+			"privacyNote": "Alleen uw openbare Bandcamp-verzameling wordt gelezen. Privé aankopen en verborgen items zijn niet zichtbaar."
+		},
 		"appearance": {
 			"font": "Lettertype",
 			"fontDescription": "Kies het lettertype dat in de applicatie wordt gebruikt.",
@@ -495,7 +512,24 @@
 		"title": "Filters",
 		"liked": "Geliked",
 		"new": "Nieuw",
-		"downloaded": "Gedownload"
+		"downloaded": "Gedownload",
+		"purchased": "Gekocht"
+	},
+	"collection": {
+		"notInCrate": "Niet in {appName}",
+		"addToDiscovery": "Toevoegen aan Ontdekking",
+		"emptyTitle": "Geen verzameling gekoppeld",
+		"emptyHint": "Koppel uw Bandcamp-verzameling om uw aankopen hier te zien",
+		"noItems": "Nog geen aankopen",
+		"ownedBadge": "Bezet",
+		"partialBadge": "{owned}/{total} bezet",
+		"gap": {
+			"title": "Ontbreekt in bibliotheek",
+			"missingCount": "{count, plural, =1 {1 aankoop niet in uw bibliotheek} other {{count} aankopen niet in uw bibliotheek}}",
+			"missingOnly": "Alleen ontbrekend",
+			"inLibrary": "In bibliotheek",
+			"notInLibrary": "Niet in bibliotheek"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nieuwe afspeellijst",
@@ -694,7 +728,8 @@
 		"previewStreamFailed": "Voorbeeldstream kon niet worden geladen",
 		"previewNotAvailableOffline": "Dit nummer is offline niet beschikbaar",
 		"updateCheckFailed": "Controleren op updates mislukt",
-		"updateInstallFailed": "Update installeren mislukt"
+		"updateInstallFailed": "Update installeren mislukt",
+		"generic": "Er is iets fout gegaan"
 	},
 	"devices": {
 		"title": "Apparaten",

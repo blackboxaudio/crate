@@ -28,14 +28,9 @@ pub struct SourceToCheck {
     pub baseline_established: bool,
 }
 
-/// The local watch-state fields the check gate needs to decide whether a source's page
-/// should be re-fetched now, or skipped to stay under the platform's rate limit.
-pub struct CheckGate {
-    pub last_checked_at: Option<String>,
-    pub health: String,
-    pub last_error: Option<String>,
-    pub consecutive_failures: i64,
-}
+/// The check-gate state lives in `watch_gate` (shared with the collection refresh loop);
+/// re-exported so `crud`'s `get_check_gate` keeps its natural `super::CheckGate` path.
+pub use crate::services::watch_gate::CheckGate;
 
 /// A surfaced release hitting its release date today, for a release-day notification.
 pub struct ReleaseDayItem {

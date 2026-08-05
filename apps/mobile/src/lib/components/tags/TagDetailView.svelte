@@ -7,6 +7,7 @@
 	import { sortDiscoveryReleases } from '$shared/utils/sorting'
 	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
 	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { ownedReleaseIds } from '$shared/stores/collection'
 	import { applyViewFilter, emptyViewFilter, RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
@@ -43,7 +44,7 @@
 	// omitted (filtering a tag's own list by tags is noise). null sort = the derived natural order.
 	let viewSort = $state<DiscoverySortConfig | null>(null)
 	let viewFilter = $state(emptyViewFilter())
-	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds))
+	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds, $ownedReleaseIds))
 	const displayed = $derived(viewSort ? sortDiscoveryReleases(filtered, viewSort) : filtered)
 
 	// Publish the displayed list so playback started from this view queues exactly what's on screen.

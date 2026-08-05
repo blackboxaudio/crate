@@ -18,6 +18,7 @@
 		],
 		[
 			{ page: 'following', labelKey: 'settings.following.title', icon: 'following', tint: 'bg-orange-500' },
+			{ page: 'collection', labelKey: 'settings.collection.title', icon: 'collection', tint: 'bg-teal-500' },
 			{ page: 'cloudSync', labelKey: 'settings.tabs.cloudSync', icon: 'cloudSync', tint: 'bg-sky-500' },
 			{ page: 'storage', labelKey: 'settings.tabs.storage', icon: 'storage', tint: 'bg-emerald-500' },
 		],
@@ -68,6 +69,9 @@
 										<path d="M5 12a7 7 0 0 1 7 7" />
 										<path d="M5 5a14 14 0 0 1 14 14" />
 										<circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
+									{:else if row.icon === 'collection'}
+										<path d="M6 8h12l-1.2 12H7.2L6 8z" />
+										<path d="M9 8V6a3 3 0 0 1 6 0v2" />
 									{:else if row.icon === 'cloudSync'}
 										<path d="M17.5 19a4.5 4.5 0 100-9 6 6 0 00-11.5 1.5A4 4 0 007 19h10.5z" />
 									{:else if row.icon === 'storage'}

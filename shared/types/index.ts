@@ -535,6 +535,7 @@ export interface AppSettings {
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
 	followCheckCadence: FollowCheckCadence
+	collectionRefreshCadence: FollowCheckCadence
 	autoFollowOnImport: AutoFollowOnImport
 	releaseDayReminders: boolean
 	newReleasesSummary: boolean
@@ -853,6 +854,73 @@ export interface FollowedReleasesFound {
 	totalNew: number
 	bySource: SourceCheckResult[]
 	releaseIds: string[]
+	checkedAt: string
+}
+
+// =============================================================================
+// Purchased collection (linked Bandcamp fan accounts + owned items)
+// =============================================================================
+
+/** A linked collection account: the synced row + device-local refresh state + item count. */
+export interface CollectionAccount {
+	id: string
+	url: string
+	sourceType: string
+	externalId: string | null
+	username: string | null
+	name: string | null
+	avatarUrl: string | null
+	enabled: boolean
+	dateAdded: string
+	dateModified: string
+	lastCheckedAt: string | null
+	health: string
+	lastError: string | null
+	itemCount: number
+}
+
+/** One owned item (album or single-track purchase) for the Purchased view. */
+export interface CollectionItem {
+	id: string
+	accountId: string
+	sourceType: string
+	itemType: 'album' | 'track'
+	url: string
+	externalId: string | null
+	artist: string | null
+	title: string | null
+	artworkUrl: string | null
+	purchasedAt: string | null
+	dateAdded: string
+	/** The local discovery release this purchase corresponds to (by URL identity), if any. */
+	matchedReleaseId: string | null
+}
+
+/** Derived ownership id-sets. `ownedTrackIds` holds only individually purchased tracks —
+ *  a track inside a fully-owned release is implied by its release. */
+export interface CollectionOwnership {
+	fullyOwnedReleaseIds: string[]
+	partiallyOwnedReleaseIds: string[]
+	ownedTrackIds: string[]
+}
+
+/** One purchase's presence in the local track library (desktop gap view; fuzzy match). */
+export interface CollectionGapItem {
+	item: CollectionItem
+	inLibrary: boolean
+}
+
+export interface AccountRefreshResult {
+	accountId: string
+	name: string | null
+	newItems: number
+	health: string
+	error: string | null
+}
+
+export interface CollectionRefreshSummary {
+	totalNew: number
+	byAccount: AccountRefreshResult[]
 	checkedAt: string
 }
 

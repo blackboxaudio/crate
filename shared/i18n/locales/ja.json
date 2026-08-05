@@ -150,6 +150,23 @@
 			"newReleasesSummary": "新しいリリースの概要",
 			"discogsRateLimitNote": "Discogsはチェック頻度を制限しているため、フォローリストが大きい場合は段階的に更新される可能性があります。"
 		},
+		"collection": {
+			"title": "コレクション",
+			"description": "公開Bandcampコレクションをリンクして、購入されたリリースとトラックが所有済みとして表示されます。",
+			"linkAccount": "Bandcampアカウントをリンク",
+			"linkPrompt": "コレクションをリンク",
+			"linkPromptInfo": "BandcampファンページのURL(bandcamp.com/ユーザー名)を貼り付けてください",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "リンク",
+			"noAccounts": "リンクされたアカウントがまだありません",
+			"itemCount": "{count, plural, other {{count}項目}}",
+			"refreshCadenceDescription": "新しい購入品についてコレクションをチェックする頻度",
+			"refreshNow": "コレクションを更新",
+			"removeConfirmTitle": "アカウントをリンク解除",
+			"removeConfirmMessage": "このアカウントからの購入品は、今後所有済みとして表示されなくなります。",
+			"enabledToggle": "購入品を所有済みとして数える",
+			"privacyNote": "公開Bandcampコレクションのみが読み込まれます。プライベート購入品と非表示の項目は表示されません。"
+		},
 		"appearance": {
 			"font": "フォント",
 			"fontDescription": "アプリケーション全体で使用するフォントを選択します。",
@@ -495,7 +512,24 @@
 		"title": "フィルター",
 		"liked": "いいね",
 		"new": "新着",
-		"downloaded": "ダウンロード済み"
+		"downloaded": "ダウンロード済み",
+		"purchased": "購入済み"
+	},
+	"collection": {
+		"notInCrate": "{appName}に含まれていません",
+		"addToDiscovery": "発見に追加",
+		"emptyTitle": "コレクションが見つかりません",
+		"emptyHint": "Bandcamp コレクションをリンクして、ここで購入品を表示してください",
+		"noItems": "購入がまだありません",
+		"ownedBadge": "所有済み",
+		"partialBadge": "{owned}/{total}所有済み",
+		"gap": {
+			"title": "ライブラリに見つかりません",
+			"missingCount": "{count, plural, other {{count}件の購入がライブラリに含まれていません}}",
+			"missingOnly": "見つかりませんのみ",
+			"inLibrary": "ライブラリに含まれています",
+			"notInLibrary": "ライブラリに含まれていません"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "新しいプレイリスト",
@@ -695,7 +729,8 @@
 		"previewStreamFailed": "プレビューストリームの読み込みに失敗しました",
 		"previewNotAvailableOffline": "このトラックはオフラインでは利用できません",
 		"updateCheckFailed": "アップデートの確認に失敗しました",
-		"updateInstallFailed": "アップデートのインストールに失敗しました"
+		"updateInstallFailed": "アップデートのインストールに失敗しました",
+		"generic": "エラーが発生しました"
 	},
 	"devices": {
 		"title": "デバイス",

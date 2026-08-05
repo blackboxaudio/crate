@@ -150,6 +150,23 @@
 			"newReleasesSummary": "New-releases summary",
 			"discogsRateLimitNote": "Discogs limits how often it can be checked, so large follow lists may update gradually."
 		},
+		"collection": {
+			"title": "Collection",
+			"description": "Link your public Bandcamp collection so releases and tracks you have purchased show as owned.",
+			"linkAccount": "Link Bandcamp Account",
+			"linkPrompt": "Link Collection",
+			"linkPromptInfo": "Paste your Bandcamp fan page URL (bandcamp.com/yourusername)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Link",
+			"noAccounts": "No accounts linked yet",
+			"itemCount": "{count, plural, =1 {1 item} other {{count} items}}",
+			"refreshCadenceDescription": "How often to check your collections for new purchases",
+			"refreshNow": "Refresh Collection",
+			"removeConfirmTitle": "Unlink Account",
+			"removeConfirmMessage": "Purchases from this account will no longer show as owned.",
+			"enabledToggle": "Count purchases as owned",
+			"privacyNote": "Only your public Bandcamp collection is read. Private purchases and hidden items are not visible."
+		},
 		"appearance": {
 			"font": "Font",
 			"fontDescription": "Choose the font used throughout the application.",
@@ -495,7 +512,24 @@
 		"title": "Filters",
 		"liked": "Liked",
 		"new": "New",
-		"downloaded": "Downloaded"
+		"downloaded": "Downloaded",
+		"purchased": "Purchased"
+	},
+	"collection": {
+		"notInCrate": "Not in {appName}",
+		"addToDiscovery": "Add to Discovery",
+		"emptyTitle": "No collection linked",
+		"emptyHint": "Link your Bandcamp collection to see your purchases here",
+		"noItems": "No purchases yet",
+		"ownedBadge": "Owned",
+		"partialBadge": "{owned}/{total} owned",
+		"gap": {
+			"title": "Missing from Library",
+			"missingCount": "{count, plural, =1 {1 purchase not in your library} other {{count} purchases not in your library}}",
+			"missingOnly": "Only missing",
+			"inLibrary": "In library",
+			"notInLibrary": "Not in library"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "New Playlist",
@@ -695,7 +729,8 @@
 		"previewStreamFailed": "Failed to load preview stream",
 		"previewNotAvailableOffline": "This track isn't available offline",
 		"updateCheckFailed": "Failed to check for updates",
-		"updateInstallFailed": "Failed to install update"
+		"updateInstallFailed": "Failed to install update",
+		"generic": "Something went wrong"
 	},
 	"devices": {
 		"title": "Devices",

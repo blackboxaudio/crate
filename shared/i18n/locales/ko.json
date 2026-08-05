@@ -150,6 +150,23 @@
 			"newReleasesSummary": "새로운 릴리스 요약",
 			"discogsRateLimitNote": "Discogs는 확인 빈도를 제한하므로 팔로우 목록이 크면 점진적으로 업데이트될 수 있습니다."
 		},
+		"collection": {
+			"title": "컬렉션",
+			"description": "공개 Bandcamp 컬렉션을 연결하면 구매한 릴리스와 트랙이 소유함으로 표시됩니다.",
+			"linkAccount": "Bandcamp 계정 연결",
+			"linkPrompt": "컬렉션 연결",
+			"linkPromptInfo": "Bandcamp 팬 페이지 URL을 붙여넣으세요(bandcamp.com/사용자이름)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "연결",
+			"noAccounts": "아직 연결된 계정이 없습니다",
+			"itemCount": "{count, plural, other {{count}개 항목}}",
+			"refreshCadenceDescription": "새로운 구매 항목을 확인하기 위해 컬렉션을 확인하는 빈도",
+			"refreshNow": "컬렉션 새로고침",
+			"removeConfirmTitle": "계정 연결 해제",
+			"removeConfirmMessage": "이 계정의 구매 항목이 더 이상 소유함으로 표시되지 않습니다.",
+			"enabledToggle": "구매 항목을 소유함으로 계산",
+			"privacyNote": "공개 Bandcamp 컬렉션만 읽을 수 있습니다. 비공개 구매 항목과 숨겨진 항목은 표시되지 않습니다."
+		},
 		"appearance": {
 			"font": "글꼴",
 			"fontDescription": "애플리케이션에서 사용할 글꼴을 선택하세요.",
@@ -495,7 +512,24 @@
 		"title": "필터",
 		"liked": "좋아요",
 		"new": "새로운",
-		"downloaded": "다운로드됨"
+		"downloaded": "다운로드됨",
+		"purchased": "구매됨"
+	},
+	"collection": {
+		"notInCrate": "{appName}에 없음",
+		"addToDiscovery": "발견에 추가",
+		"emptyTitle": "연결된 컬렉션 없음",
+		"emptyHint": "Bandcamp 컬렉션을 연결하여 여기서 구매 항목을 확인하세요",
+		"noItems": "구매 항목이 아직 없습니다",
+		"ownedBadge": "소유함",
+		"partialBadge": "{owned}/{total}개 소유함",
+		"gap": {
+			"title": "라이브러리에 없음",
+			"missingCount": "{count, plural, other {{count}개의 구매 항목이 라이브러리에 없습니다}}",
+			"missingOnly": "없는 것만",
+			"inLibrary": "라이브러리에 있음",
+			"notInLibrary": "라이브러리에 없음"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "새 재생목록",
@@ -694,7 +728,8 @@
 		"previewStreamFailed": "미리보기 스트림을 로드하지 못했습니다",
 		"previewNotAvailableOffline": "이 트랙은 오프라인에서 사용할 수 없습니다",
 		"updateCheckFailed": "업데이트 확인 실패",
-		"updateInstallFailed": "업데이트 설치 실패"
+		"updateInstallFailed": "업데이트 설치 실패",
+		"generic": "문제가 발생했습니다"
 	},
 	"devices": {
 		"title": "장치",

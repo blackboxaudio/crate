@@ -14,6 +14,7 @@ import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
 import { toastStore } from './toast'
+import { ownedReleaseIds } from './collection'
 import { translate } from '../i18n'
 
 // =============================================================================
@@ -29,6 +30,9 @@ interface DiscoveryState {
 	refreshingIds: Set<string>
 	likedOnly: boolean
 	newOnly: boolean
+	/** Show only releases owned in the linked purchase collection(s) (desktop's Purchased filter;
+	 *  mobile keeps its own flag in `mobileUI` alongside its downloaded filter). */
+	purchasedOnly: boolean
 }
 
 const initialState: DiscoveryState = {
@@ -43,6 +47,7 @@ const initialState: DiscoveryState = {
 	refreshingIds: new Set(),
 	likedOnly: false,
 	newOnly: false,
+	purchasedOnly: false,
 }
 
 // =============================================================================
@@ -322,6 +327,10 @@ function createDiscoveryStore() {
 			update((state) => ({ ...state, newOnly: value ?? !state.newOnly }))
 		},
 
+		togglePurchasedFilter() {
+			update((state) => ({ ...state, purchasedOnly: !state.purchasedOnly }))
+		},
+
 		/** Manual "mark as new / not-new" override (the auto-clear rule lives in clearNew). */
 		async markReleaseNew(id: string, isNew: boolean) {
 			try {
@@ -521,7 +530,9 @@ export const likedOnly = derived(discoveryStore, ($discovery) => $discovery.like
 
 export const newOnly = derived(discoveryStore, ($discovery) => $discovery.newOnly)
 
-export const sortedReleases = derived(discoveryStore, ($discovery) => {
+export const purchasedOnly = derived(discoveryStore, ($discovery) => $discovery.purchasedOnly)
+
+export const sortedReleases = derived([discoveryStore, ownedReleaseIds], ([$discovery, $owned]) => {
 	let releases = [...$discovery.releases]
 
 	// Apply liked filter
@@ -532,6 +543,11 @@ export const sortedReleases = derived(discoveryStore, ($discovery) => {
 	// Apply "new" filter (surfaced by a followed source, not yet reviewed)
 	if ($discovery.newOnly) {
 		releases = releases.filter((r) => r.is_new)
+	}
+
+	// Apply purchased filter (owned in the linked collection)
+	if ($discovery.purchasedOnly) {
+		releases = releases.filter((r) => $owned.has(r.id))
 	}
 
 	// Apply client-side search filter
@@ -552,8 +568,8 @@ export const sortedReleases = derived(discoveryStore, ($discovery) => {
 })
 
 export const displayedReleases = derived(
-	[sortedReleases, discoveryStore, uiStore, discoveryPlaylistStore],
-	([$sortedReleases, $discovery, $ui, $playlist]) => {
+	[sortedReleases, discoveryStore, uiStore, discoveryPlaylistStore, ownedReleaseIds],
+	([$sortedReleases, $discovery, $ui, $playlist, $owned]) => {
 		if ($ui.activeView !== 'discovery' || !$ui.selectedPlaylistId) {
 			return $sortedReleases
 		}
@@ -567,6 +583,10 @@ export const displayedReleases = derived(
 
 		if ($discovery.newOnly) {
 			releases = releases.filter((r) => r.is_new)
+		}
+
+		if ($discovery.purchasedOnly) {
+			releases = releases.filter((r) => $owned.has(r.id))
 		}
 
 		const discoveryFilters = $ui.viewFilters.discovery

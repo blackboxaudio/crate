@@ -1,8 +1,16 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, likedOnly } from '$shared/stores/discovery'
+	import { hasLinkedCollection } from '$shared/stores/collection'
 	import type { DiscoverySortField } from '$shared/types'
-	import { discoveryViewMode, downloadedOnly, mobileUIStore, tagFilterIds, tagFilterMode } from '$lib/stores/mobileUI'
+	import {
+		discoveryViewMode,
+		downloadedOnly,
+		mobileUIStore,
+		purchasedOnly,
+		tagFilterIds,
+		tagFilterMode,
+	} from '$lib/stores/mobileUI'
 	import { RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
 	import SortSheet from './SortSheet.svelte'
@@ -22,7 +30,9 @@
 
 	// Active-filter count for the trigger badge: tag filters plus the liked/downloaded toggles (mirrors the
 	// desktop FilterDropdown badge) so the button reads as "active" whenever any filter is applied.
-	const activeFilterCount = $derived($tagFilterIds.length + ($likedOnly ? 1 : 0) + ($downloadedOnly ? 1 : 0))
+	const activeFilterCount = $derived(
+		$tagFilterIds.length + ($likedOnly ? 1 : 0) + ($downloadedOnly ? 1 : 0) + ($purchasedOnly ? 1 : 0)
+	)
 	const hasActiveFilters = $derived(activeFilterCount > 0)
 </script>
 
@@ -137,6 +147,9 @@
 	onClose={() => (filterOpen = false)}
 	liked={{ value: $likedOnly, onToggle: discoveryStore.toggleLikedFilter }}
 	downloaded={{ value: $downloadedOnly, onToggle: mobileUIStore.toggleDownloadedFilter }}
+	purchased={$hasLinkedCollection
+		? { value: $purchasedOnly, onToggle: mobileUIStore.togglePurchasedFilter }
+		: undefined}
 	tags={{
 		activeIds: $tagFilterIds,
 		mode: $tagFilterMode,
@@ -146,6 +159,7 @@
 	onClearAll={() => {
 		if ($likedOnly) discoveryStore.toggleLikedFilter()
 		if ($downloadedOnly) mobileUIStore.toggleDownloadedFilter()
+		if ($purchasedOnly) mobileUIStore.togglePurchasedFilter()
 		mobileUIStore.clearTagFilters()
 	}}
 />

@@ -15,6 +15,8 @@
 		onClose: () => void
 		liked?: { value: boolean; onToggle: () => void }
 		downloaded?: { value: boolean; onToggle: () => void }
+		/** Purchased-only facet — hosts pass it only when a collection account is linked. */
+		purchased?: { value: boolean; onToggle: () => void }
 		tags?: {
 			activeIds: string[]
 			mode: TagFilterMode
@@ -23,7 +25,7 @@
 		}
 		onClearAll: () => void
 	}
-	let { open, onClose, liked, downloaded, tags, onClearAll }: Props = $props()
+	let { open, onClose, liked, downloaded, purchased, tags, onClearAll }: Props = $props()
 
 	// Lazy-load categories the first time the sheet opens (only when the tags facet is shown).
 	let loadedOnce = $state(false)
@@ -35,7 +37,7 @@
 	})
 
 	const active = $derived(new Set(tags?.activeIds ?? []))
-	const hasActiveFilters = $derived(active.size > 0 || !!liked?.value || !!downloaded?.value)
+	const hasActiveFilters = $derived(active.size > 0 || !!liked?.value || !!downloaded?.value || !!purchased?.value)
 
 	// Selection tick: filters commit instantly (no confirm step), so acknowledge each toggle the way
 	// the app's other sheets do (playlist picker, queue actions, sort options).
@@ -120,6 +122,40 @@
 						: 'bg-stroke'}"
 				>
 					<span class="h-4 w-4 rounded-full bg-white transition-transform {downloaded.value ? 'translate-x-4' : ''}"
+					></span>
+				</span>
+			</button>
+		{/if}
+
+		{#if purchased}
+			<!-- Purchased-only: releases owned in the linked Bandcamp collection(s). -->
+			<button
+				type="button"
+				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
+				aria-pressed={purchased.value}
+				onclick={() => tick(purchased.onToggle)}
+			>
+				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
+					<svg
+						class="h-4 w-4 {purchased.value ? 'text-brand-primary' : 'text-text-tertiary'}"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M6 8h12l-1.2 12H7.2L6 8z" />
+						<path d="M9 8V6a3 3 0 0 1 6 0v2" />
+					</svg>
+					{$translate('filters.purchased')}
+				</span>
+				<span
+					class="flex h-5 w-9 items-center rounded-full p-0.5 transition-colors {purchased.value
+						? 'bg-brand-primary'
+						: 'bg-stroke'}"
+				>
+					<span class="h-4 w-4 rounded-full bg-white transition-transform {purchased.value ? 'translate-x-4' : ''}"
 					></span>
 				</span>
 			</button>

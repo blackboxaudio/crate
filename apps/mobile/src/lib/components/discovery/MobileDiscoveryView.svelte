@@ -9,12 +9,14 @@
 		mobileUIStore,
 		scrollTargetReleaseId,
 		mobileDisplayedReleases,
+		purchasedOnly,
 		scrollTopNonce,
 		discoveryViewMode,
 		openRowId,
 		DISCOVERY_ROW_HEIGHT,
 		type ScrollGeom,
 	} from '$lib/stores/mobileUI'
+	import PurchasedList from '$lib/components/collection/PurchasedList.svelte'
 	import MobileListSkeleton from '$lib/components/common/MobileListSkeleton.svelte'
 	import { pendingReleases } from '$lib/stores/pendingReleases'
 	import DiscoveryToolbar from './DiscoveryToolbar.svelte'
@@ -178,35 +180,42 @@
 	     stays inside the list as its `leading` so it scrolls with the rows. ReleaseFeedList owns the scroll
 	     container and shows the loading/empty states when nothing is displayed. -->
 	<DiscoveryToolbar />
-	{#key mode}
-		{#if mode === 'grid'}
-			<ReleaseFeedList
-				bind:this={feedList}
-				releases={gridRows}
-				rowHeight={gridRowH}
-				initialScrollTop={currentScrollTop}
-				skipScrollRestore={skipScrollRestore || bootAnchor !== null}
-				onScroll={handleScroll}
-				onRefresh={refreshFollowed}
-				leading={pendingBlock}
-				empty={emptyState}
-				row={gridRow}
-			/>
-		{:else}
-			<ReleaseFeedList
-				bind:this={feedList}
-				{releases}
-				rowHeight={DISCOVERY_ROW_HEIGHT}
-				initialScrollTop={currentScrollTop}
-				skipScrollRestore={skipScrollRestore || bootAnchor !== null}
-				onScroll={handleScroll}
-				onRefresh={refreshFollowed}
-				leading={pendingBlock}
-				empty={emptyState}
-				row={releaseRow}
-			/>
-		{/if}
-	{/key}
+	{#if $purchasedOnly}
+		<!-- Purchased view: swap the feed for the whole linked collection (matched releases render
+		     normal cards; unmatched items link out / add-to-discovery). The feed below unmounts and
+		     commits its scroll offset, so toggling the filter off restores the user's place. -->
+		<PurchasedList />
+	{:else}
+		{#key mode}
+			{#if mode === 'grid'}
+				<ReleaseFeedList
+					bind:this={feedList}
+					releases={gridRows}
+					rowHeight={gridRowH}
+					initialScrollTop={currentScrollTop}
+					skipScrollRestore={skipScrollRestore || bootAnchor !== null}
+					onScroll={handleScroll}
+					onRefresh={refreshFollowed}
+					leading={pendingBlock}
+					empty={emptyState}
+					row={gridRow}
+				/>
+			{:else}
+				<ReleaseFeedList
+					bind:this={feedList}
+					{releases}
+					rowHeight={DISCOVERY_ROW_HEIGHT}
+					initialScrollTop={currentScrollTop}
+					skipScrollRestore={skipScrollRestore || bootAnchor !== null}
+					onScroll={handleScroll}
+					onRefresh={refreshFollowed}
+					leading={pendingBlock}
+					empty={emptyState}
+					row={releaseRow}
+				/>
+			{/if}
+		{/key}
+	{/if}
 </div>
 
 {#snippet releaseRow({ release }: { release: DiscoveryRelease })}

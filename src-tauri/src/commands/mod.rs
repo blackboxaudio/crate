@@ -4,6 +4,7 @@ pub mod analysis;
 pub mod app;
 pub mod backup;
 pub mod cloud_sync;
+pub mod collection;
 #[cfg(feature = "desktop")]
 pub mod device;
 #[cfg(feature = "desktop")]

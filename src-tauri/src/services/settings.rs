@@ -103,6 +103,11 @@ impl SettingsService {
             .and_then(|v| v.parse().ok())
             .unwrap_or_default();
 
+        let collection_refresh_cadence = self
+            .get_setting_value(&conn, "collection_refresh_cadence")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
         let auto_follow_on_import = self
             .get_setting_value(&conn, "auto_follow_on_import")?
             .and_then(|v| v.parse().ok())
@@ -190,6 +195,7 @@ impl SettingsService {
             transfer_tags_on_import,
             remove_release_after_import,
             follow_check_cadence,
+            collection_refresh_cadence,
             auto_follow_on_import,
             release_day_reminders,
             new_releases_summary,

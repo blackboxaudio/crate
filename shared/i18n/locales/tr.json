@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Yeni yayınlar özeti",
 			"discogsRateLimitNote": "Discogs kontrol sıklığını sınırlandırır, bu nedenle büyük takip listeleri kademeli olarak güncellenebilir."
 		},
+		"collection": {
+			"title": "Koleksiyon",
+			"description": "Satın aldığınız yayınlar ve parçaların sahip olunan olarak gösterilmesi için herkese açık Bandcamp koleksiyonunuzu bağlayın.",
+			"linkAccount": "Bandcamp Hesabını Bağla",
+			"linkPrompt": "Koleksiyonu Bağla",
+			"linkPromptInfo": "Bandcamp fan sayfanızın URL'sini yapıştırın (bandcamp.com/kullanıcıadı)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Bağla",
+			"noAccounts": "Henüz bağlı hesap yok",
+			"itemCount": "{count, plural, other {{count} öğe}}",
+			"refreshCadenceDescription": "Koleksiyonlarınız ne sıklıkla yeni satın almalar için kontrol edilebilir",
+			"refreshNow": "Koleksiyonu Yenile",
+			"removeConfirmTitle": "Hesabın Bağlantısını Kes",
+			"removeConfirmMessage": "Bu hesaptan yapılan satın almalar artık sahip olunan olarak gösterilmeyecek.",
+			"enabledToggle": "Satın almalarını sahip olunan olarak sayıl",
+			"privacyNote": "Yalnızca herkese açık Bandcamp koleksiyonunuz okunur. Özel satın almalar ve gizli öğeler görünmez."
+		},
 		"appearance": {
 			"font": "Yazı Tipi",
 			"fontDescription": "Uygulamada kullanılan yazı tipini seçin.",
@@ -495,7 +512,24 @@
 		"title": "Filtreler",
 		"liked": "Beğenilen",
 		"new": "Yeni",
-		"downloaded": "İndirildi"
+		"downloaded": "İndirildi",
+		"purchased": "Satın Alınan"
+	},
+	"collection": {
+		"notInCrate": "{appName} içinde değil",
+		"addToDiscovery": "Keşfet'e ekle",
+		"emptyTitle": "Bağlı koleksiyon yok",
+		"emptyHint": "Satın almalarınızı burada görmek için Bandcamp koleksiyonunuzu bağlayın",
+		"noItems": "Henüz satın alma yok",
+		"ownedBadge": "Sahip olunan",
+		"partialBadge": "{owned}/{total} sahip olunan",
+		"gap": {
+			"title": "Kütüphanede Eksik",
+			"missingCount": "{count, plural, other {{count} satın alma kütüphanende değil}}",
+			"missingOnly": "Yalnız eksik",
+			"inLibrary": "Kütüphanede",
+			"notInLibrary": "Kütüphanede değil"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Yeni Çalma Listesi",
@@ -695,7 +729,8 @@
 		"previewStreamFailed": "Önizleme akışı yüklenmesi başarısız",
 		"previewNotAvailableOffline": "Bu şarkı çevrimdışı olarak kullanılamıyor",
 		"updateCheckFailed": "Güncellemeleri denetlemesi başarısız",
-		"updateInstallFailed": "Güncellemeyi yüklemesi başarısız"
+		"updateInstallFailed": "Güncellemeyi yüklemesi başarısız",
+		"generic": "Bir şeyler ters gitti"
 	},
 	"devices": {
 		"title": "Cihazlar",

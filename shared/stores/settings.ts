@@ -40,6 +40,7 @@ interface SettingsState {
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
 	followCheckCadence: FollowCheckCadence
+	collectionRefreshCadence: FollowCheckCadence
 	autoFollowOnImport: AutoFollowOnImport
 	releaseDayReminders: boolean
 	newReleasesSummary: boolean
@@ -74,6 +75,7 @@ const initialState: SettingsState = {
 	transferTagsOnImport: true,
 	removeReleaseAfterImport: true,
 	followCheckCadence: 'daily',
+	collectionRefreshCadence: 'daily',
 	autoFollowOnImport: 'off',
 	releaseDayReminders: true,
 	newReleasesSummary: true,
@@ -318,6 +320,7 @@ function createSettingsStore() {
 					transferTagsOnImport: settings.transferTagsOnImport,
 					removeReleaseAfterImport: settings.removeReleaseAfterImport,
 					followCheckCadence: settings.followCheckCadence ?? 'daily',
+					collectionRefreshCadence: settings.collectionRefreshCadence ?? 'daily',
 					autoFollowOnImport: settings.autoFollowOnImport ?? 'off',
 					releaseDayReminders: settings.releaseDayReminders ?? true,
 					newReleasesSummary: settings.newReleasesSummary ?? true,
@@ -603,6 +606,15 @@ function createSettingsStore() {
 			}
 		},
 
+		async setCollectionRefreshCadence(cadence: FollowCheckCadence) {
+			update((s) => ({ ...s, collectionRefreshCadence: cadence }))
+			try {
+				await settingsApi.setSetting('collection_refresh_cadence', cadence)
+			} catch (error) {
+				console.error('Failed to save collection refresh cadence setting:', error)
+			}
+		},
+
 		async setAutoFollowOnImport(value: AutoFollowOnImport) {
 			update((s) => ({ ...s, autoFollowOnImport: value }))
 			try {
@@ -751,6 +763,7 @@ export const transferTagsOnImport = derived(settingsStore, ($s) => $s.transferTa
 export const removeReleaseAfterImport = derived(settingsStore, ($s) => $s.removeReleaseAfterImport)
 
 export const followCheckCadence = derived(settingsStore, ($s) => $s.followCheckCadence)
+export const collectionRefreshCadence = derived(settingsStore, ($s) => $s.collectionRefreshCadence)
 
 export const autoFollowOnImport = derived(settingsStore, ($s) => $s.autoFollowOnImport)
 

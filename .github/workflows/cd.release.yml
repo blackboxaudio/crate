@@ -506,6 +506,32 @@ jobs:
             --apiKey "$API_KEY_ID" \
             --apiIssuer "$API_ISSUER_ID"
 
+      - name: Collect iOS dSYMs
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        # The dSYMs only ever exist on this runner (App Store Connect can't regenerate them
+        # without bitcode), so archive them here or TestFlight crash reports stay forever
+        # unsymbolicatable. Fail-open: a build-layout change logs a warning instead of
+        # blocking the release.
+        run: |
+          DEST="Crate_${VERSION}_ios_dSYMs.zip"
+          COUNT=$(find src-tauri/gen/apple -type d -name '*.dSYM' | wc -l | tr -d ' ')
+          if [[ "$COUNT" == "0" ]]; then
+            echo "::warning::No dSYMs found under src-tauri/gen/apple — nothing to archive"
+            exit 0
+          fi
+          find src-tauri/gen/apple -type d -name '*.dSYM' -print0 | xargs -0 zip -qr "$DEST"
+          echo "Archived $COUNT dSYM bundle(s) into $DEST"
+
+      - name: Upload iOS dSYMs
+        if: steps.signing.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ios-dsyms
+          path: Crate_*_ios_dSYMs.zip
+          if-no-files-found: warn
+
       - name: Cleanup keychain
         if: always()
         run: security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" 2>/dev/null || true
@@ -556,6 +582,7 @@ jobs:
             artifacts/release-windows/**/*.exe.sig
             artifacts/release-android/*.apk
             artifacts/release-android/*.sha256
+            artifacts/release-ios-dsyms/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

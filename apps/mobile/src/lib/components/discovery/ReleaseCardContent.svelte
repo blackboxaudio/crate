@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$shared/types'
 	import { translate } from '$shared/i18n'
+	import { fullyOwnedReleaseIds, partiallyOwnedReleaseIds } from '$shared/stores/collection'
 	import { fullyCachedIds } from '$lib/stores/offlineCache'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 
@@ -38,6 +39,23 @@
 	     The downloaded badge leads it when the release's audio is fully cached (offline-ready); the icon
 	     is smaller than the line height, so the row height never changes. -->
 	<span class="flex min-w-0 items-center gap-1 text-xs text-text-tertiary">
+		{#if $fullyOwnedReleaseIds.has(release.id) || $partiallyOwnedReleaseIds.has(release.id)}
+			<!-- Owned badge: brand-tinted when the whole release is purchased, muted when only
+			     some tracks are. Inline and smaller than the line height (fixed-row invariant). -->
+			<svg
+				class="h-3 w-3 flex-shrink-0 {$fullyOwnedReleaseIds.has(release.id) ? 'text-brand-primary' : ''}"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+				aria-hidden="true"
+			>
+				<path d="M6 8h12l-1.2 12H7.2L6 8z" />
+				<path d="M9 8V6a3 3 0 0 1 6 0v2" />
+			</svg>
+		{/if}
 		{#if $fullyCachedIds.has(release.id)}
 			<svg
 				class="h-3 w-3 flex-shrink-0"

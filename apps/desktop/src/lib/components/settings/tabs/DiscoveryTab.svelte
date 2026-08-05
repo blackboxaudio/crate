@@ -1,20 +1,22 @@
 <script lang="ts">
-	import { Text, Checkbox, Button, ConfirmModal, Select } from '$lib/components/common'
+	import { Text, Checkbox, Button, ConfirmModal, Select, Input, IconButton, Tooltip } from '$lib/components/common'
 	import {
 		settingsStore,
 		autoFetchMetadata,
 		transferTagsOnImport,
 		removeReleaseAfterImport,
 		followCheckCadence,
+		collectionRefreshCadence,
 		autoFollowOnImport,
 		releaseDayReminders,
 		newReleasesSummary,
 	} from '$shared/stores/settings'
-	import { followStore } from '$lib/stores'
-	import type { FollowCheckCadence, AutoFollowOnImport } from '$shared/types'
+	import { followStore, collectionStore, collectionAccounts } from '$lib/stores'
+	import type { CollectionAccount, FollowCheckCadence, AutoFollowOnImport } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import * as discoveryApi from '$shared/api/discovery'
 	import { formatFileSize } from '$shared/utils/format'
+	import CollectionGapModal from '$lib/components/collection/CollectionGapModal.svelte'
 
 	let cacheSize = $state(0)
 	let clearing = $state(false)
@@ -64,6 +66,21 @@
 		{ value: 'label', label: $translate('settings.following.autoFollowLabel') },
 		{ value: 'both', label: $translate('settings.following.autoFollowBoth') },
 	])
+
+	// Purchased collection: link-by-URL + accounts roster + library gap check.
+	let linkUrl = $state('')
+	let showGapModal = $state(false)
+
+	async function handleLink() {
+		const trimmed = linkUrl.trim()
+		if (!trimmed || $collectionStore.linking) return
+		const account = await collectionStore.linkFromUrl(trimmed)
+		if (account) linkUrl = ''
+	}
+
+	function accountLabel(account: CollectionAccount): string {
+		return account.name ?? account.username ?? account.url
+	}
 
 	$effect(() => {
 		loadCacheSize()
@@ -168,6 +185,99 @@
 		</div>
 	</section>
 
+	<!-- Collection Section (linked Bandcamp fan accounts → owned badges) -->
+	<section>
+		<Text variant="header-3" class="mb-2">{$translate('settings.collection.title')}</Text>
+		<div class="space-y-4">
+			<div>
+				<Text variant="caption" as="p" class="mb-2 text-text-tertiary">
+					{$translate('settings.collection.description')}
+				</Text>
+				<div class="flex items-center gap-2">
+					<Input
+						bind:value={linkUrl}
+						placeholder={$translate('settings.collection.linkPlaceholder')}
+						class="w-72"
+						onkeydown={(e: KeyboardEvent) => e.key === 'Enter' && handleLink()}
+					/>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={!linkUrl.trim() || $collectionStore.linking}
+						onclick={handleLink}
+					>
+						{$collectionStore.linking ? $translate('common.loading') : $translate('settings.collection.link')}
+					</Button>
+				</div>
+			</div>
+
+			{#if $collectionAccounts.length > 0}
+				<div class="divide-y divide-stroke-subtle rounded-md border border-stroke">
+					{#each $collectionAccounts as account (account.id)}
+						<div class="flex items-center gap-3 px-3 py-2">
+							{#if account.avatarUrl}
+								<img src={account.avatarUrl} alt="" class="h-7 w-7 rounded-full object-cover" />
+							{:else}
+								<div class="h-7 w-7 rounded-full bg-surface-2"></div>
+							{/if}
+							<div class="flex min-w-0 flex-1 flex-col">
+								<Text as="span" size="sm" weight="medium" truncate>{accountLabel(account)}</Text>
+								<Text as="span" variant="caption" truncate>
+									{$translate('settings.collection.itemCount', { values: { count: account.itemCount } })}
+									{#if account.health === 'error' || account.health === 'rate_limited'}
+										· {account.lastError ?? $translate('errors.generic')}
+									{/if}
+								</Text>
+							</div>
+							<Checkbox
+								checked={account.enabled}
+								onchange={(c) => collectionStore.setEnabled(account.id, c)}
+								label={$translate('settings.collection.enabledToggle')}
+							/>
+							<Tooltip text={$translate('settings.collection.refreshNow')} position="top" delay={250}>
+								<IconButton
+									icon="refresh"
+									size="sm"
+									disabled={$collectionStore.refreshingIds.has(account.id)}
+									onclick={() => collectionStore.refreshAccount(account.id)}
+								/>
+							</Tooltip>
+							<Tooltip text={$translate('common.remove')} position="top" delay={250}>
+								<IconButton icon="trash" size="sm" onclick={() => collectionStore.unlink(account.id)} />
+							</Tooltip>
+						</div>
+					{/each}
+				</div>
+
+				<div class="flex items-center gap-3">
+					<Select
+						value={$collectionRefreshCadence}
+						options={cadenceOptions}
+						onchange={(v) => settingsStore.setCollectionRefreshCadence(v as FollowCheckCadence)}
+						class="w-56"
+					/>
+					<Button
+						variant="secondary"
+						size="sm"
+						disabled={$collectionStore.refreshingAll}
+						onclick={() => collectionStore.refreshAllAccounts()}
+					>
+						{$collectionStore.refreshingAll
+							? $translate('common.loading')
+							: $translate('settings.collection.refreshNow')}
+					</Button>
+					<Button variant="secondary" size="sm" onclick={() => (showGapModal = true)}>
+						{$translate('collection.gap.title')}
+					</Button>
+				</div>
+			{/if}
+
+			<Text variant="caption" as="p" class="text-text-tertiary">
+				{$translate('settings.collection.privacyNote')}
+			</Text>
+		</div>
+	</section>
+
 	<!-- Preview Cache Section -->
 	<section>
 		<Text variant="header-3" class="mb-2">{$translate('settings.discovery.previewCache')}</Text>
@@ -183,6 +293,8 @@
 		</div>
 	</section>
 </div>
+
+<CollectionGapModal open={showGapModal} onClose={() => (showGapModal = false)} />
 
 <ConfirmModal
 	open={showClearConfirm}

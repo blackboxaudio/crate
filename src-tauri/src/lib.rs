@@ -31,6 +31,13 @@ pub(crate) struct BulkImportCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
 /// Flag to signal cancellation of a running page scan operation.
 pub(crate) struct ScanPageCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
 
+/// Whether the app's webview is currently visible/foregrounded. Starts `true` (the app
+/// boots foregrounded); the mobile frontend updates it from `visibilitychange` via the
+/// `set_app_foreground` command. Read by the follow watch loop so automatic sweeps don't
+/// run while backgrounded (background audio keeps the process — and its timers — alive
+/// on iOS, where sustained background CPU gets the app killed).
+pub(crate) struct AppForegroundFlag(pub Arc<std::sync::atomic::AtomicBool>);
+
 /// Set of release IDs that should be skipped by background enrichment.
 /// Populated when the user cancels enrichment for individual releases.
 pub(crate) struct EnrichmentSkipIds(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
@@ -168,6 +175,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
+            commands::app::set_app_foreground,
             commands::app::open_dev_tools,
             commands::app::close_dev_tools,
             #[cfg(feature = "desktop")]
@@ -382,6 +390,16 @@ pub fn run() {
             commands::follow::check_followed_source,
             commands::follow::check_all_followed_sources,
             commands::follow::set_release_new_flag,
+            commands::collection::link_collection_account,
+            commands::collection::unlink_collection_account,
+            commands::collection::set_collection_account_enabled,
+            commands::collection::get_collection_accounts,
+            commands::collection::get_collection_items,
+            commands::collection::get_collection_ownership,
+            commands::collection::refresh_collection_account,
+            commands::collection::refresh_all_collection_accounts,
+            #[cfg(feature = "desktop")]
+            commands::collection::get_collection_library_gap,
             // Backup commands
             commands::backup::get_backup_info,
             commands::backup::create_backup,
@@ -508,6 +526,8 @@ pub fn run() {
             let backup_service = BackupService::new(conn.clone());
             let discovery_service = DiscoveryService::with_db(db.handle(), app_data_dir.clone());
             let follow_service = FollowService::new(conn.clone(), app_data_dir.clone());
+            let collection_service =
+                services::CollectionService::new(conn.clone(), app_data_dir.clone());
 
             // Load saved audio device setting (desktop-only: no rodio playback on mobile)
             #[cfg(feature = "desktop")]
@@ -561,9 +581,23 @@ pub fn run() {
             app.manage(analysis_service);
             app.manage(discovery_service);
             app.manage(follow_service);
+            app.manage(collection_service);
+            // Managed BEFORE the watch loop spawns — its mobile foreground gate reads this
+            // state, and `state::<T>()` panics if it isn't managed yet.
+            app.manage(AppForegroundFlag(Arc::new(std::sync::atomic::AtomicBool::new(
+                true,
+            ))));
             // Background watch loop: poll followed sources on the configured cadence.
             // No-ops (and makes no network requests) when nothing is followed.
             crate::services::follow::watch::start_watching(
+                app.handle().clone(),
+                conn.clone(),
+                app_data_dir.clone(),
+            );
+            // Collection refresh loop: re-scrape linked purchase collections on their own
+            // cadence. Offset from the follow loop (90s vs 30s startup delay) so the two
+            // launch sweeps never hit bandcamp.com together. No-ops when nothing is linked.
+            crate::services::collection::watch::start_watching(
                 app.handle().clone(),
                 conn.clone(),
                 app_data_dir.clone(),

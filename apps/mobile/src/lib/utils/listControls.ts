@@ -34,6 +34,7 @@ export interface ReleaseViewFilter {
 	search: string
 	likedOnly: boolean
 	downloadedOnly: boolean
+	purchasedOnly: boolean
 	tagIds: string[]
 	tagMode: TagFilterMode
 }
@@ -42,32 +43,35 @@ export const emptyViewFilter = (): ReleaseViewFilter => ({
 	search: '',
 	likedOnly: false,
 	downloadedOnly: false,
+	purchasedOnly: false,
 	tagIds: [],
 	tagMode: 'or',
 })
 
 export function hasActiveViewFilter(f: ReleaseViewFilter): boolean {
-	return f.search.trim() !== '' || f.likedOnly || f.downloadedOnly || f.tagIds.length > 0
+	return f.search.trim() !== '' || f.likedOnly || f.downloadedOnly || f.purchasedOnly || f.tagIds.length > 0
 }
 
-/** Count for the filter button's badge — mirrors the feed toolbar (tags + liked + downloaded). */
+/** Count for the filter button's badge — mirrors the feed toolbar (tags + liked + downloaded + purchased). */
 export function countActiveViewFilters(f: ReleaseViewFilter): number {
-	return f.tagIds.length + (f.likedOnly ? 1 : 0) + (f.downloadedOnly ? 1 : 0)
+	return f.tagIds.length + (f.likedOnly ? 1 : 0) + (f.downloadedOnly ? 1 : 0) + (f.purchasedOnly ? 1 : 0)
 }
 
 /**
  * Apply a per-view filter over an in-memory release list. Search semantics mirror the feed's
  * `sortedReleases` (artist/title/label/notes/track names); tags reuse the feed's AND/OR filter;
- * downloaded checks the offline-cache id set.
+ * downloaded checks the offline-cache id set; purchased checks the collection ownership id set.
  */
 export function applyViewFilter(
 	list: DiscoveryRelease[],
 	f: ReleaseViewFilter,
-	cachedIds: ReadonlySet<string>
+	cachedIds: ReadonlySet<string>,
+	ownedIds: ReadonlySet<string>
 ): DiscoveryRelease[] {
 	let releases = list
 	if (f.likedOnly) releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
 	if (f.downloadedOnly) releases = releases.filter((r) => cachedIds.has(r.id))
+	if (f.purchasedOnly) releases = releases.filter((r) => ownedIds.has(r.id))
 	releases = applyTagFilter(releases, f.tagIds, f.tagMode)
 	const search = f.search.trim().toLowerCase()
 	if (search) {

@@ -20,6 +20,8 @@
 		discoveryStore,
 		contextMenuDiscoveryTrackId,
 		followedSources,
+		fullyOwnedReleaseIds,
+		ownedTrackIds,
 	} from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$shared/stores/player'
 	import { DRAG_THRESHOLD, getDistance } from '$shared/utils/drag'
@@ -73,6 +75,11 @@
 	// Days until release for the "Upcoming" badge + countdown (null once out / unknown).
 	// Computed at render, so the badge clears automatically when the date passes.
 	const upcomingDays = $derived(daysUntilRelease(release.release_date))
+
+	// Purchased-collection ownership: "Owned" pill when the whole release is purchased,
+	// "x/y" when only some tracks are (individually purchased tracks).
+	const isFullyOwned = $derived($fullyOwnedReleaseIds.has(release.id))
+	const ownedTrackCount = $derived(isFullyOwned ? 0 : release.tracks.filter((t) => $ownedTrackIds.has(t.id)).length)
 
 	// Follow button + quick-follow popover. The open popover is tracked globally so opening
 	// one dismisses any other (only one visible at a time).
@@ -228,6 +235,21 @@
 					class="shrink-0 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] leading-none font-medium text-orange-500"
 				>
 					{$translate('discovery.following.upcoming')}
+				</span>
+			{/if}
+			{#if isFullyOwned}
+				<span
+					class="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] leading-none font-medium text-emerald-500"
+				>
+					{$translate('collection.ownedBadge')}
+				</span>
+			{:else if ownedTrackCount > 0}
+				<span
+					class="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] leading-none font-medium text-emerald-500"
+				>
+					{$translate('collection.partialBadge', {
+						values: { owned: ownedTrackCount, total: release.tracks.length },
+					})}
 				</span>
 			{/if}
 		</div>

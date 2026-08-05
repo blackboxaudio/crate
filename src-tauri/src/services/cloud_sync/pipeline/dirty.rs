@@ -207,6 +207,20 @@ pub fn stamp_unstamped_rows(conn: &Connection, node_id: NodeId) -> Result<()> {
         &["id"],
         node_id,
     )?;
+    stamp_timestamped(
+        &tx,
+        "collection_accounts",
+        &["date_modified", "date_added"],
+        &["id"],
+        node_id,
+    )?;
+    stamp_timestamped(
+        &tx,
+        "collection_items",
+        &["date_modified", "date_added"],
+        &["id"],
+        node_id,
+    )?;
 
     tx.execute(
         "INSERT INTO sync_state (key, value) VALUES ('initial_stamp_done', '1')

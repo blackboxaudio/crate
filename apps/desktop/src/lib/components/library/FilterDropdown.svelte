@@ -20,6 +20,9 @@
 		showNewFilter?: boolean
 		newOnly?: boolean
 		onToggleNewFilter?: () => void
+		showPurchasedFilter?: boolean
+		purchasedOnly?: boolean
+		onTogglePurchasedFilter?: () => void
 	}
 
 	let {
@@ -36,6 +39,9 @@
 		showNewFilter = false,
 		newOnly = false,
 		onToggleNewFilter,
+		showPurchasedFilter = false,
+		purchasedOnly = false,
+		onTogglePurchasedFilter,
 	}: Props = $props()
 
 	const allTags = $derived(tagCategories.flatMap((c) => c.tags))
@@ -52,7 +58,10 @@
 	let flyoutEl: HTMLDivElement | undefined = $state()
 
 	const badgeCount = $derived(
-		activeFilterTags.length + (showLikedFilter && likedOnly ? 1 : 0) + (showNewFilter && newOnly ? 1 : 0)
+		activeFilterTags.length +
+			(showLikedFilter && likedOnly ? 1 : 0) +
+			(showNewFilter && newOnly ? 1 : 0) +
+			(showPurchasedFilter && purchasedOnly ? 1 : 0)
 	)
 	const hasActiveFilters = $derived(badgeCount > 0)
 
@@ -343,8 +352,42 @@
 					</button>
 				{/if}
 
+				<!-- Purchased filter (owned in the linked collection) -->
+				{#if showPurchasedFilter}
+					<button
+						type="button"
+						class="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:cursor-pointer hover:bg-surface-2"
+						onclick={() => onTogglePurchasedFilter?.()}
+					>
+						<div class="flex items-center gap-2">
+							<svg
+								class="h-3.5 w-3.5"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<path d="M6 8h12l-1.2 12H7.2L6 8z" />
+								<path d="M9 8V6a3 3 0 0 1 6 0v2" />
+							</svg>
+							<span class="text-xs text-text-tertiary">{$translate('filters.purchased')}</span>
+						</div>
+						<div
+							class="flex h-4 w-7 items-center rounded-full p-0.5 transition-colors {purchasedOnly
+								? 'bg-brand-primary'
+								: 'bg-stroke'}"
+						>
+							<div
+								class="h-3 w-3 rounded-full bg-white transition-transform {purchasedOnly ? 'translate-x-3' : ''}"
+							></div>
+						</div>
+					</button>
+				{/if}
+
 				{#if allTags.length > 0}
-					{#if showLikedFilter || showNewFilter}
+					{#if showLikedFilter || showNewFilter || showPurchasedFilter}
 						<div class="my-1 border-t border-stroke"></div>
 					{/if}
 

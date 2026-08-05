@@ -150,6 +150,23 @@
 			"newReleasesSummary": "Resumo de novos lançamentos",
 			"discogsRateLimitNote": "O Discogs limita a frequência de verificação, portanto, listas de seguimento grandes podem ser atualizadas gradualmente."
 		},
+		"collection": {
+			"title": "Coleção",
+			"description": "Vincule sua coleção Bandcamp pública para que os lançamentos e faixas que você comprou sejam exibidos como possuídos.",
+			"linkAccount": "Vincular conta Bandcamp",
+			"linkPrompt": "Vincular coleção",
+			"linkPromptInfo": "Cole a URL da sua página de fã do Bandcamp (bandcamp.com/nomedeusuário)",
+			"linkPlaceholder": "https://bandcamp.com/username",
+			"link": "Vincular",
+			"noAccounts": "Nenhuma conta vinculada ainda",
+			"itemCount": "{count, plural, =1 {1 item} other {{count} itens}}",
+			"refreshCadenceDescription": "Com que frequência verificar suas coleções para novas compras",
+			"refreshNow": "Atualizar coleção",
+			"removeConfirmTitle": "Desvinc account",
+			"removeConfirmMessage": "As compras desta conta não serão mais exibidas como possuídas.",
+			"enabledToggle": "Contar compras como possuídas",
+			"privacyNote": "Apenas sua coleção pública do Bandcamp é lida. Compras privadas e itens ocultos não são visíveis."
+		},
 		"appearance": {
 			"font": "Fonte",
 			"fontDescription": "Escolha a fonte usada no aplicativo.",
@@ -495,7 +512,24 @@
 		"title": "Filtros",
 		"liked": "Curtidos",
 		"new": "Novo",
-		"downloaded": "Baixado"
+		"downloaded": "Baixado",
+		"purchased": "Comprado"
+	},
+	"collection": {
+		"notInCrate": "Não em {appName}",
+		"addToDiscovery": "Adicionar a Descoberta",
+		"emptyTitle": "Nenhuma coleção vinculada",
+		"emptyHint": "Vincule sua coleção Bandcamp para ver suas compras aqui",
+		"noItems": "Sem compras ainda",
+		"ownedBadge": "Possuído",
+		"partialBadge": "{owned}/{total} possuído",
+		"gap": {
+			"title": "Faltante na Biblioteca",
+			"missingCount": "{count, plural, =1 {1 compra não em sua biblioteca} other {{count} compras não em sua biblioteca}}",
+			"missingOnly": "Apenas faltante",
+			"inLibrary": "Na biblioteca",
+			"notInLibrary": "Não na biblioteca"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nova playlist",
@@ -694,7 +728,8 @@
 		"previewStreamFailed": "Falha ao carregar o fluxo de visualização",
 		"previewNotAvailableOffline": "Esta faixa não está disponível offline",
 		"updateCheckFailed": "Falha ao verificar atualizações",
-		"updateInstallFailed": "Falha ao instalar a atualização"
+		"updateInstallFailed": "Falha ao instalar a atualização",
+		"generic": "Algo deu errado"
 	},
 	"devices": {
 		"title": "Dispositivos",

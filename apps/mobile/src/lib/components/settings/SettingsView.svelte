@@ -8,6 +8,7 @@
 	import GeneralPage from './pages/GeneralPage.svelte'
 	import AppearancePage from './pages/AppearancePage.svelte'
 	import FollowingPage from './pages/FollowingPage.svelte'
+	import CollectionPage from './pages/CollectionPage.svelte'
 	import CloudSyncPage from './pages/CloudSyncPage.svelte'
 	import StoragePage from './pages/StoragePage.svelte'
 	import AboutPage from './pages/AboutPage.svelte'
@@ -104,6 +105,8 @@
 				<AppearancePage />
 			{:else if page === 'following'}
 				<FollowingPage />
+			{:else if page === 'collection'}
+				<CollectionPage />
 			{:else if page === 'cloudSync'}
 				<CloudSyncPage />
 			{:else if page === 'storage'}

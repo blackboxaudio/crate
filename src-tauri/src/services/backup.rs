@@ -352,6 +352,77 @@ impl BackupService {
             .collect::<std::result::Result<Vec<_>, _>>()?;
         drop(stmt);
 
+        // Collection accounts (synced linked fan pages)
+        let mut stmt = conn.prepare(
+            "SELECT id, url, source_type, external_id, username, name, avatar_url,
+                    enabled, date_added, date_modified
+             FROM collection_accounts",
+        )?;
+        let collection_accounts = stmt
+            .query_map([], |row| {
+                Ok(BackupCollectionAccount {
+                    id: row.get(0)?,
+                    url: row.get(1)?,
+                    source_type: row.get(2)?,
+                    external_id: row.get(3)?,
+                    username: row.get(4)?,
+                    name: row.get(5)?,
+                    avatar_url: row.get(6)?,
+                    enabled: row.get(7)?,
+                    date_added: row.get(8)?,
+                    date_modified: row.get(9)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
+        // Collection items (synced owned items)
+        let mut stmt = conn.prepare(
+            "SELECT id, account_id, source_type, item_type, url, external_id, artist, title,
+                    artwork_url, purchased_at, date_added, date_modified
+             FROM collection_items",
+        )?;
+        let collection_items = stmt
+            .query_map([], |row| {
+                Ok(BackupCollectionItem {
+                    id: row.get(0)?,
+                    account_id: row.get(1)?,
+                    source_type: row.get(2)?,
+                    item_type: row.get(3)?,
+                    url: row.get(4)?,
+                    external_id: row.get(5)?,
+                    artist: row.get(6)?,
+                    title: row.get(7)?,
+                    artwork_url: row.get(8)?,
+                    purchased_at: row.get(9)?,
+                    date_added: row.get(10)?,
+                    date_modified: row.get(11)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
+        // Collection account state (per-device refresh bookkeeping)
+        let mut stmt = conn.prepare(
+            "SELECT account_id, last_checked_at, last_success_at, health, last_error,
+                    consecutive_failures, last_item_count
+             FROM collection_account_state",
+        )?;
+        let collection_account_state = stmt
+            .query_map([], |row| {
+                Ok(BackupCollectionAccountState {
+                    account_id: row.get(0)?,
+                    last_checked_at: row.get(1)?,
+                    last_success_at: row.get(2)?,
+                    health: row.get(3)?,
+                    last_error: row.get(4)?,
+                    consecutive_failures: row.get(5)?,
+                    last_item_count: row.get(6)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
         let counts = BackupCounts {
             tracks: tracks.len(),
             cues: cues.len(),
@@ -388,6 +459,9 @@ impl BackupService {
             followed_source_state,
             followed_source_releases,
             discovery_release_sources,
+            collection_accounts,
+            collection_items,
+            collection_account_state,
             artwork_files: None,
         })
     }
@@ -414,6 +488,9 @@ impl BackupService {
                  DELETE FROM discovery_audio_cache;
                  DELETE FROM device_exports;
                  DELETE FROM device_tracks;
+                 DELETE FROM collection_items;
+                 DELETE FROM collection_account_state;
+                 DELETE FROM collection_accounts;
                  DELETE FROM discovery_release_sources;
                  DELETE FROM followed_source_releases;
                  DELETE FROM followed_source_state;
@@ -707,6 +784,76 @@ impl BackupService {
                 )?;
                 for drs in &data.discovery_release_sources {
                     stmt.execute(params![drs.release_id, drs.source_id])?;
+                }
+            }
+
+            // 16. Collection accounts (synced linked fan pages)
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO collection_accounts (id, url, source_type, external_id, username,
+                                                      name, avatar_url, enabled, date_added, date_modified)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+                )?;
+                for ca in &data.collection_accounts {
+                    stmt.execute(params![
+                        ca.id,
+                        ca.url,
+                        ca.source_type,
+                        ca.external_id,
+                        ca.username,
+                        ca.name,
+                        ca.avatar_url,
+                        ca.enabled,
+                        ca.date_added,
+                        ca.date_modified,
+                    ])?;
+                }
+            }
+
+            // 17. Collection items (synced owned items — FK collection_accounts)
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO collection_items (id, account_id, source_type, item_type, url,
+                                                   external_id, artist, title, artwork_url,
+                                                   purchased_at, date_added, date_modified)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+                )?;
+                for ci in &data.collection_items {
+                    stmt.execute(params![
+                        ci.id,
+                        ci.account_id,
+                        ci.source_type,
+                        ci.item_type,
+                        ci.url,
+                        ci.external_id,
+                        ci.artist,
+                        ci.title,
+                        ci.artwork_url,
+                        ci.purchased_at,
+                        ci.date_added,
+                        ci.date_modified,
+                    ])?;
+                }
+            }
+
+            // 18. Collection account state (per-device refresh bookkeeping)
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO collection_account_state (account_id, last_checked_at, last_success_at,
+                                                           health, last_error, consecutive_failures,
+                                                           last_item_count)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+                )?;
+                for st in &data.collection_account_state {
+                    stmt.execute(params![
+                        st.account_id,
+                        st.last_checked_at,
+                        st.last_success_at,
+                        st.health,
+                        st.last_error,
+                        st.consecutive_failures,
+                        st.last_item_count,
+                    ])?;
                 }
             }
 

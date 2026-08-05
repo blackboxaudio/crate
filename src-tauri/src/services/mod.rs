@@ -8,6 +8,7 @@ pub mod artwork;
 pub mod audio;
 pub mod backup;
 pub mod cloud_sync;
+pub mod collection;
 #[cfg(feature = "desktop")]
 pub mod device;
 #[cfg(feature = "desktop")]
@@ -27,6 +28,7 @@ pub mod playlist;
 pub mod settings;
 pub mod smart_rules;
 pub mod tag;
+pub mod watch_gate;
 
 #[cfg(feature = "desktop")]
 pub use analysis::AnalysisService;
@@ -34,6 +36,7 @@ pub use artwork::ArtworkService;
 #[cfg(feature = "desktop")]
 pub use audio::AudioService;
 pub use backup::BackupService;
+pub use collection::CollectionService;
 #[cfg(feature = "desktop")]
 pub use device::DeviceService;
 #[cfg(feature = "desktop")]
