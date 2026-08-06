@@ -110,7 +110,7 @@
 	}
 </script>
 
-<MobileModal {open} title={$translate('discovery.following.popoverTitle')} {onClose}>
+<MobileModal {open} title={$translate('discovery.following.followForNewReleases')} {onClose}>
 	{#if displayed}
 		{#if hasFollowable}
 			<div class="flex flex-col gap-4">

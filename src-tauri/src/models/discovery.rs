@@ -51,6 +51,11 @@ pub struct DiscoveryTrack {
     pub url: Option<String>,
     #[serde(default)]
     pub is_liked: bool,
+    /// The source currently serves no preview stream for this track (e.g. an unreleased
+    /// track on a Bandcamp pre-order). Populated on read from the device-local
+    /// `discovery_preview_unavailable` table — never synced; peers see `false`.
+    #[serde(default)]
+    pub preview_unavailable: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -461,7 +461,7 @@
 		</EmptyState>
 	{:else}
 		<EmptyState
-			title={$translate('playlists.noPlaylists')}
+			title={$translate('playlists.noPlaylistsYet')}
 			hint={$translate('playlists.emptyHint')}
 			ctaLabel={$translate('playlists.newPlaylist')}
 			onCta={() => openCreate('playlist')}

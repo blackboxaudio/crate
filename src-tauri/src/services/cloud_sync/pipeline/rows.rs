@@ -801,6 +801,7 @@ fn read_live_discovery_tracks(conn: &Connection) -> Result<Vec<(String, Discover
             video_id: r.get(5)?,
             url: r.get(6)?,
             is_liked: r.get(7)?,
+            preview_unavailable: false,
         };
         let hlc: String = r.get(8)?;
         Ok((d.id.clone(), d, hlc))

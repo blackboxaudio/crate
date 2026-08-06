@@ -737,6 +737,8 @@ export interface DiscoveryTrack {
 	/** The track's own page URL (Bandcamp track page, SoundCloud permalink) when the source provides one; share/copy falls back to the release URL. */
 	url: string | null
 	is_liked: boolean
+	/** The source currently serves no preview stream for this track (e.g. an unreleased track on a Bandcamp pre-order). Device-local, refreshed on every stream extraction. */
+	preview_unavailable: boolean
 }
 
 export interface DiscoveryRelease {

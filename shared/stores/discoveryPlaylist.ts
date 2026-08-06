@@ -119,6 +119,23 @@ function createDiscoveryPlaylistStore() {
 			}
 		},
 
+		/** Mirror of discoveryStore.applyPreviewAvailability for this store's release copies. */
+		applyPreviewAvailability(releaseId: string, unavailablePositions: number[]) {
+			const unavailable = new Set(unavailablePositions)
+			const updateTracks = (releases: DiscoveryRelease[]) =>
+				releases.map((r) =>
+					r.id === releaseId
+						? { ...r, tracks: r.tracks.map((t) => ({ ...t, preview_unavailable: unavailable.has(t.position) })) }
+						: r
+				)
+			update((state) => ({ releases: updateTracks(state.releases) }))
+			for (const [key, releases] of cache) {
+				if (releases.some((r) => r.id === releaseId)) {
+					cache.set(key, updateTracks(releases))
+				}
+			}
+		},
+
 		reorderInCache(playlistId: string, releaseIds: string[]) {
 			update((state) => {
 				const byId = new Map(state.releases.map((r) => [r.id, r]))

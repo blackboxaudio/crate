@@ -19,7 +19,7 @@
 	const menuItems = $derived<ContextMenuItem[]>([
 		{
 			id: 'add-category',
-			label: get(translate)('tags.addCategory'),
+			label: get(translate)('tags.newCategory'),
 			icon: 'plus',
 			disabled: categoryCount >= 4,
 			action: onAddCategory,

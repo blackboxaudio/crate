@@ -86,14 +86,14 @@
 		} else if (target.type === 'category') {
 			items.push({
 				id: 'add-category',
-				label: get(translate)('tags.addCategory'),
+				label: get(translate)('tags.newCategory'),
 				icon: 'plus',
 				disabled: categoryCount >= 4,
 				action: onAddCategory,
 			})
 			items.push({
 				id: 'add-tag',
-				label: get(translate)('tags.addTag'),
+				label: get(translate)('tags.newTag'),
 				icon: 'tag',
 				action: () => onAddTag(target.category.id),
 			})

@@ -25,7 +25,13 @@
 		"more": "Daha fazla",
 		"select": "Seç",
 		"noResults": "Sonuç bulunamadı",
-		"offline": "Çevrimdışısınız"
+		"offline": "Çevrimdışısınız",
+		"audioFiles": "Ses dosyaları",
+		"images": "Resimler",
+		"selectAnOption": "Seçeneği seçiniz",
+		"unknownError": "Bilinmeyen hata",
+		"dismiss": "Kapat",
+		"step": "Adım {number}"
 	},
 	"nav": {
 		"library": "Kütüphane",
@@ -128,8 +134,8 @@
 			"clearCacheWarning": "Önceden önizlenmiş şarkılar bir sonraki oynatmada kaynağından yeniden akışla getirilmesi gerekecektir. Bu daha yavaş olabilir ve bazı akışlar artık mevcut olmayabilir.",
 			"audioCache": "Ses",
 			"artworkCache": "Kapak Sanatı",
-			"artworkCacheDescription": "Albüm kapak sanatı bu cihaza kaydedilir, böylece bağlantı olmadan görüntülenebilir.",
-			"clearArtworkCacheConfirmMessage": "Tüm önbelleğe alınan albüm kapak sanatını temizlemek istediğinizden emin misiniz?",
+			"artworkCacheDescription": "Çalışmalar bu cihaza kaydedilir, böylece bağlantı olmadan görüntülenebilir.",
+			"clearArtworkCacheConfirmMessage": "Tüm önbelleğe alınan çalışmaları temizlemek istediğinizden emin misiniz?",
 			"cacheLimit": "Önbellek sınırı"
 		},
 		"following": {
@@ -140,7 +146,7 @@
 			"cadenceDaily": "Başlatma sırasında ve günlük",
 			"cadenceManual": "Yalnız manuel",
 			"checkAllNow": "Tümünü Şimdi Kontrol Et",
-			"autoFollowDescription": "Yayın içe aktarırken \"Ayrıca İzle\" seçeneğinin varsayılanı.",
+			"autoFollowDescription": "Yayın içe aktarırken \"Yeni yayınlar için izle\" seçeneğinin varsayılanı.",
 			"autoFollowOff": "Kapalı",
 			"autoFollowArtist": "Sanatçı",
 			"autoFollowLabel": "Etiket",
@@ -234,7 +240,7 @@
 			"toolarge": "Kütüphaneniz yüklemek için çok büyük",
 			"conflict": "Başka bir cihaz şu anda eşitleniyor — yeniden denenecek",
 			"server": "Senkronizasyon hizmeti sorun yaşıyor — yeniden denenecek",
-			"merge": "Bu cihazda eşitlenen değişiklikler uygulanamadı"
+			"merge": "Bu cihazda eşitlenen değişiklikleri uygulamak başarısız"
 		},
 		"diagnostics": {
 			"copy": "Senkronizasyon tanılarını kopyala"
@@ -302,7 +308,11 @@
 		"trackNotFound": "Çalan parça bulunamadı",
 		"expand": "Oynatıcıyı Genişlet",
 		"collapse": "Oynatıcıyı Daralt",
-		"seek": "Ara"
+		"seek": "Ara",
+		"repeat": "Tekrar",
+		"repeatTrack": "Parçayı tekrarla",
+		"repeatRelease": "Yayını tekrarla",
+		"repeatAll": "Tümünü tekrarla"
 	},
 	"queue": {
 		"upNext": "Sırada",
@@ -318,8 +328,8 @@
 		"reorder": "Yeniden sırala",
 		"clearQueue": "Temizle",
 		"empty": "Sırada hiçbir şey yok",
-		"emptyHint": "Eklediğin şarkılar sonra oynatılacak",
-		"upcoming": "Yaklaşan",
+		"emptyHint": "Eklediğin parçalar sonra oynatılacak",
+		"upcoming": "Sırada",
 		"history": "Geçmiş",
 		"historyEmpty": "Henüz hiçbir şey oynatılmadı"
 	},
@@ -343,12 +353,24 @@
 		"track": "şarkı",
 		"tracks": "şarkı",
 		"item": "öğe",
-		"items": "öğe"
+		"items": "öğe",
+		"clearSearch": "Aramayı temizle",
+		"fileNotFound": "Dosya bulunamadı",
+		"dropToImport": "İçe aktarmak için ses dosyalarını sürükleyin",
+		"noColor": "Renk yok",
+		"colorLabel": "Renk: {color}"
 	},
 	"discovery": {
 		"addRelease": "Yayın Ekle",
 		"url": "URL",
 		"source": "Kaynak",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Diğer"
+		},
 		"release": "yayın",
 		"releases": "yayın",
 		"searchPlaceholder": "Yayınları ara...",
@@ -356,6 +378,7 @@
 		"noResults": "Filtrelerinizle eşleşen yayın yok",
 		"addReleaseHint": "{shortcut} tuşuna basarak Bandcamp, Discogs, YouTube ve daha fazlasından yayın ekleyin",
 		"mobileAddHint": "Bandcamp, Discogs, YouTube ve daha fazlasından yayın ekleyin",
+		"dropHint": "Yayın eklemek için bir bağlantı sürükleyin",
 		"pending": "Bekleniyor",
 		"offlineQueueNotice": "Çevrimdışısınız — yeniden bağlandığınızda bu yayın eklenecektir",
 		"addToQueue": "Kuyruğa Ekle",
@@ -371,8 +394,7 @@
 			"label": "Etiket",
 			"tags": "Etiketler",
 			"dateAdded": "Ekleme Tarihi",
-			"released": "Yayınlandı",
-			"added": "Eklendi"
+			"dateReleased": "Yayın Tarihi"
 		},
 		"fetchingMetadata": "Meta veriler indiriliyor...",
 		"refreshMetadata": "Meta Verileri Yenile",
@@ -381,7 +403,7 @@
 		"downloadedForOffline": "İndirildi",
 		"removeDownload": "İndirmeyi Kaldır",
 		"downloadFailed": "Çevrimdışı için indirilemedi",
-		"fetchError": "Bu URL'den meta veriler indirilemedi",
+		"fetchError": "Bu URL'den meta veri indirmesi başarısız",
 		"unsupportedUrl": "Bu URL desteklenmiyor",
 		"shareNoUrl": "Paylaşılan metinde bağlantı bulunamadı",
 		"tracks": "Şarkılar",
@@ -416,7 +438,6 @@
 			"addTags": "Etiket ekle"
 		},
 		"import": {
-			"title": "Kütüphaneye İçe Aktar",
 			"selectFiles": "Dosyaları Seç",
 			"matched": "Eşleşen",
 			"unmatched": "Eşleşmeyen",
@@ -466,25 +487,23 @@
 			"pauseSelected": "Durakla",
 			"unfollow": "İzlemeyi Bırak",
 			"checkNow": "Şimdi Kontrol Et",
-			"enabledToggle": "Güncellemeleri Aç/Kapat",
+			"enabledToggle": "Yeni Yayınları Kontrol Et",
 			"artist": "Sanatçı",
 			"label": "Etiket",
 			"checkedAgo": "{time} kontrol edildi",
 			"upToDate": "Güncel",
 			"paused": "Duraklatıldı",
 			"newCount": "{count, plural, =1 {1 yeni} other {{count} yeni}}",
-			"sourceError": "Bu kaynak kontrol edilemedi",
+			"sourceError": "Bu kaynağı kontrol etme başarısız",
 			"follow": "İzle",
 			"following": "İzleniyor",
 			"followForNewReleases": "Yeni yayınlar için izle",
 			"followViaPaste": "İzleniyor panelinden bu kaynağı izle",
-			"popoverTitle": "Yeni yayınlar için izle",
 			"upcoming": "Yakında",
 			"daysUntil": "{days} g",
 			"surfacedVia": "{source} aracılığıyla görüntülendi",
 			"markNew": "Yeni olarak işaretle",
 			"markNotNew": "Yeni olarak işaretleme",
-			"alsoFollow": "Yeni yayınlar için izle",
 			"sortBy": "Şuna göre sırala",
 			"empty": {
 				"title": "Henüz hiç kimseyi izlemiyorsunuz",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Bandcamp, SoundCloud veya Discogs sanatçısı/etiketi sayfası URL'sini yapıştırın",
 				"urlInfo": "Platformu ve bunun bir sanatçıya mı yoksa bir plak şirketine mi ait olduğunu otomatik olarak algılarız, ardından bundan sonraki yeni çıkışları takip ederiz. Daha eski çıkışlar eklenmez."
 			}
-		}
+		},
+		"releaseArtwork": "Yayın çalışması",
+		"mergeTarget": "Hedef",
+		"mergeTagCount": "{count, plural, =1 {1 etiket} other {{count} etiket}}"
 	},
 	"filters": {
 		"title": "Filtreler",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "Kök (Klasör Yok)",
 		"folderEmpty": "Bu klasör boş",
 		"noPlaylistsYet": "Henüz çalma listesi yok",
-		"noPlaylists": "Henüz çalma listesi yok",
 		"allPlaylists": "Tüm Çalma Listeleri",
 		"searchPlaceholder": "Çalma listelerinde ara…",
 		"emptyHint": "Keşiflerinizi düzenlemek için çalma listeleri oluşturun",
@@ -561,12 +582,11 @@
 		"renameCategory": "Kategoriyi Yeniden Adlandır",
 		"deleteTag": "Etiketi Sil",
 		"deleteCategory": "Kategoriyi Sil",
-		"addCategory": "Kategori Ekle",
-		"addTag": "Etiket Ekle",
 		"moveToCategory": "Kategoriye Taşı",
 		"noTags": "Etiket yok",
 		"noTagCategoriesYet": "Henüz etiket kategorisi yok",
-		"emptyHint": "Keşiflerinizi düzenlemek için renkle kodlanmış etiket kategorileri oluşturun"
+		"emptyHint": "Keşiflerinizi düzenlemek için renkle kodlanmış etiket kategorileri oluşturun",
+		"removeTag": "Etiketi Kaldır"
 	},
 	"contextMenu": {
 		"viewInFinder": "Finder'da Göster",
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "Kütüphaneden Kaldır",
 			"removeFromLibraryMessage": "{count, plural, =1 {Bu şarkıyı kütüphaneden kaldırmak istiyor musunuz?} other {{count} şarkıyı kütüphaneden kaldırmak istiyor musunuz?}}",
 			"removeFromLibraryWarning": "Bu işlem geri alınamaz. Şarkılar tüm çalma listelerinden kaldırılacaktır.",
-			"deleteTracksFromCollection": "Şarkıları koleksiyonumdan da sil",
-			"removeDiscoveryReleasesTitle": "Keşfetten Kaldır",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Bu yayını keşfetten kaldırmak istiyor musunuz?} other {{count} yayını keşfetten kaldırmak istiyor musunuz?}}",
+			"deleteTracksFromCollection": "Şarkıları koleksiyonundan da sil",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Yayını Sil} other {Yayınları Sil}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Bu yayını silmek istiyor musunuz?} other {{count} yayını silmek istiyor musunuz?}}",
 			"removeDiscoveryReleasesWarning": "Bu işlem geri alınamaz. Yayınlar tüm çalma listelerinden kaldırılacaktır.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Çalma Listesinden Kaldır",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Bu yayını çalma listesinden kaldırmak istiyor musunuz?} other {{count} yayını çalma listesinden kaldırmak istiyor musunuz?}}",
-			"deleteReleasesFromCollection": "Yayınları koleksiyonumdan da sil"
+			"deleteReleasesFromCollection": "Yayınları koleksiyonundan da sil"
 		},
 		"relocate": {
 			"title": "Şarkıyı Yeniden Konumlandır",
-			"message": "Bu şarkı için yeni konumu seçin."
+			"cloudSyncedMessage": "Bu parça başka bir cihazda eklendi. Burası oynatılabilir yapmak için kütüphane kökünü içeren yerel klasörü seçin.",
+			"missingFileMessage": "Bu parçanın dosyası orijinal konumda bulunamadı.",
+			"selectRootFolder": "Kütüphane Kök Klasörü Seçin",
+			"selectReplacementFile": "Yedek Dosya Seçin",
+			"validating": "Dosya doğrulanıyor...",
+			"unsupportedFormat": "Desteklenmeyen ses formatı.",
+			"hashMatch": "Dosya içeriği eşleşiyor. Hash doğrulandı.",
+			"hashMismatch": "Dosya içeriği orijinal ile eşleşmiyor.",
+			"noOriginalHash": "Karşılaştırma için orijinal hash mevcut değil. Dosya yine de doğru olabilir.",
+			"useAnyway": "Yine de bu dosyayı kullan",
+			"relocate": "Yeniden Konumlandır",
+			"relocating": "Yeniden konumlandırılıyor...",
+			"validateFailed": "Dosya doğrulama başarısız",
+			"relocateFailed": "Parça yeniden konumlandırması başarısız"
 		},
-		"albumArt": "Kapak Sanatı",
+		"albumArt": "Çalışma",
 		"deviceInfo": {
 			"title": "Cihaz Bilgileri",
 			"diskType": "Disk Türü",
@@ -719,7 +752,14 @@
 		"failedToUpdateTracks": "Şarkılar güncellenemedi",
 		"failedToSetArtwork": "Kapak sanatı ayarlanamadı",
 		"failedToRemoveArtwork": "Kapak sanatı kaldırılamadı",
-		"noArtworkInFile": "Ses dosyasında kapak sanatı bulunamadı"
+		"noArtworkInFile": "Ses dosyasında kapak sanatı bulunamadı",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 şarkı} other {{count} şarkı}} içe aktarıldı, {failed} başarısız",
+		"failedToSetTrackColor": "Şarkı rengini ayarlaması başarısız",
+		"exportCleanedUp": "Kısmi dışa aktarma temizlendi",
+		"exportCleanUpFailed": "Dışa aktarmayı temizleme başarısız",
+		"deviceNotFound": "Cihaz bulunamadı",
+		"deviceReformatted": "Cihaz \"{name}\" olarak yeniden biçimlendirildi",
+		"deviceReformatFailed": "Yeniden biçimlendirme başarısız: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Klasör kendisine sürüklenemez",
@@ -731,7 +771,10 @@
 		"previewNotAvailableOffline": "Bu şarkı çevrimdışı olarak kullanılamıyor",
 		"updateCheckFailed": "Güncellemeleri denetlemesi başarısız",
 		"updateInstallFailed": "Güncellemeyi yüklemesi başarısız",
-		"generic": "Bir şeyler ters gitti"
+		"generic": "Bir şeyler ters gitti",
+		"previewPlaybackFailed": "Önizleme oynatma hatası",
+		"previewPlayFailed": "Önizlemeyi oynatma başarısız",
+		"previewResumeFailed": "Önizlemeyi devam ettirme başarısız"
 	},
 	"devices": {
 		"title": "Cihazlar",
@@ -772,7 +815,7 @@
 		"selectDevice": "Bir cihaz seçin",
 		"selectDevicesDescription": "Dışa aktarılacak bir veya daha fazla cihazı seçin.",
 		"devicesSelected": "{count, plural, =1 {1 cihaz seçildi} other {{count} cihaz seçildi}}",
-		"devicesToExport": "Cihazlar",
+		"devicesToExport": "Dışa Aktarılacak Cihazlar",
 		"noDevicesConnected": "USB cihazı bağlı değil",
 		"noPlaylistsAvailable": "Çalma listesi mevcut değil",
 		"destination": "Hedef",
@@ -868,6 +911,9 @@
 		"settingsSound": "Ses",
 		"settingsDiagnostics": "Tanılamalar",
 		"quit": "{appName} Uygulamasından Çık",
+		"hide": "{appName} Uygulamasını Gizle",
+		"hideOthers": "Diğerlerini Gizle",
+		"showAll": "Tümünü Göster",
 		"importTracks": "Şarkıları İçe Aktar...",
 		"addRelease": "Yayın Ekle...",
 		"refreshMetadata": "Meta Verileri Yenile",
@@ -905,7 +951,7 @@
 		"reportIssue": "Sorun Bildir..."
 	},
 	"smartPlaylist": {
-		"createTitle": "Akıllı Çalma Listesi Oluştur",
+		"createTitle": "Yeni Akıllı Çalma Listesi",
 		"editTitle": "Akıllı Çalma Listesini Düzenle",
 		"name": "Ad",
 		"namePlaceholder": "Akıllı Çalma Listesi Adı",
@@ -986,6 +1032,14 @@
 			"aqua": "Su Mavisi",
 			"blue": "Mavi",
 			"purple": "Mor"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {

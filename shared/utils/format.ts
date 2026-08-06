@@ -1,3 +1,6 @@
+import { get } from 'svelte/store'
+import { translate } from '../i18n'
+
 /**
  * Format duration in milliseconds to MM:SS or HH:MM:SS
  */
@@ -239,5 +242,5 @@ export function getTrackDisplayName(track: { title: string | null; file_path: st
  * Get display artist (or "Unknown Artist")
  */
 export function getTrackDisplayArtist(track: { artist: string | null }): string {
-	return track.artist || 'Unknown Artist'
+	return track.artist || get(translate)('common.unknownArtist')
 }

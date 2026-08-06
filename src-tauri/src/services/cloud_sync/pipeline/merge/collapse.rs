@@ -106,6 +106,7 @@ pub(super) fn collapse_track_pair(
         video_id: w.video_id.clone().or_else(|| lo.video_id.clone()),
         url: w.url.clone().or_else(|| lo.url.clone()),
         is_liked: l.is_liked || r.is_liked,
+        preview_unavailable: false,
     };
     let survivor_hlc = if survivor == *w {
         w_hlc.to_string()
@@ -142,6 +143,7 @@ fn collapse_track(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result<b
                     video_id: r.get(5)?,
                     url: r.get(6)?,
                     is_liked: r.get::<_, i32>(7).map(|v| v != 0)?,
+                    preview_unavailable: false,
                 },
                 r.get::<_, String>(8)?,
             ))
@@ -409,6 +411,7 @@ mod tests {
             video_id: None,
             url: url.map(str::to_string),
             is_liked: liked,
+            preview_unavailable: false,
         }
     }
 

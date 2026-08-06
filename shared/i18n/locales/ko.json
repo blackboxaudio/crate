@@ -25,7 +25,13 @@
 		"more": "더 보기",
 		"select": "선택",
 		"noResults": "결과 없음",
-		"offline": "오프라인입니다"
+		"offline": "오프라인입니다",
+		"audioFiles": "오디오 파일",
+		"images": "이미지",
+		"selectAnOption": "옵션을 선택하세요",
+		"unknownError": "알 수 없는 오류",
+		"dismiss": "닫기",
+		"step": "단계 {number}"
 	},
 	"nav": {
 		"library": "라이브러리",
@@ -128,8 +134,8 @@
 			"clearCacheWarning": "이전에 미리본 트랙은 다음 재생 시 소스에서 다시 스트리밍해야 합니다. 이것이 더 느릴 수 있고 일부 스트림은 더 이상 사용할 수 없을 수 있습니다.",
 			"audioCache": "오디오",
 			"artworkCache": "앨범 아트",
-			"artworkCacheDescription": "앨범 아트는 이 기기에 저장되므로 연결 없이도 표시됩니다.",
-			"clearArtworkCacheConfirmMessage": "캐시된 모든 앨범 아트를 비우시겠습니까?",
+			"artworkCacheDescription": "아트워크는 이 기기에 저장되므로 연결 없이도 표시됩니다.",
+			"clearArtworkCacheConfirmMessage": "캐시된 모든 아트워크를 비우시겠습니까?",
 			"cacheLimit": "캐시 제한"
 		},
 		"following": {
@@ -140,7 +146,7 @@
 			"cadenceDaily": "시작 및 일일",
 			"cadenceManual": "수동만",
 			"checkAllNow": "지금 모두 확인",
-			"autoFollowDescription": "릴리스를 가져올 때 \"또한 팔로우\" 옵션의 기본값입니다.",
+			"autoFollowDescription": "릴리스를 가져올 때 \"새로운 릴리스를 팔로우\" 옵션의 기본값입니다.",
 			"autoFollowOff": "끔",
 			"autoFollowArtist": "아티스트",
 			"autoFollowLabel": "레이블",
@@ -302,7 +308,11 @@
 		"trackNotFound": "재생 중인 트랙을 찾을 수 없습니다",
 		"expand": "플레이어 확장",
 		"collapse": "플레이어 축소",
-		"seek": "탐색"
+		"seek": "탐색",
+		"repeat": "반복",
+		"repeatTrack": "트랙 반복",
+		"repeatRelease": "릴리스 반복",
+		"repeatAll": "모두 반복"
 	},
 	"queue": {
 		"upNext": "다음 곡",
@@ -318,8 +328,8 @@
 		"reorder": "다시 정렬",
 		"clearQueue": "지우기",
 		"empty": "다음이 없습니다",
-		"emptyHint": "추가하는 곡이 다음에 재생됩니다",
-		"upcoming": "예정",
+		"emptyHint": "추가하는 트랙이 다음에 재생됩니다",
+		"upcoming": "다음 곡",
 		"history": "재생 기록",
 		"historyEmpty": "아직 재생된 것이 없습니다"
 	},
@@ -343,12 +353,24 @@
 		"track": "트랙",
 		"tracks": "트랙",
 		"item": "항목",
-		"items": "항목"
+		"items": "항목",
+		"clearSearch": "검색 지우기",
+		"fileNotFound": "파일을 찾을 수 없음",
+		"dropToImport": "오디오 파일을 여기로 드래그하여 가져오기",
+		"noColor": "색상 없음",
+		"colorLabel": "색상: {color}"
 	},
 	"discovery": {
 		"addRelease": "릴리스 추가",
 		"url": "URL",
 		"source": "출처",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "기타"
+		},
 		"release": "릴리스",
 		"releases": "릴리스",
 		"searchPlaceholder": "릴리스 검색...",
@@ -356,6 +378,7 @@
 		"noResults": "필터와 일치하는 릴리스가 없습니다",
 		"addReleaseHint": "{shortcut} 를 눌러 Bandcamp, Discogs, YouTube 등에서 릴리스를 추가하세요",
 		"mobileAddHint": "Bandcamp, Discogs, YouTube 등에서 릴리스 추가",
+		"dropHint": "릴리스를 추가하려면 링크를 드래그하세요",
 		"pending": "대기 중",
 		"offlineQueueNotice": "오프라인 상태입니다 — 다시 연결하면 이 릴리스가 추가됩니다",
 		"addToQueue": "대기열에 추가",
@@ -371,8 +394,7 @@
 			"label": "레이블",
 			"tags": "태그",
 			"dateAdded": "추가 날짜",
-			"released": "릴리스 날짜",
-			"added": "추가됨"
+			"dateReleased": "출시 날짜"
 		},
 		"fetchingMetadata": "메타데이터 가져오는 중...",
 		"refreshMetadata": "메타데이터 새로 고침",
@@ -416,7 +438,6 @@
 			"addTags": "태그 추가"
 		},
 		"import": {
-			"title": "라이브러리로 가져오기",
 			"selectFiles": "파일 선택",
 			"matched": "일치함",
 			"unmatched": "일치하지 않음",
@@ -466,7 +487,7 @@
 			"pauseSelected": "일시 중지",
 			"unfollow": "팔로우 해제",
 			"checkNow": "지금 확인",
-			"enabledToggle": "업데이트 전환",
+			"enabledToggle": "새 릴리스 확인",
 			"artist": "아티스트",
 			"label": "레이블",
 			"checkedAgo": "{time}에 확인됨",
@@ -478,13 +499,11 @@
 			"following": "팔로잉",
 			"followForNewReleases": "새로운 릴리스를 팔로우",
 			"followViaPaste": "팔로잉 패널에서 이 소스를 팔로우",
-			"popoverTitle": "새로운 릴리스를 팔로우",
 			"upcoming": "곧 출시",
 			"daysUntil": "{days}일",
 			"surfacedVia": "{source}를 통해 표시됨",
 			"markNew": "새로 표시",
 			"markNotNew": "새로 아님으로 표시",
-			"alsoFollow": "새로운 릴리스를 팔로우",
 			"sortBy": "정렬 기준",
 			"empty": {
 				"title": "아직 아무도 팔로우하지 않음",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Bandcamp, SoundCloud 또는 Discogs 아티스트/레이블 페이지 URL을 붙여넣으세요",
 				"urlInfo": "플랫폼과 아티스트인지 레이블인지를 자동으로 감지한 뒤, 지금부터 올라오는 새 릴리스를 지켜봅니다. 이전 릴리스는 추가되지 않습니다."
 			}
-		}
+		},
+		"releaseArtwork": "릴리스 아트워크",
+		"mergeTarget": "대상",
+		"mergeTagCount": "{count, plural, other {{count}개 태그}}"
 	},
 	"filters": {
 		"title": "필터",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "루트 (폴더 없음)",
 		"folderEmpty": "이 폴더가 비어 있습니다",
 		"noPlaylistsYet": "아직 재생목록이 없습니다",
-		"noPlaylists": "아직 재생목록이 없습니다",
 		"allPlaylists": "모든 재생목록",
 		"searchPlaceholder": "재생목록 검색…",
 		"emptyHint": "재생목록을 만들어 발견을 정리하세요",
@@ -561,12 +582,11 @@
 		"renameCategory": "카테고리 이름 변경",
 		"deleteTag": "태그 삭제",
 		"deleteCategory": "카테고리 삭제",
-		"addCategory": "카테고리 추가",
-		"addTag": "태그 추가",
 		"moveToCategory": "카테고리로 이동",
 		"noTags": "태그 없음",
 		"noTagCategoriesYet": "아직 태그 카테고리가 없습니다",
-		"emptyHint": "색상으로 분류된 태그 카테고리를 만들어 발견을 정리하세요"
+		"emptyHint": "색상으로 분류된 태그 카테고리를 만들어 발견을 정리하세요",
+		"removeTag": "태그 제거"
 	},
 	"contextMenu": {
 		"viewInFinder": "Finder에서 보기",
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "라이브러리에서 제거",
 			"removeFromLibraryMessage": "{count, plural, =1 {이 트랙을 라이브러리에서 제거하시겠습니까?} other {{count}개의 트랙을 라이브러리에서 제거하시겠습니까?}}",
 			"removeFromLibraryWarning": "이 작업은 취소할 수 없습니다. 트랙이 모든 재생목록에서 제거됩니다.",
-			"deleteTracksFromCollection": "내 컬렉션에서도 트랙 삭제",
-			"removeDiscoveryReleasesTitle": "디스커버리에서 삭제",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {이 릴리스를 디스커버리에서 삭제하시겠습니까?} other {{count}개의 릴리스를 디스커버리에서 삭제하시겠습니까?}}",
+			"deleteTracksFromCollection": "당신의 컬렉션에서도 트랙 삭제",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {릴리스 삭제} other {릴리스 삭제}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {이 릴리스를 삭제하시겠습니까?} other {이 {count}개의 릴리스를 삭제하시겠습니까?}}",
 			"removeDiscoveryReleasesWarning": "이 작업은 취소할 수 없습니다. 릴리스가 모든 재생목록에서 삭제됩니다.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "재생목록에서 삭제",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {이 릴리스를 재생목록에서 삭제하시겠습니까?} other {{count}개의 릴리스를 재생목록에서 삭제하시겠습니까?}}",
-			"deleteReleasesFromCollection": "내 컬렉션에서도 릴리스 삭제"
+			"deleteReleasesFromCollection": "당신의 컬렉션에서도 릴리스 삭제"
 		},
 		"relocate": {
 			"title": "트랙 재배치",
-			"message": "이 트랙의 새 위치를 선택하세요."
+			"cloudSyncedMessage": "이 트랙은 다른 기기에서 추가되었습니다. 여기에서 재생 가능하게 하려면 라이브러리 루트가 포함된 로컬 폴더를 선택하세요.",
+			"missingFileMessage": "이 트랙의 파일을 원래 위치에서 찾을 수 없습니다.",
+			"selectRootFolder": "라이브러리 루트 폴더 선택",
+			"selectReplacementFile": "대체 파일 선택",
+			"validating": "파일 검증 중...",
+			"unsupportedFormat": "지원하지 않는 오디오 형식입니다.",
+			"hashMatch": "파일 내용이 일치합니다. 해시가 검증되었습니다.",
+			"hashMismatch": "파일 내용이 원본과 일치하지 않습니다.",
+			"noOriginalHash": "비교에 사용할 수 있는 원본 해시가 없습니다. 파일이 올바를 수 있습니다.",
+			"useAnyway": "어쨌든 이 파일 사용",
+			"relocate": "재배치",
+			"relocating": "재배치 중...",
+			"validateFailed": "파일 검증에 실패했습니다",
+			"relocateFailed": "트랙 재배치에 실패했습니다"
 		},
-		"albumArt": "앨범 아트",
+		"albumArt": "아트워크",
 		"deviceInfo": {
 			"title": "장치 정보",
 			"diskType": "디스크 유형",
@@ -654,15 +687,6 @@
 			"available": "사용 가능:",
 			"total": "전체:",
 			"percentUsed": "% 사용"
-		},
-		"update": {
-			"title": "업데이트 가능",
-			"description": "{version}을(를) 설치할 준비가 되었습니다.",
-			"releaseNotes": "새로운 기능",
-			"installAndRestart": "설치하고 다시 시작",
-			"later": "나중에",
-			"downloading": "다운로드 중... {progress}%",
-			"installing": "설치 중..."
 		},
 		"duplicate": {
 			"title": "중복 트랙 감지됨",
@@ -677,6 +701,15 @@
 			"replace": "교체",
 			"replaceDescription": "새 파일에서 새로 가져옵니다. 재생목록 멤버십만 유지합니다. 큐 포인트, 태그, 재생 기록을 재설정합니다.",
 			"applyToAll": "나머지 모든 중복 항목에 적용 ({count})"
+		},
+		"update": {
+			"title": "업데이트 가능",
+			"description": "{version}을(를) 설치할 준비가 되었습니다.",
+			"releaseNotes": "새로운 기능",
+			"installAndRestart": "설치하고 다시 시작",
+			"later": "나중에",
+			"downloading": "다운로드 중... {progress}%",
+			"installing": "설치 중..."
 		},
 		"conflict": {
 			"title": "이름 충돌",
@@ -699,6 +732,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1개의 트랙이} other {{count}개의 트랙이}} {playlistName}에 추가됨, {failed}개 실패",
 		"tracksImported": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}} 가져옴",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1개의 트랙} other {{imported}개의 트랙}} 가져옴, {skipped}개 건너뜀",
+		"tracksExported": "{exported, plural, =1 {1개의 트랙} other {{exported}개의 트랙}}을(를) {deviceName}에 내보냄, {skipped, plural, =1 {1개 건너뜀} other {{skipped}개 건너뜀}}",
 		"trackRemoved": "{count, plural, =1 {1개의 트랙이} other {{count}개의 트랙이}} 재생목록에서 제거됨",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1개의 트랙이} other {{count}개의 트랙이}} 라이브러리에서 제거됨",
 		"movedSuccessfully": "성공적으로 이동됨",
@@ -718,7 +752,14 @@
 		"failedToUpdateTracks": "트랙 업데이트 실패",
 		"failedToSetArtwork": "아트워크 설정 실패",
 		"failedToRemoveArtwork": "아트워크 제거 실패",
-		"noArtworkInFile": "오디오 파일에서 아트워크를 찾을 수 없음"
+		"noArtworkInFile": "오디오 파일에서 아트워크를 찾을 수 없음",
+		"tracksImportedWithFailed": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}} 가져옴, {failed}개 실패",
+		"failedToSetTrackColor": "트랙 색상 설정에 실패했습니다",
+		"exportCleanedUp": "부분 내보내기 정리됨",
+		"exportCleanUpFailed": "내보내기 정리에 실패했습니다",
+		"deviceNotFound": "기기를 찾을 수 없습니다",
+		"deviceReformatted": "기기가 \"{name}\"으로(로) 포맷됨",
+		"deviceReformatFailed": "포맷 실패: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "폴더를 자기 자신 안에 놓을 수 없습니다",
@@ -730,14 +771,17 @@
 		"previewNotAvailableOffline": "이 트랙은 오프라인에서 사용할 수 없습니다",
 		"updateCheckFailed": "업데이트 확인 실패",
 		"updateInstallFailed": "업데이트 설치 실패",
-		"generic": "문제가 발생했습니다"
+		"generic": "문제가 발생했습니다",
+		"previewPlaybackFailed": "미리보기 재생 오류",
+		"previewPlayFailed": "미리보기 재생에 실패했습니다",
+		"previewResumeFailed": "미리보기 재개에 실패했습니다"
 	},
 	"devices": {
 		"title": "장치",
 		"eject": "꺼내기",
 		"ignore": "무시",
 		"unignore": "무시 중지",
-		"selectDevice": "기기 선택",
+		"selectDevice": "기기 선택하기",
 		"deviceInfo": "장치 정보",
 		"capacity": "용량",
 		"available": "사용 가능",
@@ -771,7 +815,7 @@
 		"selectDevice": "장치 선택",
 		"selectDevicesDescription": "내보낼 하나 이상의 장치를 선택하세요.",
 		"devicesSelected": "{count, plural, =1 {1개 장치 선택됨} other {{count}개 장치 선택됨}}",
-		"devicesToExport": "장치",
+		"devicesToExport": "내보낼 장치",
 		"noDevicesConnected": "연결된 USB 장치 없음",
 		"noPlaylistsAvailable": "사용 가능한 재생목록 없음",
 		"destination": "대상",
@@ -906,28 +950,8 @@
 		"featureTour": "기능 투어...",
 		"reportIssue": "문제 신고..."
 	},
-	"wizard": {
-		"discovery": {
-			"title": "발견",
-			"description": "Bandcamp, SoundCloud 등에서 릴리스를 찾아보고 저장합니다. 릴리스 URL을 추가하여 컬렉션 구축을 시작합니다."
-		},
-		"library": {
-			"title": "라이브러리",
-			"description": "개인적인 트랙 라이브러리입니다. 오디오 파일을 가져와 트랙을 정리, 태그 지정 및 세트 준비합니다."
-		},
-		"playlists": {
-			"title": "재생목록",
-			"description": "트랙을 재생목록과 폴더로 구성합니다. 귀사의 기준에 따라 자동으로 업데이트되는 스마트 재생목록을 만듭니다."
-		},
-		"tags": {
-			"title": "태그 및 카테고리",
-			"description": "음악을 분류하기 위한 카테고리와 태그를 만듭니다. 라이브러리를 필터링하거나 한 번에 여러 트랙에 태그를 지정합니다."
-		},
-		"skip": "투어 건너뛰기",
-		"finish": "완료"
-	},
 	"smartPlaylist": {
-		"createTitle": "스마트 재생목록 만들기",
+		"createTitle": "새 스마트 재생목록",
 		"editTitle": "스마트 재생목록 편집",
 		"name": "이름",
 		"namePlaceholder": "스마트 재생목록 이름",
@@ -1008,7 +1032,35 @@
 			"aqua": "아쿠아",
 			"blue": "파랑",
 			"purple": "보라"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "발견",
+			"description": "Bandcamp, SoundCloud 등에서 릴리스를 찾아보고 저장합니다. 릴리스 URL을 추가하여 컬렉션 구축을 시작합니다."
+		},
+		"library": {
+			"title": "라이브러리",
+			"description": "개인적인 트랙 라이브러리입니다. 오디오 파일을 가져와 트랙을 정리, 태그 지정 및 세트 준비합니다."
+		},
+		"playlists": {
+			"title": "재생목록",
+			"description": "트랙을 재생목록과 폴더로 구성합니다. 귀사의 기준에 따라 자동으로 업데이트되는 스마트 재생목록을 만듭니다."
+		},
+		"tags": {
+			"title": "태그 및 카테고리",
+			"description": "음악을 분류하기 위한 카테고리와 태그를 만듭니다. 라이브러리를 필터링하거나 한 번에 여러 트랙에 태그를 지정합니다."
+		},
+		"skip": "투어 건너뛰기",
+		"finish": "완료"
 	},
 	"onboarding": {
 		"welcome": {

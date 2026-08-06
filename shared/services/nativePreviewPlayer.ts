@@ -41,15 +41,32 @@ export interface NativeStateEvent {
 	isPlaying: boolean
 	positionMs: number
 	durationMs: number
+	/**
+	 * We want to play but AVPlayer isn't rendering audio yet — the item is still loading, or playback
+	 * stalled on an empty buffer. `isPlaying` alone can't tell you this: the engine sets it optimistically
+	 * the moment a load is requested. This is the native equivalent of the HTML5 element's
+	 * `waiting` / `playing` pair, and it's what drives the loading spinner.
+	 */
+	isBuffering: boolean
 }
+
+/** OS-level repeat state as the lock screen reports/displays it (MPRepeatType). */
+export type NativeRepeatMode = 'off' | 'one' | 'all'
 
 export interface NativeBridgeHandlers {
 	onState: (state: NativeStateEvent) => void
 	onTrackChanged: (index: number) => void
 	onEnded: () => void
-	onError: (message: string) => void
+	/**
+	 * `retryable` says whether re-resolving the stream could plausibly fix the failure. An AVFoundation
+	 * load error usually means a dead/expired upstream URL, which one silent re-resolve does fix; a load
+	 * TIMEOUT would just walk the same slow path again, so the caller should go straight to idle + toast.
+	 */
+	onError: (message: string, retryable: boolean) => void
 	/** A lock-screen Like press toggled the DB natively; mirror it into the JS stores. */
 	onLikeChanged?: (trackId: string, isLiked: boolean) => void
+	/** The lock-screen repeat command changed the OS repeat state; mirror it into the app. */
+	onRepeatChanged?: (mode: NativeRepeatMode) => void
 	/** Temporary diagnostic channel (#54 debugging): engine traces routed to the webview console. */
 	onDebug?: (message: string) => void
 }
@@ -110,6 +127,16 @@ export async function setLiked(trackId: string, liked: boolean): Promise<void> {
 }
 
 /**
+ * Reflect the app's repeat mode on the engine. Repeat-track turns on the item-loop flag — the engine
+ * rewinds the ending item instead of advancing, so the loop is gapless and works while the screen is
+ * locked — and the lock-screen repeat glyph shows one/all/off (release and context both display "all",
+ * MPRepeatType has no finer notion).
+ */
+export async function setRepeatMode(mode: 'off' | 'track' | 'release' | 'context'): Promise<void> {
+	await invoke('native_preview_set_repeat_mode', { mode })
+}
+
+/**
  * Subscribe to the native engine's events and forward them to the provided handlers. Returns a
  * cleanup function that detaches all listeners.
  */
@@ -120,11 +147,22 @@ export async function startNativePreviewBridge(handlers: NativeBridgeHandlers): 
 		await listen<{ index: number }>('native-preview-track-changed', (e) => handlers.onTrackChanged(e.payload.index))
 	)
 	unlisten.push(await listen('native-preview-ended', () => handlers.onEnded()))
-	unlisten.push(await listen<{ message: string }>('native-preview-error', (e) => handlers.onError(e.payload.message)))
+	unlisten.push(
+		await listen<{ message: string; retryable: boolean }>('native-preview-error', (e) =>
+			handlers.onError(e.payload.message, e.payload.retryable)
+		)
+	)
 	if (handlers.onLikeChanged) {
 		unlisten.push(
 			await listen<{ trackId: string; isLiked: boolean }>('native-preview-like-changed', (e) =>
 				handlers.onLikeChanged!(e.payload.trackId, e.payload.isLiked)
+			)
+		)
+	}
+	if (handlers.onRepeatChanged) {
+		unlisten.push(
+			await listen<{ mode: NativeRepeatMode }>('native-preview-repeat-changed', (e) =>
+				handlers.onRepeatChanged!(e.payload.mode)
 			)
 		)
 	}

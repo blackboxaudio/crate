@@ -59,7 +59,7 @@
 	{#if inputValue}
 		<button
 			type="button"
-			aria-label="Clear search"
+			aria-label={$translate('library.clearSearch')}
 			class="absolute inset-y-0 right-0 flex cursor-pointer items-center pr-3 text-text-tertiary hover:text-text-secondary"
 			onclick={handleClear}
 		>

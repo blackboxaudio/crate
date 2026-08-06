@@ -13,6 +13,7 @@
 	import { isAndroid, isIOS } from '$shared/utils/platform'
 	import { mobileUIStore, isPlayerExpanded, flushNavPersistence } from '$lib/stores/mobileUI'
 	import { collectionStore } from '$shared/stores/collection'
+	import { discoveryStore } from '$shared/stores/discovery'
 	import { offlineCacheStore } from '$lib/stores/offlineCache'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
 	import { initAndroidShareIntake } from '$lib/androidShare'
@@ -147,6 +148,16 @@
 			if (timer) clearTimeout(timer)
 			unlisten?.()
 		}
+	})
+
+	// Preview-availability changes: a stream extraction refreshed a release's per-track
+	// availability flags (pre-order tracks with no stream) — grey/un-grey its rows in place.
+	onMount(() => {
+		let unlisten: UnlistenFn | undefined
+		void listen<{ releaseId: string; unavailable: number[] }>('discovery-availability-changed', (event) => {
+			discoveryStore.applyPreviewAvailability(event.payload.releaseId, event.payload.unavailable)
+		}).then((u) => (unlisten = u))
+		return () => unlisten?.()
 	})
 
 	// Purchased-collection state (owned badges / the Purchased view): seed on boot, then refetch

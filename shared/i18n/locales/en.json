@@ -25,7 +25,13 @@
 		"more": "More",
 		"select": "Select",
 		"noResults": "No results",
-		"offline": "You're offline"
+		"offline": "You're offline",
+		"audioFiles": "Audio Files",
+		"images": "Images",
+		"selectAnOption": "Select an option",
+		"unknownError": "Unknown error",
+		"dismiss": "Dismiss",
+		"step": "Step {number}"
 	},
 	"nav": {
 		"library": "Library",
@@ -92,13 +98,13 @@
 			"keyNotationCamelot": "Camelot",
 			"keyNotationStandard": "Standard",
 			"keyNotationDescription": "Choose how musical keys are displayed.",
-			"autoAnalyzeOnImport": "Auto-analyze on import",
+			"autoAnalyzeOnImport": "Auto-Analyze on Import",
 			"autoAnalyzeOnImportDescription": "Automatically analyze BPM and key when importing tracks.",
 			"sync": "Sync",
 			"syncDescription": "Configure automatic synchronization with USB devices.",
-			"autoSyncOnConnect": "Auto-sync on device connected",
+			"autoSyncOnConnect": "Auto-Sync on Device Connected",
 			"autoSyncOnConnectDescription": "When a USB device reconnects, automatically sync any pending changes.",
-			"autoSyncOnChange": "Auto-sync on library changes",
+			"autoSyncOnChange": "Auto-Sync on Library Changes",
 			"autoSyncOnChangeDescription": "When tracks or playlists are edited, automatically sync to connected devices.",
 			"ignoredDevices": "Ignored Devices",
 			"ignoredDevicesDescription": "Devices in this list are hidden from the sidebar and will not trigger auto-sync.",
@@ -113,24 +119,24 @@
 		},
 		"discovery": {
 			"metadata": "Metadata",
-			"autoFetchMetadata": "Auto-fetch metadata",
+			"autoFetchMetadata": "Auto-Fetch Metadata",
 			"autoFetchMetadataDescription": "Automatically fetch release metadata when adding a URL.",
 			"import": "Import",
-			"transferTagsOnImport": "Transfer tags on import",
+			"transferTagsOnImport": "Transfer Tags on Import",
 			"transferTagsOnImportDescription": "Transfer release tags to imported tracks by default.",
-			"removeReleaseAfterImport": "Remove release after import",
+			"removeReleaseAfterImport": "Remove Release After Import",
 			"removeReleaseAfterImportDescription": "Automatically remove releases from discovery after importing files.",
 			"previewCache": "Preview Cache",
 			"previewCacheDescription": "Previewed discovery tracks are cached locally for instant playback on subsequent listens.",
-			"cacheSize": "Cache size",
+			"cacheSize": "Cache Size",
 			"clearCache": "Clear Cache",
 			"clearCacheConfirmMessage": "Are you sure you want to clear all cached preview audio?",
 			"clearCacheWarning": "Previously previewed tracks will need to be re-streamed from their source on next play. This may be slower and some streams may no longer be available.",
 			"audioCache": "Audio",
 			"artworkCache": "Artwork",
-			"artworkCacheDescription": "Album art is saved on this device so it shows without a connection.",
-			"clearArtworkCacheConfirmMessage": "Are you sure you want to clear all cached album art?",
-			"cacheLimit": "Cache limit"
+			"artworkCacheDescription": "Artwork is saved on this device so it shows without a connection.",
+			"clearArtworkCacheConfirmMessage": "Are you sure you want to clear all cached artwork?",
+			"cacheLimit": "Cache Limit"
 		},
 		"following": {
 			"title": "Following",
@@ -139,15 +145,15 @@
 			"cadenceHourly": "Hourly",
 			"cadenceDaily": "On launch and daily",
 			"cadenceManual": "Manual only",
-			"checkAllNow": "Check all now",
-			"autoFollowDescription": "Default for the \"Also follow\" option when importing a release.",
+			"checkAllNow": "Check All Now",
+			"autoFollowDescription": "Default for the \"Follow for new releases\" option when importing a release.",
 			"autoFollowOff": "Off",
 			"autoFollowArtist": "Artist",
 			"autoFollowLabel": "Label",
 			"autoFollowBoth": "Both",
-			"releaseDayReminders": "Release-day reminders",
+			"releaseDayReminders": "Release-Day Reminders",
 			"releaseDayRemindersHelper": "Reminders may be a day off due to time zones.",
-			"newReleasesSummary": "New-releases summary",
+			"newReleasesSummary": "New-Releases Summary",
 			"discogsRateLimitNote": "Discogs limits how often it can be checked, so large follow lists may update gradually."
 		},
 		"collection": {
@@ -164,7 +170,7 @@
 			"refreshNow": "Refresh Collection",
 			"removeConfirmTitle": "Unlink Account",
 			"removeConfirmMessage": "Purchases from this account will no longer show as owned.",
-			"enabledToggle": "Count purchases as owned",
+			"enabledToggle": "Count Purchases as Owned",
 			"privacyNote": "Only your public Bandcamp collection is read. Private purchases and hidden items are not visible."
 		},
 		"appearance": {
@@ -178,11 +184,11 @@
 		},
 		"sound": {
 			"outputDevice": "Output Device",
-			"outputDeviceDescription": "Select the audio output device for playback.",
+			"outputDeviceDescription": "Choose the audio output device for playback.",
 			"systemDefault": "System Default",
 			"system": "System",
 			"external": "External",
-			"continuousPlayback": "Continuous playback",
+			"continuousPlayback": "Continuous Playback",
 			"continuousPlaybackDescription": "Automatically play the next track when the current one ends."
 		},
 		"diagnostics": {
@@ -234,16 +240,16 @@
 			"toolarge": "Your library is too large to upload",
 			"conflict": "Another device is syncing right now — will retry",
 			"server": "The sync service is having trouble — will retry",
-			"merge": "Couldn't apply synced changes on this device"
+			"merge": "Failed to apply synced changes on this device"
 		},
 		"diagnostics": {
-			"copy": "Copy sync diagnostics"
+			"copy": "Copy Sync Diagnostics"
 		},
 		"account": {
 			"title": "Account",
-			"syncNow": "Sync now",
+			"syncNow": "Sync Now",
 			"syncing": "Syncing…",
-			"signOut": "Sign out",
+			"signOut": "Sign Out",
 			"signOutConfirmTitle": "Sign out?",
 			"signOutConfirmMessage": "Your local data stays on this device. Syncing will stop until you sign in again.",
 			"autoSyncHint": "Your discovery library syncs automatically across your devices.",
@@ -262,7 +268,7 @@
 		"roots": {
 			"title": "Library Roots",
 			"description": "Map each synced library root to a folder on this device so its tracks become playable.",
-			"map": "Map folder",
+			"map": "Map Folder",
 			"remap": "Remap",
 			"unmapped": "Not mapped on this device",
 			"none": "No library roots yet."
@@ -272,18 +278,18 @@
 		},
 		"danger": {
 			"title": "Danger Zone",
-			"deleteVault": "Delete cloud vault",
+			"deleteVault": "Delete Cloud Vault",
 			"deleteVaultDescription": "Permanently delete all synced data from the cloud. Your local library is not affected.",
 			"confirmTitle": "Delete cloud vault?",
 			"confirmMessage": "This permanently deletes all your synced data from the cloud and signs you out. Your local library stays intact. This can't be undone.",
-			"error": "Couldn't delete your cloud vault",
-			"deleteAccount": "Delete account",
+			"error": "Failed to delete your cloud vault",
+			"deleteAccount": "Delete Account",
 			"deleteAccountDescription": "Permanently delete your account and all synced data from the cloud. This does not affect the audio files or library on this device.",
 			"deleteAccountConfirmTitle": "Delete your account?",
 			"deleteAccountConfirmMessage": "This permanently deletes your account and erases all your synced data — tracks, playlists, tags, and discovery — from every device signed in to it. Your local files stay on this device. This can't be undone.",
 			"deletingAccount": "Deleting account…",
 			"deleteAccountSuccess": "Your account has been deleted",
-			"deleteAccountError": "Couldn't delete your account"
+			"deleteAccountError": "Failed to delete your account"
 		}
 	},
 	"player": {
@@ -298,28 +304,32 @@
 		"noTrackSelected": "No track selected",
 		"volume": "Volume",
 		"tempo": "Tempo",
-		"resetTempo": "Reset tempo",
-		"trackNotFound": "Could not locate the playing track",
-		"expand": "Expand player",
-		"collapse": "Collapse player",
-		"seek": "Seek"
+		"resetTempo": "Reset Tempo",
+		"trackNotFound": "Failed to locate the playing track",
+		"expand": "Expand Player",
+		"collapse": "Collapse Player",
+		"seek": "Seek",
+		"repeat": "Repeat",
+		"repeatTrack": "Repeat track",
+		"repeatRelease": "Repeat release",
+		"repeatAll": "Repeat all"
 	},
 	"queue": {
 		"upNext": "Up Next",
-		"openQueue": "Up next",
-		"playNext": "Play next",
-		"addToQueue": "Add to queue",
-		"playingNext": "Playing next",
+		"openQueue": "Up Next",
+		"playNext": "Play Next",
+		"addToQueue": "Add to Queue",
+		"playingNext": "Playing Next",
 		"addedToQueue": "Added to queue",
-		"nextInQueue": "Next in queue",
-		"upNextFromContext": "Up next",
-		"addedByYou": "Added by you",
-		"removeFromQueue": "Remove from queue",
+		"nextInQueue": "Next in Queue",
+		"upNextFromContext": "Up Next",
+		"addedByYou": "Added by You",
+		"removeFromQueue": "Remove from Queue",
 		"reorder": "Reorder",
 		"clearQueue": "Clear",
 		"empty": "Nothing up next",
-		"emptyHint": "Songs you add will play next",
-		"upcoming": "Upcoming",
+		"emptyHint": "Tracks you add will play next",
+		"upcoming": "Up Next",
 		"history": "History",
 		"historyEmpty": "Nothing played yet"
 	},
@@ -329,7 +339,7 @@
 		"matching": "Matching",
 		"matchOr": "OR",
 		"matchAnd": "AND",
-		"clearAll": "Clear all",
+		"clearAll": "Clear All",
 		"noTracksYet": "No tracks yet",
 		"dragDropHint": "Press {shortcut} or drag audio files here to import them",
 		"columns": {
@@ -343,12 +353,24 @@
 		"track": "track",
 		"tracks": "tracks",
 		"item": "item",
-		"items": "items"
+		"items": "items",
+		"clearSearch": "Clear search",
+		"fileNotFound": "File not found",
+		"dropToImport": "Drop audio files to import",
+		"noColor": "No color",
+		"colorLabel": "Color: {color}"
 	},
 	"discovery": {
 		"addRelease": "Add Release",
 		"url": "URL",
 		"source": "Source",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Other"
+		},
 		"release": "release",
 		"releases": "releases",
 		"searchPlaceholder": "Search releases...",
@@ -356,6 +378,7 @@
 		"noResults": "No releases match your filters",
 		"addReleaseHint": "Press {shortcut} to add releases from Bandcamp, Discogs, YouTube, and more",
 		"mobileAddHint": "Add releases from Bandcamp, Discogs, YouTube, and more",
+		"dropHint": "Drop a link to add a release",
 		"pending": "Pending",
 		"offlineQueueNotice": "You're offline — this release will be added when you reconnect",
 		"addToQueue": "Add to Queue",
@@ -371,8 +394,7 @@
 			"label": "Label",
 			"tags": "Tags",
 			"dateAdded": "Date Added",
-			"released": "Released",
-			"added": "Added"
+			"dateReleased": "Date Released"
 		},
 		"fetchingMetadata": "Fetching metadata...",
 		"refreshMetadata": "Refresh Metadata",
@@ -380,8 +402,8 @@
 		"downloading": "Downloading...",
 		"downloadedForOffline": "Downloaded",
 		"removeDownload": "Remove Download",
-		"downloadFailed": "Could not download for offline",
-		"fetchError": "Could not fetch metadata from this URL",
+		"downloadFailed": "Failed to download for offline",
+		"fetchError": "Failed to fetch metadata from this URL",
 		"unsupportedUrl": "This URL is not supported",
 		"shareNoUrl": "No link found in the shared text",
 		"tracks": "Tracks",
@@ -393,7 +415,7 @@
 		"share": "Share",
 		"viewAsGrid": "View as grid",
 		"viewAsList": "View as list",
-		"pasteLink": "Paste link",
+		"pasteLink": "Paste Link",
 		"clipboardNoUrl": "No link on the clipboard",
 		"like": "Like",
 		"unlike": "Unlike",
@@ -410,13 +432,12 @@
 			"artist": "Artist",
 			"title": "Title",
 			"label": "Label",
-			"releaseDate": "Release Date",
+			"releaseDate": "Date Released",
 			"notes": "Notes",
 			"notesPlaceholder": "Add notes…",
-			"addTags": "Add tags"
+			"addTags": "Add Tags"
 		},
 		"import": {
-			"title": "Import to Library",
 			"selectFiles": "Select Files",
 			"matched": "Matched",
 			"unmatched": "Unmatched",
@@ -436,15 +457,15 @@
 		"mergeTrackCount": "{count, plural, =1 {1 track} other {{count} tracks}} combined",
 		"expandAll": "Expand All",
 		"collapseAll": "Collapse All",
-		"showLiked": "Show liked",
-		"showAll": "Show all",
+		"showLiked": "Show Liked",
+		"showAll": "Show All",
 		"scanningReleases": "Scanning releases...",
 		"scanningReleasesProgress": "Scanning page {current} of {total} ({found} releases found)...",
 		"scanningReleasesEntity": "Scanning {name}...",
 		"bulkImport": {
 			"releasesFound": "{total, plural, =1 {1 release} other {{total} releases}} found",
 			"alreadyInDiscovery": "{count, plural, =1 {1 already in discovery} other {{count} already in discovery}}",
-			"selectAll": "Select all",
+			"selectAll": "Select All",
 			"deselectAll": "Deselect all",
 			"addReleases": "Add {count, plural, =1 {1 release} other {{count} releases}}",
 			"importing": "Adding {current} of {total} releases...",
@@ -452,7 +473,7 @@
 			"completedWithFailures": "Added {succeeded, plural, =1 {1 release} other {{succeeded} releases}} ({failed} failed)",
 			"alreadyInDiscoveryBadge": "Already in discovery",
 			"noReleasesFound": "No releases found on this page",
-			"cancelImport": "Cancel import"
+			"cancelImport": "Cancel Import"
 		},
 		"following": {
 			"title": "Following",
@@ -465,40 +486,38 @@
 			"unfollowSelected": "Unfollow",
 			"pauseSelected": "Pause",
 			"unfollow": "Unfollow",
-			"checkNow": "Check now",
-			"enabledToggle": "Toggle updates",
+			"checkNow": "Check Now",
+			"enabledToggle": "Check for New Releases",
 			"artist": "Artist",
 			"label": "Label",
 			"checkedAgo": "Checked {time}",
 			"upToDate": "Up to date",
 			"paused": "Paused",
 			"newCount": "{count, plural, =1 {1 new} other {{count} new}}",
-			"sourceError": "Couldn't check this source",
+			"sourceError": "Failed to check this source",
 			"follow": "Follow",
 			"following": "Following",
 			"followForNewReleases": "Follow for new releases",
 			"followViaPaste": "Follow this source from the Following panel",
-			"popoverTitle": "Follow for new releases",
 			"upcoming": "Upcoming",
 			"daysUntil": "{days} d",
 			"surfacedVia": "Surfaced via {source}",
-			"markNew": "Mark as new",
-			"markNotNew": "Mark as not new",
-			"alsoFollow": "Follow for new releases",
+			"markNew": "Mark as New",
+			"markNotNew": "Mark as Not New",
 			"sortBy": "Sort by",
 			"empty": {
 				"title": "You're not following anyone yet",
 				"hint": "Follow an artist or label and new releases land here automatically."
 			},
 			"sort": {
-				"newCount": "New count",
+				"newCount": "New Count",
 				"name": "Name",
-				"recentlyReleased": "Recently released"
+				"recentlyReleased": "Recently Released"
 			},
 			"review": "Review",
 			"foundToast": "{count, plural, =1 {1 new release} other {{count} new releases}} from your follows",
 			"changeType": "Following as {type} — click to change",
-			"relink": "Re-link releases",
+			"relink": "Re-link Releases",
 			"relinkHint": "Re-scan this page and link it to already-imported releases — fixes the follow state on rows imported before this existed.",
 			"relinkResult": "{count, plural, =0 {No releases to re-link} =1 {Re-linked 1 release} other {Re-linked {count} releases}}",
 			"addSource": {
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Paste a Bandcamp, SoundCloud, or Discogs artist/label page URL",
 				"urlInfo": "We'll detect the platform and whether it's an artist or label, then watch for new releases from now on. Older releases won't be added."
 			}
-		}
+		},
+		"releaseArtwork": "Release artwork",
+		"mergeTarget": "Target",
+		"mergeTagCount": "{count, plural, =1 {1 tag} other {{count} tags}}"
 	},
 	"filters": {
 		"title": "Filters",
@@ -542,16 +564,15 @@
 		"rootNoFolder": "Root (No Folder)",
 		"folderEmpty": "This folder is empty",
 		"noPlaylistsYet": "No playlists yet",
-		"noPlaylists": "No playlists yet",
 		"allPlaylists": "All Playlists",
 		"searchPlaceholder": "Search playlists…",
 		"emptyHint": "Create playlists to organize your discoveries",
 		"detailEmptyHint": "Long-press a release in Discovery to add it to a playlist",
 		"exportToDevice": "Export to Device",
-		"playlistOrder": "Playlist order",
+		"playlistOrder": "Playlist Order",
 		"sort": {
-			"dateCreated": "Date created",
-			"dateModified": "Date modified"
+			"dateCreated": "Date Created",
+			"dateModified": "Date Modified"
 		}
 	},
 	"tags": {
@@ -561,12 +582,11 @@
 		"renameCategory": "Rename Category",
 		"deleteTag": "Delete Tag",
 		"deleteCategory": "Delete Category",
-		"addCategory": "Add Category",
-		"addTag": "Add Tag",
 		"moveToCategory": "Move to Category",
 		"noTags": "No tags",
 		"noTagCategoriesYet": "No tag categories yet",
-		"emptyHint": "Create color-coded tag categories to organize your discoveries"
+		"emptyHint": "Create color-coded tag categories to organize your discoveries",
+		"removeTag": "Remove tag"
 	},
 	"contextMenu": {
 		"viewInFinder": "View in Finder",
@@ -580,7 +600,7 @@
 		"removeFromLibrary": "Remove from Library",
 		"relocate": "Relocate...",
 		"analyze": "Analyze",
-		"stopAnalysis": "Stop analysis"
+		"stopAnalysis": "Stop Analysis"
 	},
 	"modals": {
 		"createPlaylist": {
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "Remove from Library",
 			"removeFromLibraryMessage": "{count, plural, =1 {Remove this track from your library?} other {Remove {count} tracks from your library?}}",
 			"removeFromLibraryWarning": "This action cannot be undone. Tracks will be removed from all playlists.",
-			"deleteTracksFromCollection": "Also delete tracks from my collection",
-			"removeDiscoveryReleasesTitle": "Remove from Discovery",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Remove this release from discovery?} other {Remove {count} releases from discovery?}}",
+			"deleteTracksFromCollection": "Also delete tracks from your collection",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Delete Release} other {Delete Releases}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Delete this release?} other {Delete {count} releases?}}",
 			"removeDiscoveryReleasesWarning": "This action cannot be undone. Releases will be removed from all playlists.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Remove from Playlist",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Remove this release from the playlist?} other {Remove {count} releases from the playlist?}}",
-			"deleteReleasesFromCollection": "Also delete releases from my collection"
+			"deleteReleasesFromCollection": "Also delete releases from your collection"
 		},
 		"relocate": {
 			"title": "Relocate Track",
-			"message": "Select the new location for this track."
+			"cloudSyncedMessage": "This track was added on another device. Choose the local folder that contains its library root to make it playable here.",
+			"missingFileMessage": "The file for this track could not be found at its original location.",
+			"selectRootFolder": "Select Library Root Folder",
+			"selectReplacementFile": "Select Replacement File",
+			"validating": "Validating file...",
+			"unsupportedFormat": "Unsupported audio format.",
+			"hashMatch": "File content matches. Hash verified.",
+			"hashMismatch": "File content does not match the original.",
+			"noOriginalHash": "No original hash available for comparison. The file may still be correct.",
+			"useAnyway": "Use this file anyway",
+			"relocate": "Relocate",
+			"relocating": "Relocating...",
+			"validateFailed": "Failed to validate file",
+			"relocateFailed": "Failed to relocate track"
 		},
-		"albumArt": "Album Art",
+		"albumArt": "Artwork",
 		"deviceInfo": {
 			"title": "Device Info",
 			"diskType": "Disk Type",
@@ -719,7 +752,14 @@
 		"failedToUpdateTracks": "Failed to update tracks",
 		"failedToSetArtwork": "Failed to set artwork",
 		"failedToRemoveArtwork": "Failed to remove artwork",
-		"noArtworkInFile": "No artwork found in audio file"
+		"noArtworkInFile": "No artwork found in audio file",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 track} other {{count} tracks}} imported, {failed} failed",
+		"failedToSetTrackColor": "Failed to set track color",
+		"exportCleanedUp": "Cleaned up partial export",
+		"exportCleanUpFailed": "Failed to clean up export",
+		"deviceNotFound": "Device not found",
+		"deviceReformatted": "Device reformatted as \"{name}\"",
+		"deviceReformatFailed": "Failed to reformat: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Cannot drop a folder into itself",
@@ -731,14 +771,17 @@
 		"previewNotAvailableOffline": "This track isn't available offline",
 		"updateCheckFailed": "Failed to check for updates",
 		"updateInstallFailed": "Failed to install update",
-		"generic": "Something went wrong"
+		"generic": "Something went wrong",
+		"previewPlaybackFailed": "Preview playback error",
+		"previewPlayFailed": "Failed to play preview",
+		"previewResumeFailed": "Failed to resume preview"
 	},
 	"devices": {
 		"title": "Devices",
 		"eject": "Eject",
 		"ignore": "Ignore",
-		"unignore": "Stop ignoring",
-		"selectDevice": "Select device",
+		"unignore": "Stop Ignoring",
+		"selectDevice": "Select a device",
 		"deviceInfo": "Device Info",
 		"capacity": "Capacity",
 		"available": "Available",
@@ -748,7 +791,7 @@
 		"connected": "Connected",
 		"statusCompatible": "Compatible for USB export",
 		"statusIncompatible": "Incompatible format ({fileSystem})",
-		"viewInfo": "View info",
+		"viewInfo": "View Info",
 		"exportTo": "Export to...",
 		"reformat": {
 			"menuItem": "Reformat",
@@ -772,7 +815,7 @@
 		"selectDevice": "Select a device",
 		"selectDevicesDescription": "Select one or more devices to export to.",
 		"devicesSelected": "{count, plural, =1 {1 device selected} other {{count} devices selected}}",
-		"devicesToExport": "Devices",
+		"devicesToExport": "Devices to Export",
 		"noDevicesConnected": "No USB devices connected",
 		"noPlaylistsAvailable": "No playlists available",
 		"destination": "Destination",
@@ -783,7 +826,7 @@
 		"preparing": "Preparing...",
 		"copying": "Copying files...",
 		"generatingDatabase": "Generating database...",
-		"complete": "Export complete",
+		"complete": "Export Complete",
 		"failed": "Export Failed",
 		"cancel": "Cancel",
 		"keepPartial": "Keep Partial",
@@ -908,7 +951,7 @@
 		"reportIssue": "Report an Issue..."
 	},
 	"smartPlaylist": {
-		"createTitle": "Create Smart Playlist",
+		"createTitle": "New Smart Playlist",
 		"editTitle": "Edit Smart Playlist",
 		"name": "Name",
 		"namePlaceholder": "Smart Playlist Name",
@@ -918,7 +961,7 @@
 		"addCondition": "Add Condition",
 		"removeCondition": "Remove Condition",
 		"noConditions": "Add conditions to filter tracks automatically",
-		"limit": "Limit results",
+		"limit": "Limit Results",
 		"limitItems": "items,",
 		"sortBy": "sorted by",
 		"ascending": "Ascending",
@@ -946,7 +989,7 @@
 			"color": "Color",
 			"format": "Format",
 			"sourceType": "Source",
-			"releaseDate": "Release Date",
+			"releaseDate": "Date Released",
 			"notes": "Notes",
 			"tags": "Tags"
 		},
@@ -978,7 +1021,7 @@
 			"title": "Title",
 			"artist": "Artist",
 			"random": "Random",
-			"releaseDate": "Release Date"
+			"releaseDate": "Date Released"
 		},
 		"colors": {
 			"pink": "Pink",
@@ -989,6 +1032,14 @@
 			"aqua": "Aqua",
 			"blue": "Blue",
 			"purple": "Purple"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {
@@ -1008,7 +1059,7 @@
 			"title": "Tags & Categories",
 			"description": "Create categories and tags to classify your music. Filter your library or tag multiple tracks at once."
 		},
-		"skip": "Skip tour",
+		"skip": "Skip Tour",
 		"finish": "Finish"
 	},
 	"onboarding": {
@@ -1018,7 +1069,7 @@
 		},
 		"language": {
 			"title": "Choose Your Language",
-			"description": "Select the language for the application interface."
+			"description": "Choose the language for the application interface."
 		},
 		"appearance": {
 			"title": "Customize Your Look",
@@ -1044,7 +1095,7 @@
 			},
 			"appearance": {
 				"title": "Make it yours",
-				"description": "Pick a theme and accent color. You can change these anytime in Settings."
+				"description": "Choose a theme and accent color. You can change these anytime in Settings."
 			},
 			"skip": "Skip",
 			"maybeLater": "Maybe later"

@@ -24,14 +24,6 @@
 
 	let { release, triggerEl, onClose }: Props = $props()
 
-	const platformLabels: Record<string, string> = {
-		bandcamp: 'Bandcamp',
-		soundcloud: 'SoundCloud',
-		discogs: 'Discogs',
-		youtube: 'YouTube',
-		other: 'Other',
-	}
-
 	// A release yields two independent follow targets: the artist (its own Bandcamp
 	// subdomain / SoundCloud profile) and the label (the page it was discovered from,
 	// `source_page_url`). Each is followed separately, so the toggle stays visible and the
@@ -166,7 +158,7 @@
 	transition:scale={{ start: 0.95, duration: 150 }}
 >
 	<div class="px-1 pb-1.5 text-[10px] font-semibold tracking-wide text-text-tertiary uppercase">
-		{$translate('discovery.following.popoverTitle')}
+		{$translate('discovery.following.followForNewReleases')}
 	</div>
 	{#if hasFollowable}
 		<div class="flex items-center gap-2 rounded px-1 py-1.5">
@@ -178,7 +170,7 @@
 			<div class="min-w-0 flex-1">
 				<div class="truncate text-sm text-text-primary">{displayName}</div>
 				<div class="truncate text-[11px] text-text-tertiary">
-					{typeLabel} · {platformLabels[release.source_type] ?? release.source_type}
+					{typeLabel} · {$translate(`discovery.sources.${release.source_type}`, { default: release.source_type })}
 				</div>
 			</div>
 			<button

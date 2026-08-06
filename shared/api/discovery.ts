@@ -3,6 +3,7 @@ import type {
 	DiscoveryRelease,
 	DiscoveryReleaseCreate,
 	DiscoveryReleaseUpdate,
+	DiscoveryTrack,
 	DiscoveryTrackCreate,
 	DiscoveryFilter,
 	FetchedMetadata,
@@ -94,6 +95,15 @@ export async function fetchPreviewStream(
 
 export async function invalidatePreviewStreamCache(releaseId: string): Promise<void> {
 	return invoke<void>('invalidate_preview_stream_cache', { releaseId })
+}
+
+/**
+ * Re-extract a release's streams to refresh per-track preview availability (background
+ * priority; also warms the stream-URL cache). Returns the release's updated tracks.
+ * How a pre-order's greyed-out tracks un-grey themselves once the album is released.
+ */
+export async function recheckPreviewAvailability(releaseId: string): Promise<DiscoveryTrack[]> {
+	return invoke<DiscoveryTrack[]>('recheck_preview_availability', { releaseId })
 }
 
 /** Delete a release's downloaded audio bytes + cached stream URLs ("Remove Download"). */

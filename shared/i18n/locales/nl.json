@@ -25,7 +25,13 @@
 		"more": "Meer",
 		"select": "Selecteren",
 		"noResults": "Geen resultaten",
-		"offline": "U bent offline"
+		"offline": "U bent offline",
+		"audioFiles": "Audiobestanden",
+		"images": "Afbeeldingen",
+		"selectAnOption": "Selecteer een optie",
+		"unknownError": "Onbekende fout",
+		"dismiss": "Sluiten",
+		"step": "Stap {number}"
 	},
 	"nav": {
 		"library": "Bibliotheek",
@@ -302,7 +308,11 @@
 		"trackNotFound": "Kon het afspelende nummer niet vinden",
 		"expand": "Speler uitvouwen",
 		"collapse": "Speler samenvouwen",
-		"seek": "Zoeken"
+		"seek": "Zoeken",
+		"repeat": "Herhalen",
+		"repeatTrack": "Track herhalen",
+		"repeatRelease": "Release herhalen",
+		"repeatAll": "Alles herhalen"
 	},
 	"queue": {
 		"upNext": "Volgende",
@@ -343,12 +353,24 @@
 		"track": "track",
 		"tracks": "tracks",
 		"item": "item",
-		"items": "items"
+		"items": "items",
+		"clearSearch": "Zoekopdracht wissen",
+		"fileNotFound": "Bestand niet gevonden",
+		"dropToImport": "Audiobestanden hiernaartoe slepen om te importeren",
+		"noColor": "Geen kleur",
+		"colorLabel": "Kleur: {color}"
 	},
 	"discovery": {
 		"addRelease": "Release toevoegen",
 		"url": "URL",
 		"source": "Bron",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Overig"
+		},
 		"release": "release",
 		"releases": "releases",
 		"searchPlaceholder": "Releases zoeken...",
@@ -356,6 +378,7 @@
 		"noResults": "Geen releases komen overeen met je filters",
 		"addReleaseHint": "Druk {shortcut} om releases van Bandcamp, Discogs, YouTube en meer toe te voegen",
 		"mobileAddHint": "Releases van Bandcamp, Discogs, YouTube en meer toevoegen",
+		"dropHint": "Sleep een link hiernaartoe om een release toe te voegen",
 		"pending": "In behandeling",
 		"offlineQueueNotice": "Je bent offline — deze release wordt toegevoegd als je verbonden bent",
 		"addToQueue": "Toevoegen aan wachtrij",
@@ -371,8 +394,7 @@
 			"label": "Label",
 			"tags": "Tags",
 			"dateAdded": "Toegevoegd op",
-			"released": "Uitgebracht",
-			"added": "Toegevoegd"
+			"dateReleased": "Releasedatum"
 		},
 		"fetchingMetadata": "Metagegevens ophalen...",
 		"refreshMetadata": "Metagegevens vernieuwen",
@@ -416,7 +438,6 @@
 			"addTags": "Tags toevoegen"
 		},
 		"import": {
-			"title": "Importeren naar bibliotheek",
 			"selectFiles": "Bestanden selecteren",
 			"matched": "Gekoppeld",
 			"unmatched": "Niet gekoppeld",
@@ -478,13 +499,11 @@
 			"following": "Volgend",
 			"followForNewReleases": "Volg voor nieuwe releases",
 			"followViaPaste": "Volg deze bron vanuit het volgende paneel",
-			"popoverTitle": "Volg voor nieuwe releases",
 			"upcoming": "Binnenkort",
 			"daysUntil": "{days} d",
 			"surfacedVia": "Weergegeven via {source}",
 			"markNew": "Markeren als nieuw",
 			"markNotNew": "Markeren als niet nieuw",
-			"alsoFollow": "Volg voor nieuwe releases",
 			"sortBy": "Sorteren op",
 			"empty": {
 				"title": "Je volgt nog niemand",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Plak een Bandcamp-, SoundCloud- of Discogs-artiest-/labelpagina-URL",
 				"urlInfo": "We herkennen automatisch het platform en of het om een artiest of label gaat, en houden het vanaf nu in de gaten voor nieuwe releases. Oudere releases worden niet toegevoegd."
 			}
-		}
+		},
+		"releaseArtwork": "Hoesafbeelding",
+		"mergeTarget": "Doel",
+		"mergeTagCount": "{count, plural, =1 {1 tag} other {{count} tags}}"
 	},
 	"filters": {
 		"title": "Filters",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "Hoofdmap (geen map)",
 		"folderEmpty": "Deze map is leeg",
 		"noPlaylistsYet": "Nog geen afspeellijsten",
-		"noPlaylists": "Nog geen afspeellijsten",
 		"allPlaylists": "Alle afspeellijsten",
 		"searchPlaceholder": "Afspeellijsten zoeken…",
 		"emptyHint": "Maak afspeellijsten om je ontdekkingen in te delen",
@@ -561,12 +582,11 @@
 		"renameCategory": "Categorie hernoemen",
 		"deleteTag": "Tag verwijderen",
 		"deleteCategory": "Categorie verwijderen",
-		"addCategory": "Categorie toevoegen",
-		"addTag": "Tag toevoegen",
 		"moveToCategory": "Verplaatsen naar categorie",
 		"noTags": "Geen tags",
 		"noTagCategoriesYet": "Nog geen tagcategorieën",
-		"emptyHint": "Maak kleurgecodeerde tagcategorieën om je ontdekkingen in te delen"
+		"emptyHint": "Maak kleurgecodeerde tagcategorieën om je ontdekkingen in te delen",
+		"removeTag": "Tag verwijderen"
 	},
 	"contextMenu": {
 		"viewInFinder": "Bekijken in Finder",
@@ -633,8 +653,8 @@
 			"removeFromLibraryMessage": "{count, plural, =1 {Deze track verwijderen uit je bibliotheek?} other {{count} tracks verwijderen uit je bibliotheek?}}",
 			"removeFromLibraryWarning": "Deze actie kan niet ongedaan worden gemaakt. Tracks worden uit alle afspeellijsten verwijderd.",
 			"deleteTracksFromCollection": "Tracks ook uit mijn collectie verwijderen",
-			"removeDiscoveryReleasesTitle": "Verwijderen uit discovery",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Deze release verwijderen uit discovery?} other {{count} releases verwijderen uit discovery?}}",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Release verwijderen} other {Releases verwijderen}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Deze release verwijderen?} other {{count} releases verwijderen?}}",
 			"removeDiscoveryReleasesWarning": "Deze actie kan niet ongedaan worden gemaakt. Releases worden uit alle afspeellijsten verwijderd.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Verwijderen uit afspeellijst",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Deze release verwijderen uit de afspeellijst?} other {{count} releases verwijderen uit de afspeellijst?}}",
@@ -642,7 +662,20 @@
 		},
 		"relocate": {
 			"title": "Track verplaatsen",
-			"message": "Selecteer de nieuwe locatie voor deze track."
+			"cloudSyncedMessage": "Deze track is op een ander apparaat toegevoegd. Kies de lokale map die de bibliotheekwortel bevat om deze hier afspeelbaar te maken.",
+			"missingFileMessage": "Het bestand voor deze track kon niet op de oorspronkelijke locatie worden gevonden.",
+			"selectRootFolder": "Selecteer bibliotheekwortelmap",
+			"selectReplacementFile": "Selecteer vervangingsbestand",
+			"validating": "Bestand valideren...",
+			"unsupportedFormat": "Niet-ondersteund audioformaat.",
+			"hashMatch": "Bestandsinhoud komt overeen. Hash geverifieerd.",
+			"hashMismatch": "Bestandsinhoud komt niet overeen met het origineel.",
+			"noOriginalHash": "Geen originele hash beschikbaar voor vergelijking. Het bestand kan nog steeds correct zijn.",
+			"useAnyway": "Dit bestand toch gebruiken",
+			"relocate": "Verplaatsen",
+			"relocating": "Bezig met verplaatsen...",
+			"validateFailed": "Bestandsvalidatie mislukt",
+			"relocateFailed": "Track verplaatsen mislukt"
 		},
 		"albumArt": "Albumhoes",
 		"deviceInfo": {
@@ -654,15 +687,6 @@
 			"available": "Beschikbaar:",
 			"total": "Totaal:",
 			"percentUsed": "% gebruikt"
-		},
-		"update": {
-			"title": "Update beschikbaar",
-			"description": "{version} is gereed om te installeren.",
-			"releaseNotes": "Wat is er nieuw",
-			"installAndRestart": "Installeren en herstarten",
-			"later": "Later",
-			"downloading": "Downloaden... {progress}%",
-			"installing": "Installeren..."
 		},
 		"duplicate": {
 			"title": "Dubbele track gedetecteerd",
@@ -677,6 +701,15 @@
 			"replace": "Vervangen",
 			"replaceDescription": "Nieuwe import van nieuw bestand. Behoudt alleen afspeellijstlidmaatschappen. Reset cue-punten, tags en afspeelgeschiedenis.",
 			"applyToAll": "Toepassen op alle overige duplicaten ({count})"
+		},
+		"update": {
+			"title": "Update beschikbaar",
+			"description": "{version} is gereed om te installeren.",
+			"releaseNotes": "Wat is er nieuw",
+			"installAndRestart": "Installeren en herstarten",
+			"later": "Later",
+			"downloading": "Downloaden... {progress}%",
+			"installing": "Installeren..."
 		},
 		"conflict": {
 			"title": "Naamconflict",
@@ -699,6 +732,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1 track} other {{count} tracks}} toegevoegd aan {playlistName}, {failed} mislukt",
 		"tracksImported": "{count, plural, =1 {1 track} other {{count} tracks}} geïmporteerd",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 track} other {{imported} tracks}} geïmporteerd, {skipped} overgeslagen",
+		"tracksExported": "{exported, plural, =1 {1 track} other {{exported} tracks}} geëxporteerd naar {deviceName}, {skipped, plural, =1 {1 overgeslagen} other {{skipped} overgeslagen}}",
 		"trackRemoved": "{count, plural, =1 {1 track} other {{count} tracks}} verwijderd uit afspeellijst",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1 track} other {{count} tracks}} verwijderd uit bibliotheek",
 		"movedSuccessfully": "Succesvol verplaatst",
@@ -718,7 +752,14 @@
 		"failedToUpdateTracks": "Tracks bijwerken mislukt",
 		"failedToSetArtwork": "Artwork instellen mislukt",
 		"failedToRemoveArtwork": "Artwork verwijderen mislukt",
-		"noArtworkInFile": "Geen artwork gevonden in audiobestand"
+		"noArtworkInFile": "Geen artwork gevonden in audiobestand",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 track} other {{count} tracks}} geïmporteerd, {failed} mislukt",
+		"failedToSetTrackColor": "Trackkleur instellen mislukt",
+		"exportCleanedUp": "Gedeeltelijke export opgeruimd",
+		"exportCleanUpFailed": "Export opruimen mislukt",
+		"deviceNotFound": "Apparaat niet gevonden",
+		"deviceReformatted": "Apparaat opnieuw geformatteerd als \"{name}\"",
+		"deviceReformatFailed": "Opnieuw formatteren mislukt: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Kan een map niet in zichzelf slepen",
@@ -730,7 +771,10 @@
 		"previewNotAvailableOffline": "Dit nummer is offline niet beschikbaar",
 		"updateCheckFailed": "Controleren op updates mislukt",
 		"updateInstallFailed": "Update installeren mislukt",
-		"generic": "Er is iets fout gegaan"
+		"generic": "Er is iets fout gegaan",
+		"previewPlaybackFailed": "Fout bij voorbeeldweergave",
+		"previewPlayFailed": "Voorbeeldweergave afspelen mislukt",
+		"previewResumeFailed": "Voorbeeldweergave hervatten mislukt"
 	},
 	"devices": {
 		"title": "Apparaten",
@@ -906,26 +950,6 @@
 		"featureTour": "Functiegereedschapstips...",
 		"reportIssue": "Probleem melden..."
 	},
-	"wizard": {
-		"discovery": {
-			"title": "Ontdekkingen",
-			"description": "Blader en sla releases van Bandcamp, SoundCloud en meer op. Voeg een release-URL toe om je collectie op te bouwen."
-		},
-		"library": {
-			"title": "Bibliotheek",
-			"description": "Je persoonlijke nummercollectie. Importeer audiobestanden om nummers te organiseren, taggen en voor te bereiden voor je sets."
-		},
-		"playlists": {
-			"title": "Afspeellijsten",
-			"description": "Organiseer nummers in afspeellijsten en mappen. Maak intelligente afspeellijsten die automatisch bijwerken op basis van je criteria."
-		},
-		"tags": {
-			"title": "Tags & Categorieën",
-			"description": "Maak categorieën en tags om je muziek in te delen. Filter je bibliotheek of tag meerdere nummers tegelijk."
-		},
-		"skip": "Rondleiding overslaan",
-		"finish": "Klaar"
-	},
 	"smartPlaylist": {
 		"createTitle": "Slimme afspeellijst maken",
 		"editTitle": "Slimme afspeellijst bewerken",
@@ -1008,7 +1032,35 @@
 			"aqua": "Aqua",
 			"blue": "Blauw",
 			"purple": "Paars"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Ontdekkingen",
+			"description": "Blader en sla releases van Bandcamp, SoundCloud en meer op. Voeg een release-URL toe om je collectie op te bouwen."
+		},
+		"library": {
+			"title": "Bibliotheek",
+			"description": "Je persoonlijke nummercollectie. Importeer audiobestanden om nummers te organiseren, taggen en voor te bereiden voor je sets."
+		},
+		"playlists": {
+			"title": "Afspeellijsten",
+			"description": "Organiseer nummers in afspeellijsten en mappen. Maak intelligente afspeellijsten die automatisch bijwerken op basis van je criteria."
+		},
+		"tags": {
+			"title": "Tags & Categorieën",
+			"description": "Maak categorieën en tags om je muziek in te delen. Filter je bibliotheek of tag meerdere nummers tegelijk."
+		},
+		"skip": "Rondleiding overslaan",
+		"finish": "Klaar"
 	},
 	"onboarding": {
 		"welcome": {

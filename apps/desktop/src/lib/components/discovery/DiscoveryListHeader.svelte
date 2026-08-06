@@ -35,14 +35,14 @@
 		{ field: 'label', labelKey: 'discovery.columns.label', align: 'left' },
 		{ field: 'tags', labelKey: 'discovery.columns.tags', align: 'left' },
 		{ field: 'source_type', labelKey: 'discovery.source', align: 'left' },
-		{ field: 'release_date', labelKey: 'discovery.columns.released', align: 'left' },
-		{ field: 'date_added', labelKey: 'discovery.columns.added', align: 'left' },
+		{ field: 'release_date', labelKey: 'discovery.columns.dateReleased', align: 'left' },
+		{ field: 'date_added', labelKey: 'discovery.columns.dateAdded', align: 'left' },
 		{ field: null, labelKey: '', align: 'center' },
 	]
 </script>
 
 <div
-	class="sticky top-0 z-10 grid grid-cols-[24px_40px_1.25fr_0.6fr_1fr_90px_110px_100px_92px] justify-items-start gap-2 border-b border-stroke bg-surface-1/50 px-3 py-2 text-xs font-medium tracking-wider text-text-tertiary uppercase backdrop-blur-sm"
+	class="sticky top-0 z-10 grid grid-cols-[24px_40px_1.25fr_0.6fr_1fr_90px_130px_110px_92px] justify-items-start gap-2 border-b border-stroke bg-surface-1/50 px-3 py-2 text-xs font-medium tracking-wider text-text-tertiary uppercase backdrop-blur-sm"
 >
 	{#each columns as column, index (index)}
 		{#if column.field}

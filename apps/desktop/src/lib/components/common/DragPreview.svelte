@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	import type { Track, Playlist, DiscoveryRelease, TagCategory } from '$shared/types'
 	import type { DragData } from '$lib/stores/drag'
 	import { getTrackDisplayName, getTrackDisplayArtist, formatDurationCompact, getPlaylistById } from '$shared/utils'
@@ -91,10 +92,10 @@
 			<AlbumArt artworkPath={release.artwork_path} artworkUrl={release.artwork_url} size="sm" />
 			<div class="flex flex-col gap-0.5">
 				<Text as="span" class="max-w-48 truncate text-sm font-medium text-text-primary">
-					{release.title || 'Untitled'}
+					{release.title || $translate('common.untitled')}
 				</Text>
 				<Text as="span" class="max-w-32 truncate text-xs text-text-secondary">
-					{release.artist || 'Unknown Artist'}
+					{release.artist || $translate('common.unknownArtist')}
 				</Text>
 			</div>
 

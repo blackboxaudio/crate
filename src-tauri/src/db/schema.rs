@@ -475,5 +475,18 @@ CREATE TABLE collection_account_state (
     last_item_count      INTEGER
 );
 "#,
+        // Migration 12: per-track preview availability. A row means the source currently
+        // serves NO stream for that track position (Bandcamp pre-order albums stream only
+        // the featured single; the rest are unreleased). Rows are replaced wholesale per
+        // release on every successful stream extraction, so a released album self-heals on
+        // the next check. Derived source state, re-fetchable anywhere — LOCAL, never synced.
+        r#"
+CREATE TABLE discovery_preview_unavailable (
+    release_id TEXT    NOT NULL,
+    position   INTEGER NOT NULL,
+    checked_at TEXT    NOT NULL,
+    PRIMARY KEY (release_id, position)
+);
+"#,
     ]
 }

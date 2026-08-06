@@ -3,7 +3,7 @@
 	import { get } from 'svelte/store'
 	import { cubicOut } from 'svelte/easing'
 	import { translate } from '$shared/i18n'
-	import type { DiscoveryRelease } from '$shared/types'
+	import type { DiscoveryRelease, DiscoveryTrack } from '$shared/types'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import {
@@ -170,6 +170,8 @@
 		// the whole release; the badge simply won't reach "fully downloaded".
 		let anySucceeded = false
 		for (const track of release.tracks) {
+			// A track the source serves no preview for (pre-order, no duration) has nothing to download.
+			if (!trackPlayable(track)) continue
 			try {
 				await precachePreviewStream(release.id, track.position)
 				anySucceeded = true
@@ -305,11 +307,24 @@
 		return () => clearTimeout(timer)
 	})
 
+	// Whether a track can be previewed at all — the same gate desktop's `trackCanPlay` applies: no
+	// duration means the source never exposed the track as playable (unreleased pre-order tracks,
+	// unenriched rows), `preview_unavailable` is the extraction-confirmed flag, and Discogs tracks
+	// play via their matched YouTube video only. Unplayable rows render greyed-out and inert.
+	function trackPlayable(track: DiscoveryTrack): boolean {
+		if (!track.duration_ms) return false
+		if (track.preview_unavailable) return false
+		if (release.source_type === 'discogs') return track.video_id != null
+		return true
+	}
+
 	// Play (or restart) a track. We deliberately don't special-case "same track" — re-tapping the current
 	// track re-runs playPreview, which replays it from the start, so a tap always means "play this now".
 	// When nothing is playing yet, slide the full-screen player up so the user lands in it; if a preview is
 	// already active, the tap just swaps/restarts the track and the mini-player updates in place.
 	function playTrack(index: number) {
+		const track = release.tracks[index]
+		if (!track || !trackPlayable(track)) return
 		void lightTap()
 		const wasIdle = $previewInfo == null
 		// Scope the playback queue to the view this detail was opened from — the discovery feed, or a
@@ -360,6 +375,9 @@
 		// live `release` prop then re-renders them. Guarded so a release that genuinely has no tracks
 		// doesn't re-fetch on every reactive tick.
 		if (release.tracks.length === 0) void discoveryStore.refreshMetadata(release.id)
+		// Pre-order upkeep: if this release shows unavailable tracks (or hasn't released yet),
+		// silently re-check availability at the source so the greyed rows heal on release day.
+		discoveryStore.maybeRecheckAvailability(release)
 	})
 
 	// Open on mount (this is only rendered while a release is selected). Dismissal flips `open` false; the
@@ -514,16 +532,18 @@
 							{@const isLoading = spinnerArmed && loadingReleaseId === release.id && loadingTrackIndex === index}
 							<!-- A tap plays the track; a long-press lifts the row and opens its context menu (Play next /
 						     Add to queue). The heart floats on top (absolute) so the whole row shares the same pressed
-						     highlight, yet tapping the heart likes the track instead of playing it. -->
+						     highlight, yet tapping the heart likes the track instead of playing it. A track the source
+						     serves no preview for (pre-order) renders greyed-out and inert — the heart still works. -->
 							<div
 								class="relative rounded {isActive ? 'bg-brand-muted' : ''}"
-								onpointerdown={(e) => startTrackLongPress(e, index)}
+								onpointerdown={(e) => trackPlayable(track) && startTrackLongPress(e, index)}
 								onclickcapture={onTrackClickCapture}
 							>
 								<button
 									type="button"
-									class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-10 pl-2 text-left active:bg-surface-2"
+									class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-10 pl-2 text-left active:bg-surface-2 disabled:opacity-40 disabled:active:bg-transparent"
 									aria-label={$translate('discovery.playPreview')}
+									disabled={!trackPlayable(track)}
 									onclick={() => playTrack(index)}
 								>
 									<span class="w-5 flex-shrink-0 text-center text-xs text-text-tertiary tabular-nums">

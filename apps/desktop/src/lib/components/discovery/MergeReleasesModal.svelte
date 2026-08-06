@@ -84,7 +84,9 @@
 						<Text variant="caption" truncate>{release.artist || $translate('common.unknownArtist')}</Text>
 					</div>
 					{#if selectedTargetId === release.id}
-						<div class="shrink-0 rounded-full bg-brand-primary px-2 py-0.5 text-xs text-white">Target</div>
+						<div class="shrink-0 rounded-full bg-brand-primary px-2 py-0.5 text-xs text-white">
+							{$translate('discovery.mergeTarget')}
+						</div>
 					{/if}
 				</button>
 			{/each}
@@ -93,7 +95,7 @@
 		<div class="rounded-md bg-surface-2 p-3 text-sm text-text-secondary">
 			<div>{$translate('discovery.mergeTrackCount', { values: { count: combinedTrackCount() } })}</div>
 			{#if combinedTagCount() > 0}
-				<div>{combinedTagCount()} tags</div>
+				<div>{$translate('discovery.mergeTagCount', { values: { count: combinedTagCount() } })}</div>
 			{/if}
 		</div>
 	</div>

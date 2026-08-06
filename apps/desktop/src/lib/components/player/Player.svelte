@@ -4,6 +4,7 @@
 		currentTrack,
 		isPlaying,
 		shuffleEnabled,
+		repeatMode,
 		playbackPosition,
 		playbackDuration,
 		volume,
@@ -76,9 +77,11 @@
 			isPlaying={$isPlaying}
 			{hasTrack}
 			shuffleEnabled={$shuffleEnabled}
+			repeatMode={$repeatMode}
 			onPlayPause={handlePlayPause}
 			onStop={handleStop}
 			onToggleShuffle={() => playerStore.toggleShuffle()}
+			onCycleRepeat={() => playerStore.cycleRepeatMode()}
 			{onPrevious}
 			{onNext}
 		/>

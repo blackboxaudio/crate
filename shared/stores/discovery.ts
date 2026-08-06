@@ -10,6 +10,7 @@ import type {
 import * as discoveryApi from '../api/discovery'
 import * as followApi from '../api/follow'
 import { sortDiscoveryReleases } from '../utils/sorting'
+import { daysUntilRelease } from '../utils/format'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
@@ -84,6 +85,10 @@ let loadGeneration = 0
 
 function createDiscoveryStore() {
 	const { subscribe, set, update } = writable<DiscoveryState>(initialState)
+
+	// Releases already availability-rechecked this session — the recheck is a full page
+	// fetch at the source, so once per app run per release is plenty.
+	const availabilityChecked = new Set<string>()
 
 	return {
 		subscribe,
@@ -317,6 +322,59 @@ function createDiscoveryStore() {
 			}))
 			playerStore.setPreviewTrackLiked(trackId, isLiked)
 			discoveryPlaylistStore.updateTrackLiked(releaseId, trackId, isLiked)
+		},
+
+		/**
+		 * Apply a preview-availability change that already happened in the DB (the backend emits
+		 * `discovery-availability-changed` whenever a stream extraction refreshes a release's flags)
+		 * to every in-memory holder, so rows grey out / un-grey without a full reload.
+		 */
+		applyPreviewAvailability(releaseId: string, unavailablePositions: number[]) {
+			const unavailable = new Set(unavailablePositions)
+			update((state) => ({
+				...state,
+				releases: state.releases.map((r) =>
+					r.id === releaseId
+						? { ...r, tracks: r.tracks.map((t) => ({ ...t, preview_unavailable: unavailable.has(t.position) })) }
+						: r
+				),
+			}))
+			discoveryPlaylistStore.applyPreviewAvailability(releaseId, unavailablePositions)
+		},
+
+		/**
+		 * Silently refresh a release's per-track preview availability (one background page
+		 * fetch, once per release per session). Fires when the release shows flagged tracks
+		 * (a pre-order's unreleased tracks — heals them once the album is out) or has a
+		 * future release date with no flags yet (flags a fresh pre-order on first view).
+		 */
+		maybeRecheckAvailability(release: DiscoveryRelease) {
+			if (release.source_type !== 'bandcamp' && release.source_type !== 'soundcloud') return
+			if (availabilityChecked.has(release.id)) return
+			// Same "upcoming" semantics as the release row's badge (null once out / unknown).
+			const isPreRelease = daysUntilRelease(release.release_date) != null
+			// Duration-less tracks are the pre-flag symptom of an unstreamable track (Bandcamp serves
+			// no duration for unreleased pre-order tracks) — and many pre-orders carry no release date,
+			// so the date check alone would never fire for them.
+			const hasSuspectTracks =
+				release.tracks.length > 0 && release.tracks.some((t) => t.preview_unavailable || !t.duration_ms)
+			if (!hasSuspectTracks && !isPreRelease) return
+			availabilityChecked.add(release.id)
+			discoveryApi
+				.recheckPreviewAvailability(release.id)
+				.then((tracks) => {
+					update((state) => ({
+						...state,
+						releases: state.releases.map((r) => (r.id === release.id ? { ...r, tracks } : r)),
+					}))
+					// Release-day transition: a track just proved streamable but still lacks a duration
+					// (pre-order rows are created without one, and stream extraction doesn't supply it) —
+					// the duration gate would keep the row greyed, so backfill via a metadata refresh.
+					if (tracks.some((t) => !t.preview_unavailable && !t.duration_ms)) {
+						void this.refreshMetadata(release.id)
+					}
+				})
+				.catch((error) => console.error('Preview availability recheck failed:', error))
 		},
 
 		toggleLikedFilter() {

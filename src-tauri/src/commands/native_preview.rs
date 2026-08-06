@@ -99,3 +99,16 @@ pub async fn native_preview_set_liked(
     engine.set_liked(track_id, liked);
     Ok(())
 }
+
+/// Apply the app's repeat mode (`off`/`track`/`release`/`context`) to the native engine: `track`
+/// loops the ending item natively (gapless, works while the screen is locked); the lock-screen
+/// repeat glyph shows One/All/Off. The reverse direction — the lock-screen repeat button — reports
+/// via the `native-preview-repeat-changed` event and the frontend echoes the mode back through here.
+#[tauri::command]
+pub async fn native_preview_set_repeat_mode(
+    mode: String,
+    engine: State<'_, NativePreviewEngine>,
+) -> Result<()> {
+    engine.set_repeat_mode(mode);
+    Ok(())
+}

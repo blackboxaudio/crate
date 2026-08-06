@@ -18,6 +18,7 @@ import {
 	playerStore,
 	currentTrack,
 	shuffleEnabled,
+	repeatMode,
 	tagsStore,
 	playlistsStore,
 	uiStore,
@@ -381,6 +382,8 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	function trackCanPlay(release: DiscoveryRelease, trackIndex: number): boolean {
 		const track = release.tracks[trackIndex]
 		if (!track?.duration_ms) return false
+		// The source serves no preview for this track right now (pre-order) — skip it.
+		if (track.preview_unavailable) return false
 		if (release.source_type === 'discogs') return track.video_id !== null
 		return PREVIEWABLE_SOURCES.has(release.source_type) || release.tracks.some((t) => t.video_id !== null)
 	}
@@ -395,9 +398,19 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		return -1
 	}
 
+	// The repeat scope previews advance under. Repeat-track behaves as context here: every call into
+	// playNextTrack/playPreviousTrack is a MANUAL skip (a track-mode natural end loops inside the
+	// player store and never reaches the end-of-track callback), and a skip during repeat-one
+	// proceeds — the new track then loops.
+	function previewRepeatScope(): 'off' | 'release' | 'context' {
+		const mode = get(repeatMode)
+		return mode === 'track' ? 'context' : mode
+	}
+
 	function playNextTrack() {
 		const preview = get(previewInfo)
 		if (preview) {
+			const scope = previewRepeatScope()
 			if (get(shuffleEnabled)) {
 				const releases = getDiscoveryQueue()
 				const currentKey = discoveryTrackKey(preview.releaseId, preview.trackIndex)
@@ -412,12 +425,23 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 					}
 				}
 
-				let pool = buildDiscoveryTrackPool(releases, discoveryShufflePlayed)
-				if (pool.length === 0) {
+				// Repeat-release shuffles within the current release only.
+				const scopeReleases = scope === 'release' ? [preview.release] : releases
+				let pool = buildDiscoveryTrackPool(scopeReleases, discoveryShufflePlayed)
+				if (pool.length === 0 && scope !== 'off') {
+					// Pass exhausted — a repeat scope re-seeds the bag (excluding only the current track)
+					// and keeps going; repeat-off stops here instead.
 					discoveryShufflePlayed = new Set([currentKey])
-					pool = buildDiscoveryTrackPool(releases, discoveryShufflePlayed)
+					pool = buildDiscoveryTrackPool(scopeReleases, discoveryShufflePlayed)
 				}
-				if (pool.length === 0) return
+				if (pool.length === 0) {
+					// Repeat-release on a release with a single playable track degenerates to a track loop
+					// (the re-seeded pool excludes the current track, so it comes back empty).
+					if (scope === 'release' && trackCanPlay(preview.release, preview.trackIndex)) {
+						playerStore.playPreview(preview.release, preview.trackIndex)
+					}
+					return
+				}
 				const pick = pool[Math.floor(Math.random() * pool.length)]
 				discoveryShufflePlayed.add(pick.key)
 				discoveryShuffleHistory.push({ releaseId: pick.release.id, trackIndex: pick.trackIndex })
@@ -426,7 +450,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				return
 			}
 
-			// Non-shuffle: next track in release, then next release
+			// Non-shuffle: next track in release, then per repeat scope
 			let nextIndex = preview.trackIndex + 1
 			while (nextIndex < preview.release.tracks.length && !trackCanPlay(preview.release, nextIndex)) {
 				nextIndex++
@@ -436,9 +460,29 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				return
 			}
 
+			// End of the release. Repeat-release wraps back to its first playable track (which may be
+			// the current one — a single-playable release degenerates to a track loop).
+			if (scope === 'release') {
+				const trackIdx = findPreviewableTrackIndex(preview.release, 'first')
+				if (trackIdx !== -1) playerStore.playPreview(preview.release, trackIdx)
+				return
+			}
+
 			const releases = getDiscoveryQueue()
 			const releaseIdx = releases.findIndex((r) => r.id === preview.releaseId)
 			if (releaseIdx === -1 || releases.length === 0) return
+
+			if (scope === 'off') {
+				// Later releases stay reachable — off removes only the wrap-around back to the start.
+				for (let i = releaseIdx + 1; i < releases.length; i++) {
+					const trackIdx = findPreviewableTrackIndex(releases[i], 'first')
+					if (trackIdx !== -1) {
+						playerStore.playPreview(releases[i], trackIdx)
+						return
+					}
+				}
+				return
+			}
 
 			for (let i = 1; i <= releases.length; i++) {
 				const nextRelease = releases[(releaseIdx + i) % releases.length]
@@ -502,7 +546,8 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				return
 			}
 
-			// Non-shuffle: previous track in release, then previous release
+			// Non-shuffle: previous track in release, then per repeat scope
+			const scope = previewRepeatScope()
 			let prevIndex = preview.trackIndex - 1
 			while (prevIndex >= 0 && !trackCanPlay(preview.release, prevIndex)) {
 				prevIndex--
@@ -512,9 +557,29 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				return
 			}
 
+			// Start of the release. Repeat-release wraps back to its LAST playable track (unless that's
+			// the current one — nothing else to step back to).
+			if (scope === 'release') {
+				const trackIdx = findPreviewableTrackIndex(preview.release, 'last')
+				if (trackIdx !== -1 && trackIdx !== preview.trackIndex) playerStore.playPreview(preview.release, trackIdx)
+				return
+			}
+
 			const releases = getDiscoveryQueue()
 			const releaseIdx = releases.findIndex((r) => r.id === preview.releaseId)
 			if (releaseIdx === -1 || releases.length === 0) return
+
+			if (scope === 'off') {
+				// Earlier releases stay reachable — off removes only the wrap-around past the start.
+				for (let i = releaseIdx - 1; i >= 0; i--) {
+					const trackIdx = findPreviewableTrackIndex(releases[i], 'last')
+					if (trackIdx !== -1) {
+						playerStore.playPreview(releases[i], trackIdx)
+						return
+					}
+				}
+				return
+			}
 
 			for (let i = 1; i <= releases.length; i++) {
 				const prevRelease = releases[(releaseIdx - i + releases.length) % releases.length]
@@ -902,6 +967,14 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		}
 
 		playerStore.onTrackEnd(() => {
+			// Previews: an active repeat mode implies auto-advance regardless of the continuous-playback
+			// setting (turning repeat on IS asking for playback to continue); with repeat off the setting
+			// governs as before. A repeat-track natural end never reaches this callback — the player
+			// store loops the track itself. Library playback stays repeat-agnostic (preview-only control).
+			if (get(previewInfo)) {
+				if (get(repeatMode) !== 'off' || get(continuousPlayback)) playNextTrack()
+				return
+			}
 			if (get(continuousPlayback)) {
 				playNextTrack()
 			}

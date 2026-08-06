@@ -15,6 +15,7 @@
 		playbackDuration,
 		playbackSpeed,
 		shuffleEnabled,
+		repeatMode,
 	} from '$shared/stores/player'
 	import { canAdvance, upNext, peekUpcoming, peekPrevious, type Pick as QueuePick } from '$shared/stores/playbackQueue'
 	import { discoveryStore } from '$shared/stores/discovery'
@@ -90,6 +91,17 @@
 	// Next is available when the two-tier queue can produce another track — a user-queue item, a forward
 	// step, or more context (shuffle pick / next-or-cross-release). The model computes it for us.
 	const canNext = $derived($previewInfo != null && $canAdvance)
+
+	// Mode-specific accessible name for the cycling repeat button (its icon is the visual state).
+	const repeatLabel = $derived(
+		$repeatMode === 'track'
+			? $translate('player.repeatTrack')
+			: $repeatMode === 'release'
+				? $translate('player.repeatRelease')
+				: $repeatMode === 'context'
+					? $translate('player.repeatAll')
+					: $translate('player.repeat')
+	)
 
 	const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -241,7 +253,7 @@
 	let showTempo = $state(false)
 	const tempoPct = $derived(Math.round(($playbackSpeed - 1) * 1000) / 10)
 
-	// The "Up Next" sheet, opened from the queue button in the header.
+	// The "Up Next" sheet, opened from the queue button at the transport row's right edge.
 	let showQueue = $state(false)
 
 	// Always reopen with the tempo fader hidden + queue sheet closed: reset them whenever the player
@@ -272,7 +284,7 @@
 		if ($previewInfo && track) void discoveryStore.toggleTrackLiked($previewInfo.releaseId, track.id)
 	}
 
-	// Overflow (⋯) menu: an iOS-style context-menu platter anchored to the transport's "more" button,
+	// Overflow (⋯) menu: an iOS-style context-menu platter anchored to the "more" button beside Like,
 	// gathering release-level actions for the currently-playing preview. Tap-triggered, so the platter just
 	// springs from the button with no lifted preview. Add-to-playlist / Edit open their own bottom sheets.
 	let menuOpen = $state(false)
@@ -441,6 +453,24 @@
 								/>
 							</svg>
 						</button>
+						<!-- Overflow menu: opens the release-actions context menu. Lives beside Like (Apple-Music
+						     style) so the transport row below keeps two accessories per side — the repeat button
+						     took the row slot this used to occupy. Horizontal dots, matching ReleaseDetail. -->
+						<button
+							bind:this={menuButtonEl}
+							type="button"
+							class="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md text-text-primary transition-colors active:bg-surface-2"
+							aria-label={$translate('common.more')}
+							aria-haspopup="menu"
+							aria-expanded={menuOpen}
+							onclick={openMenu}
+						>
+							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+								<circle cx="5" cy="12" r="1.6" />
+								<circle cx="12" cy="12" r="1.6" />
+								<circle cx="19" cy="12" r="1.6" />
+							</svg>
+						</button>
 					</div>
 
 					<!-- Scrubber (unipolar fill; stop pointerdown from reaching the sheet's drag gesture). -->
@@ -462,10 +492,11 @@
 						</div>
 					</div>
 
-					<!-- Transport: one justify-between row — shuffle · queue · [prev/play/next] · tempo · menu.
+					<!-- Transport: one justify-between row — shuffle · repeat · [prev/play/next] · tempo · queue.
 					     The prev/play/next box is a single fixed item in the middle; with two equal-width
 					     accessories on each side, justify-between spaces everything evenly AND keeps that box (so
-					     the play button) dead-centered. Shuffle and the overflow menu sit flush to the edges. -->
+					     the play button) dead-centered. That two-per-side balance is why the overflow menu moved
+					     up beside Like when repeat arrived — a third accessory on one side would de-center play. -->
 					<div class="mt-4 flex items-center justify-between">
 						<button
 							type="button"
@@ -494,14 +525,32 @@
 						</button>
 						<button
 							type="button"
-							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-text-primary transition-colors active:bg-surface-2"
-							aria-label={$translate('queue.openQueue')}
-							onclick={() => (showQueue = true)}
+							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-colors active:bg-surface-2 {$repeatMode !==
+							'off'
+								? 'bg-brand-muted text-brand-primary'
+								: 'text-text-primary'}"
+							aria-label={repeatLabel}
+							aria-pressed={$repeatMode !== 'off'}
+							onclick={() => playerStore.cycleRepeatMode()}
 						>
-							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<!-- Queue: list lines + a play triangle. -->
-								<path d="M4 6h16M4 12h16M4 18h9" stroke-linecap="round" />
-								<path d="M15 16.5l5 2.5-5 2.5z" fill="currentColor" stroke="none" />
+							<svg
+								class="h-5 w-5"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+							>
+								<!-- Tabler Icons "repeat" / "repeat-once" (MIT); the center dot marks repeat-release
+								     (no standard glyph distinguishes release from the full context). -->
+								<path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" />
+								<path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" />
+								{#if $repeatMode === 'track'}
+									<path d="M11 11l1 -1v4" />
+								{:else if $repeatMode === 'release'}
+									<circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+								{/if}
 							</svg>
 						</button>
 
@@ -572,21 +621,18 @@
 								<path d="M19 5a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
 							</svg>
 						</button>
-						<!-- Overflow menu: opens the release-actions context menu. Flush to the right edge, mirroring
-						     shuffle on the left so the row stays symmetric. Horizontal dots, matching ReleaseDetail. -->
+						<!-- Up Next sheet trigger. Flush to the right edge, mirroring shuffle on the left so the
+						     row stays symmetric. -->
 						<button
-							bind:this={menuButtonEl}
 							type="button"
 							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md text-text-primary transition-colors active:bg-surface-2"
-							aria-label={$translate('common.more')}
-							aria-haspopup="menu"
-							aria-expanded={menuOpen}
-							onclick={openMenu}
+							aria-label={$translate('queue.openQueue')}
+							onclick={() => (showQueue = true)}
 						>
-							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
-								<circle cx="5" cy="12" r="1.6" />
-								<circle cx="12" cy="12" r="1.6" />
-								<circle cx="19" cy="12" r="1.6" />
+							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<!-- Queue: list lines + a play triangle. -->
+								<path d="M4 6h16M4 12h16M4 18h9" stroke-linecap="round" />
+								<path d="M15 16.5l5 2.5-5 2.5z" fill="currentColor" stroke="none" />
 							</svg>
 						</button>
 					</div>
@@ -655,7 +701,7 @@
 	<EditReleaseSheet open={editSheetOpen} release={$previewInfo.release} onClose={() => (editSheetOpen = false)} />
 {/if}
 
-<!-- Release-actions "more" menu (opened by the transport ⋯ button). Tap-triggered, so no lifted preview. -->
+<!-- Release-actions "more" menu (opened by the ⋯ button beside Like). Tap-triggered, so no lifted preview. -->
 <ContextMenu open={menuOpen} anchorRect={menuAnchor} tapTriggered onClose={() => (menuOpen = false)}>
 	<ContextMenuItem onclick={menuAddToPlaylist}>
 		{$translate('contextMenu.addToPlaylist')}

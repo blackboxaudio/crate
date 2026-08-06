@@ -51,6 +51,7 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
                     video_id: r.get(5)?,
                     url: r.get(6)?,
                     is_liked: r.get::<_, i32>(7).map(|v| v != 0)?,
+                    preview_unavailable: false,
                 },
                 r.get::<_, String>(8)?,
             ))

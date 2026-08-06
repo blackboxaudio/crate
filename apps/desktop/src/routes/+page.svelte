@@ -419,6 +419,7 @@
 		if (releaseHasAnyPreviewableTrack(release)) {
 			const firstPlayable = release.tracks.findIndex((t) => {
 				if (!t.duration_ms) return false
+				if (t.preview_unavailable) return false
 				if (release.source_type === 'discogs') return t.video_id !== null
 				return true
 			})
@@ -435,6 +436,7 @@
 		const track = release.tracks[trackIndex]
 		const canPlay =
 			track?.duration_ms &&
+			!track.preview_unavailable &&
 			(PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null))
 		if (canPlay && release.tracks.length > 0) {
 			playPreview(release, trackIndex)

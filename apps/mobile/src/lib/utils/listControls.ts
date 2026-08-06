@@ -21,7 +21,7 @@ export interface SortOption {
  *  (albums/EPs down to singles), each group alphabetical inside (the comparator's title tie-break). */
 export const RELEASE_SORT_OPTIONS: SortOption[] = [
 	{ field: 'date_added', labelKey: 'discovery.columns.dateAdded', defaultDir: 'desc' },
-	{ field: 'release_date', labelKey: 'discovery.columns.released', defaultDir: 'desc' },
+	{ field: 'release_date', labelKey: 'discovery.columns.dateReleased', defaultDir: 'desc' },
 	{ field: 'artist', labelKey: 'discovery.editor.artist', defaultDir: 'asc' },
 	{ field: 'title', labelKey: 'discovery.editor.title', defaultDir: 'asc' },
 	{ field: 'label', labelKey: 'discovery.editor.label', defaultDir: 'asc' },

@@ -109,11 +109,11 @@ export function createExportController(
 				)
 			} else {
 				// Export completed but with errors
-				const errorMsg = result.errors.length > 0 ? result.errors[0] : 'Unknown error'
+				const errorMsg = result.errors.length > 0 ? result.errors[0] : get(translate)('common.unknownError')
 				modalActions.openExportFailureModal(errorMsg, request.device_id, request.mount_point, result.tracks_copied)
 			}
 		} catch (error) {
-			const errorMsg = error instanceof Error ? error.message : 'Export failed'
+			const errorMsg = error instanceof Error ? error.message : get(translate)('export.failed')
 			exportStore.failExport(errorMsg)
 			modalActions.openExportFailureModal(errorMsg, request.device_id, request.mount_point, 0)
 		}
@@ -154,9 +154,9 @@ export function createExportController(
 	async function handleExportFailureCleanup(deviceId: string, mountPoint: string): Promise<void> {
 		try {
 			await exportApi.cleanupFailedExport(deviceId, mountPoint)
-			toastStore.success('Cleaned up partial export')
+			toastStore.success(get(translate)('toast.exportCleanedUp'))
 		} catch (error) {
-			toastStore.error('Failed to clean up export')
+			toastStore.error(get(translate)('toast.exportCleanUpFailed'))
 			console.error('Cleanup error:', error)
 		}
 		exportStore.reset()
@@ -176,7 +176,7 @@ export function createExportController(
 		const devices = getDevices()
 		const device = devices.find((d) => d.id === deviceId)
 		if (!device) {
-			toastStore.error('Device not found')
+			toastStore.error(get(translate)('toast.deviceNotFound'))
 			return
 		}
 

@@ -25,7 +25,13 @@
 		"more": "Ще",
 		"select": "Вибрати",
 		"noResults": "Результатів не знайдено",
-		"offline": "Ви не в мережі"
+		"offline": "Ви не в мережі",
+		"audioFiles": "Аудіофайли",
+		"images": "Зображення",
+		"selectAnOption": "Виберіть параметр",
+		"unknownError": "Невідома помилка",
+		"dismiss": "Закрити",
+		"step": "Крок {number}"
 	},
 	"nav": {
 		"library": "Бібліотека",
@@ -128,8 +134,8 @@
 			"clearCacheWarning": "Попередньо переглянуті доріжки потребуватимуть повторного потокового передавання з їхнього джерела при наступному програванні. Це може бути повільнішим, і деякі потоки можуть бути недоступними.",
 			"audioCache": "Аудіо",
 			"artworkCache": "Обкладинка",
-			"artworkCacheDescription": "Обкладинки альбомів зберігаються на цьому пристрої, тому вони відображаються без з'єднання.",
-			"clearArtworkCacheConfirmMessage": "Ви впевнені, що хочете очистити весь кешований обкладинки альбому?",
+			"artworkCacheDescription": "Обкладинки зберігаються на цьому пристрої, тому вони відображаються без з'єднання.",
+			"clearArtworkCacheConfirmMessage": "Ви впевнені, що хочете очистити всі кешовані обкладинки?",
 			"cacheLimit": "Межа кешу"
 		},
 		"following": {
@@ -140,7 +146,7 @@
 			"cadenceDaily": "При запуску та щодня",
 			"cadenceManual": "Тільки вручну",
 			"checkAllNow": "Перевірити все зараз",
-			"autoFollowDescription": "За замовчуванням для опції \"Також стежити\" при імпорті видання.",
+			"autoFollowDescription": "За замовчуванням для опції \"Стежити за новими виданнями\" при імпорті видання.",
 			"autoFollowOff": "Вимкнено",
 			"autoFollowArtist": "Виконавець",
 			"autoFollowLabel": "Лейбл",
@@ -302,7 +308,11 @@
 		"trackNotFound": "Не вдалося знайти відтворюваний трек",
 		"expand": "Розширити програвач",
 		"collapse": "Згорнути програвач",
-		"seek": "Пошук"
+		"seek": "Пошук",
+		"repeat": "Повторити",
+		"repeatTrack": "Повторити доріжку",
+		"repeatRelease": "Повторити видання",
+		"repeatAll": "Повторити все"
 	},
 	"queue": {
 		"upNext": "Далі",
@@ -318,8 +328,8 @@
 		"reorder": "Змінити порядок",
 		"clearQueue": "Очистити",
 		"empty": "Далі нічого",
-		"emptyHint": "Пісні, які ви додаєте, будуть програватися далі",
-		"upcoming": "Найближчі",
+		"emptyHint": "Доріжки, які ви додаєте, будуть програватися далі",
+		"upcoming": "Далі",
 		"history": "Історія",
 		"historyEmpty": "Поки що нічого не програвалося"
 	},
@@ -343,12 +353,24 @@
 		"track": "доріжка",
 		"tracks": "доріжки",
 		"item": "елемент",
-		"items": "елементи"
+		"items": "елементи",
+		"clearSearch": "Очистити пошук",
+		"fileNotFound": "Файл не знайдено",
+		"dropToImport": "Перетягніть аудіофайли для імпорту",
+		"noColor": "Без кольору",
+		"colorLabel": "Колір: {color}"
 	},
 	"discovery": {
 		"addRelease": "Додати видання",
 		"url": "URL",
 		"source": "Джерело",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Інше"
+		},
 		"release": "видання",
 		"releases": "видання",
 		"searchPlaceholder": "Пошук видань...",
@@ -356,6 +378,7 @@
 		"noResults": "Жодне видання не відповідає вашим фільтрам",
 		"addReleaseHint": "Натисніть {shortcut}, щоб додати видання з Bandcamp, Discogs, YouTube та інших",
 		"mobileAddHint": "Додайте видання з Bandcamp, Discogs, YouTube та інших",
+		"dropHint": "Перетягніть посилання, щоб додати видання",
 		"pending": "Очікування",
 		"offlineQueueNotice": "Ви в режимі офлайн — це видання буде додано, коли ви знову підключитесь",
 		"addToQueue": "Додати в чергу",
@@ -371,8 +394,7 @@
 			"label": "Лейбл",
 			"tags": "Теги",
 			"dateAdded": "Дата додавання",
-			"released": "Випущено",
-			"added": "Додано"
+			"dateReleased": "Дата випуску"
 		},
 		"fetchingMetadata": "Завантаження метаданих...",
 		"refreshMetadata": "Оновити метаданні",
@@ -416,7 +438,6 @@
 			"addTags": "Додати теги"
 		},
 		"import": {
-			"title": "Імпортувати до бібліотеки",
 			"selectFiles": "Вибрати файли",
 			"matched": "Збігнуто",
 			"unmatched": "Не збігнуто",
@@ -466,7 +487,7 @@
 			"pauseSelected": "Пауза",
 			"unfollow": "Припинити стеження",
 			"checkNow": "Перевірити зараз",
-			"enabledToggle": "Перемикання оновлень",
+			"enabledToggle": "Перевіряти на нові видання",
 			"artist": "Виконавець",
 			"label": "Лейбл",
 			"checkedAgo": "Перевірено {time}",
@@ -478,13 +499,11 @@
 			"following": "Ми стежимо",
 			"followForNewReleases": "Стежити за новими виданнями",
 			"followViaPaste": "Стежити за цим джерелом із панелі \"Ми стежимо\"",
-			"popoverTitle": "Стежити за новими виданнями",
 			"upcoming": "Скоро",
 			"daysUntil": "{days} д",
 			"surfacedVia": "Відображено через {source}",
 			"markNew": "Позначити як нове",
 			"markNotNew": "Позначити як не нове",
-			"alsoFollow": "Стежити за новими виданнями",
 			"sortBy": "Сортувати за",
 			"empty": {
 				"title": "Ви ще нікого не стежите",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Вставте URL-адресу сторінки виконавця/лейбла Bandcamp, SoundCloud або Discogs",
 				"urlInfo": "Ми автоматично визначимо платформу й те, виконавець це чи лейбл, і відтепер стежитимемо за новими релізами. Старіші релізи додаватися не будуть."
 			}
-		}
+		},
+		"releaseArtwork": "Обкладинка видання",
+		"mergeTarget": "Ціль",
+		"mergeTagCount": "{count, plural, =1 {1 тег} one {1 тег} few {{count} теги} many {{count} тегів} other {{count} тегів}}"
 	},
 	"filters": {
 		"title": "Фільтри",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "Корінь (без папки)",
 		"folderEmpty": "Ця папка порожня",
 		"noPlaylistsYet": "Плейлистів ще немає",
-		"noPlaylists": "Плейлистів ще немає",
 		"allPlaylists": "Усі плейлисти",
 		"searchPlaceholder": "Пошук плейлистів…",
 		"emptyHint": "Створюйте плейлисти для організації своїх пошуків",
@@ -561,12 +582,11 @@
 		"renameCategory": "Перейменувати категорію",
 		"deleteTag": "Видалити тег",
 		"deleteCategory": "Видалити категорію",
-		"addCategory": "Додати категорію",
-		"addTag": "Додати тег",
 		"moveToCategory": "Перемістити до категорії",
 		"noTags": "Немає тегів",
 		"noTagCategoriesYet": "Категорій тегів ще немає",
-		"emptyHint": "Створюйте категорії тегів з кодуванням за кольором для організації своїх пошуків"
+		"emptyHint": "Створюйте категорії тегів з кодуванням за кольором для організації своїх пошуків",
+		"removeTag": "Видалити тег"
 	},
 	"contextMenu": {
 		"viewInFinder": "Показати у Finder",
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "Вилучити з бібліотеки",
 			"removeFromLibraryMessage": "{count, plural, =1 {Вилучити цю доріжку з бібліотеки?} other {Вилучити {count} доріжок з бібліотеки?}}",
 			"removeFromLibraryWarning": "Цю дію не можна скасувати. Доріжки будуть вилучені з усіх плейлистів.",
-			"deleteTracksFromCollection": "Також видалити доріжки з моєї колекції",
-			"removeDiscoveryReleasesTitle": "Вилучити з пошуку",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Вилучити це видання з пошуку?} other {Вилучити {count} видань з пошуку?}}",
+			"deleteTracksFromCollection": "Також видалити доріжки з вашої колекції",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Видалити видання} one {Видалити видання} few {Видалити видання} many {Видалити видань} other {Видалити видань}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Видалити це видання?} one {Видалити це видання?} few {Видалити ці {count} видання?} many {Видалити ці {count} видань?} other {Видалити ці {count} видань?}}",
 			"removeDiscoveryReleasesWarning": "Цю дію не можна скасувати. Видання будуть вилучені з усіх плейлистів.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Вилучити з плейлиста",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Вилучити це видання з плейлиста?} other {Вилучити {count} видань з плейлиста?}}",
-			"deleteReleasesFromCollection": "Також видалити видання з моєї колекції"
+			"deleteReleasesFromCollection": "Також видалити видання з вашої колекції"
 		},
 		"relocate": {
 			"title": "Переміщення доріжки",
-			"message": "Виберіть нове місце розташування для цієї доріжки."
+			"cloudSyncedMessage": "Цю доріжку було додано на іншому пристрої. Виберіть локальну папку, яка містить коренем бібліотеки, щоб зробити її відтворюваною тут.",
+			"missingFileMessage": "Файл для цієї доріжки не міг бути знайдений у його оригінальному місцезнаходженні.",
+			"selectRootFolder": "Виберіть корінь папку бібліотеки",
+			"selectReplacementFile": "Виберіть файл заміни",
+			"validating": "Перевірка файлу...",
+			"unsupportedFormat": "Непідтримуваний аудіоформат.",
+			"hashMatch": "Вміст файлу збігається. Хеш перевірено.",
+			"hashMismatch": "Вміст файлу не збігається з оригіналом.",
+			"noOriginalHash": "Немає оригінального хешу для порівняння. Файл все ще може бути правильним.",
+			"useAnyway": "Все одно використовуйте цей файл",
+			"relocate": "Перемістити",
+			"relocating": "Переміщення...",
+			"validateFailed": "Не вдалося перевірити файл",
+			"relocateFailed": "Не вдалося перемістити доріжку"
 		},
-		"albumArt": "Обкладинка альбому",
+		"albumArt": "Обкладинка",
 		"deviceInfo": {
 			"title": "Інформація про пристрій",
 			"diskType": "Тип диска",
@@ -719,7 +752,14 @@
 		"failedToUpdateTracks": "Не вдалося оновити доріжки",
 		"failedToSetArtwork": "Не вдалося встановити обкладинку",
 		"failedToRemoveArtwork": "Не вдалося видалити обкладинку",
-		"noArtworkInFile": "У аудіофайлі не знайдено обкладинки"
+		"noArtworkInFile": "У аудіофайлі не знайдено обкладинки",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 доріжка} other {{count} доріжок}} імпортована, {failed} невдалих",
+		"failedToSetTrackColor": "Не вдалося встановити колір доріжки",
+		"exportCleanedUp": "Вичищений частковий експорт",
+		"exportCleanUpFailed": "Не вдалося очистити експорт",
+		"deviceNotFound": "Пристрій не знайдено",
+		"deviceReformatted": "Пристрій переформатований як \"{name}\"",
+		"deviceReformatFailed": "Не вдалося переформатувати: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Не можна перетягнути папку саму в себе",
@@ -731,7 +771,10 @@
 		"previewNotAvailableOffline": "Цей трек недоступний у режимі без підключення",
 		"updateCheckFailed": "Не вдалося перевірити наявність оновлень",
 		"updateInstallFailed": "Не вдалося встановити оновлення",
-		"generic": "Щось пішло не так"
+		"generic": "Щось пішло не так",
+		"previewPlaybackFailed": "Помилка відтворення попереднього перегляду",
+		"previewPlayFailed": "Не вдалося програти попередній перегляд",
+		"previewResumeFailed": "Не вдалося вінозвити попередній перегляд"
 	},
 	"devices": {
 		"title": "Пристрої",
@@ -772,7 +815,7 @@
 		"selectDevice": "Виберіть пристрій",
 		"selectDevicesDescription": "Виберіть один або кілька пристроїв для експорту.",
 		"devicesSelected": "{count, plural, =1 {1 пристрій вибрано} other {{count} пристроїв вибрано}}",
-		"devicesToExport": "Пристрої",
+		"devicesToExport": "Пристрої для експорту",
 		"noDevicesConnected": "USB-пристрої не підключені",
 		"noPlaylistsAvailable": "Плейлисти недоступні",
 		"destination": "Призначення",
@@ -868,6 +911,9 @@
 		"settingsSound": "Звук",
 		"settingsDiagnostics": "Діагностика",
 		"quit": "Завершити {appName}",
+		"hide": "Приховати {appName}",
+		"hideOthers": "Приховати інші",
+		"showAll": "Показати все",
 		"importTracks": "Імпортувати доріжки...",
 		"addRelease": "Додати видання...",
 		"refreshMetadata": "Оновити метаданні",
@@ -905,7 +951,7 @@
 		"reportIssue": "Звітувати про проблему..."
 	},
 	"smartPlaylist": {
-		"createTitle": "Створити розумний плейлист",
+		"createTitle": "Новий розумний плейлист",
 		"editTitle": "Редагувати розумний плейлист",
 		"name": "Назва",
 		"namePlaceholder": "Назва розумного плейлиста",
@@ -986,6 +1032,14 @@
 			"aqua": "Блакитний",
 			"blue": "Синій",
 			"purple": "Фіолетовий"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {

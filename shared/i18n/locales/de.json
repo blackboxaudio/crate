@@ -25,7 +25,13 @@
 		"more": "Mehr",
 		"select": "Auswählen",
 		"noResults": "Keine Ergebnisse",
-		"offline": "Du bist offline"
+		"offline": "Du bist offline",
+		"audioFiles": "Audiodateien",
+		"images": "Bilder",
+		"selectAnOption": "Wähle eine Option",
+		"unknownError": "Unbekannter Fehler",
+		"dismiss": "Schließen",
+		"step": "Schritt {number}"
 	},
 	"nav": {
 		"library": "Bibliothek",
@@ -128,8 +134,8 @@
 			"clearCacheWarning": "Zuvor angehörte Tracks müssen beim nächsten Abspielen erneut von ihrer Quelle gestreamt werden. Dies kann langsamer sein und einige Streams sind möglicherweise nicht mehr verfügbar.",
 			"audioCache": "Audio",
 			"artworkCache": "Artwork",
-			"artworkCacheDescription": "Album-Cover werden auf diesem Gerät gespeichert, damit sie auch ohne Verbindung angezeigt werden.",
-			"clearArtworkCacheConfirmMessage": "Möchten Sie alle zwischengespeicherten Album-Cover wirklich löschen?",
+			"artworkCacheDescription": "Artwork wird auf diesem Gerät gespeichert, damit es auch ohne Verbindung angezeigt wird.",
+			"clearArtworkCacheConfirmMessage": "Möchten Sie all das zwischengespeicherte Artwork wirklich löschen?",
 			"cacheLimit": "Cache-Limit"
 		},
 		"following": {
@@ -140,7 +146,7 @@
 			"cadenceDaily": "Beim Starten und täglich",
 			"cadenceManual": "Nur manuell",
 			"checkAllNow": "Alles jetzt prüfen",
-			"autoFollowDescription": "Standard für die Option \"Auch folgen\" beim Importieren eines Releases.",
+			"autoFollowDescription": "Standard für die Option \"Folgen für neue Releases\" beim Importieren eines Releases.",
 			"autoFollowOff": "Aus",
 			"autoFollowArtist": "Künstler",
 			"autoFollowLabel": "Label",
@@ -234,7 +240,7 @@
 			"toolarge": "Ihre Bibliothek ist zu groß zum Hochladen",
 			"conflict": "Ein anderes Gerät wird gerade synchronisiert — wird wiederholt",
 			"server": "Der Synchronisierungsdienst hat Probleme — wird wiederholt",
-			"merge": "Synchronisierte Änderungen konnten auf diesem Gerät nicht angewendet werden"
+			"merge": "Synchronisierte Änderungen konnten nicht auf diesem Gerät angewendet werden"
 		},
 		"diagnostics": {
 			"copy": "Synchronisierungsdiagnose kopieren"
@@ -299,10 +305,14 @@
 		"volume": "Lautstärke",
 		"tempo": "Tempo",
 		"resetTempo": "Tempo zurücksetzen",
-		"trackNotFound": "Der aktuell gespielte Titel konnte nicht gefunden werden",
+		"trackNotFound": "Der gespielte Titel konnte nicht gefunden werden",
 		"expand": "Player ausklappen",
 		"collapse": "Player einklappen",
-		"seek": "Suchen"
+		"seek": "Suchen",
+		"repeat": "Wiederholung",
+		"repeatTrack": "Track wiederholen",
+		"repeatRelease": "Release wiederholen",
+		"repeatAll": "Alles wiederholen"
 	},
 	"queue": {
 		"upNext": "Als Nächstes",
@@ -343,12 +353,24 @@
 		"track": "Track",
 		"tracks": "Tracks",
 		"item": "Element",
-		"items": "Elemente"
+		"items": "Elemente",
+		"clearSearch": "Suche löschen",
+		"fileNotFound": "Datei nicht gefunden",
+		"dropToImport": "Audiodateien zum Importieren ablegen",
+		"noColor": "Keine Farbe",
+		"colorLabel": "Farbe: {color}"
 	},
 	"discovery": {
 		"addRelease": "Release hinzufügen",
 		"url": "URL",
 		"source": "Quelle",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Sonstiges"
+		},
 		"release": "Release",
 		"releases": "Releases",
 		"searchPlaceholder": "Releases suchen...",
@@ -356,6 +378,7 @@
 		"noResults": "Keine Releases entsprechen Ihren Filtern",
 		"addReleaseHint": "Drücken Sie {shortcut}, um Releases von Bandcamp, Discogs, YouTube und mehr hinzuzufügen",
 		"mobileAddHint": "Releases von Bandcamp, Discogs, YouTube und mehr hinzufügen",
+		"dropHint": "Link zum Hinzufügen eines Releases ablegen",
 		"pending": "Ausstehend",
 		"offlineQueueNotice": "Sie sind offline – dieses Release wird hinzugefügt, wenn Sie die Verbindung wiederherstellen",
 		"addToQueue": "Zur Warteschlange hinzufügen",
@@ -371,8 +394,7 @@
 			"label": "Label",
 			"tags": "Tags",
 			"dateAdded": "Hinzugefügt am",
-			"released": "Veröffentlicht",
-			"added": "Hinzugefügt"
+			"dateReleased": "Veröffentlicht"
 		},
 		"fetchingMetadata": "Metadaten werden abgerufen...",
 		"refreshMetadata": "Metadaten aktualisieren",
@@ -410,13 +432,12 @@
 			"artist": "Künstler",
 			"title": "Titel",
 			"label": "Label",
-			"releaseDate": "Release-Datum",
+			"releaseDate": "Datum veröffentlicht",
 			"notes": "Notizen",
 			"notesPlaceholder": "Notizen hinzufügen…",
 			"addTags": "Tags hinzufügen"
 		},
 		"import": {
-			"title": "In Bibliothek importieren",
 			"selectFiles": "Dateien auswählen",
 			"matched": "Zugeordnet",
 			"unmatched": "Nicht zugeordnet",
@@ -466,7 +487,7 @@
 			"pauseSelected": "Pausieren",
 			"unfollow": "Nicht mehr folgen",
 			"checkNow": "Jetzt prüfen",
-			"enabledToggle": "Updates umschalten",
+			"enabledToggle": "Auf neue Releases überprüfen",
 			"artist": "Künstler",
 			"label": "Label",
 			"checkedAgo": "Geprüft {time}",
@@ -478,13 +499,11 @@
 			"following": "Folgt",
 			"followForNewReleases": "Folgen für neue Releases",
 			"followViaPaste": "Folgen Sie dieser Quelle vom Panel \"Following\"",
-			"popoverTitle": "Folgen für neue Releases",
 			"upcoming": "Bevorstehend",
 			"daysUntil": "{days} T",
 			"surfacedVia": "Über {source} angezeigt",
 			"markNew": "Als neu markieren",
 			"markNotNew": "Als nicht neu markieren",
-			"alsoFollow": "Folgen für neue Releases",
 			"sortBy": "Sortieren nach",
 			"empty": {
 				"title": "Sie folgen noch niemandem",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "URL einer Bandcamp-, SoundCloud- oder Discogs-Künstler-/Label-Seite einfügen",
 				"urlInfo": "Wir erkennen automatisch die Plattform und ob es sich um einen Künstler oder ein Label handelt, und halten ab jetzt nach neuen Releases Ausschau. Ältere Releases werden nicht übernommen."
 			}
-		}
+		},
+		"releaseArtwork": "Release-Artwork",
+		"mergeTarget": "Ziel",
+		"mergeTagCount": "{count, plural, =1 {1 Tag} other {{count} Tags}}"
 	},
 	"filters": {
 		"title": "Filter",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "Stammverzeichnis (kein Ordner)",
 		"folderEmpty": "Dieser Ordner ist leer",
 		"noPlaylistsYet": "Noch keine Playlists",
-		"noPlaylists": "Noch keine Playlists",
 		"allPlaylists": "Alle Playlists",
 		"searchPlaceholder": "Playlists durchsuchen…",
 		"emptyHint": "Erstellen Sie Playlists, um Ihre Entdeckungen zu organisieren",
@@ -561,12 +582,11 @@
 		"renameCategory": "Kategorie umbenennen",
 		"deleteTag": "Tag löschen",
 		"deleteCategory": "Kategorie löschen",
-		"addCategory": "Kategorie hinzufügen",
-		"addTag": "Tag hinzufügen",
 		"moveToCategory": "In Kategorie verschieben",
 		"noTags": "Keine Tags",
 		"noTagCategoriesYet": "Noch keine Tag-Kategorien",
-		"emptyHint": "Erstellen Sie farbcodierte Tag-Kategorien, um Ihre Entdeckungen zu organisieren"
+		"emptyHint": "Erstellen Sie farbcodierte Tag-Kategorien, um Ihre Entdeckungen zu organisieren",
+		"removeTag": "Tag entfernen"
 	},
 	"contextMenu": {
 		"viewInFinder": "Im Finder anzeigen",
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "Aus Bibliothek entfernen",
 			"removeFromLibraryMessage": "{count, plural, =1 {Diesen Track aus Ihrer Bibliothek entfernen?} other {{count} Tracks aus Ihrer Bibliothek entfernen?}}",
 			"removeFromLibraryWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Tracks werden aus allen Playlists entfernt.",
-			"deleteTracksFromCollection": "Tracks auch aus meiner Sammlung löschen",
-			"removeDiscoveryReleasesTitle": "Aus Entdeckung entfernen",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Dieses Release aus der Entdeckung entfernen?} other {{count} Releases aus der Entdeckung entfernen?}}",
+			"deleteTracksFromCollection": "Tracks auch aus deiner Sammlung löschen",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Release löschen} other {Releases löschen}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Dieses Release löschen?} other {{count} Releases löschen?}}",
 			"removeDiscoveryReleasesWarning": "Diese Aktion kann nicht rückgängig gemacht werden. Releases werden aus allen Playlists entfernt.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Aus Playlist entfernen",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Dieses Release aus der Playlist entfernen?} other {{count} Releases aus der Playlist entfernen?}}",
-			"deleteReleasesFromCollection": "Releases auch aus meiner Sammlung löschen"
+			"deleteReleasesFromCollection": "Releases auch aus deiner Sammlung löschen"
 		},
 		"relocate": {
 			"title": "Track verschieben",
-			"message": "Wählen Sie den neuen Speicherort für diesen Track."
+			"cloudSyncedMessage": "Dieser Track wurde auf einem anderen Gerät hinzugefügt. Wählen Sie den lokalen Ordner, der sein Bibliotheks-Root enthält, um ihn hier abspielbar zu machen.",
+			"missingFileMessage": "Die Datei für diesen Track konnte an seinem ursprünglichen Speicherort nicht gefunden werden.",
+			"selectRootFolder": "Bibliotheks-Root-Ordner auswählen",
+			"selectReplacementFile": "Ersatzdatei auswählen",
+			"validating": "Datei wird validiert...",
+			"unsupportedFormat": "Nicht unterstütztes Audioformat.",
+			"hashMatch": "Dateiinhalt stimmt überein. Hash verifiziert.",
+			"hashMismatch": "Dateiinhalt entspricht nicht dem Original.",
+			"noOriginalHash": "Kein Original-Hash zum Vergleich verfügbar. Die Datei könnte trotzdem korrekt sein.",
+			"useAnyway": "Diese Datei trotzdem verwenden",
+			"relocate": "Verschieben",
+			"relocating": "Wird versetzt...",
+			"validateFailed": "Datei konnte nicht validiert werden",
+			"relocateFailed": "Track konnte nicht versetzt werden"
 		},
-		"albumArt": "Albumcover",
+		"albumArt": "Artwork",
 		"deviceInfo": {
 			"title": "Geräteinformationen",
 			"diskType": "Festplattentyp",
@@ -654,15 +687,6 @@
 			"available": "Verfügbar:",
 			"total": "Gesamt:",
 			"percentUsed": "% belegt"
-		},
-		"update": {
-			"title": "Update verfügbar",
-			"description": "{version} ist zum Installieren bereit.",
-			"releaseNotes": "Neuerungen",
-			"installAndRestart": "Installieren und neu starten",
-			"later": "Später",
-			"downloading": "Wird heruntergeladen... {progress}%",
-			"installing": "Wird installiert..."
 		},
 		"duplicate": {
 			"title": "Doppelter Track erkannt",
@@ -677,6 +701,15 @@
 			"replace": "Ersetzen",
 			"replaceDescription": "Neuimport aus neuer Datei. Behält nur Playlist-Zugehörigkeiten. Setzt Cue-Punkte, Tags und Wiedergabeverlauf zurück.",
 			"applyToAll": "Auf alle verbleibenden Duplikate anwenden ({count})"
+		},
+		"update": {
+			"title": "Update verfügbar",
+			"description": "{version} ist zum Installieren bereit.",
+			"releaseNotes": "Neuerungen",
+			"installAndRestart": "Installieren und neu starten",
+			"later": "Später",
+			"downloading": "Wird heruntergeladen... {progress}%",
+			"installing": "Wird installiert..."
 		},
 		"conflict": {
 			"title": "Namenskonflikt",
@@ -699,6 +732,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1 Track} other {{count} Tracks}} zu {playlistName} hinzugefügt, {failed} fehlgeschlagen",
 		"tracksImported": "{count, plural, =1 {1 Track} other {{count} Tracks}} importiert",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 Track} other {{imported} Tracks}} importiert, {skipped} übersprungen",
+		"tracksExported": "{exported, plural, =1 {1 Track} other {{exported} Tracks}} zu {deviceName} exportiert, {skipped, plural, =1 {1 übersprungen} other {{skipped} übersprungen}}",
 		"trackRemoved": "{count, plural, =1 {1 Track} other {{count} Tracks}} aus Playlist entfernt",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1 Track} other {{count} Tracks}} aus Bibliothek entfernt",
 		"movedSuccessfully": "Erfolgreich verschoben",
@@ -718,7 +752,14 @@
 		"failedToUpdateTracks": "Tracks konnten nicht aktualisiert werden",
 		"failedToSetArtwork": "Artwork konnte nicht festgelegt werden",
 		"failedToRemoveArtwork": "Artwork konnte nicht entfernt werden",
-		"noArtworkInFile": "Kein Artwork in Audiodatei gefunden"
+		"noArtworkInFile": "Kein Artwork in Audiodatei gefunden",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 Track} other {{count} Tracks}} importiert, {failed} fehlgeschlagen",
+		"failedToSetTrackColor": "Track-Farbe konnte nicht festgelegt werden",
+		"exportCleanedUp": "Teilexport bereinigt",
+		"exportCleanUpFailed": "Cleanup des Exports fehlgeschlagen",
+		"deviceNotFound": "Gerät nicht gefunden",
+		"deviceReformatted": "Gerät formatiert als \"{name}\"",
+		"deviceReformatFailed": "Formatierung fehlgeschlagen: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Ein Ordner kann nicht in sich selbst gezogen werden",
@@ -730,14 +771,17 @@
 		"previewNotAvailableOffline": "Dieser Track ist offline nicht verfügbar",
 		"updateCheckFailed": "Fehler beim Prüfen auf Updates",
 		"updateInstallFailed": "Fehler beim Installieren des Updates",
-		"generic": "Etwas ist schief gelaufen"
+		"generic": "Etwas ist schief gelaufen",
+		"previewPlaybackFailed": "Fehler bei der Vorschau-Wiedergabe",
+		"previewPlayFailed": "Fehler beim Starten der Vorschau",
+		"previewResumeFailed": "Fehler beim Fortsetzen der Vorschau"
 	},
 	"devices": {
 		"title": "Geräte",
 		"eject": "Auswerfen",
 		"ignore": "Ignorieren",
 		"unignore": "Nicht mehr ignorieren",
-		"selectDevice": "Gerät auswählen",
+		"selectDevice": "Ein Gerät auswählen",
 		"deviceInfo": "Geräteinformationen",
 		"capacity": "Kapazität",
 		"available": "Verfügbar",
@@ -771,7 +815,7 @@
 		"selectDevice": "Gerät auswählen",
 		"selectDevicesDescription": "Wählen Sie ein oder mehrere Geräte zum Exportieren aus.",
 		"devicesSelected": "{count, plural, =1 {1 Gerät ausgewählt} other {{count} Geräte ausgewählt}}",
-		"devicesToExport": "Geräte",
+		"devicesToExport": "Zu exportierende Geräte",
 		"noDevicesConnected": "Keine USB-Geräte verbunden",
 		"noPlaylistsAvailable": "Keine Playlists verfügbar",
 		"destination": "Ziel",
@@ -907,7 +951,7 @@
 		"reportIssue": "Problem melden..."
 	},
 	"smartPlaylist": {
-		"createTitle": "Intelligente Playlist erstellen",
+		"createTitle": "Neue intelligente Playlist",
 		"editTitle": "Intelligente Playlist bearbeiten",
 		"name": "Name",
 		"namePlaceholder": "Name der intelligenten Playlist",
@@ -945,7 +989,7 @@
 			"color": "Farbe",
 			"format": "Format",
 			"sourceType": "Quelle",
-			"releaseDate": "Veröffentlichungsdatum",
+			"releaseDate": "Datum veröffentlicht",
 			"notes": "Notizen",
 			"tags": "Tags"
 		},
@@ -977,7 +1021,7 @@
 			"title": "Titel",
 			"artist": "Künstler",
 			"random": "Zufällig",
-			"releaseDate": "Veröffentlichungsdatum"
+			"releaseDate": "Datum veröffentlicht"
 		},
 		"colors": {
 			"pink": "Rosa",
@@ -988,6 +1032,14 @@
 			"aqua": "Aqua",
 			"blue": "Blau",
 			"purple": "Lila"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {

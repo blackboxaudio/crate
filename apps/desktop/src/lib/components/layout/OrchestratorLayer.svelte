@@ -161,7 +161,9 @@
 
 	function handleRelocateComplete(updatedTrack: Track) {
 		libraryStore.loadTracks()
-		toastStore.success(`Relocated "${updatedTrack.title || 'track'}"`)
+		toastStore.success(
+			$translate('toast.relocated', { values: { title: updatedTrack.title || $translate('common.untitled') } })
+		)
 	}
 
 	// =============================================================================
@@ -395,7 +397,7 @@
 		}
 		uiStore.clearSelection()
 		const count = trackIds.length
-		toastStore.success(count === 1 ? '1 track removed from playlist' : `${count} tracks removed from playlist`)
+		toastStore.success($translate('toast.trackRemoved', { values: { count } }))
 	}}
 	onRemoveDiscoveryReleases={async (releaseIds) => {
 		await discoveryStore.deleteReleases(releaseIds)
@@ -422,7 +424,7 @@
 		}
 		await playlistsStore.load()
 		const count = trackIds.length
-		toastStore.success(count === 1 ? '1 track removed from library' : `${count} tracks removed from library`)
+		toastStore.success($translate('toast.trackRemovedFromLibrary', { values: { count } }))
 	}}
 	onMoveConflictOverwrite={async (movingItemId, targetParentId) => {
 		const result = await playlistsStore.moveWithResolution(movingItemId, targetParentId, 'overwrite')

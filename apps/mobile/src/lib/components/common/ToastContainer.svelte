@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	import { toasts, toastStore, type ToastType } from '$shared/stores/toast'
 	import { previewInfo } from '$shared/stores/player'
 	import { fly } from 'svelte/transition'
@@ -77,7 +78,7 @@
 				<button
 					type="button"
 					class="-mr-1 flex-shrink-0 opacity-70 active:opacity-100"
-					aria-label="Dismiss"
+					aria-label={$translate('common.dismiss')}
 					onclick={() => toastStore.dismiss(toast.id)}
 				>
 					<svg

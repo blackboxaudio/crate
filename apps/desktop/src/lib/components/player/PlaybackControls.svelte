@@ -1,28 +1,46 @@
 <script lang="ts">
 	import { IconButton, Tooltip } from '$lib/components/common'
 	import { translate } from '$shared/i18n'
+	import type { RepeatMode } from '$shared/stores/player'
 
 	type Props = {
 		isPlaying: boolean
 		hasTrack: boolean
 		shuffleEnabled?: boolean
+		repeatMode?: RepeatMode
 		onPlayPause?: () => void
 		onPrevious?: () => void
 		onNext?: () => void
 		onStop?: () => void
 		onToggleShuffle?: () => void
+		onCycleRepeat?: () => void
 	}
 
 	let {
 		isPlaying,
 		hasTrack,
 		shuffleEnabled = false,
+		repeatMode = 'off',
 		onPlayPause,
 		onPrevious,
 		onNext,
 		onStop,
 		onToggleShuffle,
+		onCycleRepeat,
 	}: Props = $props()
+
+	const repeatIcon = $derived(
+		repeatMode === 'track' ? 'repeat-once' : repeatMode === 'release' ? 'repeat-dot' : 'repeat'
+	)
+	const repeatLabelKey = $derived(
+		repeatMode === 'track'
+			? 'player.repeatTrack'
+			: repeatMode === 'release'
+				? 'player.repeatRelease'
+				: repeatMode === 'context'
+					? 'player.repeatAll'
+					: 'player.repeat'
+	)
 </script>
 
 <div class="flex items-center gap-1">
@@ -54,5 +72,10 @@
 	<!-- Shuffle -->
 	<Tooltip text={$translate('player.shuffle')} position="top" delay={250}>
 		<IconButton size="lg" iconClass="h-4 w-4" active={shuffleEnabled} icon="shuffle" onclick={onToggleShuffle} />
+	</Tooltip>
+
+	<!-- Repeat (cycles off → track → release → all) -->
+	<Tooltip text={$translate(repeatLabelKey)} position="top" delay={250}>
+		<IconButton size="lg" iconClass="h-4 w-4" active={repeatMode !== 'off'} icon={repeatIcon} onclick={onCycleRepeat} />
 	</Tooltip>
 </div>

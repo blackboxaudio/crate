@@ -95,6 +95,14 @@
 			'<line x1="3" y1="6" x2="21" y2="6" /><line x1="6" y1="12" x2="18" y2="12" /><line x1="9" y1="18" x2="15" y2="18" />',
 		shuffle:
 			'<path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22" /><path d="m18 2 4 4-4 4" /><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2" /><path d="M22 18h-5.9c-1.3 0-2.5-.6-3.3-1.7l-.5-.8" /><path d="m18 14 4 4-4 4" />',
+		// Repeat glyphs (Tabler Icons, MIT): plain loop, loop with "1" (repeat-track), loop with a
+		// center dot (repeat-release — no standard glyph distinguishes release from context).
+		repeat:
+			'<path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" /><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" />',
+		'repeat-once':
+			'<path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" /><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" /><path d="M11 11l1 -1v4" />',
+		'repeat-dot':
+			'<path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" /><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />',
 	}
 
 	// Fill-based icons (use fill={true})

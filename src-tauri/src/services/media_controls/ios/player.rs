@@ -13,8 +13,8 @@ use objc2::rc::Retained;
 use objc2::runtime::{AnyObject, Bool};
 use objc2::{msg_send, MainThreadMarker};
 use objc2_av_foundation::{
-    AVAudioTimePitchAlgorithmVarispeed, AVPlayer, AVPlayerItem, AVPlayerItemStatus, AVURLAsset,
-    AVURLAssetOverrideMIMETypeKey,
+    AVAudioTimePitchAlgorithmVarispeed, AVPlayer, AVPlayerItem, AVPlayerItemStatus,
+    AVPlayerTimeControlStatus, AVURLAsset, AVURLAssetOverrideMIMETypeKey,
 };
 use objc2_core_media::CMTime;
 use objc2_foundation::{NSDictionary, NSError, NSMutableDictionary, NSString, NSURL};
@@ -27,9 +27,35 @@ use super::{now_playing, observers, remote_command};
 // the first track), else jumps to the previous track.
 const PREVIOUS_RESTART_THRESHOLD_MS: u64 = 3000;
 
+// Repeat-track flag (set from JS via `native_preview_set_repeat_mode`): when on, an item that plays
+// to its end is rewound and replayed instead of advancing — gapless, and it keeps working while the
+// WebView's JS is suspended on lock. Lives OUTSIDE the engine struct so the mode pushed at bridge
+// start (before the engine is lazily constructed on first play) isn't lost. Only ever touched on
+// the main thread; Relaxed is plenty.
+static REPEAT_CURRENT: AtomicBool = AtomicBool::new(false);
+
+pub(super) fn set_repeat_current(enabled: bool) {
+    REPEAT_CURRENT.store(enabled, Ordering::Relaxed);
+}
+
 // CMTime timescale for second↔CMTime conversions (600 is the conventional value: divisible by common
 // frame rates and fine enough for audio scrubbing).
 const TIMESCALE: i32 = 600;
+
+// Load/stall watchdog cadence. The periodic time observer can't cover a loading or stalled item (it
+// only fires while the timebase advances, which is exactly what isn't happening), so this poll is the
+// sole driver of `is_buffering` updates during a load.
+//
+// It ramps: a pre-fed window item is usually audible within a few tens of ms, and at a flat 400ms
+// cadence every gapless advance would flash the frontend's spinner for the remainder of the first
+// tick. The fast phase resolves those before anyone sees them; the slow phase then covers the long
+// cold-start tail cheaply. The total window is generous because a cold track waits on the proxy's
+// full download before AVPlayer sees a byte — past it we declare failure rather than leaving the
+// user on a spinner forever.
+const LOAD_WATCHDOG_FAST_POLL_MS: u64 = 100;
+const LOAD_WATCHDOG_FAST_TICKS: u32 = 8; // 0.8s
+const LOAD_WATCHDOG_POLL_MS: u64 = 400;
+const LOAD_WATCHDOG_SLOW_TICKS: u32 = 36; // 14.4s → ~15.2s of coverage total
 
 pub struct PlaybackEngineInner {
     app: AppHandle,
@@ -170,7 +196,11 @@ impl PlaybackEngineInner {
         unsafe {
             let url_str = NSString::from_str(&entry.url);
             let Some(url) = NSURL::URLWithString(&url_str) else {
-                engine::emit_error(&self.app, format!("invalid stream url: {}", entry.url));
+                engine::emit_error(
+                    &self.app,
+                    format!("invalid stream url: {}", entry.url),
+                    true,
+                );
                 return;
             };
             // Force the container type when the source provides one. The proxy URL is extensionless
@@ -224,19 +254,37 @@ impl PlaybackEngineInner {
         }
         // Fresh-from-start track: emit the initial (0) state now. For a restore, `self.seek` above already
         // emitted the offset position (and suppressed the periodic observer until the seek lands).
+        //
+        // `is_buffering` is asserted rather than read: a just-replaced item cannot be rendering audio,
+        // but `timeControlStatus` may not have caught up to the swap yet and can still report the
+        // OUTGOING item's `Playing` — which would blink the frontend's loading spinner off and back on
+        // one poll later. The watchdog below owns the flag from here.
         if start_position_ms == 0 {
-            self.emit_current_state();
+            engine::emit_state(
+                &self.app,
+                StatePayload {
+                    is_playing: self.playing,
+                    position_ms: 0,
+                    duration_ms: (self.duration_secs() * 1000.0) as u64,
+                    is_buffering: true,
+                },
+            );
         }
         // AVPlayer load failures are otherwise silent — the periodic time observer doesn't tick while
         // an item is stuck loading, so a stream AVFoundation can't play would sit in a fake "playing"
-        // state forever. Watch this item's status until it resolves and surface any failure.
+        // state forever. Watch this item until audio is genuinely rolling, and surface any failure.
         spawn_load_watchdog(self.app.clone(), self.epoch);
     }
 
-    /// Poll the current item's load status (driven by [`spawn_load_watchdog`], off the player's
-    /// timeline). Returns `true` once the outcome is decided so the watchdog can stop: the track was
-    /// superseded, there's no current item, it became ready, or it FAILED — in which case the
-    /// AVFoundation error is surfaced via [`Self::fail`].
+    /// Poll the current item toward an audible outcome (driven by [`spawn_load_watchdog`], off the
+    /// player's timeline). Returns `true` once the outcome is decided so the watchdog can stop: the
+    /// track was superseded, there's no current item, it FAILED (surfaced via [`Self::fail`]), or
+    /// audio is genuinely rolling.
+    ///
+    /// While the outcome is still pending this emits state on every poll, which is what keeps the
+    /// frontend's loading spinner up: `ReadyToPlay` is deliberately NOT a stop condition, because an
+    /// item can be ready and still silent while its buffer fills. Only `timeControlStatus == Playing`
+    /// (or the user pausing out from under us) counts as decided.
     fn poll_load_status(&mut self, epoch: u64) -> bool {
         if self.epoch != epoch {
             return true; // a newer track replaced this one; its own watchdog owns it
@@ -254,21 +302,51 @@ impl PlaybackEngineInner {
             self.fail(message);
             return true;
         }
-        if status == AVPlayerItemStatus::ReadyToPlay {
+        // Decided once audio is rolling — or once the user pauses out from under the load, which
+        // `is_buffering` also reports as false, so the emit below hands the spinner over to the paused
+        // transport rather than stranding it.
+        let decided = !self.is_buffering();
+        // A restore-offset seek is still in flight: `currentTime` reads pre-seek, so emitting here
+        // would flash the playhead to 0 (same reason `tick` bails). Keep polling, just stay quiet.
+        if !self.seeking {
+            self.emit_current_state();
+        }
+        if decided {
             engine::emit_debug(
                 &self.app,
-                format!("status=ReadyToPlay on track {}", self.index),
+                format!("load resolved on track {} (playing={})", self.index, self.playing),
             );
-            return true;
         }
-        false
+        decided
+    }
+
+    /// The load/stall watchdog exhausted its window without the item ever becoming audible. Report it
+    /// as a NON-retryable failure: unlike a dead upstream URL, re-resolving would just walk the same
+    /// slow path again, so the frontend goes straight to idle + toast instead of doubling the wait.
+    pub(super) fn fail_load_timeout(&mut self, epoch: u64) {
+        if self.epoch != epoch {
+            return; // a newer track replaced this one; its own watchdog owns it
+        }
+        let window_ms = LOAD_WATCHDOG_FAST_TICKS as u64 * LOAD_WATCHDOG_FAST_POLL_MS
+            + LOAD_WATCHDOG_SLOW_TICKS as u64 * LOAD_WATCHDOG_POLL_MS;
+        self.fail_with(
+            format!("stream never became playable within {}s", window_ms / 1000),
+            false,
+        );
     }
 
     /// Surface a playback failure: log it (→ `yarn dev:ios` terminal via env_logger/stderr), tell the
     /// frontend (→ error toast), and drop out of the fake "playing" state. Shared by the load
     /// watchdog and the `FailedToPlayToEndTime` notification; duplicate reports for the same item are
     /// collapsed via `failed_epoch` so one failure never emits two errors.
+    ///
+    /// These are the retryable failures — an AVFoundation load error usually means a dead or expired
+    /// upstream URL, which the frontend's one-shot re-resolve genuinely fixes.
     pub(super) fn fail(&mut self, message: String) {
+        self.fail_with(message, true);
+    }
+
+    fn fail_with(&mut self, message: String, retryable: bool) {
         if self.failed_epoch == Some(self.epoch) {
             return;
         }
@@ -278,15 +356,28 @@ impl PlaybackEngineInner {
             self.index
         );
         self.playing = false;
-        engine::emit_error(&self.app, message);
+        engine::emit_error(&self.app, message, retryable);
         engine::emit_state(
             &self.app,
             StatePayload {
                 is_playing: false,
                 position_ms: 0,
                 duration_ms: 0,
+                is_buffering: false,
             },
         );
+    }
+
+    /// `AVPlayerItemPlaybackStalled` → the buffer ran dry mid-track. Emit right away so the spinner
+    /// comes back, then re-arm the watchdog to drive the recovery (it clears the spinner when audio
+    /// resumes, and fails out if it never does — otherwise a permanent stall would spin forever).
+    pub(super) fn on_playback_stalled(&mut self) {
+        engine::emit_debug(
+            &self.app,
+            format!("playback stalled on track {}", self.index),
+        );
+        self.emit_current_state();
+        spawn_load_watchdog(self.app.clone(), self.epoch);
     }
 
     /// Lock-screen Like: toggle the current track's liked state natively — this must work while
@@ -366,8 +457,16 @@ impl PlaybackEngineInner {
             }
         }
         self.playing = true;
+        // A resume is a fresh attempt at making this item audible, so clear the one-error-per-item
+        // latch: without this, a track that already reported a failure (e.g. a load timeout the user
+        // is retrying by hitting play again) could never report a second one, and its watchdog would
+        // expire silently — leaving the spinner up forever.
+        self.failed_epoch = None;
         now_playing::set_playback(self.position_secs(), self.rate);
         self.emit_current_state();
+        // A resume can stall just like a fresh load (buffer drained while paused, network changed),
+        // so re-arm the watchdog to drive the spinner and time the resume out if it never starts.
+        spawn_load_watchdog(self.app.clone(), self.epoch);
     }
 
     /// Pause because an audio-session interruption began (phone call, Siri, another app taking the
@@ -439,6 +538,7 @@ impl PlaybackEngineInner {
                 is_playing: self.playing,
                 position_ms,
                 duration_ms: (self.duration_secs() * 1000.0) as u64,
+                is_buffering: self.is_buffering(),
             },
         );
     }
@@ -477,12 +577,28 @@ impl PlaybackEngineInner {
         }
     }
 
-    /// AVPlayerItemDidPlayToEndTime → advance to the next track (or end).
+    /// AVPlayerItemDidPlayToEndTime → loop the current item (repeat-track) or advance to the next
+    /// track (or end).
     pub fn on_item_ended(&mut self) {
         engine::emit_debug(
             &self.app,
             format!("AVPlayerItemDidPlayToEndTime fired on track {}", self.index),
         );
+        if REPEAT_CURRENT.load(Ordering::Relaxed) {
+            // Repeat-track: rewind the SAME item and keep playing — no item swap, no `ended`
+            // emission, no JS round-trip, so the loop is gapless and survives lock. AVPlayer
+            // pauses itself at the end of an item, so play must be re-asserted after the rewind
+            // (`self.playing` is still true — the pause was the item's, not the user's).
+            self.seek(0);
+            // SAFETY: AVPlayer.play / setRate are main-thread safe.
+            unsafe {
+                self.player.play();
+                if (self.rate - 1.0).abs() > f32::EPSILON {
+                    self.player.setRate(self.rate);
+                }
+            }
+            return;
+        }
         self.advance(1);
     }
 
@@ -501,6 +617,7 @@ impl PlaybackEngineInner {
                 is_playing: false,
                 position_ms: 0,
                 duration_ms: 0,
+                is_buffering: false,
             },
         );
     }
@@ -560,6 +677,23 @@ impl PlaybackEngineInner {
             .unwrap_or(0.0)
     }
 
+    /// Whether we intend to play but AVPlayer isn't actually rendering audio — the item is still
+    /// loading, or playback stalled on an empty buffer. `self.playing` alone can't answer this: it is
+    /// set optimistically the instant a load is requested, which is precisely why the frontend used to
+    /// drop its loading spinner into a stretch of silence.
+    ///
+    /// A user-initiated pause reports `Paused`, not `WaitingToPlayAtSpecifiedRate`, and is additionally
+    /// excluded by the `self.playing` check — so pausing mid-load clears the spinner rather than
+    /// stranding it.
+    fn is_buffering(&self) -> bool {
+        if !self.playing {
+            return false;
+        }
+        // SAFETY: AVPlayer.timeControlStatus (iOS 10+), read on the main thread.
+        let status = unsafe { self.player.timeControlStatus() };
+        status == AVPlayerTimeControlStatus::WaitingToPlayAtSpecifiedRate
+    }
+
     fn emit_current_state(&self) {
         engine::emit_state(
             &self.app,
@@ -567,6 +701,7 @@ impl PlaybackEngineInner {
                 is_playing: self.playing,
                 position_ms: (self.position_secs() * 1000.0) as u64,
                 duration_ms: (self.duration_secs() * 1000.0) as u64,
+                is_buffering: self.is_buffering(),
             },
         );
     }
@@ -591,20 +726,26 @@ fn nserror_message(err: &NSError) -> String {
     format!("{desc} [{domain} {code}]")
 }
 
-/// Watch a freshly-loaded item until its load resolves. The periodic time observer only fires while
-/// the player's timebase advances, so an item that never becomes playable would never be noticed;
-/// this polls `AVPlayerItem.status` on the main thread a few times a second instead. It self-stops
-/// once the load is decided (ready / failed / superseded) and after a bounded window regardless.
+/// Watch a freshly-loaded (or resumed, or stalled) item until audio is genuinely rolling. The
+/// periodic time observer only fires while the player's timebase advances, so an item that hasn't
+/// started would never be noticed; this polls on the main thread a few times a second instead.
+///
+/// It does double duty: each poll emits state, so this is what keeps the frontend's loading spinner
+/// up for exactly as long as the track is silent, and it self-stops once the outcome is decided
+/// (audible / paused / failed / superseded). If the bounded window expires with the item still
+/// silent, it reports a non-retryable failure so the UI falls back to idle with an error rather than
+/// spinning indefinitely.
 fn spawn_load_watchdog(app: AppHandle, epoch: u64) {
     let resolved = Arc::new(AtomicBool::new(false));
     tauri::async_runtime::spawn(async move {
-        // ~8s of coverage (20 × 400ms): enough for the proxy's first full download + the AVPlayer
-        // load to settle, short enough not to linger. Stops early the moment the load resolves.
-        for _ in 0..20 {
+        let schedule = std::iter::repeat(LOAD_WATCHDOG_FAST_POLL_MS)
+            .take(LOAD_WATCHDOG_FAST_TICKS as usize)
+            .chain(std::iter::repeat(LOAD_WATCHDOG_POLL_MS).take(LOAD_WATCHDOG_SLOW_TICKS as usize));
+        for delay_ms in schedule {
             if resolved.load(Ordering::Relaxed) {
                 break;
             }
-            tokio::time::sleep(Duration::from_millis(400)).await;
+            tokio::time::sleep(Duration::from_millis(delay_ms)).await;
             let resolved_cb = resolved.clone();
             let _ = app.run_on_main_thread(move || {
                 engine::with_engine_mut(|e| {
@@ -615,11 +756,9 @@ fn spawn_load_watchdog(app: AppHandle, epoch: u64) {
             });
         }
         if !resolved.load(Ordering::Relaxed) {
-            engine::emit_debug(
-                &app,
-                "watchdog timed out: item never became ready or failed (still loading/Unknown after ~8s)"
-                    .to_string(),
-            );
+            let _ = app.run_on_main_thread(move || {
+                engine::with_engine_mut(|e| e.fail_load_timeout(epoch));
+            });
         }
     });
 }

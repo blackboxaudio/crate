@@ -1,4 +1,5 @@
 import { get } from 'svelte/store'
+import { translate } from '$shared/i18n'
 import type { Playlist, ExportRequest, UsbDevice } from '$shared/types'
 import { dragStore, isDragging, dragData, needsDropTargetRefresh } from '$lib/stores'
 import { findDropTargets, findDropTargetAtPoint, type DropTarget } from '$shared/utils/drag'
@@ -119,13 +120,13 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 				const idsToMove = data.playlistIds.length > 1 ? data.playlistIds : [data.playlistId]
 				for (const id of idsToMove) {
 					if (id === target.id) {
-						toastStore.error('Cannot drop a folder into itself')
+						toastStore.error(get(translate)('errors.cannotDropIntoSelf'))
 						dragStore.endDrag()
 						return
 					}
 					const pl = getPlaylists().find((p) => p.id === id)
 					if (pl?.is_folder && isDescendantOf(id, target.id)) {
-						toastStore.error('Cannot drop a folder into its own subfolder')
+						toastStore.error(get(translate)('errors.cannotDropIntoSubfolder'))
 						dragStore.endDrag()
 						return
 					}

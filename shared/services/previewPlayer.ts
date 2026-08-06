@@ -3,6 +3,9 @@
  * Not a Svelte store — orchestrated by playerStore.
  */
 
+import { get } from 'svelte/store'
+import { translate } from '../i18n'
+
 let audio: HTMLAudioElement | null = null
 
 // True between a programmatic seek() and the element settling at the new position. WebKit-based
@@ -46,7 +49,7 @@ function getAudio(): HTMLAudioElement {
 		})
 		audio.addEventListener('seeked', clearSeekGuard)
 		audio.addEventListener('error', () => {
-			const msg = audio?.error?.message || 'Preview playback error'
+			const msg = audio?.error?.message || get(translate)('errors.previewPlaybackFailed')
 			_onError?.(msg)
 		})
 		audio.addEventListener('waiting', () => _onWaiting?.())
@@ -60,7 +63,7 @@ export function play(url: string) {
 	clearSeekGuard()
 	el.src = url
 	el.play().catch((e) => {
-		_onError?.(e.message || 'Failed to play preview')
+		_onError?.(e.message || get(translate)('errors.previewPlayFailed'))
 	})
 }
 
@@ -70,7 +73,7 @@ export function pause() {
 
 export function resume() {
 	audio?.play().catch((e) => {
-		_onError?.(e.message || 'Failed to resume preview')
+		_onError?.(e.message || get(translate)('errors.previewResumeFailed'))
 	})
 }
 

@@ -70,13 +70,12 @@
 		}
 	})
 
-	const sourceOptions = [
-		{ value: 'bandcamp', label: 'Bandcamp' },
-		{ value: 'soundcloud', label: 'SoundCloud' },
-		{ value: 'youtube', label: 'YouTube' },
-		{ value: 'discogs', label: 'Discogs' },
-		{ value: 'other', label: 'Other' },
-	]
+	const sourceOptions = $derived(
+		['bandcamp', 'soundcloud', 'youtube', 'discogs', 'other'].map((value) => ({
+			value,
+			label: $translate(`discovery.sources.${value}`),
+		}))
+	)
 
 	function isSupportedDomain(input: string): boolean {
 		const lower = input.toLowerCase()
@@ -413,7 +412,11 @@
 			<!-- Artwork preview -->
 			{#if artworkPreview}
 				<div class="flex justify-center">
-					<img src={artworkPreview} alt="Release artwork" class="h-40 w-40 rounded-md object-cover" />
+					<img
+						src={artworkPreview}
+						alt={$translate('discovery.releaseArtwork')}
+						class="h-40 w-40 rounded-md object-cover"
+					/>
 				</div>
 			{/if}
 

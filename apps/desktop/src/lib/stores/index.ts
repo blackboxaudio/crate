@@ -10,6 +10,7 @@ export {
 	volume,
 	playbackProgress,
 	shuffleEnabled,
+	repeatMode,
 	playbackSource,
 	playbackSpeed,
 	previewInfo,

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	import type { Playlist } from '$shared/types'
 	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
 	import { slide } from 'svelte/transition'
@@ -72,6 +73,6 @@
 	{/each}
 
 	{#if playlists.length === 0}
-		<Text variant="caption" class="py-4 text-center">No playlists available</Text>
+		<Text variant="caption" class="py-4 text-center">{$translate('export.noPlaylistsAvailable')}</Text>
 	{/if}
 </div>

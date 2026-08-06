@@ -932,12 +932,14 @@
 {#if activeModal.type === 'removeDiscoveryReleases'}
 	<ConfirmModal
 		open={true}
-		title={$translate('modals.confirm.removeDiscoveryReleasesTitle')}
+		title={$translate('modals.confirm.removeDiscoveryReleasesTitle', {
+			values: { count: activeModal.releaseIds.length },
+		})}
 		message={$translate('modals.confirm.removeDiscoveryReleasesMessage', {
 			values: { count: activeModal.releaseIds.length },
 		})}
 		warnings={[$translate('modals.confirm.removeDiscoveryReleasesWarning')]}
-		confirmLabel={$translate('common.remove')}
+		confirmLabel={$translate('common.delete')}
 		destructive={true}
 		onConfirm={handleRemoveDiscoveryReleasesConfirm}
 		onCancel={closeAll}

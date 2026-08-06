@@ -242,6 +242,7 @@ impl BackupService {
                     video_id: row.get(5)?,
                     url: row.get(6)?,
                     is_liked: row.get(7)?,
+                    preview_unavailable: false,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;

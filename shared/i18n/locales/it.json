@@ -25,7 +25,13 @@
 		"more": "Altro",
 		"select": "Seleziona",
 		"noResults": "Nessun risultato",
-		"offline": "Sei offline"
+		"offline": "Sei offline",
+		"audioFiles": "File audio",
+		"images": "Immagini",
+		"selectAnOption": "Seleziona un'opzione",
+		"unknownError": "Errore sconosciuto",
+		"dismiss": "Chiudi",
+		"step": "Passaggio {number}"
 	},
 	"nav": {
 		"library": "Libreria",
@@ -128,7 +134,7 @@
 			"clearCacheWarning": "I brani precedentemente visualizzati in anteprima dovranno essere trasmessi nuovamente dalla loro fonte alla prossima riproduzione. Questo potrebbe essere più lento e alcuni flussi potrebbero non essere più disponibili.",
 			"audioCache": "Audio",
 			"artworkCache": "Copertina",
-			"artworkCacheDescription": "Le copertine degli album vengono salvate su questo dispositivo in modo che vengano visualizzate senza connessione.",
+			"artworkCacheDescription": "Le copertine vengono salvate su questo dispositivo in modo che vengano visualizzate senza connessione.",
 			"clearArtworkCacheConfirmMessage": "Sei sicuro di voler cancellare tutte le copertine memorizzate nella cache?",
 			"cacheLimit": "Limite cache"
 		},
@@ -140,7 +146,7 @@
 			"cadenceDaily": "All'avvio e quotidianamente",
 			"cadenceManual": "Solo manuale",
 			"checkAllNow": "Controlla tutto ora",
-			"autoFollowDescription": "Predefinito per l'opzione \"Segui anche\" durante l'importazione di un rilascio.",
+			"autoFollowDescription": "Predefinito per l'opzione \"Segui per nuovi rilasci\" durante l'importazione di un rilascio.",
 			"autoFollowOff": "Disattivato",
 			"autoFollowArtist": "Artista",
 			"autoFollowLabel": "Etichetta",
@@ -302,7 +308,11 @@
 		"trackNotFound": "Impossibile individuare la traccia in riproduzione",
 		"expand": "Espandi lettore",
 		"collapse": "Comprimi lettore",
-		"seek": "Cerca"
+		"seek": "Cerca",
+		"repeat": "Ripeti",
+		"repeatTrack": "Ripeti traccia",
+		"repeatRelease": "Ripeti rilascio",
+		"repeatAll": "Ripeti tutto"
 	},
 	"queue": {
 		"upNext": "Prossimo",
@@ -318,8 +328,8 @@
 		"reorder": "Riordina",
 		"clearQueue": "Cancella",
 		"empty": "Niente di prossimo",
-		"emptyHint": "Le canzoni che aggiungi verranno riprodotte dopo",
-		"upcoming": "In arrivo",
+		"emptyHint": "Le tracce che aggiungi verranno riprodotte dopo",
+		"upcoming": "Prossimo",
 		"history": "Cronologia",
 		"historyEmpty": "Nulla è stato riprodotto ancora"
 	},
@@ -343,12 +353,24 @@
 		"track": "traccia",
 		"tracks": "tracce",
 		"item": "elemento",
-		"items": "elementi"
+		"items": "elementi",
+		"clearSearch": "Cancella ricerca",
+		"fileNotFound": "File non trovato",
+		"dropToImport": "Trascina i file audio per importare",
+		"noColor": "Nessun colore",
+		"colorLabel": "Colore: {color}"
 	},
 	"discovery": {
 		"addRelease": "Aggiungi rilascio",
 		"url": "URL",
 		"source": "Fonte",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Altro"
+		},
 		"release": "rilascio",
 		"releases": "rilasci",
 		"searchPlaceholder": "Cerca uscite...",
@@ -356,6 +378,7 @@
 		"noResults": "Nessun rilascio corrisponde ai tuoi filtri",
 		"addReleaseHint": "Premi {shortcut} per aggiungere rilasci da Bandcamp, Discogs, YouTube e altri",
 		"mobileAddHint": "Aggiungi rilasci da Bandcamp, Discogs, YouTube e altri",
+		"dropHint": "Trascina un link per aggiungere un rilascio",
 		"pending": "In sospeso",
 		"offlineQueueNotice": "Sei offline — questo rilascio verrà aggiunto quando ti riconnetti",
 		"addToQueue": "Aggiungi alla coda",
@@ -371,8 +394,7 @@
 			"label": "Etichetta",
 			"tags": "Tag",
 			"dateAdded": "Data di aggiunta",
-			"released": "Rilasciato",
-			"added": "Aggiunto"
+			"dateReleased": "Data di rilascio"
 		},
 		"fetchingMetadata": "Recupero metadati...",
 		"refreshMetadata": "Aggiorna metadati",
@@ -416,7 +438,6 @@
 			"addTags": "Aggiungi tag"
 		},
 		"import": {
-			"title": "Importa nella libreria",
 			"selectFiles": "Seleziona file",
 			"matched": "Corrispondente",
 			"unmatched": "Non corrispondente",
@@ -466,7 +487,7 @@
 			"pauseSelected": "Pausa",
 			"unfollow": "Smetti di seguire",
 			"checkNow": "Controlla ora",
-			"enabledToggle": "Attiva/disattiva aggiornamenti",
+			"enabledToggle": "Controlla nuovi rilasci",
 			"artist": "Artista",
 			"label": "Etichetta",
 			"checkedAgo": "Controllato {time}",
@@ -478,13 +499,11 @@
 			"following": "Seguiti",
 			"followForNewReleases": "Segui per nuovi rilasci",
 			"followViaPaste": "Segui questa fonte dal pannello Seguiti",
-			"popoverTitle": "Segui per nuovi rilasci",
 			"upcoming": "Prossimamente",
 			"daysUntil": "{days} g",
 			"surfacedVia": "Visualizzato tramite {source}",
 			"markNew": "Segna come nuovo",
 			"markNotNew": "Segna come non nuovo",
-			"alsoFollow": "Segui per nuovi rilasci",
 			"sortBy": "Ordina per",
 			"empty": {
 				"title": "Non stai seguendo nessuno ancora",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Incolla URL della pagina artista/etichetta Bandcamp, SoundCloud o Discogs",
 				"urlInfo": "Rileviamo in automatico la piattaforma e se si tratta di un artista o di un'etichetta, e da ora in poi teniamo d'occhio le nuove uscite. Le uscite più vecchie non verranno aggiunte."
 			}
-		}
+		},
+		"releaseArtwork": "Copertina rilascio",
+		"mergeTarget": "Destinazione",
+		"mergeTagCount": "{count, plural, =1 {1 tag} other {{count} tag}}"
 	},
 	"filters": {
 		"title": "Filtri",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "Radice (nessuna cartella)",
 		"folderEmpty": "Questa cartella è vuota",
 		"noPlaylistsYet": "Nessuna playlist per ora",
-		"noPlaylists": "Nessuna playlist per ora",
 		"allPlaylists": "Tutte le playlist",
 		"searchPlaceholder": "Cerca playlist…",
 		"emptyHint": "Crea playlist per organizzare le tue scoperte",
@@ -561,12 +582,11 @@
 		"renameCategory": "Rinomina categoria",
 		"deleteTag": "Elimina tag",
 		"deleteCategory": "Elimina categoria",
-		"addCategory": "Aggiungi categoria",
-		"addTag": "Aggiungi tag",
 		"moveToCategory": "Sposta nella categoria",
 		"noTags": "Nessun tag",
 		"noTagCategoriesYet": "Nessuna categoria di tag per ora",
-		"emptyHint": "Crea categorie di tag con codice colore per organizzare le tue scoperte"
+		"emptyHint": "Crea categorie di tag con codice colore per organizzare le tue scoperte",
+		"removeTag": "Rimuovi tag"
 	},
 	"contextMenu": {
 		"viewInFinder": "Visualizza nel Finder",
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "Rimuovi dalla libreria",
 			"removeFromLibraryMessage": "{count, plural, =1 {Rimuovere questa traccia dalla tua libreria?} other {Rimuovere {count} tracce dalla tua libreria?}}",
 			"removeFromLibraryWarning": "Questa azione non può essere annullata. Le tracce verranno rimosse da tutte le playlist.",
-			"deleteTracksFromCollection": "Elimina anche le tracce dalla mia collezione",
-			"removeDiscoveryReleasesTitle": "Rimuovi dalla scoperta",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Rimuovere questa uscita dalla scoperta?} other {Rimuovere {count} uscite dalla scoperta?}}",
+			"deleteTracksFromCollection": "Elimina anche le tracce dalla tua collezione",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Elimina rilascio} other {Elimina rilasci}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Eliminare questo rilascio?} other {Eliminare {count} rilasci?}}",
 			"removeDiscoveryReleasesWarning": "Questa azione non può essere annullata. Le uscite verranno rimosse da tutte le playlist.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Rimuovi dalla playlist",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Rimuovere questa uscita dalla playlist?} other {Rimuovere {count} uscite dalla playlist?}}",
-			"deleteReleasesFromCollection": "Elimina anche le uscite dalla mia collezione"
+			"deleteReleasesFromCollection": "Elimina anche le uscite dalla tua collezione"
 		},
 		"relocate": {
 			"title": "Sposta traccia",
-			"message": "Seleziona la nuova posizione per questa traccia."
+			"cloudSyncedMessage": "Questa traccia è stata aggiunta su un altro dispositivo. Scegli la cartella locale che contiene la radice della biblioteca per renderla riproducibile qui.",
+			"missingFileMessage": "Il file per questa traccia non è stato trovato nella posizione originale.",
+			"selectRootFolder": "Seleziona cartella radice libreria",
+			"selectReplacementFile": "Seleziona file di sostituzione",
+			"validating": "Convalida file...",
+			"unsupportedFormat": "Formato audio non supportato.",
+			"hashMatch": "Il contenuto del file corrisponde. Hash verificato.",
+			"hashMismatch": "Il contenuto del file non corrisponde all'originale.",
+			"noOriginalHash": "Nessun hash originale disponibile per il confronto. Il file potrebbe comunque essere corretto.",
+			"useAnyway": "Usa comunque questo file",
+			"relocate": "Sposta",
+			"relocating": "Spostamento in corso...",
+			"validateFailed": "Impossibile convalidare il file",
+			"relocateFailed": "Impossibile spostare la traccia"
 		},
-		"albumArt": "Copertina album",
+		"albumArt": "Copertina",
 		"deviceInfo": {
 			"title": "Info dispositivo",
 			"diskType": "Tipo disco",
@@ -654,15 +687,6 @@
 			"available": "Disponibile:",
 			"total": "Totale:",
 			"percentUsed": "% usato"
-		},
-		"update": {
-			"title": "Aggiornamento disponibile",
-			"description": "{version} è pronto per l'installazione.",
-			"releaseNotes": "Novità",
-			"installAndRestart": "Installa e riavvia",
-			"later": "Più tardi",
-			"downloading": "Download in corso... {progress}%",
-			"installing": "Installazione in corso..."
 		},
 		"duplicate": {
 			"title": "Traccia duplicata rilevata",
@@ -677,6 +701,15 @@
 			"replace": "Sostituisci",
 			"replaceDescription": "Nuova importazione dal nuovo file. Mantiene solo l'appartenenza alle playlist. Reimposta cue point, tag e cronologia riproduzioni.",
 			"applyToAll": "Applica a tutti i duplicati rimanenti ({count})"
+		},
+		"update": {
+			"title": "Aggiornamento disponibile",
+			"description": "{version} è pronto per l'installazione.",
+			"releaseNotes": "Novità",
+			"installAndRestart": "Installa e riavvia",
+			"later": "Più tardi",
+			"downloading": "Download in corso... {progress}%",
+			"installing": "Installazione in corso..."
 		},
 		"conflict": {
 			"title": "Conflitto di nome",
@@ -699,6 +732,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1 traccia} other {{count} tracce}} aggiunta/e a {playlistName}, {failed} fallita/e",
 		"tracksImported": "{count, plural, =1 {1 traccia} other {{count} tracce}} importata/e",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 traccia} other {{imported} tracce}} importata/e, {skipped} saltata/e",
+		"tracksExported": "{exported, plural, =1 {1 traccia} other {{exported} tracce}} esportata/e su {deviceName}, {skipped, plural, =1 {1 saltata} other {{skipped} saltate}}",
 		"trackRemoved": "{count, plural, =1 {1 traccia} other {{count} tracce}} rimossa/e dalla playlist",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1 traccia} other {{count} tracce}} rimossa/e dalla libreria",
 		"movedSuccessfully": "Spostato con successo",
@@ -718,7 +752,14 @@
 		"failedToUpdateTracks": "Impossibile aggiornare le tracce",
 		"failedToSetArtwork": "Impossibile impostare la copertina",
 		"failedToRemoveArtwork": "Impossibile rimuovere la copertina",
-		"noArtworkInFile": "Nessuna copertina trovata nel file audio"
+		"noArtworkInFile": "Nessuna copertina trovata nel file audio",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 traccia} other {{count} tracce}} importata/e, {failed} fallita/e",
+		"failedToSetTrackColor": "Impossibile impostare il colore della traccia",
+		"exportCleanedUp": "Esportazione parziale pulita",
+		"exportCleanUpFailed": "Impossibile pulire l'esportazione",
+		"deviceNotFound": "Dispositivo non trovato",
+		"deviceReformatted": "Dispositivo formattato come \"{name}\"",
+		"deviceReformatFailed": "Impossibile riformattare: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Impossibile trascinare una cartella dentro sé stessa",
@@ -730,14 +771,17 @@
 		"previewNotAvailableOffline": "Questo brano non è disponibile offline",
 		"updateCheckFailed": "Impossibile controllare gli aggiornamenti",
 		"updateInstallFailed": "Impossibile installare l'aggiornamento",
-		"generic": "Qualcosa è andato storto"
+		"generic": "Qualcosa è andato storto",
+		"previewPlaybackFailed": "Errore di riproduzione dell'anteprima",
+		"previewPlayFailed": "Impossibile riprodurre l'anteprima",
+		"previewResumeFailed": "Impossibile riprendere l'anteprima"
 	},
 	"devices": {
 		"title": "Dispositivi",
 		"eject": "Espelli",
 		"ignore": "Ignora",
 		"unignore": "Smetti di ignorare",
-		"selectDevice": "Seleziona dispositivo",
+		"selectDevice": "Seleziona un dispositivo",
 		"deviceInfo": "Info dispositivo",
 		"capacity": "Capacità",
 		"available": "Disponibile",
@@ -771,7 +815,7 @@
 		"selectDevice": "Seleziona un dispositivo",
 		"selectDevicesDescription": "Seleziona uno o più dispositivi da esportare.",
 		"devicesSelected": "{count, plural, =1 {1 dispositivo selezionato} other {{count} dispositivi selezionati}}",
-		"devicesToExport": "Dispositivi",
+		"devicesToExport": "Dispositivi da esportare",
 		"noDevicesConnected": "Nessun dispositivo USB connesso",
 		"noPlaylistsAvailable": "Nessuna playlist disponibile",
 		"destination": "Destinazione",
@@ -907,7 +951,7 @@
 		"reportIssue": "Segnala un problema..."
 	},
 	"smartPlaylist": {
-		"createTitle": "Crea playlist intelligente",
+		"createTitle": "Nuova playlist intelligente",
 		"editTitle": "Modifica playlist intelligente",
 		"name": "Nome",
 		"namePlaceholder": "Nome playlist intelligente",
@@ -988,6 +1032,14 @@
 			"aqua": "Acqua",
 			"blue": "Blu",
 			"purple": "Viola"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {

@@ -115,6 +115,23 @@ impl NativePreviewEngine {
             with_engine_mut(|e| e.apply_liked(&track_id, liked))
         });
     }
+
+    /// Apply the app's repeat mode: `track` loops the ending item natively (gapless, keeps working
+    /// while the screen is locked); the lock-screen repeat glyph shows One/All/Off (release and
+    /// context both display "All" — MPRepeatType has no finer notion). Deliberately does NOT
+    /// require the engine to exist: the flag and the glyph live outside it, so the mode pushed at
+    /// bridge start (before the first play lazily constructs the engine) sticks.
+    pub fn set_repeat_mode(&self, mode: String) {
+        run_on_main(&self.app, move || {
+            super::player::set_repeat_current(mode == "track");
+            let display = match mode.as_str() {
+                "track" => 1,               // MPRepeatTypeOne
+                "release" | "context" => 2, // MPRepeatTypeAll
+                _ => 0,                     // MPRepeatTypeOff
+            };
+            super::remote_command::set_repeat_display(display);
+        });
+    }
 }
 
 /// Run `f` on the main thread (where all AVPlayer / objc-UI mutation must happen). Best-effort.
@@ -147,6 +164,12 @@ pub(super) struct StatePayload {
     pub is_playing: bool,
     pub position_ms: u64,
     pub duration_ms: u64,
+    /// We *want* to play but AVPlayer isn't actually rendering audio yet (item still loading, or
+    /// stalled mid-track). This is the frontend's only honest "not audible yet" signal — the
+    /// `is_playing` flag is set optimistically the moment a load is requested, so on its own it
+    /// would clear the loading spinner while the track is still silent. Mirrors the HTML5 path's
+    /// `waiting` / `playing` events.
+    pub is_buffering: bool,
 }
 
 pub(super) fn emit_state(app: &AppHandle, payload: StatePayload) {
@@ -166,13 +189,35 @@ pub(super) fn emit_ended(app: &AppHandle) {
     let _ = app.emit("native-preview-ended", ());
 }
 
-pub(super) fn emit_error(app: &AppHandle, message: String) {
+/// Surface a playback failure to the frontend. `retryable` says whether re-resolving the stream
+/// could plausibly fix it: an AVFoundation load error usually means a dead/expired upstream URL
+/// (worth one silent retry), whereas a load *timeout* means the same slow path would just be walked
+/// again — so the frontend goes straight to idle + toast instead of doubling the wait.
+pub(super) fn emit_error(app: &AppHandle, message: String, retryable: bool) {
     #[derive(Clone, Serialize)]
     #[serde(rename_all = "camelCase")]
     struct Payload {
         message: String,
+        retryable: bool,
     }
-    let _ = app.emit("native-preview-error", Payload { message });
+    let _ = app.emit("native-preview-error", Payload { message, retryable });
+}
+
+/// The lock-screen repeat command chose a new OS repeat state (`off`/`one`/`all`). The frontend
+/// owns the app-level mode: it maps one→track / all→context, applies it, and echoes the resulting
+/// display state back via `native_preview_set_repeat_mode`. Best-effort like the other events.
+pub(super) fn emit_repeat_changed(app: &AppHandle, mode: &str) {
+    #[derive(Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Payload {
+        mode: String,
+    }
+    let _ = app.emit(
+        "native-preview-repeat-changed",
+        Payload {
+            mode: mode.to_string(),
+        },
+    );
 }
 
 /// A lock-screen Like press toggled the DB natively; tell JS (best-effort — if it's suspended,

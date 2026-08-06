@@ -6,8 +6,8 @@ use tauri::{Emitter, Manager, State};
 use crate::error::{CrateError, Result};
 use crate::models::{
     BulkImportProgress, BulkImportResult, DiscoveryFilter, DiscoveryRelease,
-    DiscoveryReleaseCreate, DiscoveryReleaseUpdate, DiscoveryTrackCreate, ScannedPage,
-    ScannedRelease,
+    DiscoveryReleaseCreate, DiscoveryReleaseUpdate, DiscoveryTrack, DiscoveryTrackCreate,
+    ScannedPage, ScannedRelease,
 };
 use crate::services::discovery::metadata::{self, FetchedMetadata};
 use crate::services::discovery::n_transform::{self, NsigSolverState};
@@ -176,6 +176,24 @@ pub async fn fetch_preview_stream(
         // Cache all extracted streams
         discovery.cache_streams(&release_id, &stream_infos)?;
 
+        // A successful extraction is ground truth for the whole release: any track
+        // position it did NOT return has no preview at the source right now (e.g. the
+        // unreleased tracks of a Bandcamp pre-order). Record that so the UI can grey
+        // those tracks out and the queue stops re-fetching the page for them.
+        let unavailable: Vec<i32> = release
+            .tracks
+            .iter()
+            .map(|t| t.position)
+            .filter(|p| !stream_infos.iter().any(|s| s.track_position == *p))
+            .collect();
+        discovery.set_preview_availability(&release_id, &unavailable)?;
+        // Let the UI grey out / un-grey rows immediately — flags changed in the DB, but the
+        // frontend's in-memory releases won't otherwise learn until the next full reload.
+        let _ = app.emit(
+            "discovery-availability-changed",
+            serde_json::json!({ "releaseId": release_id, "unavailable": unavailable }),
+        );
+
         // Return the requested track's URL (direct or proxied)
         let stream = stream_infos
             .iter()
@@ -220,6 +238,67 @@ fn resolve_stream_url(
     proxy_port: u16,
 ) -> String {
     format!("http://127.0.0.1:{proxy_port}/{release_id}/{track_position}")
+}
+
+/// Re-extract a release's streams purely to refresh per-track preview availability
+/// (and opportunistically warm the stream-URL cache). The frontend fires this in the
+/// background when it shows a release with unavailable tracks whose release date has
+/// passed — the path by which a pre-order un-greys itself once the album is out.
+/// Bandcamp/SoundCloud only; other source types return the current tracks unchanged.
+#[tauri::command]
+pub async fn recheck_preview_availability(
+    release_id: String,
+    app: tauri::AppHandle,
+    discovery: State<'_, DiscoveryService>,
+    permits: State<'_, StreamFetchPermits>,
+) -> Result<Vec<DiscoveryTrack>> {
+    let release = discovery.get_release(&release_id)?;
+    if release.source_type != "bandcamp" && release.source_type != "soundcloud" {
+        return Ok(release.tracks);
+    }
+
+    // Opportunistic background work — throttle through the shared permit pool so a
+    // burst of rechecks can't starve tap-to-play or hammer the source platforms.
+    let _permit = permits
+        .0
+        .clone()
+        .acquire_owned()
+        .await
+        .map_err(|_| CrateError::Discovery("stream fetch permits closed".into()))?;
+
+    let stream_infos = match release.source_type.as_str() {
+        "bandcamp" => streams::extract_bandcamp_streams(&release.url).await?,
+        _ => {
+            let cached_cid = discovery.get_cached_sc_client_id()?;
+            let (infos, new_cid) =
+                streams::extract_soundcloud_streams(&release.url, cached_cid).await?;
+            discovery.cache_sc_client_id(&new_cid)?;
+            infos
+        }
+    };
+
+    discovery.cache_streams(&release_id, &stream_infos)?;
+
+    let unavailable: Vec<i32> = release
+        .tracks
+        .iter()
+        .map(|t| t.position)
+        .filter(|p| !stream_infos.iter().any(|s| s.track_position == *p))
+        .collect();
+    log::info!(
+        "Availability recheck {release_id}: {} of {} tracks unavailable",
+        unavailable.len(),
+        release.tracks.len()
+    );
+    discovery.set_preview_availability(&release_id, &unavailable)?;
+    // The caller applies the returned tracks itself; the event covers every OTHER in-memory
+    // holder (the playlist store's copies, a second window) the same way the play path does.
+    let _ = app.emit(
+        "discovery-availability-changed",
+        serde_json::json!({ "releaseId": release_id, "unavailable": unavailable }),
+    );
+
+    Ok(discovery.get_release(&release_id)?.tracks)
 }
 
 #[tauri::command]

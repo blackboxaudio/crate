@@ -4,6 +4,7 @@
 	import AlbumArt from '$lib/components/common/AlbumArt.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import type { ArtworkSource, BulkEditValue } from '$shared/types'
+	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
 
 	type Props = {
@@ -38,7 +39,7 @@
 				multiple: false,
 				filters: [
 					{
-						name: 'Images',
+						name: get(translate)('common.images'),
 						extensions: ['png', 'jpg', 'jpeg', 'webp', 'gif'],
 					},
 				],

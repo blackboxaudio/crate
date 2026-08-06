@@ -56,6 +56,31 @@ impl DiscoveryService {
         Ok(())
     }
 
+    /// Replace the device-local preview-availability rows for a release. `unavailable`
+    /// holds the track positions the source currently serves no stream for (e.g. the
+    /// unreleased tracks of a Bandcamp pre-order); an empty slice clears the release.
+    /// Called after every successful stream extraction, so flags stay in step with the
+    /// source and a pre-order self-heals once the album is released.
+    pub fn set_preview_availability(&self, release_id: &str, unavailable: &[i32]) -> Result<()> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+
+        let tx = conn.unchecked_transaction()?;
+        tx.execute(
+            "DELETE FROM discovery_preview_unavailable WHERE release_id = ?1",
+            [release_id],
+        )?;
+        let now = chrono::Utc::now().to_rfc3339();
+        for position in unavailable {
+            tx.execute(
+                "INSERT INTO discovery_preview_unavailable (release_id, position, checked_at) VALUES (?1, ?2, ?3)",
+                rusqlite::params![release_id, position, now],
+            )?;
+        }
+        tx.commit()?;
+
+        Ok(())
+    }
+
     /// Get the cached SoundCloud client_id, if one exists and was fetched within the last 24 hours.
     pub fn get_cached_sc_client_id(&self) -> Result<Option<String>> {
         self.db.read(|conn| {

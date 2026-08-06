@@ -360,6 +360,7 @@ pub fn run() {
             #[cfg(feature = "desktop")]
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
+            commands::discovery::recheck_preview_availability,
             commands::discovery::invalidate_preview_stream_cache,
             commands::discovery::purge_release_audio_cache,
             commands::discovery::precache_preview_stream,
@@ -434,6 +435,8 @@ pub fn run() {
             commands::native_preview::native_preview_set_rate,
             #[cfg(target_os = "ios")]
             commands::native_preview::native_preview_set_liked,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_repeat_mode,
             // Cloud sync commands
             #[cfg(feature = "desktop")]
             commands::cloud_sync::sign_in,

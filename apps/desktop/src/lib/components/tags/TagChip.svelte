@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	import type { Tag, TagSelectionState } from '$shared/types'
 	import Icon from '$lib/components/common/Icon.svelte'
 
@@ -72,7 +73,7 @@
 		{#if removable && onremove}
 			<button
 				type="button"
-				aria-label="Remove tag"
+				aria-label={$translate('tags.removeTag')}
 				class="ml-0.5 hover:cursor-pointer hover:opacity-70"
 				onclick={(e) => {
 					e.stopPropagation()

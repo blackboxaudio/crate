@@ -1,4 +1,5 @@
 import { writable, derived, get } from 'svelte/store'
+import { translate } from '$shared/i18n'
 import type { Track, TrackColor, TrackFilter, SortConfig, ImportResultWithDuplicates } from '$shared/types'
 import { sortTracks } from '$shared/utils/sorting'
 import * as libraryApi from '$shared/api/library'
@@ -106,12 +107,16 @@ function createLibraryStore() {
 					const failedCount = result.failed_count
 
 					if (successCount > 0 && failedCount === 0) {
-						toastStore.success(successCount === 1 ? '1 track imported' : `${successCount} tracks imported`)
+						toastStore.success(get(translate)('toast.tracksImported', { values: { count: successCount } }))
 					} else if (successCount > 0 && failedCount > 0) {
-						toastStore.warning(`${successCount} track${successCount !== 1 ? 's' : ''} imported, ${failedCount} failed`)
+						toastStore.warning(
+							get(translate)('toast.tracksImportedWithFailed', {
+								values: { count: successCount, failed: failedCount },
+							})
+						)
 					} else if (successCount === 0 && failedCount > 0) {
-						const firstError = result.errors[0] || 'Unknown error'
-						toastStore.error(`Failed to import tracks: ${firstError}`)
+						const firstError = result.errors[0] || get(translate)('common.unknownError')
+						toastStore.error(get(translate)('toast.failedToImport', { values: { error: firstError } }))
 					}
 				}
 
@@ -195,7 +200,7 @@ function createLibraryStore() {
 				// Notify sync store about track changes (for auto-sync)
 				syncStore.notifyTrackChanges(trackIds)
 			} catch (error) {
-				toastStore.error('Failed to set track color')
+				toastStore.error(get(translate)('toast.failedToSetTrackColor'))
 			}
 		},
 

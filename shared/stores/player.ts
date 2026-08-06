@@ -6,6 +6,7 @@ import * as previewPlayer from '../services/previewPlayer'
 import * as nativePreviewPlayer from '../services/nativePreviewPlayer'
 import type { NativeTrack } from '../services/nativePreviewPlayer'
 import * as playbackQueue from './playbackQueue'
+import type { RepeatMode } from './playbackQueue'
 import { isIOS } from '../utils/platform'
 import { toastStore } from './toast'
 import { translate } from '../i18n'
@@ -24,6 +25,11 @@ import {
 
 type PlaybackSource = 'library' | 'preview'
 
+export type { RepeatMode } from './playbackQueue'
+
+// Repeat cycles one step per button tap. Order per spec: off → track → release → context.
+const REPEAT_CYCLE: RepeatMode[] = ['off', 'track', 'release', 'context']
+
 interface PlayerState {
 	currentTrack: Track | null
 	playbackState: PlaybackState
@@ -31,6 +37,7 @@ interface PlayerState {
 	isMuted: boolean
 	volumeBeforeMute: number
 	shuffleEnabled: boolean
+	repeatMode: RepeatMode
 	playbackSource: PlaybackSource
 	previewInfo: PreviewInfo | null
 	previewTrackIndex: number
@@ -62,6 +69,7 @@ const initialState: PlayerState = {
 	isMuted: getStoredBoolean('player.isMuted', false),
 	volumeBeforeMute: getStoredNumber('player.volumeBeforeMute', 1.0),
 	shuffleEnabled: getStoredBoolean('player.shuffleEnabled', false),
+	repeatMode: getStoredString<RepeatMode>('player.repeatMode', 'off', ['off', 'track', 'release', 'context']),
 	playbackSource: 'library',
 	previewInfo: null,
 	previewTrackIndex: 0,
@@ -223,6 +231,39 @@ function createPlayerStore() {
 		stopPositionTracking()
 	}
 
+	// HTML5 path safety net. The loading spinner is retired by the element's `playing` event, so a stream
+	// that resolves but never actually starts (undecodable container, a proxy download that never lands)
+	// would spin forever. Mirrors the native engine's load watchdog window so both platforms give up at
+	// the same point: back to idle, with an error toast.
+	const PREVIEW_LOAD_TIMEOUT_MS = 15000
+	let previewLoadTimeout: ReturnType<typeof setTimeout> | null = null
+
+	function clearPreviewLoadTimeout() {
+		if (previewLoadTimeout) {
+			clearTimeout(previewLoadTimeout)
+			previewLoadTimeout = null
+		}
+	}
+
+	function armPreviewLoadTimeout() {
+		clearPreviewLoadTimeout()
+		previewLoadTimeout = setTimeout(() => {
+			previewLoadTimeout = null
+			const state = getState()
+			// Already playing (or moved on) — nothing to time out.
+			if (state.playbackSource !== 'preview' || !state.previewLoading) return
+			console.error('[preview] stream never started playing within timeout')
+			clearPreviewEvents()
+			stopPreviewInternal()
+			update((s) => ({
+				...s,
+				playbackState: { ...s.playbackState, is_playing: false },
+				previewLoading: null,
+			}))
+			toastPreviewError(get(translate)('errors.previewStreamFailed'))
+		}, PREVIEW_LOAD_TIMEOUT_MS)
+	}
+
 	function wirePreviewEvents() {
 		previewPlayer.setOnTimeUpdate((positionMs: number) => {
 			update((state) => {
@@ -231,6 +272,18 @@ function createPlayerStore() {
 				// the stream container is longer than the actual audio (e.g. proxied
 				// YouTube/Discogs ~2x duration). Stop playback and trigger track end.
 				if (duration_ms > 0 && positionMs >= duration_ms) {
+					// Repeat-track: rewind in place. The element is still rolling (the container outlasts
+					// the real audio), so a seek loops the track with no stop/start and no re-fetch.
+					if (state.repeatMode === 'track' && state.previewInfo) {
+						setTimeout(() => {
+							previewPlayer.seek(0)
+							persistPositionImmediate(0)
+						}, 0)
+						return {
+							...state,
+							playbackState: { ...state.playbackState, position_ms: 0 },
+						}
+					}
 					setTimeout(() => {
 						stopPreviewInternal()
 						onTrackEndCallback?.()
@@ -271,15 +324,31 @@ function createPlayerStore() {
 			})
 		})
 		previewPlayer.setOnEnded(() => {
-			update((state) => ({
-				...state,
-				playbackState: { ...state.playbackState, is_playing: false },
+			const state = getState()
+			// Repeat-track: the element still holds the stream after `ended` — rewind and play it again
+			// in place (no re-fetch, no session reset). The auto-advance callback never runs.
+			if (state.repeatMode === 'track' && state.playbackSource === 'preview' && state.previewInfo) {
+				previewPlayer.seek(0)
+				previewPlayer.resume()
+				persistPositionImmediate(0)
+				update((s) => ({
+					...s,
+					playbackState: { ...s.playbackState, position_ms: 0, is_playing: true },
+				}))
+				return
+			}
+			update((s) => ({
+				...s,
+				playbackState: { ...s.playbackState, is_playing: false },
 			}))
 			onTrackEndCallback?.()
 		})
 		previewPlayer.setOnWaiting(() => {
 			const state = getState()
-			if (state.playbackSource === 'preview' && state.previewInfo) {
+			// An already-set `previewLoading` is left alone: `playPreview` points it at the track being
+			// switched TO before `previewInfo` catches up, and `waiting` fires inside that gap — so
+			// deriving from `previewInfo` here would move the spinner onto the outgoing track's row.
+			if (state.playbackSource === 'preview' && state.previewInfo && !state.previewLoading) {
 				update((s) => ({
 					...s,
 					previewLoading: { releaseId: state.previewInfo!.releaseId, trackIndex: state.previewInfo!.trackIndex },
@@ -291,6 +360,7 @@ function createPlayerStore() {
 				clearTimeout(previewSpeedCommitTimeout)
 				previewSpeedCommitTimeout = null
 			}
+			clearPreviewLoadTimeout()
 			update((s) => ({ ...s, previewLoading: null }))
 		})
 		previewPlayer.setOnError(async (msg: string) => {
@@ -319,7 +389,12 @@ function createPlayerStore() {
 							...s,
 							error: null,
 							playbackState: { ...s.playbackState, is_playing: wasPlaying, position_ms: 0 },
+							// A paused retry never fires `playing`, so retire the spinner here; a resuming one
+							// keeps it until the element reports audio (re-armed below).
+							previewLoading: wasPlaying ? s.previewLoading : null,
 						}))
+						if (wasPlaying) armPreviewLoadTimeout()
+						else clearPreviewLoadTimeout()
 						return
 					} catch {
 						// Retry failed, fall through to show error
@@ -332,10 +407,12 @@ function createPlayerStore() {
 			}
 			clearPreviewEvents()
 			stopPreviewInternal()
+			clearPreviewLoadTimeout()
 			update((s) => ({
 				...s,
 				error: msg,
 				playbackState: { ...s.playbackState, is_playing: false },
+				previewLoading: null,
 			}))
 			toastPreviewError(get(translate)('errors.previewStreamFailed'))
 		})
@@ -348,6 +425,8 @@ function createPlayerStore() {
 		previewPlayer.setOnError(null)
 		previewPlayer.setOnWaiting(null)
 		previewPlayer.setOnPlaying(null)
+		// `playing` can no longer arrive to retire the loading timeout, so drop it with the handlers.
+		clearPreviewLoadTimeout()
 	}
 
 	// --- iOS native window resolution ---------------------------------------------------------------
@@ -425,6 +504,12 @@ function createPlayerStore() {
 	// Feed the native engine the window around `current`. 'reload' loads it fresh (a new/changed current
 	// track); 'slide' replaces only the upcoming tail in place (a mutation or a post-advance refill) so the
 	// current item keeps playing untouched. Keeps `nativeWindow` in lockstep with the engine's `entries`.
+	//
+	// 'reload' resolves ONLY the tapped track before starting the engine — the upcoming tail is filled in
+	// afterwards by `scheduleNativeSlide` (which the caller kicks off once `previewInfo` is set). This used
+	// to await the whole window, so the track the user actually chose waited behind up to `NATIVE_WINDOW_CAP`
+	// unrelated stream resolutions running two-at-a-time through the backend's fetch semaphore — seconds of
+	// dead air on YouTube/Discogs, where every tail entry is its own extraction.
 	async function feedNativeWindow(
 		current: { release: DiscoveryRelease; trackIndex: number },
 		mode: 'reload' | 'slide',
@@ -435,26 +520,25 @@ function createPlayerStore() {
 		// this one is still resolving, it must NOT start the engine or clobber the window mapping.
 		gen?: number
 	) {
-		const picks = playbackQueue.peekUpcoming(nativeWindowDepth(current.release, current.trackIndex))
 		if (mode === 'reload') {
 			// A fresh current track supersedes any in-flight seek on the previous one.
 			pendingNativeSeek = null
 			// The current (tapped/restored) track is required — let it throw so a genuine failure of the
-			// chosen track still surfaces to playPreview's catch. The upcoming tail is best-effort.
+			// chosen track still surfaces to playPreview's catch.
 			const currentTrack = await buildOneNativeTrack(current)
-			const tail = await resolveWindowTail(picks)
 			if (gen !== undefined && gen !== previewLoadGen) return // superseded while resolving
-			const tracks = [currentTrack, ...tail.map((t) => t.track)]
-			await nativePreviewPlayer.play(tracks, 0, startPositionMs)
-			nativeWindow = [current, ...tail.map((t) => t.pick)]
+			await nativePreviewPlayer.play([currentTrack], 0, startPositionMs)
+			nativeWindow = [current]
 			nativeIndex = 0
-		} else {
-			// Slide: only the upcoming tail is (re)fed, so it's entirely best-effort — the current item keeps
-			// playing untouched. Keep `nativeWindow` aligned with the survivors we actually hand the engine.
-			const tail = await resolveWindowTail(picks)
-			await nativePreviewPlayer.setUpcoming(tail.map((t) => t.track))
-			nativeWindow = nativeWindow.slice(0, nativeIndex + 1).concat(tail.map((t) => t.pick))
+			return
 		}
+
+		// Slide: only the upcoming tail is (re)fed, so it's entirely best-effort — the current item keeps
+		// playing untouched. Keep `nativeWindow` aligned with the survivors we actually hand the engine.
+		const picks = playbackQueue.peekUpcoming(nativeWindowDepth(current.release, current.trackIndex))
+		const tail = await resolveWindowTail(picks)
+		await nativePreviewPlayer.setUpcoming(tail.map((t) => t.track))
+		nativeWindow = nativeWindow.slice(0, nativeIndex + 1).concat(tail.map((t) => t.pick))
 	}
 
 	// Re-feed the upcoming window tail (slide forward / apply a queue mutation) around the current track.
@@ -497,6 +581,10 @@ function createPlayerStore() {
 				position_ms: 0,
 				duration_ms: pick.release.tracks[pick.trackIndex]?.duration_ms ?? s.playbackState.duration_ms,
 			},
+			// The spinner is deliberately NOT raised here. The incoming item may or may not be buffered,
+			// and the engine already tells us which: it emits state for the new item immediately after
+			// this track-changed event, and its load watchdog keeps reporting until audio rolls. Guessing
+			// "loading" here would flash the spinner on every gapless advance through a pre-fed window.
 		}))
 	}
 
@@ -509,8 +597,22 @@ function createPlayerStore() {
 		if (state.playbackSource !== 'preview' || !state.previewInfo) return
 		scheduleNativeSlide()
 	}
+	// Change the repeat mode (button cycle or the iOS lock-screen repeat command). Persisted
+	// device-locally like shuffle; the queue redraws its committed lookahead under the new scope (which
+	// also re-feeds the iOS window via the queue-changed handler), and the native engine follows —
+	// item-loop flag for repeat-track plus the lock-screen repeat glyph.
+	function setRepeatModeInternal(mode: RepeatMode) {
+		const state = getState()
+		if (state.repeatMode === mode) return
+		setStoredString('player.repeatMode', mode)
+		update((s) => ({ ...s, repeatMode: mode }))
+		playbackQueue.setRepeatMode(mode)
+		if (useNative) void nativePreviewPlayer.setRepeatMode(mode).catch(() => {})
+	}
+
 	playbackQueue.setQueueChangedHandler(handleQueueChanged)
 	playbackQueue.initShuffle(initialState.shuffleEnabled)
+	playbackQueue.initRepeatMode(initialState.repeatMode)
 
 	return {
 		subscribe,
@@ -549,6 +651,8 @@ function createPlayerStore() {
 					playbackSource: 'library',
 					previewInfo: null,
 					previewTrackIndex: 0,
+					// Switching to a library track abandons any preview that was still loading.
+					previewLoading: null,
 				}))
 				startPositionTracking()
 			} catch (error) {
@@ -643,8 +747,15 @@ function createPlayerStore() {
 						playbackSource: 'preview',
 						previewInfo: { releaseId: release.id, release, trackIndex },
 						previewTrackIndex: trackIndex,
-						previewLoading: null,
+						// `previewLoading` deliberately stays SET. `native_preview_play` is fire-and-forget —
+						// it dispatches to the main thread and returns before AVPlayer has touched the URL — so
+						// clearing the spinner here dropped the user into a stretch of silence that still
+						// rendered as "playing". The engine's state events retire it once audio is really
+						// rolling (see the `isBuffering` handling in `onState`).
 					}))
+					// The engine is playing the chosen track alone; fill in the upcoming window now that
+					// `previewInfo` is set (the slide reads it), off the critical path.
+					scheduleNativeSlide()
 					// Listened → clear the release's "new" flag (desktop/mobile agnostic; no-op if unset).
 					onPreviewPlayed?.(release.id)
 				} catch (error) {
@@ -695,8 +806,10 @@ function createPlayerStore() {
 					playbackSource: 'preview',
 					previewInfo: { releaseId: release.id, release, trackIndex },
 					previewTrackIndex: trackIndex,
-					previewLoading: null,
+					// Held (as on the native path) until the element's `playing` event fires — clearing it
+					// here only for `waiting` to re-raise it a moment later reads as a spinner flicker.
 				}))
+				armPreviewLoadTimeout()
 				// Listened → clear the release's "new" flag (desktop/mobile agnostic; no-op if unset).
 				onPreviewPlayed?.(release.id)
 			} catch (error) {
@@ -726,10 +839,14 @@ function createPlayerStore() {
 					previewPlayer.pause()
 				}
 				persistPositionImmediate(state.playbackState.position_ms)
+				// Pausing mid-load retires the spinner: neither the element's `playing` event nor the
+				// engine's buffering signal will arrive to do it, so it would otherwise strand.
+				clearPreviewLoadTimeout()
 				update((s) => ({
 					...s,
 					playbackState: { ...s.playbackState, is_playing: false },
 					error: null,
+					previewLoading: null,
 				}))
 				return
 			}
@@ -813,9 +930,11 @@ function createPlayerStore() {
 						if (restoredPosition > 0) {
 							previewPlayer.seek(restoredPosition)
 						}
+						armPreviewLoadTimeout()
 						update((s) => ({
 							...s,
 							playbackState: { ...s.playbackState, is_playing: true },
+							previewLoading: { releaseId: release.id, trackIndex },
 							error: null,
 						}))
 					} catch {
@@ -903,6 +1022,7 @@ function createPlayerStore() {
 				setStoredString('player.previewReleaseId', '')
 				setStoredNumber('player.positionMs', 0)
 				setStoredNumber('player.durationMs', 0)
+				clearPreviewLoadTimeout()
 				update((s) => ({
 					...s,
 					currentTrack: null,
@@ -911,6 +1031,9 @@ function createPlayerStore() {
 					playbackSource: 'library',
 					previewInfo: null,
 					previewTrackIndex: 0,
+					// Stopping mid-load must retire the spinner — no `playing` event / buffering tick is
+					// coming to do it, and `previewInfo` is gone so nothing would ever match it again.
+					previewLoading: null,
 				}))
 				return
 			}
@@ -1163,12 +1286,16 @@ function createPlayerStore() {
 			let pick = playbackQueue.advanceNext()
 			let skips = 0
 			while (pick) {
+				const attempted = pick
 				const ok = await this.playPreview(pick.release, pick.trackIndex, undefined, 0, {
 					silentError: skips > 0,
 				})
 				if (ok || !isOffline() || ++skips >= MAX_OFFLINE_SKIPS) return
 				console.warn('[offline] skipping uncached track', pick.release.id, pick.trackIndex)
 				pick = playbackQueue.advanceNext()
+				// A repeat loop can hand the failed pick straight back (repeat-release on a single-track
+				// release, a one-release context) — retrying it here can't succeed, so stop.
+				if (pick && pick.release.id === attempted.release.id && pick.trackIndex === attempted.trackIndex) return
 			}
 		},
 
@@ -1229,6 +1356,21 @@ function createPlayerStore() {
 			// this also re-feeds the native window tail in place via the queue-changed handler, so toggling
 			// mid-track takes effect immediately without disturbing the currently-playing track.
 			playbackQueue.setShuffle(next)
+		},
+
+		/**
+		 * Set the repeat mode directly (the iOS lock-screen repeat command reports an absolute mode).
+		 * Persisted device-locally like shuffle; affects preview playback only.
+		 */
+		setRepeatMode(mode: RepeatMode) {
+			setRepeatModeInternal(mode)
+		},
+
+		/** Advance the repeat mode one step: off → track → release → context → off. */
+		cycleRepeatMode() {
+			const state = getState()
+			const next = REPEAT_CYCLE[(REPEAT_CYCLE.indexOf(state.repeatMode) + 1) % REPEAT_CYCLE.length]
+			setRepeatModeInternal(next)
 		},
 
 		/**
@@ -1346,8 +1488,12 @@ function createPlayerStore() {
 		 * including after the WebView resumes from suspension. Returns a cleanup function.
 		 */
 		async startNativeBridge() {
+			// Reflect the persisted repeat mode on the engine up front: the item-loop flag for
+			// repeat-track and the lock-screen repeat glyph both live natively, and the engine boots
+			// knowing neither.
+			void nativePreviewPlayer.setRepeatMode(getState().repeatMode).catch(() => {})
 			return nativePreviewPlayer.startNativePreviewBridge({
-				onState: ({ isPlaying, positionMs, durationMs }) => {
+				onState: ({ isPlaying, positionMs, durationMs, isBuffering }) => {
 					let applyPosition = true
 					if (pendingNativeSeek) {
 						const settled = Math.abs(positionMs - pendingNativeSeek.targetMs) <= NATIVE_SEEK_SETTLE_TOLERANCE_MS
@@ -1360,6 +1506,22 @@ function createPlayerStore() {
 					}
 					update((s) => {
 						if (s.playbackSource !== 'preview') return s
+						// `isBuffering` is the engine's honest "is there audio yet" signal — `isPlaying` alone
+						// is set optimistically the moment a load starts. Mirrors the HTML5 path's
+						// waiting/playing pair: raise the spinner while buffering (initial load OR a mid-track
+						// stall), retire it the instant audio is actually rolling.
+						//
+						// These events always describe whatever `previewInfo` points at. Tapping a DIFFERENT
+						// track sets `previewLoading` to that pending pick while `previewInfo` still names the
+						// outgoing one — which keeps ticking twice a second all through the new track's stream
+						// resolution — so a tick that doesn't match `previewInfo` must leave the pending
+						// spinner strictly alone, or the outgoing track would clear it the moment it arrived.
+						const current = s.previewInfo
+						const pendingOther =
+							s.previewLoading != null &&
+							(current == null ||
+								s.previewLoading.releaseId !== current.releaseId ||
+								s.previewLoading.trackIndex !== current.trackIndex)
 						return {
 							...s,
 							playbackState: {
@@ -1368,7 +1530,11 @@ function createPlayerStore() {
 								position_ms: applyPosition ? positionMs : s.playbackState.position_ms,
 								duration_ms: durationMs > 0 ? durationMs : s.playbackState.duration_ms,
 							},
-							previewLoading: isPlaying ? null : s.previewLoading,
+							previewLoading: pendingOther
+								? s.previewLoading
+								: isBuffering && current
+									? { releaseId: current.releaseId, trackIndex: current.trackIndex }
+									: null,
 						}
 					})
 					if (applyPosition) persistPosition(positionMs)
@@ -1398,6 +1564,14 @@ function createPlayerStore() {
 				},
 				onEnded: () => {
 					console.log('[native-preview] ENDED')
+					// Repeat-track normally never gets here — the engine loops the ending item natively
+					// (repeat-current flag) without emitting `ended`. This is the fallback for the race where
+					// the mode flipped to `track` as the last window item ended: restart via a full reload.
+					const endState = getState()
+					if (endState.playbackSource === 'preview' && endState.previewInfo && endState.repeatMode === 'track') {
+						void this.playPreview(endState.previewInfo.release, endState.previewInfo.trackIndex)
+						return
+					}
 					update((s) => ({
 						...s,
 						playbackState: { ...s.playbackState, is_playing: false },
@@ -1405,10 +1579,11 @@ function createPlayerStore() {
 					}))
 					// The engine reached the end of its loaded playlist — the single shuffle track, or the last
 					// track of a sequential release. Hand off to the same auto-advance the HTML5 path uses
-					// (wired in +layout) so playback continues across the queue / shuffle.
+					// (wired in +layout) so playback continues across the queue / shuffle. With repeat off the
+					// queue simply has nothing more to give and playback stays stopped here.
 					onTrackEndCallback?.()
 				},
-				onError: async (message) => {
+				onError: async (message, retryable) => {
 					console.error('[native-preview] engine error:', message)
 					// A windowed item failed to load (e.g. an expired/stale upstream stream). Drop the cached
 					// proxy URLs so the next feed re-resolves them fresh rather than re-handing the bad ones.
@@ -1421,7 +1596,11 @@ function createPlayerStore() {
 					// invalidate the release's cached URLs and re-feed before surfacing an error to the user.
 					// `previewRetryAttempted` is reset per track (applyNativeTrackChange / playPreview), so a
 					// repeat failure on the same track falls through to the toast instead of looping.
-					if (state.playbackSource === 'preview' && state.previewInfo && !previewRetryAttempted) {
+					//
+					// A NON-retryable failure is the engine's load timeout: the stream resolved fine, it just
+					// never became audible, so re-resolving would only walk the same slow path again and
+					// double the time the user stares at a spinner. Go straight to idle + toast.
+					if (retryable && state.playbackSource === 'preview' && state.previewInfo && !previewRetryAttempted) {
 						previewRetryAttempted = true
 						previewRetrying = true
 						const { release, trackIndex } = state.previewInfo
@@ -1441,8 +1620,12 @@ function createPlayerStore() {
 								...s,
 								error: null,
 								playbackState: { ...s.playbackState, is_playing: wasPlaying, position_ms: 0 },
-								previewLoading: null,
+								// A resuming retry is still loading — its watchdog clears this once audio rolls.
+								// A paused one never will, so retire the spinner now.
+								previewLoading: wasPlaying ? { releaseId: release.id, trackIndex } : null,
 							}))
+							// The reload fed the current track alone; refill the upcoming window off-path.
+							scheduleNativeSlide()
 							return
 						} catch (e) {
 							if (gen !== previewLoadGen) return // superseded — a failure of a stale retry is noise
@@ -1464,6 +1647,11 @@ function createPlayerStore() {
 				},
 				onLikeChanged: (trackId, isLiked) => {
 					onNativeLikeChanged?.(trackId, isLiked)
+				},
+				onRepeatChanged: (osMode) => {
+					// The lock-screen repeat command reports MPRepeatType (off/one/all). "All" can't
+					// distinguish release from context — context (the broader loop) is the sane reading.
+					setRepeatModeInternal(osMode === 'one' ? 'track' : osMode === 'all' ? 'context' : 'off')
 				},
 				onDebug: (message) => {
 					// Console only — a per-load/tick toast would bury real errors now that the mobile toast host
@@ -1523,6 +1711,8 @@ export const playbackProgress = derived(playerStore, ($player) => {
 export const isMuted = derived(playerStore, ($player) => $player.isMuted)
 
 export const shuffleEnabled = derived(playerStore, ($player) => $player.shuffleEnabled)
+
+export const repeatMode = derived(playerStore, ($player) => $player.repeatMode)
 
 export const playbackSource = derived(playerStore, ($player) => $player.playbackSource)
 

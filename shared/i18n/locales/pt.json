@@ -25,7 +25,13 @@
 		"more": "Mais",
 		"select": "Selecionar",
 		"noResults": "Nenhum resultado",
-		"offline": "Você está offline"
+		"offline": "Você está offline",
+		"audioFiles": "Arquivos de áudio",
+		"images": "Imagens",
+		"selectAnOption": "Selecione uma opção",
+		"unknownError": "Erro desconhecido",
+		"dismiss": "Fechar",
+		"step": "Etapa {number}"
 	},
 	"nav": {
 		"library": "Biblioteca",
@@ -128,8 +134,8 @@
 			"clearCacheWarning": "As faixas visualizadas anteriormente precisarão ser transmitidas novamente de sua fonte na próxima reprodução. Isso pode ser mais lento e alguns fluxos podem não estar mais disponíveis.",
 			"audioCache": "Áudio",
 			"artworkCache": "Capa",
-			"artworkCacheDescription": "A arte do álbum é salva neste dispositivo para que apareça sem conexão.",
-			"clearArtworkCacheConfirmMessage": "Tem certeza de que deseja limpar toda a arte do álbum em cache?",
+			"artworkCacheDescription": "A capa é salva neste dispositivo para que apareça sem conexão.",
+			"clearArtworkCacheConfirmMessage": "Tem certeza de que deseja limpar toda a capa em cache?",
 			"cacheLimit": "Limite de cache"
 		},
 		"following": {
@@ -140,7 +146,7 @@
 			"cadenceDaily": "Ao iniciar e diariamente",
 			"cadenceManual": "Apenas manualmente",
 			"checkAllNow": "Verificar tudo agora",
-			"autoFollowDescription": "Padrão para a opção \"Também seguir\" ao importar um lançamento.",
+			"autoFollowDescription": "Padrão para a opção \"Seguir novos lançamentos\" ao importar um lançamento.",
 			"autoFollowOff": "Desativado",
 			"autoFollowArtist": "Artista",
 			"autoFollowLabel": "Gravadora",
@@ -302,7 +308,11 @@
 		"trackNotFound": "Não foi possível localizar a faixa em reprodução",
 		"expand": "Expandir reprodutor",
 		"collapse": "Recolher reprodutor",
-		"seek": "Buscar"
+		"seek": "Buscar",
+		"repeat": "Repetir",
+		"repeatTrack": "Repetir faixa",
+		"repeatRelease": "Repetir lançamento",
+		"repeatAll": "Repetir tudo"
 	},
 	"queue": {
 		"upNext": "Próximo",
@@ -318,7 +328,7 @@
 		"reorder": "Reordenar",
 		"clearQueue": "Limpar",
 		"empty": "Nada próximo",
-		"emptyHint": "As músicas que você adicionar serão reproduzidas a seguir",
+		"emptyHint": "As faixas que você adicionar serão reproduzidas a seguir",
 		"upcoming": "Próximo",
 		"history": "Histórico",
 		"historyEmpty": "Nada foi reproduzido ainda"
@@ -343,12 +353,24 @@
 		"track": "faixa",
 		"tracks": "faixas",
 		"item": "item",
-		"items": "itens"
+		"items": "itens",
+		"clearSearch": "Limpar pesquisa",
+		"fileNotFound": "Arquivo não encontrado",
+		"dropToImport": "Arraste arquivos de áudio para importar",
+		"noColor": "Sem cor",
+		"colorLabel": "Cor: {color}"
 	},
 	"discovery": {
 		"addRelease": "Adicionar lançamento",
 		"url": "URL",
 		"source": "Fonte",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Outro"
+		},
 		"release": "lançamento",
 		"releases": "lançamentos",
 		"searchPlaceholder": "Pesquisar lançamentos...",
@@ -356,6 +378,7 @@
 		"noResults": "Nenhum lançamento corresponde aos seus filtros",
 		"addReleaseHint": "Pressione {shortcut} para adicionar lançamentos do Bandcamp, Discogs, YouTube e muito mais",
 		"mobileAddHint": "Adicionar lançamentos do Bandcamp, Discogs, YouTube e muito mais",
+		"dropHint": "Arraste um link para adicionar um lançamento",
 		"pending": "Pendente",
 		"offlineQueueNotice": "Você está offline — este lançamento será adicionado quando você se reconectar",
 		"addToQueue": "Adicionar à fila",
@@ -371,8 +394,7 @@
 			"label": "Gravadora",
 			"tags": "Tags",
 			"dateAdded": "Data de adição",
-			"released": "Data de lançamento",
-			"added": "Adicionado"
+			"dateReleased": "Data de lançamento"
 		},
 		"fetchingMetadata": "Obtendo metadados...",
 		"refreshMetadata": "Atualizar metadados",
@@ -416,7 +438,6 @@
 			"addTags": "Adicionar tags"
 		},
 		"import": {
-			"title": "Importar para a biblioteca",
 			"selectFiles": "Selecionar arquivos",
 			"matched": "Correspondido",
 			"unmatched": "Não correspondido",
@@ -466,7 +487,7 @@
 			"pauseSelected": "Pausar",
 			"unfollow": "Deixar de seguir",
 			"checkNow": "Verificar agora",
-			"enabledToggle": "Alternar atualizações",
+			"enabledToggle": "Verificar novos lançamentos",
 			"artist": "Artista",
 			"label": "Gravadora",
 			"checkedAgo": "Verificado {time}",
@@ -478,13 +499,11 @@
 			"following": "Seguindo",
 			"followForNewReleases": "Seguir novos lançamentos",
 			"followViaPaste": "Seguir esta fonte do painel Seguindo",
-			"popoverTitle": "Seguir novos lançamentos",
 			"upcoming": "Em breve",
 			"daysUntil": "{days} d",
 			"surfacedVia": "Exibido via {source}",
 			"markNew": "Marcar como novo",
 			"markNotNew": "Marcar como não novo",
-			"alsoFollow": "Seguir novos lançamentos",
 			"sortBy": "Classificar por",
 			"empty": {
 				"title": "Você ainda não segue ninguém",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Cole a URL de uma página de artista/gravadora Bandcamp, SoundCloud ou Discogs",
 				"urlInfo": "Detectamos automaticamente a plataforma e se é um artista ou uma gravadora, e a partir de agora ficamos de olho nos novos lançamentos. Lançamentos mais antigos não serão adicionados."
 			}
-		}
+		},
+		"releaseArtwork": "Arte do lançamento",
+		"mergeTarget": "Destino",
+		"mergeTagCount": "{count, plural, =1 {1 tag} other {{count} tags}}"
 	},
 	"filters": {
 		"title": "Filtros",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "Raiz (sem pasta)",
 		"folderEmpty": "Esta pasta está vazia",
 		"noPlaylistsYet": "Nenhuma playlist ainda",
-		"noPlaylists": "Nenhuma playlist ainda",
 		"allPlaylists": "Todas as playlists",
 		"searchPlaceholder": "Pesquisar playlists…",
 		"emptyHint": "Crie playlists para organizar suas descobertas",
@@ -561,12 +582,11 @@
 		"renameCategory": "Renomear categoria",
 		"deleteTag": "Excluir tag",
 		"deleteCategory": "Excluir categoria",
-		"addCategory": "Adicionar categoria",
-		"addTag": "Adicionar tag",
 		"moveToCategory": "Mover para categoria",
 		"noTags": "Nenhuma tag",
 		"noTagCategoriesYet": "Nenhuma categoria de tag ainda",
-		"emptyHint": "Crie categorias de tags codificadas por cores para organizar suas descobertas"
+		"emptyHint": "Crie categorias de tags codificadas por cores para organizar suas descobertas",
+		"removeTag": "Remover tag"
 	},
 	"contextMenu": {
 		"viewInFinder": "Ver no Finder",
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "Remover da biblioteca",
 			"removeFromLibraryMessage": "{count, plural, =1 {Remover esta faixa da sua biblioteca?} other {Remover {count} faixas da sua biblioteca?}}",
 			"removeFromLibraryWarning": "Esta ação não pode ser desfeita. As faixas serão removidas de todas as playlists.",
-			"deleteTracksFromCollection": "Também excluir faixas da minha coleção",
-			"removeDiscoveryReleasesTitle": "Remover da descoberta",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Remover este lançamento da descoberta?} other {Remover {count} lançamentos da descoberta?}}",
+			"deleteTracksFromCollection": "Também excluir faixas da sua coleção",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Excluir lançamento} other {Excluir lançamentos}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Excluir este lançamento?} other {Excluir {count} lançamentos?}}",
 			"removeDiscoveryReleasesWarning": "Esta ação não pode ser desfeita. Os lançamentos serão removidos de todas as playlists.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Remover da playlist",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Remover este lançamento da playlist?} other {Remover {count} lançamentos da playlist?}}",
-			"deleteReleasesFromCollection": "Também excluir lançamentos da minha coleção"
+			"deleteReleasesFromCollection": "Também excluir lançamentos da sua coleção"
 		},
 		"relocate": {
 			"title": "Realocar faixa",
-			"message": "Selecione o novo local para esta faixa."
+			"cloudSyncedMessage": "Esta faixa foi adicionada em outro dispositivo. Escolha a pasta local que contém sua raiz de biblioteca para torná-la reproduzível aqui.",
+			"missingFileMessage": "O arquivo desta faixa não foi encontrado no local original.",
+			"selectRootFolder": "Selecionar pasta raiz da biblioteca",
+			"selectReplacementFile": "Selecionar arquivo de substituição",
+			"validating": "Validando arquivo...",
+			"unsupportedFormat": "Formato de áudio não suportado.",
+			"hashMatch": "O conteúdo do arquivo corresponde. Hash verificado.",
+			"hashMismatch": "O conteúdo do arquivo não corresponde ao original.",
+			"noOriginalHash": "Nenhum hash original disponível para comparação. O arquivo ainda pode estar correto.",
+			"useAnyway": "Usar este arquivo mesmo assim",
+			"relocate": "Realocar",
+			"relocating": "Realocando...",
+			"validateFailed": "Falha ao validar arquivo",
+			"relocateFailed": "Falha ao realocar faixa"
 		},
-		"albumArt": "Capa do álbum",
+		"albumArt": "Capa",
 		"deviceInfo": {
 			"title": "Informações do dispositivo",
 			"diskType": "Tipo de disco",
@@ -654,15 +687,6 @@
 			"available": "Disponível:",
 			"total": "Total:",
 			"percentUsed": "% usado"
-		},
-		"update": {
-			"title": "Atualização disponível",
-			"description": "{version} está pronto para instalar.",
-			"releaseNotes": "Novidades",
-			"installAndRestart": "Instalar e reiniciar",
-			"later": "Depois",
-			"downloading": "Baixando... {progress}%",
-			"installing": "Instalando..."
 		},
 		"duplicate": {
 			"title": "Faixa duplicada detectada",
@@ -677,6 +701,15 @@
 			"replace": "Substituir",
 			"replaceDescription": "Nova importação do novo arquivo. Mantém apenas membros da playlist. Redefine cue points, tags e histórico de reprodução.",
 			"applyToAll": "Aplicar a todas as duplicatas restantes ({count})"
+		},
+		"update": {
+			"title": "Atualização disponível",
+			"description": "{version} está pronto para instalar.",
+			"releaseNotes": "Novidades",
+			"installAndRestart": "Instalar e reiniciar",
+			"later": "Depois",
+			"downloading": "Baixando... {progress}%",
+			"installing": "Instalando..."
 		},
 		"conflict": {
 			"title": "Conflito de nome",
@@ -699,6 +732,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1 faixa} other {{count} faixas}} adicionada(s) a {playlistName}, {failed} falhou",
 		"tracksImported": "{count, plural, =1 {1 faixa} other {{count} faixas}} importada(s)",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 faixa} other {{imported} faixas}} importada(s), {skipped} pulada(s)",
+		"tracksExported": "{exported, plural, =1 {1 faixa} other {{exported} faixas}} exportada(s) para {deviceName}, {skipped, plural, =1 {1 pulada} other {{skipped} puladas}}",
 		"trackRemoved": "{count, plural, =1 {1 faixa} other {{count} faixas}} removida(s) da playlist",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1 faixa} other {{count} faixas}} removida(s) da biblioteca",
 		"movedSuccessfully": "Movido com sucesso",
@@ -718,7 +752,14 @@
 		"failedToUpdateTracks": "Falha ao atualizar faixas",
 		"failedToSetArtwork": "Falha ao definir capa",
 		"failedToRemoveArtwork": "Falha ao remover capa",
-		"noArtworkInFile": "Nenhuma capa encontrada no arquivo de áudio"
+		"noArtworkInFile": "Nenhuma capa encontrada no arquivo de áudio",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 faixa} other {{count} faixas}} importada(s), {failed} falhada(s)",
+		"failedToSetTrackColor": "Falha ao definir a cor da faixa",
+		"exportCleanedUp": "Exportação parcial limpa",
+		"exportCleanUpFailed": "Falha ao limpar exportação",
+		"deviceNotFound": "Dispositivo não encontrado",
+		"deviceReformatted": "Dispositivo reformatado como \"{name}\"",
+		"deviceReformatFailed": "Falha ao reformatar: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Não é possível soltar uma pasta dentro de si mesma",
@@ -730,14 +771,17 @@
 		"previewNotAvailableOffline": "Esta faixa não está disponível offline",
 		"updateCheckFailed": "Falha ao verificar atualizações",
 		"updateInstallFailed": "Falha ao instalar a atualização",
-		"generic": "Algo deu errado"
+		"generic": "Algo deu errado",
+		"previewPlaybackFailed": "Erro na reprodução da visualização",
+		"previewPlayFailed": "Falha ao reproduzir visualização",
+		"previewResumeFailed": "Falha ao retomar visualização"
 	},
 	"devices": {
 		"title": "Dispositivos",
 		"eject": "Ejetar",
 		"ignore": "Ignorar",
 		"unignore": "Parar de ignorar",
-		"selectDevice": "Selecionar dispositivo",
+		"selectDevice": "Selecione um dispositivo",
 		"deviceInfo": "Informações do dispositivo",
 		"capacity": "Capacidade",
 		"available": "Disponível",
@@ -771,7 +815,7 @@
 		"selectDevice": "Selecionar um dispositivo",
 		"selectDevicesDescription": "Selecione um ou mais dispositivos para exportar.",
 		"devicesSelected": "{count, plural, =1 {1 dispositivo selecionado} other {{count} dispositivos selecionados}}",
-		"devicesToExport": "Dispositivos",
+		"devicesToExport": "Dispositivos para exportar",
 		"noDevicesConnected": "Nenhum dispositivo USB conectado",
 		"noPlaylistsAvailable": "Nenhuma playlist disponível",
 		"destination": "Destino",
@@ -906,28 +950,8 @@
 		"featureTour": "Tour de recursos...",
 		"reportIssue": "Relatar um problema..."
 	},
-	"wizard": {
-		"discovery": {
-			"title": "Descobertas",
-			"description": "Procure e salve lançamentos do Bandcamp, SoundCloud e muito mais. Adicione uma URL de lançamento para começar a construir sua coleção."
-		},
-		"library": {
-			"title": "Biblioteca",
-			"description": "Sua biblioteca pessoal de faixas. Importe arquivos de áudio para organizar, marcar e preparar faixas para seus sets."
-		},
-		"playlists": {
-			"title": "Playlists",
-			"description": "Organize faixas em playlists e pastas. Crie playlists inteligentes que se atualizam automaticamente com base em seus critérios."
-		},
-		"tags": {
-			"title": "Tags e Categorias",
-			"description": "Crie categorias e tags para classificar sua música. Filtre sua biblioteca ou marque várias faixas de uma vez."
-		},
-		"skip": "Pular tour",
-		"finish": "Concluir"
-	},
 	"smartPlaylist": {
-		"createTitle": "Criar playlist inteligente",
+		"createTitle": "Nova playlist inteligente",
 		"editTitle": "Editar playlist inteligente",
 		"name": "Nome",
 		"namePlaceholder": "Nome da playlist inteligente",
@@ -1008,7 +1032,35 @@
 			"aqua": "Água",
 			"blue": "Azul",
 			"purple": "Roxo"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Descobertas",
+			"description": "Procure e salve lançamentos do Bandcamp, SoundCloud e muito mais. Adicione uma URL de lançamento para começar a construir sua coleção."
+		},
+		"library": {
+			"title": "Biblioteca",
+			"description": "Sua biblioteca pessoal de faixas. Importe arquivos de áudio para organizar, marcar e preparar faixas para seus sets."
+		},
+		"playlists": {
+			"title": "Playlists",
+			"description": "Organize faixas em playlists e pastas. Crie playlists inteligentes que se atualizam automaticamente com base em seus critérios."
+		},
+		"tags": {
+			"title": "Tags e Categorias",
+			"description": "Crie categorias e tags para classificar sua música. Filtre sua biblioteca ou marque várias faixas de uma vez."
+		},
+		"skip": "Pular tour",
+		"finish": "Concluir"
 	},
 	"onboarding": {
 		"welcome": {

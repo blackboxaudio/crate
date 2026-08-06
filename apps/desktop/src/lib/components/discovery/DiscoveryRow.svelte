@@ -134,17 +134,18 @@
 	function trackCanPlay(trackIndex: number): boolean {
 		const track = release.tracks[trackIndex]
 		if (!track?.duration_ms) return false
+		// The source serves no preview for this track right now (pre-order) — greyed and inert.
+		if (track.preview_unavailable) return false
 		if (release.source_type === 'discogs') return track.video_id !== null
 		return isPreviewable
 	}
 
-	const sourceLabels: Record<string, string> = {
-		bandcamp: 'Bandcamp',
-		soundcloud: 'SoundCloud',
-		youtube: 'YouTube',
-		discogs: 'Discogs',
-		other: 'Other',
-	}
+	// Pre-order upkeep: expanding the tracklist re-checks preview availability at the source
+	// (once per release per session, background priority) so a pre-order's greyed unreleased
+	// tracks heal themselves once the album is out.
+	$effect(() => {
+		if (expanded) discoveryStore.maybeRecheckAvailability(release)
+	})
 
 	function handlePointerUp() {
 		pointerStartPos = null
@@ -164,7 +165,7 @@
 	tabindex="0"
 	data-release-row
 	data-release-id={release.id}
-	class="grid cursor-pointer grid-cols-[24px_40px_1.25fr_0.6fr_1fr_90px_110px_100px_92px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+	class="grid cursor-pointer grid-cols-[24px_40px_1.25fr_0.6fr_1fr_90px_130px_110px_92px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
 	{onclick}
@@ -282,7 +283,7 @@
 
 	<!-- Source -->
 	<div class="truncate text-left text-text-tertiary">
-		{sourceLabels[release.source_type] ?? release.source_type}
+		{$translate(`discovery.sources.${release.source_type}`, { default: release.source_type })}
 	</div>
 
 	<!-- Release Date -->

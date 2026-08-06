@@ -25,7 +25,13 @@
 		"more": "Más",
 		"select": "Seleccionar",
 		"noResults": "Sin resultados",
-		"offline": "Estás sin conexión"
+		"offline": "Estás sin conexión",
+		"audioFiles": "Archivos de audio",
+		"images": "Imágenes",
+		"selectAnOption": "Selecciona una opción",
+		"unknownError": "Error desconocido",
+		"dismiss": "Descartar",
+		"step": "Paso {number}"
 	},
 	"nav": {
 		"library": "Biblioteca",
@@ -302,7 +308,11 @@
 		"trackNotFound": "No se pudo localizar la pista en reproducción",
 		"expand": "Expandir reproductor",
 		"collapse": "Contraer reproductor",
-		"seek": "Buscar"
+		"seek": "Buscar",
+		"repeat": "Repetición",
+		"repeatTrack": "Repetir pista",
+		"repeatRelease": "Repetir lanzamiento",
+		"repeatAll": "Repetir todo"
 	},
 	"queue": {
 		"upNext": "A continuación",
@@ -343,12 +353,24 @@
 		"track": "pista",
 		"tracks": "pistas",
 		"item": "elemento",
-		"items": "elementos"
+		"items": "elementos",
+		"clearSearch": "Borrar búsqueda",
+		"fileNotFound": "Archivo no encontrado",
+		"dropToImport": "Arrastra archivos de audio para importar",
+		"noColor": "Sin color",
+		"colorLabel": "Color: {color}"
 	},
 	"discovery": {
 		"addRelease": "Añadir lanzamiento",
 		"url": "URL",
 		"source": "Fuente",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Otro"
+		},
 		"release": "lanzamiento",
 		"releases": "lanzamientos",
 		"searchPlaceholder": "Buscar lanzamientos...",
@@ -356,6 +378,7 @@
 		"noResults": "Ningún lanzamiento coincide con tus filtros",
 		"addReleaseHint": "Presiona {shortcut} para añadir lanzamientos de Bandcamp, Discogs, YouTube y más",
 		"mobileAddHint": "Añadir lanzamientos de Bandcamp, Discogs, YouTube y más",
+		"dropHint": "Arrastra un enlace para añadir un lanzamiento",
 		"pending": "Pendiente",
 		"offlineQueueNotice": "Estás sin conexión — este lanzamiento se añadirá cuando te reconectes",
 		"addToQueue": "Añadir a la cola",
@@ -371,8 +394,7 @@
 			"label": "Sello",
 			"tags": "Etiquetas",
 			"dateAdded": "Fecha de adición",
-			"released": "Lanzado",
-			"added": "Añadido"
+			"dateReleased": "Fecha de lanzamiento"
 		},
 		"fetchingMetadata": "Obteniendo metadatos...",
 		"refreshMetadata": "Actualizar metadatos",
@@ -416,7 +438,6 @@
 			"addTags": "Añadir etiquetas"
 		},
 		"import": {
-			"title": "Importar a la biblioteca",
 			"selectFiles": "Seleccionar archivos",
 			"matched": "Coincidente",
 			"unmatched": "No coincidente",
@@ -478,13 +499,11 @@
 			"following": "Siguiendo",
 			"followForNewReleases": "Seguir para nuevos lanzamientos",
 			"followViaPaste": "Seguir esta fuente desde el panel Siguiendo",
-			"popoverTitle": "Seguir para nuevos lanzamientos",
 			"upcoming": "Próximamente",
 			"daysUntil": "{days} d",
 			"surfacedVia": "Mostrado mediante {source}",
 			"markNew": "Marcar como nuevo",
 			"markNotNew": "Marcar como no nuevo",
-			"alsoFollow": "Seguir para nuevos lanzamientos",
 			"sortBy": "Ordenar por",
 			"empty": {
 				"title": "Aún no sigues a nadie",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Pegar URL de página de artista/sello de Bandcamp, SoundCloud o Discogs",
 				"urlInfo": "Detectamos automáticamente la plataforma y si se trata de un artista o un sello, y a partir de ahora estaremos atentos a sus nuevos lanzamientos. Los lanzamientos antiguos no se añadirán."
 			}
-		}
+		},
+		"releaseArtwork": "Portada del lanzamiento",
+		"mergeTarget": "Destino",
+		"mergeTagCount": "{count, plural, =1 {1 etiqueta} other {{count} etiquetas}}"
 	},
 	"filters": {
 		"title": "Filtros",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "Raíz (sin carpeta)",
 		"folderEmpty": "Esta carpeta está vacía",
 		"noPlaylistsYet": "Sin listas de reproducción aún",
-		"noPlaylists": "Sin listas de reproducción aún",
 		"allPlaylists": "Todas las listas de reproducción",
 		"searchPlaceholder": "Buscar listas de reproducción…",
 		"emptyHint": "Crea listas de reproducción para organizar tus descubrimientos",
@@ -561,12 +582,11 @@
 		"renameCategory": "Renombrar categoría",
 		"deleteTag": "Eliminar etiqueta",
 		"deleteCategory": "Eliminar categoría",
-		"addCategory": "Añadir categoría",
-		"addTag": "Añadir etiqueta",
 		"moveToCategory": "Mover a categoría",
 		"noTags": "Sin etiquetas",
 		"noTagCategoriesYet": "Sin categorías de etiquetas aún",
-		"emptyHint": "Crea categorías de etiquetas codificadas por colores para organizar tus descubrimientos"
+		"emptyHint": "Crea categorías de etiquetas codificadas por colores para organizar tus descubrimientos",
+		"removeTag": "Quitar etiqueta"
 	},
 	"contextMenu": {
 		"viewInFinder": "Ver en Finder",
@@ -633,8 +653,8 @@
 			"removeFromLibraryMessage": "{count, plural, =1 {¿Quitar esta pista de tu biblioteca?} other {¿Quitar {count} pistas de tu biblioteca?}}",
 			"removeFromLibraryWarning": "Esta acción no se puede deshacer. Las pistas se quitarán de todas las listas de reproducción.",
 			"deleteTracksFromCollection": "También eliminar pistas de mi colección",
-			"removeDiscoveryReleasesTitle": "Eliminar de descubrimiento",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {¿Eliminar este lanzamiento de descubrimiento?} other {¿Eliminar {count} lanzamientos de descubrimiento?}}",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Eliminar lanzamiento} other {Eliminar lanzamientos}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {¿Eliminar este lanzamiento?} other {¿Eliminar {count} lanzamientos?}}",
 			"removeDiscoveryReleasesWarning": "Esta acción no se puede deshacer. Los lanzamientos se eliminarán de todas las listas de reproducción.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Quitar de la lista de reproducción",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {¿Quitar este lanzamiento de la lista de reproducción?} other {¿Quitar {count} lanzamientos de la lista de reproducción?}}",
@@ -642,7 +662,20 @@
 		},
 		"relocate": {
 			"title": "Reubicar pista",
-			"message": "Selecciona la nueva ubicación para esta pista."
+			"cloudSyncedMessage": "Esta pista fue añadida en otro dispositivo. Elige la carpeta local que contiene su raíz de biblioteca para hacerla reproducible aquí.",
+			"missingFileMessage": "No se pudo encontrar el archivo de esta pista en su ubicación original.",
+			"selectRootFolder": "Seleccionar carpeta raíz de biblioteca",
+			"selectReplacementFile": "Seleccionar archivo de reemplazo",
+			"validating": "Validando archivo...",
+			"unsupportedFormat": "Formato de audio no compatible.",
+			"hashMatch": "El contenido del archivo coincide. Hash verificado.",
+			"hashMismatch": "El contenido del archivo no coincide con el original.",
+			"noOriginalHash": "No hay hash original disponible para comparación. El archivo aún puede ser correcto.",
+			"useAnyway": "Usar este archivo de todas formas",
+			"relocate": "Reubicar",
+			"relocating": "Reubicando...",
+			"validateFailed": "Error al validar archivo",
+			"relocateFailed": "Error al reubicar pista"
 		},
 		"albumArt": "Carátula del álbum",
 		"deviceInfo": {
@@ -654,15 +687,6 @@
 			"available": "Disponible:",
 			"total": "Total:",
 			"percentUsed": "% usado"
-		},
-		"update": {
-			"title": "Actualización disponible",
-			"description": "{version} está listo para instalar.",
-			"releaseNotes": "Novedades",
-			"installAndRestart": "Instalar y reiniciar",
-			"later": "Más tarde",
-			"downloading": "Descargando... {progress}%",
-			"installing": "Instalando..."
 		},
 		"duplicate": {
 			"title": "Pista duplicada detectada",
@@ -677,6 +701,15 @@
 			"replace": "Reemplazar",
 			"replaceDescription": "Nueva importación desde el nuevo archivo. Solo mantiene la pertenencia a listas de reproducción. Restablece puntos de cue, etiquetas e historial de reproducción.",
 			"applyToAll": "Aplicar a todos los duplicados restantes ({count})"
+		},
+		"update": {
+			"title": "Actualización disponible",
+			"description": "{version} está listo para instalar.",
+			"releaseNotes": "Novedades",
+			"installAndRestart": "Instalar y reiniciar",
+			"later": "Más tarde",
+			"downloading": "Descargando... {progress}%",
+			"installing": "Instalando..."
 		},
 		"conflict": {
 			"title": "Conflicto de nombre",
@@ -699,6 +732,7 @@
 		"trackAddedWithFailed": "{count, plural, =1 {1 pista} other {{count} pistas}} añadida(s) a {playlistName}, {failed} fallida(s)",
 		"tracksImported": "{count, plural, =1 {1 pista} other {{count} pistas}} importada(s)",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 pista} other {{imported} pistas}} importada(s), {skipped} omitida(s)",
+		"tracksExported": "{exported, plural, =1 {1 pista} other {{exported} pistas}} exportada(s) a {deviceName}, {skipped, plural, =1 {1 omitida} other {{skipped} omitidas}}",
 		"trackRemoved": "{count, plural, =1 {1 pista} other {{count} pistas}} quitada(s) de la lista de reproducción",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1 pista} other {{count} pistas}} quitada(s) de la biblioteca",
 		"movedSuccessfully": "Movido correctamente",
@@ -718,7 +752,14 @@
 		"failedToUpdateTracks": "Error al actualizar pistas",
 		"failedToSetArtwork": "Error al establecer la carátula",
 		"failedToRemoveArtwork": "Error al quitar la carátula",
-		"noArtworkInFile": "No se encontró carátula en el archivo de audio"
+		"noArtworkInFile": "No se encontró carátula en el archivo de audio",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 pista} other {{count} pistas}} importada(s), {failed} fallida(s)",
+		"failedToSetTrackColor": "Error al establecer el color de la pista",
+		"exportCleanedUp": "Exportación parcial limpiada",
+		"exportCleanUpFailed": "Error al limpiar la exportación",
+		"deviceNotFound": "Dispositivo no encontrado",
+		"deviceReformatted": "Dispositivo formateado como \"{name}\"",
+		"deviceReformatFailed": "Error al formatear: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "No se puede soltar una carpeta dentro de sí misma",
@@ -730,7 +771,10 @@
 		"previewNotAvailableOffline": "Esta pista no está disponible sin conexión",
 		"updateCheckFailed": "Error al buscar actualizaciones",
 		"updateInstallFailed": "Error al instalar la actualización",
-		"generic": "Algo salió mal"
+		"generic": "Algo salió mal",
+		"previewPlaybackFailed": "Error de reproducción de vista previa",
+		"previewPlayFailed": "Error al reproducir vista previa",
+		"previewResumeFailed": "Error al reanudar vista previa"
 	},
 	"devices": {
 		"title": "Dispositivos",
@@ -988,6 +1032,14 @@
 			"aqua": "Aguamarina",
 			"blue": "Azul",
 			"purple": "Morado"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {

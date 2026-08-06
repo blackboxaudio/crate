@@ -25,7 +25,13 @@
 		"more": "Mai mult",
 		"select": "Selectează",
 		"noResults": "Niciun rezultat",
-		"offline": "Ești offline"
+		"offline": "Ești offline",
+		"audioFiles": "Fișiere audio",
+		"images": "Imagini",
+		"selectAnOption": "Selectați o opțiune",
+		"unknownError": "Eroare necunoscută",
+		"dismiss": "Închide",
+		"step": "Pasul {number}"
 	},
 	"nav": {
 		"library": "Bibliotecă",
@@ -128,8 +134,8 @@
 			"clearCacheWarning": "Melodiile previzualizate anterior vor trebui să fie reîncărcate din sursa lor la următoarea redare. Aceasta poate fi mai lentă și unele fluxuri pot să nu mai fie disponibile.",
 			"audioCache": "Audio",
 			"artworkCache": "Copertă",
-			"artworkCacheDescription": "Arta albumului este salvată pe acest dispozitiv, deci se afișează fără conexiune.",
-			"clearArtworkCacheConfirmMessage": "Sunteți sigur că doriți să goliți cache-ul cu toată arta albumului?",
+			"artworkCacheDescription": "Copertă este salvată pe acest dispozitiv, deci se afișează fără conexiune.",
+			"clearArtworkCacheConfirmMessage": "Sunteți sigur că doriți să goliți cache-ul cu toată copertă?",
 			"cacheLimit": "Limita cache"
 		},
 		"following": {
@@ -140,7 +146,7 @@
 			"cadenceDaily": "La pornire și zilnic",
 			"cadenceManual": "Doar manual",
 			"checkAllNow": "Verifică toate acum",
-			"autoFollowDescription": "Implicit pentru opțiunea \"De asemenea urmărire\" la importul unei lansări.",
+			"autoFollowDescription": "Implicit pentru opțiunea \"Urmărire pentru lansări noi\" la importul unei lansări.",
 			"autoFollowOff": "Dezactivat",
 			"autoFollowArtist": "Interpret",
 			"autoFollowLabel": "Etichetă",
@@ -302,7 +308,11 @@
 		"trackNotFound": "Nu s-a putut localiza piesa în curs de redare",
 		"expand": "Extindeți playerul",
 		"collapse": "Restrângeți playerul",
-		"seek": "Cauta"
+		"seek": "Cauta",
+		"repeat": "Repetă",
+		"repeatTrack": "Repetă piesa",
+		"repeatRelease": "Repetă lansare",
+		"repeatAll": "Repetă tot"
 	},
 	"queue": {
 		"upNext": "Următorul",
@@ -319,7 +329,7 @@
 		"clearQueue": "Șterge",
 		"empty": "Nimic mai departe",
 		"emptyHint": "Melodiile pe care le adaugi vor fi redate mai departe",
-		"upcoming": "Viitoare",
+		"upcoming": "Următorul",
 		"history": "Istoric",
 		"historyEmpty": "Nimic nu a fost redat încă"
 	},
@@ -343,12 +353,24 @@
 		"track": "melodie",
 		"tracks": "melodii",
 		"item": "articol",
-		"items": "articole"
+		"items": "articole",
+		"clearSearch": "Șterge căutarea",
+		"fileNotFound": "Fișier nu găsit",
+		"dropToImport": "Glisați fișiere audio pentru a importa",
+		"noColor": "Fără culoare",
+		"colorLabel": "Culoare: {color}"
 	},
 	"discovery": {
 		"addRelease": "Adaugă Lansare",
 		"url": "URL",
 		"source": "Sursă",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Altul"
+		},
 		"release": "lansare",
 		"releases": "lansări",
 		"searchPlaceholder": "Caută lansări...",
@@ -356,6 +378,7 @@
 		"noResults": "Nicio lansare nu corespunde filtrelor dvs.",
 		"addReleaseHint": "Apăsați {shortcut} pentru a adăuga lansări de pe Bandcamp, Discogs, YouTube și altele",
 		"mobileAddHint": "Adaugă lansări de pe Bandcamp, Discogs, YouTube și altele",
+		"dropHint": "Glisați un link pentru a adăuga o lansare",
 		"pending": "În așteptare",
 		"offlineQueueNotice": "Sunteți deconectat — această lansare va fi adăugată când vă reconectați",
 		"addToQueue": "Adaugă în coadă",
@@ -371,8 +394,7 @@
 			"label": "Label",
 			"tags": "Etichete",
 			"dateAdded": "Data Adăugării",
-			"released": "Lansată",
-			"added": "Adăugată"
+			"dateReleased": "Dată lansării"
 		},
 		"fetchingMetadata": "Se preiau metadatele...",
 		"refreshMetadata": "Reîncarcă Metadate",
@@ -416,7 +438,6 @@
 			"addTags": "Adaugă etichete"
 		},
 		"import": {
-			"title": "Importă în Bibliotecă",
 			"selectFiles": "Selectează Fișiere",
 			"matched": "Potrivite",
 			"unmatched": "Nepotrivite",
@@ -466,7 +487,7 @@
 			"pauseSelected": "Pauza",
 			"unfollow": "Oprire urmărire",
 			"checkNow": "Verifică acum",
-			"enabledToggle": "Comutare actualizări",
+			"enabledToggle": "Verificați lansări noi",
 			"artist": "Interpret",
 			"label": "Etichetă",
 			"checkedAgo": "Verificat {time}",
@@ -478,13 +499,11 @@
 			"following": "Urmărire",
 			"followForNewReleases": "Urmărire pentru lansări noi",
 			"followViaPaste": "Urmărire această sursă din panoul Urmărire",
-			"popoverTitle": "Urmărire pentru lansări noi",
 			"upcoming": "În curând",
 			"daysUntil": "{days} z",
 			"surfacedVia": "Afişat prin {source}",
 			"markNew": "Marcați ca nou",
 			"markNotNew": "Marcați ca nu nou",
-			"alsoFollow": "Urmărire pentru lansări noi",
 			"sortBy": "Sortează după",
 			"empty": {
 				"title": "Nu urmărești pe nimeni încă",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Lipește URL-ul unei pagini de interpret/etichetă Bandcamp, SoundCloud sau Discogs",
 				"urlInfo": "Detectăm automat platforma și dacă este vorba de un artist sau o casă de discuri, iar de acum înainte urmărim noile lansări. Lansările mai vechi nu vor fi adăugate."
 			}
-		}
+		},
+		"releaseArtwork": "Arta lansării",
+		"mergeTarget": "Țintă",
+		"mergeTagCount": "{count, plural, =1 {1 etichetă} other {{count} etichete}}"
 	},
 	"filters": {
 		"title": "Filtre",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "Root (Fără Folder)",
 		"folderEmpty": "Acest folder este gol",
 		"noPlaylistsYet": "Niciun playlist deocamdată",
-		"noPlaylists": "Niciun playlist deocamdată",
 		"allPlaylists": "Toate Playlisturile",
 		"searchPlaceholder": "Caută playlisturi…",
 		"emptyHint": "Creați playlisturi pentru a vă organiza descoperirile",
@@ -561,12 +582,11 @@
 		"renameCategory": "Redenumește Categorie",
 		"deleteTag": "Șterge Etichetă",
 		"deleteCategory": "Șterge Categorie",
-		"addCategory": "Adaugă Categorie",
-		"addTag": "Adaugă Etichetă",
 		"moveToCategory": "Mută în Categorie",
 		"noTags": "Nicio etichetă",
 		"noTagCategoriesYet": "Nicio categorie de etichete deocamdată",
-		"emptyHint": "Creați categorii de etichete codificate prin culoare pentru a vă organiza descoperirile"
+		"emptyHint": "Creați categorii de etichete codificate prin culoare pentru a vă organiza descoperirile",
+		"removeTag": "Elimină tag"
 	},
 	"contextMenu": {
 		"viewInFinder": "Arată în Finder",
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "Elimină din Bibliotecă",
 			"removeFromLibraryMessage": "{count, plural, =1 {Eliminați această melodie din bibliotecă?} other {Eliminați {count} melodii din bibliotecă?}}",
 			"removeFromLibraryWarning": "Această acțiune nu poate fi anulată. Melodiile vor fi eliminate din toate playlisturile.",
-			"deleteTracksFromCollection": "Șterge și melodiile din colecția mea",
-			"removeDiscoveryReleasesTitle": "Elimină din Descoperiri",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Eliminați această lansare din descoperiri?} other {Eliminați {count} lansări din descoperiri?}}",
+			"deleteTracksFromCollection": "Șterge și melodiile din colecția ta",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Ștergeți lansarea} few {Ștergeți lansările} other {Ștergeți lansările}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Ștergeți această lansare?} few {Ștergeți {count} lansări?} other {Ștergeți {count} lansări?}}",
 			"removeDiscoveryReleasesWarning": "Această acțiune nu poate fi anulată. Lanserile vor fi eliminate din toate playlisturile.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Elimină din Playlist",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Eliminați această lansare din playlist?} other {Eliminați {count} lansări din playlist?}}",
-			"deleteReleasesFromCollection": "Șterge și lanserile din colecția mea"
+			"deleteReleasesFromCollection": "Șterge și lanserile din colecția ta"
 		},
 		"relocate": {
 			"title": "Relocalizează Melodie",
-			"message": "Selectați noua locație pentru această melodie."
+			"cloudSyncedMessage": "Această melodie a fost adăugată pe un alt dispozitiv. Alegeți folderul local care conține rădăcina bibliotecii pentru a o face redabilă aici.",
+			"missingFileMessage": "Fișierul pentru această melodie nu a putut fi găsit la locația inițială.",
+			"selectRootFolder": "Selectați folderul rădăcină al bibliotecii",
+			"selectReplacementFile": "Selectați fișierul de înlocuire",
+			"validating": "Se validează fișierul...",
+			"unsupportedFormat": "Format audio nesuportat.",
+			"hashMatch": "Conținutul fișierului se potrivește. Hash verificat.",
+			"hashMismatch": "Conținutul fișierului nu se potrivește cu originalul.",
+			"noOriginalHash": "Niciun hash original disponibil pentru comparație. Fișierul poate fi totuși corect.",
+			"useAnyway": "Folosiți oricum acest fișier",
+			"relocate": "Realocați",
+			"relocating": "Se realochează...",
+			"validateFailed": "Nu s-a putut valida fișierul",
+			"relocateFailed": "Nu s-a putut realoca melodia"
 		},
-		"albumArt": "Ilustrație Album",
+		"albumArt": "Copertă",
 		"deviceInfo": {
 			"title": "Info Dispozitiv",
 			"diskType": "Tip Disc",
@@ -719,7 +752,14 @@
 		"failedToUpdateTracks": "Eșec la actualizarea melodiilor",
 		"failedToSetArtwork": "Eșec la setarea ilustrației",
 		"failedToRemoveArtwork": "Eșec la eliminarea ilustrației",
-		"noArtworkInFile": "Nicio ilustrație găsită în fișierul audio"
+		"noArtworkInFile": "Nicio ilustrație găsită în fișierul audio",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 melodie} few {{count} melodii} other {{count} melodii}} importată(e), {failed} eșuate",
+		"failedToSetTrackColor": "Eșec la setarea culorii melodiei",
+		"exportCleanedUp": "Export parțial curățat",
+		"exportCleanUpFailed": "Eșec la curățarea exportului",
+		"deviceNotFound": "Dispozitiv nu găsit",
+		"deviceReformatted": "Dispozitiv reformatat ca \"{name}\"",
+		"deviceReformatFailed": "Eșec la reformatare: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Nu puteți muta un folder în el însuși",
@@ -731,14 +771,17 @@
 		"previewNotAvailableOffline": "Acest cântec nu este disponibil offline",
 		"updateCheckFailed": "Eșec la verificarea actualizărilor",
 		"updateInstallFailed": "Eșec la instalarea actualizării",
-		"generic": "Ceva a mers prost"
+		"generic": "Ceva a mers prost",
+		"previewPlaybackFailed": "Eroare la redarea previzualizării",
+		"previewPlayFailed": "Eșec la redarea previzualizării",
+		"previewResumeFailed": "Eșec la reluarea previzualizării"
 	},
 	"devices": {
 		"title": "Dispozitive",
 		"eject": "Ejcta",
 		"ignore": "Ignoră",
 		"unignore": "Încetați să ignorați",
-		"selectDevice": "Selectează dispozitiv",
+		"selectDevice": "Selectați un dispozitiv",
 		"deviceInfo": "Info Dispozitiv",
 		"capacity": "Capacitate",
 		"available": "Disponibil",
@@ -772,7 +815,7 @@
 		"selectDevice": "Selectați un dispozitiv",
 		"selectDevicesDescription": "Selectați unu sau mai multe dispozitive pentru export.",
 		"devicesSelected": "{count, plural, =1 {1 dispozitiv selectat} other {{count} dispozitive selectate}}",
-		"devicesToExport": "Dispozitive",
+		"devicesToExport": "Dispozitive pentru export",
 		"noDevicesConnected": "Niciun dispozitiv USB conectat",
 		"noPlaylistsAvailable": "Niciun playlist disponibil",
 		"destination": "Destinație",
@@ -868,6 +911,9 @@
 		"settingsSound": "Sunet",
 		"settingsDiagnostics": "Diagnosticare",
 		"quit": "Ieșire {appName}",
+		"hide": "Ascundeți {appName}",
+		"hideOthers": "Ascundeți pe ceilalți",
+		"showAll": "Arătați pe toți",
 		"importTracks": "Importă Melodii...",
 		"addRelease": "Adaugă Lansare...",
 		"refreshMetadata": "Reîncarcă Metadate",
@@ -905,7 +951,7 @@
 		"reportIssue": "Raportați o Problemă..."
 	},
 	"smartPlaylist": {
-		"createTitle": "Crează Smart Playlist",
+		"createTitle": "Nou Smart Playlist",
 		"editTitle": "Editează Smart Playlist",
 		"name": "Nume",
 		"namePlaceholder": "Nume Smart Playlist",
@@ -986,6 +1032,14 @@
 			"aqua": "Acvariu",
 			"blue": "Albastru",
 			"purple": "Violet"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {

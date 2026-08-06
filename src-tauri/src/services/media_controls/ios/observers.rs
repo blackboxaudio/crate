@@ -5,6 +5,8 @@
 //!   `ShouldResume` — the call-interruption auto-resume the WebView path can't do.
 //! - Route change: pause when the old output disappears (e.g. headphones unplugged).
 //! - `AVPlayerItemDidPlayToEndTime`: advance to the next track (native auto-advance, works locked).
+//! - `AVPlayerItemPlaybackStalled`: the buffer ran dry mid-track — re-arm the load/stall watchdog so
+//!   the frontend re-raises its loading spinner instead of showing a stuck "playing" state.
 //! - Protected-data-available / did-become-active / did-enter-background: detect when the app is
 //!   foregrounded by a device *unlock* (lock-screen / Now Playing entry) vs a plain app-switch, and
 //!   emit `native-preview-entered-from-lock` so the mobile UI can auto-open the full-screen player.
@@ -25,7 +27,7 @@ use objc2::rc::Retained;
 use objc2::runtime::AnyObject;
 use objc2_av_foundation::{
     AVPlayerItemDidPlayToEndTimeNotification, AVPlayerItemFailedToPlayToEndTimeErrorKey,
-    AVPlayerItemFailedToPlayToEndTimeNotification,
+    AVPlayerItemFailedToPlayToEndTimeNotification, AVPlayerItemPlaybackStalledNotification,
 };
 use objc2_avf_audio::{
     AVAudioSession, AVAudioSessionInterruptionNotification, AVAudioSessionInterruptionOptionKey,
@@ -80,6 +82,16 @@ pub fn register(app: &AppHandle) -> Vec<Retained<AnyObject>> {
             AVPlayerItemFailedToPlayToEndTimeNotification,
             &main_queue,
             handle_failed_to_end,
+        ));
+        // The buffer ran dry mid-track. The periodic time observer goes quiet with the timebase, so
+        // without this a stall is invisible to the frontend; the engine re-arms its watchdog, which
+        // raises the loading spinner and either clears it on recovery or times the track out. This is
+        // the native counterpart of the HTML5 path's `waiting` event.
+        tokens.push(add_observer(
+            &center,
+            AVPlayerItemPlaybackStalledNotification,
+            &main_queue,
+            |_note| engine::with_engine_mut(|e| e.on_playback_stalled()),
         ));
         if let Some(name) = AVAudioSessionInterruptionNotification {
             tokens.push(add_observer(

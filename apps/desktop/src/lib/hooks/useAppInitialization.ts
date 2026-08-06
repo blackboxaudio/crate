@@ -78,6 +78,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenCloudSyncMerge: UnlistenFn | undefined
 	let unlistenFollowed: UnlistenFn | undefined
 	let unlistenCollection: UnlistenFn | undefined
+	let unlistenAvailability: UnlistenFn | undefined
 	let unlistenAudioOutputLost: UnlistenFn | undefined
 	let unlistenAudioDevices: UnlistenFn | undefined
 
@@ -300,6 +301,17 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		})
 	}
 
+	// Preview-availability listener: a stream extraction refreshed a release's per-track
+	// availability flags (pre-order tracks with no stream) — grey/un-grey the rows in place.
+	async function setupAvailabilityListener(): Promise<void> {
+		unlistenAvailability = await listen<{ releaseId: string; unavailable: number[] }>(
+			'discovery-availability-changed',
+			(event) => {
+				discoveryStore.applyPreviewAvailability(event.payload.releaseId, event.payload.unavailable)
+			}
+		)
+	}
+
 	// Audio output listeners: the backend pauses library playback when the output device it was
 	// playing on disappears (Bluetooth headphones powering off, interface unplugged) and rebuilds
 	// the stream on the new default, so we mirror the paused state rather than follow the user's
@@ -338,6 +350,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	await setupCloudSyncMergeListener()
 	await setupFollowedReleasesListener()
 	await setupCollectionListener()
+	await setupAvailabilityListener()
 
 	// Return cleanup function
 	return () => {
@@ -348,6 +361,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenCloudSyncMerge?.()
 		unlistenFollowed?.()
 		unlistenCollection?.()
+		unlistenAvailability?.()
 		unlistenAudioOutputLost?.()
 		unlistenAudioDevices?.()
 	}

@@ -387,7 +387,7 @@
 						<button
 							type="button"
 							class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-lg border border-dashed border-stroke px-3 text-text-tertiary active:bg-surface-2"
-							aria-label={$translate('tags.addTag')}
+							aria-label={$translate('tags.newTag')}
 							onclick={() => openCreateTag(category.id)}
 						>
 							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -489,7 +489,7 @@
 >
 	{#if lpCategory}
 		<ContextMenuItem onclick={menuAddTag}>
-			{$translate('tags.addTag')}
+			{$translate('tags.newTag')}
 			{#snippet icon()}
 				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 					<path d="M12 5v14M5 12h14" stroke-linecap="round" />

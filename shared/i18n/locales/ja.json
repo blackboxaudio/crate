@@ -25,7 +25,13 @@
 		"more": "その他",
 		"select": "選択",
 		"noResults": "結果なし",
-		"offline": "オフラインです"
+		"offline": "オフラインです",
+		"audioFiles": "オーディオファイル",
+		"images": "画像",
+		"selectAnOption": "オプションを選択",
+		"unknownError": "不明なエラー",
+		"dismiss": "閉じる",
+		"step": "ステップ {number}"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -128,8 +134,8 @@
 			"clearCacheWarning": "以前プレビューされたトラックは、次の再生時にソースから再度ストリーミングする必要があります。これはより遅くなり、一部のストリームは利用できなくなる可能性があります。",
 			"audioCache": "オーディオ",
 			"artworkCache": "アートワーク",
-			"artworkCacheDescription": "アルバムアートはこのデバイスに保存され、接続がなくても表示されます。",
-			"clearArtworkCacheConfirmMessage": "キャッシュされたすべてのアルバムアートをクリアしてもよろしいですか？",
+			"artworkCacheDescription": "アートワークはこのデバイスに保存され、接続がなくても表示されます。",
+			"clearArtworkCacheConfirmMessage": "キャッシュされたすべてのアートワークをクリアしてもよろしいですか？",
 			"cacheLimit": "キャッシュ制限"
 		},
 		"following": {
@@ -140,7 +146,7 @@
 			"cadenceDaily": "起動時と毎日",
 			"cadenceManual": "手動のみ",
 			"checkAllNow": "今すぐすべてチェック",
-			"autoFollowDescription": "リリースをインポートするときの「フォローも」オプションのデフォルト。",
+			"autoFollowDescription": "リリースをインポートするときの「新しいリリースをフォロー」オプションのデフォルト。",
 			"autoFollowOff": "オフ",
 			"autoFollowArtist": "アーティスト",
 			"autoFollowLabel": "レーベル",
@@ -302,7 +308,11 @@
 		"trackNotFound": "再生中のトラックが見つかりません",
 		"expand": "プレイヤーを展開",
 		"collapse": "プレイヤーを折りたたむ",
-		"seek": "シーク"
+		"seek": "シーク",
+		"repeat": "リピート",
+		"repeatTrack": "トラックをリピート",
+		"repeatRelease": "リリースをリピート",
+		"repeatAll": "すべてをリピート"
 	},
 	"queue": {
 		"upNext": "次に再生",
@@ -318,8 +328,8 @@
 		"reorder": "並べ替え",
 		"clearQueue": "クリア",
 		"empty": "次はありません",
-		"emptyHint": "追加した曲が次に再生されます",
-		"upcoming": "今後",
+		"emptyHint": "追加したトラックが次に再生されます",
+		"upcoming": "次に再生",
 		"history": "履歴",
 		"historyEmpty": "まだ再生されていません"
 	},
@@ -343,12 +353,24 @@
 		"track": "曲",
 		"tracks": "曲",
 		"item": "項目",
-		"items": "項目"
+		"items": "項目",
+		"clearSearch": "検索をクリア",
+		"fileNotFound": "ファイルが見つかりません",
+		"dropToImport": "オーディオファイルをドラッグしてインポート",
+		"noColor": "色なし",
+		"colorLabel": "色: {color}"
 	},
 	"discovery": {
 		"addRelease": "リリースを追加",
 		"url": "URL",
 		"source": "ソース",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "その他"
+		},
 		"release": "リリース",
 		"releases": "リリース",
 		"searchPlaceholder": "リリースを検索...",
@@ -356,6 +378,7 @@
 		"noResults": "フィルターに合致するリリースがありません",
 		"addReleaseHint": "{shortcut} を押して Bandcamp、Discogs、YouTube などからリリースを追加してください",
 		"mobileAddHint": "Bandcamp、Discogs、YouTube などからリリースを追加してください",
+		"dropHint": "リンクをドロップしてリリースを追加",
 		"pending": "保留中",
 		"offlineQueueNotice": "オフラインです — 再度接続したときにこのリリースが追加されます",
 		"addToQueue": "キューに追加",
@@ -371,8 +394,7 @@
 			"label": "レーベル",
 			"tags": "タグ",
 			"dateAdded": "追加日時",
-			"released": "リリース日",
-			"added": "追加"
+			"dateReleased": "リリース日"
 		},
 		"fetchingMetadata": "メタデータを取得中...",
 		"refreshMetadata": "メタデータを更新",
@@ -416,7 +438,6 @@
 			"addTags": "タグを追加"
 		},
 		"import": {
-			"title": "ライブラリにインポート",
 			"selectFiles": "ファイルを選択",
 			"matched": "一致しました",
 			"unmatched": "一致しなかった",
@@ -466,7 +487,7 @@
 			"pauseSelected": "一時停止",
 			"unfollow": "フォロー解除",
 			"checkNow": "今すぐチェック",
-			"enabledToggle": "更新を切り替え",
+			"enabledToggle": "新しいリリースをチェック",
 			"artist": "アーティスト",
 			"label": "レーベル",
 			"checkedAgo": "{time}にチェック済み",
@@ -478,13 +499,11 @@
 			"following": "フォロー中",
 			"followForNewReleases": "新しいリリースをフォロー",
 			"followViaPaste": "フォロー中パネルからこのソースをフォロー",
-			"popoverTitle": "新しいリリースをフォロー",
 			"upcoming": "近日公開予定",
 			"daysUntil": "{days}日",
 			"surfacedVia": "{source}経由で表示",
 			"markNew": "新規としてマーク",
 			"markNotNew": "新規ではないとしてマーク",
-			"alsoFollow": "新しいリリースをフォロー",
 			"sortBy": "並び替え",
 			"empty": {
 				"title": "まだ誰もフォローしていません",
@@ -506,7 +525,10 @@
 				"urlPlaceholder": "Bandcamp、SoundCloud、またはDiscogsのアーティスト/レーベルページのURLを貼り付け",
 				"urlInfo": "プラットフォームと、それがアーティストかレーベルかを自動で判別し、これ以降の新しいリリースを見張ります。それより前のリリースは追加されません。"
 			}
-		}
+		},
+		"releaseArtwork": "リリースアートワーク",
+		"mergeTarget": "ターゲット",
+		"mergeTagCount": "{count, plural, other {{count}個のタグ}}"
 	},
 	"filters": {
 		"title": "フィルター",
@@ -542,7 +564,6 @@
 		"rootNoFolder": "ルート（フォルダなし）",
 		"folderEmpty": "このフォルダは空です",
 		"noPlaylistsYet": "まだプレイリストがありません",
-		"noPlaylists": "まだプレイリストがありません",
 		"allPlaylists": "すべてのプレイリスト",
 		"searchPlaceholder": "プレイリストを検索…",
 		"emptyHint": "プレイリストを作成してディスカバリーを整理しましょう",
@@ -561,12 +582,11 @@
 		"renameCategory": "カテゴリ名を変更",
 		"deleteTag": "タグを削除",
 		"deleteCategory": "カテゴリを削除",
-		"addCategory": "カテゴリを追加",
-		"addTag": "タグを追加",
 		"moveToCategory": "カテゴリに移動",
 		"noTags": "タグなし",
 		"noTagCategoriesYet": "まだタグカテゴリがありません",
-		"emptyHint": "色分けされたタグカテゴリを作成してディスカバリーを整理しましょう"
+		"emptyHint": "色分けされたタグカテゴリを作成してディスカバリーを整理しましょう",
+		"removeTag": "タグを削除"
 	},
 	"contextMenu": {
 		"viewInFinder": "Finderで表示",
@@ -632,19 +652,32 @@
 			"removeFromLibraryTitle": "ライブラリから削除",
 			"removeFromLibraryMessage": "{count, plural, =1 {このトラックをライブラリから削除しますか？} other {{count}曲のトラックをライブラリから削除しますか？}}",
 			"removeFromLibraryWarning": "この操作は取り消せません。トラックはすべてのプレイリストから削除されます。",
-			"deleteTracksFromCollection": "コレクションからもトラックを削除",
-			"removeDiscoveryReleasesTitle": "ディスカバリーから削除",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {このリリースをディスカバリーから削除しますか？} other {{count}件のリリースをディスカバリーから削除しますか？}}",
+			"deleteTracksFromCollection": "あなたのコレクションからもトラックを削除",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {リリースを削除} other {リリースを削除}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {このリリースを削除しますか？} other {この{count}件のリリースを削除しますか？}}",
 			"removeDiscoveryReleasesWarning": "この操作は元に戻せません。リリースはすべてのプレイリストから削除されます。",
 			"removeDiscoveryReleasesFromPlaylistTitle": "プレイリストから削除",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {このリリースをプレイリストから削除しますか？} other {{count}件のリリースをプレイリストから削除しますか？}}",
-			"deleteReleasesFromCollection": "コレクションからもリリースを削除"
+			"deleteReleasesFromCollection": "あなたのコレクションからもリリースを削除"
 		},
 		"relocate": {
 			"title": "トラックを再配置",
-			"message": "このトラックの新しい場所を選択してください。"
+			"cloudSyncedMessage": "このトラックは別のデバイスで追加されました。再生可能にするために、ライブラリルートが含まれているローカルフォルダを選択してください。",
+			"missingFileMessage": "このトラックのファイルが元の場所で見つかりません。",
+			"selectRootFolder": "ライブラリルートフォルダを選択",
+			"selectReplacementFile": "代替ファイルを選択",
+			"validating": "ファイルを検証中...",
+			"unsupportedFormat": "サポートされていないオーディオ形式。",
+			"hashMatch": "ファイル内容が一致しています。ハッシュが検証されました。",
+			"hashMismatch": "ファイル内容が元の内容と一致していません。",
+			"noOriginalHash": "比較に使用できるオリジナルハッシュがありません。ファイルは正しい可能性があります。",
+			"useAnyway": "このファイルとにかく使用",
+			"relocate": "再配置",
+			"relocating": "再配置中...",
+			"validateFailed": "ファイルの検証に失敗しました",
+			"relocateFailed": "トラックの再配置に失敗しました"
 		},
-		"albumArt": "アルバムアート",
+		"albumArt": "アートワーク",
 		"deviceInfo": {
 			"title": "デバイス情報",
 			"diskType": "ディスクタイプ",
@@ -654,15 +687,6 @@
 			"available": "空き容量:",
 			"total": "合計:",
 			"percentUsed": "% 使用中"
-		},
-		"update": {
-			"title": "アップデートが利用可能",
-			"description": "{version} をインストール準備完了です。",
-			"releaseNotes": "新機能",
-			"installAndRestart": "インストールして再起動",
-			"later": "後で",
-			"downloading": "ダウンロード中... {progress}%",
-			"installing": "インストール中..."
 		},
 		"duplicate": {
 			"title": "重複トラックを検出",
@@ -677,6 +701,15 @@
 			"replace": "置き換え",
 			"replaceDescription": "新しいファイルから新規インポート。プレイリストのメンバーシップのみ保持。キューポイント、タグ、再生履歴はリセットされます。",
 			"applyToAll": "残りすべての重複に適用 ({count})"
+		},
+		"update": {
+			"title": "アップデートが利用可能",
+			"description": "{version} をインストール準備完了です。",
+			"releaseNotes": "新機能",
+			"installAndRestart": "インストールして再起動",
+			"later": "後で",
+			"downloading": "ダウンロード中... {progress}%",
+			"installing": "インストール中..."
 		},
 		"conflict": {
 			"title": "名前の競合",
@@ -719,7 +752,14 @@
 		"failedToUpdateTracks": "トラックの更新に失敗しました",
 		"failedToSetArtwork": "アートワークの設定に失敗しました",
 		"failedToRemoveArtwork": "アートワークの削除に失敗しました",
-		"noArtworkInFile": "オーディオファイルにアートワークが見つかりません"
+		"noArtworkInFile": "オーディオファイルにアートワークが見つかりません",
+		"tracksImportedWithFailed": "{count, plural, =1 {1曲} other {{count}曲}}をインポート、{failed}曲が失敗しました",
+		"failedToSetTrackColor": "トラック色の設定に失敗しました",
+		"exportCleanedUp": "部分的なエクスポートをクリーンアップしました",
+		"exportCleanUpFailed": "エクスポートのクリーンアップに失敗しました",
+		"deviceNotFound": "デバイスが見つかりません",
+		"deviceReformatted": "デバイスが\"{name}\"としてフォーマットされました",
+		"deviceReformatFailed": "フォーマットに失敗しました: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "フォルダを自分自身にドロップすることはできません",
@@ -731,7 +771,10 @@
 		"previewNotAvailableOffline": "このトラックはオフラインでは利用できません",
 		"updateCheckFailed": "アップデートの確認に失敗しました",
 		"updateInstallFailed": "アップデートのインストールに失敗しました",
-		"generic": "エラーが発生しました"
+		"generic": "エラーが発生しました",
+		"previewPlaybackFailed": "プレビュー再生エラー",
+		"previewPlayFailed": "プレビューの再生に失敗しました",
+		"previewResumeFailed": "プレビューの再開に失敗しました"
 	},
 	"devices": {
 		"title": "デバイス",
@@ -772,7 +815,7 @@
 		"selectDevice": "デバイスを選択",
 		"selectDevicesDescription": "エクスポート先として1つ以上のデバイスを選択してください。",
 		"devicesSelected": "{count, plural, =1 {1個のデバイスを選択} other {{count}個のデバイスを選択}}",
-		"devicesToExport": "デバイス",
+		"devicesToExport": "エクスポート先デバイス",
 		"noDevicesConnected": "USBデバイスが接続されていません",
 		"noPlaylistsAvailable": "プレイリストがありません",
 		"destination": "エクスポート先",
@@ -908,7 +951,7 @@
 		"reportIssue": "問題を報告..."
 	},
 	"smartPlaylist": {
-		"createTitle": "スマートプレイリストを作成",
+		"createTitle": "新しいスマートプレイリスト",
 		"editTitle": "スマートプレイリストを編集",
 		"name": "名前",
 		"namePlaceholder": "スマートプレイリスト名",
@@ -989,6 +1032,14 @@
 			"aqua": "アクア",
 			"blue": "青",
 			"purple": "紫"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {

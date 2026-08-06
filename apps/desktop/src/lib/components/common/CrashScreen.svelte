@@ -95,7 +95,7 @@
 				</div>
 				<div class="max-h-32 overflow-y-auto">
 					<code class="block text-xs break-all whitespace-pre-wrap text-text-secondary">
-						{$crashError?.message || 'Unknown error'}
+						{$crashError?.message || $translate('common.unknownError')}
 					</code>
 				</div>
 			</div>

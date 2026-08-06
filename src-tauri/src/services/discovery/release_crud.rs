@@ -61,6 +61,7 @@ impl DiscoveryService {
                     video_id: tc.video_id,
                     url: tc.url,
                     is_liked: false,
+                    preview_unavailable: false,
                 });
             }
         }
@@ -135,7 +136,9 @@ impl DiscoveryService {
 
         // Load tracks
         let mut stmt = conn.prepare(
-            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked,
+                    EXISTS(SELECT 1 FROM discovery_preview_unavailable pu WHERE pu.release_id = discovery_tracks.release_id AND pu.position = discovery_tracks.position)
+             FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
         )?;
         release.tracks = stmt
             .query_map([id], |row| {
@@ -148,6 +151,7 @@ impl DiscoveryService {
                     video_id: row.get(5)?,
                     url: row.get(6)?,
                     is_liked: row.get::<_, i32>(7).map(|v| v != 0)?,
+                    preview_unavailable: row.get::<_, i32>(8).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -342,7 +346,9 @@ impl DiscoveryService {
             .join(", ");
 
         let mut stmt = conn.prepare(&format!(
-            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked,
+                    EXISTS(SELECT 1 FROM discovery_preview_unavailable pu WHERE pu.release_id = discovery_tracks.release_id AND pu.position = discovery_tracks.position)
+             FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
         let track_params: Vec<&dyn rusqlite::types::ToSql> = release_ids
             .iter()
@@ -359,6 +365,7 @@ impl DiscoveryService {
                     video_id: row.get(5)?,
                     url: row.get(6)?,
                     is_liked: row.get::<_, i32>(7).map(|v| v != 0)?,
+                    preview_unavailable: row.get::<_, i32>(8).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;

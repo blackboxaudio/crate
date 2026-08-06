@@ -746,8 +746,18 @@
 		x={visibleMenu.x}
 		y={visibleMenu.y}
 		items={[
-			{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handlePlaylistTreeCreateFolder },
-			{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handlePlaylistTreeCreatePlaylist },
+			{
+				id: 'add-folder',
+				label: get(translate)('playlists.newFolder'),
+				icon: 'folder',
+				action: handlePlaylistTreeCreateFolder,
+			},
+			{
+				id: 'add-playlist',
+				label: get(translate)('playlists.newPlaylist'),
+				icon: 'playlist',
+				action: handlePlaylistTreeCreatePlaylist,
+			},
 			{
 				id: 'add-smart-playlist',
 				label: get(translate)('playlists.newSmartPlaylist'),
@@ -767,8 +777,18 @@
 		x={visibleMenu.x}
 		y={visibleMenu.y}
 		items={[
-			{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handleFolderViewCreateFolder },
-			{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handleFolderViewCreatePlaylist },
+			{
+				id: 'add-folder',
+				label: get(translate)('playlists.newFolder'),
+				icon: 'folder',
+				action: handleFolderViewCreateFolder,
+			},
+			{
+				id: 'add-playlist',
+				label: get(translate)('playlists.newPlaylist'),
+				icon: 'playlist',
+				action: handleFolderViewCreatePlaylist,
+			},
 			{
 				id: 'add-smart-playlist',
 				label: get(translate)('playlists.newSmartPlaylist'),
@@ -787,7 +807,14 @@
 		open={activeMenu.type === 'libraryView'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handleLibraryViewImport }]}
+		items={[
+			{
+				id: 'import',
+				label: get(translate)('library.importTracks'),
+				icon: 'upload',
+				action: handleLibraryViewImport,
+			},
+		]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -799,7 +826,14 @@
 		open={activeMenu.type === 'discoveryView'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[{ id: 'add-release', label: 'Add release', icon: 'globe', action: handleDiscoveryViewAddRelease }]}
+		items={[
+			{
+				id: 'add-release',
+				label: get(translate)('discovery.addRelease'),
+				icon: 'globe',
+				action: handleDiscoveryViewAddRelease,
+			},
+		]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -811,7 +845,14 @@
 		open={activeMenu.type === 'playlistView'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handlePlaylistViewImport }]}
+		items={[
+			{
+				id: 'import',
+				label: get(translate)('library.importTracks'),
+				icon: 'upload',
+				action: handlePlaylistViewImport,
+			},
+		]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>

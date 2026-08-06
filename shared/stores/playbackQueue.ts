@@ -20,6 +20,9 @@ import { getStoredString, setStoredString } from '../utils/storage'
  * "Up Next" = the forward replay tail (if the user stepped back) ++ the user queue ++ the upcoming
  * context. A unified play `history` powers "previous" across BOTH tiers and both shuffle/sequential
  * modes; the no-repeat shuffle bag (`shufflePlayed`) only governs how NEW context picks are drawn.
+ * The repeat mode (see `RepeatMode`) scopes how the context continues once a pass ends — the committed
+ * lookahead applies it in ONE place (`extendLookahead`) so playback, Up Next, the native window, and
+ * `canAdvance` always agree.
  *
  * Desktop runs its own queue in `useAppSetup.ts` and never calls into here, so this stays inert there.
  */
@@ -30,6 +33,17 @@ export interface Pick {
 	release: DiscoveryRelease
 	trackIndex: number
 }
+
+/**
+ * Repeat cycle: off → track → release → context.
+ *  - `off` — advance stops at the end of the context (no wrap, no reshuffle).
+ *  - `track` — the current track loops on natural end. A player-level concern: the queue's advance
+ *    semantics treat it as `context` (a manual skip proceeds, then the NEW track loops — Spotify's
+ *    repeat-one), see `effectiveScope`.
+ *  - `release` — advance loops within the CURRENT release only (re-anchors to whatever is playing).
+ *  - `context` — advance wraps over the whole context / reshuffles each pass (the pre-repeat behaviour).
+ */
+export type RepeatMode = 'off' | 'track' | 'release' | 'context'
 
 // One explicit user-queue entry. `entryId` is stable per occurrence (the same release+track can be
 // queued twice), so reorder/remove can target exactly one row.
@@ -64,6 +78,7 @@ let historyPos = -1
 // No-repeat-until-exhausted bag for drawing NEW shuffle picks (keys are `releaseId:trackIndex`).
 let shufflePlayed = new Set<string>()
 let shuffleEnabled = false
+let repeatMode: RepeatMode = 'off'
 let cur: Pick | null = null
 
 // Inverted dependency: player.ts registers this so a queue mutation can re-feed the iOS native window
@@ -153,101 +168,190 @@ function genEntryId(): string {
 	return `q${Date.now().toString(36)}-${entrySeq}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-// Every (release, trackIndex) in the context queue whose key isn't in `exclude` — the bag shuffle draws.
-function buildContextPool(exclude: Set<string>): Pick[] {
+// A track the source serves no preview for (a pre-order's unreleased tracks) is invisible to the
+// queue: never advanced into, never shuffled, never enqueued — it would only fail to resolve.
+function isPlayable(release: DiscoveryRelease, trackIndex: number): boolean {
+	const track = release.tracks[trackIndex]
+	// Mirrors desktop's `trackCanPlay` gate: no duration means the source never exposed the track as
+	// playable (unreleased pre-order tracks, unenriched rows), and Discogs plays via YouTube video only.
+	if (!track?.duration_ms) return false
+	if (track.preview_unavailable) return false
+	if (release.source_type === 'discogs') return track.video_id != null
+	return true
+}
+
+// First playable track index at or after `from`, or -1 when the release has none left.
+function firstPlayableIndex(release: DiscoveryRelease, from = 0): number {
+	for (let i = from; i < release.tracks.length; i++) if (isPlayable(release, i)) return i
+	return -1
+}
+
+function lastPlayableIndex(release: DiscoveryRelease): number {
+	for (let i = release.tracks.length - 1; i >= 0; i--) if (isPlayable(release, i)) return i
+	return -1
+}
+
+// Last playable track index at or before `from`, or -1 (the backward mirror of `firstPlayableIndex`).
+function prevPlayableIndex(release: DiscoveryRelease, from: number): number {
+	for (let i = Math.min(from, release.tracks.length - 1); i >= 0; i--) if (isPlayable(release, i)) return i
+	return -1
+}
+
+// The scope advance/lookahead draws from. Repeat-track loops at the PLAYER level (natural end restarts
+// the track before the queue is ever consulted); for everything the queue answers — manual next/prev,
+// canAdvance, Up Next, the iOS native window tail — it behaves as repeat-context.
+function effectiveScope(): 'off' | 'release' | 'context' {
+	return repeatMode === 'track' ? 'context' : repeatMode
+}
+
+// Every playable (release, trackIndex) whose key isn't in `exclude` — the bag shuffle draws. Scoped to
+// `onlyRelease` for repeat-release (which follows `cur` by reference, so it works even when the looped
+// release isn't in the context queue — e.g. a user-queued release from outside the feed).
+function buildContextPool(exclude: Set<string>, onlyRelease?: DiscoveryRelease): Pick[] {
 	const pool: Pick[] = []
-	for (const release of contextQueue) {
+	for (const release of onlyRelease ? [onlyRelease] : contextQueue) {
 		for (let i = 0; i < release.tracks.length; i++) {
-			if (!exclude.has(trackKey(release.id, i))) pool.push({ release, trackIndex: i })
+			if (isPlayable(release, i) && !exclude.has(trackKey(release.id, i))) pool.push({ release, trackIndex: i })
 		}
 	}
 	return pool
 }
 
-// Next sequential pick after `from` WITHOUT wrapping: the next track in its release, else the first
-// track of a later release in the queue, else null (end of this pass — the caller wraps on real advance).
+// Next sequential pick after `from` WITHOUT wrapping: the next playable track in its release, else the
+// first playable track of a later release in the queue, else null (end of this pass — `extendLookahead`
+// wraps under repeat-context, stops under repeat-off).
 function sequentialAfterNoWrap(from: Pick): Pick | null {
-	if (from.trackIndex + 1 < from.release.tracks.length) {
-		return { release: from.release, trackIndex: from.trackIndex + 1 }
-	}
+	const next = firstPlayableIndex(from.release, from.trackIndex + 1)
+	if (next !== -1) return { release: from.release, trackIndex: next }
 	const idx = contextQueue.findIndex((r) => r.id === from.release.id)
 	if (idx === -1) return null
 	for (let i = idx + 1; i < contextQueue.length; i++) {
-		if (contextQueue[i].tracks.length > 0) return { release: contextQueue[i], trackIndex: 0 }
+		const first = firstPlayableIndex(contextQueue[i])
+		if (first !== -1) return { release: contextQueue[i], trackIndex: first }
 	}
 	return null
 }
 
-// First track of the next release after `releaseId`, wrapping to the start of the queue. Used when a
-// sequential pass reaches the end and loops (matches the pre-queue continuous-playback behaviour).
+// Next sequential pick WITHIN `from`'s release only, wrapping to its first playable track at the end.
+// Repeat-release's walk. A single-playable-track release hands back that same track (the degenerate
+// release loop IS a track loop); a release whose tracks all went `preview_unavailable` yields null.
+function sequentialAfterInRelease(from: Pick): Pick | null {
+	const next = firstPlayableIndex(from.release, from.trackIndex + 1)
+	if (next !== -1) return { release: from.release, trackIndex: next }
+	const first = firstPlayableIndex(from.release)
+	if (first === -1) return null
+	return { release: from.release, trackIndex: first }
+}
+
+// First playable track of the next release after `releaseId`, wrapping to the start of the queue. Used
+// when a repeat-context sequential pass reaches the end and loops.
 function nextReleaseStartWrap(releaseId: string): Pick | null {
 	if (contextQueue.length === 0) return null
 	const idx = contextQueue.findIndex((r) => r.id === releaseId)
 	if (idx === -1) return null
 	for (let i = 1; i <= contextQueue.length; i++) {
 		const rel = contextQueue[(idx + i) % contextQueue.length]
-		if (rel.tracks.length > 0) return { release: rel, trackIndex: 0 }
+		const first = firstPlayableIndex(rel)
+		if (first !== -1) return { release: rel, trackIndex: first }
 	}
 	return null
 }
 
-// Last track of the previous release before `releaseId` (wraps). The sequential "previous" fallback at
-// the very start of the play history — preserves the pre-queue cross-release "previous".
+// Last playable track of the previous release before `releaseId` (wraps). The repeat-context "previous"
+// fallback at the very start of the play history — preserves the pre-repeat cross-release "previous".
 function prevReleaseEndWrap(releaseId: string): Pick | null {
 	if (contextQueue.length === 0) return null
 	const idx = contextQueue.findIndex((r) => r.id === releaseId)
 	if (idx === -1) return null
 	for (let i = 1; i <= contextQueue.length; i++) {
 		const rel = contextQueue[(idx - i + contextQueue.length) % contextQueue.length]
-		if (rel.tracks.length > 0) return { release: rel, trackIndex: rel.tracks.length - 1 }
+		const last = lastPlayableIndex(rel)
+		if (last !== -1) return { release: rel, trackIndex: last }
+	}
+	return null
+}
+
+// Last playable track of an EARLIER release, without wrapping past the start of the queue — repeat-off's
+// "previous" fallback (off removes only the wrap-around; earlier releases stay reachable).
+function prevReleaseEndNoWrap(releaseId: string): Pick | null {
+	const idx = contextQueue.findIndex((r) => r.id === releaseId)
+	if (idx === -1) return null
+	for (let i = idx - 1; i >= 0; i--) {
+		const last = lastPlayableIndex(contextQueue[i])
+		if (last !== -1) return { release: contextQueue[i], trackIndex: last }
 	}
 	return null
 }
 
 // Draw one fresh shuffle pick from the bag, marking it played/reserved so it can't repeat until the
-// bag is exhausted. Returns null when nothing is left to draw this pass.
-function drawShuffle(): Pick | null {
-	const pool = buildContextPool(shufflePlayed)
+// bag is exhausted. Returns null when nothing is left to draw this pass. In release scope the pool is
+// the current release only.
+function drawShuffle(scope: 'off' | 'release' | 'context'): Pick | null {
+	const pool = buildContextPool(shufflePlayed, scope === 'release' ? cur?.release : undefined)
 	if (pool.length === 0) return null
 	const choice = pool[Math.floor(Math.random() * pool.length)]
 	shufflePlayed.add(trackKey(choice.release.id, choice.trackIndex))
 	return choice
 }
 
-// Extend the committed context lookahead until it holds `targetLen` picks (or the pass is exhausted).
-// Sequential walks forward from the tail; shuffle reserves fresh random draws.
+/**
+ * Extend the committed context lookahead until it holds `targetLen` picks (or nothing more can play).
+ * Sequential walks forward from the tail; shuffle reserves fresh random draws. This is the ONE place
+ * repeat scope shapes what comes next — wrapping/reshuffling happens here so actual playback, the Up
+ * Next forecast, the iOS native window, and `canAdvance` all agree:
+ *  - off      → stop at the end of the pass (no wrap, no reshuffle).
+ *  - release  → loop within `cur`'s release; shuffle draws from that release only.
+ *  - context  → wrap to the next release / re-seed the bag each pass (also repeat-track's skip scope).
+ */
 function extendLookahead(targetLen: number) {
+	const scope = effectiveScope()
+	// Release scope follows whatever release is CURRENT (it re-anchors after e.g. a user-queued track
+	// from another release played). Committed picks from a previous release are stale — drop them all.
+	if (scope === 'release' && cur) {
+		const anchorId = cur.release.id
+		if (contextLookahead.some((p) => p.release.id !== anchorId)) contextLookahead = []
+	}
 	let guard = 0
 	while (contextLookahead.length < targetLen) {
 		if (guard++ > 1000) break // safety against any unforeseen non-terminating draw
+		const tail = contextLookahead.length > 0 ? contextLookahead[contextLookahead.length - 1] : cur
+		if (!tail) break
 		let next: Pick | null
 		if (shuffleEnabled) {
-			next = drawShuffle()
+			next = drawShuffle(scope)
+			if (!next && scope !== 'off') {
+				// Pass exhausted while repeating: re-seed the bag anchored on the last committed pick (NOT
+				// `cur` — the lookahead may already sit a pass ahead) and start the next pass.
+				shufflePlayed = new Set([trackKey(tail.release.id, tail.trackIndex)])
+				next = drawShuffle(scope)
+				// A release with a single playable track has an empty pool even after re-seeding (the anchor
+				// is excluded) — the degenerate release loop is a self-loop, matching the sequential walk.
+				if (!next && scope === 'release' && isPlayable(tail.release, tail.trackIndex)) {
+					next = { release: tail.release, trackIndex: tail.trackIndex }
+				}
+			}
+		} else if (scope === 'release') {
+			next = sequentialAfterInRelease(tail)
 		} else {
-			const from = contextLookahead.length > 0 ? contextLookahead[contextLookahead.length - 1] : cur
-			next = from ? sequentialAfterNoWrap(from) : null
+			next = sequentialAfterNoWrap(tail)
+			if (!next && scope === 'context') {
+				const wrapped = nextReleaseStartWrap(tail.release.id)
+				// Don't hand back the tail as its own "next" — a lone single-track context would loop onto
+				// itself forever (repeat-track is the mode for that).
+				next =
+					wrapped && wrapped.release.id === tail.release.id && wrapped.trackIndex === tail.trackIndex ? null : wrapped
+			}
 		}
 		if (!next) break
 		contextLookahead.push(next)
 	}
 }
 
-// Take the next context pick to actually PLAY. Prefers the committed lookahead; when this pass is
-// exhausted, starts a new one (reshuffle / wrap) so playback loops like it did before the queue.
+// Take the next context pick to actually PLAY. The committed lookahead is the single source of what
+// comes next — `extendLookahead` already applied the repeat scope (including the off-mode stop).
 function takeContextNext(): Pick | null {
 	extendLookahead(1)
-	if (contextLookahead.length > 0) return contextLookahead.shift() ?? null
-	if (!cur || contextQueue.length === 0) return null
-	if (shuffleEnabled) {
-		// Re-anchor the bag on the current track and draw; `drawShuffle` excludes it, so a lone single-track
-		// context yields null (no infinite self-repeat) rather than redrawing the current track.
-		shufflePlayed = new Set([trackKey(cur.release.id, cur.trackIndex)])
-		return drawShuffle()
-	}
-	const wrapped = nextReleaseStartWrap(cur.release.id)
-	// Don't hand back the current track as its own "next" — a single-track context would loop forever.
-	if (wrapped && wrapped.release.id === cur.release.id && wrapped.trackIndex === cur.trackIndex) return null
-	return wrapped
+	return contextLookahead.shift() ?? null
 }
 
 function pushHistory(pick: Pick) {
@@ -282,11 +386,10 @@ function upcomingPicks(depth: number): Array<{ pick: Pick; source: 'user' | 'con
 function computeCanAdvance(): boolean {
 	if (historyPos < history.length - 1) return true // can replay forward
 	if (userQueue.length > 0) return true
-	if (contextQueue.length === 0) return false
-	const totalTracks = contextQueue.reduce((n, r) => n + r.tracks.length, 0)
-	// Sequential wraps and shuffle reshuffles, so any second track anywhere means there's always a next
-	// (matches the pre-queue `canNext`). A lone single-track context has none.
-	return totalTracks > 1
+	// The mode-aware lookahead already knows whether anything more can play (repeat wraps/reshuffles,
+	// off stops, `preview_unavailable` tracks never count) — commit one pick and check.
+	extendLookahead(1)
+	return contextLookahead.length > 0
 }
 
 function refresh() {
@@ -328,6 +431,25 @@ export function initShuffle(enabled: boolean) {
 	shuffleEnabled = enabled
 }
 
+/** Mirror the player's persisted repeat mode at init (no side effects — nothing is playing yet). */
+export function initRepeatMode(mode: RepeatMode) {
+	repeatMode = mode
+}
+
+/**
+ * Change the repeat mode: re-anchor + redraw the CONTEXT order only (the committed lookahead was built
+ * under the old scope). User queue and history are untouched. Same coupled lookahead/bag reset as
+ * `setShuffle` — lookahead draws reserve bag keys, so the two only ever reset together.
+ */
+export function setRepeatMode(mode: RepeatMode) {
+	if (repeatMode === mode) return
+	repeatMode = mode
+	contextLookahead = []
+	shufflePlayed = shuffleEnabled && cur ? new Set([trackKey(cur.release.id, cur.trackIndex)]) : new Set()
+	refresh()
+	onQueueChanged?.()
+}
+
 /** The currently-playing pick, or null. Player keeps this in sync by routing every transition here. */
 export function currentPick(): Pick | null {
 	return cur
@@ -360,7 +482,8 @@ export function startSession(
  * queue — only what plays next/after is re-derived from the new list. Used when the view the session was
  * started from changes its on-screen set (e.g. the discovery feed's filter is applied/reset while a
  * feed-originated preview plays), so next/shuffle keep spanning exactly what's on screen. No-op shape when
- * nothing is playing (`cur` null): it just stores the list for the next `startSession`.
+ * nothing is playing (`cur` null): it just stores the list for the next `startSession`. A repeat-release
+ * loop is unaffected by design — it follows `cur.release` by reference, not the context list.
  */
 export function updateContext(contextReleases: DiscoveryRelease[]) {
 	// No-op when the list is unchanged: the feed's derived re-emits on unrelated UI-store changes, and
@@ -403,7 +526,9 @@ export function playNext(release: DiscoveryRelease, trackIndex: number) {
 // Build a user-queue entry per track of a release, in track order — the whole-release equivalent of one
 // `addToQueue`/`playNext` call. Each track gets its own stable entry id (it's an independent queue row).
 function releaseEntries(release: DiscoveryRelease): UserEntry[] {
-	return release.tracks.map((_, i) => ({ entryId: genEntryId(), release, trackIndex: i }))
+	return release.tracks
+		.map((_, i) => ({ entryId: genEntryId(), release, trackIndex: i }))
+		.filter((e) => isPlayable(release, e.trackIndex))
 }
 
 /** Append every track of a release to the end of the user queue, in track order. No-op if it has none. */
@@ -491,10 +616,27 @@ export function advanceNext(): Pick | null {
 	return pick
 }
 
+// The deterministic sequential "previous" of `from` under the current repeat scope (the fallback once
+// the play history is exhausted): the previous playable track in its release, then per scope — release:
+// wrap to the release's last playable (null when `from` is its only one); off: an earlier release's last
+// playable, never wrapping past the start; context/track: the previous release's last playable, wrapping.
+function sequentialPrevOf(from: Pick): Pick | null {
+	const within = prevPlayableIndex(from.release, from.trackIndex - 1)
+	if (within !== -1) return { release: from.release, trackIndex: within }
+	const scope = effectiveScope()
+	if (scope === 'release') {
+		const last = lastPlayableIndex(from.release)
+		if (last === -1 || last === from.trackIndex) return null
+		return { release: from.release, trackIndex: last }
+	}
+	if (scope === 'off') return prevReleaseEndNoWrap(from.release.id)
+	return prevReleaseEndWrap(from.release.id)
+}
+
 /**
  * Step back to the previous pick. Walks the play history; at the very start, falls back (sequential
- * only) to the context's deterministic "previous" — within-release, then the previous release's last
- * track — prepending it so the cursor stays consistent. Shuffle restarts (returns null) at the start.
+ * only) to the scope-aware deterministic "previous" (`sequentialPrevOf`), prepending it so the cursor
+ * stays consistent. Shuffle restarts (returns null) at the start.
  */
 export function advancePrev(): Pick | null {
 	if (historyPos > 0) {
@@ -504,8 +646,7 @@ export function advancePrev(): Pick | null {
 		return cur
 	}
 	if (shuffleEnabled || !cur) return null
-	const prev =
-		cur.trackIndex > 0 ? { release: cur.release, trackIndex: cur.trackIndex - 1 } : prevReleaseEndWrap(cur.release.id)
+	const prev = sequentialPrevOf(cur)
 	if (!prev) return null
 	history.unshift(prev)
 	historyPos = 0
@@ -527,9 +668,7 @@ export function peekUpcoming(depth: number): Pick[] {
 export function peekPrevious(): Pick | null {
 	if (historyPos > 0) return history[historyPos - 1]
 	if (shuffleEnabled || !cur) return null
-	return cur.trackIndex > 0
-		? { release: cur.release, trackIndex: cur.trackIndex - 1 }
-		: prevReleaseEndWrap(cur.release.id)
+	return sequentialPrevOf(cur)
 }
 
 /** Whether at least one explicit user-queue item is pending (affects the native-feed decision). */
@@ -587,6 +726,7 @@ export async function hydrate(): Promise<void> {
 		}
 		if (!release) continue
 		if (trackIndex < 0 || trackIndex >= release.tracks.length) continue
+		if (!isPlayable(release, trackIndex)) continue
 		resolved.push({ entryId: item.entryId || genEntryId(), release, trackIndex })
 	}
 	userQueue = resolved
