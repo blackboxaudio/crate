@@ -65,6 +65,11 @@ pub struct PlaybackEngineInner {
     mtm: MainThreadMarker,
     entries: Vec<NativeTrackEntry>,
     index: usize,
+    // The frontend-supplied id of the current `load` (playlist generation). Stamped on every
+    // track-changed/ended event so JS can drop events that belong to a superseded load — events and
+    // invoke responses race each other across the IPC bridge, so an old playlist's event can arrive
+    // interleaved with (or before) a new load's.
+    load_id: u64,
     // Bumped on every `play_index`. The load watchdog captures the value at spawn time and bails if
     // it no longer matches — so a watchdog for a superseded track can't report a stale failure.
     epoch: u64,
@@ -107,6 +112,7 @@ impl PlaybackEngineInner {
             mtm,
             entries: Vec::new(),
             index: 0,
+            load_id: 0,
             epoch: 0,
             failed_epoch: None,
             rate: 1.0,
@@ -139,15 +145,18 @@ impl PlaybackEngineInner {
 
     /// Replace the playlist and start playing from `start_index`, beginning `start_position_ms` into
     /// that track (0 = from the start; non-zero only when restoring the last session on app relaunch).
+    /// `load_id` is stamped on this playlist's track-changed/ended events (see the field doc).
     pub fn load(
         &mut self,
         entries: Vec<NativeTrackEntry>,
         start_index: usize,
         start_position_ms: u64,
+        load_id: u64,
     ) {
         if entries.is_empty() {
             return;
         }
+        self.load_id = load_id;
         self.entries = entries;
         let i = start_index.min(self.entries.len() - 1);
         self.play_index_at(i, start_position_ms);
@@ -237,7 +246,7 @@ impl PlaybackEngineInner {
         let start_secs = start_position_ms as f64 / 1000.0;
         now_playing::update(&self.app, &entry, start_secs, self.rate);
         remote_command::set_like_state(entry.is_liked);
-        engine::emit_track_changed(&self.app, self.index);
+        engine::emit_track_changed(&self.app, self.index, self.load_id);
         // Position the item at the restore offset BEFORE starting playback. `self.seek` queues the seek
         // (AVPlayer applies it once the item is ready), sets the `seeking` guard so the periodic observer
         // doesn't flash the playhead to 0 in the meantime, and emits the target position straight away.
@@ -505,6 +514,17 @@ impl PlaybackEngineInner {
     }
 
     pub fn seek(&mut self, position_ms: u64) {
+        self.seek_with(position_ms, false);
+    }
+
+    /// `play_when_landed` re-asserts playback from the seek's COMPLETION handler (iff still
+    /// `self.playing` by then). The repeat-track rewind needs this: calling `play()` while the
+    /// playhead still sits at the just-ended item's end boundary makes AVPlayer immediately re-post
+    /// `AVPlayerItemDidPlayToEndTime` and pause again — and each re-entry issued a fresh rewind seek
+    /// that superseded the in-flight one, so the rewind never landed and "repeat track" ended
+    /// playback instead of looping. Playing only after the seek has landed (Apple's documented loop
+    /// pattern) breaks that cycle.
+    fn seek_with(&mut self, position_ms: u64, play_when_landed: bool) {
         let secs = position_ms as f64 / 1000.0;
         self.seeking = true;
         let app = self.app.clone();
@@ -516,9 +536,20 @@ impl PlaybackEngineInner {
             if !finished.as_bool() {
                 return;
             }
-            let _ = app.run_on_main_thread(|| {
+            let _ = app.run_on_main_thread(move || {
                 engine::with_engine_mut(|e| {
                     e.seeking = false;
+                    // The pause at item end was the ITEM's, not the user's, so `playing` is still true
+                    // unless the user paused during the rewind — in which case stay paused.
+                    if play_when_landed && e.playing {
+                        // SAFETY: AVPlayer.play / setRate are main-thread safe.
+                        unsafe {
+                            e.player.play();
+                            if (e.rate - 1.0).abs() > f32::EPSILON {
+                                e.player.setRate(e.rate);
+                            }
+                        }
+                    }
                     e.emit_current_state();
                 });
             });
@@ -561,7 +592,7 @@ impl PlaybackEngineInner {
                 ),
             );
             self.stop();
-            engine::emit_ended(&self.app);
+            engine::emit_ended(&self.app, self.load_id);
             return;
         }
         self.play_index(next as usize);
@@ -587,20 +618,15 @@ impl PlaybackEngineInner {
         if REPEAT_CURRENT.load(Ordering::Relaxed) {
             // Repeat-track: rewind the SAME item and keep playing — no item swap, no `ended`
             // emission, no JS round-trip, so the loop is gapless and survives lock. AVPlayer
-            // pauses itself at the end of an item, so play must be re-asserted after the rewind
-            // (`self.playing` is still true — the pause was the item's, not the user's).
+            // pauses itself at the end of an item, so play must be re-asserted — but only AFTER
+            // the rewind lands (see `seek_with`): playing while still parked at the end boundary
+            // re-posts this very notification and supersedes the in-flight rewind, so the track
+            // ended instead of looping.
             engine::emit_debug(
                 &self.app,
                 format!("repeat-current: looping track {}", self.index),
             );
-            self.seek(0);
-            // SAFETY: AVPlayer.play / setRate are main-thread safe.
-            unsafe {
-                self.player.play();
-                if (self.rate - 1.0).abs() > f32::EPSILON {
-                    self.player.setRate(self.rate);
-                }
-            }
+            self.seek_with(0, true);
             return;
         }
         self.advance(1);

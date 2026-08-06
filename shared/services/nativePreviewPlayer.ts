@@ -55,8 +55,14 @@ export type NativeRepeatMode = 'off' | 'one' | 'all'
 
 export interface NativeBridgeHandlers {
 	onState: (state: NativeStateEvent) => void
-	onTrackChanged: (index: number) => void
-	onEnded: () => void
+	/**
+	 * `loadId` on track-changed/ended is the id the frontend passed to the `play()` that started the
+	 * engine's current playlist. Events race the invoke responses (both cross the IPC bridge
+	 * independently), so a handler must drop events whose loadId isn't the current load — they belong
+	 * to a superseded session and reconciling them corrupts the queue.
+	 */
+	onTrackChanged: (index: number, loadId: number) => void
+	onEnded: (loadId: number) => void
 	/**
 	 * `retryable` says whether re-resolving the stream could plausibly fix the failure. An AVFoundation
 	 * load error usually means a dead/expired upstream URL, which one silent re-resolve does fix; a load
@@ -75,9 +81,11 @@ export interface NativeBridgeHandlers {
  * Load `tracks` and start playing from `startIndex`, beginning `startPositionMs` into that track
  * (0 = from the start). A non-zero offset is used when restoring the last session on relaunch so the
  * engine begins at the saved position instead of playing from the start and then seeking back.
+ * `loadId` identifies this load: the engine stamps it on every track-changed/ended event it emits
+ * for this playlist, letting the frontend drop events that belong to a superseded load.
  */
-export async function play(tracks: NativeTrack[], startIndex: number, startPositionMs = 0): Promise<void> {
-	await invoke('native_preview_play', { tracks, startIndex, startPositionMs })
+export async function play(tracks: NativeTrack[], startIndex: number, startPositionMs = 0, loadId = 0): Promise<void> {
+	await invoke('native_preview_play', { tracks, startIndex, startPositionMs, loadId })
 }
 
 /**
@@ -144,9 +152,11 @@ export async function startNativePreviewBridge(handlers: NativeBridgeHandlers): 
 	const unlisten: UnlistenFn[] = []
 	unlisten.push(await listen<NativeStateEvent>('native-preview-state', (e) => handlers.onState(e.payload)))
 	unlisten.push(
-		await listen<{ index: number }>('native-preview-track-changed', (e) => handlers.onTrackChanged(e.payload.index))
+		await listen<{ index: number; loadId: number }>('native-preview-track-changed', (e) =>
+			handlers.onTrackChanged(e.payload.index, e.payload.loadId)
+		)
 	)
-	unlisten.push(await listen('native-preview-ended', () => handlers.onEnded()))
+	unlisten.push(await listen<{ loadId: number }>('native-preview-ended', (e) => handlers.onEnded(e.payload.loadId)))
 	unlisten.push(
 		await listen<{ message: string; retryable: boolean }>('native-preview-error', (e) =>
 			handlers.onError(e.payload.message, e.payload.retryable)

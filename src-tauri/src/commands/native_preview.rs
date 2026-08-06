@@ -10,14 +10,18 @@ use tauri::State;
 use crate::error::Result;
 use crate::services::media_controls::{NativePreviewEngine, NativeTrackEntry};
 
+/// `load_id` identifies this load; the engine stamps it on every track-changed/ended event it emits
+/// for this playlist so the frontend can drop events that belong to a superseded load (events and
+/// invoke responses race each other across the IPC bridge).
 #[tauri::command]
 pub async fn native_preview_play(
     tracks: Vec<NativeTrackEntry>,
     start_index: usize,
     start_position_ms: u64,
+    load_id: u64,
     engine: State<'_, NativePreviewEngine>,
 ) -> Result<()> {
-    engine.play(tracks, start_index, start_position_ms);
+    engine.play(tracks, start_index, start_position_ms, load_id);
     Ok(())
 }
 

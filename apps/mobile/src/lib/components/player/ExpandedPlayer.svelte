@@ -585,9 +585,8 @@
 							</button>
 							<button
 								type="button"
-								class="flex h-12 w-12 items-center justify-center rounded-md text-text-primary active:bg-surface-2 disabled:opacity-30"
+								class="flex h-12 w-12 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
 								aria-label={$translate('player.next')}
-								disabled={!canNext}
 								onclick={() => playerStore.nextTrack()}
 							>
 								<svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor">

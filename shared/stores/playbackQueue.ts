@@ -247,8 +247,9 @@ function sequentialAfterInRelease(from: Pick): Pick | null {
 // when a repeat-context sequential pass reaches the end and loops.
 function nextReleaseStartWrap(releaseId: string): Pick | null {
 	if (contextQueue.length === 0) return null
+	// A release the context doesn't hold (a foreign tail — see `extendLookahead`) wraps from the
+	// context's start (idx -1 makes the loop begin at 0).
 	const idx = contextQueue.findIndex((r) => r.id === releaseId)
-	if (idx === -1) return null
 	for (let i = 1; i <= contextQueue.length; i++) {
 		const rel = contextQueue[(idx + i) % contextQueue.length]
 		const first = firstPlayableIndex(rel)
@@ -261,8 +262,10 @@ function nextReleaseStartWrap(releaseId: string): Pick | null {
 // fallback at the very start of the play history — preserves the pre-repeat cross-release "previous".
 function prevReleaseEndWrap(releaseId: string): Pick | null {
 	if (contextQueue.length === 0) return null
-	const idx = contextQueue.findIndex((r) => r.id === releaseId)
-	if (idx === -1) return null
+	// A release the context doesn't hold sits "past the end": its previous is the context's last
+	// release (idx 0 makes the wrapping loop begin at length - 1).
+	const found = contextQueue.findIndex((r) => r.id === releaseId)
+	const idx = found === -1 ? 0 : found
 	for (let i = 1; i <= contextQueue.length; i++) {
 		const rel = contextQueue[(idx - i + contextQueue.length) % contextQueue.length]
 		const last = lastPlayableIndex(rel)
@@ -274,9 +277,10 @@ function prevReleaseEndWrap(releaseId: string): Pick | null {
 // Last playable track of an EARLIER release, without wrapping past the start of the queue — repeat-off's
 // "previous" fallback (off removes only the wrap-around; earlier releases stay reachable).
 function prevReleaseEndNoWrap(releaseId: string): Pick | null {
-	const idx = contextQueue.findIndex((r) => r.id === releaseId)
-	if (idx === -1) return null
-	for (let i = idx - 1; i >= 0; i--) {
+	// A release the context doesn't hold sits "past the end": every context release is an earlier one.
+	const found = contextQueue.findIndex((r) => r.id === releaseId)
+	const start = found === -1 ? contextQueue.length - 1 : found - 1
+	for (let i = start; i >= 0; i--) {
 		const last = lastPlayableIndex(contextQueue[i])
 		if (last !== -1) return { release: contextQueue[i], trackIndex: last }
 	}
@@ -292,6 +296,32 @@ function drawShuffle(scope: 'off' | 'release' | 'context'): Pick | null {
 	const choice = pool[Math.floor(Math.random() * pool.length)]
 	shufflePlayed.add(trackKey(choice.release.id, choice.trackIndex))
 	return choice
+}
+
+// Whether a release is part of the current context list. The currently playing pick is NOT always in
+// the context (a "foreign" pick): a user-queued track from another view, or a restored session whose
+// context was since re-scoped to a list that no longer holds it (e.g. the post-relaunch restore
+// anchors `[release]`, then the discovery feed's `updateContext` swaps in a paginated page without it).
+function inContext(releaseId: string): boolean {
+	return contextQueue.some((r) => r.id === releaseId)
+}
+
+// The most recent history entry still in the context list — where a foreign tail rejoins the context
+// (Spotify semantics: a queued interlude ends, the context resumes where it left off).
+function lastContextHistoryPick(): Pick | null {
+	for (let i = historyPos; i >= 0; i--) {
+		if (inContext(history[i].release.id)) return history[i]
+	}
+	return null
+}
+
+// The context's first playable pick, in list order — the rejoin point when no context pick has played.
+function firstContextPick(): Pick | null {
+	for (const release of contextQueue) {
+		const first = firstPlayableIndex(release)
+		if (first !== -1) return { release, trackIndex: first }
+	}
+	return null
 }
 
 /**
@@ -334,12 +364,21 @@ function extendLookahead(targetLen: number) {
 			next = sequentialAfterInRelease(tail)
 		} else {
 			next = sequentialAfterNoWrap(tail)
-			if (!next && scope === 'context') {
-				const wrapped = nextReleaseStartWrap(tail.release.id)
-				// Don't hand back the tail as its own "next" — a lone single-track context would loop onto
-				// itself forever (repeat-track is the mode for that).
-				next =
-					wrapped && wrapped.release.id === tail.release.id && wrapped.trackIndex === tail.trackIndex ? null : wrapped
+			if (!next) {
+				// A foreign tail (see `inContext`) has finished its own release and can't walk the context
+				// cross-release — rejoin the context instead of dead-ending (which disabled "next" and
+				// silently ended playback in every mode but repeat-release).
+				if (!inContext(tail.release.id)) {
+					const anchor = lastContextHistoryPick()
+					next = anchor ? sequentialAfterNoWrap(anchor) : firstContextPick()
+				}
+				if (!next && scope === 'context') {
+					const wrapped = nextReleaseStartWrap(tail.release.id)
+					// Don't hand back the tail as its own "next" — a lone single-track context would loop onto
+					// itself forever (repeat-track is the mode for that).
+					next =
+						wrapped && wrapped.release.id === tail.release.id && wrapped.trackIndex === tail.trackIndex ? null : wrapped
+				}
 			}
 		}
 		if (!next) break

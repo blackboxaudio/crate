@@ -527,9 +527,16 @@ function createPlayerStore() {
 			// chosen track still surfaces to playPreview's catch.
 			const currentTrack = await buildOneNativeTrack(current)
 			if (gen !== undefined && gen !== previewLoadGen) return // superseded while resolving
-			await nativePreviewPlayer.play([currentTrack], 0, startPositionMs)
+			// The window mapping is reset BEFORE the engine is told to load. The engine emits its
+			// track-changed(0) echo from the main thread, and that event can reach the WebView before
+			// this invoke resolves — reconciling that echo against the PREVIOUS session's nativeIndex
+			// made onTrackChanged walk the freshly-seeded queue backwards/forwards, silently corrupting
+			// what plays next (wrong Up Next, wrong repeat wraps, replayed tracks). With the reset
+			// first, the echo lands on a matching index and no-ops; events from any earlier load are
+			// dropped by their stale load id (see onTrackChanged / onEnded).
 			nativeWindow = [current]
 			nativeIndex = 0
+			await nativePreviewPlayer.play([currentTrack], 0, startPositionMs, gen ?? previewLoadGen)
 			return
 		}
 
@@ -1553,7 +1560,12 @@ function createPlayerStore() {
 					})
 					if (applyPosition) persistPosition(positionMs)
 				},
-				onTrackChanged: (index) => {
+				onTrackChanged: (index, loadId) => {
+					// Every engine event carries the id of the load it belongs to. An event from a SUPERSEDED
+					// load (the previous session's auto-advance or load echo arriving interleaved with a new
+					// load's) must never be reconciled into the queue — walking advanceNext/advancePrev against
+					// the new session's freshly-seeded state corrupts what plays next.
+					if (loadId !== previewLoadGen) return
 					// The engine moved to entries-index `index`. Sync the queue module to match: each forward
 					// step consumes one upcoming pick into history; a backward step (the lock-screen Previous,
 					// which the native engine handles itself within the kept-played front of the window) walks
@@ -1576,8 +1588,11 @@ function createPlayerStore() {
 					applyNativeTrackChange(pick)
 					if (forward) scheduleNativeSlide()
 				},
-				onEnded: () => {
+				onEnded: (loadId) => {
 					console.log('[native-preview] ENDED')
+					// A stale ended (from a load that has since been replaced) must not stop playback or
+					// auto-advance the new session's queue.
+					if (loadId !== previewLoadGen) return
 					// Repeat-track normally never gets here — the engine loops the ending item natively
 					// (repeat-current flag) without emitting `ended`. This is the fallback for the race where
 					// the mode flipped to `track` as the last window item ended: restart via a full reload.

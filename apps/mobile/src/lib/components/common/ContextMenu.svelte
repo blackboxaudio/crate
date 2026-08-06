@@ -155,6 +155,24 @@
 		}
 	})
 
+	// Freeze the list underneath. The menu opens MID-TOUCH — the finger that long-pressed is still down on
+	// the row, and the browser's native pan on the scroll container behind is still live, so dragging
+	// without lifting would scroll the (supposedly frozen) feed behind the overlay. The backdrop can't stop
+	// that: hit-testing was settled at touchstart, and `touch-action` is only read when the gesture starts,
+	// so neither has any effect on a gesture already in flight. The one thing that does is cancelling the
+	// touch stream itself — a non-passive `touchmove` listener that preventDefaults. It stays for the whole
+	// open lifetime, so a fresh drag on the backdrop can't scroll anything either. The platter is exempt:
+	// it scrolls internally when the menu is taller than the space beside the row.
+	$effect(() => {
+		if (!visible) return
+		function onTouchMove(e: TouchEvent) {
+			if (platterEl?.contains(e.target as Node)) return
+			if (e.cancelable) e.preventDefault()
+		}
+		window.addEventListener('touchmove', onTouchMove, { passive: false, capture: true })
+		return () => window.removeEventListener('touchmove', onTouchMove, true)
+	})
+
 	function startClose() {
 		if (closing) return
 		// Fade the developed blur out instead of snapping it off (the effect above drops `blurOn` once

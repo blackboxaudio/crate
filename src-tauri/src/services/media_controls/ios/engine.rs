@@ -59,13 +59,20 @@ impl NativePreviewEngine {
     /// Load a release's tracks (pre-resolved proxy URLs) and start playing from `start_index`, beginning
     /// `start_position_ms` into that track (0 = from the start; non-zero only when restoring the last
     /// session on app relaunch, so playback resumes where it left off without a blip from the start).
-    pub fn play(&self, tracks: Vec<NativeTrackEntry>, start_index: usize, start_position_ms: u64) {
+    /// `load_id` is stamped on every track-changed/ended event this playlist emits (see the command doc).
+    pub fn play(
+        &self,
+        tracks: Vec<NativeTrackEntry>,
+        start_index: usize,
+        start_position_ms: u64,
+        load_id: u64,
+    ) {
         let app = self.app.clone();
         run_on_main(&self.app, move || {
             ENGINE.with(|cell| {
                 let mut slot = cell.borrow_mut();
                 let engine = slot.get_or_insert_with(|| PlaybackEngineInner::new(app.clone()));
-                engine.load(tracks, start_index, start_position_ms);
+                engine.load(tracks, start_index, start_position_ms, load_id);
             });
         });
     }
@@ -176,17 +183,23 @@ pub(super) fn emit_state(app: &AppHandle, payload: StatePayload) {
     let _ = app.emit("native-preview-state", payload);
 }
 
-pub(super) fn emit_track_changed(app: &AppHandle, index: usize) {
+pub(super) fn emit_track_changed(app: &AppHandle, index: usize, load_id: u64) {
     #[derive(Clone, Serialize)]
     #[serde(rename_all = "camelCase")]
     struct Payload {
         index: usize,
+        load_id: u64,
     }
-    let _ = app.emit("native-preview-track-changed", Payload { index });
+    let _ = app.emit("native-preview-track-changed", Payload { index, load_id });
 }
 
-pub(super) fn emit_ended(app: &AppHandle) {
-    let _ = app.emit("native-preview-ended", ());
+pub(super) fn emit_ended(app: &AppHandle, load_id: u64) {
+    #[derive(Clone, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    struct Payload {
+        load_id: u64,
+    }
+    let _ = app.emit("native-preview-ended", Payload { load_id });
 }
 
 /// Surface a playback failure to the frontend. `retryable` says whether re-resolving the stream
