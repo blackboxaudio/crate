@@ -525,10 +525,10 @@
 						</button>
 						<button
 							type="button"
-							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-colors active:bg-surface-2 {$repeatMode !==
+							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-colors {$repeatMode !==
 							'off'
 								? 'bg-brand-muted text-brand-primary'
-								: 'text-text-primary'}"
+								: 'text-text-primary active:bg-surface-2'}"
 							aria-label={repeatLabel}
 							aria-pressed={$repeatMode !== 'off'}
 							onclick={() => playerStore.cycleRepeatMode()}

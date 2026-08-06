@@ -589,6 +589,10 @@ impl PlaybackEngineInner {
             // emission, no JS round-trip, so the loop is gapless and survives lock. AVPlayer
             // pauses itself at the end of an item, so play must be re-asserted after the rewind
             // (`self.playing` is still true — the pause was the item's, not the user's).
+            engine::emit_debug(
+                &self.app,
+                format!("repeat-current: looping track {}", self.index),
+            );
             self.seek(0);
             // SAFETY: AVPlayer.play / setRate are main-thread safe.
             unsafe {

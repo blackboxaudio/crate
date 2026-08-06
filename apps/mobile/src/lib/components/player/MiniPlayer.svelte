@@ -62,14 +62,18 @@
 	<!-- The outer frame is anchored at the over-the-tab-bar position; the drop to the over-detail position
 	     is a translateY on the INNER card (the two differ by exactly the tab bar's 3.5rem) so the reposition
 	     is a pure compositor move — animating `bottom` re-lays-out every frame, concurrently with the detail
-	     drawer's own slide. `fly` owns the outer element's transform for enter/exit only, so they compose. -->
+	     drawer's own slide. `fly` owns the outer element's transform for enter/exit only, so they compose.
+	     The frame is `pointer-events-none` (the card re-enables them) because a transform moves only what's
+	     PAINTED: the frame's own box stays at the over-the-tab-bar position, so while a detail screen is open
+	     it would leave an invisible full-width band 3.5rem above the visible card that silently swallows every
+	     tap under it (at z-40, above the detail's z-35) — taps landed on nothing, with no pressed state. -->
 	<div
-		class="fixed inset-x-0 z-40 px-2"
+		class="pointer-events-none fixed inset-x-0 z-40 px-2"
 		style="bottom: calc(3.5rem + env(safe-area-inset-bottom) + 0.5rem)"
 		transition:fly={{ y: 96, duration: 320, easing: easeFluid }}
 	>
 		<div
-			class="glass relative overflow-hidden rounded-2xl border border-stroke/60 shadow-lg shadow-black/25 transition-transform duration-300 ease-out motion-reduce:transition-none"
+			class="glass pointer-events-auto relative overflow-hidden rounded-2xl border border-stroke/60 shadow-lg shadow-black/25 transition-transform duration-300 ease-out motion-reduce:transition-none"
 			style="transform: translateY({overDetail ? '3.5rem' : '0'})"
 		>
 			<!-- Tap anywhere on the card (except the play/pause control) to open the full-screen player. -->

@@ -597,6 +597,17 @@ function createPlayerStore() {
 		if (state.playbackSource !== 'preview' || !state.previewInfo) return
 		scheduleNativeSlide()
 	}
+	// Native repeat-mode syncs are CHAINED, never fired concurrently: each `native_preview_set_repeat_mode`
+	// invoke is an async command with no cross-invoke ordering guarantee, so rapid mode cycling (two quick
+	// taps: off → track → release) could land the stale 'track' sync after the newer 'release' one — leaving
+	// the engine's item-loop flag on, which replays the ending track instead of advancing. Awaiting each
+	// invoke before sending the next guarantees the engine applies them in order (main-queue FIFO).
+	let repeatSyncChain: Promise<void> = Promise.resolve()
+	function syncNativeRepeatMode(mode: RepeatMode) {
+		if (!useNative) return
+		repeatSyncChain = repeatSyncChain.then(() => nativePreviewPlayer.setRepeatMode(mode)).catch(() => {})
+	}
+
 	// Change the repeat mode (button cycle or the iOS lock-screen repeat command). Persisted
 	// device-locally like shuffle; the queue redraws its committed lookahead under the new scope (which
 	// also re-feeds the iOS window via the queue-changed handler), and the native engine follows —
@@ -607,7 +618,7 @@ function createPlayerStore() {
 		setStoredString('player.repeatMode', mode)
 		update((s) => ({ ...s, repeatMode: mode }))
 		playbackQueue.setRepeatMode(mode)
-		if (useNative) void nativePreviewPlayer.setRepeatMode(mode).catch(() => {})
+		syncNativeRepeatMode(mode)
 	}
 
 	playbackQueue.setQueueChangedHandler(handleQueueChanged)
@@ -726,6 +737,9 @@ function createPlayerStore() {
 					// 1.0x, so without this a (re)start — including restore-then-resume, or starting a new
 					// release after a tempo change — would play at normal speed while the UI shows the offset.
 					void nativePreviewPlayer.setRate(state.playbackState.speed)
+					// Re-assert the repeat mode on every native session start: a reload is a natural
+					// self-heal point if the engine's item-loop flag ever fell out of step with app state.
+					syncNativeRepeatMode(state.repeatMode)
 					isRestoredFromStorage = false
 					setStoredString('player.playbackSource', 'preview')
 					setStoredString('player.previewReleaseId', release.id)
@@ -1491,7 +1505,7 @@ function createPlayerStore() {
 			// Reflect the persisted repeat mode on the engine up front: the item-loop flag for
 			// repeat-track and the lock-screen repeat glyph both live natively, and the engine boots
 			// knowing neither.
-			void nativePreviewPlayer.setRepeatMode(getState().repeatMode).catch(() => {})
+			syncNativeRepeatMode(getState().repeatMode)
 			return nativePreviewPlayer.startNativePreviewBridge({
 				onState: ({ isPlaying, positionMs, durationMs, isBuffering }) => {
 					let applyPosition = true
