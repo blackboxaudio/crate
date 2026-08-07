@@ -78,7 +78,8 @@ pub async fn sync_account(
         }
         Err(e) => {
             let msg = e.to_string();
-            let _ = service.mark_checked(&account_id, health_for_error(&msg), Some(&msg), None, None);
+            let _ =
+                service.mark_checked(&account_id, health_for_error(&msg), Some(&msg), None, None);
             log::warn!("Collection sync failed for {}: {msg}", account.url);
         }
     }

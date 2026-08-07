@@ -431,7 +431,14 @@ mod tests {
     fn walk_completeness_round_trips_through_account_state() {
         let svc = service();
         let account = svc
-            .link_account("https://bandcamp.com/fan", "bandcamp", None, None, None, None)
+            .link_account(
+                "https://bandcamp.com/fan",
+                "bandcamp",
+                None,
+                None,
+                None,
+                None,
+            )
             .unwrap();
 
         // Never walked: the incremental early exit must not be trusted.

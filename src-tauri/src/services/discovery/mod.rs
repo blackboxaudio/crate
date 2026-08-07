@@ -298,7 +298,9 @@ mod tests {
     #[test]
     fn album_and_track_paths_drop_all_query_params() {
         assert_eq!(
-            normalize_url("https://inarmatura.bandcamp.com/album/10-11?label=1615933898&amp;tab=music"),
+            normalize_url(
+                "https://inarmatura.bandcamp.com/album/10-11?label=1615933898&amp;tab=music"
+            ),
             "https://inarmatura.bandcamp.com/album/10-11"
         );
         assert_eq!(

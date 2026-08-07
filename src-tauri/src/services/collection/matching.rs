@@ -477,7 +477,12 @@ mod tests {
         // Tracks are seeded as "t0"/"t1" with no page URLs — the 96%-of-rows case.
         seed_release(&svc, "rel", "https://a.bandcamp.com/album/x", &[None, None]);
         // Purchase URL shares the release's host; title matches modulo trim/case.
-        seed_track_item(&svc, "acct", "https://a.bandcamp.com/track/whatever", " T0 ");
+        seed_track_item(
+            &svc,
+            "acct",
+            "https://a.bandcamp.com/track/whatever",
+            " T0 ",
+        );
 
         let o = svc.compute_ownership().unwrap();
         assert_eq!(o.owned_track_ids, vec!["rel-t0"]);
