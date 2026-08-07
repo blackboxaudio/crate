@@ -2,8 +2,16 @@
 	import { translate } from '$shared/i18n'
 	import type { CollectionItem, DiscoveryRelease } from '$shared/types'
 	import { collectionItems, collectionStore, hasLinkedCollection } from '$shared/stores/collection'
-	import { discoveryStore } from '$shared/stores/discovery'
-	import { mobileUIStore, DISCOVERY_ROW_HEIGHT } from '$lib/stores/mobileUI'
+	import { discoveryStore, likedOnly, newOnly } from '$shared/stores/discovery'
+	import {
+		applyTagFilter,
+		downloadedOnly,
+		mobileUIStore,
+		tagFilterIds,
+		tagFilterMode,
+		DISCOVERY_ROW_HEIGHT,
+	} from '$lib/stores/mobileUI'
+	import { fullyCachedIds } from '$lib/stores/offlineCache'
 	import ReleaseFeedList from '$lib/components/discovery/ReleaseFeedList.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
 	import CollectionItemCard from './CollectionItemCard.svelte'
@@ -17,13 +25,37 @@
 	type Row = { id: string; item: CollectionItem; release: DiscoveryRelease | undefined }
 
 	const releaseById = $derived(new Map($discoveryStore.releases.map((r) => [r.id, r])))
+
+	// Liked / New / Downloaded / tags are properties of a *release*, so they can only be evaluated on
+	// matched items — with any of them active the unmatched collection items drop out rather than
+	// riding along unfiltered (the toolbar shows them as active, so they have to actually narrow the
+	// list). Semantics match the feed's `mobileDisplayedReleases` so "Purchased + X" means the same
+	// thing in both views.
+	const releaseFiltersActive = $derived($likedOnly || $newOnly || $downloadedOnly || $tagFilterIds.length > 0)
+
 	const rows = $derived.by(() => {
-		const search = ($discoveryStore.filter.search ?? '').trim().toLowerCase()
-		const all: Row[] = $collectionItems.map((item) => ({
+		let all: Row[] = $collectionItems.map((item) => ({
 			id: item.id,
 			item,
 			release: item.matchedReleaseId ? releaseById.get(item.matchedReleaseId) : undefined,
 		}))
+
+		if (releaseFiltersActive) {
+			const kept = new Set(
+				applyTagFilter(
+					all.flatMap(({ release }) => (release ? [release] : [])),
+					$tagFilterIds,
+					$tagFilterMode
+				)
+					.filter((r) => !$likedOnly || r.tracks.some((t) => t.is_liked))
+					.filter((r) => !$newOnly || r.is_new)
+					.filter((r) => !$downloadedOnly || $fullyCachedIds.has(r.id))
+					.map((r) => r.id)
+			)
+			all = all.filter(({ release }) => release && kept.has(release.id))
+		}
+
+		const search = ($discoveryStore.filter.search ?? '').trim().toLowerCase()
 		if (!search) return all
 		return all.filter(({ item, release }) => {
 			const artist = release?.artist ?? item.artist
@@ -54,35 +86,43 @@
 {/snippet}
 
 {#snippet emptyState()}
-	<div class="flex h-full flex-col items-center justify-center gap-5 px-8 text-center">
-		<div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-2 text-text-tertiary">
-			<svg
-				viewBox="0 0 24 24"
-				class="h-8 w-8"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="1.5"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-			>
-				<path d="M6 8h12l-1.2 12H7.2L6 8z" />
-				<path d="M9 8V6a3 3 0 0 1 6 0v2" />
-			</svg>
+	{#if $collectionItems.length > 0}
+		<!-- The collection isn't empty, the active filters/search just hid all of it — same distinction the
+		     feed draws, so this never reads as "your collection is empty" when it isn't. -->
+		<div class="flex h-full items-center justify-center px-8 text-center text-sm text-text-secondary">
+			{$translate('discovery.noResults')}
 		</div>
-		{#if !$hasLinkedCollection}
-			<div class="space-y-1">
-				<p class="text-base font-semibold text-text-primary">{$translate('collection.emptyTitle')}</p>
-				<p class="text-sm text-text-secondary">{$translate('collection.emptyHint')}</p>
+	{:else}
+		<div class="flex h-full flex-col items-center justify-center gap-5 px-8 text-center">
+			<div class="flex h-16 w-16 items-center justify-center rounded-full bg-surface-2 text-text-tertiary">
+				<svg
+					viewBox="0 0 24 24"
+					class="h-8 w-8"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="1.5"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M6 8h12l-1.2 12H7.2L6 8z" />
+					<path d="M9 8V6a3 3 0 0 1 6 0v2" />
+				</svg>
 			</div>
-			<button
-				type="button"
-				class="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white active:opacity-90"
-				onclick={() => mobileUIStore.openSettings('collection')}
-			>
-				{$translate('settings.collection.linkAccount')}
-			</button>
-		{:else}
-			<p class="text-sm text-text-secondary">{$translate('collection.noItems')}</p>
-		{/if}
-	</div>
+			{#if !$hasLinkedCollection}
+				<div class="space-y-1">
+					<p class="text-base font-semibold text-text-primary">{$translate('collection.emptyTitle')}</p>
+					<p class="text-sm text-text-secondary">{$translate('collection.emptyHint')}</p>
+				</div>
+				<button
+					type="button"
+					class="inline-flex items-center gap-1.5 rounded-lg bg-brand-primary px-4 py-2.5 text-sm font-semibold text-white active:opacity-90"
+					onclick={() => mobileUIStore.openSettings('collection')}
+				>
+					{$translate('settings.collection.linkAccount')}
+				</button>
+			{:else}
+				<p class="text-sm text-text-secondary">{$translate('collection.noItems')}</p>
+			{/if}
+		</div>
+	{/if}
 {/snippet}

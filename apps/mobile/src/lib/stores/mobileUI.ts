@@ -1,7 +1,7 @@
 import { writable, derived, get } from 'svelte/store'
 import { sortedReleases, discoveryStore } from '$shared/stores/discovery'
 import { discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
-import { followedSources } from '$shared/stores/follow'
+import { followStore, followedSources } from '$shared/stores/follow'
 import { releasesFromSource } from '$shared/utils'
 import {
 	getStoredArray,
@@ -731,6 +731,26 @@ mobileUIStore.subscribe((s) => {
 	if (s.discoveryViewMode !== prevPersisted.discoveryViewMode)
 		setStoredString(STORAGE_KEYS.discoveryViewMode, s.discoveryViewMode)
 	prevPersisted = s
+})
+
+// Search is a per-view control, never a global one: navigating to a different view starts with an empty
+// query instead of inheriting the one that was typed somewhere else. Same diff-subscribe shape as the
+// persistence above, so no present or future navigation path can forget to reset. The nav identity covers
+// the tab, the Playlists folder level, and the three detail overlays — deliberately NOT `detailReleaseId`:
+// the release screen has no list of its own, and clearing the feed behind it would discard the very search
+// the user tapped through. View-local queries reset alongside these (see `PlaylistsView`); the detail
+// overlays' own filters reset by unmounting on close.
+const navIdentity = (s: MobileUIState) =>
+	`${s.activeTab}|${s.detailPlaylistId}|${s.detailTagId}|${s.detailFollowSourceId}|${s.playlistFolderTrail.join('/')}`
+let prevNavIdentity = navIdentity(initialState)
+mobileUIStore.subscribe((s) => {
+	const identity = navIdentity(s)
+	if (identity === prevNavIdentity) return
+	prevNavIdentity = identity
+	// Guarded: `setSearch` always publishes a fresh state object, and an unconditional write on every
+	// navigation would re-run the feed's filter + sort over the whole library for nothing.
+	if (get(discoveryStore).filter.search) discoveryStore.setSearch('')
+	if (get(followStore).search) followStore.setSearch('')
 })
 
 export const activeTab = derived(mobileUIStore, ($s) => $s.activeTab)

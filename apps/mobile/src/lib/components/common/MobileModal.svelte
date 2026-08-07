@@ -38,8 +38,16 @@
 	})
 </script>
 
-<!-- No `fade`: the panel is opaque while it moves (Drawer suspends the glass mid-slide), and a solid
-     sheet sliding up/down IS the native presentation — cross-fading it would show content through it. -->
+<!-- No `fade`: a solid sheet sliding up/down IS the native presentation — cross-fading it would show
+     content through it.
+
+     The panel is a CONSTANT opaque surface, not `glass-strong`. A sheet's own controls routinely change
+     the content behind it (the filter sheet's toggles re-render the whole feed), and a live blur makes
+     that leak through as a flash — worse, once the filters exclude everything, the blur has nothing left
+     to sample and the "translucent" panel turns flat anyway. So the sheet's opacity never depended on
+     what was behind it in any useful way: pinning it constant is what the material was already
+     approximating, minus the churn. Glass is still right for chrome that content scrolls *past*
+     (toolbars, the mini-player) — see the `glass` utilities in style.css. -->
 <Drawer
 	{open}
 	{onClose}
@@ -48,7 +56,7 @@
 	panelDrag={false}
 	portal
 	ariaLabel={title ?? $translate('common.close')}
-	class="pb-safe glass-strong flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-stroke"
+	class="pb-safe flex max-h-[85vh] flex-col overflow-hidden rounded-t-2xl border-t border-stroke bg-surface-1"
 >
 	{#snippet children({ drag, animating })}
 		<!-- Drag zone: the handle + header follow the finger to dismiss; the content below scrolls freely. -->

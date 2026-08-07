@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte'
+	import { onMount, untrack } from 'svelte'
 	import { slide } from 'svelte/transition'
 	import { translate } from '$shared/i18n'
 	import { tagsStore } from '$shared/stores/tags'
@@ -64,26 +64,32 @@
 	let initialSnapshot = $state('')
 	const dirty = $derived(snapshot() !== initialSnapshot)
 
-	// Reset (create) or prefill (edit) whenever the editor (re)opens.
+	// Reset (create) or prefill (edit) whenever the editor (re)opens. The assignments — and `snapshot()`,
+	// which reads them straight back — MUST stay untracked: tracked, this effect would depend on the very
+	// state it writes, and since `conditions` is a fresh array on every run it would re-dirty itself
+	// endlessly. Svelte aborts that with `effect_update_depth_exceeded`, which kills the whole flush — the
+	// tapped menu never closes and the app hangs (force-quit territory).
 	$effect(() => {
-		if (open) {
-			const parsed = playlist ? parseSmartRules(playlist.smart_rules) : null
-			if (playlist && parsed) {
-				name = playlist.name
+		if (!open) return
+		const target = playlist
+		untrack(() => {
+			const parsed = target ? parseSmartRules(target.smart_rules) : null
+			if (target && parsed) {
+				name = target.name
 				matchMode = parsed.match_mode
 				// Clone before feeding $state — the per-index condition updates must not mutate the
 				// store's parsed objects.
 				conditions = structuredClone(parsed.conditions)
 				initialLimit = parsed.limit
 			} else {
-				name = playlist?.name ?? ''
+				name = target?.name ?? ''
 				matchMode = 'all'
 				conditions = []
 				initialLimit = undefined
 			}
 			previewCount = null
 			initialSnapshot = snapshot()
-		}
+		})
 	})
 
 	// Debounced live count of matching releases.

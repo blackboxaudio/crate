@@ -35,8 +35,9 @@
 		followStore.load()
 	})
 
-	// The displayed roster: the store's derived applies BOTH its search and sort, so the query and
-	// the sort choice survive tab remounts (matching Discovery, whose search also lives in its store).
+	// The displayed roster: the store's derived applies BOTH its search and sort, so the sort choice
+	// survives tab remounts. The query does NOT — mobileUI's nav subscribe clears every search on any
+	// navigation, so returning to this tab (or backing out of a source) starts unfiltered.
 	const sources = $derived($sortedFollowedSources)
 	// Toolbar/pull-to-refresh visibility keys off the RAW roster — an active search that matches
 	// nothing must not hide the search box that created it.

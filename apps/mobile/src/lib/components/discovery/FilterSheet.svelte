@@ -6,7 +6,7 @@
 	import { lightTap } from '$lib/utils/haptics'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 
-	// Generalized filter sheet (liked / downloaded toggles + tag chips with AND/OR matching).
+	// Generalized filter sheet (liked / new / downloaded / purchased toggles + tag chips with AND/OR matching).
 	// Fully controlled: each facet renders only when its prop is provided, so the feed and each
 	// detail view opt into exactly the filters that make sense there (the tag detail omits tags,
 	// etc.). Mirrors the desktop FilterDropdown's segmented match toggle and liked switch.
@@ -14,6 +14,8 @@
 		open: boolean
 		onClose: () => void
 		liked?: { value: boolean; onToggle: () => void }
+		/** New-only facet: releases surfaced by a followed source and not yet reviewed. */
+		newReleases?: { value: boolean; onToggle: () => void }
 		downloaded?: { value: boolean; onToggle: () => void }
 		/** Purchased-only facet, shown when a collection account is linked. */
 		purchased?: { value: boolean; onToggle: () => void }
@@ -28,7 +30,7 @@
 		}
 		onClearAll: () => void
 	}
-	let { open, onClose, liked, downloaded, purchased, purchasedSetup, tags, onClearAll }: Props = $props()
+	let { open, onClose, liked, newReleases, downloaded, purchased, purchasedSetup, tags, onClearAll }: Props = $props()
 
 	// Lazy-load categories the first time the sheet opens (only when the tags facet is shown).
 	let loadedOnce = $state(false)
@@ -40,7 +42,9 @@
 	})
 
 	const active = $derived(new Set(tags?.activeIds ?? []))
-	const hasActiveFilters = $derived(active.size > 0 || !!liked?.value || !!downloaded?.value || !!purchased?.value)
+	const hasActiveFilters = $derived(
+		active.size > 0 || !!liked?.value || !!newReleases?.value || !!downloaded?.value || !!purchased?.value
+	)
 
 	// Selection tick: filters commit instantly (no confirm step), so acknowledge each toggle the way
 	// the app's other sheets do (playlist picker, queue actions, sort options).
@@ -92,6 +96,42 @@
 						: 'bg-stroke'}"
 				>
 					<span class="h-4 w-4 rounded-full bg-white transition-transform {liked.value ? 'translate-x-4' : ''}"></span>
+				</span>
+			</button>
+		{/if}
+
+		{#if newReleases}
+			<!-- New-only: releases a followed source surfaced that haven't been reviewed yet (the same
+			     `is_new` flag the release rows badge). -->
+			<button
+				type="button"
+				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
+				aria-pressed={newReleases.value}
+				onclick={() => tick(newReleases.onToggle)}
+			>
+				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
+					<svg
+						class="h-4 w-4 {newReleases.value ? 'text-brand-primary' : 'text-text-tertiary'}"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+					>
+						<path d="M4 11a9 9 0 0 1 9 9" />
+						<path d="M4 4a16 16 0 0 1 16 16" />
+						<circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />
+					</svg>
+					{$translate('filters.new')}
+				</span>
+				<span
+					class="flex h-5 w-9 items-center rounded-full p-0.5 transition-colors {newReleases.value
+						? 'bg-brand-primary'
+						: 'bg-stroke'}"
+				>
+					<span class="h-4 w-4 rounded-full bg-white transition-transform {newReleases.value ? 'translate-x-4' : ''}"
+					></span>
 				</span>
 			</button>
 		{/if}

@@ -76,9 +76,12 @@
 		{ field: 'date_modified', labelKey: 'playlists.sort.dateModified', defaultDir: 'desc' },
 	]
 
-	// Client-side search over the current level's playlists / folders (by name). Scoped to the level the
-	// user is in — drilling into or out of a folder clears it (see push/popFolder) so each level starts
-	// fresh. `children` (unfiltered) still drives cover prefetch so results are ready when search clears.
+	// Client-side search over the current level's playlists / folders (by name). Scoped to the view the
+	// user is in — drilling into or out of a folder, or opening a playlist, clears it (see push/popFolder
+	// and openPlaylist) so every view starts fresh, matching the store-held searches that mobileUI's nav
+	// subscribe resets. Cleared at the navigation call sites rather than from an effect so the incoming
+	// level never renders one frame still filtered. `children` (unfiltered) still drives cover prefetch so
+	// results are ready when search clears.
 	let query = $state('')
 	const filteredChildren = $derived.by(() => {
 		const q = query.trim().toLowerCase()
@@ -160,6 +163,8 @@
 
 	function openPlaylist(playlistId: string) {
 		void lightTap()
+		;(document.activeElement as HTMLElement | null)?.blur()
+		query = ''
 		mobileUIStore.openPlaylist(playlistId)
 	}
 

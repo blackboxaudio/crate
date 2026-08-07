@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
-	import { discoveryStore, likedOnly } from '$shared/stores/discovery'
+	import { discoveryStore, likedOnly, newOnly } from '$shared/stores/discovery'
 	import { hasLinkedCollection } from '$shared/stores/collection'
 	import type { DiscoverySortField } from '$shared/types'
 	import {
@@ -28,10 +28,14 @@
 	// of truth. (A tag assign/remove reloads the feed and resets `filter.search`; binding to the store keeps
 	// the box in lock-step instead of showing a stale query the feed no longer applies.)
 
-	// Active-filter count for the trigger badge: tag filters plus the liked/downloaded toggles (mirrors the
-	// desktop FilterDropdown badge) so the button reads as "active" whenever any filter is applied.
+	// Active-filter count for the trigger badge: tag filters plus the liked/new/downloaded/purchased toggles
+	// (mirrors the desktop FilterDropdown badge) so the button reads as "active" whenever any filter is applied.
 	const activeFilterCount = $derived(
-		$tagFilterIds.length + ($likedOnly ? 1 : 0) + ($downloadedOnly ? 1 : 0) + ($purchasedOnly ? 1 : 0)
+		$tagFilterIds.length +
+			($likedOnly ? 1 : 0) +
+			($newOnly ? 1 : 0) +
+			($downloadedOnly ? 1 : 0) +
+			($purchasedOnly ? 1 : 0)
 	)
 	const hasActiveFilters = $derived(activeFilterCount > 0)
 </script>
@@ -146,6 +150,7 @@
 	open={filterOpen}
 	onClose={() => (filterOpen = false)}
 	liked={{ value: $likedOnly, onToggle: discoveryStore.toggleLikedFilter }}
+	newReleases={{ value: $newOnly, onToggle: () => discoveryStore.toggleNewFilter() }}
 	downloaded={{ value: $downloadedOnly, onToggle: mobileUIStore.toggleDownloadedFilter }}
 	purchased={$hasLinkedCollection
 		? { value: $purchasedOnly, onToggle: mobileUIStore.togglePurchasedFilter }
@@ -164,6 +169,7 @@
 	}}
 	onClearAll={() => {
 		if ($likedOnly) discoveryStore.toggleLikedFilter()
+		if ($newOnly) discoveryStore.toggleNewFilter(false)
 		if ($downloadedOnly) mobileUIStore.toggleDownloadedFilter()
 		if ($purchasedOnly) mobileUIStore.togglePurchasedFilter()
 		mobileUIStore.clearTagFilters()

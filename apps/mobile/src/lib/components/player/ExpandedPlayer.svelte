@@ -3,7 +3,7 @@
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { shareUrl } from '$shared/api/app'
 	import { toastStore } from '$shared/stores/toast'
-	import { fly, fade, type TransitionConfig } from 'svelte/transition'
+	import { slide, fade, type TransitionConfig } from 'svelte/transition'
 	import { easeFluid } from '$lib/easing'
 	import { translate } from '$shared/i18n'
 	import {
@@ -230,6 +230,14 @@
 	// The blurred wash crossfades only across releases (it's keyed by releaseId, so same-release changes
 	// never touch it). A short opacity-only fade is kept under reduced motion.
 	const bgFadeMs = reducedMotion ? 150 : 600
+
+	// Tempo reveal, staged in two beats: opening, the row's height animates first (carrying the transport
+	// above it up) and its contents fade in as that settles; closing runs the reverse — contents fade out,
+	// then the height collapses. Hence the separate in/out slides: the outro needs the fade's delay.
+	const tempoSlideMs = reducedMotion ? 0 : 220
+	const tempoFadeMs = reducedMotion ? 0 : 140
+	const tempoFadeDelay = reducedMotion ? 0 : 130
+	const tempoCollapseMs = reducedMotion ? 0 : 110
 
 	// Scrubbing: while the user drags the slider, show the local value and only commit on release so the
 	// live position updates don't fight the thumb.
@@ -636,14 +644,23 @@
 						</button>
 					</div>
 
-					<!-- Tempo (±10% speed fader): revealed by the metronome toggle, dropping into view via
-					     transform (`slide` animates height, re-laying-out and rescaling the flex-1 cover pager
-					     every frame — the pager resizes once instead). The slider is bipolar — its fill grows out
-					     from the centre (0%) toward the thumb, with a small detent at zero. The readout on the
-					     left balances the reset on the right. -->
+					<!-- Tempo (±10% speed fader): revealed by the metronome toggle. The row's HEIGHT animates, so
+					     the transport above it rides up with the reveal instead of jumping in one frame the way a
+					     transform-only fly did. Affordable here because the cover pager's tile is width-driven
+					     (`aspect-square w-full`): the shrinking flex-1 box reflows the column without rescaling any
+					     artwork. The slider is bipolar — its fill grows out from the centre (0%) toward the thumb,
+					     with a small detent at zero. The readout on the left balances the reset on the right. -->
 					{#if showTempo}
-						<div class="mt-4" transition:fly={{ y: -12, duration: 200, easing: easeFluid }}>
-							<div class="flex items-center gap-3" out:fade={{ duration: 120, easing: easeFluid }}>
+						<div
+							class="mt-4"
+							in:slide={{ duration: tempoSlideMs, easing: easeFluid }}
+							out:slide={{ duration: tempoSlideMs, delay: tempoCollapseMs, easing: easeFluid }}
+						>
+							<div
+								class="flex items-center gap-3"
+								in:fade={{ duration: tempoFadeMs, delay: tempoFadeDelay, easing: easeFluid }}
+								out:fade={{ duration: tempoCollapseMs, easing: easeFluid }}
+							>
 								<span class="w-12 flex-shrink-0 text-right text-xs text-text-secondary tabular-nums">
 									{tempoPct >= 0 ? '+' : ''}{tempoPct.toFixed(1)}%
 								</span>
