@@ -16,9 +16,10 @@
 	import SortSheet from '$lib/components/discovery/SortSheet.svelte'
 	import { easeFluid } from '$lib/easing'
 	import { swipe, type SwipeOptions } from '$lib/actions/swipe'
+	import { longPress, type LongPressRect } from '$lib/actions/longPress'
 	import { getPlaylistCovers, ensurePlaylistCovers, refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import { confirmDialog } from '$lib/utils/dialog'
-	import { lightTap, rigidTap } from '$lib/utils/haptics'
+	import { lightTap } from '$lib/utils/haptics'
 	import EmptyState from '$lib/components/common/EmptyState.svelte'
 	import MobileList from '$lib/components/common/MobileList.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
@@ -180,14 +181,10 @@
 	let addMenuOpen = $state(false)
 	let addMenuRect = $state<{ top: number; left: number; width: number; height: number } | null>(null)
 
-	let longPressTimer = 0
 	let longPressTarget = $state<Playlist | null>(null)
 	let rowActionsOpen = $state(false)
 	// Viewport rect of the long-pressed row, so the context menu can lift it in place.
-	let longPressRect = $state<{ top: number; left: number; width: number; height: number } | null>(null)
-	// A stationary long-press also synthesizes a click on release; this latches so we can swallow that one
-	// click (otherwise opening the menu would also navigate into the row — `MobileListItem` is a real <button>).
-	let suppressNextClick = false
+	let longPressRect = $state<LongPressRect | null>(null)
 
 	function openAddMenu(e: MouseEvent) {
 		void lightTap()
@@ -272,42 +269,10 @@
 		await playlistsStore.delete(playlist.id)
 	}
 
-	function onRowLongPress(playlist: Playlist) {
-		void rigidTap()
+	function onRowLongPress(playlist: Playlist, rect: LongPressRect) {
+		longPressRect = rect
 		longPressTarget = playlist
 		rowActionsOpen = true
-	}
-
-	function startLongPress(e: PointerEvent, playlist: Playlist) {
-		suppressNextClick = false
-		if (longPressTimer) clearTimeout(longPressTimer)
-		// Capture the row element now; `currentTarget` is nulled once the event finishes dispatching.
-		const el = e.currentTarget as HTMLElement
-		longPressTimer = window.setTimeout(() => {
-			longPressTimer = 0
-			const r = el?.getBoundingClientRect()
-			longPressRect = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
-			suppressNextClick = true
-			onRowLongPress(playlist)
-		}, 450)
-		window.addEventListener('pointermove', cancelLongPress, { once: true, passive: true })
-		window.addEventListener('pointerup', cancelLongPress, { once: true })
-		window.addEventListener('pointercancel', cancelLongPress, { once: true })
-	}
-
-	function cancelLongPress() {
-		if (longPressTimer) {
-			clearTimeout(longPressTimer)
-			longPressTimer = 0
-		}
-	}
-
-	// Swallow the synthesized click that follows a long-press so the menu doesn't also open the row.
-	function onRowClickCapture(e: MouseEvent) {
-		if (!suppressNextClick) return
-		suppressNextClick = false
-		e.preventDefault()
-		e.stopPropagation()
 	}
 </script>
 
@@ -397,7 +362,7 @@
 						{#each filteredChildren as item (item.id)}
 							{#if item.is_folder}
 								{@const childCount = getPlaylistChildren(allPlaylists, item.id).length}
-								<div onpointerdown={(e) => startLongPress(e, item)} onclickcapture={onRowClickCapture}>
+								<div use:longPress={{ onLongPress: (rect) => onRowLongPress(item, rect) }}>
 									<MobileListItem onclick={() => pushFolder(item.id)}>
 										{#snippet leading()}
 											<div class="flex h-11 w-11 items-center justify-center rounded bg-surface-2 text-text-secondary">
@@ -423,7 +388,7 @@
 									</MobileListItem>
 								</div>
 							{:else}
-								<div onpointerdown={(e) => startLongPress(e, item)} onclickcapture={onRowClickCapture}>
+								<div use:longPress={{ onLongPress: (rect) => onRowLongPress(item, rect) }}>
 									<MobileListItem onclick={() => openPlaylist(item.id)}>
 										{#snippet leading()}
 											<PlaylistThumbnail urls={getPlaylistCovers(item.id)} smart={item.is_smart} />

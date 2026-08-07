@@ -95,8 +95,10 @@
 	}
 </script>
 
+<!-- z-[60]: above every app surface (settings drawer 45, sheets/expanded player 50) — onboarding must never
+     be overlapped; it previously tied the mini-player at 40 and only won by mount order. -->
 <div
-	class="fixed inset-0 z-40 flex flex-col bg-surface-0"
+	class="fixed inset-0 z-[60] flex flex-col bg-surface-0"
 	in:fade={{ duration: 300, easing: cubicOut }}
 	out:fade={{ duration: 300, easing: cubicOut }}
 >

@@ -7,6 +7,7 @@
 		"cancel": "取消",
 		"create": "创建",
 		"delete": "删除",
+		"discard": "放弃",
 		"remove": "移除",
 		"rename": "重命名",
 		"default": "默认",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "取消关注",
 			"pauseSelected": "暂停",
 			"unfollow": "取消关注",
+			"unfollowConfirm": "停止关注 {name} 获取新发行？已在发现中的发行将被保留。",
 			"checkNow": "立即检查",
 			"enabledToggle": "检查新发行",
 			"artist": "艺术家",
@@ -635,6 +637,8 @@
 			"placeholder": "分类名称"
 		},
 		"confirm": {
+			"discardChangesTitle": "放弃更改",
+			"discardChangesMessage": "确定要放弃更改吗？",
 			"deletePlaylistTitle": "删除播放列表",
 			"deletePlaylistMessage": "确定要删除此播放列表吗？",
 			"deleteFolderTitle": "删除文件夹",

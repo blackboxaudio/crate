@@ -7,6 +7,7 @@
 		"cancel": "キャンセル",
 		"create": "作成",
 		"delete": "削除",
+		"discard": "破棄",
 		"remove": "削除",
 		"rename": "名前を変更",
 		"default": "デフォルト",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "フォロー解除",
 			"pauseSelected": "一時停止",
 			"unfollow": "フォロー解除",
+			"unfollowConfirm": "{name}を監視対象から外しますか？ディスカバリーに既にあるリリースは保持されます。",
 			"checkNow": "今すぐチェック",
 			"enabledToggle": "新しいリリースをチェック",
 			"artist": "アーティスト",
@@ -635,6 +637,8 @@
 			"placeholder": "カテゴリ名"
 		},
 		"confirm": {
+			"discardChangesTitle": "変更を破棄",
+			"discardChangesMessage": "変更を破棄してもよろしいですか？",
 			"deletePlaylistTitle": "プレイリストを削除",
 			"deletePlaylistMessage": "このプレイリストを削除してもよろしいですか？",
 			"deleteFolderTitle": "フォルダを削除",

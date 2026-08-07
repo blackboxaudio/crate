@@ -17,16 +17,16 @@
 	} from '$shared/utils/smartRules'
 	import type { Playlist, SmartRules, SmartCondition, MatchMode, ActiveView } from '$shared/types'
 	import { DEFAULT_TAG_COLOR } from '$shared/types'
-	import Drawer from '$lib/components/common/Drawer.svelte'
+	import FormSheet from '$lib/components/common/FormSheet.svelte'
 
 	// Mobile smart-playlist rule editor. A focused, touch-first counterpart to the desktop SmartPlaylistModal:
 	// name + match-mode + a stacked list of conditions (field / operator / value), with a live match-count
 	// preview. Field / operator / enum pickers are native <select>s (iOS renders its wheel picker, the best
 	// mobile UX and no custom dropdown to build).
 	//
-	// Presented as a large full-screen sheet (not a short bottom sheet) with Cancel / Create in a TOP nav bar:
-	// the actions stay above the keyboard, and the name field sits near the top so it's never covered when the
-	// keyboard rises. The body scrolls and reserves keyboard clearance so a focused value field can rise above it.
+	// Presented on the shared FormSheet: Cancel / Create live in its top nav bar (above the keyboard), the
+	// name field sits near the top so it's never covered when the keyboard rises, and dismissal is guarded
+	// by the discard confirm while edits exist.
 	type Props = {
 		open: boolean
 		context?: ActiveView
@@ -53,11 +53,16 @@
 	const title = $derived(isEditing ? $translate('smartPlaylist.editTitle') : $translate('smartPlaylist.createTitle'))
 	const canSubmit = $derived(name.trim().length > 0 && conditions.length > 0 && conditions.every(conditionHasValue))
 
-	// Keyboard clearance is handled by the shared `Drawer` (it lifts the whole bottom sheet above the keyboard),
+	// Keyboard clearance is handled by the shared FormSheet (fields sit high, actions in the top nav bar),
 	// so no per-editor visualViewport spacer is needed here.
 	onMount(() => {
 		if (tagCategories.length === 0) tagsStore.load()
 	})
+
+	// Snapshot of the editable state, for the FormSheet's discard guard: dirty = anything moved since open.
+	const snapshot = () => JSON.stringify({ name, matchMode, conditions })
+	let initialSnapshot = $state('')
+	const dirty = $derived(snapshot() !== initialSnapshot)
 
 	// Reset (create) or prefill (edit) whenever the editor (re)opens.
 	$effect(() => {
@@ -77,6 +82,7 @@
 				initialLimit = undefined
 			}
 			previewCount = null
+			initialSnapshot = snapshot()
 		}
 	})
 
@@ -159,224 +165,200 @@
 	}
 </script>
 
-<Drawer
+<FormSheet
 	{open}
-	direction="bottom"
+	{title}
 	onClose={onCancel}
-	z={65}
-	scrimZ={63}
-	scrimDismiss={false}
-	panelDrag={false}
-	ariaLabel={title}
-	class="pb-safe flex h-[94vh] w-full flex-col rounded-t-2xl border-t border-stroke bg-surface-0"
+	onSubmit={handleSubmit}
+	submitLabel={isEditing ? $translate('common.save') : $translate('common.create')}
+	submitDisabled={!canSubmit}
+	{dirty}
 >
-	{#snippet children({ animating })}
-		<!-- Top nav bar: Cancel · title · Create/Save. Actions stay above the keyboard. -->
-		<div class="flex items-center justify-between gap-2 border-b border-stroke-subtle px-3 py-3">
-			<button type="button" class="text-sm text-text-secondary active:opacity-60" onclick={onCancel}>
-				{$translate('common.cancel')}
-			</button>
-			<h2 class="truncate text-base font-semibold text-text-primary">{title}</h2>
-			<button
-				type="button"
-				class="text-sm font-semibold text-brand-primary active:opacity-60 disabled:opacity-40"
-				disabled={!canSubmit}
-				onclick={handleSubmit}
-			>
-				{isEditing ? $translate('common.save') : $translate('common.create')}
-			</button>
+	<div class="flex flex-col gap-5 px-4 py-4">
+		<!-- Name -->
+		<input
+			type="text"
+			bind:value={name}
+			placeholder={$translate('smartPlaylist.namePlaceholder')}
+			autocapitalize="words"
+			autocorrect="off"
+			class="w-full rounded-lg border border-stroke bg-surface-1 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-primary focus:outline-none"
+		/>
+
+		<!-- Match mode segmented control -->
+		<div class="flex items-center justify-between gap-3">
+			<span class="text-sm text-text-secondary">{$translate('smartPlaylist.matchLabel')}</span>
+			<div class="relative flex rounded-lg bg-surface-2 p-0.5">
+				<div
+					class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-md bg-brand-primary transition-transform duration-200 ease-out"
+					style="transform: translateX({matchMode === 'any' ? '100%' : '0%'})"
+				></div>
+				<button
+					type="button"
+					class="relative z-10 px-4 py-1.5 text-sm font-medium {matchMode === 'all'
+						? 'text-white'
+						: 'text-text-secondary'}"
+					onclick={() => (matchMode = 'all')}
+				>
+					{$translate('smartPlaylist.matchAll')}
+				</button>
+				<button
+					type="button"
+					class="relative z-10 px-4 py-1.5 text-sm font-medium {matchMode === 'any'
+						? 'text-white'
+						: 'text-text-secondary'}"
+					onclick={() => (matchMode = 'any')}
+				>
+					{$translate('smartPlaylist.matchAny')}
+				</button>
+			</div>
 		</div>
 
-		<div class="min-h-0 flex-1 {animating ? 'overflow-hidden' : 'overflow-y-auto'}">
-			<div class="flex flex-col gap-5 px-4 py-4">
-				<!-- Name -->
-				<input
-					type="text"
-					bind:value={name}
-					placeholder={$translate('smartPlaylist.namePlaceholder')}
-					autocapitalize="words"
-					autocorrect="off"
-					class="w-full rounded-lg border border-stroke bg-surface-1 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-primary focus:outline-none"
-				/>
+		<!-- Conditions -->
+		<div class="flex flex-col gap-3">
+			{#if conditions.length === 0}
+				<p class="rounded-lg border border-dashed border-stroke px-4 py-6 text-center text-sm text-text-tertiary">
+					{$translate('smartPlaylist.noConditions')}
+				</p>
+			{/if}
 
-				<!-- Match mode segmented control -->
-				<div class="flex items-center justify-between gap-3">
-					<span class="text-sm text-text-secondary">{$translate('smartPlaylist.matchLabel')}</span>
-					<div class="relative flex rounded-lg bg-surface-2 p-0.5">
-						<div
-							class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-md bg-brand-primary transition-transform duration-200 ease-out"
-							style="transform: translateX({matchMode === 'any' ? '100%' : '0%'})"
-						></div>
+			{#each conditions as condition, index (index)}
+				<div
+					class="flex flex-col gap-2 rounded-lg border border-stroke bg-surface-1 p-3"
+					transition:slide={{ duration: 180 }}
+				>
+					<div class="flex items-center gap-2">
+						<select
+							value={fieldOf(condition)}
+							onchange={(e) => updateField(index, e.currentTarget.value)}
+							class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+						>
+							{#each fields as f (f.field)}
+								<option value={f.field}>{$translate(f.labelKey)}</option>
+							{/each}
+						</select>
 						<button
 							type="button"
-							class="relative z-10 px-4 py-1.5 text-sm font-medium {matchMode === 'all'
-								? 'text-white'
-								: 'text-text-secondary'}"
-							onclick={() => (matchMode = 'all')}
+							class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-tertiary active:bg-surface-2"
+							aria-label={$translate('smartPlaylist.removeCondition')}
+							onclick={() => removeCondition(index)}
 						>
-							{$translate('smartPlaylist.matchAll')}
-						</button>
-						<button
-							type="button"
-							class="relative z-10 px-4 py-1.5 text-sm font-medium {matchMode === 'any'
-								? 'text-white'
-								: 'text-text-secondary'}"
-							onclick={() => (matchMode = 'any')}
-						>
-							{$translate('smartPlaylist.matchAny')}
+							<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+								<path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
+							</svg>
 						</button>
 					</div>
-				</div>
 
-				<!-- Conditions -->
-				<div class="flex flex-col gap-3">
-					{#if conditions.length === 0}
-						<p class="rounded-lg border border-dashed border-stroke px-4 py-6 text-center text-sm text-text-tertiary">
-							{$translate('smartPlaylist.noConditions')}
-						</p>
-					{/if}
+					<select
+						value={condition.operator}
+						onchange={(e) => updateOperator(index, e.currentTarget.value)}
+						class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+					>
+						{#each operatorOptions(condition) as op (op.value)}
+							<option value={op.value}>{$translate(op.labelKey)}</option>
+						{/each}
+					</select>
 
-					{#each conditions as condition, index (index)}
-						<div
-							class="flex flex-col gap-2 rounded-lg border border-stroke bg-surface-1 p-3"
-							transition:slide={{ duration: 180 }}
-						>
-							<div class="flex items-center gap-2">
-								<select
-									value={fieldOf(condition)}
-									onchange={(e) => updateField(index, e.currentTarget.value)}
-									class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-								>
-									{#each fields as f (f.field)}
-										<option value={f.field}>{$translate(f.labelKey)}</option>
+					<!-- Value -->
+					{#if operatorRequiresValue(condition.operator)}
+						{#if condition.type === 'tags'}
+							<div class="flex flex-wrap gap-1.5 pt-1">
+								{#each tagCategories as category (category.id)}
+									{#each category.tags as tag (tag.id)}
+										{@const color = tag.color ?? category.color ?? DEFAULT_TAG_COLOR}
+										{@const selected = condition.type === 'tags' && condition.tag_ids.includes(tag.id)}
+										<button
+											type="button"
+											class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
+											style={selected
+												? `background-color:${color};color:#fff;border:1px solid ${color};`
+												: `background-color:${color}1a;color:${color};border:1px solid ${color}40;`}
+											onclick={() => toggleTag(index, tag.id)}
+										>
+											{tag.name}
+										</button>
 									{/each}
-								</select>
-								<button
-									type="button"
-									class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-tertiary active:bg-surface-2"
-									aria-label={$translate('smartPlaylist.removeCondition')}
-									onclick={() => removeCondition(index)}
-								>
-									<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-										<path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" />
-									</svg>
-								</button>
+								{/each}
 							</div>
-
+						{:else if condition.type === 'enum'}
 							<select
-								value={condition.operator}
-								onchange={(e) => updateOperator(index, e.currentTarget.value)}
+								value={condition.value ?? ''}
+								onchange={(e) => updateValue(index, e.currentTarget.value)}
 								class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
 							>
-								{#each operatorOptions(condition) as op (op.value)}
-									<option value={op.value}>{$translate(op.labelKey)}</option>
+								{#each getFieldDefinition(condition.field, context)?.enumValues ?? [] as ev (ev.value)}
+									<option value={ev.value}>{ev.labelKey.includes('.') ? $translate(ev.labelKey) : ev.labelKey}</option>
 								{/each}
 							</select>
-
-							<!-- Value -->
-							{#if operatorRequiresValue(condition.operator)}
-								{#if condition.type === 'tags'}
-									<div class="flex flex-wrap gap-1.5 pt-1">
-										{#each tagCategories as category (category.id)}
-											{#each category.tags as tag (tag.id)}
-												{@const color = tag.color ?? category.color ?? DEFAULT_TAG_COLOR}
-												{@const selected = condition.type === 'tags' && condition.tag_ids.includes(tag.id)}
-												<button
-													type="button"
-													class="rounded-full px-3 py-1 text-xs font-medium transition-colors"
-													style={selected
-														? `background-color:${color};color:#fff;border:1px solid ${color};`
-														: `background-color:${color}1a;color:${color};border:1px solid ${color}40;`}
-													onclick={() => toggleTag(index, tag.id)}
-												>
-													{tag.name}
-												</button>
-											{/each}
-										{/each}
-									</div>
-								{:else if condition.type === 'enum'}
-									<select
-										value={condition.value ?? ''}
-										onchange={(e) => updateValue(index, e.currentTarget.value)}
-										class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-									>
-										{#each getFieldDefinition(condition.field, context)?.enumValues ?? [] as ev (ev.value)}
-											<option value={ev.value}
-												>{ev.labelKey.includes('.') ? $translate(ev.labelKey) : ev.labelKey}</option
-											>
-										{/each}
-									</select>
-								{:else if condition.type === 'numeric'}
-									<div class="flex items-center gap-2">
-										<input
-											type="number"
-											inputmode="numeric"
-											value={condition.value ?? ''}
-											oninput={(e) => updateValue(index, e.currentTarget.value)}
-											class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-										/>
-										{#if operatorRequiresSecondValue(condition.operator)}
-											<span class="text-text-tertiary">–</span>
-											<input
-												type="number"
-												inputmode="numeric"
-												value={condition.value2 ?? ''}
-												oninput={(e) => updateValue2(index, e.currentTarget.value)}
-												class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-											/>
-										{/if}
-									</div>
-								{:else if condition.type === 'date' && (condition.operator === 'before' || condition.operator === 'after')}
-									<input
-										type="date"
-										value={condition.value ?? ''}
-										oninput={(e) => updateValue(index, e.currentTarget.value)}
-										class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-									/>
-								{:else if condition.type === 'date'}
+						{:else if condition.type === 'numeric'}
+							<div class="flex items-center gap-2">
+								<input
+									type="number"
+									inputmode="numeric"
+									value={condition.value ?? ''}
+									oninput={(e) => updateValue(index, e.currentTarget.value)}
+									class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+								/>
+								{#if operatorRequiresSecondValue(condition.operator)}
+									<span class="text-text-tertiary">–</span>
 									<input
 										type="number"
 										inputmode="numeric"
-										placeholder="30"
-										value={condition.value ?? ''}
-										oninput={(e) => updateValue(index, e.currentTarget.value)}
-										class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-									/>
-								{:else}
-									<input
-										type="text"
-										value={condition.type === 'text' ? (condition.value ?? '') : ''}
-										oninput={(e) => updateValue(index, e.currentTarget.value)}
-										class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+										value={condition.value2 ?? ''}
+										oninput={(e) => updateValue2(index, e.currentTarget.value)}
+										class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
 									/>
 								{/if}
-							{/if}
-						</div>
-					{/each}
-
-					<button
-						type="button"
-						class="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-stroke py-2.5 text-sm font-medium text-brand-primary active:bg-surface-2"
-						onclick={addCondition}
-					>
-						<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M12 5v14M5 12h14" stroke-linecap="round" />
-						</svg>
-						{$translate('smartPlaylist.addCondition')}
-					</button>
-				</div>
-
-				<!-- Live preview count -->
-				{#if conditions.length > 0}
-					<p class="text-center text-xs text-text-secondary">
-						{#if previewLoading}
-							…
-						{:else if previewCount !== null}
-							{$translate('smartPlaylist.preview', { values: { count: previewCount } })}
+							</div>
+						{:else if condition.type === 'date' && (condition.operator === 'before' || condition.operator === 'after')}
+							<input
+								type="date"
+								value={condition.value ?? ''}
+								oninput={(e) => updateValue(index, e.currentTarget.value)}
+								class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+							/>
+						{:else if condition.type === 'date'}
+							<input
+								type="number"
+								inputmode="numeric"
+								placeholder="30"
+								value={condition.value ?? ''}
+								oninput={(e) => updateValue(index, e.currentTarget.value)}
+								class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+							/>
+						{:else}
+							<input
+								type="text"
+								value={condition.type === 'text' ? (condition.value ?? '') : ''}
+								oninput={(e) => updateValue(index, e.currentTarget.value)}
+								class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+							/>
 						{/if}
-					</p>
-				{/if}
-			</div>
+					{/if}
+				</div>
+			{/each}
+
+			<button
+				type="button"
+				class="flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-stroke py-2.5 text-sm font-medium text-brand-primary active:bg-surface-2"
+				onclick={addCondition}
+			>
+				<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+				</svg>
+				{$translate('smartPlaylist.addCondition')}
+			</button>
 		</div>
-	{/snippet}
-</Drawer>
+
+		<!-- Live preview count -->
+		{#if conditions.length > 0}
+			<p class="text-center text-xs text-text-secondary">
+				{#if previewLoading}
+					…
+				{:else if previewCount !== null}
+					{$translate('smartPlaylist.preview', { values: { count: previewCount } })}
+				{/if}
+			</p>
+		{/if}
+	</div>
+</FormSheet>

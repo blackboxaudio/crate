@@ -7,6 +7,7 @@
 		"cancel": "Скасувати",
 		"create": "Створити",
 		"delete": "Видалити",
+		"discard": "Відхилити",
 		"remove": "Вилучити",
 		"rename": "Перейменувати",
 		"default": "За замовчуванням",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Припинити стеження",
 			"pauseSelected": "Пауза",
 			"unfollow": "Припинити стеження",
+			"unfollowConfirm": "Припинити стеження за {name} для нових видань? Видання, які вже є в Пошуку, зберігаються.",
 			"checkNow": "Перевірити зараз",
 			"enabledToggle": "Перевіряти на нові видання",
 			"artist": "Виконавець",
@@ -635,6 +637,8 @@
 			"placeholder": "Назва категорії"
 		},
 		"confirm": {
+			"discardChangesTitle": "Відхилити зміни",
+			"discardChangesMessage": "Ви впевнені, що хочете відхилити свої зміни?",
 			"deletePlaylistTitle": "Видалити плейлист",
 			"deletePlaylistMessage": "Ви впевнені, що хочете видалити цей плейлист?",
 			"deleteFolderTitle": "Видалити папку",

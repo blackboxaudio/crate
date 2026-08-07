@@ -22,6 +22,11 @@
 		direction: Direction
 		onClose: () => void
 		onClosed?: () => void
+		/** Veto a USER dismissal (scrim tap, drag commit, Esc, Android Back) — e.g. a form sheet confirming
+		 *  "discard changes?" via the native dialog. Resolving false keeps the panel open (a committed drag has
+		 *  already snapped back by then — the gestures reset their progress before committing). Programmatic
+		 *  closes (the parent flipping `open`) never consult it, so a submit path is never guarded. */
+		guardClose?: () => boolean | Promise<boolean>
 		/** Receives live drawer state + the dismiss-drag action (apply `use:drag` to a handle to confine it).
 		 *  `animating` is true while the panel slides — switch a scroll container to overflow-hidden then, so
 		 *  its content can't scroll mid-transition while the panel itself stays grabbable / finger-followable. */
@@ -73,6 +78,7 @@
 		direction,
 		onClose,
 		onClosed,
+		guardClose,
 		children,
 		class: className = '',
 		ariaLabel,
@@ -237,8 +243,22 @@
 	}
 
 	// User-initiated dismissal: animate out AND tell the parent (so it can flip `open` / clear its mount).
-	function requestClose() {
-		if (closing) return
+	// With a `guardClose`, the veto is resolved first (panel stays open while e.g. a native confirm shows);
+	// `guardPending` latches so stacked dismiss triggers (Esc + scrim + Back) can't raise a second dialog.
+	let guardPending = false
+	async function requestClose() {
+		if (closing || guardPending) return
+		if (guardClose) {
+			guardPending = true
+			let ok: boolean
+			try {
+				ok = await guardClose()
+			} finally {
+				guardPending = false
+			}
+			// Re-check state after the await — the parent may have closed programmatically meanwhile.
+			if (!ok || closing || !visible) return
+		}
 		startClose()
 		onClose()
 	}

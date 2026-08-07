@@ -12,8 +12,9 @@
 	import { accentColor } from '$shared/stores/settings'
 	import { mobileUIStore, scrollTopNonce } from '$lib/stores/mobileUI'
 	import { easeFluid } from '$lib/easing'
-	import { lightTap, rigidTap } from '$lib/utils/haptics'
+	import { lightTap } from '$lib/utils/haptics'
 	import { confirmDialog } from '$lib/utils/dialog'
+	import { longPress, type LongPressRect } from '$lib/actions/longPress'
 	import MobilePromptDialog from '$lib/components/common/MobilePromptDialog.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
@@ -192,53 +193,24 @@
 
 	// --- Long-press → context menu (rows are categories or tags) ----------------------------------------
 	type LongPressTarget = { type: 'category'; category: TagCategory } | { type: 'tag'; tag: Tag; category: TagCategory }
-	let longPressTimer = 0
 	let longPressTarget = $state<LongPressTarget | null>(null)
 	let rowActionsOpen = $state(false)
 	// Whether the menu was opened by a discrete tap (a category's "…" button) rather than a held long-press —
 	// drives ContextMenu's `tapTriggered` arming and skips the lifted preview (button-anchored presentation).
 	let menuByTap = $state(false)
 	// Viewport rect of the long-pressed row, so the context menu can lift it in place.
-	let longPressRect = $state<{ top: number; left: number; width: number; height: number } | null>(null)
-	// A stationary long-press also synthesizes a click on release; this latches so we can swallow that one.
-	let suppressNextClick = false
+	let longPressRect = $state<LongPressRect | null>(null)
 
 	// Narrow the latched target in the script (so the template keys off plain nullable values rather than
 	// relying on in-template discriminated-union narrowing).
 	const lpCategory = $derived(longPressTarget?.type === 'category' ? longPressTarget.category : null)
 	const lpTag = $derived(longPressTarget?.type === 'tag' ? longPressTarget : null)
 
-	function startLongPress(e: PointerEvent, target: LongPressTarget) {
-		suppressNextClick = false
-		if (longPressTimer) clearTimeout(longPressTimer)
-		const el = e.currentTarget as HTMLElement
-		longPressTimer = window.setTimeout(() => {
-			longPressTimer = 0
-			const r = el?.getBoundingClientRect()
-			longPressRect = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
-			suppressNextClick = true
-			void rigidTap()
-			menuByTap = false
-			longPressTarget = target
-			rowActionsOpen = true
-		}, 450)
-		window.addEventListener('pointermove', cancelLongPress, { once: true, passive: true })
-		window.addEventListener('pointerup', cancelLongPress, { once: true })
-		window.addEventListener('pointercancel', cancelLongPress, { once: true })
-	}
-
-	function cancelLongPress() {
-		if (longPressTimer) {
-			clearTimeout(longPressTimer)
-			longPressTimer = 0
-		}
-	}
-
-	function onRowClickCapture(e: MouseEvent) {
-		if (!suppressNextClick) return
-		suppressNextClick = false
-		e.preventDefault()
-		e.stopPropagation()
+	function openRowMenu(target: LongPressTarget, rect: LongPressRect) {
+		longPressRect = rect
+		menuByTap = false
+		longPressTarget = target
+		rowActionsOpen = true
 	}
 
 	// A category's "…" button: opens the same menu as a long-press, but anchored to the button (no lifted
@@ -342,8 +314,7 @@
 					<div class="mb-1 flex items-center justify-between gap-2">
 						<h3
 							class="min-w-0 flex-1 truncate text-sm font-medium text-text-secondary"
-							onpointerdown={(e) => startLongPress(e, { type: 'category', category })}
-							onclickcapture={onRowClickCapture}
+							use:longPress={{ onLongPress: (rect) => openRowMenu({ type: 'category', category }, rect) }}
 						>
 							{category.name}
 						</h3>
@@ -369,8 +340,7 @@
 						{#each category.tags as tag (tag.id)}
 							{@const color = tag.color ?? category.color ?? DEFAULT_TAG_COLOR}
 							<div
-								onpointerdown={(e) => startLongPress(e, { type: 'tag', tag, category })}
-								onclickcapture={onRowClickCapture}
+								use:longPress={{ onLongPress: (rect) => openRowMenu({ type: 'tag', tag, category }, rect) }}
 								in:scale={{ duration: 180, start: 0.85, easing: easeFluid }}
 								out:scale={{ duration: 140, start: 0.85, easing: easeFluid }}
 							>

@@ -7,6 +7,7 @@
 		"cancel": "Cancelar",
 		"create": "Crear",
 		"delete": "Eliminar",
+		"discard": "Descartar",
 		"remove": "Quitar",
 		"rename": "Renombrar",
 		"default": "Predeterminado",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Dejar de seguir",
 			"pauseSelected": "Pausar",
 			"unfollow": "Dejar de seguir",
+			"unfollowConfirm": "¿Dejar de observar a {name} para nuevos lanzamientos? Se mantienen los lanzamientos ya en Descubrimiento.",
 			"checkNow": "Verificar ahora",
 			"enabledToggle": "Alternar actualizaciones",
 			"artist": "Artista",
@@ -635,6 +637,8 @@
 			"placeholder": "Nombre de la categoría"
 		},
 		"confirm": {
+			"discardChangesTitle": "Descartar cambios",
+			"discardChangesMessage": "¿Estás seguro de que quieres descartar tus cambios?",
 			"deletePlaylistTitle": "Eliminar lista de reproducción",
 			"deletePlaylistMessage": "¿Estás seguro de que quieres eliminar esta lista de reproducción?",
 			"deleteFolderTitle": "Eliminar carpeta",

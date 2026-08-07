@@ -11,14 +11,15 @@
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { formatRelativeDate } from '$shared/utils'
 	import { confirmDialog } from '$lib/utils/dialog'
-	import { lightTap, rigidTap } from '$lib/utils/haptics'
+	import { lightTap } from '$lib/utils/haptics'
 	import { mobileUIStore, scrollTopNonce } from '$lib/stores/mobileUI'
 	import type { SortOption } from '$lib/utils/listControls'
+	import { longPress, type LongPressRect } from '$lib/actions/longPress'
 	import SortSheet from '$lib/components/discovery/SortSheet.svelte'
 	import MobileList from '$lib/components/common/MobileList.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
-	import MobilePromptDialog from '$lib/components/common/MobilePromptDialog.svelte'
+	import AddSourceSheet from './AddSourceSheet.svelte'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
 	import EmptyState from '$lib/components/common/EmptyState.svelte'
@@ -96,69 +97,23 @@
 	}
 
 	// --- Add a source by URL (paste an artist/label page) -----------------------------------------------
-	// Uses the centered prompt (not a bottom sheet) so the field stays above the iOS keyboard. Kept open
-	// during the network scan (`addBusy` disables the confirm) so a failed URL keeps the user's input.
+	// The same form-sheet presentation as adding a release (AddSourceSheet keeps the field clear of the
+	// keyboard, stays open while the URL is checked, and a failed URL keeps the user's input).
 	let addOpen = $state(false)
-	let addUrl = $state('')
-	let addBusy = $state(false)
 
 	function openAdd() {
-		addUrl = ''
-		addBusy = false
 		addOpen = true
 	}
 
-	async function submitAdd() {
-		const trimmed = addUrl.trim()
-		if (!trimmed || addBusy) return
-		addBusy = true
-		const source = await followStore.followFromUrl(trimmed)
-		addBusy = false
-		if (source) {
-			addUrl = ''
-			addOpen = false
-		}
-	}
-
-	// --- Long-press row actions (mirrors PlaylistsView) -------------------------------------------------
-	let longPressTimer = 0
+	// --- Long-press row actions (shared `longPress` action, mirrors PlaylistsView) ----------------------
 	let actionsOpen = $state(false)
 	let actionTarget = $state<FollowedSource | null>(null)
-	let longPressRect = $state<{ top: number; left: number; width: number; height: number } | null>(null)
-	// A stationary long-press also synthesizes a click on release; latch so we can swallow that one click
-	// (else opening the menu would also fire the row's openSource — MobileListItem is a real <button>).
-	let suppressNextClick = false
+	let longPressRect = $state<LongPressRect | null>(null)
 
-	function startLongPress(e: PointerEvent, source: FollowedSource) {
-		suppressNextClick = false
-		if (longPressTimer) clearTimeout(longPressTimer)
-		const el = e.currentTarget as HTMLElement
-		longPressTimer = window.setTimeout(() => {
-			longPressTimer = 0
-			const r = el?.getBoundingClientRect()
-			longPressRect = r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
-			suppressNextClick = true
-			void rigidTap()
-			actionTarget = source
-			actionsOpen = true
-		}, 450)
-		window.addEventListener('pointermove', cancelLongPress, { once: true, passive: true })
-		window.addEventListener('pointerup', cancelLongPress, { once: true })
-		window.addEventListener('pointercancel', cancelLongPress, { once: true })
-	}
-
-	function cancelLongPress() {
-		if (longPressTimer) {
-			clearTimeout(longPressTimer)
-			longPressTimer = 0
-		}
-	}
-
-	function onRowClickCapture(e: MouseEvent) {
-		if (!suppressNextClick) return
-		suppressNextClick = false
-		e.preventDefault()
-		e.stopPropagation()
+	function openRowMenu(source: FollowedSource, rect: LongPressRect) {
+		longPressRect = rect
+		actionTarget = source
+		actionsOpen = true
 	}
 
 	function checkOne(source: FollowedSource) {
@@ -185,12 +140,13 @@
 
 	async function unfollow(source: FollowedSource) {
 		actionsOpen = false
-		// Reuse the desktop copy that already explains unfollowing keeps existing releases, so it reads as
-		// the dialog body rather than a bare "Are you sure?".
-		const ok = await confirmDialog($translate('discovery.following.footerNote'), {
-			title: $translate('discovery.following.unfollow'),
-			confirmLabel: $translate('discovery.following.unfollow'),
-		})
+		const ok = await confirmDialog(
+			$translate('discovery.following.unfollowConfirm', { values: { name: source.name ?? domain(source.url) } }),
+			{
+				title: $translate('discovery.following.unfollow'),
+				confirmLabel: $translate('discovery.following.unfollow'),
+			}
+		)
 		if (!ok) return
 		await followStore.unfollow(source.id)
 	}
@@ -324,7 +280,7 @@
 					<!-- Only an individual "Check now" spins this row; a pull-to-refresh (check-all) is already
 				     represented by the single pull spinner, so don't light up every row for it. -->
 					{@const checking = $followStore.checkingIds.has(source.id)}
-					<div onpointerdown={(e) => startLongPress(e, source)} onclickcapture={onRowClickCapture}>
+					<div use:longPress={{ onLongPress: (rect) => openRowMenu(source, rect) }}>
 						<MobileListItem onclick={() => openSourceDetail(source)}>
 							{#snippet leading()}
 								{@render avatar(source)}
@@ -382,18 +338,8 @@
 	</EmptyState>
 {/snippet}
 
-<!-- Add-source prompt: paste an artist/label page URL. -->
-<MobilePromptDialog
-	open={addOpen}
-	bind:value={addUrl}
-	title={$translate('discovery.following.addSource.title')}
-	message={$translate('discovery.following.addSource.urlInfo')}
-	placeholder={$translate('discovery.following.addSource.urlPlaceholder')}
-	confirmLabel={$translate('discovery.following.follow')}
-	confirmDisabled={!addUrl.trim() || addBusy}
-	onConfirm={submitAdd}
-	onCancel={() => (addOpen = false)}
-/>
+<!-- Add-source sheet: paste an artist/label page URL (same presentation as adding a release). -->
+<AddSourceSheet open={addOpen} onClose={() => (addOpen = false)} />
 
 <!-- Row long-press menu: check / open / unfollow. -->
 <ContextMenu

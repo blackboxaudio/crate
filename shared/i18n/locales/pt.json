@@ -7,6 +7,7 @@
 		"cancel": "Cancelar",
 		"create": "Criar",
 		"delete": "Excluir",
+		"discard": "Descartar",
 		"remove": "Remover",
 		"rename": "Renomear",
 		"default": "Padrão",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Deixar de seguir",
 			"pauseSelected": "Pausar",
 			"unfollow": "Deixar de seguir",
+			"unfollowConfirm": "Parar de seguir {name} para novos lançamentos? Os lançamentos já em Descobertas são mantidos.",
 			"checkNow": "Verificar agora",
 			"enabledToggle": "Verificar novos lançamentos",
 			"artist": "Artista",
@@ -635,6 +637,8 @@
 			"placeholder": "Nome da categoria"
 		},
 		"confirm": {
+			"discardChangesTitle": "Descartar alterações",
+			"discardChangesMessage": "Tem certeza de que deseja descartar suas alterações?",
 			"deletePlaylistTitle": "Excluir playlist",
 			"deletePlaylistMessage": "Tem certeza de que deseja excluir esta playlist?",
 			"deleteFolderTitle": "Excluir pasta",

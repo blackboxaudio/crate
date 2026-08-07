@@ -7,6 +7,7 @@
 		"cancel": "취소",
 		"create": "만들기",
 		"delete": "삭제",
+		"discard": "버리기",
 		"remove": "제거",
 		"rename": "이름 변경",
 		"default": "기본값",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "팔로우 해제",
 			"pauseSelected": "일시 중지",
 			"unfollow": "팔로우 해제",
+			"unfollowConfirm": "{name}의 새로운 릴리스를 더 이상 감시하지 않으시겠습니까? 이미 발견에 있는 릴리스는 유지됩니다.",
 			"checkNow": "지금 확인",
 			"enabledToggle": "새 릴리스 확인",
 			"artist": "아티스트",
@@ -635,6 +637,8 @@
 			"placeholder": "카테고리 이름"
 		},
 		"confirm": {
+			"discardChangesTitle": "변경 사항 버리기",
+			"discardChangesMessage": "변경 사항을 버리시겠습니까?",
 			"deletePlaylistTitle": "재생목록 삭제",
 			"deletePlaylistMessage": "이 재생목록을 삭제하시겠습니까?",
 			"deleteFolderTitle": "폴더 삭제",

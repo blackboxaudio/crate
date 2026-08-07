@@ -25,7 +25,7 @@
 	import { onMount, tick } from 'svelte'
 	import { mobileUIStore, addReleaseOpen, addReleasePrefillUrl } from '$lib/stores/mobileUI'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
-	import Drawer from '$lib/components/common/Drawer.svelte'
+	import FormSheet from '$lib/components/common/FormSheet.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import SourceIcon from './SourceIcon.svelte'
 	import BulkImportView from './BulkImportView.svelte'
@@ -333,224 +333,200 @@
 	const canSubmit = $derived(url.trim() && !unsupportedUrl && !scanning && !fetching && !submitting)
 </script>
 
-<!-- A full-height form sheet (not a compact bottom sheet). The action bar and the URL field live at the TOP,
-     so when the keyboard opens from the bottom it never covers the primary controls, and the focused field sits
-     high on screen — well clear of the keyboard — so iOS has no reason to scroll the page to reveal it (the root
-     cause of the earlier "whole view shifts up" bug). Metadata that loads after fetch scrolls in the body below. -->
-<Drawer
+<!-- Full-height form sheet: the nav-bar actions and the URL field live at the TOP, so when the keyboard opens
+     from the bottom it never covers the primary controls, and the focused field sits high on screen — well
+     clear of the keyboard — so iOS has no reason to scroll the page to reveal it (the root cause of the
+     earlier "whole view shifts up" bug). Metadata that loads after fetch scrolls in the body below. -->
+<FormSheet
 	open={$addReleaseOpen}
 	onClose={handleClose}
 	onClosed={resetForm}
-	direction="bottom"
 	positionSlide
-	z={50}
-	panelDrag={false}
-	ariaLabel={$translate('discovery.addRelease')}
-	class="pb-safe flex h-[92vh] flex-col overflow-hidden rounded-t-2xl border-t border-stroke bg-surface-0"
+	dirty={url.trim().length > 0}
+	title={$translate('discovery.addRelease')}
 >
-	{#snippet children({ drag, animating })}
-		<!-- Grab handle + nav bar (drag either to dismiss). Cancel / title / primary action. -->
-		<div use:drag>
-			<div class="flex justify-center pt-2 pb-1">
-				<span class="h-1 w-10 rounded-full bg-text-tertiary/50"></span>
-			</div>
-			<div class="grid grid-cols-[1fr_auto_1fr] items-center gap-2 border-b border-stroke-subtle px-4 py-3">
-				<button
-					type="button"
-					class="justify-self-start text-sm font-medium text-text-secondary active:opacity-60"
-					onclick={handleClose}
-				>
-					{$translate('common.cancel')}
-				</button>
-				<h2 class="text-base font-medium text-text-primary">{$translate('discovery.addRelease')}</h2>
-				{#if isBulkMode}
-					<span></span>
-				{:else if isOffline && url.trim() && !unsupportedUrl}
+	{#snippet action()}
+		{#if isBulkMode}
+			<span></span>
+		{:else if isOffline && url.trim() && !unsupportedUrl}
+			<button
+				type="button"
+				class="text-sm font-semibold text-brand-primary active:opacity-60"
+				onclick={handleAddToQueue}
+			>
+				{$translate('discovery.addToQueue')}
+			</button>
+		{:else}
+			<button
+				type="button"
+				class="text-sm font-semibold text-brand-primary active:opacity-60 disabled:opacity-40"
+				disabled={!canSubmit}
+				onclick={handleSubmit}
+			>
+				{$translate('common.add')}
+			</button>
+		{/if}
+	{/snippet}
+
+	{#if isBulkMode && scannedPage}
+		<BulkImportView {scannedPage} onImportComplete={handleBulkImportComplete} onCancel={handleClose} />
+	{:else}
+		<div class="flex flex-col gap-4 px-4 py-4">
+			<!-- URL input -->
+			<div>
+				<div class="mb-1.5 flex items-center justify-between">
+					<label for="add-url" class="block text-xs font-medium text-text-secondary">
+						{$translate('discovery.url')}
+					</label>
 					<button
 						type="button"
-						class="justify-self-end text-sm font-semibold text-brand-primary active:opacity-60"
-						onclick={handleAddToQueue}
+						class="text-xs font-medium text-brand-primary active:opacity-70"
+						onclick={pasteFromClipboard}
 					>
-						{$translate('discovery.addToQueue')}
+						{$translate('discovery.pasteLink')}
 					</button>
-				{:else}
-					<button
-						type="button"
-						class="justify-self-end text-sm font-semibold text-brand-primary active:opacity-60 disabled:opacity-40"
-						disabled={!canSubmit}
-						onclick={handleSubmit}
-					>
-						{$translate('common.add')}
-					</button>
+				</div>
+				<input
+					id="add-url"
+					type="url"
+					use:focusOnOpen
+					bind:value={url}
+					oninput={handleUrlInput}
+					placeholder="https://..."
+					class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+				/>
+				{#if clipboardMiss}
+					<p class="mt-1.5 text-xs text-text-tertiary">{$translate('discovery.clipboardNoUrl')}</p>
+				{/if}
+				{#if fetching}
+					<div class="mt-2 flex items-center gap-2">
+						<Spinner class="h-3.5 w-3.5" />
+						<span class="text-xs text-text-tertiary">{$translate('discovery.fetchingMetadata')}</span>
+					</div>
+				{:else if scanning}
+					<div class="mt-2 flex items-center gap-2">
+						<Spinner class="h-3.5 w-3.5" />
+						<span class="text-xs text-text-tertiary">
+							{#if scanProgress?.total_pages}
+								{$translate('discovery.scanningReleasesProgress', {
+									values: {
+										current: scanProgress.current_page,
+										total: scanProgress.total_pages,
+										found: scanProgress.releases_found,
+									},
+								})}
+							{:else if scanProgress?.entity_name}
+								{$translate('discovery.scanningReleasesEntity', { values: { name: scanProgress.entity_name } })}
+							{:else}
+								{$translate('discovery.scanningReleases')}
+							{/if}
+						</span>
+					</div>
+				{:else if unsupportedUrl}
+					<p class="mt-2 text-xs text-danger">{$translate('discovery.unsupportedUrl')}</p>
+				{:else if isOffline}
+					<p class="mt-2 text-xs text-text-tertiary">{$translate('discovery.offlineQueueNotice')}</p>
+				{:else if fetchError}
+					<p class="mt-2 text-xs text-danger">{$translate('discovery.fetchError')}</p>
 				{/if}
 			</div>
-		</div>
 
-		<!-- Scrollable body: URL field pinned at the top; states, artwork, editable fields, and tracks below. -->
-		<div class="min-h-0 flex-1 {animating ? 'overflow-hidden' : 'overflow-y-auto'}">
-			{#if isBulkMode && scannedPage}
-				<BulkImportView {scannedPage} onImportComplete={handleBulkImportComplete} onCancel={handleClose} />
-			{:else}
-				<div class="flex flex-col gap-4 px-4 py-4">
-					<!-- URL input -->
-					<div>
-						<div class="mb-1.5 flex items-center justify-between">
-							<label for="add-url" class="block text-xs font-medium text-text-secondary">
-								{$translate('discovery.url')}
-							</label>
-							<button
-								type="button"
-								class="text-xs font-medium text-brand-primary active:opacity-70"
-								onclick={pasteFromClipboard}
-							>
-								{$translate('discovery.pasteLink')}
-							</button>
-						</div>
-						<input
-							id="add-url"
-							type="url"
-							use:focusOnOpen
-							bind:value={url}
-							oninput={handleUrlInput}
-							placeholder="https://..."
-							class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-						/>
-						{#if clipboardMiss}
-							<p class="mt-1.5 text-xs text-text-tertiary">{$translate('discovery.clipboardNoUrl')}</p>
-						{/if}
-						{#if fetching}
-							<div class="mt-2 flex items-center gap-2">
-								<Spinner class="h-3.5 w-3.5" />
-								<span class="text-xs text-text-tertiary">{$translate('discovery.fetchingMetadata')}</span>
-							</div>
-						{:else if scanning}
-							<div class="mt-2 flex items-center gap-2">
-								<Spinner class="h-3.5 w-3.5" />
-								<span class="text-xs text-text-tertiary">
-									{#if scanProgress?.total_pages}
-										{$translate('discovery.scanningReleasesProgress', {
-											values: {
-												current: scanProgress.current_page,
-												total: scanProgress.total_pages,
-												found: scanProgress.releases_found,
-											},
-										})}
-									{:else if scanProgress?.entity_name}
-										{$translate('discovery.scanningReleasesEntity', { values: { name: scanProgress.entity_name } })}
-									{:else}
-										{$translate('discovery.scanningReleases')}
-									{/if}
-								</span>
-							</div>
-						{:else if unsupportedUrl}
-							<p class="mt-2 text-xs text-danger">{$translate('discovery.unsupportedUrl')}</p>
-						{:else if isOffline}
-							<p class="mt-2 text-xs text-text-tertiary">{$translate('discovery.offlineQueueNotice')}</p>
-						{:else if fetchError}
-							<p class="mt-2 text-xs text-danger">{$translate('discovery.fetchError')}</p>
-						{/if}
-					</div>
-
-					<!-- Match notice -->
-					{#if matchFound}
-						<div class="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
-							<p class="text-sm text-text-secondary">
-								{$translate('discovery.similarFound', { values: { title: title || '', artist: artist || '' } })}
-							</p>
-						</div>
-					{/if}
-
-					<!-- Artwork preview -->
-					{#if artworkPreview && !artworkPreviewFailed}
-						<div class="flex justify-center">
-							<img
-								src={artworkPreview}
-								alt=""
-								class="h-36 w-36 rounded-lg object-cover shadow-md"
-								decoding="async"
-								onerror={() => (artworkPreviewFailed = true)}
-							/>
-						</div>
-					{/if}
-
-					<!-- Source badge (read-only; auto-detected from URL) -->
-					{#if sourceType !== 'other' && !fetchedData}
-						<div class="flex items-center gap-2 text-sm text-text-secondary">
-							<SourceIcon source={sourceType} />
-							<span class="capitalize">{sourceType}</span>
-						</div>
-					{/if}
-
-					<!-- Editable fields (shown after metadata fetch) -->
-					{#if fetchedData}
-						<div>
-							<label for="add-artist" class="mb-1.5 block text-xs font-medium text-text-secondary">
-								{$translate('discovery.editor.artist')}
-							</label>
-							<input
-								id="add-artist"
-								type="text"
-								bind:value={artist}
-								placeholder={$translate('discovery.editor.artist')}
-								class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-							/>
-						</div>
-
-						<div>
-							<label for="add-title" class="mb-1.5 block text-xs font-medium text-text-secondary">
-								{$translate('discovery.editor.title')}
-							</label>
-							<input
-								id="add-title"
-								type="text"
-								bind:value={title}
-								placeholder={$translate('discovery.editor.title')}
-								class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-							/>
-						</div>
-
-						<div>
-							<label for="add-label" class="mb-1.5 block text-xs font-medium text-text-secondary">
-								{$translate('discovery.editor.label')}
-							</label>
-							<input
-								id="add-label"
-								type="text"
-								bind:value={label}
-								placeholder={$translate('discovery.editor.label')}
-								class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-							/>
-						</div>
-
-						<!-- Track list preview -->
-						{#if tracks.length > 0}
-							<div>
-								<p class="mb-1.5 text-xs font-medium text-text-secondary">
-									{$translate('discovery.tracks')} ({$translate('discovery.trackCount', {
-										values: { count: tracks.length },
-									})})
-								</p>
-								<div class="max-h-48 overflow-y-auto rounded-lg border border-stroke bg-surface-1">
-									{#each tracks as track (track.position)}
-										<div
-											class="flex items-center justify-between border-b border-stroke-subtle px-3 py-2 last:border-b-0"
-										>
-											<span class="min-w-0 flex-1 truncate text-sm text-text-primary">
-												<span class="mr-2 text-xs text-text-tertiary">{track.position}.</span>{track.name}
-											</span>
-											{#if track.duration_ms}
-												<span class="ml-2 flex-shrink-0 text-xs text-text-tertiary tabular-nums"
-													>{formatDurationCompact(track.duration_ms)}</span
-												>
-											{/if}
-										</div>
-									{/each}
-								</div>
-							</div>
-						{/if}
-					{/if}
+			<!-- Match notice -->
+			{#if matchFound}
+				<div class="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2.5">
+					<p class="text-sm text-text-secondary">
+						{$translate('discovery.similarFound', { values: { title: title || '', artist: artist || '' } })}
+					</p>
 				</div>
 			{/if}
+
+			<!-- Artwork preview -->
+			{#if artworkPreview && !artworkPreviewFailed}
+				<div class="flex justify-center">
+					<img
+						src={artworkPreview}
+						alt=""
+						class="h-36 w-36 rounded-lg object-cover shadow-md"
+						decoding="async"
+						onerror={() => (artworkPreviewFailed = true)}
+					/>
+				</div>
+			{/if}
+
+			<!-- Source badge (read-only; auto-detected from URL) -->
+			{#if sourceType !== 'other' && !fetchedData}
+				<div class="flex items-center gap-2 text-sm text-text-secondary">
+					<SourceIcon source={sourceType} />
+					<span class="capitalize">{sourceType}</span>
+				</div>
+			{/if}
+
+			<!-- Editable fields (shown after metadata fetch) -->
+			{#if fetchedData}
+				<div>
+					<label for="add-artist" class="mb-1.5 block text-xs font-medium text-text-secondary">
+						{$translate('discovery.editor.artist')}
+					</label>
+					<input
+						id="add-artist"
+						type="text"
+						bind:value={artist}
+						placeholder={$translate('discovery.editor.artist')}
+						class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+					/>
+				</div>
+
+				<div>
+					<label for="add-title" class="mb-1.5 block text-xs font-medium text-text-secondary">
+						{$translate('discovery.editor.title')}
+					</label>
+					<input
+						id="add-title"
+						type="text"
+						bind:value={title}
+						placeholder={$translate('discovery.editor.title')}
+						class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+					/>
+				</div>
+
+				<div>
+					<label for="add-label" class="mb-1.5 block text-xs font-medium text-text-secondary">
+						{$translate('discovery.editor.label')}
+					</label>
+					<input
+						id="add-label"
+						type="text"
+						bind:value={label}
+						placeholder={$translate('discovery.editor.label')}
+						class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+					/>
+				</div>
+
+				<!-- Track list preview -->
+				{#if tracks.length > 0}
+					<div>
+						<p class="mb-1.5 text-xs font-medium text-text-secondary">
+							{$translate('discovery.tracks')} ({$translate('discovery.trackCount', {
+								values: { count: tracks.length },
+							})})
+						</p>
+						<div class="max-h-48 overflow-y-auto rounded-lg border border-stroke bg-surface-1">
+							{#each tracks as track (track.position)}
+								<div class="flex items-center justify-between border-b border-stroke-subtle px-3 py-2 last:border-b-0">
+									<span class="min-w-0 flex-1 truncate text-sm text-text-primary">
+										<span class="mr-2 text-xs text-text-tertiary">{track.position}.</span>{track.name}
+									</span>
+									{#if track.duration_ms}
+										<span class="ml-2 flex-shrink-0 text-xs text-text-tertiary tabular-nums"
+											>{formatDurationCompact(track.duration_ms)}</span
+										>
+									{/if}
+								</div>
+							{/each}
+						</div>
+					</div>
+				{/if}
+			{/if}
 		</div>
-	{/snippet}
-</Drawer>
+	{/if}
+</FormSheet>

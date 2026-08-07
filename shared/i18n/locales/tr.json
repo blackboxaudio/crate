@@ -7,6 +7,7 @@
 		"cancel": "İptal",
 		"create": "Oluştur",
 		"delete": "Sil",
+		"discard": "Reddet",
 		"remove": "Kaldır",
 		"rename": "Yeniden Adlandır",
 		"default": "Varsayılan",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "İzlemeyi Bırak",
 			"pauseSelected": "Durakla",
 			"unfollow": "İzlemeyi Bırak",
+			"unfollowConfirm": "{name} için yeni yayınları izlemeyi bırakmak istediğinizden emin misiniz? Keşfette zaten olan yayınlar tutulur.",
 			"checkNow": "Şimdi Kontrol Et",
 			"enabledToggle": "Yeni Yayınları Kontrol Et",
 			"artist": "Sanatçı",
@@ -635,6 +637,8 @@
 			"placeholder": "Kategori adı"
 		},
 		"confirm": {
+			"discardChangesTitle": "Değişiklikleri Reddet",
+			"discardChangesMessage": "Değişikliklerinizi reddetmek istediğinizden emin misiniz?",
 			"deletePlaylistTitle": "Çalma Listesini Sil",
 			"deletePlaylistMessage": "Bu çalma listesini silmek istediğinizden emin misiniz?",
 			"deleteFolderTitle": "Klasörü Sil",

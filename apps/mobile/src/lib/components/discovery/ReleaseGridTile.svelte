@@ -2,19 +2,17 @@
 	import type { DiscoveryRelease } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { previewInfo } from '$shared/stores/player'
-	import { DRAG_THRESHOLD } from '$shared/utils/drag'
 	import { fullyOwnedReleaseIds, partiallyOwnedReleaseIds } from '$shared/stores/collection'
 	import { mobileUIStore, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
 	import { fullyCachedIds } from '$lib/stores/offlineCache'
-	import { lightTap, rigidTap } from '$lib/utils/haptics'
+	import { lightTap } from '$lib/utils/haptics'
+	import { longPress } from '$lib/actions/longPress'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 
 	// One tile of the discovery feed's 3-column artwork grid. Tap opens the detail (or toggles the
-	// selection in select mode); long-press opens the same release context menu the list rows use,
-	// anchored to the tile. No swipe actions in grid mode — those stay a list-row affordance. The
-	// long-press is the simple timer pattern (not the list row's swipe FSM): start on pointerdown,
-	// cancel on movement past the drag threshold, and latch `suppressNextClick` because a stationary
-	// long-press on a real <button> also synthesizes a click on release.
+	// selection in select mode); long-press (the shared `longPress` action, disabled in select mode)
+	// opens the same release context menu the list rows use, anchored to the tile. No swipe actions in
+	// grid mode — those stay a list-row affordance.
 	type Props = { release: DiscoveryRelease }
 	let { release }: Props = $props()
 
@@ -22,71 +20,7 @@
 	const isSelected = $derived($selectedReleaseIds.has(release.id))
 	const isCurrentPreview = $derived($previewInfo?.releaseId === release.id)
 
-	let el = $state<HTMLElement | null>(null)
-	let longPressTimer = 0
-	let startX = 0
-	let startY = 0
-	let suppressNextClick = false
-
-	function clearLongPress() {
-		if (longPressTimer) {
-			clearTimeout(longPressTimer)
-			longPressTimer = 0
-		}
-	}
-
-	function detach() {
-		window.removeEventListener('pointermove', onMove)
-		window.removeEventListener('pointerup', onEnd)
-		window.removeEventListener('pointercancel', onEnd)
-	}
-
-	function onMove(e: PointerEvent) {
-		if (Math.abs(e.clientX - startX) < DRAG_THRESHOLD && Math.abs(e.clientY - startY) < DRAG_THRESHOLD) return
-		clearLongPress()
-		detach()
-	}
-
-	function onEnd() {
-		clearLongPress()
-		detach()
-	}
-
-	function startLongPress(e: PointerEvent) {
-		suppressNextClick = false
-		if (isSelectMode) return
-		startX = e.clientX
-		startY = e.clientY
-		clearLongPress()
-		longPressTimer = window.setTimeout(() => {
-			longPressTimer = 0
-			suppressNextClick = true
-			void rigidTap()
-			const r = el?.getBoundingClientRect()
-			mobileUIStore.openActionsSheet(
-				release.id,
-				'feed',
-				r ? { top: r.top, left: r.left, width: r.width, height: r.height } : null
-			)
-		}, 450)
-		window.addEventListener('pointermove', onMove)
-		window.addEventListener('pointerup', onEnd)
-		window.addEventListener('pointercancel', onEnd)
-	}
-
-	// Tear down if the tile unmounts mid-press (the virtualizer recycles rows).
-	$effect(() => () => {
-		clearLongPress()
-		detach()
-	})
-
-	function onClick(e: MouseEvent) {
-		if (suppressNextClick) {
-			suppressNextClick = false
-			e.preventDefault()
-			e.stopPropagation()
-			return
-		}
+	function onClick() {
 		if (isSelectMode) {
 			mobileUIStore.toggleReleaseSelected(release.id)
 		} else {
@@ -97,12 +31,14 @@
 </script>
 
 <button
-	bind:this={el}
 	type="button"
+	use:longPress={{
+		enabled: !isSelectMode,
+		onLongPress: (rect) => mobileUIStore.openActionsSheet(release.id, 'feed', rect),
+	}}
 	class="flex w-full flex-col gap-1 text-left"
 	aria-label={`${release.artist ?? $translate('common.unknownArtist')} — ${release.title ?? $translate('common.untitled')}`}
 	aria-pressed={isSelectMode ? isSelected : undefined}
-	onpointerdown={startLongPress}
 	onclick={onClick}
 >
 	<div class="relative w-full">

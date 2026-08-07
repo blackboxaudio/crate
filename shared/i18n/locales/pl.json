@@ -7,6 +7,7 @@
 		"cancel": "Anuluj",
 		"create": "Utwórz",
 		"delete": "Usuń",
+		"discard": "Odrzuć",
 		"remove": "Usuń",
 		"rename": "Zmień nazwę",
 		"default": "Domyślne",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Przestań obserwować",
 			"pauseSelected": "Wstrzymaj",
 			"unfollow": "Przestań obserwować",
+			"unfollowConfirm": "Przestać obserwować {name} na nowe wydania? Wydania już w Odkrywaniu będą zachowane.",
 			"checkNow": "Sprawdź teraz",
 			"enabledToggle": "Sprawdzaj nowe wydania",
 			"artist": "Artysta",
@@ -635,6 +637,8 @@
 			"placeholder": "Nazwa kategorii"
 		},
 		"confirm": {
+			"discardChangesTitle": "Odrzuć zmiany",
+			"discardChangesMessage": "Czy na pewno chcesz odrzucić swoje zmiany?",
 			"deletePlaylistTitle": "Usuń playlistę",
 			"deletePlaylistMessage": "Czy na pewno chcesz usunąć tę playlistę?",
 			"deleteFolderTitle": "Usuń folder",

@@ -2,8 +2,10 @@
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease } from '$shared/types'
 	import { discoveryStore } from '$shared/stores/discovery'
-	import MobileModal from '$lib/components/common/MobileModal.svelte'
+	import FormSheet from '$lib/components/common/FormSheet.svelte'
 
+	// Metadata editor for a discovery release, on the shared FormSheet: Save commits, every dismiss path
+	// (Cancel, scrim, swipe, Back) cancels — guarded by the discard confirm while edits exist.
 	type Props = {
 		open: boolean
 		release: DiscoveryRelease
@@ -27,23 +29,35 @@
 		}
 	})
 
-	async function handleDone() {
-		const update: Record<string, string | undefined> = {}
-		if (artist !== (release.artist ?? '')) update.artist = artist
-		if (title !== (release.title ?? '')) update.title = title
-		if (label !== (release.label ?? '')) update.label = label
-		if (releaseDate !== (release.release_date ?? '')) update.release_date = releaseDate
-		if (notes !== (release.notes ?? '')) update.notes = notes
+	const update = $derived.by(() => {
+		const u: Record<string, string | undefined> = {}
+		if (artist !== (release.artist ?? '')) u.artist = artist
+		if (title !== (release.title ?? '')) u.title = title
+		if (label !== (release.label ?? '')) u.label = label
+		if (releaseDate !== (release.release_date ?? '')) u.release_date = releaseDate
+		if (notes !== (release.notes ?? '')) u.notes = notes
+		return u
+	})
+	const dirty = $derived(Object.keys(update).length > 0)
 
-		if (Object.keys(update).length > 0) {
+	async function handleSave() {
+		if (dirty) {
 			await discoveryStore.updateRelease(release.id, update)
 		}
 		onClose()
 	}
 </script>
 
-<MobileModal {open} onClose={handleDone} onSubmit={handleDone} title={$translate('discovery.editRelease')}>
-	<div class="flex flex-col gap-4 py-1">
+<FormSheet
+	{open}
+	{onClose}
+	onSubmit={handleSave}
+	submitLabel={$translate('common.save')}
+	submitDisabled={!dirty}
+	{dirty}
+	title={$translate('discovery.editRelease')}
+>
+	<div class="flex flex-col gap-4 px-4 py-4">
 		<div>
 			<label for="edit-artist" class="mb-1.5 block text-xs font-medium text-text-secondary">
 				{$translate('discovery.editor.artist')}
@@ -109,23 +123,4 @@
 			></textarea>
 		</div>
 	</div>
-
-	{#snippet footer()}
-		<div class="flex w-full justify-end gap-2">
-			<button
-				type="button"
-				class="rounded-lg px-4 py-2 text-sm font-medium text-text-secondary active:bg-surface-2"
-				onclick={onClose}
-			>
-				{$translate('common.cancel')}
-			</button>
-			<button
-				type="button"
-				class="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white active:opacity-90"
-				onclick={handleDone}
-			>
-				{$translate('common.done')}
-			</button>
-		</div>
-	{/snippet}
-</MobileModal>
+</FormSheet>

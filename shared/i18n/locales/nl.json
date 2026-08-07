@@ -7,6 +7,7 @@
 		"cancel": "Annuleren",
 		"create": "Maken",
 		"delete": "Verwijderen",
+		"discard": "Verwerpen",
 		"remove": "Verwijderen",
 		"rename": "Hernoemen",
 		"default": "Standaard",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Niet meer volgen",
 			"pauseSelected": "Pauzeren",
 			"unfollow": "Niet meer volgen",
+			"unfollowConfirm": "Wil je {name} niet meer volgen voor nieuwe releases? Releases die al in Ontdekkingen staan blijven behouden.",
 			"checkNow": "Nu controleren",
 			"enabledToggle": "Updates in-/uitschakelen",
 			"artist": "Artiest",
@@ -635,6 +637,8 @@
 			"placeholder": "Categorienaam"
 		},
 		"confirm": {
+			"discardChangesTitle": "Wijzigingen verwerpen",
+			"discardChangesMessage": "Weet je zeker dat je je wijzigingen wilt verwerpen?",
 			"deletePlaylistTitle": "Afspeellijst verwijderen",
 			"deletePlaylistMessage": "Weet je zeker dat je deze afspeellijst wilt verwijderen?",
 			"deleteFolderTitle": "Map verwijderen",

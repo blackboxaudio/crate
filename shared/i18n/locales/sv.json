@@ -7,6 +7,7 @@
 		"cancel": "Avbryt",
 		"create": "Skapa",
 		"delete": "Ta bort",
+		"discard": "Förkasta",
 		"remove": "Ta bort",
 		"rename": "Byt namn",
 		"default": "Standard",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Sluta följa",
 			"pauseSelected": "Pausa",
 			"unfollow": "Sluta följa",
+			"unfollowConfirm": "Sluta följa {name} för nya utgåvor? Utgåvor som redan är i Upptäckningar behålls.",
 			"checkNow": "Kontrollera nu",
 			"enabledToggle": "Sök efter nya utgåvor",
 			"artist": "Artist",
@@ -635,6 +637,8 @@
 			"placeholder": "Kategorinamn"
 		},
 		"confirm": {
+			"discardChangesTitle": "Förkasta ändringar",
+			"discardChangesMessage": "Är du säker på att du vill förkasta dina ändringar?",
 			"deletePlaylistTitle": "Ta bort spellista",
 			"deletePlaylistMessage": "Är du säker på att du vill ta bort denna spellista?",
 			"deleteFolderTitle": "Ta bort mapp",

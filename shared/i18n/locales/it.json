@@ -7,6 +7,7 @@
 		"cancel": "Annulla",
 		"create": "Crea",
 		"delete": "Elimina",
+		"discard": "Scarta",
 		"remove": "Rimuovi",
 		"rename": "Rinomina",
 		"default": "Predefinito",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Smetti di seguire",
 			"pauseSelected": "Pausa",
 			"unfollow": "Smetti di seguire",
+			"unfollowConfirm": "Smettere di seguire {name} per i nuovi rilasci? I rilasci già in Scoperta vengono conservati.",
 			"checkNow": "Controlla ora",
 			"enabledToggle": "Controlla nuovi rilasci",
 			"artist": "Artista",
@@ -635,6 +637,8 @@
 			"placeholder": "Nome categoria"
 		},
 		"confirm": {
+			"discardChangesTitle": "Scarta modifiche",
+			"discardChangesMessage": "Sei sicuro di voler scartare le tue modifiche?",
 			"deletePlaylistTitle": "Elimina playlist",
 			"deletePlaylistMessage": "Sei sicuro di voler eliminare questa playlist?",
 			"deleteFolderTitle": "Elimina cartella",

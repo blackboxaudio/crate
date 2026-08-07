@@ -7,6 +7,7 @@
 		"cancel": "Abbrechen",
 		"create": "Erstellen",
 		"delete": "Löschen",
+		"discard": "Verwerfen",
 		"remove": "Entfernen",
 		"rename": "Umbenennen",
 		"default": "Standard",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Nicht mehr folgen",
 			"pauseSelected": "Pausieren",
 			"unfollow": "Nicht mehr folgen",
+			"unfollowConfirm": "Möchten Sie {name} nicht mehr auf neue Releases beobachten? Releases, die bereits in Entdeckungen sind, werden behalten.",
 			"checkNow": "Jetzt prüfen",
 			"enabledToggle": "Auf neue Releases überprüfen",
 			"artist": "Künstler",
@@ -635,6 +637,8 @@
 			"placeholder": "Kategoriename"
 		},
 		"confirm": {
+			"discardChangesTitle": "Änderungen verwerfen",
+			"discardChangesMessage": "Möchten Sie Ihre Änderungen wirklich verwerfen?",
 			"deletePlaylistTitle": "Playlist löschen",
 			"deletePlaylistMessage": "Möchten Sie diese Playlist wirklich löschen?",
 			"deleteFolderTitle": "Ordner löschen",

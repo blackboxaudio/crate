@@ -7,6 +7,7 @@
 		"cancel": "Anulează",
 		"create": "Creează",
 		"delete": "Șterge",
+		"discard": "Renunță",
 		"remove": "Elimină",
 		"rename": "Redenumește",
 		"default": "Implicit",
@@ -486,6 +487,7 @@
 			"unfollowSelected": "Oprire urmărire",
 			"pauseSelected": "Pauza",
 			"unfollow": "Oprire urmărire",
+			"unfollowConfirm": "Opri urmărirea lui {name} pentru lansări noi? Lansările deja în Descoperiri sunt păstrate.",
 			"checkNow": "Verifică acum",
 			"enabledToggle": "Verificați lansări noi",
 			"artist": "Interpret",
@@ -635,6 +637,8 @@
 			"placeholder": "Nume categorie"
 		},
 		"confirm": {
+			"discardChangesTitle": "Renunță la Modificări",
+			"discardChangesMessage": "Sunteți sigur că doriți să renunțați la modificările dumneavoastră?",
 			"deletePlaylistTitle": "Șterge Playlist",
 			"deletePlaylistMessage": "Sunteți sigur că doriți să ștergeți acest playlist?",
 			"deleteFolderTitle": "Șterge Folder",

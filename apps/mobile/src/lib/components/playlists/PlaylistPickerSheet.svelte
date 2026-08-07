@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { get } from 'svelte/store'
-	import { tick, untrack } from 'svelte'
+	import { untrack } from 'svelte'
 	import { fade } from 'svelte/transition'
 	import { translate } from '$shared/i18n'
 	import { playlistsStore, getPlaylistChildren } from '$shared/stores/playlists'
@@ -9,6 +9,7 @@
 	import { lightTap } from '$lib/utils/haptics'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 	import MobileListItem from '$lib/components/common/MobileListItem.svelte'
+	import MobilePromptDialog from '$lib/components/common/MobilePromptDialog.svelte'
 	import PlaylistThumbnail from './PlaylistThumbnail.svelte'
 
 	type Props = {
@@ -18,7 +19,7 @@
 	}
 	let { open, releaseIds, onClose }: Props = $props()
 
-	let creating = $state(false)
+	let createOpen = $state(false)
 	let newName = $state('')
 	let query = $state('')
 	// Folder-drilldown state, mirroring the Playlists tab so navigation feels identical.
@@ -65,7 +66,7 @@
 	})
 
 	function reset() {
-		creating = false
+		createOpen = false
 		newName = ''
 		query = ''
 		folderStack = []
@@ -82,15 +83,10 @@
 	}
 
 	function enterCreate() {
-		// Seed the name with the current query so "search, then create what you typed" is one tap.
+		// Seed the name with the current query so "search, then create what you typed" is one tap. Opens the
+		// same centered naming prompt as the Playlists tab (it layers above this sheet and the keyboard).
 		newName = query.trim()
-		creating = true
-	}
-
-	// Focus the name field the moment the create row expands — user-initiated (they just tapped
-	// "create"), so it doesn't carry the a11y surprise of the `autofocus` attribute.
-	function focusOnMount(node: HTMLInputElement) {
-		tick().then(() => node.focus())
+		createOpen = true
 	}
 
 	async function addTo(playlistId: string) {
@@ -105,6 +101,7 @@
 		if (!trimmed) return
 		const playlist = await playlistsStore.createPlaylist(trimmed, currentFolderId ?? undefined, 'discovery')
 		if (!playlist) return
+		createOpen = false
 		await playlistsStore.addReleases(playlist.id, releaseIds)
 		void refreshPlaylistCovers(playlist.id)
 		toastStore.success(get(translate)('contextMenu.addToPlaylist'))
@@ -232,39 +229,29 @@
 	</div>
 </MobileModal>
 
-<!-- Create-a-playlist row (and its inline name field). Shared between browse and search modes. -->
+<!-- Create-a-playlist row. Shared between browse and search modes; opens the centered naming prompt. -->
 {#snippet createRow()}
-	{#if creating}
-		<div class="flex items-center gap-2 px-4 py-2">
-			<input
-				type="text"
-				bind:value={newName}
-				placeholder={$translate('modals.createPlaylist.placeholder')}
-				class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-				onkeydown={(e) => e.key === 'Enter' && createAndAdd()}
-				use:focusOnMount
-			/>
-			<button
-				type="button"
-				class="rounded-md bg-brand-primary px-3 py-2 text-sm font-medium text-white disabled:opacity-40"
-				disabled={!newName.trim()}
-				onclick={createAndAdd}
+	<MobileListItem onclick={enterCreate}>
+		{#snippet leading()}
+			<div
+				class="flex h-11 w-11 items-center justify-center rounded border border-dashed border-stroke text-brand-primary"
 			>
-				{$translate('common.create')}
-			</button>
-		</div>
-	{:else}
-		<MobileListItem onclick={enterCreate}>
-			{#snippet leading()}
-				<div
-					class="flex h-11 w-11 items-center justify-center rounded border border-dashed border-stroke text-brand-primary"
-				>
-					<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M12 5v14M5 12h14" stroke-linecap="round" />
-					</svg>
-				</div>
-			{/snippet}
-			<span class="text-sm font-medium text-brand-primary">{$translate('playlists.newPlaylist')}</span>
-		</MobileListItem>
-	{/if}
+				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+				</svg>
+			</div>
+		{/snippet}
+		<span class="text-sm font-medium text-brand-primary">{$translate('playlists.newPlaylist')}</span>
+	</MobileListItem>
 {/snippet}
+
+<!-- The same centered create-playlist prompt as the Playlists tab (layers above this sheet). -->
+<MobilePromptDialog
+	open={createOpen}
+	bind:value={newName}
+	title={$translate('modals.createPlaylist.title')}
+	placeholder={$translate('modals.createPlaylist.placeholder')}
+	confirmDisabled={!newName.trim()}
+	onConfirm={createAndAdd}
+	onCancel={() => (createOpen = false)}
+/>
