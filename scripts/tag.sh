@@ -141,12 +141,14 @@ else
 fi
 echo ""
 
-# Step 1b: Update Cargo.lock to reflect new version
+# Step 1b: Update Cargo.lock to reflect new version. `--workspace` restricts the update to
+# our own package's lock entry — `generate-lockfile` would re-resolve every dependency to
+# its latest compatible version, silently discarding deliberate lockfile pins.
 echo -e "${BLUE}Step 1b: Updating Cargo.lock...${NC}"
 if $DRY_RUN; then
-    echo -e "${YELLOW}[DRY RUN] Would run: cargo generate-lockfile --manifest-path src-tauri/Cargo.toml${NC}"
+    echo -e "${YELLOW}[DRY RUN] Would run: cargo update --workspace --manifest-path src-tauri/Cargo.toml${NC}"
 else
-    cargo generate-lockfile --manifest-path src-tauri/Cargo.toml
+    cargo update --workspace --manifest-path src-tauri/Cargo.toml
 fi
 echo ""
 

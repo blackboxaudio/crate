@@ -90,6 +90,11 @@ bytes = "1"
 
 # Image processing
 image = { version = "0.25.9", default-features = false, features = ["png", "jpeg", "webp"] }
+# Transitive dep of `image` (via zune-jpeg), pinned: zune-core 0.5.2 changed its no-op log
+# macros to expand to nothing, which breaks every published zune-jpeg 0.5.x (`warn!(...)` in
+# tail-expression position no longer parses). Drop this pin once a zune-jpeg built against the
+# 0.5.2 macros ships stable (0.5.16-rc1 targets it).
+zune-core = "=0.5.1"
 
 # Hashing
 blake3 = "1.8.2"
