@@ -10,6 +10,9 @@ import { DRAG_THRESHOLD } from '$shared/utils/drag'
  * translate) + `onSwipeDown` to dismiss. The gesture is only claimed once vertical intent exceeds
  * horizontal, so a horizontal drawer swipe started on the bar is never hijacked, and a stationary tap
  * (no movement past the threshold) is never claimed — letting child button `onclick`s fire normally.
+ * Once a drag IS claimed, cancelable touchmoves are prevented — `pan-x` would otherwise let the
+ * browser keep scrolling the few px of horizontal wobble in a mostly-vertical drag (preventDefault on
+ * pointermove never stops native scrolling; only a cancelable touchmove does).
  */
 
 export interface SwipeVerticalOptions {
@@ -82,8 +85,14 @@ export const swipeVertical: Action<HTMLElement, SwipeVerticalOptions> = (node, i
 		abandoned = false
 
 		window.addEventListener('pointermove', onPointerMove, { passive: false })
+		window.addEventListener('touchmove', onTouchMove, { passive: false })
 		window.addEventListener('pointerup', onPointerUp)
 		window.addEventListener('pointercancel', onPointerUp)
+	}
+
+	// See the claim note above — this is what actually stops the content scrolling under a claimed drag.
+	function onTouchMove(e: TouchEvent) {
+		if (claimed && e.cancelable) e.preventDefault()
 	}
 
 	function onPointerMove(e: PointerEvent) {
@@ -143,6 +152,7 @@ export const swipeVertical: Action<HTMLElement, SwipeVerticalOptions> = (node, i
 
 	function teardownWindow() {
 		window.removeEventListener('pointermove', onPointerMove)
+		window.removeEventListener('touchmove', onTouchMove)
 		window.removeEventListener('pointerup', onPointerUp)
 		window.removeEventListener('pointercancel', onPointerUp)
 		if (progressRaf) cancelAnimationFrame(progressRaf)

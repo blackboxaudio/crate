@@ -190,51 +190,54 @@
 	closeEdgeFrom="left"
 	closeEdgeSize={24}
 	ariaLabel={playlist.name}
-	class="pt-safe flex w-full flex-col bg-surface-0"
+	class="flex w-full flex-col bg-surface-0"
 >
 	{#snippet children({ animating })}
-		<!-- Header -->
-		<div class="flex items-center justify-between gap-1 px-2 py-2">
-			<div class="flex min-w-0 items-center gap-1">
-				<button
-					type="button"
-					class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
-					aria-label={$translate('common.close')}
-					onclick={startClose}
-				>
-					<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
-				</button>
-				<h1 class="truncate text-lg font-semibold text-text-primary">{playlist.name}</h1>
-			</div>
-			<!-- Reorder only applies to manual playlists in their natural, unfiltered order — a smart
-			     playlist's order is rule-derived, and reordering a sorted/filtered view would persist
-			     a misleading result. -->
-			{#if canReorder}
-				<div class="flex items-center gap-1">
-					{#if isReorderMode}
-						<button
-							type="button"
-							class="rounded-md px-3 py-2 text-sm font-medium text-brand-primary active:bg-surface-2"
-							onclick={() => mobileUIStore.exitReorderMode()}
-						>
-							{$translate('common.done')}
-						</button>
-					{:else}
-						<button
-							type="button"
-							class="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
-							aria-label={$translate('queue.reorder')}
-							onclick={() => mobileUIStore.toggleReorderMode()}
-						>
-							<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-								<path d="M7 15l5 5 5-5M7 9l5-5 5 5" stroke-linecap="round" stroke-linejoin="round" />
-							</svg>
-						</button>
-					{/if}
+		<!-- Header. Owns the top safe-area inset and mirrors the fixed top bar's surface-1 + hairline so
+		     drill-in headers read as the same app chrome. -->
+		<div class="pt-safe border-b border-stroke-subtle bg-surface-1">
+			<div class="flex items-center justify-between gap-1 px-2 py-2">
+				<div class="flex min-w-0 items-center gap-1">
+					<button
+						type="button"
+						class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
+						aria-label={$translate('common.close')}
+						onclick={startClose}
+					>
+						<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+							<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
+					</button>
+					<h1 class="truncate text-lg font-semibold text-text-primary">{playlist.name}</h1>
 				</div>
-			{/if}
+				<!-- Reorder only applies to manual playlists in their natural, unfiltered order — a smart
+				     playlist's order is rule-derived, and reordering a sorted/filtered view would persist
+				     a misleading result. -->
+				{#if canReorder}
+					<div class="flex items-center gap-1">
+						{#if isReorderMode}
+							<button
+								type="button"
+								class="rounded-md px-3 py-2 text-sm font-medium text-brand-primary active:bg-surface-2"
+								onclick={() => mobileUIStore.exitReorderMode()}
+							>
+								{$translate('common.done')}
+							</button>
+						{:else}
+							<button
+								type="button"
+								class="flex h-10 w-10 items-center justify-center rounded-md text-text-secondary active:bg-surface-2"
+								aria-label={$translate('queue.reorder')}
+								onclick={() => mobileUIStore.toggleReorderMode()}
+							>
+								<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+									<path d="M7 15l5 5 5-5M7 9l5-5 5 5" stroke-linecap="round" stroke-linejoin="round" />
+								</svg>
+							</button>
+						{/if}
+					</div>
+				{/if}
+			</div>
 		</div>
 
 		<!-- Content. The list branch hands its scroll container to ReleaseFeedList (the same virtualized list

@@ -417,21 +417,24 @@
 	closeEdgeFrom="left"
 	closeEdgeSize={24}
 	ariaLabel={release.title ?? $translate('common.untitled')}
-	class="pt-safe flex w-full flex-col bg-surface-0"
+	class="flex w-full flex-col bg-surface-0"
 >
 	{#snippet children({ animating })}
-		<!-- Header -->
-		<div class="flex items-center gap-1 px-2 py-2">
-			<button
-				type="button"
-				class="flex h-10 w-10 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
-				aria-label={$translate('common.close')}
-				onclick={startClose}
-			>
-				<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-				</svg>
-			</button>
+		<!-- Header. Owns the top safe-area inset and mirrors the fixed top bar's surface-1 + hairline so
+		     drill-in headers read as the same app chrome. -->
+		<div class="pt-safe border-b border-stroke-subtle bg-surface-1">
+			<div class="flex items-center gap-1 px-2 py-2">
+				<button
+					type="button"
+					class="flex h-10 w-10 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
+					aria-label={$translate('common.close')}
+					onclick={startClose}
+				>
+					<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+					</svg>
+				</button>
+			</div>
 		</div>
 
 		<!-- Scrollable content; bottom padding clears the mini-player bar. overflow-x is pinned hidden because

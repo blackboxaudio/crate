@@ -53,25 +53,28 @@
 	closeEdgeFrom="left"
 	closeEdgeSize={24}
 	ariaLabel={$translate('settings.title')}
-	class="pt-safe flex w-full flex-col bg-surface-0"
+	class="flex w-full flex-col bg-surface-0"
 >
-	<!-- Header -->
-	<div class="flex items-center gap-1 px-2 py-2">
-		<button
-			type="button"
-			class="flex h-10 w-10 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
-			aria-label={$settingsPage === 'root' ? $translate('common.close') : $translate('common.back')}
-			onclick={onChevron}
-		>
-			<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-			</svg>
-		</button>
-		{#if $settingsPage !== 'root'}
-			<h1 class="truncate text-lg font-semibold tracking-tight text-text-primary">
-				{$translate(pageTitleKey[$settingsPage])}
-			</h1>
-		{/if}
+	<!-- Header. Owns the top safe-area inset and mirrors the fixed top bar's surface-1 + hairline so
+	     drill-in headers read as the same app chrome. -->
+	<div class="pt-safe border-b border-stroke-subtle bg-surface-1">
+		<div class="flex items-center gap-1 px-2 py-2">
+			<button
+				type="button"
+				class="flex h-10 w-10 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
+				aria-label={$settingsPage === 'root' ? $translate('common.close') : $translate('common.back')}
+				onclick={onChevron}
+			>
+				<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+			</button>
+			{#if $settingsPage !== 'root'}
+				<h1 class="truncate text-lg font-semibold tracking-tight text-text-primary">
+					{$translate(pageTitleKey[$settingsPage])}
+				</h1>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Page router (owns the in-place level slide + per-page scroll containers). -->

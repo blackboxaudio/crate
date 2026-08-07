@@ -28,8 +28,9 @@
 		 *  closes (the parent flipping `open`) never consult it, so a submit path is never guarded. */
 		guardClose?: () => boolean | Promise<boolean>
 		/** Receives live drawer state + the dismiss-drag action (apply `use:drag` to a handle to confine it).
-		 *  `animating` is true while the panel slides — switch a scroll container to overflow-hidden then, so
-		 *  its content can't scroll mid-transition while the panel itself stays grabbable / finger-followable. */
+		 *  `animating` is true while the panel is in motion — sliding OR under a dismiss drag. Switch a scroll
+		 *  container to overflow-hidden then, so its content can't scroll while the panel moves (a close drag's
+		 *  few px of cross-axis wobble would otherwise scroll it); the panel itself stays finger-followable. */
 		children: Snippet<[{ openness: number; dragging: boolean; drag: Action<HTMLElement>; animating: boolean }]>
 
 		/** Panel chrome: bg / border / width|height / max-h / rounding / safe-area. Position + z come from here. */
@@ -110,8 +111,9 @@
 	// directly; the vertical drag is converted from px below.
 	let closeDrag = $state<number | null>(null)
 	let panelH = $state(0)
-	// True while the panel's slide is mid-flight; exposed to content as `animating` so a scroll container can
-	// stop scrolling during the transition (the panel itself stays grabbable / finger-followable).
+	// True while the panel's slide is mid-flight; exposed to content (with the dismiss drag OR'd in) as
+	// `animating` so a scroll container can stop scrolling while the panel moves (the panel itself stays
+	// grabbable / finger-followable).
 	let animatingSlide = $state(false)
 	// True once a bottom sheet has finished sliding open and is at rest. We then drop its `transform` to `none`
 	// (identity `translateY(0%)` is visually the same) so a focused input inside it isn't parented by a
@@ -392,6 +394,6 @@
 		use:portalToBody={portal}
 		use:gesture={{ horizontal, swipe: panelSwipe, vertical: panelVertical }}
 	>
-		{@render children({ openness, dragging, drag, animating: animatingSlide && closeDrag === null })}
+		{@render children({ openness, dragging, drag, animating: animatingSlide || dragging })}
 	</div>
 {/if}

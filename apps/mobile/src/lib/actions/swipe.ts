@@ -16,7 +16,10 @@ import { DRAG_THRESHOLD } from '$shared/utils/drag'
  *
  * Axis-lock: the gesture is only claimed once horizontal intent exceeds vertical, so vertical
  * scrolling of the underlying list is never hijacked. `touch-action: pan-y` is set on the node so the
- * browser keeps handling vertical scroll while reserving horizontal movement for this action.
+ * browser keeps handling vertical scroll while reserving horizontal movement for this action. Once a
+ * drag IS claimed, cancelable touchmoves are prevented — pan-y would otherwise let the browser keep
+ * scrolling the few px of vertical wobble in a mostly-horizontal drag (preventDefault on pointermove
+ * never stops native scrolling; only a cancelable touchmove does).
  */
 
 export type SwipeSide = 'left' | 'right'
@@ -146,8 +149,14 @@ export const swipe: Action<HTMLElement, SwipeOptions> = (node, initial) => {
 		abandoned = false
 
 		window.addEventListener('pointermove', onPointerMove, { passive: false })
+		window.addEventListener('touchmove', onTouchMove, { passive: false })
 		window.addEventListener('pointerup', onPointerUp)
 		window.addEventListener('pointercancel', onPointerUp)
+	}
+
+	// See the axis-lock note above — this is what actually stops the content scrolling under a claimed drag.
+	function onTouchMove(e: TouchEvent) {
+		if (claimed && e.cancelable) e.preventDefault()
 	}
 
 	function onPointerMove(e: PointerEvent) {
@@ -218,6 +227,7 @@ export const swipe: Action<HTMLElement, SwipeOptions> = (node, initial) => {
 
 	function teardownWindow() {
 		window.removeEventListener('pointermove', onPointerMove)
+		window.removeEventListener('touchmove', onTouchMove)
 		window.removeEventListener('pointerup', onPointerUp)
 		window.removeEventListener('pointercancel', onPointerUp)
 		if (progressRaf) cancelAnimationFrame(progressRaf)

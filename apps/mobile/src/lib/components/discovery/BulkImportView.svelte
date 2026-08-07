@@ -1,12 +1,11 @@
 <script lang="ts">
-	import type { ScannedPage, BulkImportProgress, BulkImportResult, DiscoverySourceType } from '$shared/types'
+	import type { ScannedPage, BulkImportProgress, BulkImportResult } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import { listen } from '@tauri-apps/api/event'
 	import { onMount } from 'svelte'
 	import * as discoveryApi from '$shared/api/discovery'
 	import { SvelteSet } from 'svelte/reactivity'
-	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ArtworkPlaceholder from '$lib/components/common/ArtworkPlaceholder.svelte'
 
 	type Props = {
@@ -224,69 +223,67 @@
 		</div>
 	{/if}
 
-	<!-- Footer -->
-	<div class="flex flex-col gap-3">
+	<!-- Action bar: pinned to the sheet's bottom edge (sticky within the sheet's scroll body), so the
+	     primary action never floats mid-screen and stays reachable while the list scrolls behind it.
+	     No Cancel here — the sheet's nav bar already provides it. -->
+	<div class="sticky bottom-0 mt-auto flex flex-col gap-3 border-t border-stroke-subtle bg-surface-0 px-4 pt-3 pb-2">
 		{#if importing && progress}
 			<!-- Progress bar + count -->
-			<div class="flex flex-col gap-2">
-				<div class="h-1.5 overflow-hidden rounded-full bg-surface-2">
-					<div
-						class="h-full rounded-full bg-brand-primary transition-[width] duration-300 ease-out"
-						style="width: {progressFraction * 100}%"
-					></div>
-				</div>
-				<div class="flex items-center justify-between">
-					<p class="text-xs text-text-tertiary">
-						{$translate('discovery.bulkImport.importing', {
-							values: { current: progress.current, total: progress.total },
-						})}
-					</p>
-					<button
-						type="button"
-						class="rounded-md px-3 py-1 text-xs font-medium text-text-secondary active:bg-surface-2"
-						onclick={handleCancel}
-					>
-						{$translate('discovery.bulkImport.cancelImport')}
-					</button>
-				</div>
+			<div class="h-1.5 overflow-hidden rounded-full bg-surface-2">
+				<div
+					class="h-full rounded-full bg-brand-primary transition-[width] duration-300 ease-out"
+					style="width: {progressFraction * 100}%"
+				></div>
 			</div>
-		{:else if result}
 			<div class="flex items-center justify-between">
-				<p class="text-sm text-text-secondary">
-					{#if result.failed > 0}
-						{$translate('discovery.bulkImport.completedWithFailures', {
-							values: { succeeded: result.succeeded, failed: result.failed },
-						})}
-					{:else}
-						{$translate('discovery.bulkImport.completed', { values: { succeeded: result.succeeded } })}
-					{/if}
+				<p class="text-xs text-text-tertiary">
+					{$translate('discovery.bulkImport.importing', {
+						values: { current: progress.current, total: progress.total },
+					})}
 				</p>
 				<button
 					type="button"
-					class="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white active:opacity-90"
-					onclick={onCancel}
+					class="rounded-md px-3 py-1 text-xs font-medium text-text-secondary active:bg-surface-2"
+					onclick={handleCancel}
 				>
-					{$translate('common.done')}
+					{$translate('discovery.bulkImport.cancelImport')}
 				</button>
 			</div>
+		{:else if result}
+			<p class="text-center text-sm text-text-secondary">
+				{#if result.failed > 0}
+					{$translate('discovery.bulkImport.completedWithFailures', {
+						values: { succeeded: result.succeeded, failed: result.failed },
+					})}
+				{:else}
+					{$translate('discovery.bulkImport.completed', { values: { succeeded: result.succeeded } })}
+				{/if}
+			</p>
+			<button
+				type="button"
+				class="h-11 w-full rounded-xl bg-brand-primary text-sm font-semibold text-white active:opacity-90"
+				onclick={onCancel}
+			>
+				{$translate('common.done')}
+			</button>
+		{:else if selectableCount === 0}
+			<!-- Everything found is already in discovery — an "Add 0 releases" button would be a dead end -->
+			<button
+				type="button"
+				class="h-11 w-full rounded-xl bg-surface-2 text-sm font-semibold text-text-primary active:opacity-90"
+				onclick={onCancel}
+			>
+				{$translate('common.done')}
+			</button>
 		{:else}
-			<div class="flex items-center justify-between">
-				<button
-					type="button"
-					class="rounded-lg px-3 py-2 text-sm font-medium text-text-secondary active:bg-surface-2"
-					onclick={onCancel}
-				>
-					{$translate('common.cancel')}
-				</button>
-				<button
-					type="button"
-					class="rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white active:opacity-90 disabled:opacity-40"
-					disabled={selectedCount === 0}
-					onclick={handleImport}
-				>
-					{$translate('discovery.bulkImport.addReleases', { values: { count: selectedCount } })}
-				</button>
-			</div>
+			<button
+				type="button"
+				class="h-11 w-full rounded-xl bg-brand-primary text-sm font-semibold text-white active:opacity-90 disabled:opacity-40"
+				disabled={selectedCount === 0}
+				onclick={handleImport}
+			>
+				{$translate('discovery.bulkImport.addReleases', { values: { count: selectedCount } })}
+			</button>
 		{/if}
 	</div>
 </div>
