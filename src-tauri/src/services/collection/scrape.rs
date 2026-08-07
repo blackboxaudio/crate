@@ -78,7 +78,7 @@ pub async fn sync_account(
         }
         Err(e) => {
             let msg = e.to_string();
-            let _ = service.mark_checked(&account_id, health_for_error(&msg), Some(&msg), None);
+            let _ = service.mark_checked(&account_id, health_for_error(&msg), Some(&msg), None, None);
             log::warn!("Collection sync failed for {}: {msg}", account.url);
         }
     }
@@ -92,6 +92,18 @@ async fn run_sync(
     url: &str,
     incremental: bool,
 ) -> Result<ScrapeOutcome> {
+    // The stop-on-all-known early exit assumes stored items form a newest-first
+    // PREFIX of the collection. An interrupted walk (network error, app suspended
+    // mid-pagination) leaves the newest items known and older ones never fetched —
+    // incremental syncs would then exit on page 1 forever. Only trust the invariant
+    // when the last walk actually reached the end.
+    let incremental = if incremental && !service.last_walk_complete(account_id)? {
+        log::info!("Collection sync for {url}: previous walk incomplete — running a full walk");
+        false
+    } else {
+        incremental
+    };
+
     let client = build_client()?;
     let page = bandcamp_fan::fetch_fan_page(&client, url).await?;
 
@@ -177,7 +189,15 @@ async fn run_sync(
         }
     }
 
-    service.mark_checked(account_id, FollowHealth::Ok, None, total.map(|t| t as i64))?;
+    // `complete` doubles as walk coverage: a full walk that finishes reached the
+    // end, and an incremental one only ran because coverage was already complete.
+    service.mark_checked(
+        account_id,
+        FollowHealth::Ok,
+        None,
+        total.map(|t| t as i64),
+        Some(complete),
+    )?;
     Ok(ScrapeOutcome {
         new_items,
         total_seen,

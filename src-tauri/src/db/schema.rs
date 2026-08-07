@@ -488,5 +488,14 @@ CREATE TABLE discovery_preview_unavailable (
     PRIMARY KEY (release_id, position)
 );
 "#,
+        // Migration 13: whether the last collection walk covered the whole collection.
+        // The incremental scrape's stop-on-all-known rule assumes stored items form a
+        // newest-first prefix; an interrupted initial walk breaks that (newest items
+        // known, older never fetched) and every later incremental sync would exit on
+        // page 1 forever. Defaults 0 so existing wedged accounts heal with one full
+        // walk on their next refresh. LOCAL, never synced.
+        r#"
+ALTER TABLE collection_account_state ADD COLUMN last_walk_complete INTEGER NOT NULL DEFAULT 0;
+"#,
     ]
 }

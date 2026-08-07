@@ -3,10 +3,14 @@
 //! merges, and account enable/disable are all reflected on the next call with
 //! nothing to invalidate.
 //!
-//! Matching is URL identity. `collection_items.url` and `discovery_releases.url`
-//! are both stored normalized, so release-level matching is a SQL join;
-//! `discovery_tracks.url` is stored RAW (and NULL for rows predating migration
-//! 10), so track-level matching normalizes in Rust.
+//! Matching is URL identity first: `collection_items.url` and
+//! `discovery_releases.url` are both stored normalized, so release-level matching
+//! is a SQL join; `discovery_tracks.url` is stored RAW (and NULL for rows
+//! predating migration 10), so track-level matching normalizes in Rust. Because
+//! most stored tracks predate per-track URLs (they backfill lazily on metadata
+//! fetch), a track purchase falls back to name identity scoped to the release's
+//! page host: same host + same normalized title. Both sides of that key come from
+//! the same Bandcamp page, so exact normalized equality is safe.
 
 use std::collections::{HashMap, HashSet};
 
@@ -16,13 +20,27 @@ use super::CollectionService;
 use crate::error::{CrateError, Result};
 #[cfg(feature = "desktop")]
 use crate::models::CollectionGapItem;
-use crate::models::CollectionOwnership;
+use crate::models::{normalized_track_name, CollectionOwnership};
 use crate::services::discovery::normalize_url;
+
+/// Lowercased authority (host) of a URL, the scope for name-identity fallback
+/// matching. `None` for scheme-less strings.
+fn url_host(url: &str) -> Option<String> {
+    let rest = url.split_once("://")?.1;
+    let end = rest.find('/').unwrap_or(rest.len());
+    let host = &rest[..end];
+    if host.is_empty() {
+        None
+    } else {
+        Some(host.to_lowercase())
+    }
+}
 
 /// Fuzzy text normalization for matching purchases against library tracks: trim,
 /// Unicode-lowercase, drop bracketed segments (`(Original Mix)`, `[Remastered]`),
 /// cut `feat.`/`ft.` suffixes, collapse whitespace. Only the desktop-only library-gap
-/// cross-reference needs it — mobile matches on URL identity alone.
+/// cross-reference needs this fuzziness — ownership matching uses URL identity and
+/// the exact host+title fallback.
 #[cfg(feature = "desktop")]
 fn normalize_for_match(s: &str) -> String {
     let lower = s.trim().to_lowercase();
@@ -47,65 +65,156 @@ fn normalize_for_match(s: &str) -> String {
     cleaned.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-/// `(track_id, release_id, normalized_track_url)` for every discovery track that has
-/// a page URL of its own.
-fn tracks_with_urls(conn: &Connection) -> Result<Vec<(String, String, String)>> {
-    let mut stmt =
-        conn.prepare("SELECT id, release_id, url FROM discovery_tracks WHERE url IS NOT NULL")?;
+/// One discovery track with everything both matching paths need: its own
+/// normalized page URL (when stored) and the parent release's host + its
+/// normalized name for the fallback key.
+struct TrackRef {
+    track_id: String,
+    release_id: String,
+    norm_url: Option<String>,
+    release_host: Option<String>,
+    norm_name: String,
+}
+
+/// Every discovery track joined to its release URL.
+fn all_tracks(conn: &Connection) -> Result<Vec<TrackRef>> {
+    let mut stmt = conn.prepare(
+        "SELECT dt.id, dt.release_id, dt.name, dt.url, dr.url \
+         FROM discovery_tracks dt JOIN discovery_releases dr ON dr.id = dt.release_id",
+    )?;
     let rows = stmt.query_map([], |r| {
         Ok((
             r.get::<_, String>(0)?,
             r.get::<_, String>(1)?,
             r.get::<_, String>(2)?,
+            r.get::<_, Option<String>>(3)?,
+            r.get::<_, String>(4)?,
         ))
     })?;
     let mut out = Vec::new();
     for row in rows {
-        let (id, release_id, url) = row?;
-        out.push((id, release_id, normalize_url(&url)));
+        let (track_id, release_id, name, url, release_url) = row?;
+        out.push(TrackRef {
+            track_id,
+            release_id,
+            norm_url: url.as_deref().map(normalize_url),
+            release_host: url_host(&release_url),
+            norm_name: normalized_track_name(&name),
+        });
     }
     Ok(out)
 }
 
-/// Owned item URLs across enabled accounts (already normalized at write time),
-/// split by item type.
-fn owned_urls(conn: &Connection) -> Result<(HashSet<String>, HashSet<String>)> {
-    let mut stmt = conn.prepare(
-        "SELECT ci.item_type, ci.url FROM collection_items ci \
-         JOIN collection_accounts ca ON ca.id = ci.account_id AND ca.enabled = 1",
-    )?;
-    let rows = stmt.query_map([], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
-    let mut albums = HashSet::new();
-    let mut tracks = HashSet::new();
-    for row in rows {
-        let (item_type, url) = row?;
-        if item_type == "track" {
-            tracks.insert(url);
-        } else {
-            albums.insert(url);
-        }
-    }
-    Ok((albums, tracks))
+/// Owned items across enabled accounts: URLs (already normalized at write time)
+/// split by item type, plus the `(host, normalized title)` fallback keys of track
+/// purchases.
+struct OwnedItems {
+    album_urls: HashSet<String>,
+    track_urls: HashSet<String>,
+    track_keys: HashSet<(String, String)>,
 }
 
-/// Normalized track URL → parent release id, for matching track purchases to the
-/// release that contains them (used by `list_items` to make purchases tappable).
-pub(super) fn track_url_release_map(conn: &Connection) -> Result<HashMap<String, String>> {
-    Ok(tracks_with_urls(conn)?
-        .into_iter()
-        .map(|(_, release_id, url)| (url, release_id))
-        .collect())
+fn owned_items(conn: &Connection) -> Result<OwnedItems> {
+    let mut stmt = conn.prepare(
+        "SELECT ci.item_type, ci.url, ci.title FROM collection_items ci \
+         JOIN collection_accounts ca ON ca.id = ci.account_id AND ca.enabled = 1",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, Option<String>>(2)?,
+        ))
+    })?;
+    let mut owned = OwnedItems {
+        album_urls: HashSet::new(),
+        track_urls: HashSet::new(),
+        track_keys: HashSet::new(),
+    };
+    for row in rows {
+        let (item_type, url, title) = row?;
+        if item_type == "track" {
+            if let (Some(host), Some(title)) = (url_host(&url), title) {
+                let norm_title = normalized_track_name(&title);
+                if !norm_title.is_empty() {
+                    owned.track_keys.insert((host, norm_title));
+                }
+            }
+            owned.track_urls.insert(url);
+        } else {
+            owned.album_urls.insert(url);
+        }
+    }
+    Ok(owned)
+}
+
+/// Resolves a track purchase to the discovery release containing that track
+/// (used by `list_items` to make purchases tappable): track-URL identity first,
+/// then the host+title fallback. Collisions (the same track on several releases)
+/// resolve to the smallest release id so every device picks the same one.
+pub(super) struct PurchaseMatcher {
+    by_url: HashMap<String, String>,
+    by_host_title: HashMap<(String, String), String>,
+}
+
+impl PurchaseMatcher {
+    pub(super) fn build(conn: &Connection) -> Result<Self> {
+        let mut by_url: HashMap<String, String> = HashMap::new();
+        let mut by_host_title: HashMap<(String, String), String> = HashMap::new();
+        for t in all_tracks(conn)? {
+            if let Some(u) = &t.norm_url {
+                by_url
+                    .entry(u.clone())
+                    .and_modify(|r| {
+                        if t.release_id < *r {
+                            *r = t.release_id.clone();
+                        }
+                    })
+                    .or_insert_with(|| t.release_id.clone());
+            }
+            if let (Some(host), false) = (&t.release_host, t.norm_name.is_empty()) {
+                by_host_title
+                    .entry((host.clone(), t.norm_name.clone()))
+                    .and_modify(|r| {
+                        if t.release_id < *r {
+                            *r = t.release_id.clone();
+                        }
+                    })
+                    .or_insert_with(|| t.release_id.clone());
+            }
+        }
+        Ok(Self {
+            by_url,
+            by_host_title,
+        })
+    }
+
+    /// `title` should only be passed for track-type purchases — an album title
+    /// must never name-match a track.
+    pub(super) fn release_for(&self, url: &str, title: Option<&str>) -> Option<String> {
+        if let Some(release_id) = self.by_url.get(url) {
+            return Some(release_id.clone());
+        }
+        let norm_title = normalized_track_name(title?);
+        if norm_title.is_empty() {
+            return None;
+        }
+        self.by_host_title
+            .get(&(url_host(url)?, norm_title))
+            .cloned()
+    }
 }
 
 impl CollectionService {
     /// Derive ownership of every local discovery release/track from the enabled
     /// accounts' items. A release is FULLY owned when an owned item's URL equals the
     /// release URL (album purchase — or a track purchase for a single-track release),
-    /// or when every one of its URL-bearing tracks is individually owned; PARTIALLY
-    /// owned when at least one (but not all) of its tracks is owned.
+    /// or when every one of its tracks is individually owned; PARTIALLY owned when
+    /// at least one (but not all) of its tracks is owned. A track is owned by URL
+    /// identity or by the host+title fallback.
     pub fn compute_ownership(&self) -> Result<CollectionOwnership> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        let (owned_album_urls, owned_track_urls) = owned_urls(&conn)?;
+        let owned = owned_items(&conn)?;
 
         // Release-level: item URL == release URL (any item type).
         let mut fully: HashSet<String> = {
@@ -118,32 +227,34 @@ impl CollectionService {
             rows.collect::<std::result::Result<HashSet<_>, _>>()?
         };
 
-        // Track-level: normalize each discovery track's URL and look it up.
+        // Track-level: URL identity when the track has a page URL, else the
+        // host+title fallback.
         let mut owned_track_ids = Vec::new();
         let mut owned_count: HashMap<String, usize> = HashMap::new();
-        let mut url_track_count: HashMap<String, usize> = HashMap::new();
-        for (track_id, release_id, url) in tracks_with_urls(&conn)? {
-            *url_track_count.entry(release_id.clone()).or_default() += 1;
-            if owned_track_urls.contains(&url) || owned_album_urls.contains(&url) {
-                owned_track_ids.push(track_id);
-                *owned_count.entry(release_id).or_default() += 1;
+        let mut track_count: HashMap<String, usize> = HashMap::new();
+        for t in all_tracks(&conn)? {
+            *track_count.entry(t.release_id.clone()).or_default() += 1;
+            let by_url = t
+                .norm_url
+                .as_ref()
+                .is_some_and(|u| owned.track_urls.contains(u) || owned.album_urls.contains(u));
+            let by_title = !t.norm_name.is_empty()
+                && t.release_host
+                    .as_ref()
+                    .is_some_and(|h| owned.track_keys.contains(&(h.clone(), t.norm_name.clone())));
+            if by_url || by_title {
+                owned_track_ids.push(t.track_id);
+                *owned_count.entry(t.release_id).or_default() += 1;
             }
         }
 
         let mut partially: Vec<String> = Vec::new();
-        for (release_id, owned) in owned_count {
+        for (release_id, owned_n) in owned_count {
             if fully.contains(&release_id) {
                 continue;
             }
-            // Promote to fully-owned only when every URL-bearing track is owned AND
-            // the release has no URL-less tracks (unknown coverage stays partial).
-            let with_urls = url_track_count.get(&release_id).copied().unwrap_or(0);
-            let total = conn.query_row(
-                "SELECT COUNT(*) FROM discovery_tracks WHERE release_id = ?1",
-                [&release_id],
-                |r| r.get::<_, i64>(0),
-            )? as usize;
-            if owned == total && with_urls == total {
+            let total = track_count.get(&release_id).copied().unwrap_or(0);
+            if owned_n == total {
                 fully.insert(release_id);
             } else {
                 partially.push(release_id);
@@ -334,8 +445,8 @@ mod tests {
     fn urlless_tracks_block_full_promotion() {
         let svc = service();
         seed_account(&svc, "acct", true);
-        // Two tracks, one with no URL (pre-migration-10 row): owning the URL-bearing
-        // one must NOT promote to fully owned — coverage of the other is unknown.
+        // Two tracks, one with no URL (pre-migration-10 row) and no matching title:
+        // owning the URL-bearing one must NOT promote to fully owned.
         seed_release(
             &svc,
             "rel",
@@ -347,6 +458,93 @@ mod tests {
         let o = svc.compute_ownership().unwrap();
         assert!(o.fully_owned_release_ids.is_empty());
         assert_eq!(o.partially_owned_release_ids, vec!["rel"]);
+    }
+
+    fn seed_track_item(svc: &CollectionService, account: &str, url: &str, title: &str) {
+        let conn = svc.conn.lock().unwrap();
+        conn.execute(
+            "INSERT INTO collection_items (id, account_id, item_type, url, title, date_added, date_modified) \
+             VALUES (?1, ?2, 'track', ?3, ?4, '2020-01-01', '2020-01-01')",
+            params![format!("{account}|{url}"), account, url, title],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn urlless_track_owned_via_host_and_title_fallback() {
+        let svc = service();
+        seed_account(&svc, "acct", true);
+        // Tracks are seeded as "t0"/"t1" with no page URLs — the 96%-of-rows case.
+        seed_release(&svc, "rel", "https://a.bandcamp.com/album/x", &[None, None]);
+        // Purchase URL shares the release's host; title matches modulo trim/case.
+        seed_track_item(&svc, "acct", "https://a.bandcamp.com/track/whatever", " T0 ");
+
+        let o = svc.compute_ownership().unwrap();
+        assert_eq!(o.owned_track_ids, vec!["rel-t0"]);
+        assert_eq!(o.partially_owned_release_ids, vec!["rel"]);
+        assert!(o.fully_owned_release_ids.is_empty());
+    }
+
+    #[test]
+    fn title_fallback_promotes_to_full_when_every_track_owned() {
+        let svc = service();
+        seed_account(&svc, "acct", true);
+        seed_release(&svc, "rel", "https://a.bandcamp.com/album/x", &[None, None]);
+        seed_track_item(&svc, "acct", "https://a.bandcamp.com/track/one", "t0");
+        seed_track_item(&svc, "acct", "https://a.bandcamp.com/track/two", "t1");
+
+        let o = svc.compute_ownership().unwrap();
+        assert_eq!(o.fully_owned_release_ids, vec!["rel"]);
+        assert!(o.partially_owned_release_ids.is_empty());
+        assert_eq!(o.owned_track_ids, vec!["rel-t0", "rel-t1"]);
+    }
+
+    #[test]
+    fn title_fallback_is_scoped_to_the_release_host() {
+        let svc = service();
+        seed_account(&svc, "acct", true);
+        seed_release(&svc, "rel", "https://a.bandcamp.com/album/x", &[None]);
+        // Same title, different subdomain: must not match.
+        seed_track_item(&svc, "acct", "https://b.bandcamp.com/track/whatever", "t0");
+
+        let o = svc.compute_ownership().unwrap();
+        assert!(o.owned_track_ids.is_empty());
+        assert!(o.partially_owned_release_ids.is_empty());
+        assert!(o.fully_owned_release_ids.is_empty());
+    }
+
+    #[test]
+    fn purchase_matcher_resolves_release_by_url_then_title() {
+        let svc = service();
+        seed_account(&svc, "acct", true);
+        seed_release(
+            &svc,
+            "rel-a",
+            "https://a.bandcamp.com/album/x",
+            &[Some("https://a.bandcamp.com/track/one"), None],
+        );
+        let conn = svc.conn.lock().unwrap();
+        let matcher = PurchaseMatcher::build(&conn).unwrap();
+        assert_eq!(
+            matcher.release_for("https://a.bandcamp.com/track/one", None),
+            Some("rel-a".to_string()),
+            "track URL identity needs no title"
+        );
+        assert_eq!(
+            matcher.release_for("https://a.bandcamp.com/track/unknown", Some("T1")),
+            Some("rel-a".to_string()),
+            "host+title fallback finds the containing release"
+        );
+        assert_eq!(
+            matcher.release_for("https://b.bandcamp.com/track/unknown", Some("t1")),
+            None,
+            "fallback stays scoped to the host"
+        );
+        assert_eq!(
+            matcher.release_for("https://a.bandcamp.com/track/unknown", None),
+            None,
+            "no title, no fallback"
+        );
     }
 
     #[test]

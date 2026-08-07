@@ -500,16 +500,31 @@ pub fn run() {
             })?;
             let conn = db.connection();
 
-            // Heal historically duplicated discovery tracks (random-id rows unioned by
-            // cloud sync): collapse local duplicates, preserving likes, and tombstone the
-            // removed ids so peers drop them too. Best-effort — never blocks launch.
+            // Launch heals, best-effort — never block launch. Order matters: URL
+            // re-normalization first (merging same-URL releases can leave same-name
+            // track pairs for the dedupe sweep to collapse).
             match conn.lock() {
-                Ok(guard) => match services::discovery::dedupe_discovery_tracks(&guard) {
-                    Ok(0) => {}
-                    Ok(n) => log::info!("discovery: collapsed {n} duplicate track rows"),
-                    Err(e) => log::warn!("discovery: track dedupe sweep failed: {e}"),
-                },
-                Err(_) => log::warn!("discovery: track dedupe sweep skipped (lock poisoned)"),
+                Ok(guard) => {
+                    // Re-normalize historically unnormalized release URLs (query-string
+                    // + HTML-entity spellings from label-page scans) so URL-identity
+                    // matching (collection ownership, follow, dedup) works.
+                    match services::discovery::renormalize_release_urls(&guard) {
+                        Ok((0, 0)) => {}
+                        Ok((updated, merged)) => log::info!(
+                            "discovery: re-normalized {updated} release urls ({merged} rows merged)"
+                        ),
+                        Err(e) => log::warn!("discovery: url renormalize sweep failed: {e}"),
+                    }
+                    // Heal historically duplicated discovery tracks (random-id rows
+                    // unioned by cloud sync): collapse local duplicates, preserving
+                    // likes, and tombstone the removed ids so peers drop them too.
+                    match services::discovery::dedupe_discovery_tracks(&guard) {
+                        Ok(0) => {}
+                        Ok(n) => log::info!("discovery: collapsed {n} duplicate track rows"),
+                        Err(e) => log::warn!("discovery: track dedupe sweep failed: {e}"),
+                    }
+                }
+                Err(_) => log::warn!("discovery: launch heal sweeps skipped (lock poisoned)"),
             }
 
             // Initialize services. Desktop-only services (file import/analysis, audio

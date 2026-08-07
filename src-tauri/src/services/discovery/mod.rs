@@ -3,9 +3,11 @@ mod audio_cache;
 mod dedupe;
 mod release_crud;
 mod release_ops;
+mod renormalize;
 mod stream_cache;
 
 pub use dedupe::dedupe_discovery_tracks;
+pub use renormalize::renormalize_release_urls;
 
 pub mod metadata;
 pub mod n_transform;
@@ -194,11 +196,24 @@ pub(crate) fn followable_page_url(page_url: &str, source_type: &str) -> Option<S
 }
 
 /// Normalize a URL for consistent storage and deduplication.
+/// - Decodes HTML-entity ampersands (hrefs lifted from HTML carry `&amp;`)
 /// - Lowercases the domain (not path)
 /// - Strips trailing slashes
-/// - Removes common tracking query parameters
+/// - Drops the query string entirely on Bandcamp-shaped `/album/`+`/track/` paths
+///   (never identity-bearing there — label pages link with `?label=…&tab=music`)
+/// - Removes common tracking query parameters everywhere else
 pub(crate) fn normalize_url(url: &str) -> String {
     let url = url.trim();
+    let decoded;
+    let url = if url.contains("&amp;") || url.contains("&#38;") || url.contains("&#x26;") {
+        decoded = url
+            .replace("&amp;", "&")
+            .replace("&#38;", "&")
+            .replace("&#x26;", "&");
+        decoded.as_str()
+    } else {
+        url
+    };
 
     // Parse into parts: scheme, domain, path+query
     let (scheme, rest) = match url.find("://") {
@@ -223,6 +238,12 @@ pub(crate) fn normalize_url(url: &str) -> String {
     // Strip trailing slashes from path (but keep at least "/")
     let path = path.trim_end_matches('/');
     let path = if path.is_empty() { "" } else { path };
+
+    // Bandcamp album/track pages (including custom artist domains) are fully
+    // identified by host + path; any query is navigation chrome.
+    if path.starts_with("/album/") || path.starts_with("/track/") {
+        return format!("{scheme}://{authority_lower}{path}");
+    }
 
     // Filter out tracking query params
     let tracking_params: &[&str] = &[
@@ -267,5 +288,47 @@ pub(crate) fn detect_source_type(url: &str) -> String {
         "discogs".to_string()
     } else {
         "other".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_url;
+
+    #[test]
+    fn album_and_track_paths_drop_all_query_params() {
+        assert_eq!(
+            normalize_url("https://inarmatura.bandcamp.com/album/10-11?label=1615933898&amp;tab=music"),
+            "https://inarmatura.bandcamp.com/album/10-11"
+        );
+        assert_eq!(
+            normalize_url("https://a.bandcamp.com/track/one?from=fanpub_fnb"),
+            "https://a.bandcamp.com/track/one"
+        );
+    }
+
+    #[test]
+    fn entity_ampersands_decode_before_param_filtering() {
+        // On a non-album path, `&amp;` must not glue params into one bogus key.
+        assert_eq!(
+            normalize_url("https://example.com/page?keep=1&amp;utm_source=share"),
+            "https://example.com/page?keep=1"
+        );
+    }
+
+    #[test]
+    fn non_bandcamp_shaped_urls_keep_meaningful_queries() {
+        assert_eq!(
+            normalize_url("https://www.youtube.com/watch?v=abc123"),
+            "https://www.youtube.com/watch?v=abc123"
+        );
+    }
+
+    #[test]
+    fn domain_lowercased_slashes_and_tracking_params_stripped() {
+        assert_eq!(
+            normalize_url("https://Artist.Bandcamp.com/Music/?utm_source=x"),
+            "https://artist.bandcamp.com/Music"
+        );
     }
 }

@@ -4,6 +4,8 @@
 
 use std::collections::HashSet;
 
+use rusqlite::OptionalExtension;
+
 use super::{AccountToRefresh, CollectionService};
 use crate::error::{CrateError, Result};
 use crate::models::{
@@ -280,10 +282,11 @@ impl CollectionService {
     /// The union of owned items across enabled accounts, newest purchases first,
     /// deduped by URL (the same release owned on two accounts appears once). A track
     /// purchase whose URL matches no release directly is matched to the discovery
-    /// release *containing* that track, so it still opens the release detail.
+    /// release *containing* that track — by track URL, else by host+title — so it
+    /// still opens the release detail.
     pub fn list_items(&self) -> Result<Vec<CollectionItem>> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-        let track_releases = super::matching::track_url_release_map(&conn)?;
+        let matcher = super::matching::PurchaseMatcher::build(&conn)?;
         let mut stmt = conn.prepare(ITEM_SELECT)?;
         let rows = stmt.query_map([], map_item_row)?;
         let mut seen_urls = HashSet::new();
@@ -291,7 +294,12 @@ impl CollectionService {
         for row in rows {
             let mut item = row?;
             if item.matched_release_id.is_none() {
-                item.matched_release_id = track_releases.get(&item.url).cloned();
+                // Title fallback only for track purchases: an album title must
+                // never name-match a track.
+                let title = (item.item_type == "track")
+                    .then_some(item.title.as_deref())
+                    .flatten();
+                item.matched_release_id = matcher.release_for(&item.url, title);
             }
             if seen_urls.insert(item.url.clone()) {
                 items.push(item);
@@ -306,6 +314,7 @@ impl CollectionService {
         health: FollowHealth,
         error: Option<&str>,
         item_count: Option<i64>,
+        walk_complete: Option<bool>,
     ) -> Result<()> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         let now = chrono::Utc::now().to_rfc3339();
@@ -314,8 +323,9 @@ impl CollectionService {
             conn.execute(
                 "UPDATE collection_account_state SET last_checked_at = ?2, last_success_at = ?2, \
                  health = ?3, last_error = NULL, consecutive_failures = 0, \
-                 last_item_count = COALESCE(?4, last_item_count) WHERE account_id = ?1",
-                rusqlite::params![account_id, now, health_str, item_count],
+                 last_item_count = COALESCE(?4, last_item_count), \
+                 last_walk_complete = COALESCE(?5, last_walk_complete) WHERE account_id = ?1",
+                rusqlite::params![account_id, now, health_str, item_count, walk_complete],
             )?;
         } else {
             conn.execute(
@@ -325,6 +335,21 @@ impl CollectionService {
             )?;
         }
         Ok(())
+    }
+
+    /// Whether this account's last collection walk covered everything — the
+    /// precondition for the incremental scrape's stop-on-all-known early exit.
+    /// A missing state row reads as `false` (never fully walked).
+    pub fn last_walk_complete(&self, account_id: &str) -> Result<bool> {
+        let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let complete: Option<bool> = conn
+            .query_row(
+                "SELECT last_walk_complete != 0 FROM collection_account_state WHERE account_id = ?1",
+                [account_id],
+                |r| r.get(0),
+            )
+            .optional()?;
+        Ok(complete.unwrap_or(false))
     }
 
     /// Local refresh-state fields for the check gate (cooldown + failure backoff).
@@ -381,5 +406,54 @@ impl CollectionService {
             }
             _ => CrateError::Database(e),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::path::PathBuf;
+    use std::sync::{Arc, Mutex};
+
+    use rusqlite::Connection;
+
+    use super::*;
+
+    fn service() -> CollectionService {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        for sql in crate::db::schema::get_migrations() {
+            conn.execute_batch(sql).unwrap();
+        }
+        CollectionService::new(Arc::new(Mutex::new(conn)), PathBuf::new())
+    }
+
+    #[test]
+    fn walk_completeness_round_trips_through_account_state() {
+        let svc = service();
+        let account = svc
+            .link_account("https://bandcamp.com/fan", "bandcamp", None, None, None, None)
+            .unwrap();
+
+        // Never walked: the incremental early exit must not be trusted.
+        assert!(!svc.last_walk_complete(&account.id).unwrap());
+
+        svc.mark_checked(&account.id, FollowHealth::Ok, None, Some(10), Some(true))
+            .unwrap();
+        assert!(svc.last_walk_complete(&account.id).unwrap());
+
+        // A failed check leaves coverage untouched…
+        svc.mark_checked(&account.id, FollowHealth::Error, Some("boom"), None, None)
+            .unwrap();
+        assert!(svc.last_walk_complete(&account.id).unwrap());
+
+        // …and so does an OK check that doesn't report on it.
+        svc.mark_checked(&account.id, FollowHealth::Ok, None, None, None)
+            .unwrap();
+        assert!(svc.last_walk_complete(&account.id).unwrap());
+
+        // A capped walk (MAX_BATCHES) demotes coverage until a full walk finishes.
+        svc.mark_checked(&account.id, FollowHealth::Ok, None, None, Some(false))
+            .unwrap();
+        assert!(!svc.last_walk_complete(&account.id).unwrap());
     }
 }
