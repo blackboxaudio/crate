@@ -38,9 +38,9 @@
 					s.setProperty('--text-tertiary', '#71717a')
 				}
 
-				// Accent color. The shared theme CSS maps data-accent -> --brand-primary once style.css loads;
-				// set --brand-primary inline here too so the pre-paint splash logo is the right accent before
-				// then (the Svelte SplashScreen clears it on mount so [data-accent] becomes authoritative).
+				// Accent color. The shared theme CSS maps data-accent -> --brand-primary once style.css loads.
+				// The splash logo no longer reads it — it's pinned to the native launch-screen teal so the
+				// OS launch-image crossfade lands on a pixel-identical frame — so no inline override needed.
 				var accentColors = {
 					blue: '#3b82f6', indigo: '#6366f1', violet: '#8b5cf6', purple: '#a855f7',
 					pink: '#ec4899', rose: '#f43f5e', orange: '#f97316', amber: '#f59e0b',
@@ -52,7 +52,6 @@
 					if (storedAccent && accentColors[storedAccent]) accent = storedAccent
 				} catch (e) {}
 				document.documentElement.setAttribute('data-accent', accent)
-				document.documentElement.style.setProperty('--brand-primary', accentColors[accent])
 
 				// Font preference. Mobile defaults to the native system font (San Francisco on iOS) — no
 				// web-font fetch, so the first paint is instant and correct offline. The web-served families
@@ -85,24 +84,21 @@
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
-		<!-- Inline splash: paints immediately (before any JS) with a fade-in; the Svelte SplashScreen
-		     removes it once the app mounts. Mirrors the desktop boot splash. --brand-primary/--surface-0/
-		     --text-* are set inline by the boot script above so the accent-masked logo + text are correct. -->
-		<div id="splash" style="position:fixed;inset:0;z-index:9998;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--surface-0);animation:splashIn 400ms ease-out both">
-			<div style="width:64px;height:64px;background:var(--brand-primary);-webkit-mask-image:url('/crate-logo.svg');-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;mask-image:url('/crate-logo.svg');mask-size:contain;mask-repeat:no-repeat;mask-position:center"></div>
-			<span style="font-size:18px;line-height:28px;font-weight:700;color:var(--text-primary);font-family:var(--font-family)">Crate</span>
-			<span style="font-size:12px;line-height:16px;color:var(--text-tertiary);font-family:var(--font-family)">v%sveltekit.env.PUBLIC_APP_VERSION%</span>
+		<!-- Inline splash: paints immediately (before any JS); the Svelte SplashScreen removes it once
+		     the app mounts. It must be a pixel-identical copy of the native launch screen's steady frame
+		     (gen/apple/LaunchScreen.storyboard): same bitmap (crate-mark.png, the LaunchLogo asset), the
+		     same 99x104pt box at the exact screen center, and the same fixed teal tint (#14b8a6, the
+		     storyboard's tintColor — deliberately NOT the user accent). The OS crossfades its launch
+		     snapshot into this first web frame, so any mismatch shows as a ghosted double logo — and any
+		     fade-in here doubles the jank, so the splash paints at full opacity and only the wordmark +
+		     version (absent from the native frame) fade in via that same OS crossfade. -->
+		<div id="splash" style="position:fixed;inset:0;z-index:9998;background:var(--surface-0)">
+			<div style="position:absolute;left:50%;top:50%;width:99px;height:104px;transform:translate(-50%,-50%);background:#14b8a6;-webkit-mask-image:url('/crate-mark.png');-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;mask-image:url('/crate-mark.png');mask-size:contain;mask-repeat:no-repeat;mask-position:center"></div>
+			<div style="position:absolute;left:0;right:0;top:calc(50% + 64px);display:flex;flex-direction:column;align-items:center;gap:12px">
+				<span style="font-size:18px;line-height:28px;font-weight:700;color:var(--text-primary);font-family:var(--font-family)">Crate</span>
+				<span style="font-size:12px;line-height:16px;color:var(--text-tertiary);font-family:var(--font-family)">v%sveltekit.env.PUBLIC_APP_VERSION%</span>
+			</div>
 		</div>
-		<style>
-			@keyframes splashIn {
-				from {
-					opacity: 0;
-				}
-				to {
-					opacity: 1;
-				}
-			}
-		</style>
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

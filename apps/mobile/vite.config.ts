@@ -15,8 +15,14 @@ const host = process.env.TAURI_DEV_HOST
 const pkg = JSON.parse(readFileSync(fileURLToPath(new URL('../../package.json', import.meta.url)), 'utf-8'))
 const crateEnv = process.env.CRATE_ENV
 if (crateEnv === 'staging') {
+	// `yarn bump` stamps -staging.N prerelease versions straight into package.json — use those as-is
+	// so the splash doesn't show a doubled suffix (v0.3.0-staging.33-staging).
 	const build = process.env.CRATE_BUILD_NUMBER
-	process.env.PUBLIC_APP_VERSION = build ? `${pkg.version}-staging.${build}` : `${pkg.version}-staging`
+	process.env.PUBLIC_APP_VERSION = pkg.version.includes('-staging')
+		? pkg.version
+		: build
+			? `${pkg.version}-staging.${build}`
+			: `${pkg.version}-staging`
 } else if (!crateEnv || crateEnv === 'development') {
 	process.env.PUBLIC_APP_VERSION = `${pkg.version}-dev`
 } else {

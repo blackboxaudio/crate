@@ -14,12 +14,16 @@ use rusqlite::Connection;
 
 use super::CollectionService;
 use crate::error::{CrateError, Result};
-use crate::models::{CollectionGapItem, CollectionOwnership};
+#[cfg(feature = "desktop")]
+use crate::models::CollectionGapItem;
+use crate::models::CollectionOwnership;
 use crate::services::discovery::normalize_url;
 
 /// Fuzzy text normalization for matching purchases against library tracks: trim,
 /// Unicode-lowercase, drop bracketed segments (`(Original Mix)`, `[Remastered]`),
-/// cut `feat.`/`ft.` suffixes, collapse whitespace.
+/// cut `feat.`/`ft.` suffixes, collapse whitespace. Only the desktop-only library-gap
+/// cross-reference needs it — mobile matches on URL identity alone.
+#[cfg(feature = "desktop")]
 fn normalize_for_match(s: &str) -> String {
     let lower = s.trim().to_lowercase();
     let mut cleaned = String::with_capacity(lower.len());
@@ -158,6 +162,7 @@ impl CollectionService {
     }
 }
 
+#[cfg(feature = "desktop")]
 impl CollectionService {
     /// Cross-reference every owned item against the local track library by normalized
     /// artist + album (album purchases) or artist + title (track purchases). Computed

@@ -21,6 +21,8 @@ pub mod export;
 pub mod follow;
 #[cfg(feature = "desktop")]
 pub mod hash;
+#[cfg(target_os = "ios")]
+pub mod ios_splash;
 #[cfg(feature = "desktop")]
 pub mod library;
 pub mod media_controls;

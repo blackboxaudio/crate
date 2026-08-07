@@ -45,6 +45,14 @@ pub fn set_app_foreground(state: tauri::State<'_, crate::AppForegroundFlag>, for
         .store(foreground, std::sync::atomic::Ordering::Relaxed);
 }
 
+/// iOS: the web splash has painted — fade out the native launch-screen overlay covering the
+/// webview (see `services::ios_splash`).
+#[cfg(target_os = "ios")]
+#[tauri::command]
+pub fn dismiss_native_splash(app: tauri::AppHandle) {
+    crate::services::ios_splash::dismiss(&app);
+}
+
 #[tauri::command]
 pub fn open_dev_tools(app: tauri::AppHandle) {
     #[cfg(feature = "devtools")]

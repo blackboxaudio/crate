@@ -323,7 +323,10 @@ impl PlaybackEngineInner {
         if decided {
             engine::emit_debug(
                 &self.app,
-                format!("load resolved on track {} (playing={})", self.index, self.playing),
+                format!(
+                    "load resolved on track {} (playing={})",
+                    self.index, self.playing
+                ),
             );
         }
         decided
@@ -768,9 +771,14 @@ fn nserror_message(err: &NSError) -> String {
 fn spawn_load_watchdog(app: AppHandle, epoch: u64) {
     let resolved = Arc::new(AtomicBool::new(false));
     tauri::async_runtime::spawn(async move {
-        let schedule = std::iter::repeat(LOAD_WATCHDOG_FAST_POLL_MS)
-            .take(LOAD_WATCHDOG_FAST_TICKS as usize)
-            .chain(std::iter::repeat(LOAD_WATCHDOG_POLL_MS).take(LOAD_WATCHDOG_SLOW_TICKS as usize));
+        let schedule = std::iter::repeat_n(
+            LOAD_WATCHDOG_FAST_POLL_MS,
+            LOAD_WATCHDOG_FAST_TICKS as usize,
+        )
+        .chain(std::iter::repeat_n(
+            LOAD_WATCHDOG_POLL_MS,
+            LOAD_WATCHDOG_SLOW_TICKS as usize,
+        ));
         for delay_ms in schedule {
             if resolved.load(Ordering::Relaxed) {
                 break;

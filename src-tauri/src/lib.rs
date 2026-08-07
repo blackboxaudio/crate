@@ -176,6 +176,8 @@ pub fn run() {
             // App commands
             commands::app::get_app_info,
             commands::app::set_app_foreground,
+            #[cfg(target_os = "ios")]
+            commands::app::dismiss_native_splash,
             commands::app::open_dev_tools,
             commands::app::close_dev_tools,
             #[cfg(feature = "desktop")]
@@ -473,6 +475,13 @@ pub fn run() {
             commands::cloud_sync::locate_track,
         ])
         .setup(|app| {
+            // iOS: float a native copy of the launch screen above the not-yet-painted webview
+            // FIRST — before DB init eats into the launch window — so the system launch-screen
+            // crossfade lands on identical pixels instead of a blank white webview. The frontend
+            // dismisses it via `dismiss_native_splash` once the web splash has painted.
+            #[cfg(target_os = "ios")]
+            services::ios_splash::attach(app.handle());
+
             // Get Tauri's app data directory
             let app_data_dir = app
                 .path()

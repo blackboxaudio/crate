@@ -33,16 +33,20 @@
 	const SETTLE_MS = 280
 
 	// Once the bars have finished settling they hold the rest shape at every phase, so the animation
-	// can be paused outright — no per-frame keyframe re-resolution while a track sits paused.
-	let animating = $state(playing)
+	// can be paused outright — no per-frame keyframe re-resolution while a track sits paused. The
+	// keyframes only need to keep running while playing or while a fresh pause eases into the rest
+	// arch (`settling` covers the transition window).
+	let settling = $state(false)
 	$effect(() => {
-		if (playing) {
-			animating = true
-			return
+		if (playing) return
+		settling = true
+		const timer = setTimeout(() => (settling = false), SETTLE_MS)
+		return () => {
+			clearTimeout(timer)
+			settling = false
 		}
-		const timer = setTimeout(() => (animating = false), SETTLE_MS)
-		return () => clearTimeout(timer)
 	})
+	const animating = $derived(playing || settling)
 
 	// Keep a small floor so a bar never fully collapses (a zero-height bar reads as "broken").
 	const pct = (level: number | undefined) => Math.round(Math.max(0.12, Math.min(1, level ?? 0)) * 100)

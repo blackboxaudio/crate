@@ -113,6 +113,7 @@ pub struct CollectionOwnership {
 /// One purchase's presence in the local track library (the desktop "purchased but not
 /// in library" gap view). Matching is fuzzy (normalized artist + album/title), so this
 /// is advisory, never stored.
+#[cfg(feature = "desktop")]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CollectionGapItem {
