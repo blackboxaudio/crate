@@ -55,7 +55,9 @@ pub async fn fetch_preview_stream(
         let app_data_dir = discovery.app_data_dir();
 
         if let Some(direct) = cached_file_stream(&discovery, &release_id, track_position) {
-            log::info!("Preview stream {release_id}/{track_position}: serving cached file directly");
+            log::info!(
+                "Preview stream {release_id}/{track_position}: serving cached file directly"
+            );
             return Ok(direct);
         }
 
@@ -542,9 +544,7 @@ pub async fn precache_preview_stream(
             .await
             .map_err(|e| CrateError::Discovery(format!("Precache proxy request failed: {e:#}")))?
             .error_for_status()
-            .map_err(|e| {
-                CrateError::Discovery(format!("Precache proxy returned error: {e:#}"))
-            })?;
+            .map_err(|e| CrateError::Discovery(format!("Precache proxy returned error: {e:#}")))?;
     }
 
     // Explicit download ⇒ pin, excluding the track from LRU eviction until "Remove Download"
