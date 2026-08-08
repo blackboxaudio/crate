@@ -25,12 +25,16 @@ pub async fn native_preview_play(
     Ok(())
 }
 
+/// `expected_index` is the engine index the frontend computed this tail against; the engine no-ops
+/// when its live index differs (it auto-advanced while the tail was resolving), so a stale splice
+/// can never shift the window mapping. The frontend re-slides from the pending track-changed event.
 #[tauri::command]
 pub async fn native_preview_set_upcoming(
     tracks: Vec<NativeTrackEntry>,
+    expected_index: usize,
     engine: State<'_, NativePreviewEngine>,
 ) -> Result<()> {
-    engine.set_upcoming(tracks);
+    engine.set_upcoming(tracks, expected_index);
     Ok(())
 }
 

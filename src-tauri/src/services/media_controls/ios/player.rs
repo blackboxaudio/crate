@@ -169,8 +169,23 @@ impl PlaybackEngineInner {
     /// is kept so the engine's track-changed indices stay valid and the lock-screen Previous can still step
     /// back into it. This is what lets the JS sliding window apply queue mutations / refill seamlessly,
     /// including while the screen is locked. No-op until something is loaded (the next `load` sets the window).
-    pub fn set_upcoming(&mut self, upcoming: Vec<NativeTrackEntry>) {
+    /// `expected_index` guards against a race the 60ms JS-side coalesce can't close: the frontend
+    /// computes the tail against ITS mirror of the current index, but the engine may auto-advance
+    /// while that tail is resolving/in flight. Splicing the stale tail in at the NEW index would
+    /// offset the entries⇄queue mapping by however far the engine moved. Dropping the call is safe —
+    /// the frontend re-slides when it processes the pending track-changed event.
+    pub fn set_upcoming(&mut self, upcoming: Vec<NativeTrackEntry>, expected_index: usize) {
         if self.entries.is_empty() {
+            return;
+        }
+        if self.index != expected_index {
+            engine::emit_debug(
+                &self.app,
+                format!(
+                    "set_upcoming dropped: engine at {} but tail computed for {}",
+                    self.index, expected_index
+                ),
+            );
             return;
         }
         let keep = (self.index + 1).min(self.entries.len());

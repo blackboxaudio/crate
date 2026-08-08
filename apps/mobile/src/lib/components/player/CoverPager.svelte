@@ -15,7 +15,7 @@
 </script>
 
 <script lang="ts">
-	import type { Pick as QueuePick } from '$shared/stores/playbackQueue'
+	import type { PreviewPick as QueuePick } from '$shared/stores/playbackQueue'
 	import { swipePager } from '$lib/actions/swipePager'
 	import { lightTap } from '$lib/utils/haptics'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'

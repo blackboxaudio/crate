@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySourceType } from '$shared/types'
+	import type { DiscoveryRelease, DiscoverySortConfig } from '$shared/types'
 	import { tick } from 'svelte'
 	import { handleSelection } from '$shared/utils'
 	import { createVirtualList } from '$shared/utils/virtualizer.svelte'
@@ -11,13 +11,6 @@
 	import Text from '$lib/components/common/Text.svelte'
 
 	const addReleaseShortcut = $derived(navigator.userAgent.includes('Mac') ? '⌘D' : 'Ctrl+D')
-
-	const BASE_PREVIEWABLE: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
-
-	function isReleasePreviewable(release: DiscoveryRelease): boolean {
-		if (BASE_PREVIEWABLE.has(release.source_type)) return true
-		return release.tracks.some((t) => t.video_id !== null)
-	}
 
 	const HEADER_HEIGHT = 33
 	const ROW_HEIGHT = 49
@@ -212,7 +205,6 @@
 							{release}
 							selected={selectedIds.has(release.id)}
 							expanded={expandedIds.has(release.id)}
-							isPreviewable={isReleasePreviewable(release)}
 							dragReleaseIds={Array.from(selectedIds)}
 							{categoryColors}
 							{categorySortOrders}

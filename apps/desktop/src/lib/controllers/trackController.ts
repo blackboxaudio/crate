@@ -27,6 +27,10 @@ export interface TrackControllerDeps {
 	getSelectedPlaylistId: () => string | null
 	getPlaylists: () => Playlist[]
 	getMissingTrackIds: () => Set<string>
+	// The visible track list a user-initiated play captures as its playback-queue context. Called
+	// AFTER the missing-file check, so a play that only opens the relocate modal never captures one —
+	// the caller may also record view-origin state inside it.
+	getPlaybackContext: () => Track[]
 }
 
 export interface TrackControllerModalActions {
@@ -82,10 +86,12 @@ export function createTrackController(
 		getSelectedPlaylistId,
 		getPlaylists,
 		getMissingTrackIds,
+		getPlaybackContext,
 	} = deps
 
 	/**
-	 * Play a track, or open relocate modal if the track file is missing
+	 * Play a track, or open relocate modal if the track file is missing. A user-initiated play seeds
+	 * the shared playback queue with the visible list as its context.
 	 */
 	function play(track: Track): void {
 		if (getMissingTrackIds().has(track.id)) {
@@ -96,7 +102,7 @@ export function createTrackController(
 			}
 			return
 		}
-		playerStore.play(track)
+		playerStore.play(track, getPlaybackContext())
 	}
 
 	/**

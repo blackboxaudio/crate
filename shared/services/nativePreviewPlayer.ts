@@ -92,9 +92,14 @@ export async function play(tracks: NativeTrack[], startIndex: number, startPosit
  * Replace the engine's UPCOMING tail (everything after the currently-playing item) without disturbing
  * the current track, its position, or the lock screen. Used to slide the lazy window forward as playback
  * advances and to apply Add-to-queue / Play-next mutations live — including while the screen is locked.
+ *
+ * `expectedIndex` is the engine index the tail was computed AGAINST (the frontend's mirror of the
+ * engine's current index). The engine drops the call when its live index differs — the engine
+ * auto-advanced while this tail was being resolved, so splicing it in at the new index would shift the
+ * whole window mapping. The frontend re-slides from the `track-changed` event it is about to process.
  */
-export async function setUpcoming(tracks: NativeTrack[]): Promise<void> {
-	await invoke('native_preview_set_upcoming', { tracks })
+export async function setUpcoming(tracks: NativeTrack[], expectedIndex: number): Promise<void> {
+	await invoke('native_preview_set_upcoming', { tracks, expectedIndex })
 }
 
 export async function pause(): Promise<void> {

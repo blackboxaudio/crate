@@ -12,6 +12,7 @@
 		previewInfo,
 		discoveryStore,
 	} from '$lib/stores'
+	import { canAdvance } from '$shared/stores/playbackQueue'
 	import PlaybackControls from './PlaybackControls.svelte'
 	import SeekBar from './SeekBar.svelte'
 	import TempoControl from './TempoControl.svelte'
@@ -76,6 +77,7 @@
 		<PlaybackControls
 			isPlaying={$isPlaying}
 			{hasTrack}
+			canAdvance={$canAdvance}
 			shuffleEnabled={$shuffleEnabled}
 			repeatMode={$repeatMode}
 			onPlayPause={handlePlayPause}

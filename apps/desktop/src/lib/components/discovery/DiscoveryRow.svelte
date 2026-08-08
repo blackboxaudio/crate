@@ -24,6 +24,7 @@
 		ownedTrackIds,
 	} from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$shared/stores/player'
+	import { isPreviewPlayable } from '$shared/stores/playbackQueue'
 	import { DRAG_THRESHOLD, getDistance } from '$shared/utils/drag'
 	import { translate } from '$shared/i18n'
 	import * as discoveryApi from '$shared/api/discovery'
@@ -33,7 +34,6 @@
 		release: DiscoveryRelease
 		selected?: boolean
 		expanded?: boolean
-		isPreviewable?: boolean
 		dragReleaseIds?: string[]
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -53,7 +53,6 @@
 		release,
 		selected = false,
 		expanded = false,
-		isPreviewable = true,
 		dragReleaseIds = [],
 		categoryColors,
 		categorySortOrders,
@@ -132,12 +131,7 @@
 	}
 
 	function trackCanPlay(trackIndex: number): boolean {
-		const track = release.tracks[trackIndex]
-		if (!track?.duration_ms) return false
-		// The source serves no preview for this track right now (pre-order) — greyed and inert.
-		if (track.preview_unavailable) return false
-		if (release.source_type === 'discogs') return track.video_id !== null
-		return isPreviewable
+		return isPreviewPlayable(release, trackIndex)
 	}
 
 	// Pre-order upkeep: expanding the tracklist re-checks preview availability at the source

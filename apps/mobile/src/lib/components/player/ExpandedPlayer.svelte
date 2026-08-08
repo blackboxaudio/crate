@@ -17,7 +17,7 @@
 		shuffleEnabled,
 		repeatMode,
 	} from '$shared/stores/player'
-	import { canAdvance, upNext, peekUpcoming, peekPrevious, type Pick as QueuePick } from '$shared/stores/playbackQueue'
+	import { canAdvance, upNext, peekUpcoming, peekPrevious, type PreviewPick } from '$shared/stores/playbackQueue'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import { formatDuration } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
@@ -159,18 +159,24 @@
 
 	// Neighbor picks for the pager's peeking covers, re-peeked on every queue emission ($upNext re-emits
 	// on each mutation/advance) so they always match what a swipe would actually play.
+	// Narrowed at the queue boundary: a preview session's picks are all previews (`Pick` is a union
+	// since the queue learned library tracks; the pager renders release artwork, so it's preview-only).
 	const nextPick = $derived.by(() => {
 		void $upNext
-		return $previewInfo ? (peekUpcoming(1)[0] ?? null) : null
+		if (!$previewInfo) return null
+		const pick = peekUpcoming(1)[0] ?? null
+		return pick?.kind === 'preview' ? pick : null
 	})
 	const prevPick = $derived.by(() => {
 		void $upNext
-		return $previewInfo ? peekPrevious() : null
+		if (!$previewInfo) return null
+		const pick = peekPrevious()
+		return pick?.kind === 'preview' ? pick : null
 	})
 	// "Previous" pages only when a previous pick exists — a swipe never falls into the restart branch.
 	const canPrevPage = $derived(prevPick != null)
 
-	function requestPage(dir: 1 | -1, target: QueuePick | null) {
+	function requestPage(dir: 1 | -1, target: PreviewPick | null) {
 		pendingGestures = [
 			...pendingGestures,
 			{ dir, targetKey: target ? `${target.release.id}:${target.trackIndex}` : null },

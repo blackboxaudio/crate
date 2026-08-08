@@ -10,6 +10,7 @@
 	import { startWebMediaSession } from '$shared/services/webMediaSession'
 	import { startAndroidMediaSession } from '$shared/services/androidMediaSession'
 	import { playerStore, previewInfo } from '$shared/stores/player'
+	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { isAndroid, isIOS } from '$shared/utils/platform'
 	import { mobileUIStore, isPlayerExpanded, flushNavPersistence } from '$lib/stores/mobileUI'
 	import { collectionStore } from '$shared/stores/collection'
@@ -67,6 +68,11 @@
 	// renders reactively once previewInfo resolves.
 	onMount(() => {
 		void playerStore.restorePreview()
+		// Hydrate the persisted user queue UNCONDITIONALLY: restorePreview only reaches its own hydrate
+		// when a preview was playing at last close, so a queue built with nothing playing survived the
+		// relaunch in storage but never reached memory — and the next addToQueue overwrote it with one
+		// entry. hydrate() is non-clobbering, so racing restorePreview's call is harmless.
+		void playbackQueue.hydrate()
 	})
 
 	// Auto-open the full-screen player when the user returns to Crate from the lock screen while a
@@ -204,7 +210,12 @@
 	// follow watch sweep don't burn background CPU while background audio keeps the process alive.
 	onMount(() => {
 		const onVisibility = () => {
-			if (document.visibilityState === 'hidden') flushNavPersistence()
+			if (document.visibilityState === 'hidden') {
+				flushNavPersistence()
+				// Backgrounding is the last chance to feed the iOS native engine: once JS suspends, its
+				// loaded window is a hard budget on remaining locked-screen audio — top it up to the cap.
+				playerStore.deepenNativeWindow()
+			}
 			void invoke('set_app_foreground', { foreground: document.visibilityState === 'visible' }).catch(() => {})
 		}
 		document.addEventListener('visibilitychange', onVisibility)

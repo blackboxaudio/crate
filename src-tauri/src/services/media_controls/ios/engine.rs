@@ -78,10 +78,11 @@ impl NativePreviewEngine {
     }
 
     /// Replace the upcoming tail in place (slide the window / apply a queue mutation) without disturbing
-    /// the currently-playing item.
-    pub fn set_upcoming(&self, tracks: Vec<NativeTrackEntry>) {
+    /// the currently-playing item. Dropped if the engine's live index no longer matches
+    /// `expected_index` (see the command doc).
+    pub fn set_upcoming(&self, tracks: Vec<NativeTrackEntry>, expected_index: usize) {
         run_on_main(&self.app, move || {
-            with_engine_mut(|e| e.set_upcoming(tracks))
+            with_engine_mut(|e| e.set_upcoming(tracks, expected_index))
         });
     }
 

@@ -6,6 +6,8 @@
 	type Props = {
 		isPlaying: boolean
 		hasTrack: boolean
+		/** Whether the queue has anything to advance to (repeat off at the end of the list greys Next). */
+		canAdvance?: boolean
 		shuffleEnabled?: boolean
 		repeatMode?: RepeatMode
 		onPlayPause?: () => void
@@ -19,6 +21,7 @@
 	let {
 		isPlaying,
 		hasTrack,
+		canAdvance = true,
 		shuffleEnabled = false,
 		repeatMode = 'off',
 		onPlayPause,
@@ -66,7 +69,14 @@
 
 	<!-- Next -->
 	<Tooltip text={$translate('player.next')} position="top" delay={250}>
-		<IconButton size="lg" iconClass="h-5 w-5" disabled={!hasTrack} icon="skip-forward" fill onclick={onNext} />
+		<IconButton
+			size="lg"
+			iconClass="h-5 w-5"
+			disabled={!hasTrack || !canAdvance}
+			icon="skip-forward"
+			fill
+			onclick={onNext}
+		/>
 	</Tooltip>
 
 	<!-- Shuffle -->

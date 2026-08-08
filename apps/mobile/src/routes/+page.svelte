@@ -91,7 +91,7 @@
 	$effect(() => {
 		const list = $mobileDisplayedReleases
 		if (get(queueOrigin) === 'discovery' && playbackQueue.currentPick()) {
-			playbackQueue.updateContext(list)
+			playbackQueue.updatePreviewContext(list)
 		}
 	})
 </script>
