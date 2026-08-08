@@ -7,7 +7,7 @@ use crate::error::{CrateError, Result};
 use crate::models::{
     BulkImportProgress, BulkImportResult, DiscoveryFilter, DiscoveryRelease,
     DiscoveryReleaseCreate, DiscoveryReleaseUpdate, DiscoveryTrack, DiscoveryTrackCreate,
-    ScannedPage, ScannedRelease,
+    PreviewStream, ScannedPage, ScannedRelease,
 };
 use crate::services::discovery::metadata::{self, FetchedMetadata};
 use crate::services::discovery::n_transform::{self, NsigSolverState};
@@ -22,8 +22,8 @@ use crate::services::{LibraryService, TagService};
 #[cfg(feature = "desktop")]
 use crate::models::ImportResultWithDuplicates;
 use crate::{
-    AvatarCache, BulkImportCancelFlag, EnrichmentSkipIds, ProxyServerPort, ScanEnrichmentCache,
-    ScanPageCancelFlag, StreamFetchPermits,
+    AvatarCache, BulkImportCancelFlag, EnrichmentSkipIds, ProxyRestartSignal, ProxyServerPort,
+    ScanEnrichmentCache, ScanPageCancelFlag, StreamFetchPermits,
 };
 
 // Stream resolution is fully lazy: URLs are fetched when the user plays a track (plus
@@ -49,10 +49,20 @@ pub async fn fetch_preview_stream(
     discovery: State<'_, DiscoveryService>,
     proxy_port: State<'_, ProxyServerPort>,
     permits: State<'_, StreamFetchPermits>,
-) -> Result<String> {
+) -> Result<PreviewStream> {
     let result = async {
         let port = proxy_port.0;
         let app_data_dir = discovery.app_data_dir();
+
+        if let Some(direct) = cached_file_stream(&discovery, &release_id, track_position) {
+            log::info!("Preview stream {release_id}/{track_position}: serving cached file directly");
+            return Ok(direct);
+        }
+
+        // Everything from here on is served through the localhost proxy — make sure its
+        // listener actually accepts connections before handing a URL to a media player.
+        let restart = app.state::<ProxyRestartSignal>().0.clone();
+        crate::proxy::ensure_proxy_alive(port, &restart).await;
 
         // Check if audio bytes are already cached on disk — skip stream URL resolution entirely
         if discovery
@@ -61,9 +71,10 @@ pub async fn fetch_preview_stream(
             .is_some()
         {
             log::info!("Preview stream {release_id}/{track_position}: serving from audio cache");
-            return Ok(format!(
-                "http://127.0.0.1:{port}/{release_id}/{track_position}"
-            ));
+            return Ok(PreviewStream {
+                url: format!("http://127.0.0.1:{port}/{release_id}/{track_position}"),
+                mime_type: None,
+            });
         }
 
         // Check stream URL cache
@@ -230,14 +241,80 @@ pub async fn fetch_preview_stream(
 
 /// Always route through the localhost proxy for unified disk caching.
 /// The proxy uses `proxy_ua` from the stream cache when set (YouTube/Discogs),
-/// or a default user-agent when not (Bandcamp/SoundCloud).
+/// or a default user-agent when not (Bandcamp/SoundCloud). The proxy response
+/// carries its own Content-Type header, so no out-of-band MIME is needed here.
 fn resolve_stream_url(
     _cached: &CachedStream,
     release_id: &str,
     track_position: i32,
     proxy_port: u16,
-) -> String {
-    format!("http://127.0.0.1:{proxy_port}/{release_id}/{track_position}")
+) -> PreviewStream {
+    PreviewStream {
+        url: format!("http://127.0.0.1:{proxy_port}/{release_id}/{track_position}"),
+        mime_type: None,
+    }
+}
+
+/// iOS: play fully-cached audio straight off disk instead of through the localhost proxy.
+/// `AVPlayer` reads file URLs natively, so a downloaded track keeps playing with no HTTP
+/// involved at all — which is what makes cached playback survive iOS closing the app's
+/// listening sockets on suspend (the failure mode where every replay died with
+/// `NSURLErrorDomain -1004`). The cache files are extensionless, so the recorded MIME type
+/// rides along for `AVURLAssetOverrideMIMETypeKey`.
+///
+/// The on-disk size must match the recorded size, mirroring the proxy's own guard: a
+/// mismatch falls through to the proxy, which owns stale-entry recovery.
+#[cfg(target_os = "ios")]
+fn cached_file_stream(
+    discovery: &DiscoveryService,
+    release_id: &str,
+    track_position: i32,
+) -> Option<PreviewStream> {
+    let (content_type, file_size) = discovery
+        .get_cached_audio_meta(release_id, track_position)
+        .unwrap_or(None)?;
+    let path = discovery.audio_cache_path(release_id, track_position);
+    if std::fs::metadata(&path).map(|m| m.len() as i64).ok() != Some(file_size) {
+        return None;
+    }
+    // Keep the LRU honest: a direct-played track never reaches the proxy's bump.
+    let _ = discovery.touch_audio_cache_access(release_id, track_position);
+    Some(PreviewStream {
+        url: file_url(&path),
+        mime_type: Some(content_type),
+    })
+}
+
+/// Desktop and Android play through the proxy (HTML5 `<audio>` can't load a `file://` URL
+/// from the webview origin), so there is no direct-file fast path there.
+#[cfg(not(target_os = "ios"))]
+fn cached_file_stream(
+    _discovery: &DiscoveryService,
+    _release_id: &str,
+    _track_position: i32,
+) -> Option<PreviewStream> {
+    None
+}
+
+/// Build a `file://` URL from an absolute path, percent-encoding every byte RFC 3986
+/// keeps out of a path segment — the iOS app-data dir contains "Application Support",
+/// and `NSURL URLWithString:` returns nil on a raw space.
+#[cfg(target_os = "ios")]
+fn file_url(path: &std::path::Path) -> String {
+    use std::fmt::Write;
+
+    let mut out = String::from("file://");
+    for &b in path.to_string_lossy().as_bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' => {
+                out.push(b as char)
+            }
+            _ => {
+                let _ = write!(out, "%{b:02X}");
+            }
+        }
+    }
+    out
 }
 
 /// Re-extract a release's streams purely to refresh per-track preview availability
@@ -440,7 +517,7 @@ pub async fn precache_preview_stream(
     // Resolve (and cache) the stream URL, and get the localhost proxy URL for the track.
     // Background priority: a whole-release offline download must never starve a
     // tap-to-play (cache hits skip the permit entirely).
-    let proxy_url = fetch_preview_stream(
+    let stream = fetch_preview_stream(
         release_id.clone(),
         track_position,
         Some(true),
@@ -451,18 +528,24 @@ pub async fn precache_preview_stream(
     )
     .await?;
 
-    // Hitting the proxy forces it to download the full stream and persist it to the on-disk
-    // cache before responding. A tiny range keeps the transferred body to a couple of bytes
-    // while the server still caches everything.
-    let client = reqwest::Client::new();
-    client
-        .get(&proxy_url)
-        .header("Range", "bytes=0-1")
-        .send()
-        .await
-        .map_err(|e| CrateError::Discovery(format!("Precache proxy request failed: {e:#}")))?
-        .error_for_status()
-        .map_err(|e| CrateError::Discovery(format!("Precache proxy returned error: {e:#}")))?;
+    // A `file://` URL means the audio is already fully on disk (the iOS direct-play fast
+    // path) — nothing to download; fall through so the pin + event below still land.
+    if !stream.url.starts_with("file://") {
+        // Hitting the proxy forces it to download the full stream and persist it to the
+        // on-disk cache before responding. A tiny range keeps the transferred body to a
+        // couple of bytes while the server still caches everything.
+        let client = reqwest::Client::new();
+        client
+            .get(&stream.url)
+            .header("Range", "bytes=0-1")
+            .send()
+            .await
+            .map_err(|e| CrateError::Discovery(format!("Precache proxy request failed: {e:#}")))?
+            .error_for_status()
+            .map_err(|e| {
+                CrateError::Discovery(format!("Precache proxy returned error: {e:#}"))
+            })?;
+    }
 
     // Explicit download ⇒ pin, excluding the track from LRU eviction until "Remove Download"
     // (or "Clear cache"). The proxy recorded the cache row before responding, so the pin

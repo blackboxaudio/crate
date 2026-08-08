@@ -135,8 +135,16 @@
      leaving the thumb free to overflow vertically out of the thin track. The input is `block`: a default
      `inline-block` range input sits on a text baseline, so the wrapper would grow to the inherited line
      box and the thin track would sit low within it — throwing off `items-center` alignment against a
-     readout/reset button beside it (the wrapper's height then collapses to the track's). -->
-<div class="w-full overflow-x-clip overflow-y-visible">
+     readout/reset button beside it (the wrapper's height then collapses to the track's).
+
+     `will-change: transform` pins the slider to its own compositing layer. A slider repaints on every
+     value change (the fill gradient + the thumb) — continuously during playback and once per step while
+     scrubbing. Without its own layer it shares one with whatever else got promoted nearby: in the mobile
+     expanded player the always-animating album-art wash forces the content above it into an overlap
+     layer, so each repaint re-rasterized that whole layer, visibly jittering the neighbouring title,
+     like button and ⋯ button by a device pixel or two per step. Measured on iOS: with the wash on, one
+     scrub step dirtied ~1700px of the title row; with this promotion, zero. -->
+<div class="w-full overflow-x-clip overflow-y-visible will-change-transform">
 	<input
 		type="range"
 		{min}

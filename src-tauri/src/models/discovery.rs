@@ -9,6 +9,17 @@ pub const DISCOVERY_TRACK_ID_NAMESPACE: uuid::Uuid =
 pub const DISCOVERY_RELEASE_ID_NAMESPACE: uuid::Uuid =
     uuid::Uuid::from_u128(0x7c42_d9be_51f0_4aa3_9b0d_d6f8_e2a4_1c77);
 
+/// Resolved playback endpoint for one track: the localhost proxy URL, or — iOS with the
+/// audio fully cached on disk — a direct `file://` URL into the audio cache together with
+/// the cached file's recorded MIME type (the cache files are extensionless, so AVPlayer
+/// needs the type out-of-band).
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PreviewStream {
+    pub url: String,
+    pub mime_type: Option<String>,
+}
+
 /// Canonical track-name normalization for identity and dedup: trim + Unicode lowercase.
 /// Every producer and consumer (id minting, insert-time dedup, sync merge matching, the
 /// startup dedupe sweep) MUST use this — SQL `LOWER()` is ASCII-only and would disagree

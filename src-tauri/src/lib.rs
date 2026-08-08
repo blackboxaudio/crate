@@ -20,6 +20,12 @@ use db::Database;
 /// `fetch_preview_stream` can embed it in the URL it returns to the frontend.
 pub(crate) struct ProxyServerPort(pub u16);
 
+/// Kicks the stream-proxy supervisor into rebinding its listener. iOS closes an app's
+/// listening sockets when the process suspends and axum's accept loop never recovers on
+/// its own, so health checks (app foreground, `fetch_preview_stream`) signal this when
+/// the port stops accepting connections.
+pub(crate) struct ProxyRestartSignal(pub Arc<tokio::sync::Notify>);
+
 /// Global throttle for BACKGROUND stream-URL resolution (playback-queue look-ahead,
 /// offline pre-caching). Foreground `fetch_preview_stream` calls never take a permit,
 /// so a tap-to-play can't queue behind opportunistic work.
@@ -866,19 +872,16 @@ pub fn run() {
 
             let proxy_state = proxy::ProxyServerState::new(app.handle().clone(), proxy_client);
 
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = std_listener.set_nonblocking(true) {
-                    log::error!("Failed to set proxy listener non-blocking: {e}");
-                    return;
-                }
-                let listener = match tokio::net::TcpListener::from_std(std_listener) {
-                    Ok(l) => l,
-                    Err(e) => {
-                        log::error!("Failed to convert proxy listener to tokio: {e}");
-                        return;
-                    }
-                };
+            let proxy_restart = Arc::new(tokio::sync::Notify::new());
+            app.manage(ProxyRestartSignal(proxy_restart.clone()));
 
+            // The server runs under a supervisor loop: iOS closes an app's listening sockets
+            // when the process suspends, after which every AVPlayer connect fails with
+            // NSURLError -1004 for the rest of the app's lifetime — axum's accept loop never
+            // recovers on its own. Health checks (app resume, `fetch_preview_stream`) kick
+            // `ProxyRestartSignal` and the loop rebinds the SAME port, so stream URLs already
+            // handed to the player stay valid.
+            tauri::async_runtime::spawn(async move {
                 let router = axum::Router::new()
                     .route(
                         "/:release_id/:track_position",
@@ -887,8 +890,59 @@ pub fn run() {
                     )
                     .with_state(proxy_state);
 
-                if let Err(e) = axum::serve(listener, router).await {
-                    log::error!("Stream proxy HTTP server error: {e}");
+                let mut initial_listener = Some(std_listener);
+                loop {
+                    let std_listener = match initial_listener.take() {
+                        Some(l) => l,
+                        None => loop {
+                            match std::net::TcpListener::bind(("127.0.0.1", proxy_port)) {
+                                Ok(l) => break l,
+                                Err(e) => {
+                                    log::warn!(
+                                        "Stream proxy rebind to port {proxy_port} failed: {e}; retrying"
+                                    );
+                                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                                }
+                            }
+                        },
+                    };
+
+                    if let Err(e) = std_listener.set_nonblocking(true) {
+                        log::error!("Failed to set proxy listener non-blocking: {e}");
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                        continue;
+                    }
+                    let listener = match tokio::net::TcpListener::from_std(std_listener) {
+                        Ok(l) => l,
+                        Err(e) => {
+                            log::error!("Failed to convert proxy listener to tokio: {e}");
+                            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                            continue;
+                        }
+                    };
+
+                    // Deliberately NOT a graceful shutdown: that waits for in-flight
+                    // connections, and a stalled media stream would hold the rebind hostage
+                    // for as long as it hangs. Dropping the server frees the port at once —
+                    // safe here because a restart is only ever signalled after the socket
+                    // already stopped accepting, so anything in flight is doomed regardless.
+                    tokio::select! {
+                        result = axum::serve(listener, router.clone()) => {
+                            match result {
+                                Ok(()) => log::warn!(
+                                    "Stream proxy server exited; rebinding port {proxy_port}"
+                                ),
+                                Err(e) => log::error!(
+                                    "Stream proxy HTTP server error: {e}; rebinding port {proxy_port}"
+                                ),
+                            }
+                        }
+                        _ = proxy_restart.notified() => {
+                            log::info!(
+                                "Stream proxy restart requested; rebinding port {proxy_port}"
+                            );
+                        }
+                    }
                 }
             });
 
@@ -919,8 +973,8 @@ pub fn run() {
             log::error!("Fatal: failed to run Tauri application: {e}");
             std::process::exit(1);
         });
-    app.run(|app_handle, event| {
-        if let tauri::RunEvent::Exit = event {
+    app.run(|app_handle, event| match event {
+        tauri::RunEvent::Exit => {
             // WAL: fold the -wal file back into crate.db on clean shutdown so the main
             // file stays self-contained for users who copy it manually.
             if let Some(discovery) = app_handle.try_state::<DiscoveryService>() {
@@ -931,5 +985,23 @@ pub fn run() {
                 }
             }
         }
+        // Resuming from suspension is when iOS's closed listening sockets surface. The
+        // webview's `visibilitychange` (via `set_app_foreground`) covers this too, but it
+        // doesn't always fire when the app was suspended under background audio — this
+        // event comes from the platform itself, so the proxy is probed either way.
+        tauri::RunEvent::Resumed => {
+            let (Some(port), Some(restart)) = (
+                app_handle.try_state::<ProxyServerPort>().map(|p| p.0),
+                app_handle
+                    .try_state::<ProxyRestartSignal>()
+                    .map(|s| s.0.clone()),
+            ) else {
+                return;
+            };
+            tauri::async_runtime::spawn(async move {
+                proxy::ensure_proxy_alive(port, &restart).await;
+            });
+        }
+        _ => {}
     });
 }

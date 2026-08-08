@@ -41,6 +41,33 @@ impl ProxyServerState {
     }
 }
 
+/// Probe the proxy listener and kick the supervisor to rebind it when it's dead.
+///
+/// iOS closes an app's listening sockets on suspend, so the first play after a resume
+/// would otherwise fail with a connection refusal. Callers run this before handing out
+/// (or acting on) a proxy URL: a healthy listener answers in well under a millisecond
+/// on loopback, a dead one triggers a rebind and this waits (bounded, ~2.5 s worst
+/// case) for the supervisor to bring the port back.
+pub(crate) async fn ensure_proxy_alive(port: u16, restart: &tokio::sync::Notify) {
+    use std::time::Duration;
+
+    for attempt in 0..10u32 {
+        let connect = tokio::net::TcpStream::connect(("127.0.0.1", port));
+        if let Ok(Ok(_)) = tokio::time::timeout(Duration::from_millis(250), connect).await {
+            if attempt > 0 {
+                log::info!("Stream proxy listener back up on port {port}");
+            }
+            return;
+        }
+        if attempt == 0 {
+            log::warn!("Stream proxy port {port} not accepting connections; requesting rebind");
+            restart.notify_one();
+        }
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+    log::error!("Stream proxy port {port} still not accepting after rebind request");
+}
+
 /// Parse a `bytes=start-[end]` Range header value and return `(start, optional_end)`.
 fn parse_bytes_range(header: Option<&str>) -> (u64, Option<u64>) {
     let s = match header {

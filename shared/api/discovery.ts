@@ -81,7 +81,17 @@ export async function refreshMetadata(id: string): Promise<DiscoveryRelease> {
 }
 
 /**
- * Resolve a track's proxied stream URL. `background: true` marks opportunistic resolution
+ * Resolved playback endpoint for one track: the localhost proxy URL, or — iOS with the
+ * audio fully cached on disk — a direct `file://` URL plus the cached file's MIME type
+ * (cache files are extensionless, so AVPlayer needs the type out-of-band).
+ */
+export interface PreviewStream {
+	url: string
+	mimeType: string | null
+}
+
+/**
+ * Resolve a track's playback endpoint. `background: true` marks opportunistic resolution
  * (queue look-ahead, offline pre-caching) that throttles through a small global permit pool
  * in the backend so it never delays a user-initiated (foreground) fetch.
  */
@@ -89,8 +99,8 @@ export async function fetchPreviewStream(
 	releaseId: string,
 	trackPosition: number,
 	background = false
-): Promise<string> {
-	return invoke<string>('fetch_preview_stream', { releaseId, trackPosition, background })
+): Promise<PreviewStream> {
+	return invoke<PreviewStream>('fetch_preview_stream', { releaseId, trackPosition, background })
 }
 
 export async function invalidatePreviewStreamCache(releaseId: string): Promise<void> {

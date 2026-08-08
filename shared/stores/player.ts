@@ -151,10 +151,11 @@ function createPlayerStore() {
 	// useAppSetup), so every queue branch below is inert there.
 	let nativeWindow: Array<{ release: DiscoveryRelease; trackIndex: number }> = []
 	let nativeIndex = 0
-	// Session cache of resolved stream (proxy) URLs, keyed `releaseId:trackIndex`. The proxy URLs are
-	// stable per release/track, so re-feeding the window on each advance/mutation doesn't re-resolve the
-	// same picks. Cleared on stop/reset; an entry is dropped + the backend cache invalidated on error.
-	const streamUrlCache = new Map<string, string>()
+	// Session cache of resolved stream endpoints (proxy or iOS-cached file URLs), keyed
+	// `releaseId:trackIndex`. The URLs are stable per release/track, so re-feeding the window on each
+	// advance/mutation doesn't re-resolve the same picks. Cleared on stop/reset; an entry is dropped +
+	// the backend cache invalidated on error.
+	const streamUrlCache = new Map<string, discoveryApi.PreviewStream>()
 	// Monotonic token making overlapping track transitions last-request-wins: rapid next/previous (swipe
 	// paging) can start a new `playPreview` while an earlier one is still resolving its stream, and the
 	// EARLIER one may finish LAST (cached vs uncached fetch) — without this it would clobber previewInfo
@@ -383,8 +384,8 @@ function createPlayerStore() {
 					console.warn(`Preview stream error, retrying: ${msg}`)
 					try {
 						await discoveryApi.invalidatePreviewStreamCache(release.id)
-						const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
-						previewPlayer.play(streamUrl)
+						const stream = await discoveryApi.fetchPreviewStream(release.id, track.position)
+						previewPlayer.play(stream.url)
 						if (!wasPlaying) previewPlayer.pause()
 						update((s) => ({
 							...s,
@@ -431,33 +432,40 @@ function createPlayerStore() {
 	}
 
 	// --- iOS native window resolution ---------------------------------------------------------------
-	// Resolve (and session-cache) a track's proxy stream URL. The proxy URLs are stable per release/track,
+	// Resolve (and session-cache) a track's stream endpoint. The URLs are stable per release/track,
 	// so the window can be re-fed cheaply on every advance/mutation. `background` marks opportunistic
 	// look-ahead resolution, which the backend throttles behind user-initiated fetches.
-	async function resolveStreamUrl(release: DiscoveryRelease, trackIndex: number, background = false): Promise<string> {
+	async function resolveStreamUrl(
+		release: DiscoveryRelease,
+		trackIndex: number,
+		background = false
+	): Promise<discoveryApi.PreviewStream> {
 		const cacheKey = `${release.id}:${trackIndex}`
 		const cached = streamUrlCache.get(cacheKey)
 		if (cached) return cached
 		const track = release.tracks[trackIndex]
-		const url = await discoveryApi.fetchPreviewStream(release.id, track.position, background)
-		streamUrlCache.set(cacheKey, url)
-		return url
+		const stream = await discoveryApi.fetchPreviewStream(release.id, track.position, background)
+		streamUrlCache.set(cacheKey, stream)
+		return stream
 	}
 
-	// Build a single engine entry for a pick: resolve its (session-cached) proxy stream URL and map the
-	// per-release metadata + MIME. MIME is per-release (a window can span releases / sources): YouTube/Discogs
-	// need an explicit audio/mp4 (their proxy URL is extensionless and AVFoundation can't infer it);
-	// Bandcamp/SoundCloud pass null. Throws if the URL can't be resolved — the caller decides whether that
-	// track is required (the tapped/current one) or best-effort (an upcoming window pick).
+	// Build a single engine entry for a pick: resolve its (session-cached) stream endpoint and map the
+	// per-release metadata + MIME. A backend-supplied MIME (iOS-cached file:// URLs) wins; otherwise MIME
+	// is per-release (a window can span releases / sources): YouTube/Discogs need an explicit audio/mp4
+	// (their proxy URL is extensionless and AVFoundation can't infer it); Bandcamp/SoundCloud pass null.
+	// Throws if the URL can't be resolved — the caller decides whether that track is required (the
+	// tapped/current one) or best-effort (an upcoming window pick).
 	async function buildOneNativeTrack(
 		p: { release: DiscoveryRelease; trackIndex: number },
 		background = false
 	): Promise<NativeTrack> {
 		const track = p.release.tracks[p.trackIndex]
-		const url = await resolveStreamUrl(p.release, p.trackIndex, background)
-		const mimeType = p.release.source_type === 'discogs' || p.release.source_type === 'youtube' ? 'audio/mp4' : null
+		const stream = await resolveStreamUrl(p.release, p.trackIndex, background)
+		const mimeType =
+			stream.mimeType ??
+			(p.release.source_type === 'discogs' || p.release.source_type === 'youtube' ? 'audio/mp4' : null)
 		return {
-			url,
+			url: stream.url,
 			title: track.name,
 			artist: p.release.artist ?? '',
 			album: p.release.title ?? '',
@@ -796,13 +804,13 @@ function createPlayerStore() {
 			}
 
 			try {
-				const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
+				const stream = await discoveryApi.fetchPreviewStream(release.id, track.position)
 				if (gen !== previewLoadGen) return true // superseded — the newer transition owns audio + state
 
 				wirePreviewEvents()
 
 				// Sync volume and speed for preview player
-				previewPlayer.play(streamUrl)
+				previewPlayer.play(stream.url)
 				const currentVolume = state.isMuted ? 0 : state.playbackState.volume
 				previewPlayer.setVolume(currentVolume)
 				previewPlayer.setPlaybackRate(state.playbackState.speed)
@@ -943,9 +951,9 @@ function createPlayerStore() {
 					if (!track) return
 					const restoredPosition = state.playbackState.position_ms
 					try {
-						const streamUrl = await discoveryApi.fetchPreviewStream(release.id, track.position)
+						const stream = await discoveryApi.fetchPreviewStream(release.id, track.position)
 						wirePreviewEvents()
-						previewPlayer.play(streamUrl)
+						previewPlayer.play(stream.url)
 						const currentVolume = state.isMuted ? 0 : state.playbackState.volume
 						previewPlayer.setVolume(currentVolume)
 						previewPlayer.setPlaybackRate(state.playbackState.speed)

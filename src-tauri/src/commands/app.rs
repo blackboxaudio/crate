@@ -39,10 +39,25 @@ pub fn get_app_info(app: tauri::AppHandle) -> Result<AppInfo, String> {
 /// mobile, background audio keeps the process alive and iOS kills sustained background
 /// CPU. Registered on both platforms; desktop simply never calls it.
 #[tauri::command]
-pub fn set_app_foreground(state: tauri::State<'_, crate::AppForegroundFlag>, foreground: bool) {
+pub fn set_app_foreground(
+    app: tauri::AppHandle,
+    state: tauri::State<'_, crate::AppForegroundFlag>,
+    foreground: bool,
+) {
     state
         .0
         .store(foreground, std::sync::atomic::Ordering::Relaxed);
+
+    // Returning to the foreground is exactly when an iOS-suspended listening socket
+    // turns out to be dead — probe the stream proxy now so it's rebound before the
+    // user's next play, not discovered by it.
+    if foreground {
+        tauri::async_runtime::spawn(async move {
+            let port = app.state::<crate::ProxyServerPort>().0;
+            let restart = app.state::<crate::ProxyRestartSignal>().0.clone();
+            crate::proxy::ensure_proxy_alive(port, &restart).await;
+        });
+    }
 }
 
 /// iOS: the web splash has painted — fade out the native launch-screen overlay covering the
