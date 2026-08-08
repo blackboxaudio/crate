@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$shared/types'
 	import { translate } from '$shared/i18n'
-	import { previewInfo } from '$shared/stores/player'
+	import { previewReleaseId } from '$shared/stores/player'
 	import { fullyOwnedReleaseIds, partiallyOwnedReleaseIds } from '$shared/stores/collection'
 	import { mobileUIStore, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
 	import { fullyCachedIds } from '$lib/stores/offlineCache'
@@ -18,7 +18,7 @@
 
 	const isSelectMode = $derived($selectMode)
 	const isSelected = $derived($selectedReleaseIds.has(release.id))
-	const isCurrentPreview = $derived($previewInfo?.releaseId === release.id)
+	const isCurrentPreview = $derived($previewReleaseId === release.id)
 
 	function onClick() {
 		if (isSelectMode) {

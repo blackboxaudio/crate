@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
 	import type { DiscoveryRelease } from '$shared/types'
-	import { getDiscoveryArtworkSrc } from '$shared/utils/artwork'
+	import { getArtworkUrl, getDiscoveryArtworkSrc, discoveryArtworkThumbPath } from '$shared/utils/artwork'
 	import { cacheReleaseArtwork } from '$shared/api/discovery'
 	import { mobileAppDataDir } from '$lib/stores/appData'
 	import ArtworkPlaceholder from './ArtworkPlaceholder.svelte'
@@ -19,9 +19,14 @@
 		/** Decode immediately instead of lazily — for covers that must be ready before they scroll in
 		 *  (the expanded player pre-mounts the neighboring tracks' covers for the swipe pager). */
 		eager?: boolean
+		/** 'thumb' renders the 160px cached thumbnail variant instead of the 500px full cover — for
+		 *  the small slots (feed rows, mini player, queue rows) where decoding the full cover wastes
+		 *  ~12× the pixels per cover, mid-scroll. Falls back to the full cover when the thumb file
+		 *  doesn't exist yet (covers cached before thumbnails shipped) and heals it for next time. */
+		size?: 'full' | 'thumb'
 		fallback?: Snippet
 	}
-	let { release, class: className = '', alt = '', eager = false, fallback }: Props = $props()
+	let { release, class: className = '', alt = '', eager = false, size = 'full', fallback }: Props = $props()
 
 	// Local cache-path state so the download can flip the src remote → local without a prop
 	// round-trip. Reset when the release identity changes (the virtualized feed reuses
@@ -38,20 +43,33 @@
 	// `cachePath` for the next mount / offline. The `onload` guard below only locks when the loaded
 	// src IS the remote url, so a cached-copy load can never lock local → remote.
 	let remoteLocked = $state(false)
+	// The thumb file is derived (not DB-tracked), so it can be missing for covers cached before
+	// thumbnails shipped — a load error drops this mount to the full cover and requests a heal.
+	let thumbFailed = $state(false)
 	$effect(() => {
 		if (release.id !== lastId) {
 			lastId = release.id
 			cachePath = release.artwork_cache_path
 			remoteLocked = false
+			thumbFailed = false
 		} else if (release.artwork_cache_path && !cachePath) {
 			cachePath = release.artwork_cache_path
 		}
 	})
 
+	const thumbSrc = $derived(
+		size === 'thumb' && cachePath && !thumbFailed
+			? getArtworkUrl(discoveryArtworkThumbPath(cachePath), $mobileAppDataDir)
+			: undefined
+	)
 	let src = $derived(
 		remoteLocked
 			? (release.artwork_url ?? undefined)
-			: getDiscoveryArtworkSrc({ artwork_url: release.artwork_url, artwork_cache_path: cachePath }, $mobileAppDataDir)
+			: (thumbSrc ??
+					getDiscoveryArtworkSrc(
+						{ artwork_url: release.artwork_url, artwork_cache_path: cachePath },
+						$mobileAppDataDir
+					))
 	)
 
 	// A failed load (dead/expired URL, offline and uncached) must not leave WebKit's
@@ -64,12 +82,19 @@
 	})
 
 	// On first display of an uncached-but-remote cover, cache it to disk (idempotent, soft-fail).
+	// Debounced: each call is a Tauri IPC round-trip plus a fetch+decode in Rust, and during a fast
+	// fling through uncached territory every mounted row would fire one. Rows that scroll past
+	// within the window unmount (or are recycled to a new release id) and cancel here — only rows
+	// the user actually pauses on kick off a download.
 	$effect(() => {
 		if (!cachePath && release.artwork_url) {
 			const id = release.id
-			void cacheReleaseArtwork(id).then((path) => {
-				if (path && release.id === id) cachePath = path
-			})
+			const timer = setTimeout(() => {
+				void cacheReleaseArtwork(id).then((path) => {
+					if (path && release.id === id) cachePath = path
+				})
+			}, 250)
+			return () => clearTimeout(timer)
 		}
 	})
 </script>
@@ -84,7 +109,17 @@
 		onload={() => {
 			if (src === release.artwork_url) remoteLocked = true
 		}}
-		onerror={() => (failed = true)}
+		onerror={() => {
+			if (thumbSrc && src === thumbSrc) {
+				// Missing thumb file (cover predates thumbnails): fall back to the full cover for
+				// this mount, and let the idempotent cache command regenerate the thumb on disk so
+				// the next mount gets the cheap decode.
+				thumbFailed = true
+				void cacheReleaseArtwork(release.id)
+			} else {
+				failed = true
+			}
+		}}
 	/>
 {:else if fallback}
 	{@render fallback()}

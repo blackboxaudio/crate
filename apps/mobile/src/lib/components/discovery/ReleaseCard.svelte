@@ -2,7 +2,7 @@
 	import type { DiscoveryRelease } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { discoveryStore } from '$shared/stores/discovery'
-	import { previewInfo, previewLoadingReleaseId } from '$shared/stores/player'
+	import { previewReleaseId, previewLoadingReleaseId } from '$shared/stores/player'
 	import { DRAG_THRESHOLD } from '$shared/utils/drag'
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { toastStore } from '$shared/stores/toast'
@@ -28,7 +28,7 @@
 
 	const isSelectMode = $derived($selectMode)
 	const isSelected = $derived($selectedReleaseIds.has(release.id))
-	const isCurrentPreview = $derived($previewInfo?.releaseId === release.id)
+	const isCurrentPreview = $derived($previewReleaseId === release.id)
 	const isPreviewLoading = $derived($previewLoadingReleaseId === release.id)
 	// In select mode only the selection should read as highlighted — applying the current-preview tint there
 	// would make the playing release look selected when it isn't. Outside select mode the selection set is
@@ -61,6 +61,10 @@
 	let maxX = 0
 	let longPressTimer = 0
 	let foregroundEl = $state<HTMLElement | null>(null) // the row's foreground div; its rect anchors the context menu
+	// pointermove outruns the display on 120Hz devices — coalesce the live-follow `offsetX` writes
+	// to one per frame (latest wins), matching `$lib/actions/swipe.ts`. Velocity stays per-event.
+	let swipeRaf = 0
+	let pendingOffset = 0
 
 	const bgClass = $derived(highlighted ? 'bg-brand-muted' : pressed && !dragging ? 'bg-surface-2' : 'bg-surface-0')
 
@@ -93,9 +97,16 @@
 	}
 
 	function detachWindow() {
+		if (swipeRaf) cancelAnimationFrame(swipeRaf)
+		swipeRaf = 0
 		window.removeEventListener('pointermove', onPointerMove)
 		window.removeEventListener('pointerup', onPointerUp)
 		window.removeEventListener('pointercancel', onPointerUp)
+	}
+
+	function flushSwipe() {
+		swipeRaf = 0
+		if (mode === 'swipe') offsetX = pendingOffset
 	}
 
 	function abandon() {
@@ -194,7 +205,8 @@
 			if (now > lastT) velocity = (e.clientX - lastX) / (now - lastT)
 			lastX = e.clientX
 			lastT = now
-			offsetX = clamp(openAtStart + dx, minX, maxX)
+			pendingOffset = clamp(openAtStart + dx, minX, maxX)
+			if (!swipeRaf) swipeRaf = requestAnimationFrame(flushSwipe)
 		}
 	}
 
@@ -204,6 +216,9 @@
 		const dy = e.clientY - startY
 		const moved = Math.abs(dx) >= DRAG_THRESHOLD || Math.abs(dy) >= DRAG_THRESHOLD
 		const wasSwipe = mode === 'swipe'
+
+		// Apply any not-yet-flushed follow write so the snap decision below sees the final position.
+		if (swipeRaf && wasSwipe) offsetX = pendingOffset
 
 		clearLongPress()
 		detachWindow()

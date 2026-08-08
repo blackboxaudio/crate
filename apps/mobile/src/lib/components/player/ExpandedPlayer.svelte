@@ -370,12 +370,11 @@
 					out:fade={{ duration: bgFadeMs, easing: easeFluid }}
 				>
 					{#if artSrc}
-						<img
-							src={artSrc}
-							alt=""
-							class="art-wash absolute inset-0 h-full w-full object-cover blur-2xl"
-							decoding="async"
-						/>
+						<!-- Drift on the unfiltered wrapper, blur + static base scale on the img — see the
+						     .art-wash note in style.css for why the two must not share an element. -->
+						<div class="art-wash absolute inset-0">
+							<img src={artSrc} alt="" class="art-wash-img h-full w-full object-cover blur-2xl" decoding="async" />
+						</div>
 						<div class="absolute inset-0 bg-gradient-to-b from-surface-0/80 via-surface-0/25 to-surface-0/90"></div>
 					{/if}
 				</div>

@@ -12,9 +12,12 @@
 	// `flex items-center gap-3` row between the optional select checkbox and the trailing chevron.
 	type Props = { release: DiscoveryRelease }
 	let { release }: Props = $props()
+
+	const fullyOwned = $derived($fullyOwnedReleaseIds.has(release.id))
+	const partiallyOwned = $derived($partiallyOwnedReleaseIds.has(release.id))
 </script>
 
-<ReleaseArtwork {release} class="h-12 w-12 flex-shrink-0 rounded object-cover" />
+<ReleaseArtwork {release} size="thumb" class="h-12 w-12 flex-shrink-0 rounded object-cover" />
 
 <div class="flex min-w-0 flex-1 flex-col leading-tight">
 	<!-- Title line: the "new" status pill (unread until listened to) trails the title, matching the
@@ -39,11 +42,11 @@
 	     The downloaded badge leads it when the release's audio is fully cached (offline-ready); the icon
 	     is smaller than the line height, so the row height never changes. -->
 	<span class="flex min-w-0 items-center gap-1 text-xs text-text-tertiary">
-		{#if $fullyOwnedReleaseIds.has(release.id) || $partiallyOwnedReleaseIds.has(release.id)}
+		{#if fullyOwned || partiallyOwned}
 			<!-- Owned badge: brand-tinted when the whole release is purchased, muted when only
 			     some tracks are. Inline and smaller than the line height (fixed-row invariant). -->
 			<svg
-				class="h-3 w-3 flex-shrink-0 {$fullyOwnedReleaseIds.has(release.id) ? 'text-brand-primary' : ''}"
+				class="h-3 w-3 flex-shrink-0 {fullyOwned ? 'text-brand-primary' : ''}"
 				viewBox="0 0 24 24"
 				fill="none"
 				stroke="currentColor"

@@ -1,4 +1,5 @@
 import { writable, derived, get } from 'svelte/store'
+import { dedupe } from '../utils/stores'
 import type { Track, PlaybackState, PreviewInfo, DiscoveryRelease } from '../types'
 import * as playerApi from '../api/player'
 import * as discoveryApi from '../api/discovery'
@@ -1719,11 +1720,18 @@ export const playerStore = createPlayerStore()
 
 // =============================================================================
 // Derived Stores
+//
+// The store ticks at 10Hz while playing (`startPositionTracking`), so every derived below
+// re-evaluates 10×/sec. Primitive-valued stores are harmless — svelte skips notification for
+// unchanged primitives — but OBJECT-valued selections re-notify every subscriber on every tick
+// (objects always fail `safe_not_equal`), fanning out to every mounted feed row. Those are
+// wrapped in `dedupe` (reference equality) so subscribers only run when the selection actually
+// changed.
 // =============================================================================
 
 export const isPlaying = derived(playerStore, ($player) => $player.playbackState.is_playing)
 
-export const currentTrack = derived(playerStore, ($player) => $player.currentTrack)
+export const currentTrack = dedupe(derived(playerStore, ($player) => $player.currentTrack))
 
 export const playbackPosition = derived(playerStore, ($player) => $player.playbackState.position_ms)
 
@@ -1745,11 +1753,16 @@ export const repeatMode = derived(playerStore, ($player) => $player.repeatMode)
 
 export const playbackSource = derived(playerStore, ($player) => $player.playbackSource)
 
-export const previewInfo = derived(playerStore, ($player) => $player.previewInfo)
+export const previewInfo = dedupe(derived(playerStore, ($player) => $player.previewInfo))
+
+// Primitive projection for the feed rows: a row only needs "is MY release the current preview",
+// so it subscribes to the release id (auto-deduped as a string) instead of the `previewInfo`
+// object — a track change within the same release doesn't touch the rows at all.
+export const previewReleaseId = derived(playerStore, ($player) => $player.previewInfo?.releaseId ?? null)
 
 export const previewTrackIndex = derived(playerStore, ($player) => $player.previewTrackIndex)
 
-export const previewLoading = derived(playerStore, ($player) => $player.previewLoading)
+export const previewLoading = dedupe(derived(playerStore, ($player) => $player.previewLoading))
 
 // Back-compat: release-level consumers (discovery rows, mini/expanded player) only need "is this release
 // loading", so they keep subscribing to this. Returns a string|null, which dedupes cleanly.

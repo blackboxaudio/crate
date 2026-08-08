@@ -117,13 +117,13 @@ export const swipe: Action<HTMLElement, SwipeOptions> = (node, initial) => {
 	const dir = () => (opts.side === 'left' ? 1 : -1)
 	// Openness at the start of the gesture: opening starts closed (0), closing starts open (1).
 	const base = () => (opts.mode === 'open' ? 0 : 1)
-	const width = () => {
-		if (opts.width) return opts.width
-		return node.getBoundingClientRect().width || window.innerWidth
-	}
+	// Measured ONCE per gesture (pointerdown): `opennessFor` runs per pointermove, interleaved with
+	// the rAF flush writing `transform` to this same node — a getBoundingClientRect there would
+	// force a synchronous layout every move. The panel can't resize mid-drag, so the snapshot holds.
+	let gestureWidth = window.innerWidth
 
 	function opennessFor(dx: number): number {
-		return clamp(base() + (dir() * dx) / width(), 0, 1)
+		return clamp(base() + (dir() * dx) / gestureWidth, 0, 1)
 	}
 
 	function onPointerDown(e: PointerEvent) {
@@ -147,6 +147,7 @@ export const swipe: Action<HTMLElement, SwipeOptions> = (node, initial) => {
 		velocity = 0
 		claimed = false
 		abandoned = false
+		gestureWidth = opts.width ?? (node.getBoundingClientRect().width || window.innerWidth)
 
 		window.addEventListener('pointermove', onPointerMove, { passive: false })
 		window.addEventListener('touchmove', onTouchMove, { passive: false })

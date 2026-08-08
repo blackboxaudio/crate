@@ -41,16 +41,34 @@
 		window.addEventListener('pointercancel', onPointerUp)
 	}
 
+	// pointermove outruns the display on 120Hz devices, and every `overIndex` change re-serializes
+	// an inline transform for EVERY row of this non-virtualized list — coalesce to at most one
+	// state write per frame (latest position wins), matching the swipe actions' convention.
+	let moveRaf = 0
+
 	function onPointerMove(e: PointerEvent) {
 		if (e.pointerId !== pointerId || dragIndex === null) return
 		currentY = e.clientY
+		if (!moveRaf) moveRaf = requestAnimationFrame(flushMove)
+	}
+
+	function flushMove() {
+		moveRaf = 0
+		if (dragIndex === null) return
 		const dy = currentY - startY
 		const rawTarget = dragIndex + Math.round(dy / rowHeight)
-		overIndex = Math.max(0, Math.min(items.length - 1, rawTarget))
+		const next = Math.max(0, Math.min(items.length - 1, rawTarget))
+		if (next !== overIndex) overIndex = next
 	}
 
 	function onPointerUp(e: PointerEvent) {
 		if (e.pointerId !== pointerId) return
+
+		// Apply any not-yet-flushed move so the drop commits at the finger's final position.
+		if (moveRaf) {
+			cancelAnimationFrame(moveRaf)
+			flushMove()
+		}
 
 		if (dragIndex !== null && overIndex !== null && dragIndex !== overIndex) {
 			// Drop tick, completing the pickup tick in onPointerDown — only when the order actually changed.
@@ -69,6 +87,8 @@
 		dragIndex = null
 		overIndex = null
 		pointerId = null
+		if (moveRaf) cancelAnimationFrame(moveRaf)
+		moveRaf = 0
 		window.removeEventListener('pointermove', onPointerMove)
 		window.removeEventListener('pointerup', onPointerUp)
 		window.removeEventListener('pointercancel', onPointerUp)

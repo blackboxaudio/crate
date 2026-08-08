@@ -1,6 +1,7 @@
 import { writable, derived } from 'svelte/store'
 import type { CollectionAccount, CollectionItem, CollectionRefreshSummary } from '../types'
 import * as collectionApi from '../api/collection'
+import { dedupe, setsEqual } from '../utils/stores'
 import { toastStore } from './toast'
 
 interface CollectionState {
@@ -162,14 +163,31 @@ export const collectionItems = derived(collectionStore, ($c) => $c.items)
 
 export const hasLinkedCollection = derived(collectionStore, ($c) => $c.accounts.length > 0)
 
+// The id-set stores below are membership-deduped: every collection refresh rebuilds the Sets with
+// fresh identities even when nothing was purchased, and downstream these Sets fan out wide — every
+// feed row's owned badge subscribes to two of them, and `ownedReleaseIds` is an input of
+// `sortedReleases`, so an identity-only emission used to re-sort the entire release array.
+
 /** Releases fully owned (album purchased, or every track individually owned). */
-export const fullyOwnedReleaseIds = derived(collectionStore, ($c) => $c.fullyOwned)
+export const fullyOwnedReleaseIds = dedupe(
+	derived(collectionStore, ($c) => $c.fullyOwned),
+	setsEqual
+)
 
 /** Releases with some but not all tracks owned. */
-export const partiallyOwnedReleaseIds = derived(collectionStore, ($c) => $c.partiallyOwned)
+export const partiallyOwnedReleaseIds = dedupe(
+	derived(collectionStore, ($c) => $c.partiallyOwned),
+	setsEqual
+)
 
 /** Union of fully + partially owned — "show purchased" filters use this. */
-export const ownedReleaseIds = derived(collectionStore, ($c) => new Set([...$c.fullyOwned, ...$c.partiallyOwned]))
+export const ownedReleaseIds = dedupe(
+	derived(collectionStore, ($c) => new Set([...$c.fullyOwned, ...$c.partiallyOwned])),
+	setsEqual
+)
 
 /** Individually purchased tracks (album ownership is implied by the release). */
-export const ownedTrackIds = derived(collectionStore, ($c) => $c.ownedTracks)
+export const ownedTrackIds = dedupe(
+	derived(collectionStore, ($c) => $c.ownedTracks),
+	setsEqual
+)

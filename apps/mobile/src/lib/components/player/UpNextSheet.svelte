@@ -185,7 +185,11 @@
 								</svg>
 							</button>
 
-							<ReleaseArtwork release={entry.release} class="h-10 w-10 flex-shrink-0 rounded object-cover" />
+							<ReleaseArtwork
+								release={entry.release}
+								size="thumb"
+								class="h-10 w-10 flex-shrink-0 rounded object-cover"
+							/>
 
 							<div class="flex min-w-0 flex-1 flex-col leading-tight">
 								<span class="truncate text-sm text-text-primary">{trackName(entry)}</span>
@@ -217,7 +221,11 @@
 				<div class="flex flex-col">
 					{#each contextEntries as entry (entry.key)}
 						<div class="flex items-center gap-2 py-1.5">
-							<ReleaseArtwork release={entry.release} class="h-10 w-10 flex-shrink-0 rounded object-cover" />
+							<ReleaseArtwork
+								release={entry.release}
+								size="thumb"
+								class="h-10 w-10 flex-shrink-0 rounded object-cover"
+							/>
 							<div class="flex min-w-0 flex-1 flex-col leading-tight">
 								<span class="truncate text-sm text-text-secondary">{trackName(entry)}</span>
 								<span class="truncate text-xs text-text-tertiary">
@@ -241,7 +249,7 @@
 					class="flex items-center gap-2 rounded py-1.5 text-left active:bg-surface-2"
 					onclick={() => playAgain(row.release, row.trackIndex)}
 				>
-					<ReleaseArtwork release={row.release} class="h-10 w-10 flex-shrink-0 rounded object-cover" />
+					<ReleaseArtwork release={row.release} size="thumb" class="h-10 w-10 flex-shrink-0 rounded object-cover" />
 					<div class="flex min-w-0 flex-1 flex-col leading-tight">
 						<span class="truncate text-sm text-text-primary">{trackName(row)}</span>
 						<span class="truncate text-xs text-text-tertiary">

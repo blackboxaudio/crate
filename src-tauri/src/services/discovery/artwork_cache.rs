@@ -6,6 +6,14 @@ use image::{imageops::FilterType, ImageFormat};
 /// so once exceeded the least-recently-shown covers are evicted (LRU) after each cache write.
 const DEFAULT_ARTWORK_CACHE_MB: i64 = 250;
 
+/// Edge (px) of the small thumbnail written alongside each 500px cached cover. The mobile feed
+/// renders covers in 44–48 CSS px slots (~144 device px at 3×), so decoding the full 500px WEBP
+/// per visible row wastes ~12× the pixels — and the decode cost lands exactly while the list is
+/// scrolling. Thumbs are derived files (not tracked in `discovery_artwork_cache`): they live in
+/// a `thumbs/` subdirectory keyed by release id, are regenerated on demand from the cached full
+/// cover, and are removed together with it.
+const THUMB_SIZE: u32 = 160;
+
 impl DiscoveryService {
     pub fn artwork_cache_dir(&self) -> PathBuf {
         self.app_data_dir.join("discovery").join("artwork")
@@ -21,6 +29,42 @@ impl DiscoveryService {
 
     pub fn artwork_cache_path(&self, release_id: &str, ext: &str) -> PathBuf {
         self.artwork_cache_dir().join(format!("{release_id}.{ext}"))
+    }
+
+    /// Thumbnails always encode as WEBP regardless of the full cover's extension (they only
+    /// exist when a decode succeeded). The frontend derives this path from the full cover's
+    /// cache path by convention — see `discoveryArtworkThumbPath` in `shared/utils/artwork.ts`.
+    pub fn artwork_thumb_path(&self, release_id: &str) -> PathBuf {
+        self.artwork_cache_dir()
+            .join("thumbs")
+            .join(format!("{release_id}.webp"))
+    }
+
+    /// Backfill the small thumbnail from an already-cached full cover (best-effort). Exists for
+    /// covers cached before thumbnails shipped: the frontend calls `cache_release_artwork` when
+    /// its thumb 404s, which lands on the idempotent fast path and heals the thumb here.
+    async fn ensure_artwork_thumb(&self, release_id: &str, ext: &str) {
+        let thumb_path = self.artwork_thumb_path(release_id);
+        if thumb_path.exists() {
+            return;
+        }
+        let full_path = self.artwork_cache_path(release_id, ext);
+        let result = tokio::task::spawn_blocking(move || {
+            if let Some(dir) = thumb_path.parent() {
+                std::fs::create_dir_all(dir)?;
+            }
+            let img = image::open(&full_path)
+                .map_err(|e| std::io::Error::other(format!("decode failed: {e}")))?;
+            img.thumbnail(THUMB_SIZE, THUMB_SIZE)
+                .save_with_format(&thumb_path, ImageFormat::WebP)
+                .map_err(|e| std::io::Error::other(format!("encode failed: {e}")))
+        })
+        .await;
+        match result {
+            Ok(Err(e)) => log::warn!("Artwork thumb backfill for {release_id} failed: {e}"),
+            Err(e) => log::warn!("Artwork thumb backfill task for {release_id} failed: {e}"),
+            Ok(Ok(())) => {}
+        }
     }
 
     /// `(ext, file_size)` if a cover is cached on disk for this release. Called per
@@ -127,6 +171,7 @@ impl DiscoveryService {
                     log::warn!("Failed to evict cached artwork {}: {e}", path.display());
                 }
             }
+            let _ = std::fs::remove_file(self.artwork_thumb_path(&release_id));
             if let Ok(conn) = self.conn.lock() {
                 let _ = conn.execute(
                     "DELETE FROM discovery_artwork_cache WHERE release_id = ?1",
@@ -157,6 +202,7 @@ impl DiscoveryService {
                 log::warn!("Failed to delete cached artwork {}: {e}", path.display());
             }
         }
+        let _ = std::fs::remove_file(self.artwork_thumb_path(release_id));
 
         if let Ok(conn) = self.conn.lock() {
             let _ = conn.execute(
@@ -199,6 +245,12 @@ impl DiscoveryService {
                 }
             }
         }
+        // Derived thumbnails live in a subdirectory the file loop above doesn't descend into.
+        if let Err(e) = std::fs::remove_dir_all(cache_dir.join("thumbs")) {
+            if e.kind() != std::io::ErrorKind::NotFound {
+                log::warn!("Failed to clear artwork thumbnails: {e}");
+            }
+        }
 
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         conn.execute("DELETE FROM discovery_artwork_cache", [])?;
@@ -213,9 +265,11 @@ impl DiscoveryService {
     /// the entry, and enforces the cache cap. Returns the relative cache path, or `None` when the
     /// release has no `artwork_url` or the fetch fails — the UI then falls back to the remote URL.
     pub async fn cache_release_artwork(&self, release_id: &str) -> Result<Option<String>> {
-        // Fast path: already cached.
+        // Fast path: already cached. Heals a missing thumbnail on the way (covers cached before
+        // thumbnails existed).
         if let Some((ext, _)) = self.get_cached_artwork_meta(release_id)? {
             let _ = self.touch_artwork_cache_access(release_id);
+            self.ensure_artwork_thumb(release_id, &ext).await;
             return Ok(Some(self.artwork_cache_rel_path(release_id, &ext)));
         }
 
@@ -254,6 +308,7 @@ impl DiscoveryService {
         // by an explicit offline-download while this request sat in the queue).
         if let Some((ext, _)) = self.get_cached_artwork_meta(release_id)? {
             let _ = self.touch_artwork_cache_access(release_id);
+            self.ensure_artwork_thumb(release_id, &ext).await;
             return Ok(Some(self.artwork_cache_rel_path(release_id, &ext)));
         }
 
@@ -308,16 +363,27 @@ impl DiscoveryService {
         // Preferred path: decode + resize to 500x500 + save as WEBP (mirrors ArtworkService,
         // which is proven cross-platform). On any failure, fall back to the original bytes.
         // Decode/resize/encode is CPU-bound, so it runs on the blocking pool instead of stalling
-        // the async runtime while several covers cache concurrently.
+        // the async runtime while several covers cache concurrently. The small feed thumbnail is
+        // cut from the same decode (best-effort — a missing thumb just means the frontend falls
+        // back to the full cover and re-requests the thumb, which heals via `ensure_artwork_thumb`).
         let webp_path = self.artwork_cache_path(release_id, "webp");
+        let thumb_path = self.artwork_thumb_path(release_id);
         let (bytes, encoded) = match tokio::task::spawn_blocking(move || {
             let encoded = image::load_from_memory(&bytes).ok().and_then(|img| {
+                let thumb = img.thumbnail(THUMB_SIZE, THUMB_SIZE);
                 let img = if img.width() > 500 || img.height() > 500 {
                     img.resize(500, 500, FilterType::Lanczos3)
                 } else {
                     img
                 };
-                img.save_with_format(&webp_path, ImageFormat::WebP).ok()
+                let saved = img.save_with_format(&webp_path, ImageFormat::WebP).ok();
+                if saved.is_some() {
+                    if let Some(dir) = thumb_path.parent() {
+                        let _ = std::fs::create_dir_all(dir);
+                    }
+                    let _ = thumb.save_with_format(&thumb_path, ImageFormat::WebP);
+                }
+                saved
             });
             (bytes, encoded)
         })

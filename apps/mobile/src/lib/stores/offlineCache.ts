@@ -1,5 +1,6 @@
 import { derived, writable } from 'svelte/store'
 import { getCachedReleaseStates } from '$shared/api/discovery'
+import { dedupe, setsEqual } from '$shared/utils/stores'
 
 // Bulk audio-cache state for the UI: which releases are fully downloaded (playable offline) and
 // which are pinned ("Download for Offline"). Refreshed on boot, after download/remove/clear
@@ -51,5 +52,10 @@ function createOfflineCacheStore() {
 
 export const offlineCacheStore = createOfflineCacheStore()
 
-/** Releases whose every track's audio is cached on disk — playable in airplane mode. */
-export const fullyCachedIds = derived(offlineCacheStore, ($s) => $s.fullyCached)
+/** Releases whose every track's audio is cached on disk — playable in airplane mode.
+ *  Membership-deduped: every refresh rebuilds the Set, and each feed row's downloaded badge
+ *  subscribes here — an identity-only emission would re-run them all for nothing. */
+export const fullyCachedIds = dedupe(
+	derived(offlineCacheStore, ($s) => $s.fullyCached),
+	setsEqual
+)

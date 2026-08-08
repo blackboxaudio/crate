@@ -10,6 +10,7 @@
 		tagDetailCovering,
 		followDetailCovering,
 	} from '$lib/stores/mobileUI'
+	import { feedScrolling } from '$lib/stores/scrollActivity'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 
@@ -72,9 +73,15 @@
 		style="bottom: calc(3.5rem + env(safe-area-inset-bottom) + 0.5rem)"
 		transition:fly={{ y: 96, duration: 320, easing: easeFluid }}
 	>
+		<!-- `data-glass-suspend` while the feed scrolls: this card is the one glass surface permanently
+		     fixed OVER a scrolling list, so its backdrop changes every scrolled frame — WKWebView would
+		     re-blur the region behind it per frame, on the compositor's critical path. It rides out the
+		     scroll on the opaque surface (same trade Drawer makes mid-slide); background-color is in the
+		     transition list so the blur "develops" back under a fade once scrolling settles. -->
 		<div
-			class="glass pointer-events-auto relative overflow-hidden rounded-2xl border border-stroke/60 shadow-lg shadow-black/25 transition-transform duration-300 ease-out motion-reduce:transition-none"
+			class="glass pointer-events-auto relative overflow-hidden rounded-2xl border border-stroke/60 shadow-lg shadow-black/25 transition-[transform,background-color] duration-300 ease-out motion-reduce:transition-none"
 			style="transform: translateY({overDetail ? '3.5rem' : '0'})"
+			data-glass-suspend={$feedScrolling ? '' : undefined}
 		>
 			<!-- Tap anywhere on the card (except the play/pause control) to open the full-screen player. -->
 			<button
@@ -86,6 +93,7 @@
 			>
 				<ReleaseArtwork
 					release={$previewInfo.release}
+					size="thumb"
 					class="h-11 w-11 flex-shrink-0 rounded-lg object-cover shadow-sm"
 				/>
 				<div class="flex min-w-0 flex-1 flex-col">
@@ -115,9 +123,14 @@
 				{/if}
 			</button>
 
-			<!-- Progress line along the bottom edge (ends clipped by the card's rounded corners). -->
+			<!-- Progress line along the bottom edge (ends clipped by the card's rounded corners).
+			     Driven by scaleX rather than width: the 10Hz position ticks then move as a pure
+			     compositor transform instead of re-laying-out + repainting inside the glass card. -->
 			<div class="absolute inset-x-0 bottom-0 h-0.5 bg-text-tertiary/15">
-				<div class="h-full bg-brand-primary" style="width: {$playbackProgress}%"></div>
+				<div
+					class="h-full w-full origin-left bg-brand-primary"
+					style="transform: scaleX({$playbackProgress / 100})"
+				></div>
 			</div>
 		</div>
 	</div>

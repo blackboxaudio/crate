@@ -180,22 +180,34 @@ textarea,
 /* =============================================================================
    Album-art background wash (ExpandedPlayer): a slow Ken-Burns drift on the
    blurred cover so the now-playing backdrop feels alive. Disabled under
-   reduced-motion. The base scale keeps the blurred edges off-screen.
+   reduced-motion.
+
+   Split across two elements on purpose: the drift animates on an UNFILTERED
+   wrapper (`.art-wash`), while the blur + a static base scale live on the img
+   inside it (`.art-wash-img`). Animating scale directly on a filtered layer
+   changes its rasterization scale, so WKWebView re-rasterizes the full-viewport
+   40px blur continuously for as long as the player is open; with the split, the
+   blurred img rasterizes once and the drift is a pure compositor transform of
+   that cached layer. The img's base scale(1.5) keeps the blurred edges
+   off-screen; the wrapper's 1 → 1.133 drift multiplies it to the old 1.5 → 1.7.
    ============================================================================= */
 
 @keyframes art-wash-drift {
 	0%,
 	100% {
-		transform: scale(1.5) translate(0, 0);
+		transform: scale(1) translate(0, 0);
 	}
 	50% {
-		transform: scale(1.7) translate(-3%, -2%);
+		transform: scale(1.133) translate(-3%, -2%);
 	}
 }
 
 .art-wash {
-	transform: scale(1.5);
 	animation: art-wash-drift 22s ease-in-out infinite;
+}
+
+.art-wash-img {
+	transform: scale(1.5);
 }
 
 @media (prefers-reduced-motion: reduce) {

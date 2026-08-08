@@ -2,6 +2,7 @@
 	import { tick } from 'svelte'
 	import type { Snippet } from 'svelte'
 	import { createVirtualList } from '$shared/utils/virtualizer.svelte'
+	import { markFeedScrolling } from '$lib/stores/scrollActivity'
 	import PullToRefresh from '$lib/components/common/PullToRefresh.svelte'
 
 	// Shared VIRTUALIZED release list used by BOTH the Discovery feed and the playlist detail. Only the
@@ -89,13 +90,15 @@
 	}
 
 	// Coalesce scroll callbacks to one per frame — a fling fires `scroll` far faster than that.
+	// Always feeds the shared scroll-activity signal (glass chrome over the list suspends its
+	// backdrop-filter while the list moves), even for hosts with no `onScroll` of their own.
 	let scrollRaf = 0
 	function handleScroll() {
-		if (!onScroll) return
 		if (scrollRaf) return
 		scrollRaf = requestAnimationFrame(() => {
 			scrollRaf = 0
-			if (scrollEl) onScroll(scrollEl.scrollTop)
+			markFeedScrolling()
+			if (scrollEl && onScroll) onScroll(scrollEl.scrollTop)
 		})
 	}
 	$effect(() => () => {

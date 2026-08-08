@@ -99,6 +99,34 @@
 		let tracking = false
 		let claimed = false
 
+		// The non-passive touchmove listener below is what lets a claimed pull preventDefault the
+		// native scroll — but WebKit computes its scroll-blocking regions from listener REGISTRATION
+		// alone: any non-passive touchmove on the scroll element forces every touch frame of every
+		// fling to round-trip through the JS thread before the compositor may scroll (the handler's
+		// own early-outs don't help). A pull can only begin at the very top, so the listener is
+		// armed only while `scrollTop === 0` and torn down the moment the list scrolls away — the
+		// rest of the list scrolls on the fast path, untouched by this component.
+		let moveArmed = false
+
+		function armMove() {
+			if (moveArmed) return
+			moveArmed = true
+			el!.addEventListener('touchmove', onTouchMove, { passive: false })
+		}
+
+		function disarmMove() {
+			if (!moveArmed) return
+			moveArmed = false
+			el!.removeEventListener('touchmove', onTouchMove)
+		}
+
+		// Passive position watcher driving the arm/disarm transitions. A claimed pull holds
+		// `scrollTop` at 0 (the gesture is prevented), so it can never disarm itself mid-pull.
+		function onScrollForArming() {
+			if (el!.scrollTop > 0) disarmMove()
+			else armMove()
+		}
+
 		function onTouchStart(e: TouchEvent) {
 			if (refreshing || e.touches.length !== 1 || el!.scrollTop > 0) return
 			startX = e.touches[0].clientX
@@ -145,12 +173,14 @@
 		}
 
 		el.addEventListener('touchstart', onTouchStart, { passive: true })
-		el.addEventListener('touchmove', onTouchMove, { passive: false })
+		el.addEventListener('scroll', onScrollForArming, { passive: true })
 		el.addEventListener('touchend', onTouchEnd)
 		el.addEventListener('touchcancel', onTouchEnd)
+		onScrollForArming()
 		return () => {
 			el.removeEventListener('touchstart', onTouchStart)
-			el.removeEventListener('touchmove', onTouchMove)
+			el.removeEventListener('scroll', onScrollForArming)
+			disarmMove()
 			el.removeEventListener('touchend', onTouchEnd)
 			el.removeEventListener('touchcancel', onTouchEnd)
 		}
