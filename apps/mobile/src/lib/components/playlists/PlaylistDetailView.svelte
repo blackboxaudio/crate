@@ -15,6 +15,7 @@
 		detailReleaseId,
 	} from '$lib/stores/mobileUI'
 	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { overlayMiniPlayerInset } from '$lib/stores/insets'
 	import { ownedReleaseIds } from '$shared/stores/collection'
 	import {
 		applyViewFilter,
@@ -191,6 +192,7 @@
 	closeEdgeSize={24}
 	ariaLabel={playlist.name}
 	class="flex w-full flex-col bg-surface-0"
+	style="--mini-player-inset: {$overlayMiniPlayerInset}"
 >
 	{#snippet children({ animating })}
 		<!-- Header. Owns the top safe-area inset and mirrors the fixed top bar's surface-1 + hairline so

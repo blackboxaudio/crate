@@ -35,6 +35,10 @@
 
 		/** Panel chrome: bg / border / width|height / max-h / rounding / safe-area. Position + z come from here. */
 		class?: string
+		/** Extra inline style appended to the panel (e.g. a CSS variable published to the panel's subtree,
+		 *  like the detail overlays' `--mini-player-inset`). Never position / z / transform — those are owned
+		 *  by the slide machinery here. */
+		style?: string
 		ariaLabel: string
 		/** Panel z-index (inline style; avoids dynamic-class purge). */
 		z?: number
@@ -82,6 +86,7 @@
 		guardClose,
 		children,
 		class: className = '',
+		style: styleExtra = '',
 		ariaLabel,
 		z = 40,
 		scrimZ,
@@ -171,9 +176,10 @@
 					: 'ease-fluid transition-[transform,background-color] duration-[340ms] motion-reduce:transition-none'
 	)
 	const panelStyle = $derived(
-		posSlide
+		(posSlide
 			? `z-index: ${z}; bottom: ${-(1 - openness) * 100}%`
-			: `z-index: ${z}; transform: ${transform}${fade ? `; opacity: ${openness}` : ''}`
+			: `z-index: ${z}; transform: ${transform}${fade ? `; opacity: ${openness}` : ''}`) +
+			(styleExtra ? `; ${styleExtra}` : '')
 	)
 
 	// --- open/close orchestration, driven by the `open` prop -------------------------------------------

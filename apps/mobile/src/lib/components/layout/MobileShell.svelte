@@ -12,7 +12,7 @@
 		detailFollowSourceId,
 	} from '$lib/stores/mobileUI'
 	import { isOnline } from '$lib/stores/connectivity'
-	import { previewInfo } from '$shared/stores/player'
+	import { shellMiniPlayerInset } from '$lib/stores/insets'
 	import { sortedReleases } from '$shared/stores/discovery'
 	import Header from './Header.svelte'
 	import TabBar from './TabBar.svelte'
@@ -47,9 +47,9 @@
 	// The mini-player is intentionally NOT reserved here: it's a floating liquid-glass card meant to sit
 	// *over* the feed so releases stay visible (blurred) underneath it. Instead we publish its clearance as
 	// `--mini-player-inset`, which each scroll view applies as trailing padding — that lets content scroll
-	// under the card while still letting the last row clear it. 5rem ≈ the card's height + its gap above the
-	// tab bar; 0 when no preview is active (the card is hidden).
-	const miniPlayerInset = $derived($previewInfo ? '5rem' : '0px')
+	// under the card while still letting the last row clear it. Value + rationale live in stores/insets.ts;
+	// the detail overlays mount outside this div, so each publishes its own (safe-area-aware) value via
+	// Drawer's `style`.
 
 	// Tab-change transition: a pure crossfade — the incoming and outgoing views stack absolutely in the
 	// content frame and fade through each other in place, with no vertical movement (so a tab's fixed chrome,
@@ -67,7 +67,7 @@
 	const outMs = $derived(reduceMotion ? 0 : 160)
 </script>
 
-<div class="relative h-dvh w-screen overflow-hidden bg-surface-0" style="--mini-player-inset: {miniPlayerInset}">
+<div class="relative h-dvh w-screen overflow-hidden bg-surface-0" style="--mini-player-inset: {$shellMiniPlayerInset}">
 	<Header />
 
 	<!-- Offline banner: a slim overlay strip under the header (no layout shift — content scrolls

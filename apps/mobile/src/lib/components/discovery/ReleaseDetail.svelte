@@ -22,6 +22,7 @@
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { deriveArtistUrl, deriveLabelUrl, isCompilation } from '$shared/utils'
 	import { mobileUIStore, activePlaybackContext, overlayPopNonce } from '$lib/stores/mobileUI'
+	import { overlayMiniPlayerInset } from '$lib/stores/insets'
 	import { lightTap, rigidTap } from '$lib/utils/haptics'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import Drawer from '$lib/components/common/Drawer.svelte'
@@ -437,7 +438,8 @@
 			</div>
 		</div>
 
-		<!-- Scrollable content; bottom padding clears the mini-player bar. overflow-x is pinned hidden because
+		<!-- Scrollable content; trailing padding clears the mini-player card + bottom safe-area (this overlay
+	     owns the screen bottom — see stores/insets.ts). overflow-x is pinned hidden because
 	     overflow-y-auto alone computes overflow-x to `auto`, which would let overflowing content scroll
 	     sideways (and pinch-zoom) on iOS. Wrapped so a pull-down at the top re-fetches this release's
 	     metadata (disabled while the drawer is animating). -->
@@ -445,7 +447,8 @@
 			<PullToRefresh scrollEl={contentEl} onRefresh={refreshDetail} enabled={!animating} />
 			<div
 				bind:this={contentEl}
-				class="min-h-0 flex-1 overflow-x-hidden px-4 pt-4 pb-28 {animating ? 'overflow-y-hidden' : 'overflow-y-auto'}"
+				class="min-h-0 flex-1 overflow-x-hidden px-4 pt-4 {animating ? 'overflow-y-hidden' : 'overflow-y-auto'}"
+				style="padding-bottom: {$overlayMiniPlayerInset}"
 			>
 				<!-- Artwork -->
 				<div class="mb-4">

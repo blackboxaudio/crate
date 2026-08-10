@@ -91,9 +91,11 @@
 
 <div class="relative h-full overflow-hidden" use:swipe={backSwipe}>
 	{#key page}
+		<!-- Trailing padding only clears the home indicator: the settings drawer (z-45) covers the
+		     mini-player card, so no mini-player clearance is needed here. -->
 		<div
 			class="absolute inset-0 overflow-y-auto bg-surface-0 pt-2"
-			style="padding-bottom: var(--mini-player-inset, 0px)"
+			style="padding-bottom: calc(env(safe-area-inset-bottom) + 0.75rem)"
 			in:levelTransition|local={{ incoming: true }}
 			out:levelTransition|local={{ incoming: false }}
 		>

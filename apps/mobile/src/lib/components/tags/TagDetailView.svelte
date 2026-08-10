@@ -7,6 +7,7 @@
 	import { sortDiscoveryReleases } from '$shared/utils/sorting'
 	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
 	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { overlayMiniPlayerInset } from '$lib/stores/insets'
 	import { ownedReleaseIds } from '$shared/stores/collection'
 	import { applyViewFilter, emptyViewFilter, RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'
 	import Drawer from '$lib/components/common/Drawer.svelte'
@@ -112,6 +113,7 @@
 	closeEdgeSize={24}
 	ariaLabel={tag.name}
 	class="flex w-full flex-col bg-surface-0"
+	style="--mini-player-inset: {$overlayMiniPlayerInset}"
 >
 	{#snippet children({ animating })}
 		<!-- Header: back chevron + the tag's color dot + its name. Owns the top safe-area inset and mirrors
