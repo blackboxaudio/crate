@@ -47,11 +47,14 @@ export {
 /**
  * Repeat cycle: off → track → release → context.
  *  - `off` — advance stops at the end of the context (no wrap, no reshuffle).
- *  - `track` — the current track loops on natural end. A player-level concern: the queue's advance
- *    semantics treat it as `context` (a manual skip proceeds, then the NEW track loops — Spotify's
- *    repeat-one), see `effectiveScope`.
+ *  - `track` — the current track loops, literally: natural end restarts it at the player level, and
+ *    the queue's own advance (Next button, lock screen, auto-advance fallbacks) replays it too, with
+ *    Up Next forecasting it. NOT Spotify's repeat-one (skip-proceeds) — users read "next plays a
+ *    different track" as repeat not working. The explicit user queue still wins a manual skip, so
+ *    queued items stay reachable (and the loop then re-anchors on them).
  *  - `release` — advance loops within the CURRENT group only (the release for previews, the album for
- *    library tracks; re-anchors to whatever is playing).
+ *    library tracks; re-anchors to the playing context-tier pick — a user-queued interlude plays once
+ *    and hands back to the release it interrupted, see `contextSeed`).
  *  - `context` — advance wraps over the whole context / reshuffles each pass (the pre-repeat behaviour).
  */
 export type RepeatMode = 'off' | 'track' | 'release' | 'context'
@@ -94,6 +97,9 @@ let contextLookahead: Pick[] = []
 // Everything that has actually played, in order, with a cursor at the current track. Drives "previous"
 // (step back) and forward-replay (step forward after stepping back), uniformly across both tiers/modes.
 let history: Pick[] = []
+// Which tier each history entry entered playback from, aligned with `history`. A 'user' entry is an
+// interlude the explicit queue injected — the context walk must never anchor on it (see `contextSeed`).
+let historySource: Array<'user' | 'context'> = []
 let historyPos = -1
 // No-repeat-until-exhausted bag for drawing NEW shuffle picks (keys are `pickKey`s).
 let shufflePlayed = new Set<string>()
@@ -109,7 +115,10 @@ let onQueueChanged: (() => void) | null = null
 // queue is always shown; this only bounds the (potentially looping) context forecast. Library sessions
 // render no Up Next sheet, so their forecast depth is 0 (canAdvance commits its own single pick).
 function displayContextDepth(): number {
-	return contextKind === 'library' ? 0 : 20
+	if (contextKind === 'library') return 0
+	// Repeat-track forecasts the looping track ONCE — a 20-deep list of the same track reads as noise
+	// (the native window sizes itself separately via `peekUpcoming`, unaffected by this).
+	return repeatMode === 'track' ? 1 : 20
 }
 
 // --- Reactive surfaces (UI) ------------------------------------------------------------------------
@@ -267,10 +276,13 @@ function lastPlayable(group?: string): number {
 }
 
 // --- Foreign-pick helpers --------------------------------------------------------------------------
-// A "foreign" pick is one the context list doesn't hold: a user-queued track from another view, or a
-// restored session whose context was since re-scoped to a list without it. A preview pick carries its
-// self-contained release, so its own release keeps walking/looping BY REFERENCE; a library pick has
-// no standalone group, so its group operations degenerate (release loop → track loop).
+// A "foreign" pick is one the context list doesn't hold — typically a restored session (or a
+// still-playing track) whose context was since re-scoped to a list without it. A user-queued track
+// from another view is NOT walked as foreign: the context walk seeds past interludes entirely
+// (`contextSeed`), except as the last-resort fallback when nothing context-tier ever played. A
+// preview pick carries its self-contained release, so its own release keeps walking/looping BY
+// REFERENCE; a library pick has no standalone group, so its group operations degenerate (release
+// loop → track loop).
 
 function localPreviewNext(p: PreviewPick): PreviewPick | null {
 	for (let i = p.trackIndex + 1; i < p.release.tracks.length; i++) {
@@ -311,10 +323,10 @@ function inContext(p: Pick): boolean {
 	return contextGroupKeys.has(pickGroupKey(p))
 }
 
-// The scope advance/lookahead draws from. Repeat-track loops at the PLAYER level (natural end restarts
-// the track before the queue is ever consulted); for everything the queue answers — manual next/prev,
-// canAdvance, Up Next, the iOS native window tail — it behaves as repeat-context.
-function effectiveScope(): 'off' | 'release' | 'context' {
+// The scope the sequential-previous fallback uses. Repeat-track has no meaningful "previous within
+// the loop" — stepping back walks the play history like every mode, and past it the fallback behaves
+// as repeat-context rather than self-looping backwards.
+function prevScope(): 'off' | 'release' | 'context' {
 	return repeatMode === 'track' ? 'context' : repeatMode
 }
 
@@ -384,11 +396,27 @@ function firstContextPick(): Pick | null {
 	return j === -1 ? null : contextItems[j].pick
 }
 
+// Where the context continuation resumes from: `cur` normally, but when the current track is a
+// user-queued interlude, the last context-tier pick that played. Queued items borrow playback and
+// hand it back (Spotify semantics) — anchoring the walk on one made a single queued track from
+// another release loop/play out its ENTIRE release (repeat-release re-anchored its group purge to
+// it; the sequential walk treated it as a foreign pick and played its release through). Falls back
+// to `cur` when nothing context-tier has played (a session driven purely from the user queue).
+function contextSeed(): Pick | null {
+	if (historyPos >= 0 && historySource[historyPos] === 'user') {
+		for (let i = historyPos - 1; i >= 0; i--) {
+			if (historySource[i] !== 'user') return history[i]
+		}
+	}
+	return cur
+}
+
 // Draw one fresh shuffle pick from the bag, marking it played/reserved so it can't repeat until the
 // bag is exhausted. Returns null when nothing is left to draw this pass. In release scope the pool is
-// the anchor's group only — by reference when the anchor is a foreign preview release, so a looped
-// user-queued release from off-screen keeps looping (a foreign library anchor has no group; its empty
-// pool falls to the caller's degenerate track loop).
+// the anchor's group only — by reference when the anchor is a foreign preview release (a context play
+// whose release was re-scoped off the list, or the no-context-history fallback), so its loop survives
+// off-screen (a foreign library anchor has no group; its empty pool falls to the caller's degenerate
+// track loop).
 function drawShuffle(scope: 'off' | 'release' | 'context', anchor?: Pick): Pick | null {
 	let pool: Pick[]
 	if (scope === 'release' && anchor) {
@@ -405,32 +433,63 @@ function drawShuffle(scope: 'off' | 'release' | 'context', anchor?: Pick): Pick 
 	return choice
 }
 
+// Fingerprint of everything the committed lookahead's VALIDITY depends on: repeat mode, shuffle,
+// and the scope anchor (repeat-release's group / repeat-track's pick). Checked on EVERY read
+// (`extendLookahead`): if any of these changed and some mutation path failed to clear the lookahead,
+// the next read rebuilds it instead of serving a stale committed order — validity is structural, not
+// event-wired. The context LIST is deliberately not fingerprinted (a list swap keeps surviving picks
+// on purpose, see `reconcileLookaheadAfterContextSwap`), and a fingerprint reset does not touch the
+// shuffle bag (keys for dropped picks are inert; the coupled bag reset stays in setShuffle /
+// setRepeatMode, which remain the primary invalidation path — this is the safety net).
+function lookaheadFingerprint(): string {
+	let anchor = ''
+	if (repeatMode === 'track') {
+		anchor = cur ? pickKey(cur) : ''
+	} else if (repeatMode === 'release') {
+		const seed = contextSeed()
+		if (seed) anchor = pickGroupKey(seed)
+	}
+	return `${repeatMode}|${shuffleEnabled ? '1' : '0'}|${anchor}`
+}
+let committedFingerprint = ''
+
 /**
  * Extend the committed context lookahead until it holds `targetLen` picks (or nothing more can play).
  * Sequential walks forward from the tail; shuffle reserves fresh random draws. This is the ONE place
  * repeat scope shapes what comes next — wrapping/reshuffling happens here so actual playback, the Up
  * Next forecast, the iOS native window, and `canAdvance` all agree:
  *  - off      → stop at the end of the pass (no wrap, no reshuffle).
- *  - release  → loop within `cur`'s group; shuffle draws from that group only.
- *  - context  → wrap to the context's first playable / re-seed the bag each pass (also repeat-track's
- *               skip scope).
+ *  - track    → the current pick repeats, literally (see `RepeatMode`).
+ *  - release  → loop within the seed's group (see `contextSeed`); shuffle draws from that group only.
+ *  - context  → wrap to the context's first playable / re-seed the bag each pass.
  */
 function extendLookahead(targetLen: number) {
-	const scope = effectiveScope()
-	// Release scope follows whatever group is CURRENT (it re-anchors after e.g. a user-queued track
-	// from another release played). Committed picks from a previous group are stale — drop them all.
-	if (scope === 'release' && cur) {
-		const anchorGroup = pickGroupKey(cur)
-		if (contextLookahead.some((p) => pickGroupKey(p) !== anchorGroup)) contextLookahead = []
+	const fp = lookaheadFingerprint()
+	if (fp !== committedFingerprint) {
+		contextLookahead = []
+		committedFingerprint = fp
 	}
+	const mode = repeatMode
+	// Repeat-track is literal (see `RepeatMode`): the queue's own "next" replays the current pick and
+	// the forecast shows it. The explicit user queue still precedes the context in `advanceNext`, so
+	// queued items stay reachable by a manual skip.
+	if (mode === 'track') {
+		if (!cur || !isPlayablePick(cur)) return
+		while (contextLookahead.length < targetLen) contextLookahead.push(cur)
+		return
+	}
+	const scope = mode
+	// The context continuation seeds from `contextSeed`, NOT `cur`: a user-queued interlude that is
+	// currently playing must not redirect the walk to its own release.
+	const seed = contextSeed()
 	let guard = 0
 	while (contextLookahead.length < targetLen) {
 		if (guard++ > 1000) break // safety against any unforeseen non-terminating draw
-		const tail = contextLookahead.length > 0 ? contextLookahead[contextLookahead.length - 1] : cur
+		const tail = contextLookahead.length > 0 ? contextLookahead[contextLookahead.length - 1] : seed
 		if (!tail) break
 		let next: Pick | null
 		if (shuffleEnabled) {
-			const anchor = cur ?? tail
+			const anchor = seed ?? tail
 			next = drawShuffle(scope, anchor)
 			if (!next && scope !== 'off') {
 				// Pass exhausted while repeating: re-seed the bag anchored on the last committed pick (NOT
@@ -475,9 +534,22 @@ function takeContextNext(): Pick | null {
 	return contextLookahead.shift() ?? null
 }
 
-function pushHistory(pick: Pick) {
+function pushHistory(pick: Pick, source: 'user' | 'context') {
+	// Consecutive same-pick entries collapse: a repeat-track skip (or a degenerate one-pick loop)
+	// REPLAYS the entry rather than moving to a new one. Stacking dupes would make "previous" step
+	// back through every replay, and would bury the entry's tier — a looped user-queue interlude must
+	// keep its 'user' provenance so `contextSeed` still skips it once the mode changes.
+	const last = history[history.length - 1]
+	if (last && pickKey(last) === pickKey(pick)) {
+		historyPos = history.length - 1
+		return
+	}
 	history.push(pick)
-	if (history.length > HISTORY_CAP) history.splice(0, history.length - HISTORY_CAP)
+	historySource.push(source)
+	if (history.length > HISTORY_CAP) {
+		history.splice(0, history.length - HISTORY_CAP)
+		historySource.splice(0, historySource.length - HISTORY_CAP)
+	}
 	historyPos = history.length - 1
 }
 
@@ -612,6 +684,7 @@ function startSessionWith(
 	installContext(kind, raw, items)
 	cur = pick
 	history = [pick]
+	historySource = ['context']
 	historyPos = 0
 	contextLookahead = []
 	shufflePlayed = shuffleEnabled ? new Set([pickKey(pick)]) : new Set()
@@ -802,18 +875,21 @@ export function advanceNext(): Pick | null {
 		return cur
 	}
 	let pick: Pick | null
+	let source: 'user' | 'context'
 	if (userQueue.length > 0) {
 		const entry = userQueue.shift()!
 		pick = entry.pick
+		source = 'user'
 		persistUserQueue()
 	} else {
 		pick = takeContextNext()
+		source = 'context'
 	}
 	if (!pick) {
 		refresh()
 		return null
 	}
-	pushHistory(pick)
+	pushHistory(pick, source)
 	cur = pick
 	logRecent(cur)
 	refresh()
@@ -827,7 +903,7 @@ export function advanceNext(): Pick | null {
 // reference first; under a non-release scope it sits "past the end", so every on-screen pick is an
 // earlier one.
 function sequentialPrevOf(from: Pick): Pick | null {
-	const scope = effectiveScope()
+	const scope = prevScope()
 	const i = indexOfPick(from)
 	if (i !== -1) {
 		if (scope === 'release') {
@@ -878,6 +954,7 @@ export function advancePrev(): Pick | null {
 	const prev = sequentialPrevOf(cur)
 	if (!prev) return null
 	history.unshift(prev)
+	historySource.unshift('context')
 	historyPos = 0
 	cur = prev
 	refresh()
@@ -922,6 +999,7 @@ export function clearAll() {
 	contextGroupKeys = new Set()
 	contextLookahead = []
 	history = []
+	historySource = []
 	historyPos = -1
 	shufflePlayed = new Set()
 	cur = null

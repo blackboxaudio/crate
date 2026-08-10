@@ -1388,28 +1388,39 @@ function createPlayerStore() {
 				await this.seek(0)
 				return
 			}
+			// The queue is the single source of truth for "previous" — step it FIRST, then decide how to
+			// get there. Nothing to step to → restart the current track.
+			const pick = playbackQueue.advancePrev()
+			if (!pick) {
+				await this.seek(0)
+				return
+			}
 			// iOS in-window fast path, mirroring nextTrack: the engine keeps the played front of its
-			// window, so a step back within it is gapless. The queue advances and previewInfo updates
-			// SYNCHRONOUSLY (the engine's track-changed echo no-ops on the matching index), so a rapid
-			// next/prev flurry always consults an up-to-date queue — never a pre-advance snapshot.
+			// window, so a step back within it is gapless. Taken ONLY when the kept window entry AGREES
+			// with the queue's answer — on any disagreement (a stale mirror, a scope change the slide
+			// hasn't re-fed) we reload the QUEUE's pick instead of letting the window choose the track.
+			// The queue advances and previewInfo updates SYNCHRONOUSLY (the engine's track-changed echo
+			// no-ops on the matching index), so a rapid next/prev flurry always consults an up-to-date
+			// queue — never a pre-advance snapshot.
 			// GOTCHA: the native engine's previous() applies its OWN 3s restart threshold (player.rs) —
 			// past it, it seeks to 0 instead of stepping back, which would desync our optimistic step.
 			// So the fast path is only taken comfortably UNDER that threshold (margin for the IPC gap);
 			// past it, a threshold-skipping previous (swipe) takes the reload path, which is unconditional.
-			if (useNative && nativeIndex > 0 && state.playbackState.position_ms < PREVIOUS_RESTART_THRESHOLD_MS - 1000) {
-				const pick = playbackQueue.advancePrev()
-				if (pick) {
+			if (
+				useNative &&
+				pick.kind === 'preview' &&
+				nativeIndex > 0 &&
+				state.playbackState.position_ms < PREVIOUS_RESTART_THRESHOLD_MS - 1000
+			) {
+				const windowEntry = nativeWindow[nativeIndex - 1]
+				if (windowEntry && windowEntry.release.id === pick.release.id && windowEntry.trackIndex === pick.trackIndex) {
 					nativeIndex -= 1
-					const windowPick = nativeWindow[nativeIndex] ?? (pick.kind === 'preview' ? pick : null)
-					if (windowPick) applyNativeTrackChange(windowPick)
+					applyNativeTrackChange(windowEntry)
 					await nativePreviewPlayer.previous()
 					return
 				}
-				await this.seek(0)
-				return
 			}
-			const pick = playbackQueue.advancePrev()
-			if (pick?.kind === 'preview') await this.playPreview(pick.release, pick.trackIndex)
+			if (pick.kind === 'preview') await this.playPreview(pick.release, pick.trackIndex)
 			else await this.seek(0)
 		},
 
@@ -1432,32 +1443,39 @@ function createPlayerStore() {
 			}
 			if (!state.previewInfo) return
 
-			// iOS in-window fast path: advance the queue and previewInfo SYNCHRONOUSLY, then tell the
-			// engine. Previously the queue only advanced when the engine's track-changed event arrived,
-			// so a quick previous (or a second swipe) in that gap consulted a stale queue and jumped to
-			// the wrong track. The echo event no-ops (index already matches); if the engine had also
-			// auto-advanced concurrently, the echo's index diff still reconciles the remainder.
-			if (useNative && nativeIndex + 1 < nativeWindow.length) {
-				const pick = playbackQueue.advanceNext()
-				if (!pick) {
-					// The window predates a scope change (e.g. repeat just turned off with the engine's tail
-					// still holding the old wrap) — playing its tail would contradict the queue. Truncate it.
+			// The queue is the single source of truth for "next" — advance it FIRST, then decide how to
+			// get there. It advances (and previewInfo updates) SYNCHRONOUSLY, so a rapid next/prev flurry
+			// always consults an up-to-date queue — never a pre-advance snapshot.
+			let pick = playbackQueue.advanceNext()
+			if (!pick) {
+				if (useNative) {
+					// The engine's window predates a scope change (e.g. repeat just turned off with its tail
+					// still holding the old wrap) — playing that tail would contradict the queue. Truncate it.
 					nativeWindow = nativeWindow.slice(0, nativeIndex + 1)
 					void nativePreviewPlayer.setUpcoming([], nativeIndex)
+				}
+				return
+			}
+			// iOS in-window fast path: gapless native advance through the pre-fed window — taken ONLY when
+			// the window entry AGREES with the queue's answer. On any disagreement (a stale mirror after a
+			// mode change, rapid skips outrunning the debounced re-feed, an expectedIndex-dropped splice)
+			// we fall through to a fresh load of the QUEUE's pick instead of letting the stale window
+			// choose the track. The engine's track-changed echo no-ops (index already matches); if the
+			// engine had also auto-advanced concurrently, the echo's index diff still reconciles the rest.
+			if (useNative && pick.kind === 'preview' && nativeIndex + 1 < nativeWindow.length) {
+				const windowEntry = nativeWindow[nativeIndex + 1]
+				if (windowEntry && windowEntry.release.id === pick.release.id && windowEntry.trackIndex === pick.trackIndex) {
+					nativeIndex += 1
+					applyNativeTrackChange(windowEntry)
+					await nativePreviewPlayer.next()
+					scheduleNativeSlide()
 					return
 				}
-				nativeIndex += 1
-				const windowPick = nativeWindow[nativeIndex] ?? (pick.kind === 'preview' ? pick : null)
-				if (windowPick) applyNativeTrackChange(windowPick)
-				await nativePreviewPlayer.next()
-				scheduleNativeSlide()
-				return
 			}
 			// Offline, uncached picks fail fast — skip past them (bounded) so auto-advance lands on the
 			// next cached track instead of halting with an error per pick. The first failure toasts
 			// ("not available offline"); skipped iterations stay silent (silentError).
 			const MAX_OFFLINE_SKIPS = 30
-			let pick = playbackQueue.advanceNext()
 			let skips = 0
 			while (pick && pick.kind === 'preview') {
 				const attempted = pick
