@@ -1,6 +1,7 @@
 {
 	"common": {
 		"add": "Toevoegen",
+		"clear": "Wissen",
 		"close": "Sluiten",
 		"save": "Opslaan",
 		"search": "Zoeken...",

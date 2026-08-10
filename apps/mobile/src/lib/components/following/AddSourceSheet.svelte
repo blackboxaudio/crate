@@ -1,16 +1,17 @@
 <script lang="ts">
-	import { tick } from 'svelte'
 	import { readText } from '@tauri-apps/plugin-clipboard-manager'
 	import { translate } from '$shared/i18n'
 	import { followStore } from '$shared/stores/follow'
 	import { extractFirstUrl } from '$shared/utils/discoveryLinks'
 	import FormSheet from '$lib/components/common/FormSheet.svelte'
+	import FormSection from '$lib/components/common/FormSection.svelte'
+	import FormTextField from '$lib/components/common/FormTextField.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 
-	// Follow-a-source by URL (paste an artist/label page), presented exactly like the add-release sheet:
-	// the same FormSheet with the URL field pinned at the top (clear of the keyboard) and the primary
-	// action in the nav bar. The platform and artist-vs-label type are detected from the URL by the
-	// backend. Kept open while the URL is being checked, so a failed URL keeps the user's input.
+	// Follow-a-source by URL (paste an artist/label page): a single grouped URL row on the content-hugging
+	// FormSheet detent (one field doesn't earn a full-height sheet — the 'auto' detent's keyboard spacer
+	// keeps the row above the keyboard). The platform and artist-vs-label type are detected from the URL
+	// by the backend. Kept open while the URL is being checked, so a failed URL keeps the user's input.
 	type Props = {
 		open: boolean
 		onClose: () => void
@@ -46,12 +47,6 @@
 		}
 	}
 
-	// Focus the URL field as the sheet mounts; `preventScroll` stops iOS from scrolling the document to
-	// "reveal" the field while the panel is still sliding in (see AddReleaseModal's focusOnOpen).
-	function focusOnOpen(node: HTMLInputElement) {
-		void tick().then(() => node.focus({ preventScroll: true }))
-	}
-
 	async function handleSubmit() {
 		const trimmed = url.trim()
 		if (!trimmed || busy) return
@@ -70,41 +65,46 @@
 	submitDisabled={!url.trim() || busy}
 	dirty={url.trim().length > 0}
 	positionSlide
+	height="auto"
 	title={$translate('discovery.following.addSource.title')}
 >
-	<div class="flex flex-col gap-4 px-4 py-4">
-		<div>
-			<div class="mb-1.5 flex items-center justify-between">
-				<label for="follow-url" class="block text-xs font-medium text-text-secondary">
-					{$translate('discovery.url')}
-				</label>
-				<button
-					type="button"
-					class="text-xs font-medium text-brand-primary active:opacity-70"
-					onclick={pasteFromClipboard}
-				>
-					{$translate('discovery.pasteLink')}
-				</button>
-			</div>
-			<input
+	<div class="flex flex-col gap-5 px-4 py-4">
+		<FormSection footer={$translate('discovery.following.addSource.urlInfo')}>
+			<FormTextField
 				id="follow-url"
-				type="url"
-				use:focusOnOpen
+				label={$translate('discovery.url')}
 				bind:value={url}
+				type="url"
 				placeholder="https://..."
-				class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-			/>
-			{#if clipboardMiss}
-				<p class="mt-1.5 text-xs text-text-tertiary">{$translate('discovery.clipboardNoUrl')}</p>
-			{/if}
-			{#if busy}
-				<div class="mt-2 flex items-center gap-2">
-					<Spinner class="h-3.5 w-3.5" />
-					<span class="text-xs text-text-tertiary">{$translate('common.loading')}</span>
-				</div>
-			{/if}
-		</div>
+				inputmode="url"
+				autocapitalize="off"
+				autocorrect="off"
+				enterkeyhint="go"
+				focusOnOpen
+				onenter={handleSubmit}
+			>
+				{#snippet trailing()}
+					<button
+						type="button"
+						class="text-xs font-medium text-brand-primary active:opacity-70"
+						onclick={pasteFromClipboard}
+					>
+						{$translate('discovery.pasteLink')}
+					</button>
+				{/snippet}
+			</FormTextField>
 
-		<p class="text-xs text-text-tertiary">{$translate('discovery.following.addSource.urlInfo')}</p>
+			{#snippet footerExtra()}
+				{#if clipboardMiss}
+					<p class="text-xs text-text-tertiary">{$translate('discovery.clipboardNoUrl')}</p>
+				{/if}
+				{#if busy}
+					<div class="flex items-center gap-2">
+						<Spinner class="h-3.5 w-3.5" />
+						<span class="text-xs text-text-tertiary">{$translate('common.loading')}</span>
+					</div>
+				{/if}
+			{/snippet}
+		</FormSection>
 	</div>
 </FormSheet>

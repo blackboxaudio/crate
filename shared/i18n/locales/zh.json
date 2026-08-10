@@ -1,6 +1,7 @@
 {
 	"common": {
 		"add": "添加",
+		"clear": "清除",
 		"close": "关闭",
 		"save": "保存",
 		"search": "搜索...",

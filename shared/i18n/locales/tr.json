@@ -1,6 +1,7 @@
 {
 	"common": {
 		"add": "Ekle",
+		"clear": "Temizle",
 		"close": "Kapat",
 		"save": "Kaydet",
 		"search": "Ara...",

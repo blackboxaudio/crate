@@ -17,7 +17,11 @@
 	} from '$shared/utils/smartRules'
 	import type { Playlist, SmartRules, SmartCondition, MatchMode, ActiveView } from '$shared/types'
 	import { DEFAULT_TAG_COLOR } from '$shared/types'
+	import { lightTap } from '$lib/utils/haptics'
 	import FormSheet from '$lib/components/common/FormSheet.svelte'
+	import FormSection from '$lib/components/common/FormSection.svelte'
+	import FormTextField from '$lib/components/common/FormTextField.svelte'
+	import FormSelect from '$lib/components/common/FormSelect.svelte'
 
 	// Mobile smart-playlist rule editor. A focused, touch-first counterpart to the desktop SmartPlaylistModal:
 	// name + match-mode + a stacked list of conditions (field / operator / value), with a live match-count
@@ -181,44 +185,49 @@
 	{dirty}
 >
 	<div class="flex flex-col gap-5 px-4 py-4">
-		<!-- Name -->
-		<input
-			type="text"
-			bind:value={name}
-			placeholder={$translate('smartPlaylist.namePlaceholder')}
-			autocapitalize="words"
-			autocorrect="off"
-			class="w-full rounded-lg border border-stroke bg-surface-1 px-3 py-2.5 text-sm text-text-primary placeholder:text-text-tertiary focus:border-brand-primary focus:outline-none"
-		/>
-
-		<!-- Match mode segmented control -->
-		<div class="flex items-center justify-between gap-3">
-			<span class="text-sm text-text-secondary">{$translate('smartPlaylist.matchLabel')}</span>
-			<div class="relative flex rounded-lg bg-surface-2 p-0.5">
-				<div
-					class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-md bg-brand-primary transition-transform duration-200 ease-out"
-					style="transform: translateX({matchMode === 'any' ? '100%' : '0%'})"
-				></div>
-				<button
-					type="button"
-					class="relative z-10 px-4 py-1.5 text-sm font-medium {matchMode === 'all'
-						? 'text-white'
-						: 'text-text-secondary'}"
-					onclick={() => (matchMode = 'all')}
-				>
-					{$translate('smartPlaylist.matchAll')}
-				</button>
-				<button
-					type="button"
-					class="relative z-10 px-4 py-1.5 text-sm font-medium {matchMode === 'any'
-						? 'text-white'
-						: 'text-text-secondary'}"
-					onclick={() => (matchMode = 'any')}
-				>
-					{$translate('smartPlaylist.matchAny')}
-				</button>
+		<!-- Name + match mode: one grouped section (a text row and a control row, iOS-style). -->
+		<FormSection>
+			<FormTextField
+				id="smart-name"
+				bind:value={name}
+				placeholder={$translate('smartPlaylist.namePlaceholder')}
+				autocapitalize="words"
+				autocorrect="off"
+			/>
+			<div class="flex min-h-[44px] items-center justify-between gap-3 px-4 py-1.5">
+				<span class="text-sm text-text-secondary">{$translate('smartPlaylist.matchLabel')}</span>
+				<div class="relative flex rounded-lg bg-surface-2 p-0.5">
+					<div
+						class="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-md bg-brand-primary transition-transform duration-200 ease-out"
+						style="transform: translateX({matchMode === 'any' ? '100%' : '0%'})"
+					></div>
+					<button
+						type="button"
+						class="relative z-10 px-4 py-1.5 text-sm font-medium {matchMode === 'all'
+							? 'text-white'
+							: 'text-text-secondary'}"
+						onclick={() => {
+							void lightTap()
+							matchMode = 'all'
+						}}
+					>
+						{$translate('smartPlaylist.matchAll')}
+					</button>
+					<button
+						type="button"
+						class="relative z-10 px-4 py-1.5 text-sm font-medium {matchMode === 'any'
+							? 'text-white'
+							: 'text-text-secondary'}"
+						onclick={() => {
+							void lightTap()
+							matchMode = 'any'
+						}}
+					>
+						{$translate('smartPlaylist.matchAny')}
+					</button>
+				</div>
 			</div>
-		</div>
+		</FormSection>
 
 		<!-- Conditions -->
 		<div class="flex flex-col gap-3">
@@ -230,19 +239,15 @@
 
 			{#each conditions as condition, index (index)}
 				<div
-					class="flex flex-col gap-2 rounded-lg border border-stroke bg-surface-1 p-3"
+					class="flex flex-col gap-2 rounded-xl border border-stroke-subtle bg-surface-1 p-3"
 					transition:slide={{ duration: 180 }}
 				>
 					<div class="flex items-center gap-2">
-						<select
-							value={fieldOf(condition)}
-							onchange={(e) => updateField(index, e.currentTarget.value)}
-							class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-						>
+						<FormSelect value={fieldOf(condition)} onchange={(value) => updateField(index, value)} class="flex-1">
 							{#each fields as f (f.field)}
 								<option value={f.field}>{$translate(f.labelKey)}</option>
 							{/each}
-						</select>
+						</FormSelect>
 						<button
 							type="button"
 							class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-text-tertiary active:bg-surface-2"
@@ -255,15 +260,11 @@
 						</button>
 					</div>
 
-					<select
-						value={condition.operator}
-						onchange={(e) => updateOperator(index, e.currentTarget.value)}
-						class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-					>
+					<FormSelect value={condition.operator} onchange={(value) => updateOperator(index, value)}>
 						{#each operatorOptions(condition) as op (op.value)}
 							<option value={op.value}>{$translate(op.labelKey)}</option>
 						{/each}
-					</select>
+					</FormSelect>
 
 					<!-- Value -->
 					{#if operatorRequiresValue(condition.operator)}
@@ -287,15 +288,11 @@
 								{/each}
 							</div>
 						{:else if condition.type === 'enum'}
-							<select
-								value={condition.value ?? ''}
-								onchange={(e) => updateValue(index, e.currentTarget.value)}
-								class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
-							>
+							<FormSelect value={condition.value ?? ''} onchange={(value) => updateValue(index, value)}>
 								{#each getFieldDefinition(condition.field, context)?.enumValues ?? [] as ev (ev.value)}
 									<option value={ev.value}>{ev.labelKey.includes('.') ? $translate(ev.labelKey) : ev.labelKey}</option>
 								{/each}
-							</select>
+							</FormSelect>
 						{:else if condition.type === 'numeric'}
 							<div class="flex items-center gap-2">
 								<input
@@ -303,7 +300,7 @@
 									inputmode="numeric"
 									value={condition.value ?? ''}
 									oninput={(e) => updateValue(index, e.currentTarget.value)}
-									class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+									class="min-w-0 flex-1 rounded-lg bg-surface-2 px-3 py-2 text-sm text-text-primary focus:outline-none"
 								/>
 								{#if operatorRequiresSecondValue(condition.operator)}
 									<span class="text-text-tertiary">–</span>
@@ -312,7 +309,7 @@
 										inputmode="numeric"
 										value={condition.value2 ?? ''}
 										oninput={(e) => updateValue2(index, e.currentTarget.value)}
-										class="min-w-0 flex-1 rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+										class="min-w-0 flex-1 rounded-lg bg-surface-2 px-3 py-2 text-sm text-text-primary focus:outline-none"
 									/>
 								{/if}
 							</div>
@@ -321,7 +318,7 @@
 								type="date"
 								value={condition.value ?? ''}
 								oninput={(e) => updateValue(index, e.currentTarget.value)}
-								class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+								class="w-full rounded-lg bg-surface-2 px-3 py-2 text-sm text-text-primary focus:outline-none"
 							/>
 						{:else if condition.type === 'date'}
 							<input
@@ -330,14 +327,14 @@
 								placeholder="30"
 								value={condition.value ?? ''}
 								oninput={(e) => updateValue(index, e.currentTarget.value)}
-								class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+								class="w-full rounded-lg bg-surface-2 px-3 py-2 text-sm text-text-primary focus:outline-none"
 							/>
 						{:else}
 							<input
 								type="text"
 								value={condition.type === 'text' ? (condition.value ?? '') : ''}
 								oninput={(e) => updateValue(index, e.currentTarget.value)}
-								class="w-full rounded-md border border-stroke bg-surface-0 px-2 py-2 text-sm text-text-primary"
+								class="w-full rounded-lg bg-surface-2 px-3 py-2 text-sm text-text-primary focus:outline-none"
 							/>
 						{/if}
 					{/if}

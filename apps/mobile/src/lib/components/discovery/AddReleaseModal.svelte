@@ -22,10 +22,13 @@
 	import { readText } from '@tauri-apps/plugin-clipboard-manager'
 	import { formatDurationCompact } from '$shared/utils/format'
 	import { listen } from '@tauri-apps/api/event'
-	import { onMount, tick } from 'svelte'
+	import { onMount } from 'svelte'
 	import { mobileUIStore, addReleaseOpen, addReleasePrefillUrl } from '$lib/stores/mobileUI'
+	import { lightTap } from '$lib/utils/haptics'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
 	import FormSheet from '$lib/components/common/FormSheet.svelte'
+	import FormSection from '$lib/components/common/FormSection.svelte'
+	import FormTextField from '$lib/components/common/FormTextField.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import SourceIcon from './SourceIcon.svelte'
 	import BulkImportView from './BulkImportView.svelte'
@@ -320,15 +323,6 @@
 			.catch(() => {})
 	})
 
-	// Focus the URL field as the sheet mounts. `preventScroll` is the crux: the panel starts off-screen and
-	// slides up, so a plain focus makes iOS scroll the document to "reveal" the field — dragging the settled
-	// form off the top. `preventScroll` suppresses exactly that reveal-scroll while still raising the keyboard.
-	// We focus via `tick` (like MobilePromptDialog) rather than a timeout so the tap's activation is preserved
-	// and the keyboard actually appears — a `setTimeout` loses that activation and the keyboard stays hidden.
-	function focusOnOpen(node: HTMLInputElement) {
-		void tick().then(() => node.focus({ preventScroll: true }))
-	}
-
 	const isOffline = $derived(fetchError === 'offline')
 	const canSubmit = $derived(url.trim() && !unsupportedUrl && !scanning && !fetching && !submitting)
 </script>
@@ -352,7 +346,10 @@
 			<button
 				type="button"
 				class="text-sm font-semibold text-brand-primary active:opacity-60"
-				onclick={handleAddToQueue}
+				onclick={() => {
+					void lightTap()
+					handleAddToQueue()
+				}}
 			>
 				{$translate('discovery.addToQueue')}
 			</button>
@@ -361,7 +358,10 @@
 				type="button"
 				class="text-sm font-semibold text-brand-primary active:opacity-60 disabled:opacity-40"
 				disabled={!canSubmit}
-				onclick={handleSubmit}
+				onclick={() => {
+					void lightTap()
+					void handleSubmit()
+				}}
 			>
 				{$translate('common.add')}
 			</button>
@@ -371,65 +371,71 @@
 	{#if isBulkMode && scannedPage}
 		<BulkImportView {scannedPage} onImportComplete={handleBulkImportComplete} onCancel={handleClose} />
 	{:else}
-		<div class="flex flex-col gap-4 px-4 py-4">
+		<div class="flex flex-col gap-5 px-4 py-4">
 			<!-- URL input -->
-			<div>
-				<div class="mb-1.5 flex items-center justify-between">
-					<label for="add-url" class="block text-xs font-medium text-text-secondary">
-						{$translate('discovery.url')}
-					</label>
-					<button
-						type="button"
-						class="text-xs font-medium text-brand-primary active:opacity-70"
-						onclick={pasteFromClipboard}
-					>
-						{$translate('discovery.pasteLink')}
-					</button>
-				</div>
-				<input
+			<FormSection>
+				<FormTextField
 					id="add-url"
-					type="url"
-					use:focusOnOpen
+					label={$translate('discovery.url')}
 					bind:value={url}
-					oninput={handleUrlInput}
+					type="url"
 					placeholder="https://..."
-					class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-				/>
-				{#if clipboardMiss}
-					<p class="mt-1.5 text-xs text-text-tertiary">{$translate('discovery.clipboardNoUrl')}</p>
-				{/if}
-				{#if fetching}
-					<div class="mt-2 flex items-center gap-2">
-						<Spinner class="h-3.5 w-3.5" />
-						<span class="text-xs text-text-tertiary">{$translate('discovery.fetchingMetadata')}</span>
-					</div>
-				{:else if scanning}
-					<div class="mt-2 flex items-center gap-2">
-						<Spinner class="h-3.5 w-3.5" />
-						<span class="text-xs text-text-tertiary">
-							{#if scanProgress?.total_pages}
-								{$translate('discovery.scanningReleasesProgress', {
-									values: {
-										current: scanProgress.current_page,
-										total: scanProgress.total_pages,
-										found: scanProgress.releases_found,
-									},
-								})}
-							{:else if scanProgress?.entity_name}
-								{$translate('discovery.scanningReleasesEntity', { values: { name: scanProgress.entity_name } })}
-							{:else}
-								{$translate('discovery.scanningReleases')}
-							{/if}
-						</span>
-					</div>
-				{:else if unsupportedUrl}
-					<p class="mt-2 text-xs text-danger">{$translate('discovery.unsupportedUrl')}</p>
-				{:else if isOffline}
-					<p class="mt-2 text-xs text-text-tertiary">{$translate('discovery.offlineQueueNotice')}</p>
-				{:else if fetchError}
-					<p class="mt-2 text-xs text-danger">{$translate('discovery.fetchError')}</p>
-				{/if}
-			</div>
+					inputmode="url"
+					autocapitalize="off"
+					autocorrect="off"
+					enterkeyhint="go"
+					focusOnOpen
+					oninput={handleUrlInput}
+					onenter={() => canSubmit && handleSubmit()}
+				>
+					{#snippet trailing()}
+						<button
+							type="button"
+							class="text-xs font-medium text-brand-primary active:opacity-70"
+							onclick={pasteFromClipboard}
+						>
+							{$translate('discovery.pasteLink')}
+						</button>
+					{/snippet}
+				</FormTextField>
+
+				{#snippet footerExtra()}
+					{#if clipboardMiss}
+						<p class="text-xs text-text-tertiary">{$translate('discovery.clipboardNoUrl')}</p>
+					{/if}
+					{#if fetching}
+						<div class="flex items-center gap-2">
+							<Spinner class="h-3.5 w-3.5" />
+							<span class="text-xs text-text-tertiary">{$translate('discovery.fetchingMetadata')}</span>
+						</div>
+					{:else if scanning}
+						<div class="flex items-center gap-2">
+							<Spinner class="h-3.5 w-3.5" />
+							<span class="text-xs text-text-tertiary">
+								{#if scanProgress?.total_pages}
+									{$translate('discovery.scanningReleasesProgress', {
+										values: {
+											current: scanProgress.current_page,
+											total: scanProgress.total_pages,
+											found: scanProgress.releases_found,
+										},
+									})}
+								{:else if scanProgress?.entity_name}
+									{$translate('discovery.scanningReleasesEntity', { values: { name: scanProgress.entity_name } })}
+								{:else}
+									{$translate('discovery.scanningReleases')}
+								{/if}
+							</span>
+						</div>
+					{:else if unsupportedUrl}
+						<p class="text-xs text-danger">{$translate('discovery.unsupportedUrl')}</p>
+					{:else if isOffline}
+						<p class="text-xs text-text-tertiary">{$translate('discovery.offlineQueueNotice')}</p>
+					{:else if fetchError}
+						<p class="text-xs text-danger">{$translate('discovery.fetchError')}</p>
+					{/if}
+				{/snippet}
+			</FormSection>
 
 			<!-- Match notice -->
 			{#if matchFound}
@@ -463,56 +469,40 @@
 
 			<!-- Editable fields (shown after metadata fetch) -->
 			{#if fetchedData}
-				<div>
-					<label for="add-artist" class="mb-1.5 block text-xs font-medium text-text-secondary">
-						{$translate('discovery.editor.artist')}
-					</label>
-					<input
+				<FormSection>
+					<FormTextField
 						id="add-artist"
-						type="text"
+						label={$translate('discovery.editor.artist')}
 						bind:value={artist}
 						placeholder={$translate('discovery.editor.artist')}
-						class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+						autocapitalize="words"
 					/>
-				</div>
-
-				<div>
-					<label for="add-title" class="mb-1.5 block text-xs font-medium text-text-secondary">
-						{$translate('discovery.editor.title')}
-					</label>
-					<input
+					<FormTextField
 						id="add-title"
-						type="text"
+						label={$translate('discovery.editor.title')}
 						bind:value={title}
 						placeholder={$translate('discovery.editor.title')}
-						class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+						autocapitalize="words"
 					/>
-				</div>
-
-				<div>
-					<label for="add-label" class="mb-1.5 block text-xs font-medium text-text-secondary">
-						{$translate('discovery.editor.label')}
-					</label>
-					<input
+					<FormTextField
 						id="add-label"
-						type="text"
+						label={$translate('discovery.editor.label')}
 						bind:value={label}
 						placeholder={$translate('discovery.editor.label')}
-						class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+						autocapitalize="words"
 					/>
-				</div>
+				</FormSection>
 
 				<!-- Track list preview -->
 				{#if tracks.length > 0}
-					<div>
-						<p class="mb-1.5 text-xs font-medium text-text-secondary">
-							{$translate('discovery.tracks')} ({$translate('discovery.trackCount', {
-								values: { count: tracks.length },
-							})})
-						</p>
-						<div class="max-h-48 overflow-y-auto rounded-lg border border-stroke bg-surface-1">
+					<FormSection
+						title="{$translate('discovery.tracks')} ({$translate('discovery.trackCount', {
+							values: { count: tracks.length },
+						})})"
+					>
+						<div class="max-h-48 divide-y divide-stroke-subtle overflow-y-auto">
 							{#each tracks as track (track.position)}
-								<div class="flex items-center justify-between border-b border-stroke-subtle px-3 py-2 last:border-b-0">
+								<div class="flex items-center justify-between px-4 py-2">
 									<span class="min-w-0 flex-1 truncate text-sm text-text-primary">
 										<span class="mr-2 text-xs text-text-tertiary">{track.position}.</span>{track.name}
 									</span>
@@ -524,7 +514,7 @@
 								</div>
 							{/each}
 						</div>
-					</div>
+					</FormSection>
 				{/if}
 			{/if}
 		</div>

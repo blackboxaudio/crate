@@ -1,6 +1,7 @@
 {
 	"common": {
 		"add": "追加",
+		"clear": "クリア",
 		"close": "閉じる",
 		"save": "保存",
 		"search": "検索...",

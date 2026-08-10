@@ -1,6 +1,7 @@
 {
 	"common": {
 		"add": "Lägg till",
+		"clear": "Rensa",
 		"close": "Stäng",
 		"save": "Spara",
 		"search": "Sök...",

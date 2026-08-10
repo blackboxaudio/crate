@@ -1,15 +1,20 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte'
+	import { onMount } from 'svelte'
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
 	import { confirmDialog } from '$lib/utils/dialog'
+	import { lightTap } from '$lib/utils/haptics'
 	import Drawer from './Drawer.svelte'
 
-	// Full-height form sheet — the one surface for multi-field forms (add release, smart playlist editor,
-	// edit release, add follow source). Sibling of `MobileModal` (the picker/option sheet): same Drawer
+	// Form sheet — the one surface for multi-field forms (add release, smart playlist editor, edit
+	// release, add follow source). Sibling of `MobileModal` (the picker/option sheet): same Drawer
 	// baseline and grab handle, but an iOS-style nav bar (Cancel · title · primary action) instead of a
-	// plain title row, at a uniform near-full height so text fields sit high on screen, well clear of the
-	// keyboard rising from the bottom.
+	// plain title row. Two detents: 'full' pins a near-full height so text fields sit high on screen,
+	// well clear of the keyboard rising from the bottom (right for keyboard-first forms that can grow —
+	// add release); 'auto' hugs the content like a native medium-detent sheet, with a spacer that tracks
+	// `visualViewport` so the content lifts above the iOS keyboard instead of being covered by it (the
+	// panel itself stays bottom-anchored — only its content rides up).
 	//
 	// Dismissal is CANCEL semantics, uniformly: scrim tap, swipe-down, Escape, Android Back, and the
 	// Cancel button all discard — vetoed by a native "Discard changes?" confirm while `dirty`. Submitting
@@ -31,6 +36,8 @@
 		action?: Snippet
 		/** See Drawer: keyboard-first sheets that focus a field on open slide by `bottom`, not transform. */
 		positionSlide?: boolean
+		/** 'full' (default) pins ~92vh; 'auto' hugs the content (capped at the same height). */
+		height?: 'full' | 'auto'
 		children: Snippet
 	}
 	let {
@@ -44,8 +51,31 @@
 		dirty = false,
 		action,
 		positionSlide = false,
+		height = 'full',
 		children: body,
 	}: Props = $props()
+
+	// Keyboard clearance for the 'auto' detent: `visualViewport` reports the region the keyboard doesn't
+	// cover, so `innerHeight - vv.height - vv.offsetTop` is the overlap. Rendered as a spacer at the
+	// panel's bottom, it pushes the content (not the panel) above the keyboard — same measurement
+	// MobilePromptDialog uses to keep its card centered in the visible viewport. The 'full' detent
+	// doesn't need it (its fields sit high by construction), so the listeners only attach for 'auto'.
+	let keyboardInset = $state(0)
+	onMount(() => {
+		if (height !== 'auto') return
+		const vv = window.visualViewport
+		if (!vv) return
+		const measure = () => {
+			keyboardInset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+		}
+		measure()
+		vv.addEventListener('resize', measure)
+		vv.addEventListener('scroll', measure)
+		return () => {
+			vv.removeEventListener('resize', measure)
+			vv.removeEventListener('scroll', measure)
+		}
+	})
 
 	async function confirmDiscard(): Promise<boolean> {
 		if (!dirty) return true
@@ -73,7 +103,9 @@
 	panelDrag={false}
 	portal
 	ariaLabel={title}
-	class="pb-safe flex h-[92vh] flex-col overflow-hidden rounded-t-2xl border-t border-stroke bg-surface-0"
+	class="pb-safe flex {height === 'auto'
+		? 'max-h-[92vh]'
+		: 'h-[92vh]'} flex-col overflow-hidden rounded-t-2xl border-t border-stroke bg-surface-0"
 >
 	{#snippet children({ drag, animating })}
 		<!-- Grab handle + nav bar (drag either to dismiss); the body below scrolls freely. -->
@@ -97,7 +129,10 @@
 						type="button"
 						class="justify-self-end text-sm font-semibold text-brand-primary active:opacity-60 disabled:opacity-40"
 						disabled={submitDisabled}
-						onclick={onSubmit}
+						onclick={() => {
+							void lightTap()
+							onSubmit?.()
+						}}
 					>
 						{submitLabel ?? $translate('common.save')}
 					</button>
@@ -110,5 +145,9 @@
 		<div class="min-h-0 flex-1 {animating ? 'overflow-hidden' : 'overflow-y-auto'}">
 			{@render body()}
 		</div>
+
+		{#if keyboardInset > 0}
+			<div style="height: {keyboardInset}px" class="flex-shrink-0"></div>
+		{/if}
 	{/snippet}
 </Drawer>

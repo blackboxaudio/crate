@@ -3,9 +3,12 @@
 	import type { DiscoveryRelease } from '$shared/types'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import FormSheet from '$lib/components/common/FormSheet.svelte'
+	import FormSection from '$lib/components/common/FormSection.svelte'
+	import FormTextField from '$lib/components/common/FormTextField.svelte'
 
-	// Metadata editor for a discovery release, on the shared FormSheet: Save commits, every dismiss path
-	// (Cancel, scrim, swipe, Back) cancels — guarded by the discard confirm while edits exist.
+	// Metadata editor for a discovery release: grouped field rows on the content-hugging FormSheet detent.
+	// Save commits, every dismiss path (Cancel, scrim, swipe, Back) cancels — guarded by the discard
+	// confirm while edits exist.
 	type Props = {
 		open: boolean
 		release: DiscoveryRelease
@@ -55,72 +58,51 @@
 	submitLabel={$translate('common.save')}
 	submitDisabled={!dirty}
 	{dirty}
+	height="auto"
 	title={$translate('discovery.editRelease')}
 >
-	<div class="flex flex-col gap-4 px-4 py-4">
-		<div>
-			<label for="edit-artist" class="mb-1.5 block text-xs font-medium text-text-secondary">
-				{$translate('discovery.editor.artist')}
-			</label>
-			<input
+	<div class="flex flex-col gap-5 px-4 py-4">
+		<FormSection>
+			<FormTextField
 				id="edit-artist"
-				type="text"
+				label={$translate('discovery.editor.artist')}
 				bind:value={artist}
 				placeholder={$translate('discovery.editor.artist')}
-				class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+				autocapitalize="words"
 			/>
-		</div>
-
-		<div>
-			<label for="edit-title" class="mb-1.5 block text-xs font-medium text-text-secondary">
-				{$translate('discovery.editor.title')}
-			</label>
-			<input
+			<FormTextField
 				id="edit-title"
-				type="text"
+				label={$translate('discovery.editor.title')}
 				bind:value={title}
 				placeholder={$translate('discovery.editor.title')}
-				class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+				autocapitalize="words"
 			/>
-		</div>
-
-		<div>
-			<label for="edit-label" class="mb-1.5 block text-xs font-medium text-text-secondary">
-				{$translate('discovery.editor.label')}
-			</label>
-			<input
+			<FormTextField
 				id="edit-label"
-				type="text"
+				label={$translate('discovery.editor.label')}
 				bind:value={label}
 				placeholder={$translate('discovery.editor.label')}
-				class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+				autocapitalize="words"
 			/>
-		</div>
-
-		<div>
-			<label for="edit-release-date" class="mb-1.5 block text-xs font-medium text-text-secondary">
-				{$translate('discovery.editor.releaseDate')}
-			</label>
-			<input
+			<FormTextField
 				id="edit-release-date"
-				type="text"
+				label={$translate('discovery.editor.releaseDate')}
 				bind:value={releaseDate}
 				placeholder="YYYY-MM-DD"
-				class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
+				autocapitalize="off"
+				autocorrect="off"
 			/>
-		</div>
+		</FormSection>
 
-		<div>
-			<label for="edit-notes" class="mb-1.5 block text-xs font-medium text-text-secondary">
-				{$translate('discovery.editor.notes')}
-			</label>
-			<textarea
+		<FormSection>
+			<FormTextField
 				id="edit-notes"
+				label={$translate('discovery.editor.notes')}
 				bind:value={notes}
-				rows="3"
 				placeholder={$translate('discovery.editor.notesPlaceholder')}
-				class="w-full rounded-md border border-stroke bg-surface-1 px-3 py-2 text-sm text-text-primary placeholder:text-text-tertiary"
-			></textarea>
-		</div>
+				multiline
+				rows={3}
+			/>
+		</FormSection>
 	</div>
 </FormSheet>

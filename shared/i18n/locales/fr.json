@@ -1,6 +1,7 @@
 {
 	"common": {
 		"add": "Ajouter",
+		"clear": "Effacer",
 		"close": "Fermer",
 		"save": "Enregistrer",
 		"search": "Rechercher...",

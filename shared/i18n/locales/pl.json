@@ -1,6 +1,7 @@
 {
 	"common": {
 		"add": "Dodaj",
+		"clear": "Wyczyść",
 		"close": "Zamknij",
 		"save": "Zapisz",
 		"search": "Szukaj...",
