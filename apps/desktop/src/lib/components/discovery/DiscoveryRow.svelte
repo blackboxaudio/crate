@@ -430,19 +430,21 @@
 							>
 								{track.name}
 							</span>
-							{#if owned}
-								<Tooltip text={$translate('collection.ownedBadge')} position="top" delay={250}>
-									<Icon name="shopping-bag" class="h-3 w-3 shrink-0 text-emerald-500" />
-								</Tooltip>
-							{/if}
 						</div>
 						<div
-							class="mr-1 text-right text-xs {playing
+							class="mr-1 flex flex-row items-center justify-end text-right text-xs {playing
 								? 'text-brand-primary'
 								: canPlay
 									? 'text-text-tertiary'
 									: 'text-text-tertiary/50'}"
 						>
+							<div class="mt-0.5 mr-2.5">
+								{#if owned}
+									<Tooltip text={$translate('collection.ownedBadge')} position="top" delay={250}>
+										<Icon name="shopping-bag" class="h-3 w-3 shrink-0 text-emerald-500" />
+									</Tooltip>
+								{/if}
+							</div>
 							{track.duration_ms ? formatDuration(track.duration_ms) : ''}
 						</div>
 					</div>
