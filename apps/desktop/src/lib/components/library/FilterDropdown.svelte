@@ -26,6 +26,9 @@
 		/** No collection account linked yet: render a "link your collection" action row
 		 *  instead of the toggle (the feature's discoverable entry point). */
 		onSetupPurchased?: () => void
+		showDownloadedFilter?: boolean
+		downloadedOnly?: boolean
+		onToggleDownloadedFilter?: () => void
 	}
 
 	let {
@@ -46,6 +49,9 @@
 		purchasedOnly = false,
 		onTogglePurchasedFilter,
 		onSetupPurchased,
+		showDownloadedFilter = false,
+		downloadedOnly = false,
+		onToggleDownloadedFilter,
 	}: Props = $props()
 
 	const allTags = $derived(tagCategories.flatMap((c) => c.tags))
@@ -65,7 +71,8 @@
 		activeFilterTags.length +
 			(showLikedFilter && likedOnly ? 1 : 0) +
 			(showNewFilter && newOnly ? 1 : 0) +
-			(showPurchasedFilter && purchasedOnly ? 1 : 0)
+			(showPurchasedFilter && purchasedOnly ? 1 : 0) +
+			(showDownloadedFilter && downloadedOnly ? 1 : 0)
 	)
 	const hasActiveFilters = $derived(badgeCount > 0)
 
@@ -373,18 +380,7 @@
 						}}
 					>
 						<div class="flex items-center gap-2">
-							<svg
-								class="h-3.5 w-3.5"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-							>
-								<path d="M6 8h12l-1.2 12H7.2L6 8z" />
-								<path d="M9 8V6a3 3 0 0 1 6 0v2" />
-							</svg>
+							<Icon name="shopping-bag" class="h-3.5 w-3.5" />
 							<span class="text-xs text-text-tertiary">
 								{$translate(onSetupPurchased ? 'settings.collection.linkAccount' : 'filters.purchased')}
 							</span>
@@ -413,8 +409,31 @@
 					</button>
 				{/if}
 
+				<!-- Downloaded filter (every preview cached on disk — playable with no network) -->
+				{#if showDownloadedFilter}
+					<button
+						type="button"
+						class="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:cursor-pointer hover:bg-surface-2"
+						onclick={() => onToggleDownloadedFilter?.()}
+					>
+						<div class="flex items-center gap-2">
+							<Icon name="download" class="h-3.5 w-3.5" />
+							<span class="text-xs text-text-tertiary">{$translate('filters.downloaded')}</span>
+						</div>
+						<div
+							class="flex h-4 w-7 items-center rounded-full p-0.5 transition-colors {downloadedOnly
+								? 'bg-brand-primary'
+								: 'bg-stroke'}"
+						>
+							<div
+								class="h-3 w-3 rounded-full bg-white transition-transform {downloadedOnly ? 'translate-x-3' : ''}"
+							></div>
+						</div>
+					</button>
+				{/if}
+
 				{#if allTags.length > 0}
-					{#if showLikedFilter || showNewFilter || showPurchasedFilter}
+					{#if showLikedFilter || showNewFilter || showPurchasedFilter || showDownloadedFilter}
 						<div class="my-1 border-t border-stroke"></div>
 					{/if}
 
@@ -482,25 +501,26 @@
 							<Icon name="chevron-right" class="h-3 w-3 shrink-0 text-text-tertiary" />
 						</div>
 					{/each}
+				{/if}
 
-					<!-- Clear all button -->
-					{#if hasActiveFilters}
-						<div class="mt-1 border-t border-stroke pt-1" transition:slide={{ duration: 150 }}>
-							<div in:fade={{ duration: 100, delay: 50 }} out:fade={{ duration: 75 }}>
-								<Button
-									variant="ghost-danger"
-									size="sm"
-									class="w-full justify-start"
-									onclick={() => {
-										onClearAll()
-										open = false
-									}}
-								>
-									{$translate('library.clearAll')}
-								</Button>
-							</div>
+				<!-- Clear all button — outside the tag block so the toggle-only facets can still be
+				     cleared in a workspace with no tag categories -->
+				{#if hasActiveFilters}
+					<div class="mt-1 border-t border-stroke pt-1" transition:slide={{ duration: 150 }}>
+						<div in:fade={{ duration: 100, delay: 50 }} out:fade={{ duration: 75 }}>
+							<Button
+								variant="ghost-danger"
+								size="sm"
+								class="w-full justify-start"
+								onclick={() => {
+									onClearAll()
+									open = false
+								}}
+							>
+								{$translate('library.clearAll')}
+							</Button>
 						</div>
-					{/if}
+					</div>
 				{/if}
 			</div>
 		</div>

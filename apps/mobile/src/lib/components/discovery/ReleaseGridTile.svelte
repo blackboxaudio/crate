@@ -4,7 +4,7 @@
 	import { previewReleaseId } from '$shared/stores/player'
 	import { fullyOwnedReleaseIds, partiallyOwnedReleaseIds } from '$shared/stores/collection'
 	import { mobileUIStore, selectMode, selectedReleaseIds } from '$lib/stores/mobileUI'
-	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import { lightTap } from '$lib/utils/haptics'
 	import { longPress } from '$lib/actions/longPress'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'

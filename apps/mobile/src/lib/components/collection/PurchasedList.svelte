@@ -11,7 +11,7 @@
 		tagFilterMode,
 		DISCOVERY_ROW_HEIGHT,
 	} from '$lib/stores/mobileUI'
-	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import ReleaseFeedList from '$lib/components/discovery/ReleaseFeedList.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
 	import CollectionItemCard from './CollectionItemCard.svelte'

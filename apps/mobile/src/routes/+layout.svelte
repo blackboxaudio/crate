@@ -15,7 +15,7 @@
 	import { mobileUIStore, isPlayerExpanded, flushNavPersistence } from '$lib/stores/mobileUI'
 	import { collectionStore } from '$shared/stores/collection'
 	import { discoveryStore } from '$shared/stores/discovery'
-	import { offlineCacheStore } from '$lib/stores/offlineCache'
+	import { offlineCacheStore } from '$shared/stores/offlineCache'
 	import { pendingReleasesStore } from '$lib/stores/pendingReleases'
 	import { initAndroidShareIntake } from '$lib/androidShare'
 	import { initAndroidBack } from '$lib/androidBack'

@@ -80,6 +80,7 @@
 		activity: 'M4 12h3l3-9 4 18 3-9h3',
 		rss: '<path d="M4 11a9 9 0 0 1 9 9" /><path d="M4 4a16 16 0 0 1 16 16" /><circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />',
 		user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />',
+		'shopping-bag': '<path d="M6 8h12l-1.2 12H7.2L6 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" />',
 		loader:
 			'M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-5.07l-2.83 2.83M9.76 14.24l-2.83 2.83m11.14 0l-2.83-2.83M9.76 9.76L6.93 6.93',
 		'eye-slash':

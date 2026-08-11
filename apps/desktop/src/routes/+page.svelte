@@ -585,7 +585,7 @@
 			onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 			onClearAllTagFilters={() => {
 				tagController.clearTagFilters()
-				if ($activeView === 'discovery' && get(likedOnly)) discoveryStore.toggleLikedFilter()
+				if ($activeView === 'discovery') discoveryStore.clearFacetFilters()
 			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			isDiscoveryContext={$activeView === 'discovery'}
@@ -619,7 +619,7 @@
 					onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 					onClearAllTagFilters={() => {
 						tagController.clearTagFilters()
-						if (get(likedOnly)) discoveryStore.toggleLikedFilter()
+						discoveryStore.clearFacetFilters()
 					}}
 					onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 					likedOnly={$likedOnly}
@@ -696,7 +696,7 @@
 			onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 			onClearAllTagFilters={() => {
 				tagController.clearTagFilters()
-				if (get(likedOnly)) discoveryStore.toggleLikedFilter()
+				discoveryStore.clearFacetFilters()
 			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			likedOnly={$likedOnly}

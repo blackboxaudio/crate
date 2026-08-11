@@ -13,6 +13,7 @@ import type { discoveryStore as DiscoveryStoreType } from '$shared/stores/discov
 import type { playerStore as PlayerStoreType } from '$shared/stores/player'
 import { followStore } from '$shared/stores/follow'
 import { collectionStore } from '$shared/stores/collection'
+import { offlineCacheStore } from '$shared/stores/offlineCache'
 import { uiStore } from '$shared/stores/ui'
 import { translate } from '$shared/i18n'
 import { get } from 'svelte/store'
@@ -78,6 +79,8 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenCloudSyncMerge: UnlistenFn | undefined
 	let unlistenFollowed: UnlistenFn | undefined
 	let unlistenCollection: UnlistenFn | undefined
+	let unlistenAudioCache: UnlistenFn | undefined
+	let audioCacheDebounce: ReturnType<typeof setTimeout> | null = null
 	let unlistenAvailability: UnlistenFn | undefined
 	let unlistenAudioOutputLost: UnlistenFn | undefined
 	let unlistenAudioDevices: UnlistenFn | undefined
@@ -95,6 +98,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		devicesStore.loadDevices(),
 		followStore.load(),
 		collectionStore.load(),
+		offlineCacheStore.refresh(),
 	])
 
 	// Set up Tauri's native drag-drop event listener for external file drops
@@ -301,6 +305,19 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		})
 	}
 
+	// Audio-cache listener: the backend reports every cache mutation (a preview played through and
+	// downloaded, a purge, an LRU eviction), which the Downloaded filter reads. Debounced because a
+	// whole release streaming through fires one event per track.
+	async function setupAudioCacheListener(): Promise<void> {
+		unlistenAudioCache = await listen('discovery-cache-changed', () => {
+			if (audioCacheDebounce) clearTimeout(audioCacheDebounce)
+			audioCacheDebounce = setTimeout(() => {
+				audioCacheDebounce = null
+				void offlineCacheStore.refresh()
+			}, 500)
+		})
+	}
+
 	// Preview-availability listener: a stream extraction refreshed a release's per-track
 	// availability flags (pre-order tracks with no stream) — grey/un-grey the rows in place.
 	async function setupAvailabilityListener(): Promise<void> {
@@ -350,6 +367,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	await setupCloudSyncMergeListener()
 	await setupFollowedReleasesListener()
 	await setupCollectionListener()
+	await setupAudioCacheListener()
 	await setupAvailabilityListener()
 
 	// Return cleanup function
@@ -361,6 +379,8 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenCloudSyncMerge?.()
 		unlistenFollowed?.()
 		unlistenCollection?.()
+		if (audioCacheDebounce) clearTimeout(audioCacheDebounce)
+		unlistenAudioCache?.()
 		unlistenAvailability?.()
 		unlistenAudioOutputLost?.()
 		unlistenAudioDevices?.()

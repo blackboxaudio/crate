@@ -2,7 +2,7 @@
 	import type { DiscoveryRelease } from '$shared/types'
 	import { translate } from '$shared/i18n'
 	import { fullyOwnedReleaseIds, partiallyOwnedReleaseIds } from '$shared/stores/collection'
-	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 
 	// The visual interior of a discovery row — artwork + title/artist/label. Extracted so the live

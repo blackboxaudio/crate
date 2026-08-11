@@ -11,6 +11,7 @@
 		expandedReleaseIds,
 		newOnly,
 		purchasedOnly,
+		downloadedOnly,
 		hasLinkedCollection,
 		discoveryStore,
 		pageActions,
@@ -198,6 +199,9 @@
 				onSetupPurchased={$hasLinkedCollection
 					? undefined
 					: () => $pageActions?.getModalOrchestrator()?.openSettingsModal('discovery')}
+				showDownloadedFilter
+				downloadedOnly={$downloadedOnly}
+				onToggleDownloadedFilter={() => discoveryStore.toggleDownloadedFilter()}
 			/>
 			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />

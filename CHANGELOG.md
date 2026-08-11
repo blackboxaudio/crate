@@ -26,6 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Added pre-order awareness to discovery previews: tracks the source doesn't stream yet (an unreleased track on a Bandcamp pre-order album) are now greyed out and unplayable instead of failing with a generic stream error when tapped, playback auto-advance and the queue skip over them, and once the album is released the app quietly re-checks availability and the tracks become playable on their own
 
+- Brought the mobile discovery filters and owned markers to the desktop discovery list: the filter menu gained a "Downloaded" toggle (releases whose previews are all cached on disk, so they play with no network) alongside Liked, New, and Purchased, those filters are now also reachable from discovery playlist and folder views instead of only the main feed, "Clear all" resets every filter (not just tags) and shows up even with no tag categories, and each track inside an expanded release now carries a small bag marker when that track is owned in your linked Bandcamp collection — so a partly-owned release shows exactly which tracks you already bought
+
 ### Changed
 
 - With repeat off (the default), preview playback now stops at the end of the playing context instead of silently looping back to the start — the old always-loop behavior lives on as the explicit "Repeat all" mode on the new repeat button
@@ -39,6 +41,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Restructured mobile Settings into iOS-style pages: the root is now a grouped list that opens General (a new language picker — the stored language finally applies on mobile — and a date-format choice), Appearance, Following (check cadence, release-day reminders, new-releases summary, and a "Check all now" button, previously desktop-only), Cloud Sync (the account chip in the header now jumps straight to it), Storage (the audio/artwork caches), and About (which now also shows the build environment) — with the platform back conventions throughout (header chevron, iOS edge-swipe, Android back button popping one level at a time)
 
 ### Fixed
+
+- Fixed a thin sliver of background showing above a selected release in the desktop discovery list, between the row's highlight and the border it shares with the release above it
 
 - Fixed shuffle and repeat misbehaving in a handful of ways, and unified playback around one queue on both platforms: shuffle no longer forgets which tracks it already played whenever the on-screen list changes mid-session (playing through a filtered feed used to reset the no-repeat memory constantly, so the same tracks came back), locked-iPhone shuffle no longer silently stops after a few tracks (the app now tops up the native player's upcoming window right before it's suspended), toggling shuffle or repeat in the last seconds of a track now takes effect on the very next track instead of playing one more track under the old mode, the iOS lock screen's repeat button no longer silently widens "repeat release" to the whole feed, and tracks queued with nothing playing survive an app relaunch again. Desktop's separate playback logic was replaced by the same queue mobile uses, which brings library playback the full feature set: repeat track / release ("release" = the track's album) / all for local files, queue-aware next/previous with listening history, and — with repeat off — playback now stops at the end of the library list instead of looping forever (turn on "Repeat all" for the old behavior)
 

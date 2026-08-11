@@ -16,6 +16,7 @@ import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
 import { toastStore } from './toast'
 import { ownedReleaseIds } from './collection'
+import { fullyCachedIds } from './offlineCache'
 import { translate } from '../i18n'
 
 // =============================================================================
@@ -34,6 +35,9 @@ interface DiscoveryState {
 	/** Show only releases owned in the linked purchase collection(s) (desktop's Purchased filter;
 	 *  mobile keeps its own flag in `mobileUI` alongside its downloaded filter). */
 	purchasedOnly: boolean
+	/** Show only releases whose audio is fully cached on disk (desktop's Downloaded filter; as with
+	 *  `purchasedOnly`, mobile drives its own flag from `mobileUI`). */
+	downloadedOnly: boolean
 }
 
 const initialState: DiscoveryState = {
@@ -49,6 +53,7 @@ const initialState: DiscoveryState = {
 	likedOnly: false,
 	newOnly: false,
 	purchasedOnly: false,
+	downloadedOnly: false,
 }
 
 // =============================================================================
@@ -389,6 +394,22 @@ function createDiscoveryStore() {
 			update((state) => ({ ...state, purchasedOnly: !state.purchasedOnly }))
 		},
 
+		toggleDownloadedFilter() {
+			update((state) => ({ ...state, downloadedOnly: !state.downloadedOnly }))
+		},
+
+		/** Reset every facet toggle at once ("Clear all"). Leaves the search term alone — that has
+		 *  its own affordance in the search bar. */
+		clearFacetFilters() {
+			update((state) => ({
+				...state,
+				likedOnly: false,
+				newOnly: false,
+				purchasedOnly: false,
+				downloadedOnly: false,
+			}))
+		},
+
 		/** Manual "mark as new / not-new" override (the auto-clear rule lives in clearNew). */
 		async markReleaseNew(id: string, isNew: boolean) {
 			try {
@@ -590,44 +611,54 @@ export const newOnly = derived(discoveryStore, ($discovery) => $discovery.newOnl
 
 export const purchasedOnly = derived(discoveryStore, ($discovery) => $discovery.purchasedOnly)
 
-export const sortedReleases = derived([discoveryStore, ownedReleaseIds], ([$discovery, $owned]) => {
-	let releases = [...$discovery.releases]
+export const downloadedOnly = derived(discoveryStore, ($discovery) => $discovery.downloadedOnly)
 
-	// Apply liked filter
-	if ($discovery.likedOnly) {
-		releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
+export const sortedReleases = derived(
+	[discoveryStore, ownedReleaseIds, fullyCachedIds],
+	([$discovery, $owned, $cached]) => {
+		let releases = [...$discovery.releases]
+
+		// Apply liked filter
+		if ($discovery.likedOnly) {
+			releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
+		}
+
+		// Apply "new" filter (surfaced by a followed source, not yet reviewed)
+		if ($discovery.newOnly) {
+			releases = releases.filter((r) => r.is_new)
+		}
+
+		// Apply purchased filter (owned in the linked collection)
+		if ($discovery.purchasedOnly) {
+			releases = releases.filter((r) => $owned.has(r.id))
+		}
+
+		// Apply downloaded filter (every track's audio cached on disk)
+		if ($discovery.downloadedOnly) {
+			releases = releases.filter((r) => $cached.has(r.id))
+		}
+
+		// Apply client-side search filter
+		if ($discovery.filter.search) {
+			const search = $discovery.filter.search.toLowerCase()
+			releases = releases.filter(
+				(r) =>
+					r.artist?.toLowerCase().includes(search) ||
+					r.title?.toLowerCase().includes(search) ||
+					r.label?.toLowerCase().includes(search) ||
+					r.notes?.toLowerCase().includes(search) ||
+					r.tracks.some((t) => t.name?.toLowerCase().includes(search))
+			)
+		}
+
+		// Apply sorting
+		return sortDiscoveryReleases(releases, $discovery.sort)
 	}
-
-	// Apply "new" filter (surfaced by a followed source, not yet reviewed)
-	if ($discovery.newOnly) {
-		releases = releases.filter((r) => r.is_new)
-	}
-
-	// Apply purchased filter (owned in the linked collection)
-	if ($discovery.purchasedOnly) {
-		releases = releases.filter((r) => $owned.has(r.id))
-	}
-
-	// Apply client-side search filter
-	if ($discovery.filter.search) {
-		const search = $discovery.filter.search.toLowerCase()
-		releases = releases.filter(
-			(r) =>
-				r.artist?.toLowerCase().includes(search) ||
-				r.title?.toLowerCase().includes(search) ||
-				r.label?.toLowerCase().includes(search) ||
-				r.notes?.toLowerCase().includes(search) ||
-				r.tracks.some((t) => t.name?.toLowerCase().includes(search))
-		)
-	}
-
-	// Apply sorting
-	return sortDiscoveryReleases(releases, $discovery.sort)
-})
+)
 
 export const displayedReleases = derived(
-	[sortedReleases, discoveryStore, uiStore, discoveryPlaylistStore, ownedReleaseIds],
-	([$sortedReleases, $discovery, $ui, $playlist, $owned]) => {
+	[sortedReleases, discoveryStore, uiStore, discoveryPlaylistStore, ownedReleaseIds, fullyCachedIds],
+	([$sortedReleases, $discovery, $ui, $playlist, $owned, $cached]) => {
 		if ($ui.activeView !== 'discovery' || !$ui.selectedPlaylistId) {
 			return $sortedReleases
 		}
@@ -645,6 +676,10 @@ export const displayedReleases = derived(
 
 		if ($discovery.purchasedOnly) {
 			releases = releases.filter((r) => $owned.has(r.id))
+		}
+
+		if ($discovery.downloadedOnly) {
+			releases = releases.filter((r) => $cached.has(r.id))
 		}
 
 		const discoveryFilters = $ui.viewFilters.discovery

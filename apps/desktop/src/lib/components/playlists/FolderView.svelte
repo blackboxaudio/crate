@@ -8,6 +8,7 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 	import { translate } from '$shared/i18n'
+	import { discoveryStore, newOnly, purchasedOnly, downloadedOnly, hasLinkedCollection } from '$lib/stores'
 
 	type Props = {
 		folderId: string
@@ -113,6 +114,15 @@
 					showLikedFilter={isDiscoveryContext}
 					likedOnly={isDiscoveryContext ? likedOnly : false}
 					onToggleLikedFilter={isDiscoveryContext ? onToggleLikedFilter : undefined}
+					showNewFilter={isDiscoveryContext}
+					newOnly={isDiscoveryContext && $newOnly}
+					onToggleNewFilter={() => discoveryStore.toggleNewFilter()}
+					showPurchasedFilter={isDiscoveryContext && $hasLinkedCollection}
+					purchasedOnly={isDiscoveryContext && $purchasedOnly}
+					onTogglePurchasedFilter={() => discoveryStore.togglePurchasedFilter()}
+					showDownloadedFilter={isDiscoveryContext}
+					downloadedOnly={isDiscoveryContext && $downloadedOnly}
+					onToggleDownloadedFilter={() => discoveryStore.toggleDownloadedFilter()}
 				/>
 			</div>
 		{/snippet}

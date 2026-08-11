@@ -14,7 +14,7 @@
 		overlayPopNonce,
 		detailReleaseId,
 	} from '$lib/stores/mobileUI'
-	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import { overlayMiniPlayerInset } from '$lib/stores/insets'
 	import { ownedReleaseIds } from '$shared/stores/collection'
 	import {

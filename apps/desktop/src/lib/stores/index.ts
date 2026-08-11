@@ -93,7 +93,9 @@ export {
 	refreshingReleaseIds,
 	newOnly,
 	purchasedOnly,
+	downloadedOnly,
 } from '$shared/stores/discovery'
+export { offlineCacheStore, fullyCachedIds } from '$shared/stores/offlineCache'
 export {
 	followStore,
 	followedSources,

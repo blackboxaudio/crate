@@ -14,7 +14,7 @@ import {
 } from '$shared/utils/storage'
 import type { DiscoveryRelease, SortDirection, TagFilterMode } from '$shared/types'
 import { ownedReleaseIds } from '$shared/stores/collection'
-import { fullyCachedIds } from './offlineCache'
+import { fullyCachedIds } from '$shared/stores/offlineCache'
 
 /** The app's primary navigation destinations, surfaced as bottom tabs. Settings is intentionally NOT a
  *  tab — it opens as a right-side drawer from the Header's gear button (see `openSettings`). */

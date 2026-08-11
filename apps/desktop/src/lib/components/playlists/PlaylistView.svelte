@@ -19,7 +19,14 @@
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$shared/i18n'
 	import { sortDiscoveryReleases } from '$shared/utils/sorting'
-	import { expandedReleaseIds } from '$lib/stores'
+	import {
+		expandedReleaseIds,
+		discoveryStore,
+		newOnly,
+		purchasedOnly,
+		downloadedOnly,
+		hasLinkedCollection,
+	} from '$lib/stores'
 
 	type Props = {
 		playlist: Playlist
@@ -187,6 +194,15 @@
 					showLikedFilter={isDiscovery}
 					likedOnly={isDiscovery ? likedOnly : false}
 					onToggleLikedFilter={isDiscovery ? onToggleLikedFilter : undefined}
+					showNewFilter={isDiscovery}
+					newOnly={isDiscovery && $newOnly}
+					onToggleNewFilter={() => discoveryStore.toggleNewFilter()}
+					showPurchasedFilter={isDiscovery && $hasLinkedCollection}
+					purchasedOnly={isDiscovery && $purchasedOnly}
+					onTogglePurchasedFilter={() => discoveryStore.togglePurchasedFilter()}
+					showDownloadedFilter={isDiscovery}
+					downloadedOnly={isDiscovery && $downloadedOnly}
+					onToggleDownloadedFilter={() => discoveryStore.toggleDownloadedFilter()}
 				/>
 				{#if isDiscovery}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>

@@ -54,7 +54,9 @@ export {
 	isDiscoveryLoading,
 	refreshingReleaseIds,
 	newOnly,
+	downloadedOnly,
 } from './discovery'
+export { offlineCacheStore, fullyCachedIds } from './offlineCache'
 export { expandedReleaseIds } from './expandedReleases'
 export { discoveryPlaylistStore, discoveryPlaylistReleases } from './discoveryPlaylist'
 export {

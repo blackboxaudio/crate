@@ -1,11 +1,11 @@
 import { derived, writable } from 'svelte/store'
-import { getCachedReleaseStates } from '$shared/api/discovery'
-import { dedupe, setsEqual } from '$shared/utils/stores'
+import { getCachedReleaseStates } from '../api/discovery'
+import { dedupe, setsEqual } from '../utils/stores'
 
 // Bulk audio-cache state for the UI: which releases are fully downloaded (playable offline) and
 // which are pinned ("Download for Offline"). Refreshed on boot, after download/remove/clear
-// actions, and on the backend's `discovery-cache-changed` event (debounced by the +layout
-// listener). Kept as id-Sets so row badges and the Downloaded filter stay O(1) per release.
+// actions, and on the backend's `discovery-cache-changed` event (each app debounces that in its
+// own boot path). Kept as id-Sets so row badges and the Downloaded filter stay O(1) per release.
 
 interface OfflineCacheState {
 	/** Releases whose every track's audio is on disk (fully offline-ready). */

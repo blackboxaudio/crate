@@ -7,7 +7,7 @@
 	import { releasesFromSource } from '$shared/utils'
 	import { sortDiscoveryReleases } from '$shared/utils/sorting'
 	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
-	import { fullyCachedIds } from '$lib/stores/offlineCache'
+	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import { overlayMiniPlayerInset } from '$lib/stores/insets'
 	import { ownedReleaseIds } from '$shared/stores/collection'
 	import { applyViewFilter, emptyViewFilter, RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'

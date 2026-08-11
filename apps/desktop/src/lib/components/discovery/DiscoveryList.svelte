@@ -196,9 +196,13 @@
 			<div class="bg-surface-0" style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
 				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
 					{@const release = releases[virtualItem.index]}
+					<!-- Flex column so the release row stretches into any slack between its natural height and
+					     the estimated slot height. Without it, an estimate even 1px too tall leaves a strip of the
+					     container's background showing between rows — reading as a gap above a selected row's
+					     highlight, just under the border it shares with the release above. -->
 					<div
 						data-vkey={virtualItem.key}
-						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start -
+						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; display: flex; flex-direction: column; transform: translateY({virtualItem.start -
 							HEADER_HEIGHT}px); pointer-events: auto;"
 					>
 						<DiscoveryRow
