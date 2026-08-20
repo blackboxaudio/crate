@@ -13,7 +13,9 @@ val tauriProperties = Properties().apply {
     }
 }
 
-// Release signing — loaded from key.properties when present (CI writes this file from secrets).
+// Release signing — loaded from key.properties when present (CI writes this file from secrets;
+// it must land HERE, in the app module dir: src-tauri/gen/android/app/key.properties — the
+// project-root location is NOT read, and cd.release.yml guards against that mismatch).
 // Without key.properties the release build stays unsigned; Gradle configuration still succeeds.
 // Preserve this block if `tauri android init` regenerates the file.
 val keystoreProperties = Properties()

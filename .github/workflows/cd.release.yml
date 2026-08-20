@@ -323,7 +323,7 @@ jobs:
             echo "storePassword=$KEYSTORE_PASSWORD"
             echo "keyAlias=$KEY_ALIAS"
             echo "keyPassword=$KEY_PASSWORD"
-          } > src-tauri/gen/android/key.properties
+          } > src-tauri/gen/android/app/key.properties
 
       - name: Write mobile icons
         env:
@@ -346,10 +346,17 @@ jobs:
         id: artifacts
         env:
           VERSION: ${{ needs.validate.outputs.version }}
+          SIGNED: ${{ steps.signing.outputs.signed }}
         run: |
           APK=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -path "*/release/*" | head -1)
           if [[ -z "$APK" ]]; then
             echo "::error::No release APK found"
+            exit 1
+          fi
+          # Gradle silently skips the signing config when key.properties is missing or misplaced
+          # and names the output *-unsigned.apk — an uninstallable artifact must never publish.
+          if [[ "$SIGNED" == "true" && "$APK" == *-unsigned.apk ]]; then
+            echo "::error::Signing secrets are configured but Gradle produced an unsigned APK ($APK) — key.properties was not picked up (expected at src-tauri/gen/android/app/key.properties)"
             exit 1
           fi
           DEST="Crate_${VERSION}_android.apk"
