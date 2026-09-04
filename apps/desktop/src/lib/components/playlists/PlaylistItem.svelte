@@ -201,7 +201,7 @@
 	data-drop-target={disableDrag ? undefined : dropTargetId}
 	aria-selected={selected}
 	aria-expanded={playlist.is_folder ? expanded : undefined}
-	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-all select-none
+	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-colors select-none
 		{selected || isContextMenuActive
 		? 'bg-brand-muted text-text-primary'
 		: isHovered

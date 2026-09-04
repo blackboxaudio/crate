@@ -448,29 +448,66 @@ export interface PlaylistTreeNode {
 	children: PlaylistTreeNode[]
 }
 
+// Cached collator: localeCompare with options constructs a new collator per call
+const playlistNameCollator = new Intl.Collator(undefined, { sensitivity: 'base' })
+
 export function buildPlaylistTree(playlists: Playlist[]): PlaylistTreeNode[] {
+	const childrenByParent = new Map<string | null, Playlist[]>()
+	for (const playlist of playlists) {
+		const key = playlist.parent_id ?? null
+		const group = childrenByParent.get(key)
+		if (group) {
+			group.push(playlist)
+		} else {
+			childrenByParent.set(key, [playlist])
+		}
+	}
+
 	// Sort items: folders first, then alphabetically by name
 	const sortItems = (items: Playlist[]) =>
-		[...items].sort((a, b) => {
+		items.sort((a, b) => {
 			if (a.is_folder !== b.is_folder) {
 				return a.is_folder ? -1 : 1
 			}
-			return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+			return playlistNameCollator.compare(a.name, b.name)
 		})
 
-	const rootItems = sortItems(playlists.filter((p) => p.parent_id === null))
-
-	function buildChildren(parentId: string): PlaylistTreeNode[] {
-		return sortItems(playlists.filter((p) => p.parent_id === parentId)).map((playlist) => ({
+	function buildNodes(parentId: string | null): PlaylistTreeNode[] {
+		const items = childrenByParent.get(parentId)
+		if (!items) return []
+		return sortItems(items).map((playlist) => ({
 			playlist,
-			children: buildChildren(playlist.id),
+			children: buildNodes(playlist.id),
 		}))
 	}
 
-	return rootItems.map((playlist) => ({
-		playlist,
-		children: buildChildren(playlist.id),
-	}))
+	return buildNodes(null)
+}
+
+/**
+ * Collect all descendant ids of a playlist/folder (single pass over the list)
+ */
+export function collectDescendantIds(playlists: Playlist[], rootId: string): string[] {
+	const childIdsByParent = new Map<string, string[]>()
+	for (const playlist of playlists) {
+		if (playlist.parent_id === null) continue
+		const group = childIdsByParent.get(playlist.parent_id)
+		if (group) {
+			group.push(playlist.id)
+		} else {
+			childIdsByParent.set(playlist.parent_id, [playlist.id])
+		}
+	}
+
+	const result: string[] = []
+	const stack = [...(childIdsByParent.get(rootId) ?? [])]
+	while (stack.length > 0) {
+		const id = stack.pop()!
+		result.push(id)
+		const childIds = childIdsByParent.get(id)
+		if (childIds) stack.push(...childIds)
+	}
+	return result
 }
 
 // =============================================================================

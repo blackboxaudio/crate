@@ -16,7 +16,13 @@ export {
 	previewTrackIndex,
 } from './player'
 export { tagsStore, allTags, getTagById, getCategoryById, computeTagStates } from './tags'
-export { playlistsStore, rootPlaylists, getPlaylistChildren, buildPlaylistTree } from './playlists'
+export {
+	playlistsStore,
+	rootPlaylists,
+	getPlaylistChildren,
+	buildPlaylistTree,
+	collectDescendantIds,
+} from './playlists'
 export type { PlaylistTreeNode } from './playlists'
 export {
 	uiStore,

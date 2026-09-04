@@ -42,6 +42,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Fixed the desktop playlist sidebar getting sluggish with large playlist trees: expanding or collapsing a folder visibly lagged because the whole tree was rebuilt and re-rendered on every toggle — the tree now only re-renders the rows that actually changed, and very tall folders open instantly instead of playing an animation that couldn't keep up
+
 - Fixed the published Android APKs being unsigned and therefore impossible to install on any device (Android rejects them with a generic "App not installed" error): the release pipeline wrote the signing configuration where the build never looked for it, so it silently produced unsigned builds even though the signing key was set up — the release build is now signed again, and the pipeline refuses to publish an unsigned APK instead of shipping one quietly
 
 - Fixed a thin sliver of background showing above a selected release in the desktop discovery list, between the row's highlight and the border it shares with the release above it
