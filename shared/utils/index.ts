@@ -1,5 +1,6 @@
 export * from './artwork'
 export * from './bulkEdit'
+export * from './discoveryFilters'
 export * from './dom'
 export * from './follow'
 export * from './format'

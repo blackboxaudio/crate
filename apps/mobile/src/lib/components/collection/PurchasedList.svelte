@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
 	import type { CollectionItem, DiscoveryRelease } from '$shared/types'
-	import { collectionItems, collectionStore, hasLinkedCollection } from '$shared/stores/collection'
-	import { discoveryStore, likedOnly, newOnly } from '$shared/stores/discovery'
+	import { collectionItems, collectionStore, hasLinkedCollection, ownedReleaseIds } from '$shared/stores/collection'
+	import { discoveryStore, facetFilters } from '$shared/stores/discovery'
+	import { applyDiscoveryFilters, hasActiveFacets } from '$shared/utils/discoveryFilters'
 	import {
 		applyTagFilter,
-		downloadedOnly,
 		mobileUIStore,
 		tagFilterIds,
 		tagFilterMode,
@@ -29,9 +29,11 @@
 	// Liked / New / Downloaded / tags are properties of a *release*, so they can only be evaluated on
 	// matched items — with any of them active the unmatched collection items drop out rather than
 	// riding along unfiltered (the toolbar shows them as active, so they have to actually narrow the
-	// list). Semantics match the feed's `mobileDisplayedReleases` so "Purchased + X" means the same
-	// thing in both views.
-	const releaseFiltersActive = $derived($likedOnly || $newOnly || $downloadedOnly || $tagFilterIds.length > 0)
+	// list). The facets go through the same shared helper as the feed so "Purchased + X" means the same
+	// thing in both views; the Purchased facet itself is moot here (every row is owned by definition —
+	// this view only shows while it is `include`), so it's forced off.
+	const releaseFacets = $derived({ ...$facetFilters, purchased: 'off' as const })
+	const releaseFiltersActive = $derived(hasActiveFacets(releaseFacets) || $tagFilterIds.length > 0)
 
 	const rows = $derived.by(() => {
 		let all: Row[] = $collectionItems.map((item) => ({
@@ -41,16 +43,12 @@
 		}))
 
 		if (releaseFiltersActive) {
+			const matched = all.flatMap(({ release }) => (release ? [release] : []))
 			const kept = new Set(
-				applyTagFilter(
-					all.flatMap(({ release }) => (release ? [release] : [])),
-					$tagFilterIds,
-					$tagFilterMode
-				)
-					.filter((r) => !$likedOnly || r.tracks.some((t) => t.is_liked))
-					.filter((r) => !$newOnly || r.is_new)
-					.filter((r) => !$downloadedOnly || $fullyCachedIds.has(r.id))
-					.map((r) => r.id)
+				applyDiscoveryFilters(applyTagFilter(matched, $tagFilterIds, $tagFilterMode), releaseFacets, {
+					ownedIds: $ownedReleaseIds,
+					cachedIds: $fullyCachedIds,
+				}).map((r) => r.id)
 			)
 			all = all.filter(({ release }) => release && kept.has(release.id))
 		}

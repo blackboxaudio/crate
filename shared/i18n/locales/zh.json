@@ -538,7 +538,10 @@
 		"liked": "已喜欢",
 		"new": "新",
 		"downloaded": "已下载",
-		"purchased": "已购买"
+		"purchased": "已购买",
+		"off": "关",
+		"only": "仅",
+		"not": "非"
 	},
 	"collection": {
 		"notInCrate": "不在 {appName} 中",

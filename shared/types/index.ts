@@ -255,6 +255,18 @@ export type TagSelectionState = 'active' | 'inactive' | 'mixed'
 export type TagFilterMode = 'and' | 'or'
 
 // =============================================================================
+// Discovery Facet Filters
+// =============================================================================
+
+/** Three-way filter: `off` ignores the dimension, `include` keeps only matches, `exclude` hides them. */
+export type FilterTriState = 'off' | 'include' | 'exclude'
+
+export type DiscoveryFacet = 'liked' | 'new' | 'purchased' | 'downloaded'
+
+/** One tri-state per discovery filter dimension; dimensions compose with AND. */
+export type DiscoveryFacetFilters = Record<DiscoveryFacet, FilterTriState>
+
+// =============================================================================
 // Playlist Types
 // =============================================================================
 

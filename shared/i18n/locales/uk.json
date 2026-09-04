@@ -538,7 +538,10 @@
 		"liked": "Вподобані",
 		"new": "Нове",
 		"downloaded": "Завантажено",
-		"purchased": "Придбано"
+		"purchased": "Придбано",
+		"off": "Вимк.",
+		"only": "Тільки",
+		"not": "Не"
 	},
 	"collection": {
 		"notInCrate": "Немає в {appName}",

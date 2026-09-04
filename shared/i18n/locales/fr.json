@@ -538,7 +538,10 @@
 		"liked": "Aimés",
 		"new": "Nouveau",
 		"downloaded": "Téléchargé",
-		"purchased": "Acheté"
+		"purchased": "Acheté",
+		"off": "Non",
+		"only": "Seul",
+		"not": "Sauf"
 	},
 	"collection": {
 		"notInCrate": "Pas dans {appName}",

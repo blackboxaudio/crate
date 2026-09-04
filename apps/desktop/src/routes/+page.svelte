@@ -50,7 +50,6 @@
 	} from '$lib/stores'
 	import { playbackSource, isPlaying } from '$shared/stores/player'
 	import { isPreviewPlayable, firstPlayablePreviewIndex } from '$shared/stores/playbackQueue'
-	import { likedOnly } from '$shared/stores/discovery'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$shared/stores/playlists'
 	import { createAppSetup } from '$lib/hooks'
 
@@ -589,8 +588,6 @@
 			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			isDiscoveryContext={$activeView === 'discovery'}
-			likedOnly={$activeView === 'discovery' ? $likedOnly : false}
-			onToggleLikedFilter={$activeView === 'discovery' ? () => discoveryStore.toggleLikedFilter() : undefined}
 		/>
 	{:else if selectedPlaylistId}
 		{@const playlist = contextPlaylists.find((p) => p.id === selectedPlaylistId)}
@@ -622,8 +619,6 @@
 						discoveryStore.clearFacetFilters()
 					}}
 					onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
-					likedOnly={$likedOnly}
-					onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 					onSelectionChange={handleReleaseSelectionChange}
 					onDiscoveryTrackPlay={handleTrackPlayInRelease}
 					onDiscoveryTrackLikeToggle={handleTrackLikeToggle}
@@ -699,8 +694,6 @@
 				discoveryStore.clearFacetFilters()
 			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
-			likedOnly={$likedOnly}
-			onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 			onSelectionChange={handleReleaseSelectionChange}
 			onReleaseOpen={handleReleaseOpen}
 			onReleaseOpenUrl={(release) => openUrl(release.url)}

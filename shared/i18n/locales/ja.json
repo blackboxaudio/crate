@@ -538,7 +538,10 @@
 		"liked": "いいね",
 		"new": "新着",
 		"downloaded": "ダウンロード済み",
-		"purchased": "購入済み"
+		"purchased": "購入済み",
+		"off": "オフ",
+		"only": "のみ",
+		"not": "以外"
 	},
 	"collection": {
 		"notInCrate": "{appName}に含まれていません",

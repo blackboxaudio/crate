@@ -538,7 +538,10 @@
 		"liked": "Beğenilen",
 		"new": "Yeni",
 		"downloaded": "İndirildi",
-		"purchased": "Satın Alınan"
+		"purchased": "Satın Alınan",
+		"off": "Kapalı",
+		"only": "Sadece",
+		"not": "Hariç"
 	},
 	"collection": {
 		"notInCrate": "{appName} içinde değil",

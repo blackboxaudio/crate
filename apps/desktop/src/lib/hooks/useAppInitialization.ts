@@ -234,7 +234,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 						label: get(translate)('discovery.following.review'),
 						onClick: () => {
 							uiStore.setActiveView('discovery')
-							discoveryStore.toggleNewFilter(true)
+							discoveryStore.setFacetFilter('new', 'include')
 						},
 					})
 				}

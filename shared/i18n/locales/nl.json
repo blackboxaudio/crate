@@ -538,7 +538,10 @@
 		"liked": "Geliked",
 		"new": "Nieuw",
 		"downloaded": "Gedownload",
-		"purchased": "Gekocht"
+		"purchased": "Gekocht",
+		"off": "Uit",
+		"only": "Alleen",
+		"not": "Niet"
 	},
 	"collection": {
 		"notInCrate": "Niet in {appName}",

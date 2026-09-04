@@ -3,19 +3,23 @@ import type {
 	DiscoveryRelease,
 	DiscoveryReleaseCreate,
 	DiscoveryReleaseUpdate,
+	DiscoveryFacet,
+	DiscoveryFacetFilters,
 	DiscoveryFilter,
 	DiscoverySortConfig,
+	FilterTriState,
 	ImportResultWithDuplicates,
 } from '../types'
 import * as discoveryApi from '../api/discovery'
 import * as followApi from '../api/follow'
 import { sortDiscoveryReleases } from '../utils/sorting'
+import { applyDiscoveryFilters, cycleTriState, emptyFacetFilters } from '../utils/discoveryFilters'
 import { daysUntilRelease } from '../utils/format'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
 import { toastStore } from './toast'
-import { ownedReleaseIds } from './collection'
+import { hasLinkedCollection, ownedReleaseIds } from './collection'
 import { fullyCachedIds } from './offlineCache'
 import { translate } from '../i18n'
 
@@ -30,14 +34,9 @@ interface DiscoveryState {
 	filter: DiscoveryFilter
 	sort: DiscoverySortConfig
 	refreshingIds: Set<string>
-	likedOnly: boolean
-	newOnly: boolean
-	/** Show only releases owned in the linked purchase collection(s) (desktop's Purchased filter;
-	 *  mobile keeps its own flag in `mobileUI` alongside its downloaded filter). */
-	purchasedOnly: boolean
-	/** Show only releases whose audio is fully cached on disk (desktop's Downloaded filter; as with
-	 *  `purchasedOnly`, mobile drives its own flag from `mobileUI`). */
-	downloadedOnly: boolean
+	/** The Liked / New / Purchased / Downloaded facet filters (off / include / exclude), shared by both
+	 *  platforms and applied through `applyDiscoveryFilters` wherever a release list is displayed. */
+	facets: DiscoveryFacetFilters
 }
 
 const initialState: DiscoveryState = {
@@ -50,10 +49,7 @@ const initialState: DiscoveryState = {
 		direction: 'desc',
 	},
 	refreshingIds: new Set(),
-	likedOnly: false,
-	newOnly: false,
-	purchasedOnly: false,
-	downloadedOnly: false,
+	facets: emptyFacetFilters(),
 }
 
 // =============================================================================
@@ -382,32 +378,26 @@ function createDiscoveryStore() {
 				.catch((error) => console.error('Preview availability recheck failed:', error))
 		},
 
-		toggleLikedFilter() {
-			update((state) => ({ ...state, likedOnly: !state.likedOnly }))
+		/** Set one facet explicitly. A no-op when unchanged, so re-tapping the active segment doesn't
+		 *  re-run the filter chain over the whole feed. */
+		setFacetFilter(facet: DiscoveryFacet, value: FilterTriState) {
+			update((state) =>
+				state.facets[facet] === value ? state : { ...state, facets: { ...state.facets, [facet]: value } }
+			)
 		},
 
-		toggleNewFilter(value?: boolean) {
-			update((state) => ({ ...state, newOnly: value ?? !state.newOnly }))
-		},
-
-		togglePurchasedFilter() {
-			update((state) => ({ ...state, purchasedOnly: !state.purchasedOnly }))
-		},
-
-		toggleDownloadedFilter() {
-			update((state) => ({ ...state, downloadedOnly: !state.downloadedOnly }))
-		},
-
-		/** Reset every facet toggle at once ("Clear all"). Leaves the search term alone — that has
-		 *  its own affordance in the search bar. */
-		clearFacetFilters() {
+		/** off → include → exclude → off (the row-label tap). */
+		cycleFacetFilter(facet: DiscoveryFacet) {
 			update((state) => ({
 				...state,
-				likedOnly: false,
-				newOnly: false,
-				purchasedOnly: false,
-				downloadedOnly: false,
+				facets: { ...state.facets, [facet]: cycleTriState(state.facets[facet]) },
 			}))
+		},
+
+		/** Reset every facet at once ("Clear all"). Leaves the search term alone — that has its own
+		 *  affordance in the search bar. */
+		clearFacetFilters() {
+			update((state) => ({ ...state, facets: emptyFacetFilters() }))
 		},
 
 		/** Manual "mark as new / not-new" override (the auto-clear rule lives in clearNew). */
@@ -601,42 +591,33 @@ playerStore.setNativeLikeChangedHandler((trackId, isLiked) => {
 	if (release) discoveryStore.applyTrackLiked(release.id, trackId, isLiked)
 })
 
+// Unlinking the last collection account hides the Purchased row in every filter UI, so an active
+// Purchased facet would otherwise become an invisible filter (emptying the feed on `include`).
+hasLinkedCollection.subscribe((linked) => {
+	if (!linked) discoveryStore.setFacetFilter('purchased', 'off')
+})
+
 // =============================================================================
 // Derived Stores
 // =============================================================================
 
-export const likedOnly = derived(discoveryStore, ($discovery) => $discovery.likedOnly)
+export const facetFilters = derived(discoveryStore, ($discovery) => $discovery.facets)
 
-export const newOnly = derived(discoveryStore, ($discovery) => $discovery.newOnly)
+export const likedFilter = derived(discoveryStore, ($discovery) => $discovery.facets.liked)
 
-export const purchasedOnly = derived(discoveryStore, ($discovery) => $discovery.purchasedOnly)
+export const newFilter = derived(discoveryStore, ($discovery) => $discovery.facets.new)
 
-export const downloadedOnly = derived(discoveryStore, ($discovery) => $discovery.downloadedOnly)
+export const purchasedFilter = derived(discoveryStore, ($discovery) => $discovery.facets.purchased)
+
+export const downloadedFilter = derived(discoveryStore, ($discovery) => $discovery.facets.downloaded)
 
 export const sortedReleases = derived(
 	[discoveryStore, ownedReleaseIds, fullyCachedIds],
 	([$discovery, $owned, $cached]) => {
-		let releases = [...$discovery.releases]
-
-		// Apply liked filter
-		if ($discovery.likedOnly) {
-			releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
-		}
-
-		// Apply "new" filter (surfaced by a followed source, not yet reviewed)
-		if ($discovery.newOnly) {
-			releases = releases.filter((r) => r.is_new)
-		}
-
-		// Apply purchased filter (owned in the linked collection)
-		if ($discovery.purchasedOnly) {
-			releases = releases.filter((r) => $owned.has(r.id))
-		}
-
-		// Apply downloaded filter (every track's audio cached on disk)
-		if ($discovery.downloadedOnly) {
-			releases = releases.filter((r) => $cached.has(r.id))
-		}
+		let releases = applyDiscoveryFilters($discovery.releases, $discovery.facets, {
+			ownedIds: $owned,
+			cachedIds: $cached,
+		})
 
 		// Apply client-side search filter
 		if ($discovery.filter.search) {
@@ -664,23 +645,10 @@ export const displayedReleases = derived(
 		}
 
 		// Inside a discovery playlist — apply client-side filters to playlist releases
-		let releases = [...$playlist.releases]
-
-		if ($discovery.likedOnly) {
-			releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
-		}
-
-		if ($discovery.newOnly) {
-			releases = releases.filter((r) => r.is_new)
-		}
-
-		if ($discovery.purchasedOnly) {
-			releases = releases.filter((r) => $owned.has(r.id))
-		}
-
-		if ($discovery.downloadedOnly) {
-			releases = releases.filter((r) => $cached.has(r.id))
-		}
+		let releases = applyDiscoveryFilters($playlist.releases, $discovery.facets, {
+			ownedIds: $owned,
+			cachedIds: $cached,
+		})
 
 		const discoveryFilters = $ui.viewFilters.discovery
 		if (discoveryFilters.selectedTagIds.length > 0) {

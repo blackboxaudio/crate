@@ -538,7 +538,10 @@
 		"liked": "좋아요",
 		"new": "새로운",
 		"downloaded": "다운로드됨",
-		"purchased": "구매됨"
+		"purchased": "구매됨",
+		"off": "끔",
+		"only": "만",
+		"not": "제외"
 	},
 	"collection": {
 		"notInCrate": "{appName}에 없음",

@@ -38,6 +38,9 @@
 		onTrackContextMenu?: (release: DiscoveryRelease, trackIndex: number, canPlay: boolean, e: MouseEvent) => void
 		onScrollChange?: (offset: number) => void
 		likedOnly?: boolean
+		/** Releases exist but the active search/filters hid them all — show the "no matches" state
+		 *  rather than the add-your-first-release CTA. */
+		hasAnyReleases?: boolean
 	}
 
 	let {
@@ -62,6 +65,7 @@
 		onTrackContextMenu,
 		onScrollChange,
 		likedOnly = false,
+		hasAnyReleases = false,
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
@@ -184,7 +188,12 @@
 	>
 		<DiscoveryListHeader {sortConfig} onSort={onSortChange} />
 
-		{#if releases.length === 0}
+		{#if releases.length === 0 && hasAnyReleases}
+			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
+				<Icon name="filter" class="mb-4 h-16 w-16" />
+				<Text color="tertiary" class="max-w-sm text-center">{$translate('discovery.noResults')}</Text>
+			</div>
+		{:else if releases.length === 0}
 			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
 				<Icon name="globe" class="mb-4 h-16 w-16" />
 				<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.noReleasesYet')}</Text>

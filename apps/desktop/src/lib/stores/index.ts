@@ -97,9 +97,11 @@ export {
 	releaseCount,
 	isDiscoveryLoading,
 	refreshingReleaseIds,
-	newOnly,
-	purchasedOnly,
-	downloadedOnly,
+	facetFilters,
+	likedFilter,
+	newFilter,
+	purchasedFilter,
+	downloadedFilter,
 } from '$shared/stores/discovery'
 export { offlineCacheStore, fullyCachedIds } from '$shared/stores/offlineCache'
 export {

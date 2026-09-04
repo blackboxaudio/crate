@@ -22,11 +22,16 @@
 	import {
 		expandedReleaseIds,
 		discoveryStore,
-		newOnly,
-		purchasedOnly,
-		downloadedOnly,
+		facetFilters,
+		likedFilter,
+		newFilter,
+		purchasedFilter,
+		downloadedFilter,
 		hasLinkedCollection,
+		ownedReleaseIds,
+		fullyCachedIds,
 	} from '$lib/stores'
+	import { applyDiscoveryFilters, emptyFacetFilters } from '$shared/utils/discoveryFilters'
 
 	type Props = {
 		playlist: Playlist
@@ -51,8 +56,6 @@
 		onToggleTagFilter?: (tagId: string) => void
 		onClearAllTagFilters?: () => void
 		onToggleTagFilterMode?: () => void
-		likedOnly?: boolean
-		onToggleLikedFilter?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
 		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
@@ -102,8 +105,6 @@
 		onToggleTagFilter,
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
-		likedOnly = false,
-		onToggleLikedFilter,
 		onSelectionChange,
 		onTrackPlay,
 		onDiscoveryTrackPlay,
@@ -130,7 +131,11 @@
 	}
 
 	const filteredReleases = $derived.by(() => {
-		let result = likedOnly ? releases.filter((r) => r.tracks.some((t) => t.is_liked)) : [...releases]
+		// The same facet semantics as the feed (shared helper), so what's shown here matches what plays.
+		let result = applyDiscoveryFilters(releases, isDiscovery ? $facetFilters : emptyFacetFilters(), {
+			ownedIds: $ownedReleaseIds,
+			cachedIds: $fullyCachedIds,
+		})
 		if (activeFilterTags && activeFilterTags.length > 0) {
 			const tagIds = new Set(activeFilterTags.map((t) => t.id))
 			if (tagFilterMode === 'and') {
@@ -191,18 +196,18 @@
 					onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
 					onClearAll={() => onClearAllTagFilters?.()}
 					onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
-					showLikedFilter={isDiscovery}
-					likedOnly={isDiscovery ? likedOnly : false}
-					onToggleLikedFilter={isDiscovery ? onToggleLikedFilter : undefined}
-					showNewFilter={isDiscovery}
-					newOnly={isDiscovery && $newOnly}
-					onToggleNewFilter={() => discoveryStore.toggleNewFilter()}
-					showPurchasedFilter={isDiscovery && $hasLinkedCollection}
-					purchasedOnly={isDiscovery && $purchasedOnly}
-					onTogglePurchasedFilter={() => discoveryStore.togglePurchasedFilter()}
-					showDownloadedFilter={isDiscovery}
-					downloadedOnly={isDiscovery && $downloadedOnly}
-					onToggleDownloadedFilter={() => discoveryStore.toggleDownloadedFilter()}
+					liked={isDiscovery
+						? { value: $likedFilter, onChange: (s) => discoveryStore.setFacetFilter('liked', s) }
+						: undefined}
+					newReleases={isDiscovery
+						? { value: $newFilter, onChange: (s) => discoveryStore.setFacetFilter('new', s) }
+						: undefined}
+					purchased={isDiscovery && $hasLinkedCollection
+						? { value: $purchasedFilter, onChange: (s) => discoveryStore.setFacetFilter('purchased', s) }
+						: undefined}
+					downloaded={isDiscovery
+						? { value: $downloadedFilter, onChange: (s) => discoveryStore.setFacetFilter('downloaded', s) }
+						: undefined}
 				/>
 				{#if isDiscovery}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
@@ -239,7 +244,8 @@
 				sortConfig={discoverySortConfig}
 				{categoryColors}
 				{categorySortOrders}
-				{likedOnly}
+				likedOnly={isDiscovery && $likedFilter === 'include'}
+				hasAnyReleases={releases.length > 0}
 				{scrollOffset}
 				{onSelectionChange}
 				onSortChange={onDiscoverySortChange}

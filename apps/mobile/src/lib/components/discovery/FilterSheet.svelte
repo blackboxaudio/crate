@@ -1,24 +1,30 @@
 <script lang="ts">
+	import type { Snippet } from 'svelte'
 	import { fade } from 'svelte/transition'
 	import { translate } from '$shared/i18n'
 	import { tagsStore } from '$shared/stores/tags'
-	import type { TagFilterMode } from '$shared/types'
+	import type { DiscoveryFacet, FilterTriState, TagFilterMode } from '$shared/types'
+	import { cycleTriState } from '$shared/utils/discoveryFilters'
+	import TriStateControl from '$shared/components/TriStateControl.svelte'
 	import { lightTap } from '$lib/utils/haptics'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 
-	// Generalized filter sheet (liked / new / downloaded / purchased toggles + tag chips with AND/OR matching).
-	// Fully controlled: each facet renders only when its prop is provided, so the feed and each
-	// detail view opt into exactly the filters that make sense there (the tag detail omits tags,
-	// etc.). Mirrors the desktop FilterDropdown's segmented match toggle and liked switch.
+	// Generalized filter sheet (liked / new / downloaded / purchased tri-state facets + tag chips with
+	// AND/OR matching). Fully controlled: each facet renders only when its prop is provided, so the feed
+	// and each detail view opt into exactly the filters that make sense there (the tag detail omits
+	// tags, etc.). Mirrors the desktop FilterDropdown: the same Off | Only | Not segmented control per
+	// facet, with the row label cycling through the states.
+	type FacetProp = { value: FilterTriState; onChange: (state: FilterTriState) => void }
+
 	type Props = {
 		open: boolean
 		onClose: () => void
-		liked?: { value: boolean; onToggle: () => void }
-		/** New-only facet: releases surfaced by a followed source and not yet reviewed. */
-		newReleases?: { value: boolean; onToggle: () => void }
-		downloaded?: { value: boolean; onToggle: () => void }
-		/** Purchased-only facet, shown when a collection account is linked. */
-		purchased?: { value: boolean; onToggle: () => void }
+		liked?: FacetProp
+		/** New facet: releases surfaced by a followed source and not yet reviewed. */
+		newReleases?: FacetProp
+		downloaded?: FacetProp
+		/** Purchased facet, shown when a collection account is linked. */
+		purchased?: FacetProp
 		/** No account linked yet: render a "link your collection" action row instead of the
 		 *  toggle (the feature's discoverable entry point — jumps to Settings → Collection). */
 		purchasedSetup?: () => void
@@ -41,10 +47,20 @@
 		}
 	})
 
-	const active = $derived(new Set(tags?.activeIds ?? []))
-	const hasActiveFilters = $derived(
-		active.size > 0 || !!liked?.value || !!newReleases?.value || !!downloaded?.value || !!purchased?.value
+	type FacetRow = { key: DiscoveryFacet; labelKey: string; facet: FacetProp; icon: Snippet<[FilterTriState]> }
+	const facetRows = $derived(
+		(
+			[
+				liked && { key: 'liked', labelKey: 'filters.liked', facet: liked, icon: heartIcon },
+				newReleases && { key: 'new', labelKey: 'filters.new', facet: newReleases, icon: rssIcon },
+				downloaded && { key: 'downloaded', labelKey: 'filters.downloaded', facet: downloaded, icon: downloadIcon },
+				purchased && { key: 'purchased', labelKey: 'filters.purchased', facet: purchased, icon: bagIcon },
+			] as (FacetRow | false | undefined)[]
+		).filter((row): row is FacetRow => !!row)
 	)
+
+	const active = $derived(new Set(tags?.activeIds ?? []))
+	const hasActiveFilters = $derived(active.size > 0 || facetRows.some((row) => row.facet.value !== 'off'))
 
 	// Selection tick: filters commit instantly (no confirm step), so acknowledge each toggle the way
 	// the app's other sheets do (playlist picker, queue actions, sort options).
@@ -53,6 +69,70 @@
 		fn()
 	}
 </script>
+
+{#snippet heartIcon(state: FilterTriState)}
+	<svg
+		class="h-4 w-4 {state === 'include' ? 'text-brand-primary' : 'text-text-tertiary'}"
+		viewBox="0 0 24 24"
+		fill={state === 'include' ? 'currentColor' : 'none'}
+		stroke="currentColor"
+		stroke-width="2"
+	>
+		<path
+			d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
+		/>
+	</svg>
+{/snippet}
+
+<!-- New: releases a followed source surfaced that haven't been reviewed yet (the same `is_new` flag the
+     release rows badge). -->
+{#snippet rssIcon(state: FilterTriState)}
+	<svg
+		class="h-4 w-4 {state === 'include' ? 'text-brand-primary' : 'text-text-tertiary'}"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+	>
+		<path d="M4 11a9 9 0 0 1 9 9" />
+		<path d="M4 4a16 16 0 0 1 16 16" />
+		<circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />
+	</svg>
+{/snippet}
+
+<!-- Downloaded: releases whose audio is fully cached, i.e. playable in airplane mode. -->
+{#snippet downloadIcon(state: FilterTriState)}
+	<svg
+		class="h-4 w-4 {state === 'include' ? 'text-brand-primary' : 'text-text-tertiary'}"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+	>
+		<circle cx="12" cy="12" r="9" />
+		<path d="M12 8v7M8.5 12l3.5 3.5L15.5 12" />
+	</svg>
+{/snippet}
+
+<!-- Purchased: releases owned in the linked Bandcamp collection(s). -->
+{#snippet bagIcon(state: FilterTriState)}
+	<svg
+		class="h-4 w-4 {state === 'include' ? 'text-brand-primary' : 'text-text-tertiary'}"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+	>
+		<path d="M6 8h12l-1.2 12H7.2L6 8z" />
+		<path d="M9 8V6a3 3 0 0 1 6 0v2" />
+	</svg>
+{/snippet}
 
 <MobileModal {open} {onClose} title={$translate('filters.title')}>
 	{#snippet headerAction()}
@@ -69,140 +149,42 @@
 	{/snippet}
 
 	<div class="flex flex-col gap-4">
-		{#if liked}
-			<button
-				type="button"
-				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
-				aria-pressed={liked.value}
-				onclick={() => tick(liked.onToggle)}
+		<!-- Facet rows: tapping anywhere on the row cycles off → include → exclude; the segmented control inside
+		     sets a state directly (and stops the tap so it doesn't also cycle). The row is a role="button" div
+		     rather than a <button> because it contains the control's own buttons. -->
+		{#each facetRows as row (row.key)}
+			{@const state = row.facet.value}
+			{@const cycle = () => tick(() => row.facet.onChange(cycleTriState(state)))}
+			<div
+				role="button"
+				tabindex="0"
+				class="flex w-full items-center justify-between gap-3 rounded-md py-1 hover:cursor-pointer active:bg-surface-2"
+				onclick={cycle}
+				onkeydown={(e) => {
+					if (e.key === 'Enter' || e.key === ' ') {
+						e.preventDefault()
+						cycle()
+					}
+				}}
 			>
-				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
-					<svg
-						class="h-4 w-4 {liked.value ? 'text-brand-primary' : 'text-text-tertiary'}"
-						viewBox="0 0 24 24"
-						fill={liked.value ? 'currentColor' : 'none'}
-						stroke="currentColor"
-						stroke-width="2"
-					>
-						<path
-							d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"
-						/>
-					</svg>
-					{$translate('filters.liked')}
-				</span>
 				<span
-					class="flex h-5 w-9 items-center rounded-full p-0.5 transition-colors {liked.value
-						? 'bg-brand-primary'
-						: 'bg-stroke'}"
+					class="flex min-w-0 items-center gap-2 text-sm font-medium {state === 'include'
+						? 'text-brand-primary'
+						: state === 'exclude'
+							? 'text-text-secondary line-through'
+							: 'text-text-primary'}"
 				>
-					<span class="h-4 w-4 rounded-full bg-white transition-transform {liked.value ? 'translate-x-4' : ''}"></span>
+					{@render row.icon(state)}
+					{$translate(row.labelKey)}
 				</span>
-			</button>
-		{/if}
-
-		{#if newReleases}
-			<!-- New-only: releases a followed source surfaced that haven't been reviewed yet (the same
-			     `is_new` flag the release rows badge). -->
-			<button
-				type="button"
-				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
-				aria-pressed={newReleases.value}
-				onclick={() => tick(newReleases.onToggle)}
-			>
-				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
-					<svg
-						class="h-4 w-4 {newReleases.value ? 'text-brand-primary' : 'text-text-tertiary'}"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M4 11a9 9 0 0 1 9 9" />
-						<path d="M4 4a16 16 0 0 1 16 16" />
-						<circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />
-					</svg>
-					{$translate('filters.new')}
-				</span>
-				<span
-					class="flex h-5 w-9 items-center rounded-full p-0.5 transition-colors {newReleases.value
-						? 'bg-brand-primary'
-						: 'bg-stroke'}"
-				>
-					<span class="h-4 w-4 rounded-full bg-white transition-transform {newReleases.value ? 'translate-x-4' : ''}"
-					></span>
-				</span>
-			</button>
-		{/if}
-
-		{#if downloaded}
-			<!-- Downloaded-only: releases whose audio is fully cached, i.e. playable in airplane mode. -->
-			<button
-				type="button"
-				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
-				aria-pressed={downloaded.value}
-				onclick={() => tick(downloaded.onToggle)}
-			>
-				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
-					<svg
-						class="h-4 w-4 {downloaded.value ? 'text-brand-primary' : 'text-text-tertiary'}"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<circle cx="12" cy="12" r="9" />
-						<path d="M12 8v7M8.5 12l3.5 3.5L15.5 12" />
-					</svg>
-					{$translate('filters.downloaded')}
-				</span>
-				<span
-					class="flex h-5 w-9 items-center rounded-full p-0.5 transition-colors {downloaded.value
-						? 'bg-brand-primary'
-						: 'bg-stroke'}"
-				>
-					<span class="h-4 w-4 rounded-full bg-white transition-transform {downloaded.value ? 'translate-x-4' : ''}"
-					></span>
-				</span>
-			</button>
-		{/if}
-
-		{#if purchased}
-			<!-- Purchased-only: releases owned in the linked Bandcamp collection(s). -->
-			<button
-				type="button"
-				class="flex w-full items-center justify-between rounded-md py-1 active:bg-surface-2"
-				aria-pressed={purchased.value}
-				onclick={() => tick(purchased.onToggle)}
-			>
-				<span class="flex items-center gap-2 text-sm font-medium text-text-primary">
-					<svg
-						class="h-4 w-4 {purchased.value ? 'text-brand-primary' : 'text-text-tertiary'}"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-					>
-						<path d="M6 8h12l-1.2 12H7.2L6 8z" />
-						<path d="M9 8V6a3 3 0 0 1 6 0v2" />
-					</svg>
-					{$translate('filters.purchased')}
-				</span>
-				<span
-					class="flex h-5 w-9 items-center rounded-full p-0.5 transition-colors {purchased.value
-						? 'bg-brand-primary'
-						: 'bg-stroke'}"
-				>
-					<span class="h-4 w-4 rounded-full bg-white transition-transform {purchased.value ? 'translate-x-4' : ''}"
-					></span>
-				</span>
-			</button>
-		{/if}
+				<TriStateControl
+					value={state}
+					onChange={(s) => tick(() => row.facet.onChange(s))}
+					label={$translate(row.labelKey)}
+					size="md"
+				/>
+			</div>
+		{/each}
 
 		{#if purchasedSetup}
 			<!-- Not linked yet: the Purchased slot doubles as the feature's front door. -->

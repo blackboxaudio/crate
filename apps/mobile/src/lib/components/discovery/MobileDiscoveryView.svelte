@@ -3,13 +3,12 @@
 	import { get } from 'svelte/store'
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease } from '$shared/types'
-	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
+	import { discoveryStore, isDiscoveryLoading, purchasedFilter } from '$shared/stores/discovery'
 	import { followStore } from '$shared/stores/follow'
 	import {
 		mobileUIStore,
 		scrollTargetReleaseId,
 		mobileDisplayedReleases,
-		purchasedOnly,
 		scrollTopNonce,
 		discoveryViewMode,
 		openRowId,
@@ -180,10 +179,11 @@
 	     stays inside the list as its `leading` so it scrolls with the rows. ReleaseFeedList owns the scroll
 	     container and shows the loading/empty states when nothing is displayed. -->
 	<DiscoveryToolbar />
-	{#if $purchasedOnly}
+	{#if $purchasedFilter === 'include'}
 		<!-- Purchased view: swap the feed for the whole linked collection (matched releases render
 		     normal cards; unmatched items link out / add-to-discovery). The feed below unmounts and
-		     commits its scroll offset, so toggling the filter off restores the user's place. -->
+		     commits its scroll offset, so leaving the filter restores the user's place. `exclude` stays
+		     on the normal feed — the shared facet filter simply drops the owned releases. -->
 		<PurchasedList />
 	{:else}
 		{#key mode}

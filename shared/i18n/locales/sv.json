@@ -538,7 +538,10 @@
 		"liked": "Gillad",
 		"new": "Ny",
 		"downloaded": "Nedladdat",
-		"purchased": "Köpt"
+		"purchased": "Köpt",
+		"off": "Av",
+		"only": "Endast",
+		"not": "Inte"
 	},
 	"collection": {
 		"notInCrate": "Inte i {appName}",

@@ -538,7 +538,10 @@
 		"liked": "Apreciate",
 		"new": "Nou",
 		"downloaded": "Descărcat",
-		"purchased": "Cumpărat"
+		"purchased": "Cumpărat",
+		"off": "Nu",
+		"only": "Doar",
+		"not": "Exclude"
 	},
 	"collection": {
 		"notInCrate": "Nu este în {appName}",

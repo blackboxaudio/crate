@@ -1,4 +1,5 @@
-import type { DiscoveryRelease, SortDirection, TagFilterMode } from '$shared/types'
+import type { DiscoveryFacetFilters, DiscoveryRelease, SortDirection, TagFilterMode } from '$shared/types'
+import { applyDiscoveryFilters, countActiveFacets, emptyFacetFilters } from '$shared/utils/discoveryFilters'
 import { applyTagFilter } from '$lib/stores/mobileUI'
 
 // Shared shapes for the generalized list controls (SortSheet / FilterSheet / ListControlsBar):
@@ -29,38 +30,35 @@ export const RELEASE_SORT_OPTIONS: SortOption[] = [
 	{ field: 'track_count', labelKey: 'discovery.tracks', defaultDir: 'desc' },
 ]
 
-/** Per-view (session-local) filter state for the detail views' release lists. */
+/** Per-view (session-local) filter state for the detail views' release lists. The detail views don't
+ *  expose the New facet, so `facets.new` simply stays `off`. */
 export interface ReleaseViewFilter {
 	search: string
-	likedOnly: boolean
-	downloadedOnly: boolean
-	purchasedOnly: boolean
+	facets: DiscoveryFacetFilters
 	tagIds: string[]
 	tagMode: TagFilterMode
 }
 
 export const emptyViewFilter = (): ReleaseViewFilter => ({
 	search: '',
-	likedOnly: false,
-	downloadedOnly: false,
-	purchasedOnly: false,
+	facets: emptyFacetFilters(),
 	tagIds: [],
 	tagMode: 'or',
 })
 
 export function hasActiveViewFilter(f: ReleaseViewFilter): boolean {
-	return f.search.trim() !== '' || f.likedOnly || f.downloadedOnly || f.purchasedOnly || f.tagIds.length > 0
+	return f.search.trim() !== '' || countActiveFacets(f.facets) > 0 || f.tagIds.length > 0
 }
 
-/** Count for the filter button's badge — mirrors the feed toolbar (tags + liked + downloaded + purchased). */
+/** Count for the filter button's badge — mirrors the feed toolbar (tags + non-off facets). */
 export function countActiveViewFilters(f: ReleaseViewFilter): number {
-	return f.tagIds.length + (f.likedOnly ? 1 : 0) + (f.downloadedOnly ? 1 : 0) + (f.purchasedOnly ? 1 : 0)
+	return f.tagIds.length + countActiveFacets(f.facets)
 }
 
 /**
  * Apply a per-view filter over an in-memory release list. Search semantics mirror the feed's
- * `sortedReleases` (artist/title/label/notes/track names); tags reuse the feed's AND/OR filter;
- * downloaded checks the offline-cache id set; purchased checks the collection ownership id set.
+ * `sortedReleases` (artist/title/label/notes/track names); tags reuse the feed's AND/OR filter; the
+ * facets go through the one shared `applyDiscoveryFilters` so include/exclude mean the same as in the feed.
  */
 export function applyViewFilter(
 	list: DiscoveryRelease[],
@@ -68,10 +66,7 @@ export function applyViewFilter(
 	cachedIds: ReadonlySet<string>,
 	ownedIds: ReadonlySet<string>
 ): DiscoveryRelease[] {
-	let releases = list
-	if (f.likedOnly) releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
-	if (f.downloadedOnly) releases = releases.filter((r) => cachedIds.has(r.id))
-	if (f.purchasedOnly) releases = releases.filter((r) => ownedIds.has(r.id))
+	let releases = applyDiscoveryFilters(list, f.facets, { ownedIds, cachedIds })
 	releases = applyTagFilter(releases, f.tagIds, f.tagMode)
 	const search = f.search.trim().toLowerCase()
 	if (search) {

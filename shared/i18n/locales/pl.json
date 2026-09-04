@@ -538,7 +538,10 @@
 		"liked": "Polubione",
 		"new": "Nowe",
 		"downloaded": "Pobrane",
-		"purchased": "Kupione"
+		"purchased": "Kupione",
+		"off": "Brak",
+		"only": "Tylko",
+		"not": "Nie"
 	},
 	"collection": {
 		"notInCrate": "Nie w {appName}",

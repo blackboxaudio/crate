@@ -1,16 +1,10 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
-	import { discoveryStore, likedOnly, newOnly } from '$shared/stores/discovery'
+	import { discoveryStore, facetFilters } from '$shared/stores/discovery'
 	import { hasLinkedCollection } from '$shared/stores/collection'
 	import type { DiscoverySortField } from '$shared/types'
-	import {
-		discoveryViewMode,
-		downloadedOnly,
-		mobileUIStore,
-		purchasedOnly,
-		tagFilterIds,
-		tagFilterMode,
-	} from '$lib/stores/mobileUI'
+	import { countActiveFacets } from '$shared/utils/discoveryFilters'
+	import { discoveryViewMode, mobileUIStore, tagFilterIds, tagFilterMode } from '$lib/stores/mobileUI'
 	import { RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
 	import SortSheet from './SortSheet.svelte'
@@ -30,13 +24,7 @@
 
 	// Active-filter count for the trigger badge: tag filters plus the liked/new/downloaded/purchased toggles
 	// (mirrors the desktop FilterDropdown badge) so the button reads as "active" whenever any filter is applied.
-	const activeFilterCount = $derived(
-		$tagFilterIds.length +
-			($likedOnly ? 1 : 0) +
-			($newOnly ? 1 : 0) +
-			($downloadedOnly ? 1 : 0) +
-			($purchasedOnly ? 1 : 0)
-	)
+	const activeFilterCount = $derived($tagFilterIds.length + countActiveFacets($facetFilters))
 	const hasActiveFilters = $derived(activeFilterCount > 0)
 </script>
 
@@ -149,11 +137,11 @@
 <FilterSheet
 	open={filterOpen}
 	onClose={() => (filterOpen = false)}
-	liked={{ value: $likedOnly, onToggle: discoveryStore.toggleLikedFilter }}
-	newReleases={{ value: $newOnly, onToggle: () => discoveryStore.toggleNewFilter() }}
-	downloaded={{ value: $downloadedOnly, onToggle: mobileUIStore.toggleDownloadedFilter }}
+	liked={{ value: $facetFilters.liked, onChange: (s) => discoveryStore.setFacetFilter('liked', s) }}
+	newReleases={{ value: $facetFilters.new, onChange: (s) => discoveryStore.setFacetFilter('new', s) }}
+	downloaded={{ value: $facetFilters.downloaded, onChange: (s) => discoveryStore.setFacetFilter('downloaded', s) }}
 	purchased={$hasLinkedCollection
-		? { value: $purchasedOnly, onToggle: mobileUIStore.togglePurchasedFilter }
+		? { value: $facetFilters.purchased, onChange: (s) => discoveryStore.setFacetFilter('purchased', s) }
 		: undefined}
 	purchasedSetup={$hasLinkedCollection
 		? undefined
@@ -168,10 +156,7 @@
 		onToggleMode: mobileUIStore.toggleTagFilterMode,
 	}}
 	onClearAll={() => {
-		if ($likedOnly) discoveryStore.toggleLikedFilter()
-		if ($newOnly) discoveryStore.toggleNewFilter(false)
-		if ($downloadedOnly) mobileUIStore.toggleDownloadedFilter()
-		if ($purchasedOnly) mobileUIStore.togglePurchasedFilter()
+		discoveryStore.clearFacetFilters()
 		mobileUIStore.clearTagFilters()
 	}}
 />

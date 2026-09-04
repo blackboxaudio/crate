@@ -13,8 +13,6 @@ import {
 	setStoredString,
 } from '$shared/utils/storage'
 import type { DiscoveryRelease, SortDirection, TagFilterMode } from '$shared/types'
-import { ownedReleaseIds } from '$shared/stores/collection'
-import { fullyCachedIds } from '$shared/stores/offlineCache'
 
 /** The app's primary navigation destinations, surfaced as bottom tabs. Settings is intentionally NOT a
  *  tab — it opens as a right-side drawer from the Header's gear button (see `openSettings`). */
@@ -73,10 +71,6 @@ interface MobileUIState {
 	tagFilterIds: string[]
 	/** Whether the tag filter requires ALL selected tags (`and`) or ANY (`or`). */
 	tagFilterMode: TagFilterMode
-	/** Downloaded-only feed filter: show just the releases whose audio is fully cached (offline-ready). */
-	downloadedOnly: boolean
-	/** Purchased-only feed filter: swap the feed for the linked Bandcamp collection (the Purchased view). */
-	purchasedOnly: boolean
 	/** Whether the feed is in multi-select mode (entered by long-pressing a release). */
 	selectMode: boolean
 	/** Releases selected while in multi-select mode (batch delete / batch tag). */
@@ -184,8 +178,6 @@ const defaultState: MobileUIState = {
 	discoveryScrollTop: 0,
 	tagFilterIds: [],
 	tagFilterMode: 'or',
-	downloadedOnly: false,
-	purchasedOnly: false,
 	selectMode: false,
 	selectedReleaseIds: new Set(),
 	addReleaseOpen: false,
@@ -504,14 +496,6 @@ function createMobileUIStore() {
 		clearTagFilters() {
 			update((s) => (s.tagFilterIds.length === 0 ? s : { ...s, tagFilterIds: [] }))
 		},
-		/** Show only fully-downloaded (offline-ready) releases in the feed. Ephemeral, like tag filters. */
-		toggleDownloadedFilter() {
-			update((s) => ({ ...s, downloadedOnly: !s.downloadedOnly }))
-		},
-		/** Swap the feed for the Purchased view (the linked Bandcamp collection). Ephemeral. */
-		togglePurchasedFilter() {
-			update((s) => ({ ...s, purchasedOnly: !s.purchasedOnly }))
-		},
 
 		// --- Multi-select -------------------------------------------------------------------------
 		/** Enter multi-select mode, seeding the selection with the long-pressed release (one update,
@@ -773,25 +757,17 @@ export function applyTagFilter(list: DiscoveryRelease[], ids: string[], mode: Ta
 		: list.filter((r) => r.tags.some((t) => set.has(t.id)))
 }
 
-export const downloadedOnly = derived(mobileUIStore, ($s) => $s.downloadedOnly)
-export const purchasedOnly = derived(mobileUIStore, ($s) => $s.purchasedOnly)
-
 /**
- * The discovery feed's displayed list: the shared `sortedReleases` (search + liked/new + sort) with the
- * mobile-only tag + downloaded + purchased filters applied. Single source of truth for both the rendered
- * feed and the playback queue captured when a preview starts — so "play / shuffle the whole list" spans
- * exactly what's on screen. (When the Purchased filter is active, the feed component ALSO appends the
- * unmatched collection items as its own separate section — those aren't releases and never enter this
- * list or the playback context.)
+ * The discovery feed's displayed list: the shared `sortedReleases` (search + the liked/new/purchased/
+ * downloaded facets + sort) with the mobile-only tag filter applied. Single source of truth for both the
+ * rendered feed and the playback queue captured when a preview starts — so "play / shuffle the whole
+ * list" spans exactly what's on screen. (When the Purchased facet is `include`, the feed component swaps
+ * to the collection view, which ALSO lists the unmatched collection items — those aren't releases and
+ * never enter this list or the playback context.)
  */
 export const mobileDisplayedReleases = derived(
-	[sortedReleases, tagFilterIds, tagFilterMode, downloadedOnly, purchasedOnly, fullyCachedIds, ownedReleaseIds],
-	([$sorted, $ids, $mode, $downloadedOnly, $purchasedOnly, $cached, $owned]) => {
-		let list = applyTagFilter($sorted, $ids, $mode)
-		if ($downloadedOnly) list = list.filter((r) => $cached.has(r.id))
-		if ($purchasedOnly) list = list.filter((r) => $owned.has(r.id))
-		return list
-	}
+	[sortedReleases, tagFilterIds, tagFilterMode],
+	([$sorted, $ids, $mode]) => applyTagFilter($sorted, $ids, $mode)
 )
 
 /**

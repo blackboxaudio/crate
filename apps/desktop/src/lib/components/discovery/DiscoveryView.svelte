@@ -9,9 +9,10 @@
 	import { translate } from '$shared/i18n'
 	import {
 		expandedReleaseIds,
-		newOnly,
-		purchasedOnly,
-		downloadedOnly,
+		likedFilter,
+		newFilter,
+		purchasedFilter,
+		downloadedFilter,
 		hasLinkedCollection,
 		discoveryStore,
 		pageActions,
@@ -48,8 +49,6 @@
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onUrlDrop?: (url: string) => void
 		onToggleEditor?: () => void
-		likedOnly?: boolean
-		onToggleLikedFilter?: () => void
 		scrollOffset?: number
 		onScrollChange?: (offset: number) => void
 	}
@@ -84,8 +83,6 @@
 		onEmptySpaceContextMenu,
 		onUrlDrop,
 		onToggleEditor,
-		likedOnly = false,
-		onToggleLikedFilter,
 		scrollOffset = 0,
 		onScrollChange,
 	}: Props = $props()
@@ -187,21 +184,13 @@
 				onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
 				onClearAll={() => onClearAllTagFilters?.()}
 				onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
-				showLikedFilter
-				{likedOnly}
-				{onToggleLikedFilter}
-				showNewFilter
-				newOnly={$newOnly}
-				onToggleNewFilter={() => discoveryStore.toggleNewFilter()}
-				showPurchasedFilter
-				purchasedOnly={$purchasedOnly}
-				onTogglePurchasedFilter={() => discoveryStore.togglePurchasedFilter()}
+				liked={{ value: $likedFilter, onChange: (s) => discoveryStore.setFacetFilter('liked', s) }}
+				newReleases={{ value: $newFilter, onChange: (s) => discoveryStore.setFacetFilter('new', s) }}
+				purchased={{ value: $purchasedFilter, onChange: (s) => discoveryStore.setFacetFilter('purchased', s) }}
 				onSetupPurchased={$hasLinkedCollection
 					? undefined
 					: () => $pageActions?.getModalOrchestrator()?.openSettingsModal('discovery')}
-				showDownloadedFilter
-				downloadedOnly={$downloadedOnly}
-				onToggleDownloadedFilter={() => discoveryStore.toggleDownloadedFilter()}
+				downloaded={{ value: $downloadedFilter, onChange: (s) => discoveryStore.setFacetFilter('downloaded', s) }}
 			/>
 			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />
@@ -230,7 +219,8 @@
 			{categorySortOrders}
 			{isDragOver}
 			{scrollOffset}
-			{likedOnly}
+			likedOnly={$likedFilter === 'include'}
+			hasAnyReleases={$discoveryStore.releases.length > 0}
 			{onSelectionChange}
 			{onReleaseOpen}
 			{onReleaseOpenUrl}

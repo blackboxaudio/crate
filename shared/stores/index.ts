@@ -59,8 +59,11 @@ export {
 	releaseCount,
 	isDiscoveryLoading,
 	refreshingReleaseIds,
-	newOnly,
-	downloadedOnly,
+	facetFilters,
+	likedFilter,
+	newFilter,
+	purchasedFilter,
+	downloadedFilter,
 } from './discovery'
 export { offlineCacheStore, fullyCachedIds } from './offlineCache'
 export { expandedReleaseIds } from './expandedReleases'

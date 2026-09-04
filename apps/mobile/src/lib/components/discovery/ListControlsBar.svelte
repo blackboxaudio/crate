@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
-	import type { SortDirection } from '$shared/types'
+	import type { DiscoveryFacet, FilterTriState, SortDirection } from '$shared/types'
 	import { hasLinkedCollection } from '$shared/stores/collection'
+	import { emptyFacetFilters } from '$shared/utils/discoveryFilters'
 	import { countActiveViewFilters, type ReleaseViewFilter, type SortOption } from '$lib/utils/listControls'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
 	import SortSheet from './SortSheet.svelte'
@@ -27,6 +28,10 @@
 
 	const activeFilterCount = $derived(countActiveViewFilters(filter))
 	const hasActiveFilters = $derived(activeFilterCount > 0)
+
+	function setFacet(facet: DiscoveryFacet, state: FilterTriState) {
+		onFilterChange({ ...filter, facets: { ...filter.facets, [facet]: state } })
+	}
 
 	function toggleTag(id: string) {
 		onFilterChange({
@@ -103,16 +108,10 @@
 <FilterSheet
 	open={filterOpen}
 	onClose={() => (filterOpen = false)}
-	liked={{ value: filter.likedOnly, onToggle: () => onFilterChange({ ...filter, likedOnly: !filter.likedOnly }) }}
-	downloaded={{
-		value: filter.downloadedOnly,
-		onToggle: () => onFilterChange({ ...filter, downloadedOnly: !filter.downloadedOnly }),
-	}}
+	liked={{ value: filter.facets.liked, onChange: (s) => setFacet('liked', s) }}
+	downloaded={{ value: filter.facets.downloaded, onChange: (s) => setFacet('downloaded', s) }}
 	purchased={$hasLinkedCollection
-		? {
-				value: filter.purchasedOnly,
-				onToggle: () => onFilterChange({ ...filter, purchasedOnly: !filter.purchasedOnly }),
-			}
+		? { value: filter.facets.purchased, onChange: (s) => setFacet('purchased', s) }
 		: undefined}
 	tags={showTags
 		? {
@@ -122,6 +121,5 @@
 				onToggleMode: () => onFilterChange({ ...filter, tagMode: filter.tagMode === 'or' ? 'and' : 'or' }),
 			}
 		: undefined}
-	onClearAll={() =>
-		onFilterChange({ ...filter, likedOnly: false, downloadedOnly: false, purchasedOnly: false, tagIds: [] })}
+	onClearAll={() => onFilterChange({ ...filter, facets: emptyFacetFilters(), tagIds: [] })}
 />
