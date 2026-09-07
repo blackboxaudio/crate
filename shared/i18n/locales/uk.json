@@ -396,7 +396,8 @@
 			"label": "Лейбл",
 			"tags": "Теги",
 			"dateAdded": "Дата додавання",
-			"dateReleased": "Дата випуску"
+			"dateReleased": "Дата випуску",
+			"dateLiked": "Дата вподобання"
 		},
 		"fetchingMetadata": "Завантаження метаданих...",
 		"refreshMetadata": "Оновити метаданні",

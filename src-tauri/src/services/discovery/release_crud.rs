@@ -61,6 +61,7 @@ impl DiscoveryService {
                     video_id: tc.video_id,
                     url: tc.url,
                     is_liked: false,
+                    liked_at: None,
                     preview_unavailable: false,
                 });
             }
@@ -136,7 +137,7 @@ impl DiscoveryService {
 
         // Load tracks
         let mut stmt = conn.prepare(
-            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked,
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, liked_at,
                     EXISTS(SELECT 1 FROM discovery_preview_unavailable pu WHERE pu.release_id = discovery_tracks.release_id AND pu.position = discovery_tracks.position)
              FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
         )?;
@@ -151,7 +152,8 @@ impl DiscoveryService {
                     video_id: row.get(5)?,
                     url: row.get(6)?,
                     is_liked: row.get::<_, i32>(7).map(|v| v != 0)?,
-                    preview_unavailable: row.get::<_, i32>(8).map(|v| v != 0)?,
+                    liked_at: row.get(8)?,
+                    preview_unavailable: row.get::<_, i32>(9).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -346,7 +348,7 @@ impl DiscoveryService {
             .join(", ");
 
         let mut stmt = conn.prepare(&format!(
-            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked,
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, liked_at,
                     EXISTS(SELECT 1 FROM discovery_preview_unavailable pu WHERE pu.release_id = discovery_tracks.release_id AND pu.position = discovery_tracks.position)
              FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
@@ -365,7 +367,8 @@ impl DiscoveryService {
                     video_id: row.get(5)?,
                     url: row.get(6)?,
                     is_liked: row.get::<_, i32>(7).map(|v| v != 0)?,
-                    preview_unavailable: row.get::<_, i32>(8).map(|v| v != 0)?,
+                    liked_at: row.get(8)?,
+                    preview_unavailable: row.get::<_, i32>(9).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -626,9 +629,17 @@ impl DiscoveryService {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         let hlc = dirty::next_hlc(&conn)?;
+        // Both CASEs read the pre-update `is_liked` (SQLite evaluates every SET against the
+        // old row), so the stamp lands exactly when the flag flips on and clears when it
+        // flips off — one statement, one `_hlc`, the pair can never drift apart.
+        let now = chrono::Utc::now().to_rfc3339();
         conn.execute(
-            "UPDATE discovery_tracks SET is_liked = CASE WHEN is_liked = 0 THEN 1 ELSE 0 END, _hlc = ?2 WHERE id = ?1",
-            rusqlite::params![track_id, hlc],
+            "UPDATE discovery_tracks \
+             SET liked_at = CASE WHEN is_liked = 0 THEN ?3 ELSE NULL END, \
+                 is_liked = CASE WHEN is_liked = 0 THEN 1 ELSE 0 END, \
+                 _hlc = ?2 \
+             WHERE id = ?1",
+            rusqlite::params![track_id, hlc, now],
         )?;
         dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
 
@@ -691,5 +702,63 @@ impl DiscoveryService {
         dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
 
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::{Arc, Mutex};
+
+    use rusqlite::Connection;
+
+    use super::*;
+
+    fn service_with_one_track() -> DiscoveryService {
+        let conn = Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+        for sql in crate::db::schema::get_migrations() {
+            conn.execute_batch(sql).unwrap();
+        }
+        conn.execute(
+            "INSERT INTO discovery_releases (id, url, source_type, date_added, date_modified, _hlc) \
+             VALUES ('rel', 'https://x.bandcamp.com/album/y', 'bandcamp', \
+                     '2020-01-01T00:00:00Z', '2020-01-01T00:00:00Z', '0001')",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO discovery_tracks (id, release_id, name, position, _hlc) \
+             VALUES ('t1', 'rel', 'Intro', 1, '0001')",
+            [],
+        )
+        .unwrap();
+        DiscoveryService::new(Arc::new(Mutex::new(conn)), std::env::temp_dir())
+    }
+
+    fn liked_at(svc: &DiscoveryService) -> Option<String> {
+        svc.conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT liked_at FROM discovery_tracks WHERE id = 't1'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap()
+    }
+
+    #[test]
+    fn toggle_track_liked_stamps_on_like_and_clears_on_unlike() {
+        let svc = service_with_one_track();
+
+        assert!(svc.toggle_track_liked("t1").unwrap());
+        let first = liked_at(&svc).expect("liking records a stamp");
+
+        assert!(!svc.toggle_track_liked("t1").unwrap());
+        assert_eq!(liked_at(&svc), None, "unliking clears the stamp");
+
+        assert!(svc.toggle_track_liked("t1").unwrap());
+        let again = liked_at(&svc).expect("re-liking records a fresh stamp");
+        assert!(again >= first, "the fresh stamp is never older than the first");
     }
 }

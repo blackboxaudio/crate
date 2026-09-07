@@ -396,7 +396,8 @@
 			"label": "Sello",
 			"tags": "Etiquetas",
 			"dateAdded": "Fecha de adición",
-			"dateReleased": "Fecha de lanzamiento"
+			"dateReleased": "Fecha de lanzamiento",
+			"dateLiked": "Fecha en que me gusta"
 		},
 		"fetchingMetadata": "Obteniendo metadatos...",
 		"refreshMetadata": "Actualizar metadatos",

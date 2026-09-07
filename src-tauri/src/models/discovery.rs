@@ -62,6 +62,12 @@ pub struct DiscoveryTrack {
     pub url: Option<String>,
     #[serde(default)]
     pub is_liked: bool,
+    /// RFC3339 stamp of the most recent like; `None` when unliked or for likes that
+    /// predate the column. `serde(default)` keeps older peers' rows and old backups
+    /// deserializable (an older peer's row carries `None` and can null a stamp out
+    /// under whole-row LWW — accepted, the track stays liked and just sorts last).
+    #[serde(default)]
+    pub liked_at: Option<String>,
     /// The source currently serves no preview stream for this track (e.g. an unreleased
     /// track on a Bandcamp pre-order). Populated on read from the device-local
     /// `discovery_preview_unavailable` table — never synced; peers see `false`.

@@ -1,5 +1,16 @@
-import type { DiscoveryFacetFilters, DiscoveryRelease, SortDirection, TagFilterMode } from '$shared/types'
-import { applyDiscoveryFilters, countActiveFacets, emptyFacetFilters } from '$shared/utils/discoveryFilters'
+import type {
+	DiscoveryFacetFilters,
+	DiscoveryRelease,
+	DiscoverySortConfig,
+	SortDirection,
+	TagFilterMode,
+} from '$shared/types'
+import {
+	applyDiscoveryFilters,
+	countActiveFacets,
+	emptyFacetFilters,
+	isDateLikedSortAllowed,
+} from '$shared/utils/discoveryFilters'
 import { applyTagFilter } from '$lib/stores/mobileUI'
 
 // Shared shapes for the generalized list controls (SortSheet / FilterSheet / ListControlsBar):
@@ -29,6 +40,28 @@ export const RELEASE_SORT_OPTIONS: SortOption[] = [
 	{ field: 'source_type', labelKey: 'discovery.source', defaultDir: 'asc' },
 	{ field: 'track_count', labelKey: 'discovery.tracks', defaultDir: 'desc' },
 ]
+
+const DATE_LIKED_SORT_OPTION: SortOption = {
+	field: 'date_liked',
+	labelKey: 'discovery.columns.dateLiked',
+	defaultDir: 'desc',
+}
+
+/** The release sort options for the current facets: Date Liked joins the list (right after Date Added)
+ *  only while the Liked facet is `include` — see `isDateLikedSortAllowed`. */
+export function releaseSortOptions(facets: DiscoveryFacetFilters): SortOption[] {
+	if (!isDateLikedSortAllowed(facets)) return RELEASE_SORT_OPTIONS
+	return [RELEASE_SORT_OPTIONS[0], DATE_LIKED_SORT_OPTION, ...RELEASE_SORT_OPTIONS.slice(1)]
+}
+
+/** The detail views' counterpart of the feed store's fallback: a session-local Date Liked sort drops
+ *  back to the view's natural order (null) once the Liked facet stops being `include`. */
+export function reconcileViewSort(
+	sort: DiscoverySortConfig | null,
+	facets: DiscoveryFacetFilters
+): DiscoverySortConfig | null {
+	return sort?.field === 'date_liked' && !isDateLikedSortAllowed(facets) ? null : sort
+}
 
 /** Per-view (session-local) filter state for the detail views' release lists. The detail views don't
  *  expose the New facet, so `facets.new` simply stays `off`. */

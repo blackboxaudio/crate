@@ -396,7 +396,8 @@
 			"label": "レーベル",
 			"tags": "タグ",
 			"dateAdded": "追加日時",
-			"dateReleased": "リリース日"
+			"dateReleased": "リリース日",
+			"dateLiked": "お気に入り追加日"
 		},
 		"fetchingMetadata": "メタデータを取得中...",
 		"refreshMetadata": "メタデータを更新",

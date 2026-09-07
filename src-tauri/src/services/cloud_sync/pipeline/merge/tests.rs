@@ -572,3 +572,38 @@ fn orphan_child_update_pointing_at_missing_parent_is_skipped() {
         .unwrap();
     assert_eq!(release_id, "r1", "local row untouched by the orphan update");
 }
+
+#[test]
+fn discovery_track_liked_at_rides_the_row() {
+    let conn = mem();
+    insert_discovery_release(&conn, "r1", "0005");
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[parsed(json!({
+            "id": "t1", "release_id": "r1", "name": "Track 1", "position": 1,
+            "duration_ms": null, "video_id": null, "is_liked": true,
+            "liked_at": "2026-09-04T00:00:00+00:00", "_hlc": "0005", "_deleted": false
+        }))],
+    )
+    .unwrap();
+    let liked_at = |conn: &Connection| -> Option<String> {
+        conn.query_row(
+            "SELECT liked_at FROM discovery_tracks WHERE id = 't1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+    };
+    assert_eq!(liked_at(&conn).as_deref(), Some("2026-09-04T00:00:00+00:00"));
+
+    // A newer row from a peer without the column (no `liked_at` key → serde default)
+    // nulls the stamp under whole-row LWW — the accepted trade documented on the writer.
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[dt_live("t1", "r1", 1, "0009")],
+    )
+    .unwrap();
+    assert_eq!(liked_at(&conn), None);
+}

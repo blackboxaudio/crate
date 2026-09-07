@@ -104,11 +104,14 @@ function createDiscoveryPlaylistStore() {
 			}
 		},
 
-		updateTrackLiked(releaseId: string, trackId: string, isLiked: boolean) {
+		updateTrackLiked(releaseId: string, trackId: string, isLiked: boolean, likedAt: string | null) {
 			const updateTracks = (releases: DiscoveryRelease[]) =>
 				releases.map((r) =>
 					r.id === releaseId
-						? { ...r, tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)) }
+						? {
+								...r,
+								tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked, liked_at: likedAt } : t)),
+							}
 						: r
 				)
 			update((state) => ({ releases: updateTracks(state.releases) }))

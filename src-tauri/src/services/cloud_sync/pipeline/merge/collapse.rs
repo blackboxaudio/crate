@@ -106,6 +106,10 @@ pub(super) fn collapse_track_pair(
         video_id: w.video_id.clone().or_else(|| lo.video_id.clone()),
         url: w.url.clone().or_else(|| lo.url.clone()),
         is_liked: l.is_liked || r.is_liked,
+        // `None < Some` and same-format RFC3339 compares lexicographically, so max() is
+        // "the most recent stamp" and symmetric like the OR above. Never mint a stamp
+        // here: a liked row with no stamp (older build) must stay a fixed point.
+        liked_at: std::cmp::max(l.liked_at.clone(), r.liked_at.clone()),
         preview_unavailable: false,
     };
     let survivor_hlc = if survivor == *w {
@@ -128,7 +132,7 @@ fn collapse_track(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result<b
     // Smallest-id live sibling with the same normalized name (Rust-side comparison —
     // SQL LOWER() is ASCII-only and must not decide identity).
     let mut stmt = tx.prepare(
-        "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, _hlc \
+        "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, liked_at, _hlc \
          FROM discovery_tracks WHERE release_id = ?1 ORDER BY id",
     )?;
     let siblings: Vec<(DiscoveryTrack, String)> = stmt
@@ -143,9 +147,10 @@ fn collapse_track(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result<b
                     video_id: r.get(5)?,
                     url: r.get(6)?,
                     is_liked: r.get::<_, i32>(7).map(|v| v != 0)?,
+                    liked_at: r.get(8)?,
                     preview_unavailable: false,
                 },
-                r.get::<_, String>(8)?,
+                r.get::<_, String>(9)?,
             ))
         })?
         .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -161,7 +166,7 @@ fn collapse_track(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result<b
         // Local id survives: fold the remote copy in, tombstone the remote id.
         tx.execute(
             "UPDATE discovery_tracks SET name = ?1, position = ?2, duration_ms = ?3, \
-             video_id = ?4, url = ?5, is_liked = ?6, _hlc = ?7 WHERE id = ?8",
+             video_id = ?4, url = ?5, is_liked = ?6, liked_at = ?7, _hlc = ?8 WHERE id = ?9",
             params![
                 c.survivor.name,
                 c.survivor.position,
@@ -169,6 +174,7 @@ fn collapse_track(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result<b
                 c.survivor.video_id,
                 c.survivor.url,
                 c.survivor.is_liked,
+                c.survivor.liked_at,
                 c.survivor_hlc,
                 local.id,
             ],
@@ -411,6 +417,7 @@ mod tests {
             video_id: None,
             url: url.map(str::to_string),
             is_liked: liked,
+            liked_at: None,
             preview_unavailable: false,
         }
     }
@@ -441,6 +448,33 @@ mod tests {
         assert!(c.survivor.is_liked, "like ORs across both copies");
         assert_eq!(c.survivor.duration_ms, Some(1000), "loser's non-null kept");
         assert_eq!(c.survivor.url.as_deref(), Some("https://t"));
+    }
+
+    #[test]
+    fn track_pair_keeps_latest_liked_at_symmetrically() {
+        let mut l = track("aaaa", true, None, None);
+        let mut r = track("bbbb", true, None, None);
+        l.liked_at = Some("2026-09-01T00:00:00+00:00".into());
+        r.liked_at = Some("2026-09-04T00:00:00+00:00".into());
+        // The older-stamped copy carries the higher hlc: recency of the like, not of the
+        // row, decides the stamp.
+        let c1 = collapse_track_pair(&l, &h(20), &r, &h(10));
+        let c2 = collapse_track_pair(&r, &h(10), &l, &h(20));
+        assert_eq!(
+            c1.survivor.liked_at.as_deref(),
+            Some("2026-09-04T00:00:00+00:00")
+        );
+        assert_eq!(c1.survivor, c2.survivor);
+
+        // A like without a stamp (older build) folds into a stamped copy without
+        // inventing one.
+        r.liked_at = None;
+        let c = collapse_track_pair(&l, &h(20), &r, &h(10));
+        assert!(c.survivor.is_liked);
+        assert_eq!(
+            c.survivor.liked_at.as_deref(),
+            Some("2026-09-01T00:00:00+00:00")
+        );
     }
 
     #[test]

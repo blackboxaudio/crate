@@ -894,13 +894,27 @@ fn create_discovery_track(
     dirty::mark_dirty(conn, buckets::DISCOVERY_TRACKS).unwrap();
 }
 
+/// Deterministic stand-in for the like toggle's `Utc::now()` stamp, keyed by the wall tick.
+fn liked_stamp(wall: u64) -> String {
+    format!("2026-01-01T00:00:00.{wall:03}+00:00")
+}
+
 fn like_discovery_track(conn: &Connection, node: u32, wall: u64, id: &str) {
     conn.execute(
-        "UPDATE discovery_tracks SET is_liked = 1, _hlc = ?1 WHERE id = ?2",
-        params![hlc(node, wall), id],
+        "UPDATE discovery_tracks SET is_liked = 1, liked_at = ?3, _hlc = ?1 WHERE id = ?2",
+        params![hlc(node, wall), id, liked_stamp(wall)],
     )
     .unwrap();
     dirty::mark_dirty(conn, buckets::DISCOVERY_TRACKS).unwrap();
+}
+
+fn discovery_track_liked_at(conn: &Connection, id: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT liked_at FROM discovery_tracks WHERE id = ?1",
+        [id],
+        |r| r.get(0),
+    )
+    .unwrap()
 }
 
 fn add_discovery_release_tag(conn: &Connection, node: u32, wall: u64, release: &str, tag: &str) {
@@ -990,6 +1004,11 @@ async fn independent_track_fetches_collapse_to_one_row() -> Result<()> {
         let (id, _, liked) = &tracks[0];
         assert_eq!(id, "aaaa-track", "smaller id survives");
         assert!(*liked, "the like on the losing copy was folded in");
+        assert_eq!(
+            discovery_track_liked_at(conn, "aaaa-track"),
+            Some(liked_stamp(25)),
+            "the like stamp rode along with the fold"
+        );
         assert!(tombstone_exists(conn, "discovery_tracks", "bbbb-track"));
     }
     Ok(())

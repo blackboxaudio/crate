@@ -396,7 +396,8 @@
 			"label": "Skivbolag",
 			"tags": "Taggar",
 			"dateAdded": "Tillagd",
-			"dateReleased": "Utgivningsdatum"
+			"dateReleased": "Utgivningsdatum",
+			"dateLiked": "Datum gillad"
 		},
 		"fetchingMetadata": "Hämtar metadata...",
 		"refreshMetadata": "Uppdatera metadata",

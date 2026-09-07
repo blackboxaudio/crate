@@ -396,7 +396,8 @@
 			"label": "Etichetta",
 			"tags": "Tag",
 			"dateAdded": "Data di aggiunta",
-			"dateReleased": "Data di rilascio"
+			"dateReleased": "Data di rilascio",
+			"dateLiked": "Data preferiti"
 		},
 		"fetchingMetadata": "Recupero metadati...",
 		"refreshMetadata": "Aggiorna metadati",

@@ -66,6 +66,28 @@ function getTrackSortValue(track: Track, field: TrackSortField): string | number
 	}
 }
 
+/** Compare two epoch-ms values where an unknown (NaN) date always sinks to the end regardless of direction. */
+function compareDates(aMs: number, bMs: number, dir: number): number {
+	const aValid = !isNaN(aMs)
+	const bValid = !isNaN(bMs)
+	if (!aValid && !bValid) return 0
+	if (!aValid) return 1
+	if (!bValid) return -1
+	return aMs < bMs ? -dir : aMs > bMs ? dir : 0
+}
+
+/** A release's Date Liked key is its most recent like, so re-liking an old release lifts it. NaN when
+ *  nothing is liked or the likes predate `liked_at` — those sink to the end like an unknown release date. */
+function latestLikedAt(release: DiscoveryRelease): number {
+	let latest = NaN
+	for (const t of release.tracks) {
+		if (!t.is_liked || !t.liked_at) continue
+		const ms = Date.parse(t.liked_at)
+		if (!isNaN(ms) && (isNaN(latest) || ms > latest)) latest = ms
+	}
+	return latest
+}
+
 /**
  * Sort discovery releases by the given configuration. ONE comparator shared by the discovery
  * feed's derived stores and the mobile per-view (playlist/tag/follow detail) sort controls, so
@@ -79,15 +101,13 @@ export function sortDiscoveryReleases(releases: DiscoveryRelease[], sort: Discov
 	return [...releases].sort((a, b) => {
 		let cmp = 0
 		if (field === 'release_date') {
-			const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
-			const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
-			const aValid = !isNaN(aDate)
-			const bValid = !isNaN(bDate)
-			if (!aValid && !bValid) cmp = 0
-			else if (!aValid) return 1
-			else if (!bValid) return -1
-			else if (aDate < bDate) cmp = -1 * dir
-			else if (aDate > bDate) cmp = 1 * dir
+			cmp = compareDates(
+				a.release_date ? new Date(a.release_date).getTime() : NaN,
+				b.release_date ? new Date(b.release_date).getTime() : NaN,
+				dir
+			)
+		} else if (field === 'date_liked') {
+			cmp = compareDates(latestLikedAt(a), latestLikedAt(b), dir)
 		} else if (field === 'track_count') {
 			cmp = (a.tracks.length - b.tracks.length) * dir
 		} else {

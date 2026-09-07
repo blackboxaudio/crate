@@ -396,7 +396,8 @@
 			"label": "Etiket",
 			"tags": "Etiketler",
 			"dateAdded": "Ekleme Tarihi",
-			"dateReleased": "Yayın Tarihi"
+			"dateReleased": "Yayın Tarihi",
+			"dateLiked": "Beğenilme Tarihi"
 		},
 		"fetchingMetadata": "Meta veriler indiriliyor...",
 		"refreshMetadata": "Meta Verileri Yenile",

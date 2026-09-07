@@ -5,7 +5,7 @@
 	import type { DiscoverySortField } from '$shared/types'
 	import { countActiveFacets } from '$shared/utils/discoveryFilters'
 	import { discoveryViewMode, mobileUIStore, tagFilterIds, tagFilterMode } from '$lib/stores/mobileUI'
-	import { RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'
+	import { releaseSortOptions } from '$lib/utils/listControls'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
 	import SortSheet from './SortSheet.svelte'
 	import FilterSheet from './FilterSheet.svelte'
@@ -130,7 +130,7 @@
 <SortSheet
 	open={sortOpen}
 	onClose={() => (sortOpen = false)}
-	options={RELEASE_SORT_OPTIONS}
+	options={releaseSortOptions($facetFilters)}
 	current={$discoveryStore.sort}
 	onSelect={(field, direction) => discoveryStore.setSort({ field: field as DiscoverySortField, direction })}
 />

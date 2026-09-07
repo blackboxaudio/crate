@@ -170,7 +170,7 @@ impl PlaylistService {
 
         // Load tracks
         let mut stmt = conn.prepare(&format!(
-            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked,
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, liked_at,
                     EXISTS(SELECT 1 FROM discovery_preview_unavailable pu WHERE pu.release_id = discovery_tracks.release_id AND pu.position = discovery_tracks.position)
              FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
@@ -185,7 +185,8 @@ impl PlaylistService {
                     video_id: row.get(5)?,
                     url: row.get(6)?,
                     is_liked: row.get(7)?,
-                    preview_unavailable: row.get::<_, i32>(8).map(|v| v != 0)?,
+                    liked_at: row.get(8)?,
+                    preview_unavailable: row.get::<_, i32>(9).map(|v| v != 0)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;

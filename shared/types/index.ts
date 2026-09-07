@@ -749,6 +749,8 @@ export interface DiscoveryTrack {
 	/** The track's own page URL (Bandcamp track page, SoundCloud permalink) when the source provides one; share/copy falls back to the release URL. */
 	url: string | null
 	is_liked: boolean
+	/** RFC3339 stamp of the most recent like; null when unliked or for likes that predate the column (those sort last under Date Liked). */
+	liked_at: string | null
 	/** The source currently serves no preview stream for this track (e.g. an unreleased track on a Bandcamp pre-order). Device-local, refreshed on every stream extraction. */
 	preview_unavailable: boolean
 }
@@ -1056,6 +1058,7 @@ export type DiscoverySortField =
 	| 'release_date'
 	| 'source_type'
 	| 'date_added'
+	| 'date_liked'
 	| 'track_count'
 
 export interface DiscoverySortConfig {

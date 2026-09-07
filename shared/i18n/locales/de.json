@@ -396,7 +396,8 @@
 			"label": "Label",
 			"tags": "Tags",
 			"dateAdded": "Hinzugefügt am",
-			"dateReleased": "Veröffentlicht"
+			"dateReleased": "Veröffentlicht",
+			"dateLiked": "Markiert am"
 		},
 		"fetchingMetadata": "Metadaten werden abgerufen...",
 		"refreshMetadata": "Metadaten aktualisieren",

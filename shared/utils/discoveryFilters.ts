@@ -31,6 +31,12 @@ export function hasActiveFacets(facets: DiscoveryFacetFilters): boolean {
 	return DISCOVERY_FACETS.some((facet) => facets[facet] !== 'off')
 }
 
+/** Date Liked only means something over the liked pool: per-track like dates say nothing about unliked
+ *  rows, so the sort is offered (and kept) only while the Liked facet is `include`. */
+export function isDateLikedSortAllowed(facets: DiscoveryFacetFilters): boolean {
+	return facets.liked === 'include'
+}
+
 /** The id sets the purchased / downloaded predicates look up. Named (not positional) because both are
  *  `ReadonlySet<string>` and the two were being passed in opposite orders at different call sites. */
 export interface FacetContext {

@@ -497,5 +497,13 @@ CREATE TABLE discovery_preview_unavailable (
         r#"
 ALTER TABLE collection_account_state ADD COLUMN last_walk_complete INTEGER NOT NULL DEFAULT 0;
 "#,
+        // Migration 14: when a discovery track was (last) liked, so the liked pool can be
+        // sorted by like recency. Nullable RFC3339: NULL for unliked rows and for likes
+        // that predate this column (they sort last rather than getting a fake date).
+        // Cleared on unlike so re-liking records a fresh date. Synced — rides the row's
+        // `_hlc` with `is_liked`, so the pair never splits under whole-row LWW.
+        r#"
+ALTER TABLE discovery_tracks ADD COLUMN liked_at TEXT;
+"#,
     ]
 }

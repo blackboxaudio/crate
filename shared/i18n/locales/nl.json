@@ -396,7 +396,8 @@
 			"label": "Label",
 			"tags": "Tags",
 			"dateAdded": "Toegevoegd op",
-			"dateReleased": "Releasedatum"
+			"dateReleased": "Releasedatum",
+			"dateLiked": "Geliked op"
 		},
 		"fetchingMetadata": "Metagegevens ophalen...",
 		"refreshMetadata": "Metagegevens vernieuwen",

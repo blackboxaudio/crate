@@ -9,7 +9,7 @@
 	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import { overlayMiniPlayerInset } from '$lib/stores/insets'
 	import { ownedReleaseIds } from '$shared/stores/collection'
-	import { applyViewFilter, emptyViewFilter, RELEASE_SORT_OPTIONS } from '$lib/utils/listControls'
+	import { applyViewFilter, emptyViewFilter, reconcileViewSort, releaseSortOptions } from '$lib/utils/listControls'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
@@ -47,6 +47,7 @@
 	let viewFilter = $state(emptyViewFilter())
 	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds, $ownedReleaseIds))
 	const displayed = $derived(viewSort ? sortDiscoveryReleases(filtered, viewSort) : filtered)
+	const sortOptions = $derived(releaseSortOptions(viewFilter.facets))
 
 	// Publish the displayed list so playback started from this view queues exactly what's on screen.
 	$effect(() => {
@@ -137,11 +138,14 @@
 
 		{#if releases.length > 0}
 			<ListControlsBar
-				sortOptions={RELEASE_SORT_OPTIONS}
+				{sortOptions}
 				currentSort={viewSort}
 				onSelectSort={(field, direction) => (viewSort = { field: field as DiscoverySortField, direction })}
 				filter={viewFilter}
-				onFilterChange={(f) => (viewFilter = f)}
+				onFilterChange={(f) => {
+					viewFilter = f
+					viewSort = reconcileViewSort(viewSort, f.facets)
+				}}
 				showTags={false}
 			/>
 		{/if}

@@ -396,7 +396,8 @@
 			"label": "Label",
 			"tags": "Etichete",
 			"dateAdded": "Data Adăugării",
-			"dateReleased": "Dată lansării"
+			"dateReleased": "Dată lansării",
+			"dateLiked": "Data Aprecierii"
 		},
 		"fetchingMetadata": "Se preiau metadatele...",
 		"refreshMetadata": "Reîncarcă Metadate",

@@ -396,7 +396,8 @@
 			"label": "厂牌",
 			"tags": "标签",
 			"dateAdded": "添加日期",
-			"dateReleased": "发行日期"
+			"dateReleased": "发行日期",
+			"dateLiked": "喜欢日期"
 		},
 		"fetchingMetadata": "正在获取元数据...",
 		"refreshMetadata": "刷新元数据",

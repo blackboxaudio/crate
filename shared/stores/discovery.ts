@@ -13,7 +13,12 @@ import type {
 import * as discoveryApi from '../api/discovery'
 import * as followApi from '../api/follow'
 import { sortDiscoveryReleases } from '../utils/sorting'
-import { applyDiscoveryFilters, cycleTriState, emptyFacetFilters } from '../utils/discoveryFilters'
+import {
+	applyDiscoveryFilters,
+	cycleTriState,
+	emptyFacetFilters,
+	isDateLikedSortAllowed,
+} from '../utils/discoveryFilters'
 import { daysUntilRelease } from '../utils/format'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
@@ -39,17 +44,24 @@ interface DiscoveryState {
 	facets: DiscoveryFacetFilters
 }
 
+const DEFAULT_DISCOVERY_SORT: DiscoverySortConfig = { field: 'date_added', direction: 'desc' }
+
 const initialState: DiscoveryState = {
 	releases: [],
 	loading: false,
 	error: null,
 	filter: {},
-	sort: {
-		field: 'date_added',
-		direction: 'desc',
-	},
+	sort: DEFAULT_DISCOVERY_SORT,
 	refreshingIds: new Set(),
 	facets: emptyFacetFilters(),
+}
+
+/** Replace the facets, dropping a Date Liked sort the moment the Liked facet stops being `include`. Done
+ *  inside the mutators (not a subscription) so the meaningless combination is never published at all. */
+function withFacets(state: DiscoveryState, facets: DiscoveryFacetFilters): DiscoveryState {
+	const sort =
+		state.sort.field === 'date_liked' && !isDateLikedSortAllowed(facets) ? DEFAULT_DISCOVERY_SORT : state.sort
+	return { ...state, facets, sort }
 }
 
 // =============================================================================
@@ -313,16 +325,23 @@ function createDiscoveryStore() {
 		 * lock-screen Like, which the native engine writes directly) to every in-memory holder.
 		 */
 		applyTrackLiked(releaseId: string, trackId: string, isLiked: boolean) {
+			// Stamped here rather than returned by the backend: same device clock as the DB's own stamp
+			// (milliseconds apart), every reload re-reads DB truth, and the iOS lock-screen path lands
+			// here too — so one line keeps the Date Liked sort live without widening the IPC/event payloads.
+			const likedAt = isLiked ? new Date().toISOString() : null
 			update((state) => ({
 				...state,
 				releases: state.releases.map((r) =>
 					r.id === releaseId
-						? { ...r, tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)) }
+						? {
+								...r,
+								tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked, liked_at: likedAt } : t)),
+							}
 						: r
 				),
 			}))
 			playerStore.setPreviewTrackLiked(trackId, isLiked)
-			discoveryPlaylistStore.updateTrackLiked(releaseId, trackId, isLiked)
+			discoveryPlaylistStore.updateTrackLiked(releaseId, trackId, isLiked, likedAt)
 		},
 
 		/**
@@ -382,22 +401,19 @@ function createDiscoveryStore() {
 		 *  re-run the filter chain over the whole feed. */
 		setFacetFilter(facet: DiscoveryFacet, value: FilterTriState) {
 			update((state) =>
-				state.facets[facet] === value ? state : { ...state, facets: { ...state.facets, [facet]: value } }
+				state.facets[facet] === value ? state : withFacets(state, { ...state.facets, [facet]: value })
 			)
 		},
 
 		/** off → include → exclude → off (the row-label tap). */
 		cycleFacetFilter(facet: DiscoveryFacet) {
-			update((state) => ({
-				...state,
-				facets: { ...state.facets, [facet]: cycleTriState(state.facets[facet]) },
-			}))
+			update((state) => withFacets(state, { ...state.facets, [facet]: cycleTriState(state.facets[facet]) }))
 		},
 
 		/** Reset every facet at once ("Clear all"). Leaves the search term alone — that has its own
 		 *  affordance in the search bar. */
 		clearFacetFilters() {
-			update((state) => ({ ...state, facets: emptyFacetFilters() }))
+			update((state) => withFacets(state, emptyFacetFilters()))
 		},
 
 		/** Manual "mark as new / not-new" override (the auto-clear rule lives in clearNew). */

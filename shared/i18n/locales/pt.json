@@ -396,7 +396,8 @@
 			"label": "Gravadora",
 			"tags": "Tags",
 			"dateAdded": "Data de adição",
-			"dateReleased": "Data de lançamento"
+			"dateReleased": "Data de lançamento",
+			"dateLiked": "Data de curtida"
 		},
 		"fetchingMetadata": "Obtendo metadados...",
 		"refreshMetadata": "Atualizar metadados",

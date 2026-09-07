@@ -21,7 +21,8 @@
 		applyViewFilter,
 		emptyViewFilter,
 		hasActiveViewFilter,
-		RELEASE_SORT_OPTIONS,
+		reconcileViewSort,
+		releaseSortOptions,
 		type SortOption,
 	} from '$lib/utils/listControls'
 	import { confirmDialog } from '$lib/utils/dialog'
@@ -66,10 +67,10 @@
 	const canReorder = $derived(!playlist.is_smart && viewSort === null && !hasActiveViewFilter(viewFilter))
 
 	// "Playlist order" leads the sort options as the directionless natural-order choice.
-	const sortOptions: SortOption[] = [
+	const sortOptions: SortOption[] = $derived([
 		{ field: 'playlist_order', labelKey: 'playlists.playlistOrder', defaultDir: 'asc', directionless: true },
-		...RELEASE_SORT_OPTIONS,
-	]
+		...releaseSortOptions(viewFilter.facets),
+	])
 
 	function onSelectSort(field: string, direction: 'asc' | 'desc') {
 		viewSort = field === 'playlist_order' ? null : { field: field as DiscoverySortField, direction }
@@ -253,7 +254,10 @@
 				currentSort={viewSort ?? { field: 'playlist_order', direction: 'asc' }}
 				{onSelectSort}
 				filter={viewFilter}
-				onFilterChange={(f) => (viewFilter = f)}
+				onFilterChange={(f) => {
+					viewFilter = f
+					viewSort = reconcileViewSort(viewSort, f.facets)
+				}}
 			/>
 		{/if}
 

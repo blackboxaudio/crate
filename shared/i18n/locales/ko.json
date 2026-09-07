@@ -396,7 +396,8 @@
 			"label": "레이블",
 			"tags": "태그",
 			"dateAdded": "추가 날짜",
-			"dateReleased": "출시 날짜"
+			"dateReleased": "출시 날짜",
+			"dateLiked": "좋아요 날짜"
 		},
 		"fetchingMetadata": "메타데이터 가져오는 중...",
 		"refreshMetadata": "메타데이터 새로 고침",

@@ -396,7 +396,8 @@
 			"label": "Label",
 			"tags": "Tagi",
 			"dateAdded": "Data dodania",
-			"dateReleased": "Data wydania"
+			"dateReleased": "Data wydania",
+			"dateLiked": "Data polubienia"
 		},
 		"fetchingMetadata": "Pobieranie metadanych...",
 		"refreshMetadata": "Odśwież metadane",

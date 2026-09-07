@@ -229,7 +229,7 @@ impl BackupService {
 
         // Discovery tracks
         let mut stmt = conn.prepare(
-            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked FROM discovery_tracks",
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, liked_at FROM discovery_tracks",
         )?;
         let discovery_tracks = stmt
             .query_map([], |row| {
@@ -242,6 +242,7 @@ impl BackupService {
                     video_id: row.get(5)?,
                     url: row.get(6)?,
                     is_liked: row.get(7)?,
+                    liked_at: row.get(8)?,
                     preview_unavailable: false,
                 })
             })?
@@ -673,8 +674,8 @@ impl BackupService {
             // 9. Discovery tracks
             {
                 let mut stmt = tx.prepare(
-                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, is_liked)
-                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                    "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, is_liked, liked_at)
+                     VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
                 )?;
                 for dt in &data.discovery_tracks {
                     stmt.execute(params![
@@ -686,6 +687,7 @@ impl BackupService {
                         dt.video_id,
                         dt.url,
                         dt.is_liked,
+                        dt.liked_at,
                     ])?;
                 }
             }

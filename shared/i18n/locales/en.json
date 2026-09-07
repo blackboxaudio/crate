@@ -396,7 +396,8 @@
 			"label": "Label",
 			"tags": "Tags",
 			"dateAdded": "Date Added",
-			"dateReleased": "Date Released"
+			"dateReleased": "Date Released",
+			"dateLiked": "Date Liked"
 		},
 		"fetchingMetadata": "Fetching metadata...",
 		"refreshMetadata": "Refresh Metadata",

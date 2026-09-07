@@ -14,8 +14,8 @@
 //! Collapse semantics mirror the merge engine's `collapse` module: keep the
 //! smallest id of each `(release_id, normalized name)` group, fold fields
 //! winner-first (highest `_hlc` wins, `NULL`s coalesced), OR the `is_liked`
-//! flags, and tombstone the removed ids so peers (and the cloud union) drop them
-//! too.
+//! flags (keeping the latest `liked_at`), and tombstone the removed ids so peers
+//! (and the cloud union) drop them too.
 //!
 //! Every stamp this sweep writes is `hlc::bump` of a stamp already in the group —
 //! NEVER a fresh clock reading. Minimal dominance is load-bearing twice over:
@@ -36,7 +36,7 @@ use crate::services::cloud_sync::pipeline::{buckets, dirty};
 /// Returns the number of rows removed. Idempotent; safe to run every launch.
 pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
     let mut stmt = conn.prepare(
-        "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, _hlc \
+        "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, liked_at, _hlc \
          FROM discovery_tracks ORDER BY release_id, id",
     )?;
     let rows: Vec<(DiscoveryTrack, String)> = stmt
@@ -51,9 +51,10 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
                     video_id: r.get(5)?,
                     url: r.get(6)?,
                     is_liked: r.get::<_, i32>(7).map(|v| v != 0)?,
+                    liked_at: r.get(8)?,
                     preview_unavailable: false,
                 },
-                r.get::<_, String>(8)?,
+                r.get::<_, String>(9)?,
             ))
         })?
         .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -93,6 +94,9 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
             merged.video_id = merged.video_id.clone().or_else(|| t.video_id.clone());
             merged.url = merged.url.clone().or_else(|| t.url.clone());
             merged.is_liked = merged.is_liked || t.is_liked;
+            // `None < Some` and same-format RFC3339 compares lexicographically, so max()
+            // keeps the most recent stamp and stays order-independent.
+            merged.liked_at = std::cmp::max(merged.liked_at.take(), t.liked_at.clone());
         }
         merged.id = survivor_id.clone();
 
@@ -110,7 +114,7 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
             let stamp = hlc::bump(&group_max_hlc);
             tx.execute(
                 "UPDATE discovery_tracks SET name = ?1, position = ?2, duration_ms = ?3, \
-                 video_id = ?4, url = ?5, is_liked = ?6, _hlc = ?7 WHERE id = ?8",
+                 video_id = ?4, url = ?5, is_liked = ?6, liked_at = ?7, _hlc = ?8 WHERE id = ?9",
                 rusqlite::params![
                     merged.name,
                     merged.position,
@@ -118,6 +122,7 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
                     merged.video_id,
                     merged.url,
                     merged.is_liked,
+                    merged.liked_at,
                     stamp,
                     survivor_id,
                 ],
@@ -186,10 +191,20 @@ mod tests {
         .unwrap();
     }
 
-    fn track_rows(conn: &Connection, release: &str) -> Vec<(String, bool, Option<i64>, String)> {
+    fn set_liked_at(conn: &Connection, id: &str, stamp: &str) {
+        conn.execute(
+            "UPDATE discovery_tracks SET liked_at = ?1 WHERE id = ?2",
+            rusqlite::params![stamp, id],
+        )
+        .unwrap();
+    }
+
+    type TrackRow = (String, bool, Option<i64>, Option<String>, String);
+
+    fn track_rows(conn: &Connection, release: &str) -> Vec<TrackRow> {
         let mut stmt = conn
             .prepare(
-                "SELECT id, is_liked, duration_ms, _hlc FROM discovery_tracks \
+                "SELECT id, is_liked, duration_ms, liked_at, _hlc FROM discovery_tracks \
                  WHERE release_id = ?1 ORDER BY id",
             )
             .unwrap();
@@ -198,7 +213,8 @@ mod tests {
                 r.get::<_, String>(0)?,
                 r.get::<_, i32>(1)? != 0,
                 r.get::<_, Option<i64>>(2)?,
-                r.get::<_, String>(3)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, String>(4)?,
             ))
         })
         .unwrap()
@@ -223,14 +239,22 @@ mod tests {
         seed_track(&conn, "cccc", "rel-1", "Intro", 30, false, Some(1000));
         seed_track(&conn, "aaaa", "rel-1", "intro", 10, false, None);
         seed_track(&conn, "bbbb", "rel-1", " INTRO ", 20, true, None);
+        // Two stamped likes: the later stamp must survive whichever copy carried it.
+        set_liked_at(&conn, "bbbb", "2026-09-04T00:00:00+00:00");
+        set_liked_at(&conn, "cccc", "2026-09-01T00:00:00+00:00");
 
         assert_eq!(dedupe_discovery_tracks(&conn).unwrap(), 2);
         let rows = track_rows(&conn, "rel-1");
         assert_eq!(rows.len(), 1);
-        let (id, liked, duration, hlc) = &rows[0];
+        let (id, liked, duration, liked_at, hlc) = &rows[0];
         assert_eq!(id, "aaaa", "smallest id survives");
         assert!(*liked, "like OR-ed from a removed copy");
         assert_eq!(*duration, Some(1000), "duration coalesced from the winner");
+        assert_eq!(
+            liked_at.as_deref(),
+            Some("2026-09-04T00:00:00+00:00"),
+            "latest like stamp kept"
+        );
         assert!(
             *hlc > h(30),
             "changed survivor re-stamped above the group max"
