@@ -154,6 +154,7 @@ pub fn stamp_unstamped_rows(conn: &Connection, node_id: NodeId) -> Result<()> {
         "tag_categories",
         "track_tags",
         "discovery_release_tags",
+        "discovery_track_tags",
         "discovery_release_sources",
         "discovery_tracks",
         "library_roots",
@@ -198,6 +199,13 @@ pub fn stamp_unstamped_rows(conn: &Connection, node_id: NodeId) -> Result<()> {
         "playlist_discovery_releases",
         &["date_added"],
         &["playlist_id", "release_id"],
+        node_id,
+    )?;
+    stamp_timestamped(
+        &tx,
+        "playlist_discovery_tracks",
+        &["date_added"],
+        &["playlist_id", "track_id"],
         node_id,
     )?;
     stamp_timestamped(

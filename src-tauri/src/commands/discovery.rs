@@ -628,6 +628,24 @@ pub async fn remove_discovery_tags(
 }
 
 #[tauri::command]
+pub async fn assign_discovery_track_tags(
+    track_ids: Vec<String>,
+    tag_ids: Vec<String>,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    discovery.assign_track_tags(track_ids, tag_ids)
+}
+
+#[tauri::command]
+pub async fn remove_discovery_track_tags(
+    track_ids: Vec<String>,
+    tag_ids: Vec<String>,
+    discovery: State<'_, DiscoveryService>,
+) -> Result<()> {
+    discovery.remove_track_tags(track_ids, tag_ids)
+}
+
+#[tauri::command]
 pub async fn check_discovery_matches(
     url: Option<String>,
     artist: Option<String>,

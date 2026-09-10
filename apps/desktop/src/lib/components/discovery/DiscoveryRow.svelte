@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$shared/types'
+	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import {
 		daysUntilRelease,
 		deriveArtistUrl,
@@ -46,6 +47,9 @@
 		onTrackPlay?: (trackIndex: number) => void
 		onTrackLikeToggle?: (trackId: string) => void
 		onTrackContextMenu?: (trackIndex: number, canPlay: boolean, e: MouseEvent) => void
+		onTrackClick?: (trackIndex: number, e: MouseEvent) => void
+		selectedTrackIds?: Set<string>
+		dragTrackIds?: string[]
 		likedOnly?: boolean
 	}
 
@@ -65,6 +69,9 @@
 		onTrackPlay,
 		onTrackLikeToggle,
 		onTrackContextMenu,
+		onTrackClick,
+		selectedTrackIds = new Set<string>(),
+		dragTrackIds = [],
 		likedOnly = false,
 	}: Props = $props()
 
@@ -135,7 +142,11 @@
 	}
 
 	function isTrackPlaying(idx: number): boolean {
-		return $playbackSource === 'preview' && $previewInfo?.releaseId === release.id && $previewInfo?.trackIndex === idx
+		if ($playbackSource !== 'preview' || !$previewInfo || $previewInfo.releaseId !== release.id) return false
+		// By id, not index: this row's `tracks` may be a playlist's member-filtered list while the
+		// playing pick came from the full release (or vice versa).
+		const playingId = $previewInfo.trackId ?? $previewInfo.release.tracks[$previewInfo.trackIndex]?.id
+		return playingId ? playingId === release.tracks[idx]?.id : $previewInfo.trackIndex === idx
 	}
 
 	function trackCanPlay(trackIndex: number): boolean {
@@ -152,6 +163,35 @@
 	function handlePointerUp() {
 		pointerStartPos = null
 		isDragStarted = false
+	}
+
+	// Sub-row drag: a selected track carries the whole track selection, an unselected one only itself.
+	let trackPointerStart: { x: number; y: number; trackId: string } | null = null
+	let trackDragStarted = false
+
+	function handleTrackPointerDown(e: PointerEvent, trackId: string) {
+		if (e.button !== 0) return
+		if ((e.target as HTMLElement).closest('button')) return
+		trackPointerStart = { x: e.clientX, y: e.clientY, trackId }
+		trackDragStarted = false
+	}
+
+	function handleTrackPointerMove(e: PointerEvent) {
+		if (!trackPointerStart) return
+		const distance = getDistance(trackPointerStart.x, trackPointerStart.y, e.clientX, e.clientY)
+		if (!trackDragStarted && distance >= DRAG_THRESHOLD) {
+			trackDragStarted = true
+			const ids =
+				selectedTrackIds.has(trackPointerStart.trackId) && dragTrackIds.length > 0
+					? dragTrackIds
+					: [trackPointerStart.trackId]
+			dragStore.startDiscoveryTrackDrag(ids, e.clientX, e.clientY)
+		}
+	}
+
+	function handleTrackPointerUp() {
+		trackPointerStart = null
+		trackDragStarted = false
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
@@ -230,7 +270,13 @@
 			</Text>
 			{#if release.tracks.length > 0}
 				<Text as="span" size="xs" color="tertiary" class="shrink-0">
-					{$translate('discovery.trackCount', { values: { count: release.tracks.length } })}
+					{#if release.total_track_count != null && release.total_track_count > release.tracks.length}
+						{$translate('discovery.memberTrackCount', {
+							values: { count: release.tracks.length, total: release.total_track_count },
+						})}
+					{:else}
+						{$translate('discovery.trackCount', { values: { count: release.tracks.length } })}
+					{/if}
 				</Text>
 			{/if}
 			{#if upcomingDays !== null}
@@ -364,14 +410,28 @@
 					{@const canPlay = trackCanPlay(idx)}
 					{@const playing = canPlay && isTrackPlaying(idx)}
 					{@const isContextActive = track.id === $contextMenuDiscoveryTrackId}
+					{@const isSelected = selectedTrackIds.has(track.id)}
 					{@const owned = isFullyOwned || $ownedTrackIds.has(track.id)}
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
+						data-track-row
+						data-track-id={track.id}
 						class="group/track grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
-							? 'cursor-pointer hover:bg-surface-2/50'
-							: 'cursor-default opacity-60'} {isContextActive ? 'bg-surface-2/50' : ''} {visibleIdx > 0
-							? 'border-t border-stroke-subtle/50'
-							: ''}"
+							? 'cursor-pointer'
+							: 'cursor-default opacity-60'} {isSelected
+							? 'bg-brand-muted'
+							: isContextActive
+								? 'bg-surface-2/50'
+								: canPlay
+									? 'hover:bg-surface-2/50'
+									: ''} {visibleIdx > 0 ? 'border-t border-stroke-subtle/50' : ''}"
+						onclick={(e) => {
+							e.stopPropagation()
+							onTrackClick?.(idx, e)
+						}}
+						onpointerdown={(e) => handleTrackPointerDown(e, track.id)}
+						onpointermove={handleTrackPointerMove}
+						onpointerup={handleTrackPointerUp}
 						ondblclick={canPlay
 							? (e) => {
 									e.stopPropagation()
@@ -430,6 +490,18 @@
 							>
 								{track.name}
 							</span>
+							{#if track.tags?.length}
+								<span class="flex shrink-0 items-center gap-0.5">
+									{#each track.tags.slice(0, 4) as tag (tag.id)}
+										<Tooltip text={tag.name} position="top" delay={250}>
+											<span
+												class="block h-1.5 w-1.5 rounded-full"
+												style="background-color: {tag.color ?? DEFAULT_TAG_COLOR}"
+											></span>
+										</Tooltip>
+									{/each}
+								</span>
+							{/if}
 						</div>
 						<div
 							class="mr-1 flex flex-row items-center justify-end text-right text-xs {playing

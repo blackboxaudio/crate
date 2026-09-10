@@ -158,6 +158,24 @@ pub async fn remove_releases_from_playlist(
 }
 
 #[tauri::command]
+pub async fn add_tracks_to_discovery_playlist(
+    playlist_id: String,
+    track_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Playlist> {
+    playlists.add_discovery_tracks(&playlist_id, track_ids)
+}
+
+#[tauri::command]
+pub async fn remove_tracks_from_discovery_playlist(
+    playlist_id: String,
+    track_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Playlist> {
+    playlists.remove_discovery_tracks(&playlist_id, track_ids)
+}
+
+#[tauri::command]
 pub async fn get_playlist_releases(
     playlist_id: String,
     playlists: State<'_, PlaylistService>,

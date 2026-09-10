@@ -5,6 +5,7 @@
 	import { translate } from '$shared/i18n'
 	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
 	import { sortDiscoveryReleases } from '$shared/utils/sorting'
+	import { releaseHasTag } from '$shared/utils/tagComputation'
 	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
 	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import { overlayMiniPlayerInset } from '$lib/stores/insets'
@@ -39,7 +40,7 @@
 	const dotColor = $derived(tag.color ?? categoryColor ?? DEFAULT_TAG_COLOR)
 
 	// Releases carrying this tag, taken from the shared discovery set (re-derives as tags change / sync lands).
-	const releases = $derived($discoveryStore.releases.filter((r) => r.tags.some((t) => t.id === tag.id)))
+	const releases = $derived($discoveryStore.releases.filter((r) => releaseHasTag(r, tag.id)))
 
 	// View-level (session-local) sort + filter — same controls as the feed; the tags facet is
 	// omitted (filtering a tag's own list by tags is noise). null sort = the derived natural order.

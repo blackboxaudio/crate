@@ -505,5 +505,38 @@ ALTER TABLE collection_account_state ADD COLUMN last_walk_complete INTEGER NOT N
         r#"
 ALTER TABLE discovery_tracks ADD COLUMN liked_at TEXT;
 "#,
+        // Migration 15: track-level discovery playlist membership and track-level tags.
+        // Membership moves from whole releases to individual tracks so a playlist records
+        // WHICH track motivated the add. `playlist_discovery_releases` is NOT dropped: it
+        // becomes the "whole release, pending expansion" ledger — a release with no
+        // fetched tracks yet (follow-watch and bulk-import create them trackless) keeps
+        // its membership there until enrichment adds tracks, at which point the
+        // expansion sweep (`services/playlist/expansion.rs`) fans the row out into
+        // per-track rows. The expansion is a Rust sweep rather than SQL here because
+        // rows need real `_hlc` stamps and the unstamped-row backfill only ever runs
+        // once per device. Both tables are synced (Junction buckets, add-wins).
+        // Positions/date_added are NOT NULL — the nullable columns on the release
+        // junction were a wart every reader has to coalesce around.
+        r#"
+CREATE TABLE playlist_discovery_tracks (
+    playlist_id TEXT    NOT NULL REFERENCES playlists(id) ON DELETE CASCADE,
+    track_id    TEXT    NOT NULL REFERENCES discovery_tracks(id) ON DELETE CASCADE,
+    position    INTEGER NOT NULL,
+    date_added  TEXT    NOT NULL,
+    _hlc        TEXT    NOT NULL DEFAULT '',
+    PRIMARY KEY (playlist_id, track_id)
+);
+CREATE INDEX idx_playlist_discovery_tracks_track ON playlist_discovery_tracks(track_id);
+CREATE INDEX idx_playlist_discovery_tracks_hlc   ON playlist_discovery_tracks(_hlc);
+
+CREATE TABLE discovery_track_tags (
+    track_id TEXT NOT NULL REFERENCES discovery_tracks(id) ON DELETE CASCADE,
+    tag_id   TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+    _hlc     TEXT NOT NULL DEFAULT '',
+    PRIMARY KEY (track_id, tag_id)
+);
+CREATE INDEX idx_discovery_track_tags_tag ON discovery_track_tags(tag_id);
+CREATE INDEX idx_discovery_track_tags_hlc ON discovery_track_tags(_hlc);
+"#,
     ]
 }

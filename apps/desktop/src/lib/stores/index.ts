@@ -37,6 +37,8 @@ export {
 	selectedTagIds,
 	tagFilterMode,
 	scrollOffset,
+	selectedDiscoveryTrackIds,
+	selectedDiscoveryTrackCount,
 } from '$shared/stores/ui'
 export {
 	uiLayoutStore,
@@ -85,6 +87,7 @@ export {
 	isDraggingPlaylist,
 	isDraggingTag,
 	needsDropTargetRefresh,
+	isDraggingDiscoveryTracks,
 } from './drag'
 export type { DragData } from './drag'
 export { crashStore, hasCrashed, crashError } from './crash'

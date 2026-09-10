@@ -411,6 +411,7 @@
 		"shareNoUrl": "Geen link gevonden in de gedeelde tekst",
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
+		"memberTrackCount": "{count} van {total} tracks",
 		"openInBrowser": "In browser openen",
 		"openInApp": "In {app} openen",
 		"copyUrl": "URL kopiëren",

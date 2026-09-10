@@ -37,8 +37,12 @@
 		for (let i = list.length - 1; i >= 0; i--) {
 			const e = list[i]
 			const release = byId.get(e.releaseId)
-			if (!release || e.trackIndex >= release.tracks.length) continue
-			rows.push({ key: `${e.releaseId}:${e.trackIndex}:${e.at}`, release, trackIndex: e.trackIndex, at: e.at })
+			if (!release) continue
+			// Entries logged from a playlist carry a member-list index; the id resolves against the feed's copy.
+			const byTrackId = e.trackId ? release.tracks.findIndex((t) => t.id === e.trackId) : -1
+			const trackIndex = byTrackId >= 0 ? byTrackId : e.trackIndex
+			if (trackIndex >= release.tracks.length) continue
+			rows.push({ key: `${e.releaseId}:${trackIndex}:${e.at}`, release, trackIndex, at: e.at })
 		}
 		return rows
 	})

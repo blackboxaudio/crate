@@ -56,6 +56,22 @@ pub struct BackupPlaylistDiscoveryRelease {
     pub date_added: String,
 }
 
+/// Track-level discovery playlist membership. Doubles as the cloud-sync wire row for
+/// the `playlist_discovery_tracks` bucket, like its release-level sibling above.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupPlaylistDiscoveryTrack {
+    pub playlist_id: String,
+    pub track_id: String,
+    pub position: i32,
+    pub date_added: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BackupDiscoveryTrackTag {
+    pub track_id: String,
+    pub tag_id: String,
+}
+
 /// A followed source (the synced follow list). `_hlc` is omitted — restore clears the
 /// initial-stamp guard so the next cloud-sync push re-stamps every restored row.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -180,6 +196,13 @@ pub struct BackupData {
     pub discovery_tracks: Vec<DiscoveryTrack>,
     pub discovery_release_tags: Vec<BackupDiscoveryReleaseTag>,
     pub playlist_discovery_releases: Vec<BackupPlaylistDiscoveryRelease>,
+    /// Track-level playlist membership + track tags. `#[serde(default)]` so backups from
+    /// before the track-based transition still deserialize; restoring one leaves these
+    /// empty and the launch expansion sweep fans the release-level rows out.
+    #[serde(default)]
+    pub playlist_discovery_tracks: Vec<BackupPlaylistDiscoveryTrack>,
+    #[serde(default)]
+    pub discovery_track_tags: Vec<BackupDiscoveryTrackTag>,
     /// Follow data. All `#[serde(default)]` so backups created before the follow feature
     /// still deserialize (the Vecs default to empty).
     #[serde(default)]

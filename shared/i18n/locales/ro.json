@@ -411,6 +411,7 @@
 		"shareNoUrl": "Nicio legătură găsită în textul partajat",
 		"tracks": "Melodii",
 		"trackCount": "{count, plural, =1 {1 melodie} other {{count} melodii}}",
+		"memberTrackCount": "{count} din {total} melodii",
 		"openInBrowser": "Deschide în Browser",
 		"openInApp": "Deschide în {app}",
 		"copyUrl": "Copiază URL",

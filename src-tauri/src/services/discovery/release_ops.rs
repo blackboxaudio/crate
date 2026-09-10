@@ -1,9 +1,16 @@
 use super::*;
 use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
-/// A `discovery_tracks` row as read during a release merge: (name, position, duration_ms,
-/// video_id, url).
-type SourceTrackRow = (String, i32, Option<i64>, Option<String>, Option<String>);
+/// A `discovery_tracks` row as read during a release merge: (id, name, position,
+/// duration_ms, video_id, url).
+type SourceTrackRow = (
+    String,
+    String,
+    i32,
+    Option<i64>,
+    Option<String>,
+    Option<String>,
+);
 
 impl DiscoveryService {
     /// Find existing releases that may overlap with the given metadata.
@@ -122,6 +129,14 @@ impl DiscoveryService {
             )?;
             dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
             dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASES)?;
+
+            // A playlist that held this release while it was still trackless can now be
+            // fanned out into per-track members.
+            if let Err(e) =
+                crate::services::playlist::expand_release_memberships_for(&conn, release_id)
+            {
+                log::warn!("discovery: playlist expansion after adding tracks failed: {e}");
+            }
         }
 
         drop(conn);
@@ -157,6 +172,22 @@ impl DiscoveryService {
                 .collect();
             let mut next_position = existing.iter().map(|(_, p)| *p).max().unwrap_or(0) + 1;
 
+            // Target track id per normalized name, so a source track that is skipped as a
+            // duplicate can still hand its playlist memberships / tags to the target's copy.
+            let mut target_track_ids: std::collections::HashMap<String, String> = {
+                let mut stmt =
+                    conn.prepare("SELECT id, name FROM discovery_tracks WHERE release_id = ?1")?;
+                let rows = stmt
+                    .query_map([target_id], |row| {
+                        Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
+                    })?
+                    .collect::<std::result::Result<Vec<_>, _>>()?;
+                rows.into_iter()
+                    .map(|(id, name)| (crate::models::normalized_track_name(&name), id))
+                    .collect()
+            };
+            let mut junctions_touched = false;
+
             // Get target notes
             let target_notes: Option<String> = conn.query_row(
                 "SELECT notes FROM discovery_releases WHERE id = ?1",
@@ -174,7 +205,7 @@ impl DiscoveryService {
             for source_id in &source_ids {
                 // Copy tracks from source, deduplicating
                 let mut stmt = conn.prepare(
-                    "SELECT name, position, duration_ms, video_id, url FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
+                    "SELECT id, name, position, duration_ms, video_id, url FROM discovery_tracks WHERE release_id = ?1 ORDER BY position",
                 )?;
                 let source_tracks: Vec<SourceTrackRow> = stmt
                     .query_map([source_id.as_str()], |row| {
@@ -184,21 +215,32 @@ impl DiscoveryService {
                             row.get(2)?,
                             row.get(3)?,
                             row.get(4)?,
+                            row.get(5)?,
                         ))
                     })?
                     .collect::<std::result::Result<Vec<_>, _>>()?;
 
-                for (name, _, duration_ms, video_id, url) in &source_tracks {
-                    if existing_names.contains(&crate::models::normalized_track_name(name)) {
-                        continue;
+                for (source_track_id, name, _, duration_ms, video_id, url) in &source_tracks {
+                    let normalized = crate::models::normalized_track_name(name);
+                    if !existing_names.contains(&normalized) {
+                        let track_id = crate::models::deterministic_track_id(target_id, name);
+                        conn.execute(
+                            "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+                            rusqlite::params![track_id, target_id, name, next_position, duration_ms, video_id, url, hlc],
+                        )?;
+                        existing_names.push(normalized.clone());
+                        target_track_ids.insert(normalized.clone(), track_id);
+                        next_position += 1;
                     }
-                    let track_id = crate::models::deterministic_track_id(target_id, name);
-                    conn.execute(
-                        "INSERT INTO discovery_tracks (id, release_id, name, position, duration_ms, video_id, url, _hlc) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
-                        rusqlite::params![track_id, target_id, name, next_position, duration_ms, video_id, url, hlc],
-                    )?;
-                    existing_names.push(crate::models::normalized_track_name(name));
-                    next_position += 1;
+                    // The source track is about to cascade away with its release: hand its
+                    // playlist memberships and tags to the target's copy first.
+                    if let Some(target_track_id) = target_track_ids.get(&normalized) {
+                        junctions_touched |= crate::services::discovery::repoint_track_junctions(
+                            &conn,
+                            source_track_id,
+                            target_track_id,
+                        )?;
+                    }
                 }
 
                 // Union tags from source onto target
@@ -261,6 +303,10 @@ impl DiscoveryService {
             dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
             dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
             dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+            if junctions_touched {
+                dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_TRACKS)?;
+                dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACK_TAGS)?;
+            }
         }
 
         drop(conn);

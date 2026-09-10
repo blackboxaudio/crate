@@ -222,6 +222,7 @@ impl BackupService {
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
+                    total_track_count: None,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -244,6 +245,7 @@ impl BackupService {
                     is_liked: row.get(7)?,
                     liked_at: row.get(8)?,
                     preview_unavailable: false,
+                    tags: Vec::new(),
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -272,6 +274,34 @@ impl BackupService {
                     release_id: row.get(1)?,
                     position: row.get::<_, Option<i32>>(2)?.unwrap_or(0),
                     date_added: row.get::<_, Option<String>>(3)?.unwrap_or_default(),
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
+        // Playlist discovery tracks (track-level membership)
+        let mut stmt = conn.prepare(
+            "SELECT playlist_id, track_id, position, date_added FROM playlist_discovery_tracks",
+        )?;
+        let playlist_discovery_tracks = stmt
+            .query_map([], |row| {
+                Ok(BackupPlaylistDiscoveryTrack {
+                    playlist_id: row.get(0)?,
+                    track_id: row.get(1)?,
+                    position: row.get(2)?,
+                    date_added: row.get(3)?,
+                })
+            })?
+            .collect::<std::result::Result<Vec<_>, _>>()?;
+        drop(stmt);
+
+        // Discovery track tags
+        let mut stmt = conn.prepare("SELECT track_id, tag_id FROM discovery_track_tags")?;
+        let discovery_track_tags = stmt
+            .query_map([], |row| {
+                Ok(BackupDiscoveryTrackTag {
+                    track_id: row.get(0)?,
+                    tag_id: row.get(1)?,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -457,6 +487,8 @@ impl BackupService {
             discovery_tracks,
             discovery_release_tags,
             playlist_discovery_releases,
+            playlist_discovery_tracks,
+            discovery_track_tags,
             followed_sources,
             followed_source_state,
             followed_source_releases,
@@ -497,6 +529,8 @@ impl BackupService {
                  DELETE FROM followed_source_releases;
                  DELETE FROM followed_source_state;
                  DELETE FROM followed_sources;
+                 DELETE FROM playlist_discovery_tracks;
+                 DELETE FROM discovery_track_tags;
                  DELETE FROM playlist_discovery_releases;
                  DELETE FROM discovery_release_tags;
                  DELETE FROM discovery_tracks;
@@ -715,6 +749,29 @@ impl BackupService {
                         pdr.position,
                         pdr.date_added,
                     ])?;
+                }
+            }
+
+            // 11b. Track-level playlist membership + track tags. A pre-transition backup
+            // has neither; its release-level rows above are expanded by the launch sweep.
+            {
+                let mut stmt = tx.prepare(
+                    "INSERT INTO playlist_discovery_tracks (playlist_id, track_id, position, date_added)
+                     VALUES (?1, ?2, ?3, ?4)",
+                )?;
+                for pdt in &data.playlist_discovery_tracks {
+                    stmt.execute(params![
+                        pdt.playlist_id,
+                        pdt.track_id,
+                        pdt.position,
+                        pdt.date_added,
+                    ])?;
+                }
+                let mut stmt = tx.prepare(
+                    "INSERT INTO discovery_track_tags (track_id, tag_id) VALUES (?1, ?2)",
+                )?;
+                for dtt in &data.discovery_track_tags {
+                    stmt.execute(params![dtt.track_id, dtt.tag_id])?;
                 }
             }
 

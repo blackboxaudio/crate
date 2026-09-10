@@ -401,7 +401,7 @@
 										<span class="block truncate text-sm font-medium text-text-primary">{item.name}</span>
 										<span class="block truncate text-xs text-text-tertiary">
 											{item.track_count}
-											{item.track_count === 1 ? $translate('discovery.release') : $translate('discovery.releases')}
+											{item.track_count === 1 ? $translate('library.track') : $translate('library.tracks')}
 										</span>
 									</MobileListItem>
 								</div>

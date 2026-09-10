@@ -2,7 +2,6 @@
 	import { get } from 'svelte/store'
 
 	import type {
-		ActiveView,
 		Track,
 		DiscoveryRelease,
 		DiscoveryReleaseCreate,
@@ -14,7 +13,6 @@
 	import { pickTagCategoryColor } from '$shared/types'
 	import {
 		libraryStore,
-		playerStore,
 		tagsStore,
 		playlistsStore,
 		uiStore,
@@ -278,6 +276,28 @@
 	onDiscoveryTrackLikeToggle={(release, trackIndex) =>
 		discoveryStore.toggleTrackLiked(release.id, release.tracks[trackIndex].id)}
 	{onDiscoveryTrackPlayPreview}
+	onDiscoveryTrackAddToPlaylist={async (playlistId, tracks) => {
+		await playlistsStore.addDiscoveryTracks(
+			playlistId,
+			tracks.map((t) => t.id)
+		)
+	}}
+	onDiscoveryTrackRemoveFromPlaylist={async (playlistId, tracks) => {
+		const trackIds = tracks.map((t) => t.id)
+		await playlistsStore.removeDiscoveryTracks(playlistId, trackIds)
+		discoveryPlaylistStore.filterOutTracks(playlistId, trackIds)
+		uiStore.clearDiscoveryTrackSelection()
+		await playlistsStore.load()
+	}}
+	onDiscoveryTrackToggleTag={async (tracks, tagId, assigned) => {
+		// The tag patch re-reads one release at a time, so group the selection by release.
+		const byRelease = new SvelteMap<string, string[]>()
+		for (const t of tracks) byRelease.set(t.release_id, [...(byRelease.get(t.release_id) ?? []), t.id])
+		for (const [releaseId, trackIds] of byRelease) {
+			if (assigned) await discoveryStore.removeTrackTags(releaseId, trackIds, [tagId])
+			else await discoveryStore.assignTrackTags(releaseId, trackIds, [tagId])
+		}
+	}}
 	onClose={() => {
 		uiLayoutStore.clearContextMenuPlaylistId()
 		uiLayoutStore.clearContextMenuDiscoveryTrackId()
@@ -386,6 +406,12 @@
 	onDeleteCategory={async (id) => {
 		await tagsStore.deleteCategory(id)
 		await libraryStore.loadTracks()
+	}}
+	onRemoveDiscoveryTracksFromPlaylist={async (trackIds, playlistId) => {
+		await playlistsStore.removeDiscoveryTracks(playlistId, trackIds)
+		discoveryPlaylistStore.filterOutTracks(playlistId, trackIds)
+		uiStore.clearDiscoveryTrackSelection()
+		await playlistsStore.load()
 	}}
 	onRemoveFromPlaylist={async (trackIds, playlistId, deleteFromCollection) => {
 		await playlistsStore.removeTracks(playlistId, trackIds)

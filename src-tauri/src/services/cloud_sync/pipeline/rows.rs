@@ -24,8 +24,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::{CrateError, Result};
 use crate::models::{
-    BackupDiscoveryReleaseTag, BackupPlaylistDiscoveryRelease, BackupTrack, BackupTrackTag,
-    DiscoveryTrack, PlaylistTrack, Tag,
+    BackupDiscoveryReleaseTag, BackupDiscoveryTrackTag, BackupPlaylistDiscoveryRelease,
+    BackupPlaylistDiscoveryTrack, BackupTrack, BackupTrackTag, DiscoveryTrack, PlaylistTrack, Tag,
 };
 
 use super::buckets::{shard_for_track_id, Bucket, BucketKind};
@@ -236,6 +236,26 @@ struct PlaylistDiscoveryReleaseTombstone<'a> {
 }
 
 #[derive(Serialize)]
+struct PlaylistDiscoveryTrackTombstone<'a> {
+    playlist_id: &'a str,
+    track_id: &'a str,
+    #[serde(rename = "_hlc")]
+    hlc: &'a str,
+    #[serde(rename = "_deleted")]
+    deleted: bool,
+}
+
+#[derive(Serialize)]
+struct DiscoveryTrackTagTombstone<'a> {
+    track_id: &'a str,
+    tag_id: &'a str,
+    #[serde(rename = "_hlc")]
+    hlc: &'a str,
+    #[serde(rename = "_deleted")]
+    deleted: bool,
+}
+
+#[derive(Serialize)]
 struct DiscoveryReleaseSourceTombstone<'a> {
     release_id: &'a str,
     source_id: &'a str,
@@ -292,6 +312,10 @@ pub fn serialize_bucket(conn: &Connection, bucket: &Bucket) -> Result<Vec<u8>> {
         Bucket::PlaylistDiscoveryReleases => {
             emit(bucket, read_live_playlist_discovery_releases(conn)?, tombs)
         }
+        Bucket::PlaylistDiscoveryTracks => {
+            emit(bucket, read_live_playlist_discovery_tracks(conn)?, tombs)
+        }
+        Bucket::DiscoveryTrackTags => emit(bucket, read_live_discovery_track_tags(conn)?, tombs),
         Bucket::LibraryRoots => emit(bucket, read_live_library_roots(conn)?, tombs),
         Bucket::FollowedSources => emit(bucket, read_live_followed_sources(conn)?, tombs),
         Bucket::DiscoveryReleaseSources => {
@@ -504,6 +528,24 @@ fn write_tombstone(buf: &mut Vec<u8>, bucket: &Bucket, cid: &str, hlc: &str) -> 
                     &PlaylistDiscoveryReleaseTombstone {
                         playlist_id: a,
                         release_id: b,
+                        hlc,
+                        deleted: true,
+                    },
+                ),
+                Bucket::PlaylistDiscoveryTracks => serde_json::to_writer(
+                    &mut *buf,
+                    &PlaylistDiscoveryTrackTombstone {
+                        playlist_id: a,
+                        track_id: b,
+                        hlc,
+                        deleted: true,
+                    },
+                ),
+                Bucket::DiscoveryTrackTags => serde_json::to_writer(
+                    &mut *buf,
+                    &DiscoveryTrackTagTombstone {
+                        track_id: a,
+                        tag_id: b,
                         hlc,
                         deleted: true,
                     },
@@ -803,6 +845,7 @@ fn read_live_discovery_tracks(conn: &Connection) -> Result<Vec<(String, Discover
             is_liked: r.get(7)?,
             liked_at: r.get(8)?,
             preview_unavailable: false,
+            tags: Vec::new(),
         };
         let hlc: String = r.get(9)?;
         Ok((d.id.clone(), d, hlc))
@@ -856,6 +899,53 @@ fn read_live_playlist_discovery_releases(
         let (p, hlc) = row?;
         let cid = dirty::junction_entity_id(&p.playlist_id, &p.release_id);
         out.push((cid, p, hlc));
+    }
+    Ok(out)
+}
+
+fn read_live_playlist_discovery_tracks(
+    conn: &Connection,
+) -> Result<Vec<(String, BackupPlaylistDiscoveryTrack, String)>> {
+    let mut stmt = conn.prepare(
+        "SELECT playlist_id, track_id, position, date_added, _hlc \
+         FROM playlist_discovery_tracks",
+    )?;
+    let rows = stmt.query_map([], |r| {
+        let p = BackupPlaylistDiscoveryTrack {
+            playlist_id: r.get(0)?,
+            track_id: r.get(1)?,
+            position: r.get(2)?,
+            date_added: r.get(3)?,
+        };
+        let hlc: String = r.get(4)?;
+        Ok((p, hlc))
+    })?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (p, hlc) = row?;
+        let cid = dirty::junction_entity_id(&p.playlist_id, &p.track_id);
+        out.push((cid, p, hlc));
+    }
+    Ok(out)
+}
+
+fn read_live_discovery_track_tags(
+    conn: &Connection,
+) -> Result<Vec<(String, BackupDiscoveryTrackTag, String)>> {
+    let mut stmt = conn.prepare("SELECT track_id, tag_id, _hlc FROM discovery_track_tags")?;
+    let rows = stmt.query_map([], |r| {
+        let t = BackupDiscoveryTrackTag {
+            track_id: r.get(0)?,
+            tag_id: r.get(1)?,
+        };
+        let hlc: String = r.get(2)?;
+        Ok((t, hlc))
+    })?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (t, hlc) = row?;
+        let cid = dirty::junction_entity_id(&t.track_id, &t.tag_id);
+        out.push((cid, t, hlc));
     }
     Ok(out)
 }

@@ -411,6 +411,7 @@
 		"shareNoUrl": "공유 텍스트에서 링크를 찾을 수 없습니다",
 		"tracks": "트랙",
 		"trackCount": "{count, plural, =1 {1개의 트랙} other {{count}개의 트랙}}",
+		"memberTrackCount": "{total}개의 트랙 중 {count}개",
 		"openInBrowser": "브라우저에서 열기",
 		"openInApp": "{app}에서 열기",
 		"copyUrl": "URL 복사",

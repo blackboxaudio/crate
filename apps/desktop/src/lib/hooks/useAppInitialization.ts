@@ -260,7 +260,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 				library = true
 			} else if (bucket === 'playlists' || bucket === 'playlist_tracks') {
 				playlists = true
-			} else if (bucket === 'playlist_discovery_releases') {
+			} else if (bucket === 'playlist_discovery_releases' || bucket === 'playlist_discovery_tracks') {
 				playlists = true
 				discovery = true
 			} else if (bucket === 'tag_categories' || bucket === 'tags') {
@@ -270,7 +270,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 			} else if (bucket === 'track_tags') {
 				tags = true
 				library = true
-			} else if (bucket === 'discovery_release_tags') {
+			} else if (bucket === 'discovery_release_tags' || bucket === 'discovery_track_tags') {
 				tags = true
 				discovery = true
 			} else if (bucket === 'discovery_releases' || bucket === 'discovery_tracks') {

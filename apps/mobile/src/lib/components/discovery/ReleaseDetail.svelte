@@ -4,8 +4,12 @@
 	import { cubicOut } from 'svelte/easing'
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryRelease, DiscoveryTrack } from '$shared/types'
+	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import ReleaseArtwork from '$lib/components/common/ReleaseArtwork.svelte'
 	import { discoveryStore } from '$shared/stores/discovery'
+	import { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
+	import { playlistsStore } from '$shared/stores/playlists'
+	import { refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import {
 		precachePreviewStream,
 		purgeReleaseAudioCache,
@@ -51,6 +55,20 @@
 	let tagPickerOpen = $state(false)
 	let editSheetOpen = $state(false)
 	let playlistPickerOpen = $state(false)
+	// Per-track sheets (opened from a track row's long-press menu). The track id is snapshotted
+	// because `actionTrack` derives from an index the menu's close animation clears.
+	let trackPlaylistPickerOpen = $state(false)
+	let trackTagPickerOpen = $state(false)
+	let actionTrackId = $state<string | null>(null)
+
+	// Opened from inside a playlist: the playlist's copy of this release lists only its member
+	// tracks, which get a marker here and a "Remove from Playlist" action.
+	const contextPlaylistId = $derived($mobileUIStore.detailPlaylistId)
+	const memberTrackIds = $derived.by(() => {
+		if (!contextPlaylistId) return null
+		const copy = $discoveryPlaylistReleases.find((r) => r.id === release.id)
+		return copy && copy.total_track_count != null ? new Set(copy.tracks.map((t) => t.id)) : null
+	})
 
 	// Release-level "more" menu (the header ⋯ button): an iOS-style context-menu platter anchored to the
 	// button, holding the actions that used to be cramped, unlabeled icon buttons (Edit, Open in source) plus
@@ -259,6 +277,36 @@
 		playbackQueue.addToQueue(release, actionTrackIndex)
 		toastStore.success(get(translate)('queue.addedToQueue'))
 		trackMenuOpen = false
+	}
+
+	function trackAddToPlaylist() {
+		const t = actionTrack
+		trackMenuOpen = false
+		if (!t) return
+		actionTrackId = t.id
+		trackPlaylistPickerOpen = true
+	}
+	function trackOpenTags() {
+		const t = actionTrack
+		trackMenuOpen = false
+		if (!t) return
+		actionTrackId = t.id
+		trackTagPickerOpen = true
+	}
+	async function trackRemoveFromPlaylist() {
+		const t = actionTrack
+		const playlistId = contextPlaylistId
+		trackMenuOpen = false
+		if (!t || !playlistId) return
+		const tr = get(translate)
+		const ok = await confirmDialog(tr('modals.confirm.removeFromPlaylistMessage', { values: { count: 1 } }), {
+			title: tr('modals.confirm.removeFromPlaylistTitle'),
+			confirmLabel: tr('common.remove'),
+		})
+		if (!ok) return
+		await playlistsStore.removeDiscoveryTracks(playlistId, [t.id])
+		discoveryPlaylistStore.filterOutTracks(playlistId, [t.id])
+		void refreshPlaylistCovers(playlistId)
 	}
 
 	// Track-level share/copy: prefer the track's own page (Bandcamp `/track/...`, SoundCloud
@@ -534,7 +582,9 @@
 							{/if}
 						{/if}
 						{#each release.tracks as track, index (track.id)}
-							{@const isActive = isCurrentRelease && $previewInfo?.trackIndex === index}
+							{@const isActive =
+								isCurrentRelease &&
+								($previewInfo?.trackId ? $previewInfo.trackId === track.id : $previewInfo?.trackIndex === index)}
 							{@const isLoading = spinnerArmed && loadingReleaseId === release.id && loadingTrackIndex === index}
 							<!-- A tap plays the track; a long-press lifts the row and opens its context menu (Play next /
 						     Add to queue). The heart floats on top (absolute) so the whole row shares the same pressed
@@ -558,10 +608,32 @@
 										{:else if isActive}
 											<EqualizerBars class="mx-auto h-3.5 w-3.5" playing={$isPlaying} />
 										{:else}
-											{index + 1}
+											{track.position}
 										{/if}
 									</span>
 									<MarqueeText text={track.name} class="min-w-0 flex-1 text-sm text-text-primary" />
+									{#if track.tags?.length}
+										<span class="flex flex-shrink-0 items-center gap-0.5">
+											{#each track.tags.slice(0, 4) as tag (tag.id)}
+												<span
+													class="block h-1.5 w-1.5 rounded-full"
+													style="background-color: {tag.color ?? DEFAULT_TAG_COLOR}"
+												></span>
+											{/each}
+										</span>
+									{/if}
+									{#if memberTrackIds?.has(track.id)}
+										<svg
+											class="h-3.5 w-3.5 flex-shrink-0 text-brand-primary"
+											viewBox="0 0 24 24"
+											fill="none"
+											stroke="currentColor"
+											stroke-width="2.5"
+											aria-hidden="true"
+										>
+											<path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round" />
+										</svg>
+									{/if}
 									{#if track.duration_ms != null}
 										<span class="flex-shrink-0 text-xs text-text-tertiary tabular-nums">
 											{formatDurationCompact(track.duration_ms)}
@@ -636,6 +708,16 @@
 <MobileTagPicker open={tagPickerOpen} releaseIds={[release.id]} onClose={() => (tagPickerOpen = false)} />
 <EditReleaseSheet open={editSheetOpen} {release} onClose={() => (editSheetOpen = false)} />
 <PlaylistPickerSheet open={playlistPickerOpen} releaseIds={[release.id]} onClose={() => (playlistPickerOpen = false)} />
+<PlaylistPickerSheet
+	open={trackPlaylistPickerOpen}
+	trackIds={actionTrackId ? [actionTrackId] : []}
+	onClose={() => (trackPlaylistPickerOpen = false)}
+/>
+<MobileTagPicker
+	open={trackTagPickerOpen}
+	trackIds={actionTrackId ? [actionTrackId] : []}
+	onClose={() => (trackTagPickerOpen = false)}
+/>
 
 <!-- Release-level "more" menu (opened by the header ⋯ button). Tap-triggered, so no lifted preview. -->
 <ContextMenu open={menuOpen} anchorRect={menuAnchor} tapTriggered onClose={() => (menuOpen = false)}>
@@ -837,7 +919,7 @@
 	{#snippet preview()}
 		{#if actionTrack}
 			<span class="w-5 flex-shrink-0 text-center text-xs text-text-tertiary tabular-nums">
-				{(actionTrackIndex ?? 0) + 1}
+				{actionTrack.position}
 			</span>
 			<span class="min-w-0 flex-1 truncate text-sm text-text-primary">{actionTrack.name}</span>
 			{#if actionTrack.duration_ms != null}
@@ -863,6 +945,36 @@
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M4 6h11M4 12h11M4 18h7M19 14v6M16 17h6" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem separatorBefore onclick={trackAddToPlaylist}>
+		{$translate('contextMenu.addToPlaylist')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M4 6h12M4 12h12M4 18h8M18 15v6M15 18h6" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	{#if contextPlaylistId && actionTrack && memberTrackIds?.has(actionTrack.id)}
+		<ContextMenuItem onclick={trackRemoveFromPlaylist}>
+			{$translate('contextMenu.removeFromPlaylist')}
+			{#snippet icon()}
+				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M4 6h12M4 12h12M4 18h8M15 18h6" stroke-linecap="round" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
+	<ContextMenuItem onclick={trackOpenTags}>
+		{$translate('nav.tags')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 12l-8 8-9-9V3h8l9 9z" stroke-linecap="round" stroke-linejoin="round" />
+				<circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
 			</svg>
 		{/snippet}
 	</ContextMenuItem>

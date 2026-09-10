@@ -23,9 +23,15 @@ export type LibraryPick = { kind: 'library'; track: Track }
 
 export type Pick = PreviewPick | LibraryPick
 
-/** Stable identity key for a pick. The `p:`/`l:` prefixes keep the namespaces provably disjoint. */
+/**
+ * Stable identity key for a pick. The `p:`/`l:` prefixes keep the namespaces provably disjoint. A
+ * preview pick is keyed by its TRACK id, not its index: the same track sits at different indices in
+ * the feed's full track list and in a playlist's member-filtered list.
+ */
 export function pickKey(p: Pick): string {
-	return p.kind === 'preview' ? `p:${p.release.id}:${p.trackIndex}` : `l:${p.track.id}`
+	return p.kind === 'preview'
+		? `p:${p.release.id}:${p.release.tracks[p.trackIndex]?.id ?? p.trackIndex}`
+		: `l:${p.track.id}`
 }
 
 /**

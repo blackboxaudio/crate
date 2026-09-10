@@ -19,6 +19,9 @@
 	type Props = {
 		releases: DiscoveryRelease[]
 		selectedIds: Set<string>
+		/** Discovery TRACK selection (sub-rows); mutually exclusive with `selectedIds` (releases). */
+		selectedTrackIds?: Set<string>
+		onTrackSelectionChange?: (ids: Set<string>) => void
 		expandedIds?: Set<string>
 		sortConfig: DiscoverySortConfig
 		categoryColors?: Map<string, string | null>
@@ -46,6 +49,8 @@
 	let {
 		releases,
 		selectedIds,
+		selectedTrackIds = new Set<string>(),
+		onTrackSelectionChange,
 		expandedIds = new Set<string>(),
 		sortConfig,
 		categoryColors,
@@ -69,6 +74,7 @@
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
+	let lastClickedTrackId: string | null = $state(null)
 	let scrollContainerEl: HTMLElement | undefined = $state(undefined)
 	let scrollRestoredForView = $state(false)
 	let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -144,6 +150,37 @@
 		onSelectionChange?.(result.selectedIds)
 	}
 
+	// Shift-range over tracks follows what is on screen: the expanded releases in list order, each
+	// narrowed by the liked filter exactly as the rows render them.
+	function visibleTrackItems(): { id: string }[] {
+		const items: { id: string }[] = []
+		for (const r of releases) {
+			if (!expandedIds.has(r.id)) continue
+			for (const t of r.tracks) if (!likedOnly || t.is_liked) items.push({ id: t.id })
+		}
+		return items
+	}
+
+	function handleTrackClick(release: DiscoveryRelease, trackIndex: number, e: MouseEvent) {
+		const track = release.tracks[trackIndex]
+		if (!track) return
+		const result = handleSelection(visibleTrackItems(), selectedTrackIds, track.id, lastClickedTrackId, {
+			shiftKey: e.shiftKey,
+			metaKey: e.metaKey,
+			ctrlKey: e.ctrlKey,
+		})
+		lastClickedTrackId = result.lastClickedId
+		onTrackSelectionChange?.(result.selectedIds)
+	}
+
+	function handleTrackContextMenu(release: DiscoveryRelease, trackIndex: number, canPlay: boolean, e: MouseEvent) {
+		const track = release.tracks[trackIndex]
+		if (track && !selectedTrackIds.has(track.id)) {
+			onTrackSelectionChange?.(new Set([track.id]))
+		}
+		onTrackContextMenu?.(release, trackIndex, canPlay, e)
+	}
+
 	function handleReleaseDoubleClick(release: DiscoveryRelease) {
 		onToggleExpand?.(release.id)
 	}
@@ -160,8 +197,9 @@
 
 	function handleContainerClick(e: MouseEvent) {
 		const target = e.target as HTMLElement
-		if (target.closest('[data-release-row]')) return
+		if (target.closest('[data-release-row], [data-track-row]')) return
 		onSelectionChange?.(new Set())
+		onTrackSelectionChange?.(new Set())
 	}
 
 	function handleContainerContextMenu(e: MouseEvent) {
@@ -230,7 +268,10 @@
 							onToggleExpand={() => onToggleExpand?.(release.id)}
 							onTrackPlay={(idx) => onTrackPlay?.(release, idx)}
 							onTrackLikeToggle={(trackId) => onTrackLikeToggle?.(release.id, trackId)}
-							onTrackContextMenu={(idx, canPlay, e) => onTrackContextMenu?.(release, idx, canPlay, e)}
+							onTrackContextMenu={(idx, canPlay, e) => handleTrackContextMenu(release, idx, canPlay, e)}
+							onTrackClick={(idx, e) => handleTrackClick(release, idx, e)}
+							{selectedTrackIds}
+							dragTrackIds={Array.from(selectedTrackIds)}
 						/>
 					</div>
 				{/each}

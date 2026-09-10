@@ -5,9 +5,11 @@ mod release_crud;
 mod release_ops;
 mod renormalize;
 mod stream_cache;
+mod track_tags;
 
 pub use dedupe::dedupe_discovery_tracks;
 pub use renormalize::renormalize_release_urls;
+pub use track_tags::{attach_track_tags, repoint_track_junctions};
 
 pub mod metadata;
 pub mod n_transform;

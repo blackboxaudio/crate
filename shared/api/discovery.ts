@@ -45,6 +45,14 @@ export async function removeTags(releaseIds: string[], tagIds: string[]): Promis
 	return invoke<void>('remove_discovery_tags', { releaseIds, tagIds })
 }
 
+export async function assignTrackTags(trackIds: string[], tagIds: string[]): Promise<void> {
+	return invoke<void>('assign_discovery_track_tags', { trackIds, tagIds })
+}
+
+export async function removeTrackTags(trackIds: string[], tagIds: string[]): Promise<void> {
+	return invoke<void>('remove_discovery_track_tags', { trackIds, tagIds })
+}
+
 export async function checkMatches(
 	url?: string | null,
 	artist?: string | null,

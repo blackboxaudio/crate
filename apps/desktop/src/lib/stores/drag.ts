@@ -7,6 +7,7 @@ import { writable, derived } from 'svelte/store'
 export type DragData =
 	| { type: 'tracks'; trackIds: string[] }
 	| { type: 'releases'; releaseIds: string[] }
+	| { type: 'discoveryTracks'; trackIds: string[] }
 	| { type: 'playlist'; playlistId: string; playlistIds: string[]; isFolder: boolean }
 	| { type: 'tag'; tagId: string; sourceCategoryId: string }
 
@@ -52,6 +53,19 @@ function createDragStore() {
 		startReleaseDrag(releaseIds: string[], x: number, y: number) {
 			set({
 				data: { type: 'releases', releaseIds },
+				position: { x, y },
+				hoveredDropTarget: null,
+				needsDropTargetRefresh: false,
+			})
+		},
+
+		/**
+		 * Start dragging discovery tracks (sub-rows of a release; a separate payload from library
+		 * `tracks` so only discovery playlists light up as targets)
+		 */
+		startDiscoveryTrackDrag(trackIds: string[], x: number, y: number) {
+			set({
+				data: { type: 'discoveryTracks', trackIds },
 				position: { x, y },
 				hoveredDropTarget: null,
 				needsDropTargetRefresh: false,
@@ -159,6 +173,8 @@ export const hoveredDropTarget = derived(dragStore, ($drag) => $drag.hoveredDrop
 export const isDraggingTracks = derived(dragStore, ($drag) => $drag.data?.type === 'tracks')
 
 export const isDraggingReleases = derived(dragStore, ($drag) => $drag.data?.type === 'releases')
+
+export const isDraggingDiscoveryTracks = derived(dragStore, ($drag) => $drag.data?.type === 'discoveryTracks')
 
 export const isDraggingPlaylist = derived(dragStore, ($drag) => $drag.data?.type === 'playlist')
 

@@ -23,6 +23,8 @@
 		releases: DiscoveryRelease[]
 		releaseCount: number
 		selectedIds: Set<string>
+		selectedTrackIds?: Set<string>
+		onTrackSelectionChange?: (ids: Set<string>) => void
 		sortConfig: DiscoverySortConfig
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -57,6 +59,8 @@
 		releases,
 		releaseCount,
 		selectedIds,
+		selectedTrackIds = new Set<string>(),
+		onTrackSelectionChange,
 		sortConfig,
 		categoryColors,
 		categorySortOrders,
@@ -213,6 +217,8 @@
 		<DiscoveryList
 			{releases}
 			{selectedIds}
+			{selectedTrackIds}
+			{onTrackSelectionChange}
 			expandedIds={$expandedReleaseIds}
 			{sortConfig}
 			{categoryColors}

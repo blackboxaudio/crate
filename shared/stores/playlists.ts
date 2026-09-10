@@ -330,6 +330,42 @@ function createPlaylistsStore() {
 			}
 		},
 
+		/**
+		 * Add individual discovery tracks to a playlist
+		 */
+		async addDiscoveryTracks(playlistId: string, trackIds: string[]) {
+			try {
+				const updatedPlaylist = await playlistsApi.addTracksToDiscoveryPlaylist(playlistId, trackIds)
+				update((state) => ({
+					...state,
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
+				}))
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to add tracks',
+				}))
+			}
+		},
+
+		/**
+		 * Remove individual discovery tracks from a playlist
+		 */
+		async removeDiscoveryTracks(playlistId: string, trackIds: string[]) {
+			try {
+				const updatedPlaylist = await playlistsApi.removeTracksFromDiscoveryPlaylist(playlistId, trackIds)
+				update((state) => ({
+					...state,
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
+				}))
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to remove tracks',
+				}))
+			}
+		},
+
 		async reorderReleases(playlistId: string, releaseIds: string[]) {
 			try {
 				await playlistsApi.reorderPlaylistReleases(playlistId, releaseIds)
@@ -585,11 +621,8 @@ export function buildBreadcrumbItems(
 			} else {
 				const count = trackCount ?? playlist.track_count
 				item.count = count
-				if (activeView === 'discovery') {
-					item.countLabel = count === 1 ? t('discovery.release') : t('discovery.releases')
-				} else {
-					item.countLabel = count === 1 ? t('library.track') : t('library.tracks')
-				}
+				// Discovery playlists count member tracks too, since membership is per track.
+				item.countLabel = count === 1 ? t('library.track') : t('library.tracks')
 			}
 		}
 

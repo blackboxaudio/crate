@@ -32,6 +32,8 @@ use crate::models::{normalized_track_name, DiscoveryTrack};
 use crate::services::cloud_sync::hlc;
 use crate::services::cloud_sync::pipeline::{buckets, dirty};
 
+use super::repoint_track_junctions;
+
 /// Collapse duplicate discovery tracks sharing `(release_id, normalized name)`.
 /// Returns the number of rows removed. Idempotent; safe to run every launch.
 pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
@@ -53,6 +55,7 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
                     is_liked: r.get::<_, i32>(7).map(|v| v != 0)?,
                     liked_at: r.get(8)?,
                     preview_unavailable: false,
+                    tags: Vec::new(),
                 },
                 r.get::<_, String>(9)?,
             ))
@@ -75,6 +78,7 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
 
     let tx = conn.unchecked_transaction()?;
     let mut removed = 0usize;
+    let mut junctions_touched = false;
 
     for (_, mut members) in groups {
         // Winner-first: highest `_hlc`, ties to the smaller id (same rule as the merge
@@ -130,6 +134,9 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
         }
 
         for (t, t_hlc) in members.iter().filter(|(t, _)| t.id != survivor_id) {
+            // Playlist memberships and track tags follow the survivor rather than
+            // cascading away with the loser row.
+            junctions_touched |= repoint_track_junctions(&tx, &t.id, &survivor_id)?;
             tx.execute("DELETE FROM discovery_tracks WHERE id = ?1", [&t.id])?;
             // Strictly above THIS copy (kills identical copies on peers), but minimally
             // so — a peer's later edit to its copy outranks the tombstone, survives, and
@@ -140,6 +147,10 @@ pub fn dedupe_discovery_tracks(conn: &Connection) -> Result<usize> {
     }
 
     dirty::mark_dirty(&tx, buckets::DISCOVERY_TRACKS)?;
+    if junctions_touched {
+        dirty::mark_dirty(&tx, buckets::PLAYLIST_DISCOVERY_TRACKS)?;
+        dirty::mark_dirty(&tx, buckets::DISCOVERY_TRACK_TAGS)?;
+    }
     tx.commit()?;
     Ok(removed)
 }

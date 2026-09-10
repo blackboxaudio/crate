@@ -12,12 +12,21 @@
 	import MobilePromptDialog from '$lib/components/common/MobilePromptDialog.svelte'
 	import PlaylistThumbnail from './PlaylistThumbnail.svelte'
 
+	// Adds whole releases (`releaseIds`, expanded to every track server-side) or individual
+	// tracks (`trackIds`); when both are given the tracks win.
 	type Props = {
 		open: boolean
-		releaseIds: string[]
+		releaseIds?: string[]
+		trackIds?: string[]
 		onClose: () => void
 	}
-	let { open, releaseIds, onClose }: Props = $props()
+	let { open, releaseIds = [], trackIds = [], onClose }: Props = $props()
+
+	function addSelectionTo(playlistId: string) {
+		return trackIds.length > 0
+			? playlistsStore.addDiscoveryTracks(playlistId, trackIds)
+			: playlistsStore.addReleases(playlistId, releaseIds)
+	}
 
 	let createOpen = $state(false)
 	let newName = $state('')
@@ -90,7 +99,7 @@
 	}
 
 	async function addTo(playlistId: string) {
-		await playlistsStore.addReleases(playlistId, releaseIds)
+		await addSelectionTo(playlistId)
 		void refreshPlaylistCovers(playlistId)
 		toastStore.success(get(translate)('contextMenu.addToPlaylist'))
 		handleClose()
@@ -102,7 +111,7 @@
 		const playlist = await playlistsStore.createPlaylist(trimmed, currentFolderId ?? undefined, 'discovery')
 		if (!playlist) return
 		createOpen = false
-		await playlistsStore.addReleases(playlist.id, releaseIds)
+		await addSelectionTo(playlist.id)
 		void refreshPlaylistCovers(playlist.id)
 		toastStore.success(get(translate)('contextMenu.addToPlaylist'))
 		handleClose()

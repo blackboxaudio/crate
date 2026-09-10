@@ -111,6 +111,7 @@ pub(super) fn collapse_track_pair(
         // here: a liked row with no stamp (older build) must stay a fixed point.
         liked_at: std::cmp::max(l.liked_at.clone(), r.liked_at.clone()),
         preview_unavailable: false,
+        tags: Vec::new(),
     };
     let survivor_hlc = if survivor == *w {
         w_hlc.to_string()
@@ -149,6 +150,7 @@ fn collapse_track(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result<b
                     is_liked: r.get::<_, i32>(7).map(|v| v != 0)?,
                     liked_at: r.get(8)?,
                     preview_unavailable: false,
+                    tags: Vec::new(),
                 },
                 r.get::<_, String>(9)?,
             ))
@@ -183,6 +185,8 @@ fn collapse_track(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Result<b
         // Remote id survives: replace the local row wholesale. Clearing any tombstone on
         // the survivor mirrors the resurrect arm (the reverse-direction collapse on a
         // peer may have tombstoned this very id before this device healed).
+        // Deferred FKs let the memberships/tags point at the survivor before it exists.
+        crate::services::discovery::repoint_track_junctions(tx, &local.id, &c.survivor.id)?;
         tx.execute("DELETE FROM discovery_tracks WHERE id = ?1", [&local.id])?;
         writers::delete_tombstone(tx, bucket, &c.survivor.id)?;
         writers::upsert_discovery_track(tx, &c.survivor, &c.survivor_hlc)?;
@@ -419,6 +423,7 @@ mod tests {
             is_liked: liked,
             liked_at: None,
             preview_unavailable: false,
+            tags: Vec::new(),
         }
     }
 

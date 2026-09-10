@@ -411,6 +411,7 @@
 		"shareNoUrl": "Paylaşılan metinde bağlantı bulunamadı",
 		"tracks": "Şarkılar",
 		"trackCount": "{count, plural, =1 {1 şarkı} other {{count} şarkı}}",
+		"memberTrackCount": "{total} şarkıdan {count} şarkı",
 		"openInBrowser": "Tarayıcıda Aç",
 		"openInApp": "{app}'da Aç",
 		"copyUrl": "URL'yi Kopyala",

@@ -152,6 +152,7 @@ impl TagService {
         dirty::mark_dirty(&conn, buckets::TAGS)?;
         dirty::mark_dirty(&conn, buckets::TRACK_TAGS)?;
         dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACK_TAGS)?;
         Ok(())
     }
 
@@ -348,6 +349,7 @@ impl TagService {
         dirty::mark_dirty(&conn, buckets::TAGS)?;
         dirty::mark_dirty(&conn, buckets::TRACK_TAGS)?;
         dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACK_TAGS)?;
         Ok(())
     }
 

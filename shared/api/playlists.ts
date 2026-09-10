@@ -106,6 +106,20 @@ export async function removeReleasesFromPlaylist(playlistId: string, releaseIds:
 }
 
 /**
+ * Add individual discovery tracks to a playlist (the whole-release variant expands server-side).
+ */
+export async function addTracksToDiscoveryPlaylist(playlistId: string, trackIds: string[]): Promise<Playlist> {
+	return invoke<Playlist>('add_tracks_to_discovery_playlist', { playlistId, trackIds })
+}
+
+/**
+ * Remove individual discovery tracks from a playlist
+ */
+export async function removeTracksFromDiscoveryPlaylist(playlistId: string, trackIds: string[]): Promise<Playlist> {
+	return invoke<Playlist>('remove_tracks_from_discovery_playlist', { playlistId, trackIds })
+}
+
+/**
  * Get discovery releases in a playlist
  */
 export async function getPlaylistReleases(playlistId: string): Promise<DiscoveryRelease[]> {

@@ -278,6 +278,8 @@ pub fn run() {
             commands::playlist::reorder_playlist,
             commands::playlist::add_releases_to_playlist,
             commands::playlist::remove_releases_from_playlist,
+            commands::playlist::add_tracks_to_discovery_playlist,
+            commands::playlist::remove_tracks_from_discovery_playlist,
             commands::playlist::get_playlist_releases,
             commands::playlist::reorder_playlist_releases,
             commands::playlist::get_playlist_cover_art,
@@ -360,6 +362,8 @@ pub fn run() {
             commands::discovery::delete_discovery_releases,
             commands::discovery::assign_discovery_tags,
             commands::discovery::remove_discovery_tags,
+            commands::discovery::assign_discovery_track_tags,
+            commands::discovery::remove_discovery_track_tags,
             commands::discovery::check_discovery_matches,
             commands::discovery::add_tracks_to_discovery_release,
             commands::discovery::merge_discovery_releases,
@@ -528,6 +532,14 @@ pub fn run() {
                         Ok(0) => {}
                         Ok(n) => log::info!("discovery: collapsed {n} duplicate track rows"),
                         Err(e) => log::warn!("discovery: track dedupe sweep failed: {e}"),
+                    }
+                    // Fan whole-release playlist memberships (the pre-track-based rows,
+                    // trackless releases that have since been enriched, rows from peers
+                    // on older builds) out into per-track members.
+                    match services::playlist::expand_release_memberships(&guard) {
+                        Ok(0) => {}
+                        Ok(n) => log::info!("playlists: expanded {n} release memberships"),
+                        Err(e) => log::warn!("playlists: membership expansion sweep failed: {e}"),
                     }
                 }
                 Err(_) => log::warn!("discovery: launch heal sweeps skipped (lock poisoned)"),

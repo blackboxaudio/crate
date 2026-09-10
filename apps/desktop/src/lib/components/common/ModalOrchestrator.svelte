@@ -35,6 +35,7 @@
 		| { type: 'removeFromLibrary'; trackIds: string[] }
 		| { type: 'removeDiscoveryReleases'; releaseIds: string[] }
 		| { type: 'removeDiscoveryReleasesFromPlaylist'; releaseIds: string[]; playlistId: string }
+		| { type: 'removeDiscoveryTracksFromPlaylist'; trackIds: string[]; playlistId: string }
 		// Feature modals
 		| { type: 'tagInput' }
 		| { type: 'deviceInfo'; device: UsbDevice }
@@ -130,6 +131,7 @@
 			playlistId: string,
 			deleteFromCollection: boolean
 		) => Promise<void>
+		onRemoveDiscoveryTracksFromPlaylist: (trackIds: string[], playlistId: string) => Promise<void>
 
 		// Move conflict callbacks
 		onMoveConflictOverwrite: (movingItemId: string, targetParentId: string | null) => Promise<boolean>
@@ -182,6 +184,7 @@
 		onRemoveFromLibrary,
 		onRemoveDiscoveryReleases,
 		onRemoveDiscoveryReleasesFromPlaylist,
+		onRemoveDiscoveryTracksFromPlaylist,
 		onMoveConflictOverwrite,
 		onMoveConflictMerge,
 		onTagInputSubmit,
@@ -281,6 +284,10 @@
 	export function openRemoveDiscoveryReleasesFromPlaylistModal(releaseIds: string[], playlistId: string) {
 		deleteTracksFromCollection = false
 		activeModal = { type: 'removeDiscoveryReleasesFromPlaylist', releaseIds, playlistId }
+	}
+
+	export function openRemoveDiscoveryTracksFromPlaylistModal(trackIds: string[], playlistId: string) {
+		activeModal = { type: 'removeDiscoveryTracksFromPlaylist', trackIds, playlistId }
 	}
 
 	export function openRemoveFromLibraryModal(trackIds: string[]) {
@@ -461,6 +468,14 @@
 			const { trackIds, playlistId } = activeModal
 			closeAll()
 			await onRemoveFromPlaylist(trackIds, playlistId, deleteTracksToo)
+		}
+	}
+
+	async function handleRemoveDiscoveryTracksFromPlaylistConfirm() {
+		if (activeModal.type === 'removeDiscoveryTracksFromPlaylist') {
+			const { trackIds, playlistId } = activeModal
+			closeAll()
+			await onRemoveDiscoveryTracksFromPlaylist(trackIds, playlistId)
 		}
 	}
 
@@ -895,6 +910,20 @@
 		confirmLabel={$translate('common.delete')}
 		destructive={true}
 		onConfirm={handleDeleteCategoryConfirm}
+		onCancel={closeAll}
+	/>
+{/if}
+
+<!-- Remove discovery tracks from Playlist Confirmation (no collection-delete option: the
+     tracks stay part of their release) -->
+{#if activeModal.type === 'removeDiscoveryTracksFromPlaylist'}
+	<ConfirmModal
+		open={true}
+		title={$translate('modals.confirm.removeFromPlaylistTitle')}
+		message={$translate('modals.confirm.removeFromPlaylistMessage', { values: { count: activeModal.trackIds.length } })}
+		confirmLabel={$translate('common.remove')}
+		destructive={true}
+		onConfirm={handleRemoveDiscoveryTracksFromPlaylistConfirm}
 		onCancel={closeAll}
 	/>
 {/if}

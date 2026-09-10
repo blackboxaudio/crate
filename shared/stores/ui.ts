@@ -36,6 +36,11 @@ interface UIState {
 	lastSelectedTrackId: string | null
 	selectedReleaseIds: Set<string>
 	lastSelectedReleaseId: string | null
+	// Discovery TRACK selection (sub-rows). Mutually exclusive with the release selection: a
+	// selected release already stands for all of its tracks, so a mix would only add ambiguity
+	// to every menu, drag, and Delete path.
+	selectedDiscoveryTrackIds: Set<string>
+	lastSelectedDiscoveryTrackId: string | null
 
 	// Sidebar navigation
 	sidebarView: SidebarView
@@ -66,6 +71,8 @@ const initialState: UIState = {
 	lastSelectedTrackId: null,
 	selectedReleaseIds: new Set(),
 	lastSelectedReleaseId: null,
+	selectedDiscoveryTrackIds: new Set(),
+	lastSelectedDiscoveryTrackId: null,
 	sidebarView: persistedSidebarView,
 	selectedPlaylistId: persistedPlaylistId,
 	selectedFolderId: persistedFolderId,
@@ -122,6 +129,8 @@ function createUIStore() {
 					lastSelectedTrackId: null,
 					selectedReleaseIds: new Set(),
 					lastSelectedReleaseId: null,
+					selectedDiscoveryTrackIds: new Set(),
+					lastSelectedDiscoveryTrackId: null,
 					selectedPlaylistId: restored.selectedPlaylistId,
 					selectedFolderId: restored.selectedFolderId,
 					sidebarView: restored.sidebarView,
@@ -171,6 +180,8 @@ function createUIStore() {
 				lastSelectedTrackId: null,
 				selectedReleaseIds: new Set(),
 				lastSelectedReleaseId: null,
+				selectedDiscoveryTrackIds: new Set(),
+				lastSelectedDiscoveryTrackId: null,
 			}))
 		},
 
@@ -216,6 +227,30 @@ function createUIStore() {
 				...state,
 				selectedReleaseIds: ids,
 				lastSelectedReleaseId: lastId ?? state.lastSelectedReleaseId,
+				// Selecting releases drops any track selection (see the state comment).
+				selectedDiscoveryTrackIds: ids.size > 0 ? new Set() : state.selectedDiscoveryTrackIds,
+				lastSelectedDiscoveryTrackId: ids.size > 0 ? null : state.lastSelectedDiscoveryTrackId,
+			}))
+		},
+
+		/**
+		 * Set selected discovery track IDs (drops any release selection).
+		 */
+		setSelectedDiscoveryTracks(ids: Set<string>, lastId?: string) {
+			update((state) => ({
+				...state,
+				selectedDiscoveryTrackIds: ids,
+				lastSelectedDiscoveryTrackId: lastId ?? state.lastSelectedDiscoveryTrackId,
+				selectedReleaseIds: ids.size > 0 ? new Set() : state.selectedReleaseIds,
+				lastSelectedReleaseId: ids.size > 0 ? null : state.lastSelectedReleaseId,
+			}))
+		},
+
+		clearDiscoveryTrackSelection() {
+			update((state) => ({
+				...state,
+				selectedDiscoveryTrackIds: new Set(),
+				lastSelectedDiscoveryTrackId: null,
 			}))
 		},
 
@@ -465,5 +500,9 @@ export const activeView = derived(uiStore, ($ui) => $ui.activeView)
 export const selectedReleaseIds = derived(uiStore, ($ui) => $ui.selectedReleaseIds)
 
 export const selectedReleaseCount = derived(uiStore, ($ui) => $ui.selectedReleaseIds.size)
+
+export const selectedDiscoveryTrackIds = derived(uiStore, ($ui) => $ui.selectedDiscoveryTrackIds)
+
+export const selectedDiscoveryTrackCount = derived(uiStore, ($ui) => $ui.selectedDiscoveryTrackIds.size)
 
 export const scrollOffset = derived(uiStore, ($ui) => $ui.viewNavigationCache[$ui.activeView].scrollOffset)

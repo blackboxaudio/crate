@@ -140,6 +140,8 @@ export const canAdvance: Readable<boolean> = { subscribe: canAdvanceStore.subscr
 export interface RecentPlay {
 	releaseId: string
 	trackIndex: number
+	/** Stable track identity; entries logged before track ids were recorded fall back to the index. */
+	trackId?: string
 	at: number
 }
 
@@ -166,8 +168,13 @@ function logRecent(pick: Pick) {
 	if (pick.kind !== 'preview') return
 	const last = recent[recent.length - 1]
 	// Dedupe consecutive repeats (re-taps, single-track loops) so the log reads as a timeline.
-	if (last && last.releaseId === pick.release.id && last.trackIndex === pick.trackIndex) return
-	recent.push({ releaseId: pick.release.id, trackIndex: pick.trackIndex, at: Date.now() })
+	const trackId = pick.release.tracks[pick.trackIndex]?.id
+	const sameAsLast =
+		last !== undefined &&
+		last.releaseId === pick.release.id &&
+		(last.trackId && trackId ? last.trackId === trackId : last.trackIndex === pick.trackIndex)
+	if (sameAsLast) return
+	recent.push({ releaseId: pick.release.id, trackIndex: pick.trackIndex, trackId, at: Date.now() })
 	if (recent.length > RECENT_CAP) recent.splice(0, recent.length - RECENT_CAP)
 	setStoredString(RECENT_KEY, JSON.stringify(recent))
 	recentlyPlayedStore.set([...recent])
@@ -621,7 +628,12 @@ function persistUserQueue() {
 			? [
 					{
 						entryId: e.entryId,
-						payload: { kind: 'preview' as const, releaseId: e.pick.release.id, trackIndex: e.pick.trackIndex },
+						payload: {
+							kind: 'preview' as const,
+							releaseId: e.pick.release.id,
+							trackIndex: e.pick.trackIndex,
+							trackId: e.pick.release.tracks[e.pick.trackIndex]?.id,
+						},
 					},
 				]
 			: []
@@ -1031,7 +1043,7 @@ export async function hydrate(): Promise<void> {
 	const resolved: UserEntry[] = []
 	for (const item of items) {
 		if (!item?.payload || item.payload.kind !== 'preview') continue
-		const { releaseId, trackIndex } = item.payload
+		const { releaseId } = item.payload
 		let release = cache.get(releaseId)
 		if (release === undefined) {
 			try {
@@ -1042,6 +1054,9 @@ export async function hydrate(): Promise<void> {
 			cache.set(releaseId, release)
 		}
 		if (!release) continue
+		// The persisted index came from whichever list the entry was queued from; the id is the truth.
+		const byId = item.payload.trackId ? release.tracks.findIndex((t) => t.id === item.payload.trackId) : -1
+		const trackIndex = byId >= 0 ? byId : item.payload.trackIndex
 		if (trackIndex < 0 || trackIndex >= release.tracks.length) continue
 		if (!isPreviewPlayable(release, trackIndex)) continue
 		resolved.push({ entryId: item.entryId || genEntryId(), pick: { kind: 'preview', release, trackIndex } })

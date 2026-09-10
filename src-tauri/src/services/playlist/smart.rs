@@ -231,6 +231,7 @@ impl PlaylistService {
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
+                    total_track_count: None,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -256,7 +257,7 @@ impl PlaylistService {
                     EXISTS(SELECT 1 FROM discovery_preview_unavailable pu WHERE pu.release_id = discovery_tracks.release_id AND pu.position = discovery_tracks.position)
              FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
-        let all_tracks: Vec<DiscoveryTrack> = stmt
+        let mut all_tracks: Vec<DiscoveryTrack> = stmt
             .query_map(param_refs.as_slice(), |row| {
                 Ok(DiscoveryTrack {
                     id: row.get(0)?,
@@ -269,9 +270,11 @@ impl PlaylistService {
                     is_liked: row.get(7)?,
                     liked_at: row.get(8)?,
                     preview_unavailable: row.get::<_, i32>(9).map(|v| v != 0)?,
+                    tags: Vec::new(),
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
+        crate::services::discovery::attach_track_tags(&conn, &mut all_tracks)?;
 
         let mut stmt = conn.prepare(&format!(
             "SELECT drt.release_id, t.id, t.category_id, t.name, t.color, t.sort_order

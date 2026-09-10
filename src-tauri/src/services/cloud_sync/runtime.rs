@@ -21,7 +21,7 @@ use super::backend::types::{AuthSession, DeviceRecord};
 use super::backend::CloudBackend;
 use super::config::CloudConfig;
 use super::pipeline::merge::OverrideEvent;
-use super::pipeline::{gc, pull, push};
+use super::pipeline::{buckets, gc, pull, push};
 use super::synclog::SyncLog;
 
 /// Coarse sync state surfaced to the UI (Phase 4) + status indicator.
@@ -674,6 +674,10 @@ impl CloudSyncState {
             self.sync_log
                 .append(&format!("pull merged: {}", outcome.buckets.join(", ")));
         }
+        let mut merged_buckets = outcome.buckets;
+        if self.expand_pulled_memberships(&merged_buckets) {
+            merged_buckets.push(buckets::PLAYLIST_DISCOVERY_TRACKS.to_string());
+        }
         if !outcome.skipped.is_empty() {
             self.sync_log.append(&format!(
                 "pull skipped missing blob(s): {} (re-upload scheduled)",
@@ -683,11 +687,34 @@ impl CloudSyncState {
         self.emit_overrides(backend, &session, outcome.overrides)
             .await;
         // Tell the UI which stores to reload so a peer's change shows without a restart.
-        self.emit_merged(outcome.buckets);
+        self.emit_merged(merged_buckets);
         if merged {
             self.mark_synced().await;
         }
         Ok(())
+    }
+
+    /// A peer on an older build (or a restored backup there) adds whole releases to
+    /// playlists; a peer on any build can deliver the tracks a trackless release was
+    /// waiting for. Either way the ledger rows are expanded right after the merge so the
+    /// membership shows up in this session. Returns whether anything was expanded.
+    fn expand_pulled_memberships(&self, merged: &[String]) -> bool {
+        let relevant = merged
+            .iter()
+            .any(|b| b == buckets::PLAYLIST_DISCOVERY_RELEASES || b == buckets::DISCOVERY_TRACKS);
+        if !relevant {
+            return false;
+        }
+        match self.conn.lock() {
+            Ok(guard) => match crate::services::playlist::expand_release_memberships(&guard) {
+                Ok(n) => n > 0,
+                Err(e) => {
+                    log::warn!("cloud_sync: post-pull membership expansion failed: {e}");
+                    false
+                }
+            },
+            Err(_) => false,
+        }
     }
 
     /// Resolve override winners → device names, remember the last ~20, and emit the

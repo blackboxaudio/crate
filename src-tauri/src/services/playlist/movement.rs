@@ -16,7 +16,8 @@ impl PlaylistService {
                     p.smart_rules, p.sort_order, p.date_created, p.date_modified,
                     COALESCE(
                         CASE WHEN p.context = 'discovery'
-                            THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                            THEN (SELECT COUNT(*) FROM playlist_discovery_tracks WHERE playlist_id = p.id)
+                               + (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
                             ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
                         END, 0
                     ) as track_count,

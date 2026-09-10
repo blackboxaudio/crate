@@ -311,6 +311,8 @@ mod tests {
             ("discovery_tracks", "_hlc"),
             ("discovery_release_tags", "_hlc"),
             ("playlist_discovery_releases", "_hlc"),
+            ("playlist_discovery_tracks", "_hlc"),
+            ("discovery_track_tags", "_hlc"),
         ] {
             assert!(
                 column_exists(conn, tbl, col),

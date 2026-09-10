@@ -74,6 +74,14 @@
 				<path d="M12 8v7M8.5 12l3.5 3.5L15.5 12" />
 			</svg>
 		{/if}
+		{#if release.total_track_count != null && release.total_track_count > release.tracks.length}
+			<!-- Playlist rows only: the detail marks which tracks are members; this says "not all of them". -->
+			<span class="flex-shrink-0 text-brand-primary">
+				{$translate('discovery.memberTrackCount', {
+					values: { count: release.tracks.length, total: release.total_track_count },
+				})}
+			</span>
+		{/if}
 		<span class="truncate" aria-hidden={!release.label}>
 			{release.label ?? ' '}
 		</span>

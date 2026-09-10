@@ -6,6 +6,7 @@
 		isDragging,
 		isDraggingTracks,
 		isDraggingReleases,
+		isDraggingDiscoveryTracks,
 		isDraggingPlaylist,
 	} from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$shared/utils/drag'
@@ -70,6 +71,7 @@
 		if ($isDraggingTracks && !playlist.is_folder) return true
 		// Discovery playlists accept release drops
 		if ($isDraggingReleases && !playlist.is_folder && playlist.context === 'discovery') return true
+		if ($isDraggingDiscoveryTracks && !playlist.is_folder && playlist.context === 'discovery') return true
 		// Folders accept playlist drops
 		if ($isDraggingPlaylist && playlist.is_folder) return true
 		return false

@@ -31,6 +31,17 @@
 		return releases.find((r) => r.id === data.releaseIds[0]) ?? null
 	})
 
+	// Look up the first discovery track (and its release, for the artwork) when dragging sub-rows
+	const discoveryTrack = $derived.by(() => {
+		if (data?.type !== 'discoveryTracks' || data.trackIds.length === 0) return null
+		const id = data.trackIds[0]
+		for (const r of releases) {
+			const t = r.tracks.find((t) => t.id === id)
+			if (t) return { track: t, release: r }
+		}
+		return null
+	})
+
 	// Look up the playlist when dragging a playlist/folder
 	const playlist = $derived.by(() => {
 		if (data?.type !== 'playlist') return null
@@ -51,6 +62,7 @@
 	const additionalCount = $derived.by(() => {
 		if (data?.type === 'tracks') return data.trackIds.length - 1
 		if (data?.type === 'releases') return data.releaseIds.length - 1
+		if (data?.type === 'discoveryTracks') return data.trackIds.length - 1
 		if (data?.type === 'playlist') return data.playlistIds.length - 1
 		return 0
 	})
@@ -100,6 +112,39 @@
 			</div>
 
 			<!-- Multi-release count badge -->
+			{#if additionalCount > 0}
+				<div
+					class="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-primary px-1.5 text-xs font-medium text-white"
+				>
+					+{additionalCount}
+				</div>
+			{/if}
+		</div>
+	{:else if data?.type === 'discoveryTracks'}
+		<!-- Discovery track preview -->
+		<div
+			class="relative flex items-center gap-2.5 rounded bg-surface-2 px-2.5 py-2 shadow-lg ring-1 ring-stroke-subtle"
+		>
+			{#if discoveryTrack}
+				<AlbumArt
+					artworkPath={discoveryTrack.release.artwork_path}
+					artworkUrl={discoveryTrack.release.artwork_url}
+					size="sm"
+				/>
+				<div class="flex flex-col gap-0.5">
+					<Text as="span" class="max-w-48 truncate text-sm font-medium text-text-primary">
+						{discoveryTrack.track.name}
+					</Text>
+					<Text as="span" class="max-w-32 truncate text-xs text-text-secondary">
+						{discoveryTrack.release.artist || $translate('common.unknownArtist')}
+					</Text>
+				</div>
+			{:else}
+				<Text as="span" class="text-sm text-text-primary">
+					{$translate('discovery.trackCount', { values: { count: data.trackIds.length } })}
+				</Text>
+			{/if}
+
 			{#if additionalCount > 0}
 				<div
 					class="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-primary px-1.5 text-xs font-medium text-white"

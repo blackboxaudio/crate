@@ -1,6 +1,16 @@
 import type { TagCategory, TagSelectionState, DiscoveryRelease } from '../types'
 import { SvelteMap } from 'svelte/reactivity'
 
+/**
+ * Whether a release carries a tag at either level: on the release itself or on any of its
+ * tracks. Every release-list tag filter goes through this so a track tagged "the one for the
+ * mix" surfaces its release under that tag.
+ */
+export function releaseHasTag(release: DiscoveryRelease, tagId: string): boolean {
+	if (release.tags.some((t) => t.id === tagId)) return true
+	return release.tracks.some((track) => track.tags?.some((t) => t.id === tagId) ?? false)
+}
+
 export function computeDiscoveryTagStates(
 	tagCategories: TagCategory[],
 	releases: DiscoveryRelease[],

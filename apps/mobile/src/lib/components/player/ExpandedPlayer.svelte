@@ -716,7 +716,8 @@
 {#if $previewInfo}
 	<PlaylistPickerSheet
 		open={playlistPickerOpen}
-		releaseIds={[$previewInfo.releaseId]}
+		trackIds={track ? [track.id] : []}
+		releaseIds={track ? [] : [$previewInfo.releaseId]}
 		onClose={() => (playlistPickerOpen = false)}
 	/>
 	<EditReleaseSheet open={editSheetOpen} release={$previewInfo.release} onClose={() => (editSheetOpen = false)} />

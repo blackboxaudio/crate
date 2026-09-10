@@ -1347,3 +1347,111 @@ async fn unlink_collection_account_propagates() -> Result<()> {
     }
     Ok(())
 }
+
+// --- track-based discovery playlists ----------------------------------------
+
+fn create_discovery_playlist(conn: &Connection, node: u32, wall: u64, id: &str) {
+    conn.execute(
+        "INSERT INTO playlists \
+            (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, context, \
+             date_created, date_modified, _hlc) \
+         VALUES (?1, ?1, NULL, 0, 0, NULL, 0, 'discovery', ?2, ?2, ?3)",
+        params![id, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::PLAYLISTS).unwrap();
+}
+
+/// A whole-release membership as an older build (or a pre-transition backup) writes it.
+fn add_release_to_playlist_ledger(conn: &Connection, node: u32, wall: u64, pl: &str, rel: &str) {
+    conn.execute(
+        "INSERT INTO playlist_discovery_releases (playlist_id, release_id, position, date_added, _hlc) \
+         VALUES (?1, ?2, 0, ?3, ?4)",
+        params![pl, rel, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::PLAYLIST_DISCOVERY_RELEASES).unwrap();
+}
+
+fn remove_track_from_discovery_playlist(
+    conn: &Connection,
+    node: u32,
+    wall: u64,
+    pl: &str,
+    tr: &str,
+) {
+    conn.execute(
+        "DELETE FROM playlist_discovery_tracks WHERE playlist_id = ?1 AND track_id = ?2",
+        params![pl, tr],
+    )
+    .unwrap();
+    dirty::record_tombstone(
+        conn,
+        buckets::PLAYLIST_DISCOVERY_TRACKS,
+        &dirty::junction_entity_id(pl, tr),
+        &hlc(node, wall),
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::PLAYLIST_DISCOVERY_TRACKS).unwrap();
+}
+
+fn discovery_playlist_members(conn: &Connection, pl: &str) -> Vec<String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT track_id FROM playlist_discovery_tracks WHERE playlist_id = ?1 ORDER BY position",
+        )
+        .unwrap();
+    stmt.query_map([pl], |r| r.get::<_, String>(0))
+        .unwrap()
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn ledger_rows(conn: &Connection) -> i64 {
+    conn.query_row(
+        "SELECT COUNT(*) FROM playlist_discovery_releases",
+        [],
+        |r| r.get(0),
+    )
+    .unwrap()
+}
+
+/// A release-level membership from a peer (older build / restored backup) syncs in,
+/// each device expands it into per-track members, and the two devices still converge
+/// byte-for-byte — the expansion stamps are a pure function of the ledger row.
+#[tokio::test]
+async fn ledger_expansion_converges_across_devices() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    create_discovery_playlist(&a, 0x0A, 1, "p1");
+    create_discovery_release(&a, 0x0A, 1, "r1", "https://x.bandcamp.com/album/a");
+    create_discovery_track(&a, 0x0A, 1, "d1", "r1", "One", 1);
+    create_discovery_track(&a, 0x0A, 1, "d2", "r1", "Two", 2);
+    add_release_to_playlist_ledger(&a, 0x0A, 5, "p1", "r1");
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+
+    // Both devices expand the same ledger row independently (launch sweep on each).
+    crate::services::playlist::expand_release_memberships(&a)?;
+    crate::services::playlist::expand_release_memberships(&b)?;
+    assert_eq!(discovery_playlist_members(&a, "p1"), ["d1", "d2"]);
+    assert_eq!(discovery_playlist_members(&b, "p1"), ["d1", "d2"]);
+    assert_eq!(ledger_rows(&a), 0);
+    assert!(tombstone_exists(
+        &a,
+        buckets::PLAYLIST_DISCOVERY_RELEASES,
+        "p1|r1"
+    ));
+
+    assert_converged(&a, &b, &cloud).await?;
+    assert_eq!(ledger_rows(&b), 0, "ledger row stays consumed after sync");
+
+    // Pruning one member on B propagates to A.
+    remove_track_from_discovery_playlist(&b, 0x0B, 20, "p1", "d2");
+    assert_converged(&a, &b, &cloud).await?;
+    assert_eq!(discovery_playlist_members(&a, "p1"), ["d1"]);
+    assert_eq!(discovery_playlist_members(&b, "p1"), ["d1"]);
+    Ok(())
+}

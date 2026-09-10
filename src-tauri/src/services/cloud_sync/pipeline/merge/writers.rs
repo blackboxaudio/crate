@@ -14,8 +14,8 @@ use serde::de::DeserializeOwned;
 
 use crate::error::{CrateError, Result};
 use crate::models::{
-    BackupDiscoveryReleaseTag, BackupPlaylistDiscoveryRelease, BackupTrack, BackupTrackTag,
-    DiscoveryTrack, PlaylistTrack, Tag,
+    BackupDiscoveryReleaseTag, BackupDiscoveryTrackTag, BackupPlaylistDiscoveryRelease,
+    BackupPlaylistDiscoveryTrack, BackupTrack, BackupTrackTag, DiscoveryTrack, PlaylistTrack, Tag,
 };
 
 use super::super::buckets::Bucket;
@@ -379,10 +379,28 @@ pub(super) fn insert_junction(tx: &Connection, bucket: &Bucket, row: &ParsedRow)
                 params![p.playlist_id, p.release_id, p.position, p.date_added, hlc],
             )?;
         }
+        Bucket::PlaylistDiscoveryTracks => {
+            let p: BackupPlaylistDiscoveryTrack = de(v)?;
+            tx.execute(
+                "INSERT INTO playlist_discovery_tracks (playlist_id, track_id, position, date_added, _hlc) \
+                 VALUES (?1,?2,?3,?4,?5) \
+                 ON CONFLICT(playlist_id, track_id) DO UPDATE SET \
+                    position=excluded.position, date_added=excluded.date_added, _hlc=excluded._hlc",
+                params![p.playlist_id, p.track_id, p.position, p.date_added, hlc],
+            )?;
+        }
         Bucket::TrackTags => {
             let t: BackupTrackTag = de(v)?;
             tx.execute(
                 "INSERT INTO track_tags (track_id, tag_id, _hlc) VALUES (?1,?2,?3) \
+                 ON CONFLICT(track_id, tag_id) DO UPDATE SET _hlc=excluded._hlc",
+                params![t.track_id, t.tag_id, hlc],
+            )?;
+        }
+        Bucket::DiscoveryTrackTags => {
+            let t: BackupDiscoveryTrackTag = de(v)?;
+            tx.execute(
+                "INSERT INTO discovery_track_tags (track_id, tag_id, _hlc) VALUES (?1,?2,?3) \
                  ON CONFLICT(track_id, tag_id) DO UPDATE SET _hlc=excluded._hlc",
                 params![t.track_id, t.tag_id, hlc],
             )?;
@@ -414,7 +432,8 @@ pub(super) fn insert_junction(tx: &Connection, bucket: &Bucket, row: &ParsedRow)
 }
 
 /// Overwrite the ordering fields (position, date_added) + `_hlc` of an existing
-/// ordered-junction row (LWW). Only `playlist_tracks` / `playlist_discovery_releases`.
+/// ordered-junction row (LWW). Only `playlist_tracks` / `playlist_discovery_releases` /
+/// `playlist_discovery_tracks`.
 pub(super) fn upsert_junction_ordering(
     tx: &Connection,
     bucket: &Bucket,
@@ -437,6 +456,14 @@ pub(super) fn upsert_junction_ordering(
                 "UPDATE playlist_discovery_releases SET position=?1, date_added=?2, _hlc=?3 \
                  WHERE playlist_id=?4 AND release_id=?5",
                 params![p.position, p.date_added, hlc, p.playlist_id, p.release_id],
+            )?;
+        }
+        Bucket::PlaylistDiscoveryTracks => {
+            let p: BackupPlaylistDiscoveryTrack = de(v)?;
+            tx.execute(
+                "UPDATE playlist_discovery_tracks SET position=?1, date_added=?2, _hlc=?3 \
+                 WHERE playlist_id=?4 AND track_id=?5",
+                params![p.position, p.date_added, hlc, p.playlist_id, p.track_id],
             )?;
         }
         _ => {
@@ -536,6 +563,10 @@ pub(super) fn junction_endpoints_exist(
             "discovery_releases",
             "release_id",
         ),
+        Bucket::PlaylistDiscoveryTracks => {
+            ("playlists", "playlist_id", "discovery_tracks", "track_id")
+        }
+        Bucket::DiscoveryTrackTags => ("discovery_tracks", "track_id", "tags", "tag_id"),
         Bucket::DiscoveryReleaseSources => (
             "discovery_releases",
             "release_id",

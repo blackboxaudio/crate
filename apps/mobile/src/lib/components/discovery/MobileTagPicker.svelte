@@ -10,12 +10,16 @@
 	// with several it's tri-state — "on" (check) only when EVERY selected release has the tag, "mixed"
 	// (dash) when only some do, off otherwise. Assign/remove call through the discovery store, which reloads
 	// releases, so the selection re-resolves against the fresh data and the chips re-render in place.
+	// Track mode (`trackIds`) tags individual tracks instead — same chips, same tri-state — via the
+	// track-level assign/remove, which patches the tracks in place.
 	type Props = {
 		open: boolean
-		releaseIds: string[]
+		releaseIds?: string[]
+		trackIds?: string[]
 		onClose: () => void
 	}
-	let { open, releaseIds, onClose }: Props = $props()
+	let { open, releaseIds = [], trackIds = [], onClose }: Props = $props()
+	const trackMode = $derived(trackIds.length > 0)
 
 	// Lazy-load categories the first time the sheet opens.
 	let loadedOnce = $state(false)
@@ -26,14 +30,21 @@
 		}
 	})
 
-	// Resolve the selected releases live from the store so each assign/remove reload reflects immediately.
-	const selectedReleases = $derived($discoveryStore.releases.filter((r) => releaseIds.includes(r.id)))
+	// Resolve the selection live from the store so each assign/remove reload reflects immediately.
+	const selectedReleases = $derived(trackMode ? [] : $discoveryStore.releases.filter((r) => releaseIds.includes(r.id)))
+	const selectedTracks = $derived(
+		trackMode ? $discoveryStore.releases.flatMap((r) => r.tracks.filter((t) => trackIds.includes(t.id))) : []
+	)
+	const selectionSize = $derived(trackMode ? selectedTracks.length : selectedReleases.length)
 
-	// How many of the selected releases carry each tag → drives the tri-state below.
+	// How many of the selected items carry each tag → drives the tri-state below.
 	const tagCounts = $derived.by(() => {
 		const counts = new SvelteMap<string, number>()
 		for (const r of selectedReleases) {
 			for (const t of r.tags) counts.set(t.id, (counts.get(t.id) ?? 0) + 1)
+		}
+		for (const track of selectedTracks) {
+			for (const t of track.tags ?? []) counts.set(t.id, (counts.get(t.id) ?? 0) + 1)
 		}
 		return counts
 	})
@@ -41,14 +52,23 @@
 	function stateOf(tagId: string): 'active' | 'mixed' | 'inactive' {
 		const count = tagCounts.get(tagId) ?? 0
 		if (count === 0) return 'inactive'
-		if (count === selectedReleases.length) return 'active'
+		if (count === selectionSize) return 'active'
 		return 'mixed'
 	}
 
 	function toggle(tagId: string) {
-		if (releaseIds.length === 0) return
+		if (selectionSize === 0) return
+		const remove = stateOf(tagId) === 'active'
+		if (trackMode) {
+			// Tracks come from one release (the detail / player opens the picker per track).
+			const releaseId = selectedTracks[0].release_id
+			void (remove
+				? discoveryStore.removeTrackTags(releaseId, trackIds, [tagId])
+				: discoveryStore.assignTrackTags(releaseId, trackIds, [tagId]))
+			return
+		}
 		// Fully assigned → remove from all; otherwise assign to all (fills in the mixed / none cases).
-		if (stateOf(tagId) === 'active') {
+		if (remove) {
 			void discoveryStore.removeTags(releaseIds, [tagId])
 		} else {
 			void discoveryStore.assignTags(releaseIds, [tagId])

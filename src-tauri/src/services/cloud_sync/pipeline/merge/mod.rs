@@ -249,7 +249,9 @@ fn merge_junction_row(tx: &Connection, bucket: &Bucket, row: &ParsedRow) -> Resu
     let local_tomb = select_tomb_hlc(tx, bucket, &cid)?;
     let ordered = matches!(
         bucket,
-        Bucket::PlaylistTracks | Bucket::PlaylistDiscoveryReleases
+        Bucket::PlaylistTracks
+            | Bucket::PlaylistDiscoveryReleases
+            | Bucket::PlaylistDiscoveryTracks
     );
 
     if !row.deleted {

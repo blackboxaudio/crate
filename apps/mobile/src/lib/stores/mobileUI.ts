@@ -3,6 +3,7 @@ import { sortedReleases, discoveryStore } from '$shared/stores/discovery'
 import { discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
 import { followStore, followedSources } from '$shared/stores/follow'
 import { releasesFromSource } from '$shared/utils'
+import { releaseHasTag } from '$shared/utils/tagComputation'
 import {
 	getStoredArray,
 	getStoredNumber,
@@ -753,8 +754,8 @@ export function applyTagFilter(list: DiscoveryRelease[], ids: string[], mode: Ta
 	if (ids.length === 0) return list
 	const set = new Set(ids)
 	return mode === 'and'
-		? list.filter((r) => ids.every((id) => r.tags.some((t) => t.id === id)))
-		: list.filter((r) => r.tags.some((t) => set.has(t.id)))
+		? list.filter((r) => ids.every((id) => releaseHasTag(r, id)))
+		: list.filter((r) => [...set].some((id) => releaseHasTag(r, id)))
 }
 
 /**
@@ -796,7 +797,7 @@ export const activePlaybackContext = derived(
 			const tagId = $ui.detailTagId
 			return {
 				origin: 'tag',
-				releases: $ui.overlayDisplayedReleases ?? $disc.releases.filter((r) => r.tags.some((t) => t.id === tagId)),
+				releases: $ui.overlayDisplayedReleases ?? $disc.releases.filter((r) => releaseHasTag(r, tagId)),
 			}
 		}
 		if ($ui.detailPlaylistId) return { origin: 'playlist', releases: $ui.overlayDisplayedReleases ?? $playlistReleases }

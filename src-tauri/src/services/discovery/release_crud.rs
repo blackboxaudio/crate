@@ -63,6 +63,7 @@ impl DiscoveryService {
                     is_liked: false,
                     liked_at: None,
                     preview_unavailable: false,
+                    tags: Vec::new(),
                 });
             }
         }
@@ -89,6 +90,7 @@ impl DiscoveryService {
             source_ids: Vec::new(),
             tracks,
             tags: Vec::new(),
+            total_track_count: None,
         })
     }
 
@@ -126,6 +128,7 @@ impl DiscoveryService {
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
+                    total_track_count: None,
                 })
             },
         ).map_err(|e| match e {
@@ -154,9 +157,11 @@ impl DiscoveryService {
                     is_liked: row.get::<_, i32>(7).map(|v| v != 0)?,
                     liked_at: row.get(8)?,
                     preview_unavailable: row.get::<_, i32>(9).map(|v| v != 0)?,
+                    tags: Vec::new(),
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
+        super::attach_track_tags(conn, &mut release.tracks)?;
 
         // Load tags
         let mut stmt = conn.prepare(
@@ -331,6 +336,7 @@ impl DiscoveryService {
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
+                    total_track_count: None,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -356,7 +362,7 @@ impl DiscoveryService {
             .iter()
             .map(|id| id as &dyn rusqlite::types::ToSql)
             .collect();
-        let all_tracks: Vec<DiscoveryTrack> = stmt
+        let mut all_tracks: Vec<DiscoveryTrack> = stmt
             .query_map(track_params.as_slice(), |row| {
                 Ok(DiscoveryTrack {
                     id: row.get(0)?,
@@ -369,9 +375,11 @@ impl DiscoveryService {
                     is_liked: row.get::<_, i32>(7).map(|v| v != 0)?,
                     liked_at: row.get(8)?,
                     preview_unavailable: row.get::<_, i32>(9).map(|v| v != 0)?,
+                    tags: Vec::new(),
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
+        super::attach_track_tags(conn, &mut all_tracks)?;
 
         // Batch load tags for all releases
         let mut stmt = conn.prepare(&format!(
@@ -611,6 +619,8 @@ impl DiscoveryService {
         dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
         dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
         dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACK_TAGS)?;
         Ok(())
     }
 
@@ -700,6 +710,8 @@ impl DiscoveryService {
         dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACKS)?;
         dirty::mark_dirty(&conn, buckets::DISCOVERY_RELEASE_TAGS)?;
         dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_TRACKS)?;
+        dirty::mark_dirty(&conn, buckets::DISCOVERY_TRACK_TAGS)?;
 
         Ok(())
     }
@@ -759,6 +771,9 @@ mod tests {
 
         assert!(svc.toggle_track_liked("t1").unwrap());
         let again = liked_at(&svc).expect("re-liking records a fresh stamp");
-        assert!(again >= first, "the fresh stamp is never older than the first");
+        assert!(
+            again >= first,
+            "the fresh stamp is never older than the first"
+        );
     }
 }

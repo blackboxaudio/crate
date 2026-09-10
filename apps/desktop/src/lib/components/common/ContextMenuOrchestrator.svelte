@@ -19,11 +19,21 @@
 		| { type: 'tagsSidebar'; x: number; y: number }
 		| { type: 'device'; x: number; y: number; device: UsbDevice }
 		| { type: 'discoveryRelease'; x: number; y: number; releases: DiscoveryRelease[] }
-		| { type: 'discoveryTrack'; x: number; y: number; release: DiscoveryRelease; trackIndex: number; canPlay: boolean }
+		| {
+				type: 'discoveryTrack'
+				x: number
+				y: number
+				release: DiscoveryRelease
+				trackIndex: number
+				canPlay: boolean
+				/** The clicked track, or the whole track selection when the click landed inside one. */
+				tracks: DiscoveryTrack[]
+		  }
 		| { type: 'discoveryView'; x: number; y: number }
 </script>
 
 <script lang="ts">
+	import type { DiscoveryTrack } from '$shared/types'
 	import TrackContextMenu from '$lib/components/library/TrackContextMenu.svelte'
 	import PlaylistContextMenu from '$lib/components/playlists/PlaylistContextMenu.svelte'
 	import TagContextMenu from '$lib/components/tags/TagContextMenu.svelte'
@@ -128,6 +138,9 @@
 		// Discovery track callbacks
 		onDiscoveryTrackLikeToggle: (release: DiscoveryRelease, trackIndex: number) => void
 		onDiscoveryTrackPlayPreview: (release: DiscoveryRelease, trackIndex: number) => void
+		onDiscoveryTrackAddToPlaylist?: (playlistId: string, tracks: DiscoveryTrack[]) => void
+		onDiscoveryTrackRemoveFromPlaylist?: (playlistId: string, tracks: DiscoveryTrack[]) => void
+		onDiscoveryTrackToggleTag?: (tracks: DiscoveryTrack[], tagId: string, assigned: boolean) => void
 
 		// Close callback
 		onClose?: () => void
@@ -188,6 +201,9 @@
 		onDiscoveryReleaseAddToPlaylist,
 		onDiscoveryTrackLikeToggle,
 		onDiscoveryTrackPlayPreview,
+		onDiscoveryTrackAddToPlaylist,
+		onDiscoveryTrackRemoveFromPlaylist,
+		onDiscoveryTrackToggleTag,
 		onClose,
 	}: Props = $props()
 
@@ -362,7 +378,8 @@
 		e: MouseEvent,
 		release: DiscoveryRelease,
 		trackIndex: number,
-		canPlay: boolean
+		canPlay: boolean,
+		tracks: DiscoveryTrack[] = [release.tracks[trackIndex]]
 	) {
 		e.preventDefault()
 		const menu = {
@@ -372,6 +389,7 @@
 			release,
 			trackIndex,
 			canPlay,
+			tracks,
 		}
 		activeMenu = menu
 		visibleMenu = menu
@@ -690,6 +708,30 @@
 		}
 	}
 
+	function handleDiscoveryTrackAddToPlaylist(playlistId: string) {
+		if (activeMenu.type === 'discoveryTrack') {
+			const { tracks } = activeMenu
+			closeAll()
+			onDiscoveryTrackAddToPlaylist?.(playlistId, tracks)
+		}
+	}
+
+	function handleDiscoveryTrackRemoveFromPlaylist() {
+		if (activeMenu.type === 'discoveryTrack' && currentPlaylistId) {
+			const { tracks } = activeMenu
+			closeAll()
+			onDiscoveryTrackRemoveFromPlaylist?.(currentPlaylistId, tracks)
+		}
+	}
+
+	function handleDiscoveryTrackToggleTag(tagId: string, assigned: boolean) {
+		if (activeMenu.type === 'discoveryTrack') {
+			const { tracks } = activeMenu
+			closeAll()
+			onDiscoveryTrackToggleTag?.(tracks, tagId, assigned)
+		}
+	}
+
 	// Discovery playlists for the context menu submenu
 	const discoveryPlaylists = $derived(playlists.filter((p) => p.context === 'discovery'))
 </script>
@@ -942,10 +984,16 @@
 		y={visibleMenu.y}
 		release={visibleMenu.release}
 		track={visibleMenu.release.tracks[visibleMenu.trackIndex]}
+		tracks={visibleMenu.tracks}
 		canPlay={visibleMenu.canPlay}
+		playlists={discoveryPlaylists}
+		{currentPlaylistId}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onLikeToggle={handleDiscoveryTrackLikeToggle}
 		onPlayPreview={handleDiscoveryTrackPlayPreview}
+		onAddToPlaylist={handleDiscoveryTrackAddToPlaylist}
+		onRemoveFromPlaylist={currentPlaylistId ? handleDiscoveryTrackRemoveFromPlaylist : undefined}
+		onToggleTag={handleDiscoveryTrackToggleTag}
 	/>
 {/if}

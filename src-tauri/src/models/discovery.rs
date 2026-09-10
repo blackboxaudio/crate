@@ -73,6 +73,12 @@ pub struct DiscoveryTrack {
     /// `discovery_preview_unavailable` table — never synced; peers see `false`.
     #[serde(default)]
     pub preview_unavailable: bool,
+    /// Track-level tags (`discovery_track_tags`), independent of the parent release's
+    /// tags. Hydrated on read. Skipped when empty so the cloud-sync wire row for the
+    /// `discovery_tracks` bucket (which reuses this struct with no tags loaded) keeps
+    /// its byte-identical shape across builds.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub tags: Vec<super::Tag>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,6 +122,11 @@ pub struct DiscoveryRelease {
     pub tracks: Vec<DiscoveryTrack>,
     #[serde(default)]
     pub tags: Vec<super::Tag>,
+    /// Set only by playlist reads, where `tracks` is filtered to the playlist's member
+    /// tracks: the release's full track count, so the UI can show "3 of 12 tracks".
+    /// `None` everywhere else (feed, detail), meaning `tracks` is the whole release.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub total_track_count: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

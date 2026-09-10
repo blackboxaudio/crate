@@ -1,8 +1,11 @@
 mod crud;
+mod expansion;
 mod movement;
 mod releases;
 mod smart;
 mod tracks;
+
+pub use expansion::{expand_release_memberships, expand_release_memberships_for};
 
 use std::sync::{Arc, Mutex};
 

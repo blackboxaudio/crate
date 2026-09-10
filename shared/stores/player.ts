@@ -62,6 +62,7 @@ const restoredPlaybackSource = getStoredString<PlaybackSource>('player.playbackS
 ])
 const restoredPreviewReleaseId = getStoredString('player.previewReleaseId', '')
 const restoredPreviewTrackIndex = getStoredNumber('player.previewTrackIndex', 0)
+const restoredPreviewTrackId = getStoredString('player.previewTrackId', '')
 
 const initialState: PlayerState = {
 	currentTrack: null,
@@ -470,7 +471,7 @@ function createPlayerStore() {
 		trackIndex: number,
 		background = false
 	): Promise<discoveryApi.PreviewStream> {
-		const cacheKey = `${release.id}:${trackIndex}`
+		const cacheKey = nativeCacheKey(release, trackIndex)
 		const cached = streamUrlCache.get(cacheKey)
 		if (cached) return cached
 		const track = release.tracks[trackIndex]
@@ -517,8 +518,26 @@ function createPlayerStore() {
 	// Cache-only variant: an engine entry for a pick whose stream is ALREADY session-cached, or null.
 	// Never touches the network — usable synchronously by applyCachedTailNow.
 	function buildCachedNativeTrack(p: { release: DiscoveryRelease; trackIndex: number }): NativeTrack | null {
-		const cached = streamUrlCache.get(`${p.release.id}:${p.trackIndex}`)
+		const cached = streamUrlCache.get(nativeCacheKey(p.release, p.trackIndex))
 		return cached ? toNativeTrack(p, cached) : null
+	}
+
+	// Keyed by track id, never by index: a release's index space differs between the feed (all tracks)
+	// and a playlist (member tracks only), and an index-keyed entry would hand another track's URL to
+	// the engine.
+	function nativeCacheKey(release: DiscoveryRelease, trackIndex: number): string {
+		return `${release.id}:${release.tracks[trackIndex]?.id ?? trackIndex}`
+	}
+
+	// Same track, even when the two picks index different lists of the same release.
+	function sameNativePick(
+		a: { release: DiscoveryRelease; trackIndex: number },
+		b: { release: DiscoveryRelease; trackIndex: number }
+	): boolean {
+		if (a.release.id !== b.release.id) return false
+		const ta = a.release.tracks[a.trackIndex]?.id
+		const tb = b.release.tracks[b.trackIndex]?.id
+		return ta && tb ? ta === tb : a.trackIndex === b.trackIndex
 	}
 
 	// The upcoming picks narrowed to previews. The iOS native window only ever runs during a preview
@@ -663,11 +682,17 @@ function createPlayerStore() {
 		// which is where the HTML5 path resets this).
 		previewRetryAttempted = false
 		setStoredNumber('player.previewTrackIndex', pick.trackIndex)
+		setStoredString('player.previewTrackId', pick.release.tracks[pick.trackIndex]?.id ?? '')
 		setStoredString('player.previewReleaseId', pick.release.id)
 		persistPositionImmediate(0)
 		update((s) => ({
 			...s,
-			previewInfo: { releaseId: pick.release.id, release: pick.release, trackIndex: pick.trackIndex },
+			previewInfo: {
+				releaseId: pick.release.id,
+				release: pick.release,
+				trackIndex: pick.trackIndex,
+				trackId: pick.release.tracks[pick.trackIndex]?.id,
+			},
 			previewTrackIndex: pick.trackIndex,
 			playbackState: {
 				...s.playbackState,
@@ -876,6 +901,7 @@ function createPlayerStore() {
 					setStoredString('player.playbackSource', 'preview')
 					setStoredString('player.previewReleaseId', release.id)
 					setStoredNumber('player.previewTrackIndex', trackIndex)
+					setStoredString('player.previewTrackId', track.id)
 					setStoredNumber('player.durationMs', track.duration_ms || 0)
 					persistPositionImmediate(startPositionMs)
 					update((s) => ({
@@ -891,7 +917,7 @@ function createPlayerStore() {
 						},
 						error: null,
 						playbackSource: 'preview',
-						previewInfo: { releaseId: release.id, release, trackIndex },
+						previewInfo: { releaseId: release.id, release, trackIndex, trackId: track.id },
 						previewTrackIndex: trackIndex,
 						// `previewLoading` deliberately stays SET. `native_preview_play` is fire-and-forget —
 						// it dispatches to the main thread and returns before AVPlayer has touched the URL — so
@@ -935,6 +961,7 @@ function createPlayerStore() {
 				setStoredString('player.playbackSource', 'preview')
 				setStoredString('player.previewReleaseId', release.id)
 				setStoredNumber('player.previewTrackIndex', trackIndex)
+				setStoredString('player.previewTrackId', track.id)
 				setStoredNumber('player.durationMs', track.duration_ms || 0)
 				persistPositionImmediate(0)
 				update((s) => ({
@@ -950,7 +977,7 @@ function createPlayerStore() {
 					},
 					error: null,
 					playbackSource: 'preview',
-					previewInfo: { releaseId: release.id, release, trackIndex },
+					previewInfo: { releaseId: release.id, release, trackIndex, trackId: track.id },
 					previewTrackIndex: trackIndex,
 					// Held (as on the native path) until the element's `playing` event fires — clearing it
 					// here only for `waiting` to re-raise it a moment later reads as a spinner flicker.
@@ -1413,7 +1440,7 @@ function createPlayerStore() {
 				state.playbackState.position_ms < PREVIOUS_RESTART_THRESHOLD_MS - 1000
 			) {
 				const windowEntry = nativeWindow[nativeIndex - 1]
-				if (windowEntry && windowEntry.release.id === pick.release.id && windowEntry.trackIndex === pick.trackIndex) {
+				if (windowEntry && sameNativePick(windowEntry, pick)) {
 					nativeIndex -= 1
 					applyNativeTrackChange(windowEntry)
 					await nativePreviewPlayer.previous()
@@ -1464,7 +1491,7 @@ function createPlayerStore() {
 			// engine had also auto-advanced concurrently, the echo's index diff still reconciles the rest.
 			if (useNative && pick.kind === 'preview' && nativeIndex + 1 < nativeWindow.length) {
 				const windowEntry = nativeWindow[nativeIndex + 1]
-				if (windowEntry && windowEntry.release.id === pick.release.id && windowEntry.trackIndex === pick.trackIndex) {
+				if (windowEntry && sameNativePick(windowEntry, pick)) {
 					nativeIndex += 1
 					applyNativeTrackChange(windowEntry)
 					await nativePreviewPlayer.next()
@@ -1672,7 +1699,12 @@ function createPlayerStore() {
 			if (restoredPlaybackSource !== 'preview' || !restoredPreviewReleaseId) return
 			try {
 				const release = await discoveryApi.getRelease(restoredPreviewReleaseId)
-				const track = release.tracks[restoredPreviewTrackIndex]
+				// Resolve by track id first: the persisted index came from whichever list was playing
+				// (a playlist's member-filtered tracks differ from the full release), so the index alone
+				// can land on a different track of the same release.
+				const byId = restoredPreviewTrackId ? release.tracks.findIndex((t) => t.id === restoredPreviewTrackId) : -1
+				const trackIndex = byId >= 0 ? byId : restoredPreviewTrackIndex
+				const track = release.tracks[trackIndex]
 				if (!track) return
 				isRestoredFromStorage = true
 				update((s) => ({
@@ -1683,13 +1715,13 @@ function createPlayerStore() {
 						duration_ms: track.duration_ms || s.playbackState.duration_ms,
 					},
 					playbackSource: 'preview',
-					previewInfo: { releaseId: release.id, release, trackIndex: restoredPreviewTrackIndex },
-					previewTrackIndex: restoredPreviewTrackIndex,
+					previewInfo: { releaseId: release.id, release, trackIndex, trackId: track.id },
+					previewTrackIndex: trackIndex,
 				}))
 				// Seed the queue module so transport + Up Next work after a restore: the context is just this
 				// release (the feed isn't persisted), then re-hydrate the persisted explicit user queue.
 				// logPlay: false — re-anchoring the last session's track isn't a new listen for the log.
-				playbackQueue.startPreviewSession(release, restoredPreviewTrackIndex, [release], { logPlay: false })
+				playbackQueue.startPreviewSession(release, trackIndex, [release], { logPlay: false })
 				void playbackQueue.hydrate()
 			} catch {
 				// Release no longer exists — clear stale persistence silently

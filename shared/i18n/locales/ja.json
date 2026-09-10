@@ -411,6 +411,7 @@
 		"shareNoUrl": "共有テキストからリンクが見つかりませんでした",
 		"tracks": "トラック",
 		"trackCount": "{count, plural, =1 {1曲} other {{count}曲}}",
+		"memberTrackCount": "{total}曲中{count}曲",
 		"openInBrowser": "ブラウザで開く",
 		"openInApp": "{app}で開く",
 		"copyUrl": "URLをコピー",

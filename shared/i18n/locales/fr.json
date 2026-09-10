@@ -411,6 +411,7 @@
 		"shareNoUrl": "Aucun lien trouvé dans le texte partagé",
 		"tracks": "Pistes",
 		"trackCount": "{count, plural, =1 {1 piste} other {{count} pistes}}",
+		"memberTrackCount": "{count} sur {total} pistes",
 		"openInBrowser": "Ouvrir dans le navigateur",
 		"openInApp": "Ouvrir dans {app}",
 		"copyUrl": "Copier l'URL",

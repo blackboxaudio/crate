@@ -24,6 +24,7 @@ import {
 	activeView,
 	selectedTrackIds,
 	selectedReleaseIds,
+	selectedDiscoveryTrackIds,
 	settingsStore,
 	continuousPlayback,
 	devicesStore,
@@ -488,6 +489,16 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				const currentPlaylist = playlistId ? playlists.find((p) => p.id === playlistId) : null
 
 				if (get(activeView) === 'discovery') {
+					const discoveryTrackIds = get(selectedDiscoveryTrackIds)
+					if (discoveryTrackIds.size > 0) {
+						if (playlistId && !currentPlaylist?.is_smart) {
+							getModalOrchestrator()?.openRemoveDiscoveryTracksFromPlaylistModal(
+								Array.from(discoveryTrackIds),
+								playlistId
+							)
+						}
+						return true
+					}
 					const releaseIds = get(selectedReleaseIds)
 					if (releaseIds.size > 0) {
 						if (playlistId && !currentPlaylist?.is_smart) {
@@ -713,6 +724,12 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onTracksDropOnPlaylist: trackController.handleTracksDropOnPlaylist,
 			onReleasesDropOnPlaylist: async (playlistId: string, releaseIds: string[]) => {
 				await playlistsStore.addReleases(playlistId, releaseIds)
+			},
+			onDiscoveryTracksDropOnPlaylist: async (playlistId: string, trackIds: string[]) => {
+				await playlistsStore.addDiscoveryTracks(playlistId, trackIds)
+				// Same feedback the library track drop gives: the target is usually not the open view.
+				const playlistName = getPlaylists().find((p) => p.id === playlistId)?.name ?? ''
+				toastStore.success(get(translate)('toast.trackAdded', { values: { count: trackIds.length, playlistName } }))
 			},
 			onPlaylistMove: playlistController.handlePlaylistDragMove,
 			onBulkPlaylistMove: playlistController.handleBulkPlaylistMove,

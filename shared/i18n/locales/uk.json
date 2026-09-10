@@ -411,6 +411,7 @@
 		"shareNoUrl": "У спільному тексті не знайдено посилання",
 		"tracks": "Доріжки",
 		"trackCount": "{count, plural, =1 {1 доріжка} other {{count} доріжок}}",
+		"memberTrackCount": "{count} з {total} доріжок",
 		"openInBrowser": "Відкрити в браузері",
 		"openInApp": "Відкрити в {app}",
 		"copyUrl": "Копіювати URL",

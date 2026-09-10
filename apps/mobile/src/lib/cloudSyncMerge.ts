@@ -11,6 +11,8 @@ const BUCKET_FLAGS = {
 	discovery_release_tags: 'discovery,tags',
 	discovery_release_sources: 'discovery',
 	playlist_discovery_releases: 'discovery,playlists',
+	playlist_discovery_tracks: 'discovery,playlists',
+	discovery_track_tags: 'discovery,tags',
 	collection_accounts: 'collection',
 	collection_items: 'collection',
 	tags: 'tags,discovery',

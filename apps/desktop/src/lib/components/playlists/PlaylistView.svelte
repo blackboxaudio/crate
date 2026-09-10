@@ -32,6 +32,7 @@
 		fullyCachedIds,
 	} from '$lib/stores'
 	import { applyDiscoveryFilters, emptyFacetFilters } from '$shared/utils/discoveryFilters'
+	import { releaseHasTag } from '$shared/utils/tagComputation'
 
 	type Props = {
 		playlist: Playlist
@@ -58,6 +59,8 @@
 		onToggleTagFilterMode?: () => void
 		onSelectionChange?: (ids: Set<string>) => void
 		onTrackPlay?: (track: Track) => void
+		selectedDiscoveryTrackIds?: Set<string>
+		onDiscoveryTrackSelectionChange?: (ids: Set<string>) => void
 		onDiscoveryTrackPlay?: (release: DiscoveryRelease, trackIndex: number) => void
 		onDiscoveryTrackLikeToggle?: (releaseId: string, trackId: string) => void
 		onDiscoveryTrackContextMenu?: (
@@ -107,6 +110,8 @@
 		onToggleTagFilterMode,
 		onSelectionChange,
 		onTrackPlay,
+		selectedDiscoveryTrackIds = new Set<string>(),
+		onDiscoveryTrackSelectionChange,
 		onDiscoveryTrackPlay,
 		onDiscoveryTrackLikeToggle,
 		onDiscoveryTrackContextMenu,
@@ -139,9 +144,9 @@
 		if (activeFilterTags && activeFilterTags.length > 0) {
 			const tagIds = new Set(activeFilterTags.map((t) => t.id))
 			if (tagFilterMode === 'and') {
-				result = result.filter((r) => [...tagIds].every((id) => r.tags.some((t) => t.id === id)))
+				result = result.filter((r) => [...tagIds].every((id) => releaseHasTag(r, id)))
 			} else {
-				result = result.filter((r) => r.tags.some((t) => tagIds.has(t.id)))
+				result = result.filter((r) => [...tagIds].some((id) => releaseHasTag(r, id)))
 			}
 		}
 		if (searchValue) {
@@ -240,6 +245,8 @@
 			<DiscoveryList
 				releases={filteredReleases}
 				{selectedIds}
+				selectedTrackIds={selectedDiscoveryTrackIds}
+				onTrackSelectionChange={onDiscoveryTrackSelectionChange}
 				expandedIds={$expandedReleaseIds}
 				sortConfig={discoverySortConfig}
 				{categoryColors}

@@ -411,6 +411,7 @@
 		"shareNoUrl": "Nie znaleziono łącza w udostępnionym tekście",
 		"tracks": "Ścieżki",
 		"trackCount": "{count, plural, =1 {1 ścieżka} other {{count} ścieżek}}",
+		"memberTrackCount": "{count} z {total} ścieżek",
 		"openInBrowser": "Otwórz w przeglądarce",
 		"openInApp": "Otwórz w {app}",
 		"copyUrl": "Skopiuj URL",

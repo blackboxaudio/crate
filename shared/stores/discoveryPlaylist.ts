@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store'
-import type { DiscoveryRelease } from '../types'
+import type { DiscoveryRelease, Tag } from '../types'
 import { SvelteMap } from 'svelte/reactivity'
 
 // =============================================================================
@@ -49,12 +49,48 @@ function createDiscoveryPlaylistStore() {
 		},
 
 		updateTagCategory(tagId: string, newCategoryId: string) {
+			const moveTag = (tag: Tag) => (tag.id === tagId ? { ...tag, category_id: newCategoryId } : tag)
 			update((state) => ({
 				releases: state.releases.map((r) => ({
 					...r,
-					tags: r.tags.map((tag) => (tag.id === tagId ? { ...tag, category_id: newCategoryId } : tag)),
+					tags: r.tags.map(moveTag),
+					tracks: r.tracks.map((t) => (t.tags ? { ...t, tags: t.tags.map(moveTag) } : t)),
 				})),
 			}))
+		},
+
+		/** Mirror of discoveryStore.applyTrackTags for this store's (member-filtered) release copies. */
+		applyTrackTags(releaseId: string, tagsByTrack: Map<string, Tag[]>) {
+			const updateTracks = (releases: DiscoveryRelease[]) =>
+				releases.map((r) =>
+					r.id === releaseId
+						? {
+								...r,
+								tracks: r.tracks.map((t) => (tagsByTrack.has(t.id) ? { ...t, tags: tagsByTrack.get(t.id) } : t)),
+							}
+						: r
+				)
+			update((state) => ({ releases: updateTracks(state.releases) }))
+			for (const [key, releases] of cache) {
+				if (releases.some((r) => r.id === releaseId)) {
+					cache.set(key, updateTracks(releases))
+				}
+			}
+		},
+
+		/**
+		 * Drop member tracks from a playlist's release groups (a group with no members left goes
+		 * too), in the current view and the cache.
+		 */
+		filterOutTracks(playlistId: string, trackIds: string[]) {
+			const ids = new Set(trackIds)
+			const prune = (releases: DiscoveryRelease[]) =>
+				releases
+					.map((r) => ({ ...r, tracks: r.tracks.filter((t) => !ids.has(t.id)) }))
+					.filter((r) => r.tracks.length > 0)
+			update((state) => ({ releases: prune(state.releases) }))
+			const cached = cache.get(playlistId)
+			if (cached) cache.set(playlistId, prune(cached))
 		},
 
 		filterOutReleases(releaseIds: string[]) {

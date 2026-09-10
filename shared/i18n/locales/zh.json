@@ -411,6 +411,7 @@
 		"shareNoUrl": "在共享文本中未找到链接",
 		"tracks": "曲目",
 		"trackCount": "{count, plural, =1 {1 首曲目} other {{count} 首曲目}}",
+		"memberTrackCount": "{count} 首，共 {total} 首",
 		"openInBrowser": "在浏览器中打开",
 		"openInApp": "在 {app} 中打开",
 		"copyUrl": "复制URL",

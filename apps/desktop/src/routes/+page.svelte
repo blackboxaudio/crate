@@ -31,6 +31,7 @@
 		activeView,
 		selectedTrackIds,
 		selectedReleaseIds,
+		selectedDiscoveryTrackIds,
 		tagFilterMode,
 		visibleDevices,
 		rightSidebarVisible,
@@ -428,6 +429,10 @@
 		uiStore.setSelectedReleases(ids)
 	}
 
+	function handleDiscoveryTrackSelectionChange(ids: Set<string>) {
+		uiStore.setSelectedDiscoveryTracks(ids)
+	}
+
 	// =============================================================================
 	// Context Menu Handlers
 	// =============================================================================
@@ -460,8 +465,15 @@
 		canPlay: boolean,
 		e: MouseEvent
 	) {
-		uiLayoutStore.setContextMenuDiscoveryTrackId(release.tracks[trackIndex].id)
-		orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryTrackMenu(e, release, trackIndex, canPlay)
+		const track = release.tracks[trackIndex]
+		uiLayoutStore.setContextMenuDiscoveryTrackId(track.id)
+		// Inside a multi-track selection the menu acts on all of it (the list has already made the
+		// clicked track the selection when it was not part of one).
+		const selection = $selectedDiscoveryTrackIds
+		const tracks = selection.has(track.id)
+			? $displayedReleases.flatMap((r) => r.tracks.filter((t) => selection.has(t.id)))
+			: [track]
+		orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryTrackMenu(e, release, trackIndex, canPlay, tracks)
 	}
 
 	function handleTrackLikeToggle(releaseId: string, trackId: string) {
@@ -620,6 +632,8 @@
 					}}
 					onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 					onSelectionChange={handleReleaseSelectionChange}
+					selectedDiscoveryTrackIds={$selectedDiscoveryTrackIds}
+					onDiscoveryTrackSelectionChange={handleDiscoveryTrackSelectionChange}
 					onDiscoveryTrackPlay={handleTrackPlayInRelease}
 					onDiscoveryTrackLikeToggle={handleTrackLikeToggle}
 					onDiscoveryTrackContextMenu={handleTrackContextMenuInRelease}
@@ -695,6 +709,8 @@
 			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			onSelectionChange={handleReleaseSelectionChange}
+			selectedTrackIds={$selectedDiscoveryTrackIds}
+			onTrackSelectionChange={handleDiscoveryTrackSelectionChange}
 			onReleaseOpen={handleReleaseOpen}
 			onReleaseOpenUrl={(release) => openUrl(release.url)}
 			onReleaseImport={(release) => orchestratorLayer?.setPurchaseRelease(release)}

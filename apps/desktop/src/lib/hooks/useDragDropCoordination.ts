@@ -14,6 +14,7 @@ export interface DragDropCoordinationConfig {
 	getDevices: () => UsbDevice[]
 	onTracksDropOnPlaylist: (playlistId: string, trackIds: string[]) => Promise<void>
 	onReleasesDropOnPlaylist: (playlistId: string, releaseIds: string[]) => Promise<void>
+	onDiscoveryTracksDropOnPlaylist: (playlistId: string, trackIds: string[]) => Promise<void>
 	onPlaylistMove: (playlistId: string, targetFolderId: string | null) => Promise<void>
 	onBulkPlaylistMove: (playlistIds: string[], targetFolderId: string | null) => Promise<void>
 	onPlaylistExportToDevice: (playlistId: string, isFolder: boolean, deviceId: string) => Promise<void>
@@ -41,6 +42,7 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 		getPlaylists,
 		onTracksDropOnPlaylist,
 		onReleasesDropOnPlaylist,
+		onDiscoveryTracksDropOnPlaylist,
 		onPlaylistMove,
 		onBulkPlaylistMove,
 		onPlaylistExportToDevice,
@@ -115,6 +117,8 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 			} else if (data.type === 'releases' && target.type === 'playlist') {
 				// Dropping releases on a discovery playlist
 				onReleasesDropOnPlaylist(target.id, data.releaseIds)
+			} else if (data.type === 'discoveryTracks' && target.type === 'playlist') {
+				onDiscoveryTracksDropOnPlaylist(target.id, data.trackIds)
 			} else if (data.type === 'playlist' && target.type === 'folder') {
 				// Validate each playlist in the drag set
 				const idsToMove = data.playlistIds.length > 1 ? data.playlistIds : [data.playlistId]

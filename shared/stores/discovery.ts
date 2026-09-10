@@ -13,6 +13,7 @@ import type {
 import * as discoveryApi from '../api/discovery'
 import * as followApi from '../api/follow'
 import { sortDiscoveryReleases } from '../utils/sorting'
+import { releaseHasTag } from '../utils/tagComputation'
 import {
 	applyDiscoveryFilters,
 	cycleTriState,
@@ -262,6 +263,55 @@ function createDiscoveryStore() {
 					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to remove tags'
 				)
 			}
+		},
+
+		/**
+		 * Track-level tags. Patched in place (one release re-read) rather than reloading the whole
+		 * feed: a playlist view holds member-filtered copies of the release that a full replace
+		 * would un-filter, and the feed reload is the expensive path on large collections.
+		 */
+		async assignTrackTags(releaseId: string, trackIds: string[], tagIds: string[]) {
+			try {
+				await discoveryApi.assignTrackTags(trackIds, tagIds)
+				await this.refreshTrackTags(releaseId)
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to assign tags'
+				)
+			}
+		},
+
+		async removeTrackTags(releaseId: string, trackIds: string[], tagIds: string[]) {
+			try {
+				await discoveryApi.removeTrackTags(trackIds, tagIds)
+				await this.refreshTrackTags(releaseId)
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to remove tags'
+				)
+			}
+		},
+
+		async refreshTrackTags(releaseId: string) {
+			const fresh = await discoveryApi.getRelease(releaseId)
+			const tagsByTrack = new Map(fresh.tracks.map((t) => [t.id, t.tags ?? []]))
+			this.applyTrackTags(releaseId, tagsByTrack)
+		},
+
+		/** Apply per-track tag lists (keyed by track id) to every in-memory holder of the release. */
+		applyTrackTags(releaseId: string, tagsByTrack: Map<string, Tag[]>) {
+			update((state) => ({
+				...state,
+				releases: state.releases.map((r) =>
+					r.id === releaseId
+						? {
+								...r,
+								tracks: r.tracks.map((t) => (tagsByTrack.has(t.id) ? { ...t, tags: tagsByTrack.get(t.id) } : t)),
+							}
+						: r
+				),
+			}))
+			discoveryPlaylistStore.applyTrackTags(releaseId, tagsByTrack)
 		},
 
 		async purchaseRelease(
@@ -670,9 +720,9 @@ export const displayedReleases = derived(
 		if (discoveryFilters.selectedTagIds.length > 0) {
 			const tagIds = new Set(discoveryFilters.selectedTagIds)
 			if (discoveryFilters.tagFilterMode === 'and') {
-				releases = releases.filter((r) => [...tagIds].every((id) => r.tags.some((t) => t.id === id)))
+				releases = releases.filter((r) => [...tagIds].every((id) => releaseHasTag(r, id)))
 			} else {
-				releases = releases.filter((r) => r.tags.some((t) => tagIds.has(t.id)))
+				releases = releases.filter((r) => [...tagIds].some((id) => releaseHasTag(r, id)))
 			}
 		}
 

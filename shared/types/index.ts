@@ -753,6 +753,8 @@ export interface DiscoveryTrack {
 	liked_at: string | null
 	/** The source currently serves no preview stream for this track (e.g. an unreleased track on a Bandcamp pre-order). Device-local, refreshed on every stream extraction. */
 	preview_unavailable: boolean
+	/** Track-level tags, independent of the parent release's tags. Omitted by the backend when empty. */
+	tags?: Tag[]
 }
 
 export interface DiscoveryRelease {
@@ -777,6 +779,8 @@ export interface DiscoveryRelease {
 	source_ids: string[]
 	tracks: DiscoveryTrack[]
 	tags: Tag[]
+	/** Playlist reads only: `tracks` is filtered to the playlist's member tracks and this carries the release's full track count (so the UI can show "3 of 12 tracks"). Absent when `tracks` is the whole release. */
+	total_track_count?: number
 }
 
 export interface DiscoveryReleaseCreate {
@@ -958,7 +962,10 @@ export interface CollectionRefreshSummary {
 export interface PreviewInfo {
 	releaseId: string
 	release: DiscoveryRelease
+	/** Index into `release.tracks` — the list the pick came from (a playlist's member-filtered tracks differ from the feed's full list). */
 	trackIndex: number
+	/** The track's stable id; compare on this across contexts, never on `trackIndex`. */
+	trackId?: string
 }
 
 // =============================================================================
@@ -971,7 +978,7 @@ export interface PreviewInfo {
  * implemented today. This is the PERSISTED shape — ids only, never heavy `DiscoveryRelease`
  * snapshots — so the explicit queue survives a relaunch and re-hydrates the releases by id.
  */
-export type QueuePayload = { kind: 'preview'; releaseId: string; trackIndex: number }
+export type QueuePayload = { kind: 'preview'; releaseId: string; trackIndex: number; trackId?: string }
 
 /** One entry in the explicit user queue. `entryId` is a stable per-entry id (NOT release/track id —
  *  the same track can be queued twice) so reorder/remove can target a single occurrence. */
