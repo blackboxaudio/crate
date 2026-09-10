@@ -48,12 +48,9 @@
 	const currentFolderId = $derived(folderStack.length > 0 ? folderStack[folderStack.length - 1] : null)
 	const currentFolder = $derived(currentFolderId ? (allPlaylists.find((p) => p.id === currentFolderId) ?? null) : null)
 
-	// The current level, folders-first, then the user's chosen sort within each group (persisted
-	// in mobileUI so it survives remounts and restarts). Name ties break date sorts for stability.
-	const children = $derived.by(() => {
-		const items = currentFolderId
-			? getPlaylistChildren(allPlaylists, currentFolderId)
-			: allPlaylists.filter((p) => p.parent_id === null)
+	// Folders-first, then the user's chosen sort within each group (persisted in mobileUI so it survives
+	// remounts and restarts). Name ties break date sorts for stability.
+	function sortLevel(items: Playlist[]): Playlist[] {
 		const { field, direction } = $playlistsSort
 		const dir = direction === 'asc' ? 1 : -1
 		return [...items].sort((a, b) => {
@@ -66,7 +63,16 @@
 			if (aVal > bVal) return 1 * dir
 			return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
 		})
-	})
+	}
+
+	// The current level.
+	const children = $derived(
+		sortLevel(
+			currentFolderId
+				? getPlaylistChildren(allPlaylists, currentFolderId)
+				: allPlaylists.filter((p) => p.parent_id === null)
+		)
+	)
 
 	// Folder-listing sort sheet (name / created / modified) — shares the generalized SortSheet.
 	let sortOpen = $state(false)
@@ -76,17 +82,31 @@
 		{ field: 'date_modified', labelKey: 'playlists.sort.dateModified', defaultDir: 'desc' },
 	]
 
-	// Client-side search over the current level's playlists / folders (by name). Scoped to the view the
-	// user is in — drilling into or out of a folder, or opening a playlist, clears it (see push/popFolder
-	// and openPlaylist) so every view starts fresh, matching the store-held searches that mobileUI's nav
-	// subscribe resets. Cleared at the navigation call sites rather than from an effect so the incoming
-	// level never renders one frame still filtered. `children` (unfiltered) still drives cover prefetch so
-	// results are ready when search clears.
+	// Client-side search by name over the current level AND everything beneath it — a playlist buried in a
+	// nested folder must still be findable from wherever the user is standing. Matches carry the folder
+	// path relative to the current level so the row can say where it lives, and tapping one jumps the trail
+	// straight there. Scoped to the view the user is in — drilling into or out of a folder, or opening a
+	// playlist, clears it (see push/popFolder and openPlaylist) so every view starts fresh, matching the
+	// store-held searches that mobileUI's nav subscribe resets. Cleared at the navigation call sites rather
+	// than from an effect so the incoming level never renders one frame still filtered.
 	let query = $state('')
-	const filteredChildren = $derived.by(() => {
+	interface SearchHit {
+		item: Playlist
+		// Ancestor folders between the current level and the item, top-down (empty for direct children).
+		path: Playlist[]
+	}
+	const searchHits = $derived.by((): SearchHit[] => {
 		const q = query.trim().toLowerCase()
-		if (!q) return children
-		return children.filter((c) => c.name.toLowerCase().includes(q))
+		if (!q) return children.map((item) => ({ item, path: [] }))
+		const hits: SearchHit[] = []
+		const walk = (level: Playlist[], path: Playlist[]) => {
+			for (const item of sortLevel(level)) {
+				if (item.name.toLowerCase().includes(q)) hits.push({ item, path })
+				if (item.is_folder) walk(getPlaylistChildren(allPlaylists, item.id), [...path, item])
+			}
+		}
+		walk(children, [])
+		return hits
 	})
 
 	// The current level's scroll container (rebinds as folder navigation swaps levels), for the tab re-tap
@@ -101,10 +121,11 @@
 		scrollEl?.scrollTo({ top: 0, behavior: 'smooth' })
 	})
 
-	// Batch-load mosaic covers for the playlists shown at the current level; re-runs as folder
-	// navigation changes which playlists are visible. Folders have no covers, so they're excluded.
+	// Batch-load mosaic covers for the playlists currently shown (the level, or the search hits beneath it);
+	// re-runs as folder navigation or the search changes which playlists are visible. Folders have no covers,
+	// so they're excluded.
 	$effect(() => {
-		const ids = children.filter((c) => !c.is_folder).map((c) => c.id)
+		const ids = searchHits.filter((h) => !h.item.is_folder).map((h) => h.item.id)
 		// Re-run only when the visible playlists change — untrack the cover-map reads inside `ensure`
 		// (its `.has()` checks are reactive) so loading covers doesn't re-trigger this effect.
 		if (ids.length > 0) untrack(() => ensurePlaylistCovers(ids))
@@ -130,14 +151,17 @@
 		}
 	}
 
-	function pushFolder(folderId: string) {
+	// `via` = the intermediate folders between the current level and `folderId` (a search hit beneath a
+	// nested folder), so the trail stays a true ancestor chain and back-navigation walks every level.
+	function pushFolder(folderId: string, via: Playlist[] = []) {
 		void lightTap()
 		// The pinned search input persists across level swaps, so drop focus explicitly — otherwise the
 		// iOS keyboard stays up and hovers over the slide.
 		;(document.activeElement as HTMLElement | null)?.blur()
 		navDirection = 'forward'
 		query = ''
-		mobileUIStore.pushPlaylistFolder(folderId)
+		if (via.length === 0) mobileUIStore.pushPlaylistFolder(folderId)
+		else mobileUIStore.setPlaylistFolderTrail([...folderStack, ...via.map((f) => f.id), folderId])
 	}
 
 	function popFolder() {
@@ -161,12 +185,20 @@
 		onClose: popFolder,
 	})
 
-	function openPlaylist(playlistId: string) {
+	// A search hit inside a nested folder also moves the trail to its folder, so closing the playlist
+	// lands the user next to it rather than back at the level they searched from.
+	function openPlaylist(playlistId: string, via: Playlist[] = []) {
 		void lightTap()
 		;(document.activeElement as HTMLElement | null)?.blur()
 		query = ''
+		if (via.length > 0) {
+			navDirection = 'forward'
+			mobileUIStore.setPlaylistFolderTrail([...folderStack, ...via.map((f) => f.id)])
+		}
 		mobileUIStore.openPlaylist(playlistId)
 	}
+
+	const pathLabel = (path: Playlist[]) => path.map((f) => f.name).join(' › ')
 
 	// --- Create / Rename / Delete ---
 	let createModalOpen = $state(false)
@@ -363,12 +395,12 @@
 						<MobileListSkeleton />
 					</div>
 				{:else}
-					<MobileList isEmpty={filteredChildren.length === 0} empty={emptyState}>
-						{#each filteredChildren as item (item.id)}
+					<MobileList isEmpty={searchHits.length === 0} empty={emptyState}>
+						{#each searchHits as { item, path } (item.id)}
 							{#if item.is_folder}
 								{@const childCount = getPlaylistChildren(allPlaylists, item.id).length}
 								<div use:longPress={{ onLongPress: (rect) => onRowLongPress(item, rect) }}>
-									<MobileListItem onclick={() => pushFolder(item.id)}>
+									<MobileListItem onclick={() => pushFolder(item.id, path)}>
 										{#snippet leading()}
 											<div class="flex h-11 w-11 items-center justify-center rounded bg-surface-2 text-text-secondary">
 												<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -387,20 +419,22 @@
 										{/snippet}
 										<span class="block truncate text-sm font-medium text-text-primary">{item.name}</span>
 										<span class="block truncate text-xs text-text-tertiary">
-											{childCount}
+											{#if path.length > 0}{pathLabel(path)} ·
+											{/if}{childCount}
 											{childCount === 1 ? $translate('library.item') : $translate('library.items')}
 										</span>
 									</MobileListItem>
 								</div>
 							{:else}
 								<div use:longPress={{ onLongPress: (rect) => onRowLongPress(item, rect) }}>
-									<MobileListItem onclick={() => openPlaylist(item.id)}>
+									<MobileListItem onclick={() => openPlaylist(item.id, path)}>
 										{#snippet leading()}
 											<PlaylistThumbnail urls={getPlaylistCovers(item.id)} smart={item.is_smart} />
 										{/snippet}
 										<span class="block truncate text-sm font-medium text-text-primary">{item.name}</span>
 										<span class="block truncate text-xs text-text-tertiary">
-											{item.track_count}
+											{#if path.length > 0}{pathLabel(path)} ·
+											{/if}{item.track_count}
 											{item.track_count === 1 ? $translate('library.track') : $translate('library.tracks')}
 										</span>
 									</MobileListItem>
