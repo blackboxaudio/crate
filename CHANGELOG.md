@@ -50,6 +50,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Fixed YouTube previews (and the YouTube-backed previews of Discogs releases), which had stopped playing after YouTube retired the API clients the app used and started rejecting its per-request visitor identity as bot traffic. The app now speaks the clients that currently work without sign-in, keeps one browser-like YouTube session per run so previews don't trip the "confirm you're not a bot" check, and again imports YouTube playlists after YouTube changed how playlist pages list their videos. A standalone probe (`scripts/yt-probe.mjs`) and a scheduled canary workflow now flag the next breakage instead of leaving it to be discovered in the app
+
 - Fixed the desktop update prompt appearing on top of the first-run onboarding or feature tour and freezing the screen: the prompt is a system dialog that disabled everything behind it (Skip / Maybe later stopped responding) while sitting under the onboarding overlay itself, so a fresh install that had a newer build waiting was stuck on first launch — the prompt now waits until onboarding and the tour are done
 - Fixed the auto-updater comparing versions across release channels: a staging build now only ever accepts newer staging builds and a stable build only newer stable builds, so a build can never be offered a downgrade or a cross-channel install even if it were pointed at the other channel's update feed; the release pipeline also verifies each macOS build embeds its own channel's feed before publishing
 

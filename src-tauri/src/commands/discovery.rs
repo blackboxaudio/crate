@@ -1247,8 +1247,9 @@ pub async fn skip_enrichment(id: String, skip_ids: State<'_, EnrichmentSkipIds>)
     Ok(())
 }
 
-/// Transform the `n` query parameter on YouTube CDN stream URLs (IOS client).
-/// Only processes streams that have a `proxy_ua` set (i.e. non-browser-compatible).
+/// Transform the `n` query parameter on YouTube CDN stream URLs.
+/// Only processes streams that have a `proxy_ua` set (i.e. non-browser-compatible); the
+/// current primary client's URLs carry no `n` parameter, so this is a no-op for them.
 async fn transform_youtube_n_params(
     streams: &mut [StreamInfo],
     app_handle: &tauri::AppHandle,

@@ -9,7 +9,8 @@ use crate::services::DiscoveryService;
 use tauri::{Emitter, Manager};
 
 /// Size of each sequential download chunk (~4 MB).
-/// With n-param transformation, YouTube CDN allows full downloads for ANDROID_VR client URLs.
+/// Chunked `Range` requests matter beyond memory: YouTube's CDN paces a plain full-file GET
+/// to roughly playback speed (~30 KB/s) but serves ranged requests at full speed.
 const CHUNK_SIZE: u64 = 4_194_304;
 
 /// Maximum total download size to prevent runaway downloads (~50 MB).

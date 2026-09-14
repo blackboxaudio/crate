@@ -6,6 +6,8 @@ mod soundcloud;
 mod youtube;
 
 #[cfg(test)]
+mod canary;
+#[cfg(test)]
 mod tests;
 
 use serde::Serialize;
@@ -208,6 +210,6 @@ pub async fn scan_page(
 // Re-exports for streams.rs, n_transform.rs, and commands/discovery.rs
 pub(crate) use youtube::{
     build_yt_client_with_config, extract_playlist_videos, extract_query_param,
-    fetch_yt_player_response_with_config, jittered_delay, new_yt_cookie_jar, parse_youtube_url,
-    parse_yt_initial_data, YT_CLIENTS,
+    fetch_yt_player_response_with_config, jittered_delay, parse_youtube_url, parse_yt_initial_data,
+    reset_yt_session, yt_session, YtClientConfig, YT_CLIENTS,
 };
