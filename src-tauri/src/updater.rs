@@ -63,7 +63,10 @@ mod tests {
     use super::*;
 
     fn accepts(current: &str, remote: &str) -> bool {
-        accepts_release(&Version::parse(current).unwrap(), &Version::parse(remote).unwrap())
+        accepts_release(
+            &Version::parse(current).unwrap(),
+            &Version::parse(remote).unwrap(),
+        )
     }
 
     #[test]
