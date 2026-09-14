@@ -145,6 +145,10 @@
 		setOnboardingItemsEnabled(!showOnboarding)
 	})
 
+	$effect(() => {
+		uiStore.setWizardTourActive(showWizardTour)
+	})
+
 	// Clear tree multi-selection when navigation changes
 	let prevNavPlaylistId: string | null = null
 	let prevNavFolderId: string | null = null

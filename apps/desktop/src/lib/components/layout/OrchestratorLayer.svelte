@@ -551,8 +551,10 @@
 	/>
 {/if}
 
-<!-- Update Modal -->
-{#if $updateAvailable}
+<!-- Update Modal — held back while onboarding or the feature tour is up: the modal is a
+     native showModal() dialog, which makes those overlays inert (their Skip / Maybe later
+     buttons stop working) while the dialog itself sits under the layout's pointer-events: none. -->
+{#if $updateAvailable && !$uiStore.isOnboarding && !$uiStore.isWizardTourActive}
 	<UpdateModal open={true} onClose={() => updaterStore.dismiss()} />
 {/if}
 

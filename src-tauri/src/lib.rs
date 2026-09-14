@@ -10,6 +10,9 @@ mod menu;
 mod models;
 mod proxy;
 mod services;
+// Updater acceptance rule: desktop-only at runtime, but its pure logic is unit-tested flagless.
+#[cfg(any(feature = "desktop", test))]
+mod updater;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -154,7 +157,11 @@ pub fn run() {
     // the process plugin, and window-state (there are no OS windows to persist on mobile).
     #[cfg(feature = "desktop")]
     let builder = builder
-        .plugin(tauri_plugin_updater::Builder::default().build())
+        .plugin(
+            tauri_plugin_updater::Builder::default()
+                .default_version_comparator(updater::version_comparator)
+                .build(),
+        )
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::default().build());
 

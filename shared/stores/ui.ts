@@ -58,6 +58,8 @@ interface UIState {
 
 	// Onboarding state
 	isOnboarding: boolean
+	// The feature tour after onboarding; modal dialogs must wait for it like they wait for onboarding
+	isWizardTourActive: boolean
 }
 
 // Restore persisted nav state
@@ -86,6 +88,7 @@ const initialState: UIState = {
 		discovery: { selectedPlaylistId: null, selectedFolderId: null, sidebarView: 'library', scrollOffset: 0 },
 	},
 	isOnboarding: false,
+	isWizardTourActive: false,
 }
 
 // =============================================================================
@@ -462,6 +465,10 @@ function createUIStore() {
 
 		setOnboarding(value: boolean) {
 			update((state) => ({ ...state, isOnboarding: value }))
+		},
+
+		setWizardTourActive(value: boolean) {
+			update((state) => ({ ...state, isWizardTourActive: value }))
 		},
 
 		// =========================================================================

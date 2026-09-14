@@ -50,6 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Fixed the desktop update prompt appearing on top of the first-run onboarding or feature tour and freezing the screen: the prompt is a system dialog that disabled everything behind it (Skip / Maybe later stopped responding) while sitting under the onboarding overlay itself, so a fresh install that had a newer build waiting was stuck on first launch — the prompt now waits until onboarding and the tour are done
+- Fixed the auto-updater comparing versions across release channels: a staging build now only ever accepts newer staging builds and a stable build only newer stable builds, so a build can never be offered a downgrade or a cross-channel install even if it were pointed at the other channel's update feed; the release pipeline also verifies each macOS build embeds its own channel's feed before publishing
+
 - Fixed the mobile Playlists tab search only matching the folder level you were looking at: it now searches the current level and every folder beneath it, results show which folder they live in, and tapping one jumps straight there
 - Fixed the desktop playlist sidebar getting sluggish with large playlist trees: expanding or collapsing a folder visibly lagged because the whole tree was rebuilt and re-rendered on every toggle — the tree now only re-renders the rows that actually changed, and very tall folders open instantly instead of playing an animation that couldn't keep up
 
