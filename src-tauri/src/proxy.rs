@@ -371,6 +371,10 @@ async fn download_stream_to_disk(
 
     file.flush()?;
     drop(file);
+    // The cached copy is what both the proxy and the direct `file://` path feed to AVPlayer,
+    // so it is patched once here rather than per request.
+    #[cfg(target_os = "ios")]
+    crate::services::discovery::fmp4::neutralize_for_avfoundation(&part_path, &content_type);
     std::fs::rename(&part_path, dest)?;
 
     let full = total_size.is_none_or(|total| written >= total);

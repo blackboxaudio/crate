@@ -1,6 +1,7 @@
 mod artwork_cache;
 mod audio_cache;
 mod dedupe;
+pub mod fmp4;
 mod release_crud;
 mod release_ops;
 mod renormalize;
