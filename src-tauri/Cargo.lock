@@ -951,7 +951,7 @@ dependencies = [
 
 [[package]]
 name = "crate-app"
-version = "0.3.0-staging.50"
+version = "0.3.0-staging.51"
 dependencies = [
  "android_logger",
  "async-trait",
