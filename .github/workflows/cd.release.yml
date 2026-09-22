@@ -283,7 +283,7 @@ jobs:
           java-version: '17'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       # Vendored OpenSSL + SQLCipher need NDK clang/ar for cross-compilation (mirrored from
       # ci.build.yml). The clang API level matches minSdk 29 (gen/android/app/build.gradle.kts).
