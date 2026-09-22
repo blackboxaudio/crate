@@ -29,6 +29,7 @@
 	import { refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import { registerBackLayer } from '$lib/androidBack'
 	import Drawer from '$lib/components/common/Drawer.svelte'
+	import DetailHeader from '$lib/components/common/DetailHeader.svelte'
 	import EmptyState from '$lib/components/common/EmptyState.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
@@ -187,7 +188,7 @@
 	{onClosed}
 	{enterInstant}
 	z={30}
-	scrimZ={20}
+	scrimZ={30}
 	scrimDismiss={false}
 	closeEdgeFrom="left"
 	closeEdgeSize={24}
@@ -196,28 +197,13 @@
 	style="--mini-player-inset: {$overlayMiniPlayerInset}"
 >
 	{#snippet children({ animating })}
-		<!-- Header. Owns the top safe-area inset and mirrors the fixed top bar's surface-1 + hairline so
-		     drill-in headers read as the same app chrome. -->
-		<div class="pt-safe border-b border-stroke-subtle bg-surface-1">
-			<div class="flex items-center justify-between gap-1 px-2 py-2">
-				<div class="flex min-w-0 items-center gap-1">
-					<button
-						type="button"
-						class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
-						aria-label={$translate('common.close')}
-						onclick={startClose}
-					>
-						<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-							<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-						</svg>
-					</button>
-					<h1 class="truncate text-lg font-semibold text-text-primary">{playlist.name}</h1>
-				</div>
+		<DetailHeader title={playlist.name} onBack={startClose}>
+			{#snippet trailing()}
 				<!-- Reorder only applies to manual playlists in their natural, unfiltered order — a smart
 				     playlist's order is rule-derived, and reordering a sorted/filtered view would persist
 				     a misleading result. -->
 				{#if canReorder}
-					<div class="flex items-center gap-1">
+					<div class="flex flex-shrink-0 items-center gap-1">
 						{#if isReorderMode}
 							<button
 								type="button"
@@ -240,8 +226,8 @@
 						{/if}
 					</div>
 				{/if}
-			</div>
-		</div>
+			{/snippet}
+		</DetailHeader>
 
 		<!-- Content. The list branch hands its scroll container to ReleaseFeedList (the same virtualized list
 		     the Discovery feed uses), so it renders directly as the flex child — no outer scroll wrapper, which

@@ -7,7 +7,7 @@ import { previewInfo } from '$shared/stores/player'
 //
 // - Shell tab views scroll inside <main>'s content box — MobileShell already pads the tab bar + bottom
 //   safe-area below them, so they only need the card's clearance above that box.
-// - The full-screen detail overlays (release / playlist / tag / follow drill-ins) own the physical screen
+// - The full-screen pushed screens (release / folder / playlist / tag / follow drill-ins) own the physical screen
 //   bottom, and the card drops by the tab bar's height while one is open (it floats just above the
 //   safe-area — see MiniPlayer), so the safe-area inset must be part of their padding. They keep a small
 //   base even with no preview active so the last row still clears the home indicator.

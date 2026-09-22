@@ -1,13 +1,15 @@
 <script lang="ts">
 	// Mobile app shell: the bottom-tab navigation shell (header + Discovery / Following / Playlists / Tags
-	// tabs), with the playlist-, tag-, and follow-detail screens, the release-detail screen, the settings
-	// drawer, the persistent mini-player,
-	// and the full-screen expanded player layered on top. Layering (low → high): shell < playlist/tag detail
-	// (z-30) < release detail (z-35) < mini-player (z-40) < settings drawer (z-45) < expanded player (z-50).
-	// The release detail sits above the playlist/tag detail so it can be pushed open from within either; the
-	// settings drawer sits above the mini-player (which it hides while open); the expanded player floats above all.
+	// tabs), with the pushed folder levels and the playlist-, tag-, and follow-detail screens, the
+	// release-detail screen, the settings drawer, the persistent mini-player, and the full-screen expanded
+	// player layered on top. Layering (low → high): shell < folder levels / playlist / tag / follow detail
+	// (z-30, stacked in DOM order) < release detail (z-35) < mini-player (z-40) < settings drawer (z-45) <
+	// expanded player (z-50). The release detail sits above the other drill-ins so it can be pushed open from
+	// within any of them; the settings drawer sits above the mini-player (which it hides while open); the
+	// expanded player floats above all.
 	import MobileShell from '$lib/components/layout/MobileShell.svelte'
 	import ReleaseDetail from '$lib/components/discovery/ReleaseDetail.svelte'
+	import PlaylistFolderView from '$lib/components/playlists/PlaylistFolderView.svelte'
 	import PlaylistDetailView from '$lib/components/playlists/PlaylistDetailView.svelte'
 	import TagDetailView from '$lib/components/tags/TagDetailView.svelte'
 	import FollowSheet from '$lib/components/following/FollowSheet.svelte'
@@ -20,6 +22,7 @@
 	import {
 		mobileUIStore,
 		detailReleaseId,
+		playlistFolderTrail,
 		detailPlaylistId,
 		detailTagId,
 		detailFollowSourceId,
@@ -101,6 +104,13 @@
 {#if detailRelease}
 	<ReleaseDetail release={detailRelease} />
 {/if}
+
+<!-- The Playlists tab's folder levels: one pushed screen per trail entry, root → deepest, so the playlist
+     detail below stacks above the folder it was opened from. Each level resolves (and self-closes) its
+     own folder. -->
+{#each $playlistFolderTrail as folderId (folderId)}
+	<PlaylistFolderView {folderId} />
+{/each}
 
 {#if detailPlaylist}
 	<PlaylistDetailView playlist={detailPlaylist} />

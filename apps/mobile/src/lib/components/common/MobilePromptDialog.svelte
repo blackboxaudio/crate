@@ -4,6 +4,7 @@
 	import { translate } from '$shared/i18n'
 	import { easeFluid } from '$lib/easing'
 	import { registerBackLayer } from '$lib/androidBack'
+	import { portalToBody } from '$lib/actions/portal'
 
 	// A centered iOS-alert-style prompt with a single text field (the UIAlertController-with-text-field
 	// pattern used by Files' "New Folder", Music's "New Playlist", etc.). Replaces the bottom-sheet modal
@@ -92,6 +93,9 @@
 </script>
 
 {#if open}
+	<!-- Both layers portal to <body>: an instance mounted inside a pushed folder level (a z-30 Drawer)
+	     would otherwise be capped at that drawer's stacking context and render under the z-40 mini
+	     player. Mount order (backdrop → frame) keeps their relative layering, since both share z-70. -->
 	<!-- Backdrop: dim + light blur; tap to cancel. -->
 	<button
 		type="button"
@@ -100,12 +104,14 @@
 		style="background-color: rgba(0,0,0,0.4); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);"
 		transition:fade={{ duration: 160 }}
 		onclick={onCancel}
+		use:portalToBody
 	></button>
 
 	<!-- Frame sized to the visible viewport so the centered card clears the keyboard. -->
 	<div
 		class="pointer-events-none fixed left-0 z-[70] flex w-full items-center justify-center px-10"
 		style="top: {frameTop}px; height: {frameH}px;"
+		use:portalToBody
 	>
 		<div
 			role="dialog"

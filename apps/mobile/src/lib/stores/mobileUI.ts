@@ -151,6 +151,12 @@ interface MobileUIState {
 	 */
 	playlistFolderTrail: string[]
 	/**
+	 * Whether a pushed folder level is in its covering position (over the tab bar) — the trail's
+	 * counterpart to `detailCovering`. Drops the instant the LAST folder starts closing (a deeper one
+	 * closing still leaves a level covering), so the mini-player rises as that slide-out runs.
+	 */
+	playlistFolderCovering: boolean
+	/**
 	 * One-shot boot anchor for the discovery feed's scroll restore: the release that was topmost when the
 	 * app was last killed, plus the scroll offset within its row. The feed consumes it on its first mount
 	 * (via `consumeDiscoveryAnchor`) once the release streams into the progressively loading list —
@@ -202,6 +208,7 @@ const defaultState: MobileUIState = {
 	scrollTopNonce: 0,
 	overlayPopNonce: 0,
 	playlistFolderTrail: [],
+	playlistFolderCovering: false,
 	discoveryRestoreAnchor: null,
 	playlistsSort: { field: 'name', direction: 'asc' },
 	discoveryViewMode: 'list',
@@ -269,6 +276,9 @@ function readStoredId(key: string): string | null {
 /** Overlay kinds restored from storage at boot — each detail view consumes its marker once (via
  *  `consumeBootRestoredOverlay`) to skip the slide-in animation on the restored mount. */
 const bootRestoredOverlays = new Set<'release' | 'playlist' | 'tag' | 'follow'>()
+/** Folder levels restored from storage at boot — each pushed folder consumes its id once (via
+ *  `consumeBootRestoredFolder`) to appear in place rather than slide in. */
+const bootRestoredFolders = new Set<string>()
 
 function seedInitialState(): MobileUIState {
 	const detailReleaseId = readStoredId(STORAGE_KEYS.detailReleaseId)
@@ -280,6 +290,8 @@ function seedInitialState(): MobileUIState {
 	if (detailTagId) bootRestoredOverlays.add('tag')
 	if (detailFollowSourceId) bootRestoredOverlays.add('follow')
 	const anchorReleaseId = readStoredId(STORAGE_KEYS.anchorReleaseId)
+	const playlistFolderTrail = getStoredArray(STORAGE_KEYS.playlistFolderTrail)
+	for (const id of playlistFolderTrail) bootRestoredFolders.add(id)
 	return {
 		...defaultState,
 		activeTab: getStoredString<MobileTab>(STORAGE_KEYS.activeTab, 'discovery', [
@@ -296,7 +308,8 @@ function seedInitialState(): MobileUIState {
 		tagDetailCovering: detailTagId !== null,
 		detailFollowSourceId,
 		followDetailCovering: detailFollowSourceId !== null,
-		playlistFolderTrail: getStoredArray(STORAGE_KEYS.playlistFolderTrail),
+		playlistFolderTrail,
+		playlistFolderCovering: playlistFolderTrail.length > 0,
 		discoveryScrollTop: getStoredNumber(STORAGE_KEYS.scrollTop, 0),
 		discoveryRestoreAnchor: anchorReleaseId
 			? { releaseId: anchorReleaseId, offset: getStoredNumber(STORAGE_KEYS.anchorOffset, 0) }
@@ -380,7 +393,8 @@ function createMobileUIStore() {
 					s.detailReleaseId !== null ||
 					s.detailPlaylistId !== null ||
 					s.detailTagId !== null ||
-					s.detailFollowSourceId !== null
+					s.detailFollowSourceId !== null ||
+					s.playlistFolderTrail.length > 0
 				if (hasOverlay) return { ...s, overlayPopNonce: s.overlayPopNonce + 1 }
 				if (s.selectMode) return { ...s, selectMode: false, selectedReleaseIds: new Set() }
 				return { ...s, scrollTopNonce: s.scrollTopNonce + 1 }
@@ -448,17 +462,33 @@ function createMobileUIStore() {
 		},
 
 		// --- Playlists folder trail (the Playlists tab's drill-down path) ---------------------------
-		/** Drill into a folder (append it to the trail). */
-		pushPlaylistFolder(folderId: string) {
-			update((s) => ({ ...s, playlistFolderTrail: [...s.playlistFolderTrail, folderId] }))
+		// Each trail entry is a pushed full-screen level (`PlaylistFolderView`), so the trail follows the
+		// detail overlays' open / beginClose / close choreography rather than a plain push/pop.
+		/** Begin closing a folder level: keep it in the trail (its drawer stays mounted through the
+		 *  slide-out) but drop the covering flag when nothing remains beneath it. Indexed by id, not
+		 *  "the top", because stacked levels can be mid-close at the same time. */
+		beginClosePlaylistFolder(folderId: string) {
+			update((s) => ({ ...s, playlistFolderCovering: s.playlistFolderTrail.indexOf(folderId) > 0 }))
 		},
-		/** Back out one folder level. */
-		popPlaylistFolder() {
-			update((s) => ({ ...s, playlistFolderTrail: s.playlistFolderTrail.slice(0, -1) }))
+		/** Finalize a folder close once its slide-out lands: truncate the trail AT this folder (anything
+		 *  deeper went with it). A no-op when the id is already gone — a Drawer's fallback timer can
+		 *  report a close after a truncation already removed the level. Never re-raises the covering
+		 *  flag: a remaining level may itself be sliding out. */
+		closePlaylistFolder(folderId: string) {
+			update((s) => {
+				const i = s.playlistFolderTrail.indexOf(folderId)
+				if (i === -1) return s
+				const trail = s.playlistFolderTrail.slice(0, i)
+				return {
+					...s,
+					playlistFolderTrail: trail,
+					playlistFolderCovering: s.playlistFolderCovering && trail.length > 0,
+				}
+			})
 		},
-		/** Replace the trail wholesale (boot validation truncation, folder deleted mid-trail). */
+		/** Replace the trail wholesale (boot validation truncation, a search hit pushing several levels). */
 		setPlaylistFolderTrail(trail: string[]) {
-			update((s) => ({ ...s, playlistFolderTrail: trail }))
+			update((s) => ({ ...s, playlistFolderTrail: trail, playlistFolderCovering: trail.length > 0 }))
 		},
 		/** Set the Playlists tab's folder-listing sort (persisted via the nav-persistence subscribe). */
 		setPlaylistsSort(sort: { field: PlaylistsSortField; direction: SortDirection }) {
@@ -477,6 +507,10 @@ function createMobileUIStore() {
 		 *  mount skips its slide-in animation while later in-session opens animate normally. */
 		consumeBootRestoredOverlay(kind: 'release' | 'playlist' | 'tag' | 'follow'): boolean {
 			return bootRestoredOverlays.delete(kind)
+		},
+		/** Folder-level counterpart of the above, keyed by folder id (a restored trail is several levels). */
+		consumeBootRestoredFolder(folderId: string): boolean {
+			return bootRestoredFolders.delete(folderId)
 		},
 
 		// --- Tag filtering (client-side over the loaded feed) ---------------------------------------
@@ -723,8 +757,8 @@ mobileUIStore.subscribe((s) => {
 // persistence above, so no present or future navigation path can forget to reset. The nav identity covers
 // the tab, the Playlists folder level, and the three detail overlays — deliberately NOT `detailReleaseId`:
 // the release screen has no list of its own, and clearing the feed behind it would discard the very search
-// the user tapped through. View-local queries reset alongside these (see `PlaylistsView`); the detail
-// overlays' own filters reset by unmounting on close.
+// the user tapped through. The pushed levels' own queries/filters (folder levels, the detail overlays) are
+// component-local and reset by unmounting on close.
 const navIdentity = (s: MobileUIState) =>
 	`${s.activeTab}|${s.detailPlaylistId}|${s.detailTagId}|${s.detailFollowSourceId}|${s.playlistFolderTrail.join('/')}`
 let prevNavIdentity = navIdentity(initialState)
@@ -828,3 +862,4 @@ export const queueOrigin = derived(mobileUIStore, ($s) => $s.queueOrigin)
 export const scrollTopNonce = derived(mobileUIStore, ($s) => $s.scrollTopNonce)
 export const overlayPopNonce = derived(mobileUIStore, ($s) => $s.overlayPopNonce)
 export const playlistFolderTrail = derived(mobileUIStore, ($s) => $s.playlistFolderTrail)
+export const playlistFolderCovering = derived(mobileUIStore, ($s) => $s.playlistFolderCovering)

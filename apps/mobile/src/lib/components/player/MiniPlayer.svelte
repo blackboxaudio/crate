@@ -6,6 +6,7 @@
 	import {
 		mobileUIStore,
 		detailCovering,
+		playlistFolderCovering,
 		playlistDetailCovering,
 		tagDetailCovering,
 		followDetailCovering,
@@ -28,11 +29,13 @@
 	)
 
 	// Float above the bottom tab bar (its 3.5rem + safe-area height) on the main shell, with a small gap.
-	// When a full-screen detail overlay covers the tab bar — the release detail, or a playlist / tag /
+	// When a full-screen pushed screen covers the tab bar — the release detail, or a folder / playlist / tag /
 	// followed-source drill-in — drop to float just above the bottom safe-area instead; otherwise it would
 	// hang 3.5rem up, leaving a gap over the now-covered tab bar. Tracks the *covering* flags (not the ids),
 	// which drop the instant a close starts — so it rises back over the tab bar *as* the detail slides out.
-	const overDetail = $derived($detailCovering || $playlistDetailCovering || $tagDetailCovering || $followDetailCovering)
+	const overDetail = $derived(
+		$detailCovering || $playlistFolderCovering || $playlistDetailCovering || $tagDetailCovering || $followDetailCovering
+	)
 
 	// Tap handling for this fixed card. iOS WebKit defers `click` dispatch to a fixed element like this
 	// one while the discovery feed coasts to a stop from a momentum ("flick") scroll — the same deferral

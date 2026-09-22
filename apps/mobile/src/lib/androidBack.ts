@@ -10,7 +10,8 @@ import { mobileUIStore } from '$lib/stores/mobileUI'
 // `registerBackLayer` — open order IS stacking order, so the last registration is the topmost
 // surface and Back closes exactly one layer per press through the surface's own close path (same
 // animations/choreography as a swipe or scrim tap). The store fallbacks below the stack cover
-// non-layered state (swipe-open row, multi-select, folder trail, non-home tab). The system handles
+// non-layered state (swipe-open row, multi-select, non-home tab). The Playlists folder levels are
+// Drawers too, so they pop through the layer stack like any other push. The system handles
 // what never reaches us: an open keyboard and native AlertDialogs consume Back themselves.
 
 type CloseLayer = () => void
@@ -53,19 +54,13 @@ export function handleBack(): boolean {
 		return true
 	}
 
-	// 4. The Playlists folder drill-down backs out one level.
-	if (s.activeTab === 'playlists' && s.playlistFolderTrail.length > 0) {
-		mobileUIStore.popPlaylistFolder()
-		return true
-	}
-
-	// 5. Any non-home tab returns to Discovery (standard Android back-to-home-tab behavior).
+	// 4. Any non-home tab returns to Discovery (standard Android back-to-home-tab behavior).
 	if (s.activeTab !== 'discovery') {
 		mobileUIStore.setTab('discovery')
 		return true
 	}
 
-	// 6. Nothing left — Android backgrounds the app (state survives; playback keeps running).
+	// 5. Nothing left — Android backgrounds the app (state survives; playback keeps running).
 	return false
 }
 

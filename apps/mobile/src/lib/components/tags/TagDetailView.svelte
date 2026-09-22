@@ -12,6 +12,7 @@
 	import { ownedReleaseIds } from '$shared/stores/collection'
 	import { applyViewFilter, emptyViewFilter, reconcileViewSort, releaseSortOptions } from '$lib/utils/listControls'
 	import Drawer from '$lib/components/common/Drawer.svelte'
+	import DetailHeader from '$lib/components/common/DetailHeader.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
 	import ReleaseFeedList from '$lib/components/discovery/ReleaseFeedList.svelte'
@@ -118,24 +119,11 @@
 	style="--mini-player-inset: {$overlayMiniPlayerInset}"
 >
 	{#snippet children({ animating })}
-		<!-- Header: back chevron + the tag's color dot + its name. Owns the top safe-area inset and mirrors
-		     the fixed top bar's surface-1 + hairline so drill-in headers read as the same app chrome. -->
-		<div class="pt-safe border-b border-stroke-subtle bg-surface-1">
-			<div class="flex items-center gap-1 px-2 py-2">
-				<button
-					type="button"
-					class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-text-primary active:bg-surface-2"
-					aria-label={$translate('common.close')}
-					onclick={startClose}
-				>
-					<svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-						<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
-					</svg>
-				</button>
+		<DetailHeader title={tag.name} onBack={startClose}>
+			{#snippet leading()}
 				<span class="h-3 w-3 flex-shrink-0 rounded-full" style="background-color: {dotColor}"></span>
-				<h1 class="truncate text-lg font-semibold text-text-primary">{tag.name}</h1>
-			</div>
-		</div>
+			{/snippet}
+		</DetailHeader>
 
 		{#if releases.length > 0}
 			<ListControlsBar

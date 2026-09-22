@@ -72,10 +72,23 @@ async function waitForDiscoveryLoaded(): Promise<void> {
 
 function validatePlaylists(): void {
 	const playlists = get(playlistsStore).playlists.filter((p) => p.context === 'discovery')
-	const trail = get(mobileUIStore).playlistFolderTrail
-	const firstMissing = trail.findIndex((id) => !playlists.some((p) => p.id === id && p.is_folder))
-	if (firstMissing !== -1) mobileUIStore.setPlaylistFolderTrail(trail.slice(0, firstMissing))
-	const playlistId = get(mobileUIStore).detailPlaylistId
+	const ui = get(mobileUIStore)
+	const trail = ui.playlistFolderTrail
+	// Each trail entry is a pushed level rendered from a keyed `{#each}`, so the trail must be a real
+	// parent → child chain (which also rules out duplicate ids): truncate at the first link that isn't —
+	// a folder deleted or moved elsewhere on another device.
+	const firstBroken = trail.findIndex((id, i) => {
+		const parent = i === 0 ? null : trail[i - 1]
+		return !playlists.some((p) => p.id === id && p.is_folder && p.parent_id === parent)
+	})
+	if (firstBroken !== -1) mobileUIStore.setPlaylistFolderTrail(trail.slice(0, firstBroken))
+	// Pushed levels cover whatever tab is active. A trail persisted alongside another tab is either the
+	// legitimate locate-from-player combo (release detail open over it) or a leftover from before folders
+	// were pushed screens, when the trail lived inside the tab and simply hid on a tab switch — drop it.
+	if (ui.activeTab !== 'playlists' && ui.detailPlaylistId === null && ui.detailReleaseId === null) {
+		if (get(mobileUIStore).playlistFolderTrail.length > 0) mobileUIStore.setPlaylistFolderTrail([])
+	}
+	const playlistId = ui.detailPlaylistId
 	if (playlistId !== null && !playlists.some((p) => p.id === playlistId)) mobileUIStore.closePlaylist()
 }
 
