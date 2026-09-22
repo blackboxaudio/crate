@@ -416,6 +416,7 @@
 					{@const isContextActive = track.id === $contextMenuDiscoveryTrackId}
 					{@const isSelected = selectedTrackIds.has(track.id)}
 					{@const owned = isFullyOwned || $ownedTrackIds.has(track.id)}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
 					<!-- svelte-ignore a11y_no_static_element_interactions -->
 					<div
 						data-track-row

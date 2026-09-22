@@ -778,7 +778,9 @@ pub async fn refresh_release_metadata(
     if is_streamed_source && updated.tracks.iter().any(|t| t.preview_unavailable) {
         match refresh_preview_availability(&app, &discovery, &updated).await {
             Ok(()) => return discovery.get_release(&id),
-            Err(e) => log::warn!("Availability recheck during metadata refresh of {id} failed: {e}"),
+            Err(e) => {
+                log::warn!("Availability recheck during metadata refresh of {id} failed: {e}")
+            }
         }
     }
 

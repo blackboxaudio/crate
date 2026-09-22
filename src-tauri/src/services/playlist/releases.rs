@@ -19,7 +19,11 @@ type MemberRow = (String, String, i32);
 impl PlaylistService {
     /// Add whole releases: every track of each release becomes a member. Releases whose
     /// tracks have not been fetched yet are parked in the pending-expansion ledger.
-    pub fn add_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<AddToPlaylistResult> {
+    pub fn add_releases(
+        &self,
+        playlist_id: &str,
+        release_ids: Vec<String>,
+    ) -> Result<AddToPlaylistResult> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;

@@ -94,6 +94,7 @@ interface ModalOrchestratorRef {
 	openRemoveFromLibraryModal: (trackIds: string[]) => void
 	openRemoveDiscoveryReleasesModal: (releaseIds: string[]) => void
 	openRemoveDiscoveryReleasesFromPlaylistModal: (releaseIds: string[], playlistId: string) => void
+	openRemoveDiscoveryTracksFromPlaylistModal: (trackIds: string[], playlistId: string) => void
 	openDuplicateTrackModal: (
 		duplicates: DuplicateTrack[],
 		onComplete: (updatedTracks: Track[], newTracks: Track[], replacedTrackIds: string[]) => void

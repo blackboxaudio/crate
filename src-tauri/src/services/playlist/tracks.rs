@@ -129,7 +129,11 @@ impl PlaylistService {
         Ok(tracks)
     }
 
-    pub fn add_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<AddToPlaylistResult> {
+    pub fn add_tracks(
+        &self,
+        playlist_id: &str,
+        track_ids: Vec<String>,
+    ) -> Result<AddToPlaylistResult> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get current max position

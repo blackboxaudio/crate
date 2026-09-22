@@ -10,6 +10,7 @@ import type {
 	DiscoveryTrack,
 	FilterTriState,
 	ImportResultWithDuplicates,
+	Tag,
 } from '../types'
 import * as discoveryApi from '../api/discovery'
 import * as followApi from '../api/follow'
