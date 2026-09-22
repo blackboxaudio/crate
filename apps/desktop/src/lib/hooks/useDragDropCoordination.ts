@@ -21,6 +21,7 @@ export interface DragDropCoordinationConfig {
 	onTagDropOnCategory?: (tagId: string, sourceCategoryId: string, targetCategoryId: string) => Promise<void>
 	onTagDropOnTrack?: (tagId: string, trackId: string) => Promise<void>
 	onTagDropOnRelease?: (tagId: string, releaseId: string) => Promise<void>
+	onTagDropOnDiscoveryTrack?: (tagId: string, trackId: string) => Promise<void>
 }
 
 // =============================================================================
@@ -49,6 +50,7 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 		onTagDropOnCategory,
 		onTagDropOnTrack,
 		onTagDropOnRelease,
+		onTagDropOnDiscoveryTrack,
 	} = config
 
 	let dropTargets: DropTarget[] = []
@@ -167,11 +169,14 @@ export function useDragDropCoordination(config: DragDropCoordinationConfig): () 
 					onTagDropOnTrack?.(data.tagId, trackId)
 				}
 			} else if (data.type === 'tag' && target.type === 'releaselist') {
-				// Dropping a tag on a release list - find the release row under the pointer
+				// Dropping a tag on a release list - find the row under the pointer. Track sub-rows are
+				// siblings of their release row (not descendants), so they need their own lookup.
 				const el = document.elementFromPoint(e.clientX, e.clientY)
-				const row = el?.closest<HTMLElement>('[data-release-id]')
-				const releaseId = row?.dataset.releaseId
-				if (releaseId) {
+				const trackId = el?.closest<HTMLElement>('[data-track-id]')?.dataset.trackId
+				const releaseId = el?.closest<HTMLElement>('[data-release-id]')?.dataset.releaseId
+				if (trackId) {
+					onTagDropOnDiscoveryTrack?.(data.tagId, trackId)
+				} else if (releaseId) {
 					onTagDropOnRelease?.(data.tagId, releaseId)
 				}
 			}

@@ -1,14 +1,15 @@
 <script lang="ts">
 	import type { DiscoveryRelease, DiscoveryTrack, ContextMenuItem, Playlist } from '$shared/types'
-	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { translate } from '$shared/i18n'
 	import { get } from 'svelte/store'
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { toastStore } from '$shared/stores/toast'
-	import { tagsStore } from '$shared/stores/tags'
-	import { buildYouTubeSearchUrl } from '$shared/utils'
+	import { buildTagMenuItems, commonTagIds, tagsStore } from '$shared/stores/tags'
+	import { buildPlaylistMenuItems } from '$shared/stores/playlists'
+	import { buildYouTubeSearchUrl, joinMenuGroups } from '$shared/utils'
+	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 
 	type Props = {
 		open: boolean
@@ -49,24 +50,25 @@
 		onToggleTag,
 	}: Props = $props()
 
-	// Same targets as the release menu: regular discovery playlists only (smart ones are rule-generated).
-	const availablePlaylists = $derived(playlists.filter((p) => !p.is_folder && !p.is_smart))
 	const currentPlaylist = $derived(currentPlaylistId ? playlists.find((p) => p.id === currentPlaylistId) : null)
-	const trackTagIds = $derived(new Set((track.tags ?? []).map((t) => t.id)))
-	const multi = $derived(tracks.length > 1)
+	const single = $derived(tracks.length === 1)
+	const assignedTagIds = $derived(commonTagIds(tracks))
+	// Prefer the track's own page when the source provides one (Bandcamp/SoundCloud).
+	const trackUrl = $derived(track.url ?? release.url)
 
+	const openInLabel = $derived.by(() => {
+		const platform = getReleasePlatformName(release.source_type)
+		return platform
+			? get(translate)('discovery.openInApp', { values: { app: platform } })
+			: get(translate)('discovery.openInBrowser')
+	})
+
+	// Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
+	// act → organize → navigate & share → destructive, a divider between non-empty groups.
+	// Act and navigate are single-track only; a multi-track menu starts at the organizing items.
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
-		// Like and Play are single-track actions; a multi-track menu starts at the organizing items.
-		const items: ContextMenuItem[] = multi
-			? []
-			: [
-					{
-						id: 'like-toggle',
-						label: track.is_liked ? get(translate)('discovery.unlike') : get(translate)('discovery.like'),
-						icon: 'heart',
-						iconFill: track.is_liked,
-						action: onLikeToggle,
-					},
+		const act: ContextMenuItem[] = single
+			? [
 					{
 						id: 'play-preview',
 						label: get(translate)('discovery.playPreview'),
@@ -75,25 +77,70 @@
 						disabled: !canPlay,
 						action: onPlayPreview,
 					},
-					{ id: 'play-divider', label: '', divider: true },
+					{
+						id: 'like-toggle',
+						label: track.is_liked ? get(translate)('discovery.unlike') : get(translate)('discovery.like'),
+						icon: 'heart',
+						iconFill: track.is_liked,
+						action: onLikeToggle,
+					},
 				]
-		const organizeStart = items.length
+			: []
 
-		if (onAddToPlaylist && availablePlaylists.length > 0) {
-			items.push({
+		const organize: ContextMenuItem[] = []
+		if (onAddToPlaylist) {
+			const playlistItems = buildPlaylistMenuItems(playlists, (playlistId) => () => onAddToPlaylist(playlistId))
+			organize.push({
 				id: 'add-to-playlist',
 				label: get(translate)('contextMenu.addToPlaylist'),
 				icon: 'playlist',
-				submenu: availablePlaylists.map((p) => ({
-					id: `playlist-${p.id}`,
-					label: p.name,
-					action: () => onAddToPlaylist!(p.id),
-				})),
+				...(playlistItems.length > 0 ? { submenu: playlistItems } : { disabled: true }),
+			})
+		}
+		if (onToggleTag) {
+			const tagItems = buildTagMenuItems($tagsStore.categories, assignedTagIds, onToggleTag)
+			organize.push({
+				id: 'tags',
+				label: get(translate)('nav.tags'),
+				icon: 'tag',
+				...(tagItems.length > 0 ? { submenu: tagItems } : { disabled: true }),
 			})
 		}
 
+		const navigate: ContextMenuItem[] = single
+			? [
+					{
+						id: 'open-in-browser',
+						label: openInLabel,
+						icon: 'external-link',
+						action: () => {
+							openUrl(trackUrl)
+						},
+					},
+					{
+						id: 'search-youtube',
+						label: get(translate)('discovery.searchOnYouTube'),
+						icon: 'search',
+						action: () => {
+							openUrl(buildYouTubeSearchUrl(release.artist, track.name))
+						},
+					},
+					{
+						id: 'copy-url',
+						label: get(translate)('discovery.copyUrl'),
+						icon: 'copy',
+						action: () => {
+							writeText(trackUrl).then(() => {
+								toastStore.info(get(translate)('discovery.copiedUrl'))
+							})
+						},
+					},
+				]
+			: []
+
+		const destructive: ContextMenuItem[] = []
 		if (currentPlaylistId && !currentPlaylist?.is_smart && onRemoveFromPlaylist) {
-			items.push({
+			destructive.push({
 				id: 'remove-from-playlist',
 				label: get(translate)('contextMenu.removeFromPlaylist'),
 				icon: 'list-minus',
@@ -102,61 +149,7 @@
 			})
 		}
 
-		// Track-level tags: one flat submenu, categories separated by dividers, assigned tags checked.
-		const categories = $tagsStore.categories.filter((c) => c.tags.length > 0)
-		if (onToggleTag && categories.length > 0) {
-			const submenu: ContextMenuItem[] = []
-			categories.forEach((category, i) => {
-				if (i > 0) submenu.push({ id: `tag-divider-${category.id}`, label: '', divider: true })
-				for (const tag of category.tags) {
-					const assigned = trackTagIds.has(tag.id)
-					submenu.push({
-						id: `tag-${tag.id}`,
-						label: tag.name,
-						colorDot: tag.color ?? category.color ?? DEFAULT_TAG_COLOR,
-						selected: assigned,
-						action: () => onToggleTag!(tag.id, assigned),
-					})
-				}
-			})
-			items.push({ id: 'tags', label: get(translate)('nav.tags'), icon: 'tag', submenu })
-		}
-
-		if (items.length > organizeStart) items.push({ id: 'organize-divider', label: '', divider: true })
-
-		// Link actions are single-track too.
-		if (multi) return items
-
-		items.push(
-			{
-				id: 'search-youtube',
-				label: get(translate)('discovery.searchOnYouTube'),
-				icon: 'search',
-				action: () => {
-					openUrl(buildYouTubeSearchUrl(release.artist, track.name))
-				},
-			},
-			{
-				id: 'open-release-in-browser',
-				label: get(translate)('discovery.openReleaseInBrowser'),
-				icon: 'external-link',
-				action: () => {
-					// Prefer the track's own page when the source provides one (Bandcamp/SoundCloud).
-					openUrl(track.url ?? release.url)
-				},
-			},
-			{
-				id: 'copy-release-url',
-				label: get(translate)('discovery.copyReleaseUrl'),
-				icon: 'copy',
-				action: () => {
-					writeText(track.url ?? release.url).then(() => {
-						toastStore.info(get(translate)('discovery.copiedUrl'))
-					})
-				},
-			}
-		)
-		return items
+		return joinMenuGroups([act, organize, navigate, destructive])
 	})
 </script>
 

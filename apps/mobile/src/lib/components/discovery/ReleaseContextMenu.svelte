@@ -16,6 +16,7 @@
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
 	import ReleaseCardContent from './ReleaseCardContent.svelte'
+	import MobileTagPicker from './MobileTagPicker.svelte'
 	import SourceIcon from './SourceIcon.svelte'
 
 	// iOS-style context menu for a discovery release (the long-press menu on a feed/playlist row). Wraps the
@@ -112,6 +113,19 @@
 		onAddToPlaylist?.(id)
 	}
 
+	// Tags open the shared bottom-sheet picker (mobile's answer to desktop's nested Tags submenu). The
+	// menu owns the sheet so every host context gets it without extra wiring; the id is snapshotted
+	// because close() clears the store.
+	let tagPickerOpen = $state(false)
+	let tagPickerReleaseId = $state<string | null>(null)
+	function handleTags() {
+		const id = releaseId
+		if (!id) return
+		close()
+		tagPickerReleaseId = id
+		tagPickerOpen = true
+	}
+
 	function handleRemoveFromPlaylist() {
 		const id = releaseId
 		if (!id) return
@@ -192,15 +206,8 @@
 		{/if}
 	{/snippet}
 
-	<ContextMenuItem onclick={handleAddToPlaylist}>
-		{$translate('contextMenu.addToPlaylist')}
-		{#snippet icon()}
-			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
-			</svg>
-		{/snippet}
-	</ContextMenuItem>
-
+	<!-- Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
+	     act → organize → mode → navigate & share → destructive. -->
 	<ContextMenuItem onclick={handlePlayNext}>
 		{$translate('queue.playNext')}
 		{#snippet icon()}
@@ -216,6 +223,25 @@
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M4 6h11M4 12h11M4 18h7M19 14v6M16 17h6" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem separatorBefore onclick={handleAddToPlaylist}>
+		{$translate('contextMenu.addToPlaylist')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={handleTags}>
+		{$translate('nav.tags')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 12l-8 8-9-9V3h8l9 9z" stroke-linecap="round" stroke-linejoin="round" />
+				<circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
 			</svg>
 		{/snippet}
 	</ContextMenuItem>
@@ -241,27 +267,7 @@
 		</ContextMenuItem>
 	{/if}
 
-	{#if context === 'playlist' && playlistId && canReorder}
-		<ContextMenuItem onclick={handleReorder}>
-			{$translate('queue.reorder')}
-			{#snippet icon()}
-				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M7 15l5 5 5-5M7 9l5-5 5 5" stroke-linecap="round" stroke-linejoin="round" />
-				</svg>
-			{/snippet}
-		</ContextMenuItem>
-
-		<ContextMenuItem destructive onclick={handleRemoveFromPlaylist}>
-			{$translate('contextMenu.removeFromPlaylist')}
-			{#snippet icon()}
-				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M5 12h14" stroke-linecap="round" />
-				</svg>
-			{/snippet}
-		</ContextMenuItem>
-	{/if}
-
-	<ContextMenuItem onclick={handleSelect}>
+	<ContextMenuItem separatorBefore onclick={handleSelect}>
 		{$translate('common.select')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -274,6 +280,17 @@
 			</svg>
 		{/snippet}
 	</ContextMenuItem>
+
+	{#if context === 'playlist' && playlistId && canReorder}
+		<ContextMenuItem onclick={handleReorder}>
+			{$translate('queue.reorder')}
+			{#snippet icon()}
+				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M7 15l5 5 5-5M7 9l5-5 5 5" stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
 
 	<ContextMenuItem separatorBefore onclick={handleOpenInSource}>
 		{platformName
@@ -320,7 +337,18 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem destructive onclick={handleDelete}>
+	{#if context === 'playlist' && playlistId}
+		<ContextMenuItem separatorBefore destructive onclick={handleRemoveFromPlaylist}>
+			{$translate('contextMenu.removeFromPlaylist')}
+			{#snippet icon()}
+				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M5 12h14" stroke-linecap="round" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
+	<ContextMenuItem separatorBefore={!(context === 'playlist' && playlistId)} destructive onclick={handleDelete}>
 		{$translate('common.delete')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -333,3 +361,9 @@
 		{/snippet}
 	</ContextMenuItem>
 </ContextMenu>
+
+<MobileTagPicker
+	open={tagPickerOpen}
+	releaseIds={tagPickerReleaseId ? [tagPickerReleaseId] : []}
+	onClose={() => (tagPickerOpen = false)}
+/>

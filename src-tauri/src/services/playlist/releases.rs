@@ -19,7 +19,7 @@ type MemberRow = (String, String, i32);
 impl PlaylistService {
     /// Add whole releases: every track of each release becomes a member. Releases whose
     /// tracks have not been fetched yet are parked in the pending-expansion ledger.
-    pub fn add_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<Playlist> {
+    pub fn add_releases(&self, playlist_id: &str, release_ids: Vec<String>) -> Result<AddToPlaylistResult> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
@@ -40,7 +40,9 @@ impl PlaylistService {
             }
         }
 
-        insert_members(&conn, playlist_id, &track_ids, &now, &hlc)?;
+        // A trackless release counts as one requested item: it has no tracks to count yet.
+        let requested = track_ids.len() + trackless.len();
+        let mut added = insert_members(&conn, playlist_id, &track_ids, &now, &hlc)?;
 
         if !trackless.is_empty() {
             let max_position: i32 = conn
@@ -50,18 +52,28 @@ impl PlaylistService {
                     |row| row.get(0),
                 )
                 .unwrap_or(-1);
-            for (i, release_id) in trackless.iter().enumerate() {
-                conn.execute(
+            let mut parked = 0usize;
+            for release_id in &trackless {
+                parked += conn.execute(
                     "INSERT OR IGNORE INTO playlist_discovery_releases (playlist_id, release_id, position, date_added, _hlc) VALUES (?1, ?2, ?3, ?4, ?5)",
-                    rusqlite::params![playlist_id, release_id, max_position + 1 + i as i32, now, hlc],
+                    rusqlite::params![playlist_id, release_id, max_position + 1 + parked as i32, now, hlc],
                 )?;
             }
-            dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+            if parked > 0 {
+                dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+            }
+            added += parked;
         }
 
-        touch_playlist(&conn, playlist_id, &now, &hlc)?;
+        if added > 0 {
+            touch_playlist(&conn, playlist_id, &now, &hlc)?;
+        }
         drop(conn);
-        self.get_playlist(playlist_id)
+        Ok(AddToPlaylistResult {
+            playlist: self.get_playlist(playlist_id)?,
+            added,
+            already_present: requested - added,
+        })
     }
 
     /// Add individual tracks (the "this track, not the whole release" path).
@@ -69,16 +81,22 @@ impl PlaylistService {
         &self,
         playlist_id: &str,
         track_ids: Vec<String>,
-    ) -> Result<Playlist> {
+    ) -> Result<AddToPlaylistResult> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
 
-        insert_members(&conn, playlist_id, &track_ids, &now, &hlc)?;
-        touch_playlist(&conn, playlist_id, &now, &hlc)?;
+        let added = insert_members(&conn, playlist_id, &track_ids, &now, &hlc)?;
+        if added > 0 {
+            touch_playlist(&conn, playlist_id, &now, &hlc)?;
+        }
 
         drop(conn);
-        self.get_playlist(playlist_id)
+        Ok(AddToPlaylistResult {
+            playlist: self.get_playlist(playlist_id)?,
+            added,
+            already_present: track_ids.len() - added,
+        })
     }
 
     /// Remove whole releases: every member track of each release, plus any pending
@@ -512,15 +530,16 @@ fn load_members(conn: &Connection, playlist_id: &str) -> Result<Vec<MemberRow>> 
 
 /// Append `track_ids` after the playlist's last member. Existing members are left
 /// untouched (`OR IGNORE`), so re-adding a release only fills in its missing tracks.
+/// Returns how many rows actually landed.
 fn insert_members(
     conn: &Connection,
     playlist_id: &str,
     track_ids: &[String],
     now: &str,
     hlc: &str,
-) -> Result<()> {
+) -> Result<usize> {
     if track_ids.is_empty() {
-        return Ok(());
+        return Ok(0);
     }
     let max_position: i32 = conn
         .query_row(
@@ -529,14 +548,17 @@ fn insert_members(
             |row| row.get(0),
         )
         .unwrap_or(-1);
-    for (i, track_id) in track_ids.iter().enumerate() {
-        conn.execute(
+    let mut added = 0usize;
+    for track_id in track_ids {
+        added += conn.execute(
             "INSERT OR IGNORE INTO playlist_discovery_tracks (playlist_id, track_id, position, date_added, _hlc) VALUES (?1, ?2, ?3, ?4, ?5)",
-            rusqlite::params![playlist_id, track_id, max_position + 1 + i as i32, now, hlc],
+            rusqlite::params![playlist_id, track_id, max_position + 1 + added as i32, now, hlc],
         )?;
     }
-    dirty::mark_dirty(conn, buckets::PLAYLIST_DISCOVERY_TRACKS)?;
-    Ok(())
+    if added > 0 {
+        dirty::mark_dirty(conn, buckets::PLAYLIST_DISCOVERY_TRACKS)?;
+    }
+    Ok(added)
 }
 
 fn delete_members(

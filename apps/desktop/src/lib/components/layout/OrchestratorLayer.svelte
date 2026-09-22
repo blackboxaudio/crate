@@ -37,7 +37,12 @@
 	import * as playlistsApi from '$shared/api/playlists'
 
 	import { ContextMenuOrchestrator, ModalOrchestrator, DragPreview, UpdateModal } from '$lib/components/common'
-	import { AddReleaseModal, MergeReleasesModal, PurchaseReleaseModal } from '$lib/components/discovery'
+	import {
+		AddReleaseModal,
+		DiscoveryExportModal,
+		MergeReleasesModal,
+		PurchaseReleaseModal,
+	} from '$lib/components/discovery'
 
 	import type { TagController } from '$lib/controllers/tagController'
 	import type { TrackController } from '$lib/controllers/trackController'
@@ -93,6 +98,7 @@
 	let showAddReleaseModal = $state(false)
 	let purchaseRelease = $state<DiscoveryRelease | null>(null)
 	let mergeReleases = $state<DiscoveryRelease[] | null>(null)
+	let exportReleases = $state<DiscoveryRelease[] | null>(null)
 
 	// =============================================================================
 	// Derived
@@ -207,6 +213,12 @@
 	onTrackRelocate={(track) => modalOrchestrator.openRelocateModal(track)}
 	onTrackSetColor={trackController.setColorFromContextMenu}
 	onTrackAnalyze={handleTrackAnalyze}
+	onTrackToggleTag={(tracks, tagId, assigned) =>
+		tagController.setTagOnLibraryTracks(
+			tracks.map((t) => t.id),
+			tagId,
+			assigned
+		)}
 	onPlaylistCreatePlaylist={(p) => modalOrchestrator.openCreatePlaylistModal(p.id)}
 	onPlaylistCreateSmartPlaylist={(p) => modalOrchestrator.openCreateSmartPlaylistModal(p.id, p.context)}
 	onPlaylistCreateFolder={(p) => modalOrchestrator.openCreateFolderModal(p.id)}
@@ -269,6 +281,11 @@
 	onDiscoveryReleaseRemoveFromPlaylist={(playlistId, releaseIds) =>
 		modalOrchestrator.openRemoveDiscoveryReleasesFromPlaylistModal(releaseIds, playlistId)}
 	onDiscoveryReleaseMerge={(releases) => (mergeReleases = releases)}
+	onDiscoveryReleaseExport={(releases) => (exportReleases = releases)}
+	onDiscoveryReleaseToggleTag={(releases, tagId, assigned) => {
+		const releaseIds = releases.map((r) => r.id)
+		return assigned ? discoveryStore.removeTags(releaseIds, [tagId]) : discoveryStore.assignTags(releaseIds, [tagId])
+	}}
 	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {
 		const releaseIds = releases.map((r) => r.id)
 		await playlistsStore.addReleases(playlistId, releaseIds)
@@ -289,15 +306,7 @@
 		uiStore.clearDiscoveryTrackSelection()
 		await playlistsStore.load()
 	}}
-	onDiscoveryTrackToggleTag={async (tracks, tagId, assigned) => {
-		// The tag patch re-reads one release at a time, so group the selection by release.
-		const byRelease = new SvelteMap<string, string[]>()
-		for (const t of tracks) byRelease.set(t.release_id, [...(byRelease.get(t.release_id) ?? []), t.id])
-		for (const [releaseId, trackIds] of byRelease) {
-			if (assigned) await discoveryStore.removeTrackTags(releaseId, trackIds, [tagId])
-			else await discoveryStore.assignTrackTags(releaseId, trackIds, [tagId])
-		}
-	}}
+	onDiscoveryTrackToggleTag={(tracks, tagId, assigned) => discoveryStore.setTrackTagOnTracks(tracks, tagId, assigned)}
 	onClose={() => {
 		uiLayoutStore.clearContextMenuPlaylistId()
 		uiLayoutStore.clearContextMenuDiscoveryTrackId()
@@ -548,6 +557,16 @@
 		release={purchaseRelease}
 		onClose={() => (purchaseRelease = null)}
 		onComplete={handlePurchaseComplete}
+	/>
+{/if}
+
+<!-- Discovery Export Modal (selection scope; the collection scope lives in Settings → Discovery) -->
+{#if exportReleases && exportReleases.length > 0}
+	<DiscoveryExportModal
+		open={true}
+		scope="selection"
+		releases={exportReleases}
+		onClose={() => (exportReleases = null)}
 	/>
 {/if}
 

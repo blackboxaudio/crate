@@ -345,6 +345,18 @@ pub async fn recheck_preview_availability(
         .await
         .map_err(|_| CrateError::Discovery("stream fetch permits closed".into()))?;
 
+    refresh_preview_availability(&app, &discovery, &release).await?;
+
+    Ok(discovery.get_release(&release_id)?.tracks)
+}
+
+/// Re-extract a Bandcamp/SoundCloud release's streams and replace its per-track
+/// preview-availability flags with the result. Callers guard the source type.
+async fn refresh_preview_availability(
+    app: &tauri::AppHandle,
+    discovery: &DiscoveryService,
+    release: &DiscoveryRelease,
+) -> Result<()> {
     let stream_infos = match release.source_type.as_str() {
         "bandcamp" => streams::extract_bandcamp_streams(&release.url).await?,
         _ => {
@@ -356,7 +368,7 @@ pub async fn recheck_preview_availability(
         }
     };
 
-    discovery.cache_streams(&release_id, &stream_infos)?;
+    discovery.cache_streams(&release.id, &stream_infos)?;
 
     let unavailable: Vec<i32> = release
         .tracks
@@ -365,19 +377,20 @@ pub async fn recheck_preview_availability(
         .filter(|p| !stream_infos.iter().any(|s| s.track_position == *p))
         .collect();
     log::info!(
-        "Availability recheck {release_id}: {} of {} tracks unavailable",
+        "Availability recheck {}: {} of {} tracks unavailable",
+        release.id,
         unavailable.len(),
         release.tracks.len()
     );
-    discovery.set_preview_availability(&release_id, &unavailable)?;
-    // The caller applies the returned tracks itself; the event covers every OTHER in-memory
+    discovery.set_preview_availability(&release.id, &unavailable)?;
+    // Callers apply the fresh tracks themselves; the event covers every OTHER in-memory
     // holder (the playlist store's copies, a second window) the same way the play path does.
     let _ = app.emit(
         "discovery-availability-changed",
-        serde_json::json!({ "releaseId": release_id, "unavailable": unavailable }),
+        serde_json::json!({ "releaseId": release.id, "unavailable": unavailable }),
     );
 
-    Ok(discovery.get_release(&release_id)?.tracks)
+    Ok(())
 }
 
 #[tauri::command]
@@ -712,6 +725,7 @@ pub async fn fetch_source_avatar(
 #[tauri::command]
 pub async fn refresh_release_metadata(
     id: String,
+    app: tauri::AppHandle,
     discovery: State<'_, DiscoveryService>,
 ) -> Result<DiscoveryRelease> {
     let release = discovery.get_release(&id)?;
@@ -755,7 +769,20 @@ pub async fn refresh_release_metadata(
         update.artwork_url = Some(artwork_url);
     }
 
-    discovery.update_release(&id, update)
+    let updated = discovery.update_release(&id, update)?;
+
+    // Flags are only ever written by a stream extraction, so without this a pre-order's greyed
+    // tracks would survive a refresh even after the album is out. Gated on existing flags so a
+    // bulk refresh of healthy releases stays at one page fetch each.
+    let is_streamed_source = matches!(updated.source_type.as_str(), "bandcamp" | "soundcloud");
+    if is_streamed_source && updated.tracks.iter().any(|t| t.preview_unavailable) {
+        match refresh_preview_availability(&app, &discovery, &updated).await {
+            Ok(()) => return discovery.get_release(&id),
+            Err(e) => log::warn!("Availability recheck during metadata refresh of {id} failed: {e}"),
+        }
+    }
+
+    Ok(updated)
 }
 
 #[tauri::command]

@@ -1,5 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import type {
+	AddToPlaylistResult,
 	DiscoveryRelease,
 	MoveConflictResolution,
 	MovePlaylistResult,
@@ -73,8 +74,8 @@ export async function getPlaylistTracks(playlistId: string): Promise<Track[]> {
 /**
  * Add tracks to a playlist
  */
-export async function addToPlaylist(playlistId: string, trackIds: string[]): Promise<Playlist> {
-	return invoke<Playlist>('add_to_playlist', { playlistId, trackIds })
+export async function addToPlaylist(playlistId: string, trackIds: string[]): Promise<AddToPlaylistResult> {
+	return invoke<AddToPlaylistResult>('add_to_playlist', { playlistId, trackIds })
 }
 
 /**
@@ -94,8 +95,8 @@ export async function reorderPlaylist(playlistId: string, trackIds: string[]): P
 /**
  * Add discovery releases to a playlist
  */
-export async function addReleasesToPlaylist(playlistId: string, releaseIds: string[]): Promise<Playlist> {
-	return invoke<Playlist>('add_releases_to_playlist', { playlistId, releaseIds })
+export async function addReleasesToPlaylist(playlistId: string, releaseIds: string[]): Promise<AddToPlaylistResult> {
+	return invoke<AddToPlaylistResult>('add_releases_to_playlist', { playlistId, releaseIds })
 }
 
 /**
@@ -108,8 +109,11 @@ export async function removeReleasesFromPlaylist(playlistId: string, releaseIds:
 /**
  * Add individual discovery tracks to a playlist (the whole-release variant expands server-side).
  */
-export async function addTracksToDiscoveryPlaylist(playlistId: string, trackIds: string[]): Promise<Playlist> {
-	return invoke<Playlist>('add_tracks_to_discovery_playlist', { playlistId, trackIds })
+export async function addTracksToDiscoveryPlaylist(
+	playlistId: string,
+	trackIds: string[]
+): Promise<AddToPlaylistResult> {
+	return invoke<AddToPlaylistResult>('add_tracks_to_discovery_playlist', { playlistId, trackIds })
 }
 
 /**

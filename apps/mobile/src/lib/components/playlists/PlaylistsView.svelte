@@ -606,7 +606,7 @@
 		</ContextMenuItem>
 	{/if}
 
-	<ContextMenuItem destructive onclick={() => longPressTarget && handleDelete(longPressTarget)}>
+	<ContextMenuItem separatorBefore destructive onclick={() => longPressTarget && handleDelete(longPressTarget)}>
 		{$translate('common.delete')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

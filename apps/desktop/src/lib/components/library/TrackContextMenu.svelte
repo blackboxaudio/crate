@@ -3,6 +3,9 @@
 	import { TRACK_COLORS } from '$shared/types'
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { missingTrackIds } from '$lib/stores'
+	import { buildPlaylistMenuItems } from '$shared/stores/playlists'
+	import { buildTagMenuItems, commonTagIds, tagsStore } from '$shared/stores/tags'
+	import { joinMenuGroups } from '$shared/utils'
 	import { translate } from '$shared/i18n'
 	import { get } from 'svelte/store'
 
@@ -23,6 +26,7 @@
 		onRelocate?: (track: Track) => void
 		onSetColor?: (color: TrackColor | null) => void
 		onAnalyze?: () => void
+		onToggleTag?: (tagId: string, assigned: boolean) => void
 	}
 
 	let {
@@ -42,6 +46,7 @@
 		onRelocate,
 		onSetColor,
 		onAnalyze,
+		onToggleTag,
 	}: Props = $props()
 
 	// Platform-specific label for "View in Finder/Explorer"
@@ -52,86 +57,65 @@
 		return get(translate)('contextMenu.viewInFileManager')
 	})
 
-	// Check if any selected track is missing
-	const hasMissingTrack = $derived(selectedTracks.length === 1 && $missingTrackIds.has(selectedTracks[0].id))
+	const single = $derived(selectedTracks.length === 1)
+	const hasMissingTrack = $derived(single && $missingTrackIds.has(selectedTracks[0].id))
 
-	// Get current color (for single track or common color across multi-selection)
+	// A color only reads as current when the whole selection shares it.
 	const currentColor = $derived.by(() => {
 		if (selectedTracks.length === 0) return null
 		const firstColor = selectedTracks[0].color
-		// Only show as selected if all tracks have the same color
 		return selectedTracks.every((t) => t.color === firstColor) ? firstColor : null
 	})
 
-	// Build menu items
-	const menuItems = $derived.by<ContextMenuItem[]>(() => {
-		const items: ContextMenuItem[] = []
+	const assignedTagIds = $derived(commonTagIds(selectedTracks))
+	const currentPlaylist = $derived(currentPlaylistId ? playlists.find((p) => p.id === currentPlaylistId) : null)
 
-		// "Analyze" - analyze tracks for BPM and key (disabled during analysis)
+	// Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
+	// act → organize → navigate & share → destructive, a divider between non-empty groups.
+	const menuItems = $derived.by<ContextMenuItem[]>(() => {
+		const groups: ContextMenuItem[][] = []
+
+		const act: ContextMenuItem[] = []
 		if (onAnalyze) {
-			items.push({
+			act.push({
 				id: 'analyze',
 				label: get(translate)('contextMenu.analyze'),
 				icon: 'activity',
-				action: onAnalyze,
 				disabled: isAnalyzing,
+				action: onAnalyze,
 			})
 		}
-
-		// "Relocate..." - only for single missing track (disabled during analysis)
 		if (hasMissingTrack && onRelocate) {
-			items.push({
+			act.push({
 				id: 'relocate',
 				label: get(translate)('contextMenu.relocate'),
 				icon: 'folder',
-				action: () => onRelocate(selectedTracks[0]),
 				disabled: isAnalyzing,
-			})
-			items.push({
-				id: 'relocate-divider',
-				label: '',
-				divider: true,
+				action: () => onRelocate(selectedTracks[0]),
 			})
 		}
+		groups.push(act)
 
-		// "View in Finder/Explorer" - only for single track selection
-		if (selectedTracks.length === 1) {
-			items.push({
-				id: 'reveal-in-explorer',
-				label: revealLabel,
-				icon: 'folder-open',
-				action: onRevealInExplorer,
-			})
-			items.push({
-				id: 'reveal-divider',
-				label: '',
-				divider: true,
+		const organize: ContextMenuItem[] = []
+		const playlistItems = buildPlaylistMenuItems(
+			playlists.filter((p) => p.context === 'library'),
+			(playlistId) => () => onAddToPlaylist(playlistId)
+		)
+		organize.push({
+			id: 'add-to-playlist',
+			label: get(translate)('contextMenu.addToPlaylist'),
+			icon: 'list-plus',
+			...(playlistItems.length > 0 ? { submenu: playlistItems } : { disabled: true }),
+		})
+		if (onToggleTag) {
+			const tagItems = buildTagMenuItems($tagsStore.categories, assignedTagIds, onToggleTag)
+			organize.push({
+				id: 'tags',
+				label: get(translate)('nav.tags'),
+				icon: 'tag',
+				...(tagItems.length > 0 ? { submenu: tagItems } : { disabled: true }),
 			})
 		}
-
-		// Add to Playlist submenu (exclude smart playlists since their content is rule-generated)
-		const playlistItems = playlists.filter((p) => !p.is_folder && !p.is_smart && p.context === 'library')
-		if (playlistItems.length > 0) {
-			items.push({
-				id: 'add-to-playlist',
-				label: get(translate)('contextMenu.addToPlaylist'),
-				icon: 'list-plus',
-				submenu: playlistItems.map((playlist) => ({
-					id: `playlist-${playlist.id}`,
-					label: playlist.name,
-					action: () => onAddToPlaylist(playlist.id),
-				})),
-			})
-		} else {
-			items.push({
-				id: 'add-to-playlist',
-				label: get(translate)('contextMenu.addToPlaylist'),
-				icon: 'list-plus',
-				disabled: true,
-			})
-		}
-
-		// Set Color submenu
 		if (onSetColor) {
 			const colorItems: ContextMenuItem[] = TRACK_COLORS.map((color) => ({
 				id: `color-${color.id}`,
@@ -140,11 +124,7 @@
 				selected: currentColor === color.id,
 				action: () => onSetColor(color.id),
 			}))
-			colorItems.push({
-				id: 'color-divider',
-				label: '',
-				divider: true,
-			})
+			colorItems.push({ id: 'color-divider', label: '', divider: true })
 			colorItems.push({
 				id: 'remove-color',
 				label: get(translate)('contextMenu.removeColor'),
@@ -152,49 +132,48 @@
 				variant: 'danger',
 				action: () => onSetColor(null),
 			})
-			items.push({
+			organize.push({
 				id: 'set-color',
 				label: get(translate)('contextMenu.setColor'),
 				icon: 'palette',
 				submenu: colorItems,
 			})
 		}
+		groups.push(organize)
 
-		// Build Remove submenu items
-		const removeItems: ContextMenuItem[] = []
+		const navigate: ContextMenuItem[] = []
+		if (single) {
+			navigate.push({
+				id: 'reveal-in-explorer',
+				label: revealLabel,
+				icon: 'folder-open',
+				action: onRevealInExplorer,
+			})
+		}
+		groups.push(navigate)
 
-		// "Remove from Playlist" - only when viewing a non-smart playlist
-		const currentPlaylist = currentPlaylistId ? playlists.find((p) => p.id === currentPlaylistId) : null
+		const destructive: ContextMenuItem[] = []
 		if (currentPlaylistId && !currentPlaylist?.is_smart) {
-			removeItems.push({
+			destructive.push({
 				id: 'remove-from-playlist',
 				label: get(translate)('contextMenu.removeFromPlaylist'),
 				icon: 'list-minus',
 				variant: 'danger',
+				disabled: isAnalyzing,
 				action: onRemoveFromPlaylist,
 			})
 		}
-
-		// "Remove from Library" - always visible
-		removeItems.push({
+		destructive.push({
 			id: 'remove-from-library',
 			label: get(translate)('contextMenu.removeFromLibrary'),
 			icon: 'trash',
 			variant: 'danger',
+			disabled: isAnalyzing,
 			action: onRemoveFromLibrary,
 		})
+		groups.push(destructive)
 
-		// Add Remove submenu (disabled during analysis)
-		items.push({
-			id: 'remove',
-			label: get(translate)('contextMenu.remove'),
-			icon: 'trash',
-			variant: 'danger',
-			submenu: removeItems,
-			disabled: isAnalyzing,
-		})
-
-		return items
+		return joinMenuGroups(groups)
 	})
 </script>
 

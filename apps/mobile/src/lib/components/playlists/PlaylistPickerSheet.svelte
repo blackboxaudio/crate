@@ -1,10 +1,9 @@
 <script lang="ts">
-	import { get } from 'svelte/store'
 	import { untrack } from 'svelte'
 	import { fade } from 'svelte/transition'
 	import { translate } from '$shared/i18n'
-	import { playlistsStore, getPlaylistChildren } from '$shared/stores/playlists'
-	import { toastStore } from '$shared/stores/toast'
+	import { playlistsStore, getPlaylistChildren, getPlaylistPath } from '$shared/stores/playlists'
+	import { toastPlaylistAdd } from '$shared/utils'
 	import { getPlaylistCovers, ensurePlaylistCovers, refreshPlaylistCovers } from '$lib/stores/playlistCovers'
 	import { lightTap } from '$lib/utils/haptics'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
@@ -40,8 +39,13 @@
 	const discoveryPlaylists = $derived($playlistsStore.playlists.filter((p) => p.context === 'discovery'))
 
 	const currentFolderId = $derived(folderStack.length > 0 ? folderStack[folderStack.length - 1] : null)
-	const currentFolder = $derived(
-		currentFolderId ? (discoveryPlaylists.find((p) => p.id === currentFolderId) ?? null) : null
+	// The back row shows the whole folder path so a deep drill-down stays oriented.
+	const folderPathLabel = $derived(
+		currentFolderId
+			? getPlaylistPath(discoveryPlaylists, currentFolderId)
+					.map((p) => p.name)
+					.join(' / ')
+			: ''
 	)
 
 	// Browse level: folders + regular (non-smart) playlists directly under the current folder.
@@ -99,9 +103,9 @@
 	}
 
 	async function addTo(playlistId: string) {
-		await addSelectionTo(playlistId)
+		const result = await addSelectionTo(playlistId)
 		void refreshPlaylistCovers(playlistId)
-		toastStore.success(get(translate)('contextMenu.addToPlaylist'))
+		toastPlaylistAdd(result, discoveryPlaylists.find((p) => p.id === playlistId)?.name ?? '')
 		handleClose()
 	}
 
@@ -111,9 +115,9 @@
 		const playlist = await playlistsStore.createPlaylist(trimmed, currentFolderId ?? undefined, 'discovery')
 		if (!playlist) return
 		createOpen = false
-		await addSelectionTo(playlist.id)
+		const result = await addSelectionTo(playlist.id)
 		void refreshPlaylistCovers(playlist.id)
-		toastStore.success(get(translate)('contextMenu.addToPlaylist'))
+		toastPlaylistAdd(result, playlist.name)
 		handleClose()
 	}
 
@@ -185,7 +189,7 @@
 					<svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 						<path d="M15 18l-6-6 6-6" stroke-linecap="round" stroke-linejoin="round" />
 					</svg>
-					<span class="truncate text-sm font-medium">{currentFolder?.name ?? ''}</span>
+					<span class="truncate text-sm font-medium">{folderPathLabel}</span>
 				</button>
 			{/if}
 

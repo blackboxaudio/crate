@@ -76,6 +76,7 @@
 	}: Props = $props()
 
 	let isTagDragHovered = $state(false)
+	let tagDragHoveredTrackId = $state<string | null>(null)
 	let showArtworkModal = $state(false)
 
 	// Days until release for the "Upcoming" badge + countdown (null once out / unknown).
@@ -116,7 +117,10 @@
 
 	// Clear hover when tag drag ends
 	$effect(() => {
-		if (!$isDraggingTag) isTagDragHovered = false
+		if (!$isDraggingTag) {
+			isTagDragHovered = false
+			tagDragHoveredTrackId = null
+		}
 	})
 
 	// Track pointer state for drag detection
@@ -424,7 +428,11 @@
 								? 'bg-surface-2/50'
 								: canPlay
 									? 'hover:bg-surface-2/50'
-									: ''} {visibleIdx > 0 ? 'border-t border-stroke-subtle/50' : ''}"
+									: ''} {visibleIdx > 0 ? 'border-t border-stroke-subtle/50' : ''} {tagDragHoveredTrackId === track.id
+							? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset'
+							: ''}"
+						onpointerenter={() => $isDraggingTag && (tagDragHoveredTrackId = track.id)}
+						onpointerleave={() => tagDragHoveredTrackId === track.id && (tagDragHoveredTrackId = null)}
 						onclick={(e) => {
 							e.stopPropagation()
 							onTrackClick?.(idx, e)

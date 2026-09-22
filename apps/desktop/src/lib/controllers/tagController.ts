@@ -1,5 +1,6 @@
 import type {
 	ActiveView,
+	DiscoveryTrack,
 	Tag,
 	TagCategory,
 	TagSelectionState,
@@ -27,6 +28,7 @@ export interface TagControllerDeps {
 	getTagFilterMode: () => TagFilterMode
 	getSelectedTrackIds: () => Set<string>
 	getSelectedReleaseIds: () => Set<string>
+	getSelectedDiscoveryTracks: () => DiscoveryTrack[]
 	getRecentlyToggledMixedTags: () => Set<string>
 	getActiveView: () => ActiveView
 }
@@ -47,6 +49,7 @@ export interface TagController {
 
 	// Tag assignment operations (when tracks are selected)
 	toggleTagOnTracks: (tagId: string, currentState: TagSelectionState) => Promise<void>
+	setTagOnLibraryTracks: (trackIds: string[], tagId: string, remove: boolean) => Promise<void>
 
 	// Category operations
 	changeCategoryColor: (category: TagCategory, color: string | null) => Promise<void>
@@ -73,9 +76,24 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 		getTagFilterMode,
 		getSelectedTrackIds,
 		getSelectedReleaseIds,
+		getSelectedDiscoveryTracks,
 		getRecentlyToggledMixedTags,
 		getActiveView,
 	} = deps
+
+	/**
+	 * Whether a click in `currentState` removes the tag. A mixed tag is removed on the first click
+	 * and re-assigned on the next, tracked via the recently-toggled marks.
+	 */
+	function resolveRemove(tagId: string, currentState: TagSelectionState): boolean {
+		if (currentState !== 'mixed') return currentState === 'active'
+		if (getRecentlyToggledMixedTags().has(tagId)) {
+			uiStore.clearRecentlyToggledTag(tagId)
+			return false
+		}
+		uiStore.markTagAsRecentlyToggled(tagId)
+		return true
+	}
 
 	/**
 	 * Toggle a tag in the filter and reload tracks/releases
@@ -115,48 +133,37 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 	 * Toggle a tag on/off for the currently selected tracks or releases
 	 */
 	async function toggleTagOnTracks(tagId: string, currentState: TagSelectionState): Promise<void> {
+		const remove = resolveRemove(tagId, currentState)
+
 		if (getActiveView() === 'discovery') {
+			// A track selection and a release selection are mutually exclusive; tracks win when present.
+			const tracks = getSelectedDiscoveryTracks()
+			if (tracks.length > 0) {
+				await discoveryStore.setTrackTagOnTracks(tracks, tagId, remove)
+				return
+			}
+
 			const releaseIds = Array.from(getSelectedReleaseIds())
-
-			if (currentState === 'active') {
-				await discoveryStore.removeTags(releaseIds, [tagId])
-			} else if (currentState === 'inactive') {
-				await discoveryStore.assignTags(releaseIds, [tagId])
-			} else if (currentState === 'mixed') {
-				const wasRecentlyToggled = getRecentlyToggledMixedTags().has(tagId)
-				if (wasRecentlyToggled) {
-					await discoveryStore.assignTags(releaseIds, [tagId])
-					uiStore.clearRecentlyToggledTag(tagId)
-				} else {
-					await discoveryStore.removeTags(releaseIds, [tagId])
-					uiStore.markTagAsRecentlyToggled(tagId)
-				}
-			}
+			if (remove) await discoveryStore.removeTags(releaseIds, [tagId])
+			else await discoveryStore.assignTags(releaseIds, [tagId])
 		} else {
-			const trackIds = Array.from(getSelectedTrackIds())
+			await setTagOnLibraryTracks(Array.from(getSelectedTrackIds()), tagId, remove)
+		}
+	}
 
-			if (currentState === 'active') {
-				await tagsStore.removeTags(trackIds, [tagId])
-			} else if (currentState === 'inactive') {
-				await tagsStore.assignTags(trackIds, [tagId])
-			} else if (currentState === 'mixed') {
-				const wasRecentlyToggled = getRecentlyToggledMixedTags().has(tagId)
-				if (wasRecentlyToggled) {
-					await tagsStore.assignTags(trackIds, [tagId])
-					uiStore.clearRecentlyToggledTag(tagId)
-				} else {
-					await tagsStore.removeTags(trackIds, [tagId])
-					uiStore.markTagAsRecentlyToggled(tagId)
-				}
-			}
+	/**
+	 * Assign or remove one tag on explicit library tracks (a context menu acts on the right-clicked
+	 * track even when it isn't selected) and reload the list so the tag chips reflect it.
+	 */
+	async function setTagOnLibraryTracks(trackIds: string[], tagId: string, remove: boolean): Promise<void> {
+		if (remove) await tagsStore.removeTags(trackIds, [tagId])
+		else await tagsStore.assignTags(trackIds, [tagId])
 
-			// Reload tracks to reflect tag changes
-			const selectedPlaylistId = getSelectedPlaylistId()
-			if (selectedPlaylistId) {
-				await libraryStore.loadPlaylistTracks(selectedPlaylistId)
-			} else {
-				await libraryStore.loadTracks()
-			}
+		const selectedPlaylistId = getSelectedPlaylistId()
+		if (selectedPlaylistId) {
+			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
+		} else {
+			await libraryStore.loadTracks()
 		}
 	}
 
@@ -304,6 +311,7 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 	return {
 		selectTag,
 		toggleTagOnTracks,
+		setTagOnLibraryTracks,
 		clearTagFilters,
 		removeTagFilter,
 		toggleTagFilterMode,

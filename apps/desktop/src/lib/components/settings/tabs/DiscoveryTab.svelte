@@ -17,10 +17,12 @@
 	import * as discoveryApi from '$shared/api/discovery'
 	import { formatFileSize } from '$shared/utils/format'
 	import CollectionGapModal from '$lib/components/collection/CollectionGapModal.svelte'
+	import DiscoveryExportModal from '$lib/components/discovery/DiscoveryExportModal.svelte'
 
 	let cacheSize = $state(0)
 	let clearing = $state(false)
 	let showClearConfirm = $state(false)
+	let showExportModal = $state(false)
 
 	async function loadCacheSize() {
 		try {
@@ -127,6 +129,17 @@
 				/>
 			</div>
 		</div>
+	</section>
+
+	<!-- Export Section -->
+	<section>
+		<Text variant="header-3" class="mb-2">{$translate('settings.discovery.export')}</Text>
+		<Text variant="caption" as="p" class="mb-2 text-text-tertiary">
+			{$translate('settings.discovery.exportCollectionDescription')}
+		</Text>
+		<Button variant="secondary" onclick={() => (showExportModal = true)}>
+			{$translate('settings.discovery.exportCollection')}
+		</Button>
 	</section>
 
 	<!-- Following Section -->
@@ -295,6 +308,8 @@
 </div>
 
 <CollectionGapModal open={showGapModal} onClose={() => (showGapModal = false)} />
+
+<DiscoveryExportModal open={showExportModal} scope="collection" onClose={() => (showExportModal = false)} />
 
 <ConfirmModal
 	open={showClearConfirm}

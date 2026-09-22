@@ -13,8 +13,8 @@ use rusqlite::Connection;
 
 use crate::error::{CrateError, Result};
 use crate::models::{
-    DiscoveryRelease, DiscoveryTrack, MoveConflict, MovePlaylistResult, Playlist, PlaylistCoverArt,
-    SmartRules, Tag, Track,
+    AddToPlaylistResult, DiscoveryRelease, DiscoveryTrack, MoveConflict, MovePlaylistResult, Playlist,
+    PlaylistCoverArt, SmartRules, Tag, Track,
 };
 use crate::services::smart_rules;
 

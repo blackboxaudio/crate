@@ -10,6 +10,7 @@
 	import { shareUrl } from '$shared/api/app'
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { formatRelativeDate } from '$shared/utils'
+	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { confirmDialog } from '$lib/utils/dialog'
 	import { lightTap } from '$lib/utils/haptics'
 	import { mobileUIStore, scrollTopNonce } from '$lib/stores/mobileUI'
@@ -116,6 +117,7 @@
 		actionTarget = source
 		actionsOpen = true
 	}
+	const platformName = $derived(actionTarget ? getReleasePlatformName(actionTarget.sourceType) : null)
 
 	function checkOne(source: FollowedSource) {
 		actionsOpen = false
@@ -376,8 +378,10 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem onclick={() => actionTarget && openSource(actionTarget)}>
-		{$translate('discovery.openInBrowser')}
+	<ContextMenuItem separatorBefore onclick={() => actionTarget && openSource(actionTarget)}>
+		{platformName
+			? $translate('discovery.openInApp', { values: { app: platformName } })
+			: $translate('discovery.openInBrowser')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path
@@ -427,7 +431,7 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem destructive onclick={() => actionTarget && unfollow(actionTarget)}>
+	<ContextMenuItem separatorBefore destructive onclick={() => actionTarget && unfollow(actionTarget)}>
 		{$translate('discovery.following.unfollow')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

@@ -27,18 +27,20 @@
 		activeView,
 		selectedTrackIds,
 		selectedReleaseIds,
+		selectedDiscoveryTrackIds,
 		visibleDevices,
 		computeTagStates,
 		releaseCount,
 		trackCount,
 		sortedReleases,
+		displayedReleases,
 		displayedTracks,
 		pageActions,
 	} from '$lib/stores'
 	import { discoveryPlaylistStore } from '$shared/stores/discoveryPlaylist'
 	import { listen } from '@tauri-apps/api/event'
 	import { setMenuItemEnabled, setOnboardingItemsEnabled } from '$shared/api/app'
-	import { computeDiscoveryTagStates } from '$shared/utils/tagComputation'
+	import { computeDiscoveryTagStates, computeDiscoveryTrackTagStates } from '$shared/utils/tagComputation'
 
 	interface Props {
 		children: Snippet
@@ -104,9 +106,24 @@
 	// Effects (migrated from +page.svelte)
 	// =========================================================================
 
+	// What a sidebar tag click applies to. In discovery a track selection and a release selection
+	// are mutually exclusive, so whichever is non-empty is the target.
+	let tagTargetIds = $derived(
+		$activeView !== 'discovery'
+			? $selectedTrackIds
+			: $selectedDiscoveryTrackIds.size > 0
+				? $selectedDiscoveryTrackIds
+				: $selectedReleaseIds
+	)
+
 	// Compute tag states when selection or tracks/releases change
 	$effect(() => {
-		if ($activeView === 'discovery') {
+		if ($activeView === 'discovery' && $selectedDiscoveryTrackIds.size > 0) {
+			// displayedReleases (not sortedReleases) so a track selected inside a playlist view resolves
+			const result = computeDiscoveryTrackTagStates(tagCategories, $displayedReleases, $selectedDiscoveryTrackIds)
+			tagStates = result.states
+			tagCounts = result.counts
+		} else if ($activeView === 'discovery') {
 			const result = computeDiscoveryTagStates(tagCategories, $sortedReleases, $selectedReleaseIds)
 			tagStates = result.states
 			tagCounts = result.counts
@@ -120,7 +137,7 @@
 	// Clear recently toggled tags when selection changes
 	let previousSelectedIds = $state<Set<string>>(new Set())
 	$effect(() => {
-		const currentIds = $activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds
+		const currentIds = tagTargetIds
 		if (currentIds.size !== previousSelectedIds.size || ![...currentIds].every((id) => previousSelectedIds.has(id))) {
 			uiStore.clearAllRecentlyToggledTags()
 			previousSelectedIds = new Set(currentIds)
@@ -381,7 +398,7 @@
 						{selectedFolderId}
 						contextMenuPlaylistId={$uiLayoutStore.contextMenuPlaylistId}
 						{selectedTagIds}
-						selectedTrackIds={$activeView === 'discovery' ? $selectedReleaseIds : $selectedTrackIds}
+						selectedTrackIds={tagTargetIds}
 						selectedTreeIds={$uiLayoutStore.selectedTreeIds}
 						{tagStates}
 						{tagCounts}

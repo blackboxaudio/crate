@@ -33,7 +33,7 @@
 </script>
 
 <script lang="ts">
-	import type { DiscoveryTrack } from '$shared/types'
+	import type { ContextMenuItem, DiscoveryTrack } from '$shared/types'
 	import TrackContextMenu from '$lib/components/library/TrackContextMenu.svelte'
 	import PlaylistContextMenu from '$lib/components/playlists/PlaylistContextMenu.svelte'
 	import TagContextMenu from '$lib/components/tags/TagContextMenu.svelte'
@@ -67,6 +67,7 @@
 		onTrackRelocate: (track: Track) => void
 		onTrackSetColor: (color: TrackColor | null, tracks: Track[]) => void
 		onTrackAnalyze: (tracks: Track[]) => void
+		onTrackToggleTag?: (tracks: Track[], tagId: string, assigned: boolean) => void
 
 		// Playlist callbacks
 		onPlaylistCreatePlaylist: (playlist: Playlist) => void
@@ -133,6 +134,8 @@
 		onDiscoveryReleaseDelete: (releaseIds: string[]) => void
 		onDiscoveryReleaseRemoveFromPlaylist?: (playlistId: string, releaseIds: string[]) => void
 		onDiscoveryReleaseMerge?: (releases: DiscoveryRelease[]) => void
+		onDiscoveryReleaseExport: (releases: DiscoveryRelease[]) => void
+		onDiscoveryReleaseToggleTag?: (releases: DiscoveryRelease[], tagId: string, assigned: boolean) => void
 		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
 		// Discovery track callbacks
@@ -158,6 +161,7 @@
 		onTrackRelocate,
 		onTrackSetColor,
 		onTrackAnalyze,
+		onTrackToggleTag,
 		onPlaylistCreatePlaylist,
 		onPlaylistCreateSmartPlaylist,
 		onPlaylistCreateFolder,
@@ -198,6 +202,8 @@
 		onDiscoveryReleaseDelete,
 		onDiscoveryReleaseRemoveFromPlaylist,
 		onDiscoveryReleaseMerge,
+		onDiscoveryReleaseExport,
+		onDiscoveryReleaseToggleTag,
 		onDiscoveryReleaseAddToPlaylist,
 		onDiscoveryTrackLikeToggle,
 		onDiscoveryTrackPlayPreview,
@@ -453,6 +459,14 @@
 		}
 	}
 
+	function handleTrackToggleTag(tagId: string, assigned: boolean) {
+		if (activeMenu.type === 'track') {
+			const tracks = activeMenu.tracks
+			closeAll()
+			onTrackToggleTag?.(tracks, tagId, assigned)
+		}
+	}
+
 	// Playlist handlers
 	function handlePlaylistCreatePlaylist(playlist: Playlist) {
 		closeAll()
@@ -675,6 +689,14 @@
 		}
 	}
 
+	function handleDiscoveryReleaseExport() {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releases = [...activeMenu.releases]
+			closeAll()
+			onDiscoveryReleaseExport(releases)
+		}
+	}
+
 	function handleDiscoveryReleaseMerge() {
 		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length >= 2) {
 			const releases = [...activeMenu.releases]
@@ -688,6 +710,14 @@
 			const releases = activeMenu.releases
 			closeAll()
 			onDiscoveryReleaseAddToPlaylist?.(playlistId, releases)
+		}
+	}
+
+	function handleDiscoveryReleaseToggleTag(tagId: string, assigned: boolean) {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releases = activeMenu.releases
+			closeAll()
+			onDiscoveryReleaseToggleTag?.(releases, tagId, assigned)
 		}
 	}
 
@@ -734,6 +764,29 @@
 
 	// Discovery playlists for the context menu submenu
 	const discoveryPlaylists = $derived(playlists.filter((p) => p.context === 'discovery'))
+
+	// The sidebar-whitespace and folder-view menus offer the same "create" group, scoped differently.
+	function createPlaylistItems(handlers: {
+		onFolder: () => void
+		onPlaylist: () => void
+		onSmartPlaylist: () => void
+	}): ContextMenuItem[] {
+		return [
+			{ id: 'add-folder', label: get(translate)('playlists.newFolder'), icon: 'folder', action: handlers.onFolder },
+			{
+				id: 'add-playlist',
+				label: get(translate)('playlists.newPlaylist'),
+				icon: 'playlist',
+				action: handlers.onPlaylist,
+			},
+			{
+				id: 'add-smart-playlist',
+				label: get(translate)('playlists.newSmartPlaylist'),
+				icon: 'bolt',
+				action: handlers.onSmartPlaylist,
+			},
+		]
+	}
 </script>
 
 <!-- Track Context Menu -->
@@ -755,6 +808,7 @@
 		onRelocate={handleTrackRelocate}
 		onSetColor={handleTrackSetColor}
 		onAnalyze={handleTrackAnalyze}
+		onToggleTag={handleTrackToggleTag}
 	/>
 {/if}
 
@@ -787,26 +841,11 @@
 		open={activeMenu.type === 'playlistTree'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[
-			{
-				id: 'add-folder',
-				label: get(translate)('playlists.newFolder'),
-				icon: 'folder',
-				action: handlePlaylistTreeCreateFolder,
-			},
-			{
-				id: 'add-playlist',
-				label: get(translate)('playlists.newPlaylist'),
-				icon: 'playlist',
-				action: handlePlaylistTreeCreatePlaylist,
-			},
-			{
-				id: 'add-smart-playlist',
-				label: get(translate)('playlists.newSmartPlaylist'),
-				icon: 'bolt',
-				action: handlePlaylistTreeCreateSmartPlaylist,
-			},
-		]}
+		items={createPlaylistItems({
+			onFolder: handlePlaylistTreeCreateFolder,
+			onPlaylist: handlePlaylistTreeCreatePlaylist,
+			onSmartPlaylist: handlePlaylistTreeCreateSmartPlaylist,
+		})}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -818,26 +857,11 @@
 		open={activeMenu.type === 'folderView'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[
-			{
-				id: 'add-folder',
-				label: get(translate)('playlists.newFolder'),
-				icon: 'folder',
-				action: handleFolderViewCreateFolder,
-			},
-			{
-				id: 'add-playlist',
-				label: get(translate)('playlists.newPlaylist'),
-				icon: 'playlist',
-				action: handleFolderViewCreatePlaylist,
-			},
-			{
-				id: 'add-smart-playlist',
-				label: get(translate)('playlists.newSmartPlaylist'),
-				icon: 'bolt',
-				action: handleFolderViewCreateSmartPlaylist,
-			},
-		]}
+		items={createPlaylistItems({
+			onFolder: handleFolderViewCreateFolder,
+			onPlaylist: handleFolderViewCreatePlaylist,
+			onSmartPlaylist: handleFolderViewCreateSmartPlaylist,
+		})}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -970,9 +994,11 @@
 		onRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
 		onImport={handleDiscoveryReleaseImport}
 		onMerge={handleDiscoveryReleaseMerge}
+		onExport={handleDiscoveryReleaseExport}
 		onDelete={handleDiscoveryReleaseDelete}
 		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}
 		onRemoveFromPlaylist={currentPlaylistId ? handleDiscoveryReleaseRemoveFromPlaylist : undefined}
+		onToggleTag={handleDiscoveryReleaseToggleTag}
 	/>
 {/if}
 

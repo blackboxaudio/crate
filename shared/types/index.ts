@@ -302,6 +302,12 @@ export interface MovePlaylistResult {
 	nestedConflicts: MoveConflict[]
 }
 
+export interface AddToPlaylistResult {
+	playlist: Playlist
+	added: number
+	alreadyPresent: number
+}
+
 // =============================================================================
 // Smart Playlist Types
 // =============================================================================

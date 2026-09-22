@@ -466,7 +466,7 @@
 				</svg>
 			{/snippet}
 		</ContextMenuItem>
-		<ContextMenuItem onclick={menuRename}>
+		<ContextMenuItem separatorBefore onclick={menuRename}>
 			{$translate('common.rename')}
 			{#snippet icon()}
 				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -482,7 +482,7 @@
 				</svg>
 			{/snippet}
 		</ContextMenuItem>
-		<ContextMenuItem destructive onclick={menuDelete}>
+		<ContextMenuItem separatorBefore destructive onclick={menuDelete}>
 			{$translate('common.delete')}
 			{#snippet icon()}
 				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -517,7 +517,7 @@
 				{/snippet}
 			</ContextMenuItem>
 		{/if}
-		<ContextMenuItem destructive onclick={menuDelete}>
+		<ContextMenuItem separatorBefore destructive onclick={menuDelete}>
 			{$translate('common.delete')}
 			{#snippet icon()}
 				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

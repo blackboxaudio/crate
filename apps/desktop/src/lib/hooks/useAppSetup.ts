@@ -60,6 +60,7 @@ import { useMediaKeys } from './useMediaKeys'
 import { useDragDropCoordination } from './useDragDropCoordination'
 import { translate } from '$shared/i18n'
 import * as playlistsApi from '$shared/api/playlists'
+import { toastPlaylistAdd } from '$shared/utils'
 
 // =============================================================================
 // Types
@@ -149,6 +150,11 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 		getTagFilterMode: () => get(tagFilterMode),
 		getSelectedTrackIds: () => get(selectedTrackIds),
 		getSelectedReleaseIds: () => get(selectedReleaseIds),
+		getSelectedDiscoveryTracks: () => {
+			const selection = get(selectedDiscoveryTrackIds)
+			if (selection.size === 0) return []
+			return get(displayedReleases).flatMap((r) => r.tracks.filter((t) => selection.has(t.id)))
+		},
 		getRecentlyToggledMixedTags: () => get(recentlyToggledMixedTags),
 		getActiveView: () => get(activeView),
 	})
@@ -726,10 +732,10 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 				await playlistsStore.addReleases(playlistId, releaseIds)
 			},
 			onDiscoveryTracksDropOnPlaylist: async (playlistId: string, trackIds: string[]) => {
-				await playlistsStore.addDiscoveryTracks(playlistId, trackIds)
+				const result = await playlistsStore.addDiscoveryTracks(playlistId, trackIds)
 				// Same feedback the library track drop gives: the target is usually not the open view.
 				const playlistName = getPlaylists().find((p) => p.id === playlistId)?.name ?? ''
-				toastStore.success(get(translate)('toast.trackAdded', { values: { count: trackIds.length, playlistName } }))
+				toastPlaylistAdd(result, playlistName)
 			},
 			onPlaylistMove: playlistController.handlePlaylistDragMove,
 			onBulkPlaylistMove: playlistController.handleBulkPlaylistMove,
@@ -747,6 +753,12 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onTagDropOnRelease: async (tagId: string, releaseId: string) => {
 				const releaseIds = get(selectedReleaseIds).has(releaseId) ? Array.from(get(selectedReleaseIds)) : [releaseId]
 				await discoveryStore.assignTags(releaseIds, [tagId])
+			},
+			onTagDropOnDiscoveryTrack: async (tagId: string, trackId: string) => {
+				const selection = get(selectedDiscoveryTrackIds)
+				const targetIds = selection.has(trackId) ? selection : new Set([trackId])
+				const tracks = get(displayedReleases).flatMap((r) => r.tracks.filter((t) => targetIds.has(t.id)))
+				await discoveryStore.setTrackTagOnTracks(tracks, tagId, false)
 			},
 			onTagDropOnCategory: async (tagId: string, _sourceCategoryId: string, targetCategoryId: string) => {
 				try {

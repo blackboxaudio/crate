@@ -87,6 +87,10 @@
 		menuOpen = false
 		playlistPickerOpen = true
 	}
+	function menuTags() {
+		menuOpen = false
+		tagPickerOpen = true
+	}
 	function menuEdit() {
 		menuOpen = false
 		editSheetOpen = true
@@ -313,6 +317,12 @@
 	// permalink — populated since the per-track url migration; refreshed metadata backfills older
 	// releases), falling back to the release URL. Snapshot before closing — `actionTrack` derives
 	// from an index the close animation clears.
+	function trackOpenInSource() {
+		const t = actionTrack
+		trackMenuOpen = false
+		if (!t) return
+		void openUrl(t.url ?? release.url).catch(() => {})
+	}
 	function trackShare() {
 		const t = actionTrack
 		trackMenuOpen = false
@@ -719,17 +729,10 @@
 	onClose={() => (trackTagPickerOpen = false)}
 />
 
-<!-- Release-level "more" menu (opened by the header ⋯ button). Tap-triggered, so no lifted preview. -->
+<!-- Release-level "more" menu (opened by the header ⋯ button). Tap-triggered, so no lifted preview.
+     Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
+     act → organize → manage → navigate & share → destructive. -->
 <ContextMenu open={menuOpen} anchorRect={menuAnchor} tapTriggered onClose={() => (menuOpen = false)}>
-	<ContextMenuItem onclick={menuAddToPlaylist}>
-		{$translate('contextMenu.addToPlaylist')}
-		{#snippet icon()}
-			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
-			</svg>
-		{/snippet}
-	</ContextMenuItem>
-
 	<ContextMenuItem onclick={menuPlayNext}>
 		{$translate('queue.playNext')}
 		{#snippet icon()}
@@ -745,6 +748,25 @@
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
 				<path d="M4 6h11M4 12h11M4 18h7M19 14v6M16 17h6" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem separatorBefore onclick={menuAddToPlaylist}>
+		{$translate('contextMenu.addToPlaylist')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuTags}>
+		{$translate('nav.tags')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 12l-8 8-9-9V3h8l9 9z" stroke-linecap="round" stroke-linejoin="round" />
+				<circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
 			</svg>
 		{/snippet}
 	</ContextMenuItem>
@@ -770,7 +792,7 @@
 		</ContextMenuItem>
 	{/if}
 
-	<ContextMenuItem onclick={menuEdit}>
+	<ContextMenuItem separatorBefore onclick={menuEdit}>
 		{$translate('discovery.editRelease')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -788,7 +810,7 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem separatorBefore onclick={menuRefresh}>
+	<ContextMenuItem onclick={menuRefresh}>
 		{$translate('discovery.refreshMetadata')}
 		{#snippet icon()}
 			<svg
@@ -806,7 +828,47 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem onclick={menuOpenInSource}>
+	{#if release.tracks.length > 0 && !isFullyDownloaded}
+		<ContextMenuItem onclick={menuDownloadForOffline}>
+			{downloading ? $translate('discovery.downloading') : $translate('discovery.downloadForOffline')}
+			{#snippet icon()}
+				<svg
+					class="h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+					<path d="M7 10l5 5 5-5" />
+					<path d="M12 15V3" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
+	{#if hasSomeCached}
+		<ContextMenuItem onclick={menuRemoveDownload}>
+			{$translate('discovery.removeDownload')}
+			{#snippet icon()}
+				<svg
+					class="h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
+	<ContextMenuItem separatorBefore onclick={menuOpenInSource}>
 		{platformName
 			? $translate('discovery.openInApp', { values: { app: platformName } })
 			: $translate('discovery.openInBrowser')}
@@ -851,47 +913,7 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	{#if release.tracks.length > 0 && !isFullyDownloaded}
-		<ContextMenuItem separatorBefore onclick={menuDownloadForOffline}>
-			{downloading ? $translate('discovery.downloading') : $translate('discovery.downloadForOffline')}
-			{#snippet icon()}
-				<svg
-					class="h-5 w-5"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-					<path d="M7 10l5 5 5-5" />
-					<path d="M12 15V3" />
-				</svg>
-			{/snippet}
-		</ContextMenuItem>
-	{/if}
-
-	{#if hasSomeCached}
-		<ContextMenuItem separatorBefore={isFullyDownloaded} onclick={menuRemoveDownload}>
-			{$translate('discovery.removeDownload')}
-			{#snippet icon()}
-				<svg
-					class="h-5 w-5"
-					viewBox="0 0 24 24"
-					fill="none"
-					stroke="currentColor"
-					stroke-width="2"
-					stroke-linecap="round"
-					stroke-linejoin="round"
-				>
-					<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
-				</svg>
-			{/snippet}
-		</ContextMenuItem>
-	{/if}
-
-	<ContextMenuItem destructive onclick={menuDelete}>
+	<ContextMenuItem separatorBefore destructive onclick={menuDelete}>
 		{$translate('discovery.deleteRelease')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -958,17 +980,6 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	{#if contextPlaylistId && actionTrack && memberTrackIds?.has(actionTrack.id)}
-		<ContextMenuItem onclick={trackRemoveFromPlaylist}>
-			{$translate('contextMenu.removeFromPlaylist')}
-			{#snippet icon()}
-				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-					<path d="M4 6h12M4 12h12M4 18h8M15 18h6" stroke-linecap="round" />
-				</svg>
-			{/snippet}
-		</ContextMenuItem>
-	{/if}
-
 	<ContextMenuItem onclick={trackOpenTags}>
 		{$translate('nav.tags')}
 		{#snippet icon()}
@@ -979,7 +990,16 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem separatorBefore onclick={trackShare}>
+	<ContextMenuItem separatorBefore onclick={trackOpenInSource}>
+		{platformName
+			? $translate('discovery.openInApp', { values: { app: platformName } })
+			: $translate('discovery.openInBrowser')}
+		{#snippet icon()}
+			<SourceIcon source={release.source_type} />
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={trackShare}>
 		{$translate('discovery.share')}
 		{#snippet icon()}
 			<svg
@@ -1014,4 +1034,15 @@
 			</svg>
 		{/snippet}
 	</ContextMenuItem>
+
+	{#if contextPlaylistId && actionTrack && memberTrackIds?.has(actionTrack.id)}
+		<ContextMenuItem separatorBefore destructive onclick={trackRemoveFromPlaylist}>
+			{$translate('contextMenu.removeFromPlaylist')}
+			{#snippet icon()}
+				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M4 6h12M4 12h12M4 18h8M15 18h6" stroke-linecap="round" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
 </ContextMenu>

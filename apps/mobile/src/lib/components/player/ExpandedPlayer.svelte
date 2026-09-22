@@ -35,6 +35,7 @@
 	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
 	import SourceIcon from '../discovery/SourceIcon.svelte'
 	import EditReleaseSheet from '../discovery/EditReleaseSheet.svelte'
+	import MobileTagPicker from '../discovery/MobileTagPicker.svelte'
 	import PlaylistPickerSheet from '$lib/components/playlists/PlaylistPickerSheet.svelte'
 	import UpNextSheet from './UpNextSheet.svelte'
 
@@ -306,6 +307,7 @@
 	let menuAnchor = $state<{ top: number; left: number; width: number; height: number } | null>(null)
 	let editSheetOpen = $state(false)
 	let playlistPickerOpen = $state(false)
+	let tagPickerOpen = $state(false)
 
 	const platformName = $derived($previewInfo ? getReleasePlatformName($previewInfo.release.source_type) : null)
 
@@ -318,6 +320,10 @@
 	function menuAddToPlaylist() {
 		menuOpen = false
 		playlistPickerOpen = true
+	}
+	function menuTags() {
+		menuOpen = false
+		tagPickerOpen = true
 	}
 	// Go to release: collapse the player and open the release's detail screen — same as tapping the title.
 	function menuGoToRelease() {
@@ -720,10 +726,17 @@
 		releaseIds={track ? [] : [$previewInfo.releaseId]}
 		onClose={() => (playlistPickerOpen = false)}
 	/>
+	<MobileTagPicker
+		open={tagPickerOpen}
+		trackIds={track ? [track.id] : []}
+		releaseIds={track ? [] : [$previewInfo.releaseId]}
+		onClose={() => (tagPickerOpen = false)}
+	/>
 	<EditReleaseSheet open={editSheetOpen} release={$previewInfo.release} onClose={() => (editSheetOpen = false)} />
 {/if}
 
-<!-- Release-actions "more" menu (opened by the ⋯ button beside Like). Tap-triggered, so no lifted preview. -->
+<!-- Release-actions "more" menu (opened by the ⋯ button beside Like). Tap-triggered, so no lifted preview.
+     Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md): organize → manage → navigate & share. -->
 <ContextMenu open={menuOpen} anchorRect={menuAnchor} tapTriggered onClose={() => (menuOpen = false)}>
 	<ContextMenuItem onclick={menuAddToPlaylist}>
 		{$translate('contextMenu.addToPlaylist')}
@@ -734,16 +747,17 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem onclick={menuGoToRelease}>
-		{$translate('discovery.goToRelease')}
+	<ContextMenuItem onclick={menuTags}>
+		{$translate('nav.tags')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-				<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+				<path d="M20 12l-8 8-9-9V3h8l9 9z" stroke-linecap="round" stroke-linejoin="round" />
+				<circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
 			</svg>
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem onclick={menuEdit}>
+	<ContextMenuItem separatorBefore onclick={menuEdit}>
 		{$translate('discovery.editRelease')}
 		{#snippet icon()}
 			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -761,7 +775,16 @@
 		{/snippet}
 	</ContextMenuItem>
 
-	<ContextMenuItem separatorBefore onclick={menuOpenInSource}>
+	<ContextMenuItem separatorBefore onclick={menuGoToRelease}>
+		{$translate('discovery.goToRelease')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M9 6l6 6-6 6" stroke-linecap="round" stroke-linejoin="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={menuOpenInSource}>
 		{platformName
 			? $translate('discovery.openInApp', { values: { app: platformName } })
 			: $translate('discovery.openInBrowser')}

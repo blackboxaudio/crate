@@ -2,6 +2,7 @@
 	import { translate } from '$shared/i18n'
 	import { tagsStore } from '$shared/stores/tags'
 	import { discoveryStore } from '$shared/stores/discovery'
+	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 	import { SvelteMap } from 'svelte/reactivity'
 
@@ -20,6 +21,25 @@
 	}
 	let { open, releaseIds = [], trackIds = [], onClose }: Props = $props()
 	const trackMode = $derived(trackIds.length > 0)
+
+	// Search mirrors the playlist picker so the two "file it" sheets feel like one pattern: a query
+	// narrows chips by name across every category and drops categories left with no match. Empty
+	// categories are never shown (a heading with nothing to tap is a dead end).
+	let query = $state('')
+	const visibleCategories = $derived.by(() => {
+		const q = query.trim().toLowerCase()
+		return $tagsStore.categories
+			.map((category) => ({
+				...category,
+				tags: q ? category.tags.filter((tag) => tag.name.toLowerCase().includes(q)) : category.tags,
+			}))
+			.filter((category) => category.tags.length > 0)
+	})
+
+	function handleClose() {
+		query = ''
+		onClose()
+	}
 
 	// Lazy-load categories the first time the sheet opens.
 	let loadedOnce = $state(false)
@@ -76,21 +96,56 @@
 	}
 </script>
 
-<MobileModal {open} {onClose} title={$translate('nav.tags')}>
+<MobileModal {open} onClose={handleClose} title={$translate('nav.tags')}>
 	{#if $tagsStore.loading && $tagsStore.categories.length === 0}
 		<p class="py-6 text-center text-sm text-text-secondary">{$translate('common.loading')}</p>
 	{:else if $tagsStore.categories.length === 0}
 		<p class="py-6 text-center text-sm text-text-secondary">{$translate('tags.noTags')}</p>
 	{:else}
+		<div class="relative mb-4">
+			<svg
+				class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-text-tertiary"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+			>
+				<circle cx="11" cy="11" r="7" />
+				<path d="M21 21l-4.3-4.3" stroke-linecap="round" />
+			</svg>
+			<input
+				type="text"
+				bind:value={query}
+				placeholder={$translate('common.search')}
+				class="w-full rounded-lg border border-stroke bg-surface-1 py-2 pr-9 pl-9 text-sm text-text-primary placeholder:text-text-tertiary"
+			/>
+			{#if query}
+				<button
+					type="button"
+					class="absolute top-1/2 right-1.5 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full text-text-tertiary active:bg-surface-2"
+					aria-label={$translate('common.close')}
+					onclick={() => (query = '')}
+				>
+					<svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+						<path d="M6 6l12 12M18 6L6 18" stroke-linecap="round" />
+					</svg>
+				</button>
+			{/if}
+		</div>
+		{#if visibleCategories.length === 0}
+			<p class="py-6 text-center text-sm text-text-secondary">
+				{query.trim() ? $translate('common.noResults') : $translate('tags.noTags')}
+			</p>
+		{/if}
 		<div class="flex flex-col gap-5">
-			{#each $tagsStore.categories as category (category.id)}
+			{#each visibleCategories as category (category.id)}
 				<div>
 					<h3 class="mb-2 text-xs font-semibold tracking-wide text-text-tertiary uppercase">
 						{category.name}
 					</h3>
 					<div class="flex flex-wrap gap-2">
 						{#each category.tags as tag (tag.id)}
-							{@const color = tag.color ?? category.color ?? '#888888'}
+							{@const color = tag.color ?? category.color ?? DEFAULT_TAG_COLOR}
 							{@const st = stateOf(tag.id)}
 							{@const lit = st === 'active' || st === 'mixed'}
 							<button

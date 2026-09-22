@@ -7,6 +7,7 @@ import type {
 	DiscoveryFacetFilters,
 	DiscoveryFilter,
 	DiscoverySortConfig,
+	DiscoveryTrack,
 	FilterTriState,
 	ImportResultWithDuplicates,
 } from '../types'
@@ -100,9 +101,11 @@ let loadGeneration = 0
 function createDiscoveryStore() {
 	const { subscribe, set, update } = writable<DiscoveryState>(initialState)
 
-	// Releases already availability-rechecked this session — the recheck is a full page
-	// fetch at the source, so once per app run per release is plenty.
-	const availabilityChecked = new Set<string>()
+	// Last availability-recheck attempt per release. The recheck is a full page fetch at the
+	// source, so it's rate-limited — but by a cooldown rather than once per app run: a mobile
+	// session can outlive a pre-order's release day, and the tracks must un-grey without a restart.
+	const AVAILABILITY_RECHECK_COOLDOWN_MS = 30 * 60 * 1000
+	const availabilityChecked = new Map<string, number>()
 
 	return {
 		subscribe,
@@ -292,6 +295,17 @@ function createDiscoveryStore() {
 			}
 		},
 
+		/** Assign (or remove) one tag across a track selection that may span several releases. */
+		async setTrackTagOnTracks(tracks: Pick<DiscoveryTrack, 'id' | 'release_id'>[], tagId: string, remove: boolean) {
+			// The tag patch re-reads one release at a time, so group the selection by release.
+			const byRelease = new Map<string, string[]>()
+			for (const t of tracks) byRelease.set(t.release_id, [...(byRelease.get(t.release_id) ?? []), t.id])
+			for (const [releaseId, trackIds] of byRelease) {
+				if (remove) await this.removeTrackTags(releaseId, trackIds, [tagId])
+				else await this.assignTrackTags(releaseId, trackIds, [tagId])
+			}
+		},
+
 		async refreshTrackTags(releaseId: string) {
 			const fresh = await discoveryApi.getRelease(releaseId)
 			const tagsByTrack = new Map(fresh.tracks.map((t) => [t.id, t.tags ?? []]))
@@ -414,13 +428,14 @@ function createDiscoveryStore() {
 
 		/**
 		 * Silently refresh a release's per-track preview availability (one background page
-		 * fetch, once per release per session). Fires when the release shows flagged tracks
+		 * fetch, at most once per release per cooldown window). Fires when the release shows flagged tracks
 		 * (a pre-order's unreleased tracks — heals them once the album is out) or has a
 		 * future release date with no flags yet (flags a fresh pre-order on first view).
 		 */
 		maybeRecheckAvailability(release: DiscoveryRelease) {
 			if (release.source_type !== 'bandcamp' && release.source_type !== 'soundcloud') return
-			if (availabilityChecked.has(release.id)) return
+			const lastChecked = availabilityChecked.get(release.id)
+			if (lastChecked != null && Date.now() - lastChecked < AVAILABILITY_RECHECK_COOLDOWN_MS) return
 			// Same "upcoming" semantics as the release row's badge (null once out / unknown).
 			const isPreRelease = daysUntilRelease(release.release_date) != null
 			// Duration-less tracks are the pre-flag symptom of an unstreamable track (Bandcamp serves
@@ -429,7 +444,7 @@ function createDiscoveryStore() {
 			const hasSuspectTracks =
 				release.tracks.length > 0 && release.tracks.some((t) => t.preview_unavailable || !t.duration_ms)
 			if (!hasSuspectTracks && !isPreRelease) return
-			availabilityChecked.add(release.id)
+			availabilityChecked.set(release.id, Date.now())
 			discoveryApi
 				.recheckPreviewAvailability(release.id)
 				.then((tracks) => {
@@ -444,7 +459,11 @@ function createDiscoveryStore() {
 						void this.refreshMetadata(release.id)
 					}
 				})
-				.catch((error) => console.error('Preview availability recheck failed:', error))
+				.catch((error) => {
+					// A failed attempt (offline, rate-limited) proved nothing — let the next open retry.
+					availabilityChecked.delete(release.id)
+					console.error('Preview availability recheck failed:', error)
+				})
 		},
 
 		/** Set one facet explicitly. A no-op when unchanged, so re-tapping the active segment doesn't
