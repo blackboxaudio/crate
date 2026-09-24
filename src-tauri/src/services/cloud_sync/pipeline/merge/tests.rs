@@ -480,3 +480,258 @@ fn no_override_when_local_value_authored_elsewhere() {
     assert_eq!(tc_name(&conn, "c1").as_deref(), Some("Techno"));
     assert!(overrides.is_empty());
 }
+
+// --- orphaned child entities (parent deleted locally) ----------------------
+//
+// Regression: a release deleted locally (tombstone wins over the remote release
+// row) must NOT wedge sync when the remote's discovery_tracks rows still
+// reference it — with deferred FKs the violation surfaced at COMMIT and aborted
+// the whole bucket on every pull ("Cloud sync merge error (discovery_tracks):
+// FOREIGN KEY constraint failed").
+
+fn insert_discovery_release(conn: &Connection, id: &str, hlc: &str) {
+    conn.execute(
+        "INSERT INTO discovery_releases (id, url, source_type, date_added, date_modified, _hlc)
+         VALUES (?1, ?2, 'bandcamp', '2026-01-01', '2026-01-01', ?3)",
+        params![id, format!("https://x.bandcamp.com/album/{id}"), hlc],
+    )
+    .unwrap();
+}
+
+fn dt_live(id: &str, release_id: &str, position: i32, hlc: &str) -> ParsedRow {
+    parsed(json!({
+        "id": id, "release_id": release_id, "name": format!("Track {position}"),
+        "position": position, "duration_ms": null, "video_id": null, "is_liked": false,
+        "_hlc": hlc, "_deleted": false
+    }))
+}
+
+#[test]
+fn orphan_child_entity_is_skipped_not_fatal() {
+    let conn = mem();
+    // "r1" exists locally; "r-deleted" was deleted locally (tombstone, no live row).
+    insert_discovery_release(&conn, "r1", "0005");
+    conn.execute(
+        "INSERT INTO sync_tombstones (entity_type, entity_id, _hlc) VALUES ('discovery_release', 'r-deleted', '0009')",
+        [],
+    )
+    .unwrap();
+
+    // Remote tracks bucket carries rows for BOTH releases (the peer hasn't seen the
+    // delete yet). The orphan must be skipped; the valid row must still apply.
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[
+            dt_live("t-orphan", "r-deleted", 1, "0005"),
+            dt_live("t-ok", "r1", 1, "0005"),
+        ],
+    )
+    .unwrap();
+
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM discovery_tracks", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(count, 1, "only the track with a live parent applies");
+    let ok: Option<String> = conn
+        .query_row(
+            "SELECT release_id FROM discovery_tracks WHERE id = 't-ok'",
+            [],
+            |r| r.get(0),
+        )
+        .optional()
+        .unwrap();
+    assert_eq!(ok.as_deref(), Some("r1"));
+}
+
+#[test]
+fn orphan_child_update_pointing_at_missing_parent_is_skipped() {
+    let conn = mem();
+    insert_discovery_release(&conn, "r1", "0005");
+    // Track exists locally under r1.
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[dt_live("t1", "r1", 1, "0005")],
+    )
+    .unwrap();
+    // Remote update re-parents it onto a release that doesn't exist locally — must
+    // be skipped (not applied, not fatal), keeping the local row intact.
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[dt_live("t1", "r-gone", 1, "0009")],
+    )
+    .unwrap();
+    let release_id: String = conn
+        .query_row(
+            "SELECT release_id FROM discovery_tracks WHERE id = 't1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(release_id, "r1", "local row untouched by the orphan update");
+}
+
+#[test]
+fn discovery_track_liked_at_rides_the_row() {
+    let conn = mem();
+    insert_discovery_release(&conn, "r1", "0005");
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[parsed(json!({
+            "id": "t1", "release_id": "r1", "name": "Track 1", "position": 1,
+            "duration_ms": null, "video_id": null, "is_liked": true,
+            "liked_at": "2026-09-04T00:00:00+00:00", "_hlc": "0005", "_deleted": false
+        }))],
+    )
+    .unwrap();
+    let liked_at = |conn: &Connection| -> Option<String> {
+        conn.query_row(
+            "SELECT liked_at FROM discovery_tracks WHERE id = 't1'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+    };
+    assert_eq!(
+        liked_at(&conn).as_deref(),
+        Some("2026-09-04T00:00:00+00:00")
+    );
+
+    // A newer row from a peer without the column (no `liked_at` key → serde default)
+    // nulls the stamp under whole-row LWW — the accepted trade documented on the writer.
+    merge_bucket(
+        &conn,
+        &Bucket::DiscoveryTracks,
+        &[dt_live("t1", "r1", 1, "0009")],
+    )
+    .unwrap();
+    assert_eq!(liked_at(&conn), None);
+}
+
+// --- playlist_discovery_tracks (an ORDERED junction keyed by a discovery track) ---
+
+fn setup_discovery_playlist_endpoints(conn: &Connection) {
+    conn.execute(
+        "INSERT INTO playlists (id, name, is_folder, is_smart, sort_order, context, date_created, date_modified, _hlc) \
+         VALUES ('p1','P',0,0,0,'discovery','2020-01-01T00:00:00Z','2020-01-01T00:00:00Z','0001')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO discovery_releases (id, url, source_type, date_added, date_modified, _hlc) \
+         VALUES ('r1','https://x.bandcamp.com/album/a','bandcamp','2020-01-01T00:00:00Z','2020-01-01T00:00:00Z','0001')",
+        [],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT INTO discovery_tracks (id, release_id, name, position, _hlc) VALUES ('d1','r1','Intro',1,'0001')",
+        [],
+    )
+    .unwrap();
+}
+
+fn pdt_live(position: i32, hlc: &str) -> ParsedRow {
+    parsed(json!({
+        "playlist_id": "p1", "track_id": "d1", "position": position,
+        "date_added": "2020-01-02T00:00:00Z", "_hlc": hlc, "_deleted": false
+    }))
+}
+
+fn pdt_position(conn: &Connection) -> Option<i32> {
+    conn.query_row(
+        "SELECT position FROM playlist_discovery_tracks WHERE playlist_id='p1' AND track_id='d1'",
+        [],
+        |r| r.get(0),
+    )
+    .optional()
+    .unwrap()
+}
+
+#[test]
+fn discovery_playlist_track_inserts_when_endpoints_exist() {
+    let conn = mem();
+    setup_discovery_playlist_endpoints(&conn);
+    merge_bucket(
+        &conn,
+        &Bucket::PlaylistDiscoveryTracks,
+        &[pdt_live(3, "0005")],
+    )
+    .unwrap();
+    assert_eq!(pdt_position(&conn), Some(3));
+}
+
+#[test]
+fn discovery_playlist_track_orphan_is_skipped() {
+    let conn = mem();
+    // Playlist + release exist, but not the track the membership points at.
+    setup_discovery_playlist_endpoints(&conn);
+    conn.execute("DELETE FROM discovery_tracks WHERE id = 'd1'", [])
+        .unwrap();
+    merge_bucket(
+        &conn,
+        &Bucket::PlaylistDiscoveryTracks,
+        &[pdt_live(3, "0005")],
+    )
+    .unwrap();
+    assert_eq!(
+        pdt_position(&conn),
+        None,
+        "membership without its track is skipped"
+    );
+}
+
+#[test]
+fn discovery_playlist_track_ordering_is_lww() {
+    let conn = mem();
+    setup_discovery_playlist_endpoints(&conn);
+    conn.execute(
+        "INSERT INTO playlist_discovery_tracks (playlist_id, track_id, position, date_added, _hlc) \
+         VALUES ('p1','d1',0,'2020-01-02T00:00:00Z','0010')",
+        [],
+    )
+    .unwrap();
+    // Older remote ordering loses.
+    merge_bucket(
+        &conn,
+        &Bucket::PlaylistDiscoveryTracks,
+        &[pdt_live(7, "0005")],
+    )
+    .unwrap();
+    assert_eq!(pdt_position(&conn), Some(0));
+    // Newer remote ordering wins.
+    merge_bucket(
+        &conn,
+        &Bucket::PlaylistDiscoveryTracks,
+        &[pdt_live(7, "0020")],
+    )
+    .unwrap();
+    assert_eq!(pdt_position(&conn), Some(7));
+}
+
+#[test]
+fn discovery_track_tag_orphan_is_skipped_and_insert_works() {
+    let conn = mem();
+    setup_discovery_playlist_endpoints(&conn);
+    setup_junction_endpoints(&conn); // tag g1
+    let live = parsed(json!({"track_id": "d1", "tag_id": "g1", "_hlc": "0005", "_deleted": false}));
+    merge_bucket(&conn, &Bucket::DiscoveryTrackTags, &[live]).unwrap();
+    let n: i64 = conn
+        .query_row("SELECT COUNT(*) FROM discovery_track_tags", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert_eq!(n, 1);
+
+    let orphan =
+        parsed(json!({"track_id": "nope", "tag_id": "g1", "_hlc": "0005", "_deleted": false}));
+    merge_bucket(&conn, &Bucket::DiscoveryTrackTags, &[orphan]).unwrap();
+    let n: i64 = conn
+        .query_row("SELECT COUNT(*) FROM discovery_track_tags", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert_eq!(n, 1, "tag on a missing track is skipped");
+}

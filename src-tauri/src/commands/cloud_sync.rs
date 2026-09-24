@@ -10,10 +10,17 @@ use std::sync::Arc;
 #[cfg(feature = "desktop")]
 use rusqlite::OptionalExtension;
 use serde::Serialize;
-use tauri::{AppHandle, State};
+use tauri::State;
+// `AppHandle` + the opener plugin back the desktop loopback `sign_in` only.
+#[cfg(feature = "desktop")]
+use tauri::AppHandle;
+#[cfg(feature = "desktop")]
 use tauri_plugin_opener::OpenerExt;
 
-use crate::error::{CrateError, Result};
+// Desktop: the loopback `sign_in`'s browser-open error. Mobile: `complete_sign_in`'s timeout.
+#[cfg(any(feature = "desktop", feature = "mobile"))]
+use crate::error::CrateError;
+use crate::error::Result;
 use crate::services::cloud_sync::backend::types::DeviceRecord;
 use crate::services::cloud_sync::resolution;
 use crate::services::cloud_sync::runtime::{CloudSyncState, OverrideNotice, SyncStatus};
@@ -25,8 +32,9 @@ use crate::services::LibraryService;
 // Auth + sync commands (Phase 2)
 // =============================================================================
 
-/// Sign in with an identity provider (v1: `"google"`). Opens the system browser for
-/// the consent screen; Crate never sees the user's password.
+/// Sign in with an identity provider (v1: `"google"`). Desktop loopback flow: opens the system
+/// browser for the consent screen; Crate never sees the user's password.
+#[cfg(feature = "desktop")]
 #[tauri::command]
 pub async fn sign_in(
     provider_id: String,
@@ -42,6 +50,64 @@ pub async fn sign_in(
     state.sign_in(&provider_id, open_url).await
 }
 
+/// Begin a native mobile sign-in (v1: `"google"`). Returns the consent URL + callback scheme for
+/// the frontend's `ASWebAuthenticationSession` / Custom Tabs session; the frontend hands the
+/// resulting `code`/`state` back to [`complete_sign_in`].
+#[cfg(feature = "mobile")]
+#[tauri::command]
+pub async fn begin_sign_in(
+    provider_id: String,
+    state: State<'_, Arc<CloudSyncState>>,
+) -> Result<crate::services::cloud_sync::runtime::BeginSignIn> {
+    state.begin_sign_in(&provider_id).await
+}
+
+/// Complete a native mobile sign-in with the `code`/`state` the frontend extracted from the OAuth
+/// callback URL. `oauth_state` is the OAuth CSRF token (named to avoid clashing with the Tauri
+/// `state` handle).
+///
+/// The whole completion is bounded by [`SIGN_IN_TIMEOUT`]: every leg of the chain (token exchange,
+/// App Check mint, `signInWithIdp`, onboarding manifest read) is individually bounded, but a stall
+/// anywhere — e.g. a hung native attestation call — would otherwise leave the frontend's invoke
+/// promise pending and the sign-in button spinning forever. The promise must always settle.
+#[cfg(feature = "mobile")]
+#[tauri::command]
+pub async fn complete_sign_in(
+    code: String,
+    oauth_state: String,
+    state: State<'_, Arc<CloudSyncState>>,
+) -> Result<SyncStatus> {
+    /// Generous upper bound: the slowest legitimate chain (30s token exchange + 10s App Check
+    /// mint + 60s `signInWithIdp` on a terrible network) still fits.
+    const SIGN_IN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(120);
+    match tokio::time::timeout(SIGN_IN_TIMEOUT, state.complete_sign_in(&code, &oauth_state)).await {
+        Ok(result) => result,
+        Err(_) => Err(CrateError::CloudSyncAuth(format!(
+            "sign-in timed out after {SIGN_IN_TIMEOUT:?}"
+        ))),
+    }
+}
+
+/// Native iOS **Sign in with Apple** (App Store Guideline 4.8): present the AuthenticationServices
+/// sheet, exchange the Apple identity token into Firebase, and return the updated status. iOS-only
+/// (the native flow uses AuthenticationServices via objc2); Android keeps the Google OAuth flow.
+///
+/// Bounded like [`complete_sign_in`]: the native sheet waits on the user (Face ID / consent) and the
+/// Firebase exchange follows, so the whole thing is capped — the frontend's invoke promise must
+/// always settle. The generous bound sits just above the native module's own 300s authorization
+/// timeout so that inner timeout surfaces first.
+#[cfg(target_os = "ios")]
+#[tauri::command]
+pub async fn sign_in_with_apple(state: State<'_, Arc<CloudSyncState>>) -> Result<SyncStatus> {
+    const SIGN_IN_TIMEOUT: std::time::Duration = std::time::Duration::from_secs(360);
+    match tokio::time::timeout(SIGN_IN_TIMEOUT, state.sign_in_with_apple()).await {
+        Ok(result) => result,
+        Err(_) => Err(CrateError::CloudSyncAuth(format!(
+            "apple sign-in timed out after {SIGN_IN_TIMEOUT:?}"
+        ))),
+    }
+}
+
 /// Sign out and clear the stored refresh token.
 #[tauri::command]
 pub async fn sign_out(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
@@ -54,6 +120,13 @@ pub async fn get_sync_status(state: State<'_, Arc<CloudSyncState>>) -> Result<Sy
     Ok(state.get_status().await)
 }
 
+/// Human-readable sync diagnostics (status header + persistent sync-log tail) for the
+/// "Copy sync diagnostics" affordance in both apps.
+#[tauri::command]
+pub async fn get_sync_diagnostics(state: State<'_, Arc<CloudSyncState>>) -> Result<String> {
+    Ok(state.diagnostics().await)
+}
+
 /// Trigger an immediate push ("Sync now").
 #[tauri::command]
 pub async fn sync_now(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
@@ -64,6 +137,37 @@ pub async fn sync_now(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
 #[tauri::command]
 pub async fn pull_now(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
     state.run_pull().await
+}
+
+/// One-shot foreground sync for mobile, which — unlike desktop — has no always-on poll loop
+/// (the loop in `lib.rs` is desktop-gated so the app doesn't drain the battery ticking every
+/// 5s). Called on launch and whenever the app returns to the foreground: pull other devices'
+/// changes, then push local edits if the dirty queue is non-empty. A no-op when signed out.
+#[tauri::command]
+pub async fn sync_foreground(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
+    state.run_foreground_pass().await
+}
+
+/// Schedule opportunistic background sync (iOS BGTaskScheduler / Android WorkManager). Called by
+/// the mobile frontend after sign-in — and on launch when already signed in — so background sync
+/// only runs for signed-in users. Idempotent; a no-op when signed out. The OS decides actual
+/// cadence (both platforms throttle to ~15 min minimum and treat it as opportunistic).
+#[cfg(feature = "mobile")]
+#[tauri::command]
+pub async fn schedule_background_sync(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
+    if !state.is_signed_in().await {
+        return Ok(());
+    }
+    crate::services::cloud_sync::background::schedule();
+    Ok(())
+}
+
+/// Cancel any scheduled background sync (called on sign-out). No-op on unsupported targets.
+#[cfg(feature = "mobile")]
+#[tauri::command]
+pub async fn cancel_background_sync() -> Result<()> {
+    crate::services::cloud_sync::background::cancel();
+    Ok(())
 }
 
 /// The recent override notices kept in memory (diagnostics; no audit-log UI in v1).
@@ -98,6 +202,14 @@ pub async fn revoke_device(device_id: String, state: State<'_, Arc<CloudSyncStat
 #[tauri::command]
 pub async fn delete_cloud_vault(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
     state.delete_cloud_vault().await
+}
+
+/// Permanently delete the user's account: all cloud data + the Firebase Auth user, then
+/// every local auth trace. The in-app "Delete account" flow (App Store Guideline 5.1.1(v)
+/// / Google Play). Local library data is untouched.
+#[tauri::command]
+pub async fn delete_account(state: State<'_, Arc<CloudSyncState>>) -> Result<()> {
+    state.delete_account().await
 }
 
 // =============================================================================

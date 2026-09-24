@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
+use std::time::{Duration, Instant};
 
 use crate::error::{CrateError, Result};
 
-use super::{is_compilation, FetchedMetadata, FetchedTrack, CHROME_USER_AGENT, YT_CONSENT_COOKIE};
+use super::{is_compilation, FetchedMetadata, FetchedTrack, YT_CONSENT_COOKIE};
 
 // =============================================================================
 // YouTube
@@ -58,47 +59,52 @@ pub(crate) struct YtClientConfig {
     pub client_id: &'static str,
     pub client_version: &'static str,
     pub user_agent: &'static str,
-    /// Whether stream URLs from this client work in a browser/WebView Audio element
-    /// without requiring the matching user-agent on the CDN request.
+    /// Whether the CDN serves this client's stream URLs to any user-agent. When false, the
+    /// proxy must replay `user_agent` on every CDN request or the CDN answers 403.
     pub browser_compatible: bool,
     /// Extra context fields for native app clients (device info, OS version, etc.).
     pub extra_context: Option<&'static [(&'static str, &'static str)]>,
 }
 
+/// The visionOS YouTube app presents itself with a Safari user-agent.
+const VISIONOS_USER_AGENT: &str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15";
+
 /// Fallback chain of YouTube innertube clients, ordered by preference.
 ///
-/// Browser-compatible clients are tried first because their stream URLs can be played directly
-/// by the HTML5 Audio element without the localhost proxy, avoiding seeking/pause issues.
+/// Mirrors the unauthenticated defaults of yt-dlp's `INNERTUBE_CLIENTS` table
+/// (`yt_dlp/extractor/youtube/_base.py`, release 2026.08.19). When YouTube breaks a client,
+/// that table is the first place to look; `scripts/yt-probe.mjs` exercises this exact chain
+/// outside the app.
 ///
-/// - WEB_EMBEDDED: handles most non-restricted videos.
-/// - WEB: handles embedded-restricted videos that WEB_EMBEDDED returns UNKNOWN for, since
-///   embedded-restricted videos ARE playable on youtube.com itself (just not in iframes).
-/// - ANDROID_VR: fallback for videos that only work via native app innertube (e.g. embedded-
-///   restricted). Uses the Oculus Quest client, which doesn't require PO tokens and returns
-///   direct stream URLs with `n` parameters suitable for transformation. The IOS client was
-///   removed because YouTube now requires PO tokens for IOS CDN access (403 without one).
+/// - VISIONOS: yt-dlp's primary default since 2026.08. Needs no PO token and no JS player:
+///   its stream URLs are direct (no `signatureCipher`, no throttling `n` parameter) and the
+///   CDN serves them to any user-agent, so they work through the proxy with no transformation.
+/// - ANDROID_VR: last-resort fallback. yt-dlp dropped it from its defaults in 2026.08 because
+///   YouTube intermittently enforces PO tokens on it, but it still answers for some videos the
+///   visionOS client refuses. Version must stay ≤ 1.65: newer versions only return SABR
+///   (URL-less) formats.
+///
+/// Web clients (WEB, WEB_EMBEDDED_PLAYER, MWEB, TVHTML5) are deliberately absent: since mid
+/// 2026 they return SABR-only streaming data without a PO token, which the app cannot mint.
 pub(crate) const YT_CLIENTS: &[YtClientConfig] = &[
     YtClientConfig {
-        client_name: "WEB_EMBEDDED",
-        client_id: "56",
-        client_version: "1.20250120.00.00",
-        user_agent: CHROME_USER_AGENT,
+        client_name: "VISIONOS",
+        client_id: "101",
+        client_version: "1.02",
+        user_agent: VISIONOS_USER_AGENT,
         browser_compatible: true,
-        extra_context: None,
-    },
-    YtClientConfig {
-        client_name: "WEB",
-        client_id: "1",
-        client_version: "2.20250120.01.00",
-        user_agent: CHROME_USER_AGENT,
-        browser_compatible: true,
-        extra_context: None,
+        extra_context: Some(&[
+            ("deviceMake", "Apple"),
+            ("deviceModel", "RealityDevice17,1"),
+            ("osName", "visionOS"),
+            ("osVersion", "26.5.23O471"),
+        ]),
     },
     YtClientConfig {
         client_name: "ANDROID_VR",
         client_id: "28",
-        client_version: "1.71.26",
-        user_agent: "com.google.android.apps.youtube.vr.oculus/1.71.26 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
+        client_version: "1.65.10",
+        user_agent: "com.google.android.apps.youtube.vr.oculus/1.65.10 (Linux; U; Android 12L; eureka-user Build/SQ3A.220605.009.A1) gzip",
         browser_compatible: false,
         extra_context: Some(&[
             ("deviceMake", "Oculus"),
@@ -117,7 +123,7 @@ pub(crate) fn build_yt_client_with_config(
     jar: Option<Arc<reqwest::cookie::Jar>>,
 ) -> Result<reqwest::Client> {
     let mut builder = reqwest::Client::builder()
-        .timeout(std::time::Duration::from_secs(15))
+        .timeout(Duration::from_secs(15))
         .user_agent(config.user_agent);
     if let Some(jar) = jar {
         builder = builder.cookie_provider(jar);
@@ -127,22 +133,124 @@ pub(crate) fn build_yt_client_with_config(
         .map_err(|e| CrateError::Discovery(format!("Failed to create YouTube client: {e}")))
 }
 
-/// Build a reqwest client using the primary YouTube client config (no cookie jar).
-fn build_yt_client() -> Result<reqwest::Client> {
-    build_yt_client_with_config(&YT_CLIENTS[0], None)
-}
-
 /// Create a new cookie jar pre-seeded with the YouTube consent cookie.
-pub(crate) fn new_yt_cookie_jar() -> Arc<reqwest::cookie::Jar> {
+fn new_yt_cookie_jar() -> Arc<reqwest::cookie::Jar> {
     let jar = reqwest::cookie::Jar::default();
     let yt_url = "https://www.youtube.com".parse::<reqwest::Url>().unwrap();
     jar.add_cookie_str(YT_CONSENT_COOKIE, &yt_url);
     Arc::new(jar)
 }
 
+// =============================================================================
+// Session
+// =============================================================================
+
+/// Cookies and visitor identity shared by every YouTube player request in the process.
+///
+/// YouTube's bot check keys on the visitor identity: a player request that arrives with a
+/// visitorData YouTube never issued (the synthetic kind the app used to generate per call)
+/// is answered with `LOGIN_REQUIRED` "Sign in to confirm you're not a bot" for most videos,
+/// while the same request carrying a visitorData minted by a real page load and the cookies
+/// set alongside it succeeds. So the process keeps one browser-like session and reuses it.
+#[derive(Clone)]
+pub(crate) struct YtSession {
+    pub jar: Arc<reqwest::cookie::Jar>,
+    pub visitor_data: String,
+    established_at: Instant,
+}
+
+static YT_SESSION: OnceLock<tokio::sync::Mutex<Option<YtSession>>> = OnceLock::new();
+
+/// Visitor identities are long-lived, but refreshing occasionally keeps the session looking
+/// like a browser that revisits the site rather than one frozen in time.
+const YT_SESSION_TTL: Duration = Duration::from_secs(6 * 60 * 60);
+
+fn session_slot() -> &'static tokio::sync::Mutex<Option<YtSession>> {
+    YT_SESSION.get_or_init(|| tokio::sync::Mutex::new(None))
+}
+
+/// Return the shared session, establishing one on first use or after it expires.
+pub(crate) async fn yt_session() -> YtSession {
+    let mut slot = session_slot().lock().await;
+    if let Some(session) = slot.as_ref() {
+        if session.established_at.elapsed() < YT_SESSION_TTL {
+            return session.clone();
+        }
+    }
+    let session = establish_session().await;
+    *slot = Some(session.clone());
+    session
+}
+
+/// Replace the shared session after YouTube answered a player request with a bot check,
+/// which marks the visitor identity as burned. `stale` is the session the caller used: if
+/// another caller already replaced it, the replacement is returned as-is so concurrent
+/// failures don't trigger a bootstrap storm.
+pub(crate) async fn reset_yt_session(stale: &YtSession) -> YtSession {
+    let mut slot = session_slot().lock().await;
+    if let Some(current) = slot.as_ref() {
+        if current.established_at != stale.established_at {
+            return current.clone();
+        }
+    }
+    let session = establish_session().await;
+    *slot = Some(session.clone());
+    session
+}
+
+/// Load youtube.com like a browser would to obtain a YouTube-issued visitor identity and its
+/// accompanying cookies. Falls back to a synthetic identity if the page can't be read, which
+/// keeps extraction attempting (and logging) rather than failing outright.
+async fn establish_session() -> YtSession {
+    let jar = new_yt_cookie_jar();
+    let visitor_data = match fetch_visitor_data(&jar).await {
+        Ok(vd) => {
+            log::info!("Established YouTube session with page-issued visitorData");
+            vd
+        }
+        Err(e) => {
+            log::warn!("Could not obtain YouTube visitorData from the homepage ({e}); using a synthetic identity");
+            generate_visitor_data()
+        }
+    };
+    YtSession {
+        jar,
+        visitor_data,
+        established_at: Instant::now(),
+    }
+}
+
+async fn fetch_visitor_data(jar: &Arc<reqwest::cookie::Jar>) -> Result<String> {
+    let client = build_yt_client_with_config(&YT_CLIENTS[0], Some(jar.clone()))?;
+    let html = client
+        .get("https://www.youtube.com/")
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .send()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to fetch YouTube homepage: {e}")))?
+        .text()
+        .await
+        .map_err(|e| CrateError::Discovery(format!("Failed to read YouTube homepage: {e}")))?;
+    parse_visitor_data(&html)
+        .ok_or_else(|| CrateError::Discovery("No VISITOR_DATA in YouTube homepage".into()))
+}
+
+/// Extract `"VISITOR_DATA":"..."` from a YouTube page's inline `ytcfg`.
+pub(crate) fn parse_visitor_data(html: &str) -> Option<String> {
+    let marker = "\"VISITOR_DATA\":\"";
+    let start = html.find(marker)? + marker.len();
+    let end = html[start..].find('"')?;
+    let value = &html[start..start + end];
+    if value.is_empty() {
+        None
+    } else {
+        Some(value.to_string())
+    }
+}
+
 /// Generate a randomized delay with jitter around a base duration.
 /// Returns a `Duration` of `base_ms ± (0..base_ms/2)`, clamped to a minimum of 500ms.
-pub(crate) fn jittered_delay(base_ms: u64) -> std::time::Duration {
+pub(crate) fn jittered_delay(base_ms: u64) -> Duration {
     use rand::Rng;
     let jitter = rand::rng().random_range(0..=(base_ms / 2));
     let delay = if rand::rng().random_bool(0.5) {
@@ -150,7 +258,7 @@ pub(crate) fn jittered_delay(base_ms: u64) -> std::time::Duration {
     } else {
         base_ms.saturating_sub(jitter)
     };
-    std::time::Duration::from_millis(delay.max(500))
+    Duration::from_millis(delay.max(500))
 }
 
 /// Encode a u64 as a protobuf-style LEB128 varint.
@@ -167,6 +275,9 @@ fn encode_varint(buf: &mut Vec<u8>, mut value: u64) {
 }
 
 /// Generate synthetic visitorData as base64-encoded protobuf, matching yt-dlp's format.
+///
+/// Only a fallback for when the homepage can't be read (see [`establish_session`]): YouTube
+/// treats identities it did not issue as bot traffic for most videos.
 ///
 /// The protobuf structure is:
 /// - Field 1 (string): 11 random alphanumeric characters (visitor ID)
@@ -200,10 +311,15 @@ fn generate_visitor_data() -> String {
 }
 
 /// Call YouTube's internal player API with a specific client configuration.
+///
+/// `client` must carry the session's cookie jar: cookies are sent from the jar rather than
+/// an explicit header because reqwest drops jar cookies whenever a request sets `Cookie`
+/// itself, and the bot check wants the cookies that came with `visitor_data`.
 pub(crate) async fn fetch_yt_player_response_with_config(
     client: &reqwest::Client,
     video_id: &str,
     config: &YtClientConfig,
+    visitor_data: &str,
 ) -> Result<serde_json::Value> {
     let mut client_ctx = serde_json::json!({
         "clientName": config.client_name,
@@ -211,6 +327,7 @@ pub(crate) async fn fetch_yt_player_response_with_config(
         "hl": "en",
         "timeZone": "UTC",
         "utcOffsetMinutes": 0,
+        "visitorData": visitor_data,
     });
 
     // Add extra context fields for native app clients (device info, OS version, etc.)
@@ -233,15 +350,6 @@ pub(crate) async fn fetch_yt_player_response_with_config(
         );
     }
 
-    // Add visitorData for all clients to help avoid bot detection.
-    // yt-dlp extracts this from prior responses; we generate a synthetic one since we don't
-    // have a prior web session. Real browsers always send visitor data.
-    let visitor_data = generate_visitor_data();
-    client_ctx
-        .as_object_mut()
-        .unwrap()
-        .insert("visitorData".to_string(), serde_json::json!(&visitor_data));
-
     let body = serde_json::json!({
         "videoId": video_id,
         "contentCheckOk": true,
@@ -261,8 +369,7 @@ pub(crate) async fn fetch_yt_player_response_with_config(
         .header("Origin", "https://www.youtube.com")
         .header("X-YouTube-Client-Name", config.client_id)
         .header("X-YouTube-Client-Version", config.client_version)
-        .header("X-Goog-Visitor-Id", &visitor_data)
-        .header("Cookie", YT_CONSENT_COOKIE)
+        .header("X-Goog-Visitor-Id", visitor_data)
         .json(&body)
         .send()
         .await
@@ -272,12 +379,12 @@ pub(crate) async fn fetch_yt_player_response_with_config(
         .map_err(|e| CrateError::Discovery(format!("Failed to parse YouTube player response: {e}")))
 }
 
-/// Call YouTube's internal player API using the primary client config.
-async fn fetch_yt_player_response(
-    client: &reqwest::Client,
-    video_id: &str,
-) -> Result<serde_json::Value> {
-    fetch_yt_player_response_with_config(client, video_id, &YT_CLIENTS[0]).await
+/// Call YouTube's internal player API using the primary client config and the shared session.
+async fn fetch_yt_player_response(video_id: &str) -> Result<serde_json::Value> {
+    let session = yt_session().await;
+    let config = &YT_CLIENTS[0];
+    let client = build_yt_client_with_config(config, Some(session.jar))?;
+    fetch_yt_player_response_with_config(&client, video_id, config, &session.visitor_data).await
 }
 
 /// Extract `var ytInitialData = {...}` from YouTube page HTML.
@@ -322,6 +429,10 @@ pub(crate) fn parse_yt_initial_data(html: &str) -> Option<serde_json::Value> {
     None
 }
 
+// =============================================================================
+// Playlist pages
+// =============================================================================
+
 #[derive(Debug, Clone)]
 pub(crate) struct YouTubeVideo {
     pub video_id: String,
@@ -330,9 +441,14 @@ pub(crate) struct YouTubeVideo {
     pub duration_ms: Option<i64>,
 }
 
-/// Extract video entries from ytInitialData's playlistVideoListRenderer.
+/// Extract video entries from a playlist page's ytInitialData.
+///
+/// YouTube has two renderings of a playlist's item section: the legacy
+/// `playlistVideoListRenderer` (a list of `playlistVideoRenderer`s) and, since mid 2026, a
+/// flat run of `lockupViewModel`s. Both are read so the parser survives YouTube rolling the
+/// change out (or back) per page variant.
 pub(crate) fn extract_playlist_videos(yt_data: &serde_json::Value) -> Vec<YouTubeVideo> {
-    let videos = yt_data
+    let items = yt_data
         .get("contents")
         .and_then(|c| c.get("twoColumnBrowseResultsRenderer"))
         .and_then(|r| r.get("tabs"))
@@ -346,53 +462,189 @@ pub(crate) fn extract_playlist_videos(yt_data: &serde_json::Value) -> Vec<YouTub
         .and_then(|arr| arr.first())
         .and_then(|s| s.get("itemSectionRenderer"))
         .and_then(|isr| isr.get("contents"))
-        .and_then(|c| c.as_array())
-        .and_then(|arr| arr.first())
-        .and_then(|p| p.get("playlistVideoListRenderer"))
-        .and_then(|pvlr| pvlr.get("contents"))
         .and_then(|c| c.as_array());
 
-    let Some(video_items) = videos else {
+    let Some(items) = items else {
         return Vec::new();
     };
 
-    video_items
-        .iter()
-        .filter_map(|item| {
-            let renderer = item.get("playlistVideoRenderer")?;
-            let video_id = renderer
-                .get("videoId")
-                .and_then(|v| v.as_str())?
-                .to_string();
-            let title = renderer
-                .get("title")
-                .and_then(|t| t.get("runs"))
-                .and_then(|r| r.as_array())
-                .and_then(|arr| arr.first())
-                .and_then(|r| r.get("text"))
-                .and_then(|t| t.as_str())
-                .unwrap_or("Untitled")
-                .to_string();
-            let position = renderer
-                .get("index")
-                .and_then(|i| i.get("simpleText"))
-                .and_then(|s| s.as_str())
-                .and_then(|s| s.parse::<i32>().ok())
-                .unwrap_or(0);
-            let duration_ms = renderer
-                .get("lengthSeconds")
-                .and_then(|l| l.as_str())
-                .and_then(|s| s.parse::<i64>().ok())
-                .map(|s| s * 1000);
+    let mut videos = Vec::new();
+    for item in items {
+        if let Some(list) = item
+            .get("playlistVideoListRenderer")
+            .and_then(|r| r.get("contents"))
+            .and_then(|c| c.as_array())
+        {
+            videos.extend(list.iter().filter_map(parse_playlist_video_renderer));
+        } else if let Some(lockup) = item.get("lockupViewModel") {
+            let position = videos.len() as i32 + 1;
+            videos.extend(parse_lockup_video(lockup, position));
+        }
+    }
+    videos
+}
 
-            Some(YouTubeVideo {
-                video_id,
-                title,
-                position,
-                duration_ms,
+fn parse_playlist_video_renderer(item: &serde_json::Value) -> Option<YouTubeVideo> {
+    let renderer = item.get("playlistVideoRenderer")?;
+    let video_id = renderer
+        .get("videoId")
+        .and_then(|v| v.as_str())?
+        .to_string();
+    let title = renderer
+        .get("title")
+        .and_then(|t| t.get("runs"))
+        .and_then(|r| r.as_array())
+        .and_then(|arr| arr.first())
+        .and_then(|r| r.get("text"))
+        .and_then(|t| t.as_str())
+        .unwrap_or("Untitled")
+        .to_string();
+    let position = renderer
+        .get("index")
+        .and_then(|i| i.get("simpleText"))
+        .and_then(|s| s.as_str())
+        .and_then(|s| s.parse::<i32>().ok())
+        .unwrap_or(0);
+    let duration_ms = renderer
+        .get("lengthSeconds")
+        .and_then(|l| l.as_str())
+        .and_then(|s| s.parse::<i64>().ok())
+        .map(|s| s * 1000);
+
+    Some(YouTubeVideo {
+        video_id,
+        title,
+        position,
+        duration_ms,
+    })
+}
+
+/// Lockups carry no playlist index, so the caller supplies the running position.
+fn parse_lockup_video(lockup: &serde_json::Value, position: i32) -> Option<YouTubeVideo> {
+    let content_type = lockup.get("contentType").and_then(|t| t.as_str());
+    if content_type.is_some_and(|t| t != "LOCKUP_CONTENT_TYPE_VIDEO") {
+        return None;
+    }
+    let video_id = lockup
+        .get("contentId")
+        .and_then(|v| v.as_str())?
+        .to_string();
+    let title = lockup
+        .get("metadata")
+        .and_then(|m| m.get("lockupMetadataViewModel"))
+        .and_then(|m| m.get("title"))
+        .and_then(|t| t.get("content"))
+        .and_then(|t| t.as_str())
+        .unwrap_or("Untitled")
+        .to_string();
+
+    // The duration is the thumbnail's bottom-corner badge ("3:39"), which lives under one of
+    // two overlay shapes depending on the page variant.
+    let duration_ms = lockup
+        .get("contentImage")
+        .and_then(|c| c.get("thumbnailViewModel"))
+        .and_then(|t| t.get("overlays"))
+        .and_then(|o| o.as_array())
+        .and_then(|overlays| {
+            overlays.iter().find_map(|overlay| {
+                let badges = overlay
+                    .get("thumbnailBottomOverlayViewModel")
+                    .and_then(|b| b.get("badges"))
+                    .or_else(|| {
+                        overlay
+                            .get("thumbnailOverlayBadgeViewModel")
+                            .and_then(|b| b.get("thumbnailBadges"))
+                    })?
+                    .as_array()?;
+                badges.iter().find_map(|badge| {
+                    badge
+                        .get("thumbnailBadgeViewModel")
+                        .and_then(|b| b.get("text"))
+                        .and_then(|t| t.as_str())
+                        .and_then(parse_duration_text)
+                })
             })
-        })
-        .collect()
+        });
+
+    Some(YouTubeVideo {
+        video_id,
+        title,
+        position,
+        duration_ms,
+    })
+}
+
+/// Parse a "H:MM:SS" / "M:SS" badge into milliseconds. Non-duration badges ("LIVE",
+/// "SHORTS") yield `None`.
+pub(crate) fn parse_duration_text(text: &str) -> Option<i64> {
+    let parts: Vec<&str> = text.trim().split(':').collect();
+    if parts.is_empty() || parts.len() > 3 {
+        return None;
+    }
+    let mut seconds: i64 = 0;
+    for part in parts {
+        let value: i64 = part.parse().ok()?;
+        seconds = seconds * 60 + value;
+    }
+    Some(seconds * 1000)
+}
+
+/// Extract `(title, owner)` from a playlist page's header, which is either the legacy
+/// `playlistHeaderRenderer` or the newer `pageHeaderRenderer` view-model tree.
+pub(crate) fn parse_playlist_header(
+    yt_data: &serde_json::Value,
+) -> (Option<String>, Option<String>) {
+    let header = yt_data.get("header");
+
+    if let Some(h) = header.and_then(|h| h.get("playlistHeaderRenderer")) {
+        let title = h
+            .get("title")
+            .and_then(|t| t.get("simpleText"))
+            .and_then(|s| s.as_str())
+            .map(|s| s.to_string());
+        let owner = h
+            .get("ownerText")
+            .and_then(|o| o.get("runs"))
+            .and_then(|r| r.as_array())
+            .and_then(|arr| arr.first())
+            .and_then(|r| r.get("text"))
+            .and_then(|t| t.as_str())
+            .map(|s| s.to_string());
+        return (title, owner);
+    }
+
+    if let Some(h) = header.and_then(|h| h.get("pageHeaderRenderer")) {
+        let title = h
+            .get("pageTitle")
+            .and_then(|t| t.as_str())
+            .map(|s| s.to_string());
+        // The owner is the avatar-stack row of the header's metadata.
+        let owner = h
+            .get("content")
+            .and_then(|c| c.get("pageHeaderViewModel"))
+            .and_then(|v| v.get("metadata"))
+            .and_then(|m| m.get("contentMetadataViewModel"))
+            .and_then(|m| m.get("metadataRows"))
+            .and_then(|r| r.as_array())
+            .and_then(|rows| {
+                rows.iter().find_map(|row| {
+                    row.get("metadataParts")?
+                        .as_array()?
+                        .iter()
+                        .find_map(|part| {
+                            part.get("avatarStack")?
+                                .get("avatarStackViewModel")?
+                                .get("text")?
+                                .get("content")?
+                                .as_str()
+                                .map(|s| s.to_string())
+                        })
+                })
+            });
+        return (title, owner);
+    }
+
+    (None, None)
 }
 
 pub(super) async fn fetch_youtube(client: &reqwest::Client, url: &str) -> Result<FetchedMetadata> {
@@ -432,26 +684,7 @@ async fn fetch_youtube_playlist(
         CrateError::Discovery("Could not find ytInitialData on playlist page".into())
     })?;
 
-    // Extract playlist metadata from header
-    let header = yt_data
-        .get("header")
-        .and_then(|h| h.get("playlistHeaderRenderer"));
-
-    let title = header
-        .and_then(|h| h.get("title"))
-        .and_then(|t| t.get("simpleText"))
-        .and_then(|s| s.as_str())
-        .map(|s| s.to_string());
-
-    let artist = header
-        .and_then(|h| h.get("ownerText"))
-        .and_then(|o| o.get("runs"))
-        .and_then(|r| r.as_array())
-        .and_then(|arr| arr.first())
-        .and_then(|r| r.get("text"))
-        .and_then(|t| t.as_str())
-        .map(|s| s.to_string());
-
+    let (title, artist) = parse_playlist_header(&yt_data);
     let videos = extract_playlist_videos(&yt_data);
 
     // Use first video's thumbnail as artwork
@@ -471,6 +704,7 @@ async fn fetch_youtube_playlist(
             },
             duration_ms: v.duration_ms,
             video_id: Some(v.video_id),
+            url: None,
         })
         .collect();
 
@@ -518,6 +752,7 @@ fn strip_youtube_track_artist_prefix(
                 position: t.position,
                 duration_ms: t.duration_ms,
                 video_id: t.video_id.clone(),
+                url: t.url.clone(),
             })
             .collect();
         let stripped_count = stripped
@@ -592,21 +827,15 @@ async fn fetch_youtube_single(
     let artwork_url = Some(format!("https://i.ytimg.com/vi/{video_id}/mqdefault.jpg"));
 
     // Get duration from youtubei player API
-    let duration_ms = match build_yt_client() {
-        Ok(yt_client) => match fetch_yt_player_response(&yt_client, video_id).await {
-            Ok(player) => player
-                .get("videoDetails")
-                .and_then(|vd| vd.get("lengthSeconds"))
-                .and_then(|l| l.as_str())
-                .and_then(|s| s.parse::<i64>().ok())
-                .map(|s| s * 1000),
-            Err(e) => {
-                log::warn!("Failed to get YouTube video duration: {e}");
-                None
-            }
-        },
+    let duration_ms = match fetch_yt_player_response(video_id).await {
+        Ok(player) => player
+            .get("videoDetails")
+            .and_then(|vd| vd.get("lengthSeconds"))
+            .and_then(|l| l.as_str())
+            .and_then(|s| s.parse::<i64>().ok())
+            .map(|s| s * 1000),
         Err(e) => {
-            log::warn!("Failed to build YouTube client for duration: {e}");
+            log::warn!("Failed to get YouTube video duration: {e}");
             None
         }
     };
@@ -629,6 +858,7 @@ async fn fetch_youtube_single(
             position: 1,
             duration_ms,
             video_id: Some(video_id.to_string()),
+            url: None,
         }]
     } else {
         Vec::new()

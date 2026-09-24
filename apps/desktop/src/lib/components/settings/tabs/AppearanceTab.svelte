@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Theme, AccentColor, Font } from '$shared/types'
-	import { Select, Text } from '$lib/components/common'
+	import { Button, IconButton, Select, Text } from '$lib/components/common'
 	import Icon from '$lib/components/common/Icon.svelte'
-	import { settingsStore, theme, accentColor, font } from '$shared/stores/settings'
+	import { settingsStore, theme, accentColor, font, uiZoom, UI_ZOOM_LEVELS } from '$shared/stores/settings'
 	import { translate } from '$shared/i18n'
 
 	// Theme options
@@ -47,6 +47,13 @@
 	function handleFontChange(value: string) {
 		settingsStore.setFont(value as Font)
 	}
+
+	// The backend snaps to exact ladder values, but compare with a tolerance anyway
+	const ZOOM_EPSILON = 1e-6
+	const canZoomOut = $derived($uiZoom > UI_ZOOM_LEVELS[0] + ZOOM_EPSILON)
+	const canZoomIn = $derived($uiZoom < UI_ZOOM_LEVELS[UI_ZOOM_LEVELS.length - 1] - ZOOM_EPSILON)
+	const isDefaultZoom = $derived(Math.abs($uiZoom - 1) < ZOOM_EPSILON)
+	const zoomPercent = $derived(Math.round($uiZoom * 100))
 </script>
 
 <div class="space-y-8">
@@ -61,6 +68,38 @@
 				placeholder={$translate('settings.appearance.font')}
 				onchange={handleFontChange}
 			/>
+		</div>
+	</section>
+
+	<!-- Zoom Section -->
+	<section>
+		<Text variant="header-3" class="mb-2">{$translate('settings.appearance.zoom')}</Text>
+		<Text variant="caption" as="p" class="mb-2">{$translate('settings.appearance.zoomDescription')}</Text>
+		<div class="flex items-center gap-2">
+			<IconButton
+				icon="minus"
+				size="sm"
+				title={$translate('menu.zoomOut')}
+				disabled={!canZoomOut}
+				onclick={() => settingsStore.zoomOut()}
+			/>
+			<Text variant="body-2" as="span" tabular class="w-12 text-center">{zoomPercent}%</Text>
+			<IconButton
+				icon="plus"
+				size="sm"
+				title={$translate('menu.zoomIn')}
+				disabled={!canZoomIn}
+				onclick={() => settingsStore.zoomIn()}
+			/>
+			<Button
+				variant="secondary"
+				size="sm"
+				class="ml-2"
+				disabled={isDefaultZoom}
+				onclick={() => settingsStore.resetUiZoom()}
+			>
+				{$translate('common.reset')}
+			</Button>
 		</div>
 	</section>
 

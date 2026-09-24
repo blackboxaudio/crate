@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store'
-import type { TagCategory, Tag, TagSelectionState, Track } from '../types'
+import type { ContextMenuItem, TagCategory, Tag, TagSelectionState, Track } from '../types'
+import { DEFAULT_TAG_COLOR } from '../types'
 import * as tagsApi from '../api/tags'
 import { toastStore } from './toast'
 
@@ -311,4 +312,46 @@ export function computeTagStates(
 	}
 
 	return { states, counts }
+}
+
+/**
+ * "Tags" submenu mirroring the sidebar hierarchy: categories become nested submenus, tags the
+ * toggleable leaves. A category is checked when it holds an assigned tag so applied tags are
+ * findable without hovering every category; a leaf is checked only when the WHOLE selection
+ * carries it (`assignedTagIds`), so a click on a partially tagged selection completes it instead
+ * of stripping the items that already had it. Empty categories are skipped.
+ */
+export function buildTagMenuItems(
+	categories: TagCategory[],
+	assignedTagIds: Set<string>,
+	onToggle: (tagId: string, assigned: boolean) => void,
+	idPrefix = 'tag'
+): ContextMenuItem[] {
+	return categories
+		.filter((category) => category.tags.length > 0)
+		.map((category) => ({
+			id: `${idPrefix}-category-${category.id}`,
+			label: category.name,
+			colorDot: category.color ?? DEFAULT_TAG_COLOR,
+			selected: category.tags.some((tag) => assignedTagIds.has(tag.id)),
+			submenu: category.tags.map((tag) => {
+				const assigned = assignedTagIds.has(tag.id)
+				return {
+					id: `${idPrefix}-${tag.id}`,
+					label: tag.name,
+					colorDot: tag.color ?? category.color ?? DEFAULT_TAG_COLOR,
+					selected: assigned,
+					action: () => onToggle(tag.id, assigned),
+				}
+			}),
+		}))
+}
+
+/**
+ * Tag ids carried by EVERY item of a selection — the "assigned" set `buildTagMenuItems` checks.
+ */
+export function commonTagIds(items: { tags?: Pick<Tag, 'id'>[] }[]): Set<string> {
+	const counts = new Map<string, number>()
+	for (const item of items) for (const tag of item.tags ?? []) counts.set(tag.id, (counts.get(tag.id) ?? 0) + 1)
+	return new Set([...counts].filter(([, count]) => count === items.length).map(([id]) => id))
 }

@@ -25,6 +25,7 @@ jobs:
       tag: ${{ steps.validate.outputs.tag }}
       prerelease: ${{ steps.validate.outputs.prerelease }}
       channel: ${{ steps.validate.outputs.channel }}
+      config: ${{ steps.validate.outputs.config }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -78,15 +79,25 @@ jobs:
 
           # Determine channel and prerelease status
           if [[ "$VERSION" =~ -staging\. ]]; then
-            echo "channel=staging" >> $GITHUB_OUTPUT
+            CHANNEL=staging
             echo "prerelease=true" >> $GITHUB_OUTPUT
           elif [[ "$EVENT_NAME" == "push" ]]; then
-            echo "channel=production" >> $GITHUB_OUTPUT
+            CHANNEL=production
             echo "prerelease=false" >> $GITHUB_OUTPUT
           else
-            echo "channel=production" >> $GITHUB_OUTPUT
+            CHANNEL=production
             echo "prerelease=$INPUT_PRERELEASE" >> $GITHUB_OUTPUT
           fi
+          echo "channel=$CHANNEL" >> $GITHUB_OUTPUT
+
+          # Map the channel to its Tauri config overlay explicitly and fail closed: the overlay
+          # carries the updater endpoint, so a fallthrough would ship a build polling the wrong
+          # channel's manifest.
+          case "$CHANNEL" in
+            staging) echo "config=staging" >> $GITHUB_OUTPUT ;;
+            production) echo "config=prod" >> $GITHUB_OUTPUT ;;
+            *) echo "Error: no Tauri config for channel '$CHANNEL'"; exit 1 ;;
+          esac
 
       - name: Extract release notes from CHANGELOG
         env:
@@ -158,7 +169,7 @@ jobs:
 
       - name: Build Tauri app (macOS Universal)
         if: matrix.os == 'macos-latest'
-        run: yarn tauri build --config src-tauri/tauri.${{ needs.validate.outputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json --target universal-apple-darwin -f desktop
+        run: yarn tauri build --config src-tauri/tauri.${{ needs.validate.outputs.config }}.conf.json --target universal-apple-darwin --features desktop
         env:
           CRATE_ENV: ${{ needs.validate.outputs.channel }}
           # Cloud sync config — public client identifiers, baked in at compile time
@@ -179,9 +190,29 @@ jobs:
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
+      # The staging and production overlays differ only in identity and updater endpoint, so
+      # prove the binary polls its own channel's manifest before it can be published.
+      - name: Verify updater endpoint (macOS)
+        if: matrix.os == 'macos-latest'
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: |
+          BIN=$(ls src-tauri/target/universal-apple-darwin/release/bundle/macos/*.app/Contents/MacOS/crate-app)
+          EXPECTED="crate-releases/${CHANNEL}/latest.json"
+          if [[ "$CHANNEL" == "staging" ]]; then OTHER="crate-releases/production/latest.json"; else OTHER="crate-releases/staging/latest.json"; fi
+          if ! strings "$BIN" | grep -q "$EXPECTED"; then
+            echo "Error: built app does not embed the $CHANNEL updater endpoint ($EXPECTED)"
+            exit 1
+          fi
+          if strings "$BIN" | grep -q "$OTHER"; then
+            echo "Error: built app embeds the other channel's updater endpoint ($OTHER)"
+            exit 1
+          fi
+          echo "Updater endpoint verified: $EXPECTED"
+
       - name: Build Tauri app (Windows)
         if: matrix.os == 'windows-latest'
-        run: yarn tauri build --config src-tauri/tauri.${{ needs.validate.outputs.channel == 'staging' && 'staging' || 'prod' }}.conf.json -f desktop
+        run: yarn tauri build --config src-tauri/tauri.${{ needs.validate.outputs.config }}.conf.json --features desktop
         env:
           CRATE_ENV: ${{ needs.validate.outputs.channel }}
           # Cloud sync config — public client identifiers, baked in at compile time
@@ -214,9 +245,348 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/release/bundle/nsis/*.exe.sig
 
+  android:
+    name: Build Android APK
+    needs: validate
+    # NOTE: an Android build failure blocks the release — a release is only published when every
+    # build (desktop and mobile) succeeds.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+          targets: aarch64-linux-android
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: mobile-android
+          cache-targets: true
+          cache-on-failure: true
+          save-if: 'false'
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v4
+
+      # Vendored OpenSSL + SQLCipher need NDK clang/ar for cross-compilation (mirrored from
+      # ci.build.yml). The clang API level matches minSdk 29 (gen/android/app/build.gradle.kts).
+      - name: Configure Android NDK toolchain
+        run: |
+          NDK="$ANDROID_NDK_LATEST_HOME"
+          TOOLCHAIN="$NDK/toolchains/llvm/prebuilt/linux-x86_64"
+          echo "$TOOLCHAIN/bin" >> "$GITHUB_PATH"
+          {
+            echo "ANDROID_NDK_ROOT=$NDK"
+            echo "ANDROID_NDK_HOME=$NDK"
+            echo "CC_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android29-clang"
+            echo "CXX_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android29-clang++"
+            echo "AR_aarch64-linux-android=$TOOLCHAIN/bin/llvm-ar"
+            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android29-clang"
+          } >> "$GITHUB_ENV"
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Write cloud sync config
+        env:
+          GCLOUD_PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+          GCLOUD_WEB_API_KEY: ${{ secrets.GCLOUD_WEB_API_KEY }}
+          GCLOUD_STORAGE_BUCKET: ${{ secrets.GCLOUD_STORAGE_BUCKET }}
+          GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
+          GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
+          GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_IOS_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+          # Firebase App IDs for mobile App Check (#139). The dev-only appcheck_debug_token is
+          # deliberately NOT injected in release — release uses native App Attest / Play Integrity.
+          GCLOUD_FIREBASE_IOS_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_IOS_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_IOS_APP_ID }}
+          GCLOUD_FIREBASE_ANDROID_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_ANDROID_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_ANDROID_APP_ID }}
+        run: node scripts/write-cloud-config.mjs
+
+      # Stamp the channel identity (applicationId / label / OAuth redirect scheme) into the
+      # gitignored channel.properties. Must run AFTER write-cloud-config: the OAuth scheme is
+      # derived from the android_oauth_client_id the config file now carries, keeping the manifest
+      # intent-filter and the baked-in Rust client id in agreement per channel.
+      - name: Set Android channel (application id, label, OAuth scheme)
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: node scripts/write-android-channel.mjs --channel "${CHANNEL/production/prod}"
+
+      - name: Determine signing availability
+        id: signing
+        env:
+          HAS_KEYSTORE: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+        run: |
+          if [[ "$HAS_KEYSTORE" == "true" ]]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::Android signing secrets not configured — building unsigned APK"
+          fi
+
+      - name: Decode keystore and write key.properties
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.keystore"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > src-tauri/gen/android/app/key.properties
+
+      - name: Write mobile icons
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: node scripts/write-mobile-icons.mjs --platform android --channel "${CHANNEL/production/prod}"
+
+      # The inline --config JSON overlays the release version (a staging prerelease carries its
+      # `-staging.N` in versionName) WITHOUT touching the identifier — the per-channel Tauri
+      # configs must never reach `tauri android` (their identifiers would break the JNI binding;
+      # channel identity lives in Gradle applicationId via channel.properties instead). Note the
+      # derived versionCode ignores prerelease, so successive staging prereleases of one base
+      # version share a versionCode — irrelevant for sideloading; revisit for Play uploads.
+      - name: Build Android APK
+        env:
+          CRATE_ENV: ${{ needs.validate.outputs.channel }}
+          VERSION: ${{ needs.validate.outputs.version }}
+        run: yarn tauri android build --apk true --config "{\"version\":\"$VERSION\"}" --features mobile
+
+      - name: Prepare release artifacts
+        id: artifacts
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+          SIGNED: ${{ steps.signing.outputs.signed }}
+        run: |
+          APK=$(find src-tauri/gen/android/app/build/outputs/apk -name "*.apk" -path "*/release/*" | head -1)
+          if [[ -z "$APK" ]]; then
+            echo "::error::No release APK found"
+            exit 1
+          fi
+          # Gradle silently skips the signing config when key.properties is missing or misplaced
+          # and names the output *-unsigned.apk — an uninstallable artifact must never publish.
+          if [[ "$SIGNED" == "true" && "$APK" == *-unsigned.apk ]]; then
+            echo "::error::Signing secrets are configured but Gradle produced an unsigned APK ($APK) — key.properties was not picked up (expected at src-tauri/gen/android/app/key.properties)"
+            exit 1
+          fi
+          DEST="Crate_${VERSION}_android.apk"
+          cp "$APK" "$DEST"
+          sha256sum "$DEST" > "${DEST}.sha256"
+          echo "apk=$DEST" >> "$GITHUB_OUTPUT"
+          echo "sha256=${DEST}.sha256" >> "$GITHUB_OUTPUT"
+
+      - name: Upload Android artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: |
+            ${{ steps.artifacts.outputs.apk }}
+            ${{ steps.artifacts.outputs.sha256 }}
+
+  ios:
+    name: Build iOS (TestFlight)
+    needs: validate
+    # macos-latest gives macOS Tahoe + Xcode 26, REQUIRED: App Store Connect rejects uploads built
+    # with anything older than the iOS 26 SDK. Xcode 26's `$(TOOLCHAIN_DIR)` resolves to a Metal
+    # cryptex toolchain that lacks the Swift back-compat libs (which broke linking Tauri's Swift
+    # plugins) — fixed by repointing LIBRARY_SEARCH_PATHS at XcodeDefault.xctoolchain in the
+    # pbxproj + project.yml.
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Select latest stable Xcode (>= 26 for the iOS 26 SDK)
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: 'latest-stable'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'yarn'
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+          targets: aarch64-apple-ios
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: mobile-ios
+          cache-targets: true
+          cache-on-failure: true
+          save-if: 'false'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Write cloud sync config
+        env:
+          GCLOUD_PROJECT_ID: ${{ secrets.GCLOUD_PROJECT_ID }}
+          GCLOUD_WEB_API_KEY: ${{ secrets.GCLOUD_WEB_API_KEY }}
+          GCLOUD_STORAGE_BUCKET: ${{ secrets.GCLOUD_STORAGE_BUCKET }}
+          GCLOUD_OAUTH_CLIENT_ID: ${{ secrets.GCLOUD_OAUTH_CLIENT_ID }}
+          GCLOUD_OAUTH_CLIENT_SECRET: ${{ secrets.GCLOUD_OAUTH_CLIENT_SECRET }}
+          GCLOUD_ANDROID_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_ANDROID_OAUTH_CLIENT_ID }}
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_IOS_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+          # Firebase App IDs for mobile App Check (#139). The dev-only appcheck_debug_token is
+          # deliberately NOT injected in release — release uses native App Attest / Play Integrity.
+          GCLOUD_FIREBASE_IOS_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_IOS_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_IOS_APP_ID }}
+          GCLOUD_FIREBASE_ANDROID_APP_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_FIREBASE_ANDROID_APP_ID_STAGING || secrets.GCLOUD_FIREBASE_ANDROID_APP_ID }}
+        run: node scripts/write-cloud-config.mjs
+
+      - name: Write iOS Info.plist
+        env:
+          GCLOUD_IOS_OAUTH_CLIENT_ID: ${{ needs.validate.outputs.channel == 'staging' && secrets.GCLOUD_IOS_OAUTH_CLIENT_ID_STAGING || secrets.GCLOUD_IOS_OAUTH_CLIENT_ID }}
+        run: yarn ios:plist:write
+
+      - name: Write mobile icons
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: node scripts/write-mobile-icons.mjs --platform ios --channel "${CHANNEL/production/prod}"
+
+      - name: Set iOS bundle id for channel
+        env:
+          CHANNEL: ${{ needs.validate.outputs.channel }}
+        run: node scripts/write-ios-bundle-id.mjs --channel "${CHANNEL/production/prod}"
+
+      - name: Determine signing availability
+        id: signing
+        env:
+          HAS_CERT: ${{ secrets.IOS_DIST_CERTIFICATE_P12_BASE64 != '' }}
+          HAS_API_KEY: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8_BASE64 != '' }}
+        run: |
+          if [[ "$HAS_CERT" == "true" && "$HAS_API_KEY" == "true" ]]; then
+            echo "signed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "signed=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::iOS distribution signing secrets not configured — skipping iOS build"
+          fi
+
+      - name: Configure iOS signing
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          IOS_PROVISIONING_PROFILE_NAME: ${{ needs.validate.outputs.channel == 'staging' && secrets.IOS_PROVISIONING_PROFILE_NAME_STAGING || secrets.IOS_PROVISIONING_PROFILE_NAME }}
+        # Tauri ignores project.yml and uses the committed pbxproj as-is, applying manual-signing
+        # MODE but never selecting a profile -> "requires a provisioning profile". This writes the
+        # profile + Apple Distribution identity into the pbxproj on the runner (channel-aware; not
+        # committed, so local dev keeps automatic signing).
+        run: node scripts/write-ios-signing.mjs
+
+      - name: Build iOS app
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          CRATE_ENV: ${{ needs.validate.outputs.channel }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          # Tauri reads the iOS signing team from APPLE_DEVELOPMENT_TEAM (the build warned it was
+          # unset); mirror APPLE_TEAM_ID into it so codesigning picks up the team.
+          APPLE_DEVELOPMENT_TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          # Tauri 2 does the keychain import + provisioning-profile install + signing itself from
+          # these exact env vars (https://v2.tauri.app/distribute/sign/ios). Without them it falls
+          # back to AUTOMATIC signing and fails in CI with "No Accounts" / "No profiles found". The
+          # profile is channel-aware (staging vs prod); no profile *name* is needed — Tauri reads
+          # the profile from the file itself.
+          IOS_CERTIFICATE: ${{ secrets.IOS_DIST_CERTIFICATE_P12_BASE64 }}
+          IOS_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DIST_CERTIFICATE_PASSWORD }}
+          IOS_MOBILE_PROVISION: ${{ needs.validate.outputs.channel == 'staging' && secrets.IOS_PROVISIONING_PROFILE_BASE64_STAGING || secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        # Pass the channel's Tauri config so the iOS bundle id matches the channel
+        # (staging -> com.bbx-audio.crate.staging, production -> com.bbx-audio.crate). Without it,
+        # `tauri ios build` uses the base tauri.conf.json identifier (com.bbx-audio.crate) for every
+        # channel, which is why staging was signing against the production bundle. Mirrors the
+        # desktop build and the local build:staging:ios script.
+        run: yarn tauri ios build --config src-tauri/tauri.${{ needs.validate.outputs.config }}.conf.json --export-method app-store-connect --features mobile
+
+      - name: Upload to App Store Connect (TestFlight)
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8_BASE64 }}
+          API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+        run: |
+          mkdir -p ~/.private_keys
+          echo "$API_KEY_BASE64" | base64 --decode -o ~/.private_keys/AuthKey_${API_KEY_ID}.p8
+
+          IPA=$(find src-tauri/gen/apple/build -name "*.ipa" | head -1)
+          if [[ -z "$IPA" ]]; then
+            echo "::error::No IPA found after build"
+            exit 1
+          fi
+
+          xcrun altool --upload-app \
+            -f "$IPA" \
+            -t ios \
+            --apiKey "$API_KEY_ID" \
+            --apiIssuer "$API_ISSUER_ID"
+
+      - name: Collect iOS dSYMs
+        if: steps.signing.outputs.signed == 'true'
+        env:
+          VERSION: ${{ needs.validate.outputs.version }}
+        # The dSYMs only ever exist on this runner (App Store Connect can't regenerate them
+        # without bitcode), so archive them here or TestFlight crash reports stay forever
+        # unsymbolicatable. Fail-open: a build-layout change logs a warning instead of
+        # blocking the release.
+        run: |
+          DEST="Crate_${VERSION}_ios_dSYMs.zip"
+          COUNT=$(find src-tauri/gen/apple -type d -name '*.dSYM' | wc -l | tr -d ' ')
+          if [[ "$COUNT" == "0" ]]; then
+            echo "::warning::No dSYMs found under src-tauri/gen/apple — nothing to archive"
+            exit 0
+          fi
+          find src-tauri/gen/apple -type d -name '*.dSYM' -print0 | xargs -0 zip -qr "$DEST"
+          echo "Archived $COUNT dSYM bundle(s) into $DEST"
+
+      - name: Upload iOS dSYMs
+        if: steps.signing.outputs.signed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-ios-dsyms
+          path: Crate_*_ios_dSYMs.zip
+          if-no-files-found: warn
+
+      - name: Cleanup keychain
+        if: always()
+        run: security delete-keychain "$RUNNER_TEMP/app-signing.keychain-db" 2>/dev/null || true
+
   release:
     name: Create Release
-    needs: [validate, build]
+    needs: [validate, build, android, ios]
+    # Publish a release only when every build succeeded — desktop AND mobile. A build that is
+    # intentionally skipped (the Android job's `if: false`, or an iOS run without signing secrets)
+    # is treated as non-blocking; a genuine build *failure* blocks the release. `always()` is
+    # required so this job still evaluates when a mobile job is skipped.
+    if: >-
+      always()
+      && needs.validate.result == 'success'
+      && needs.build.result == 'success'
+      && (needs.android.result == 'success' || needs.android.result == 'skipped')
+      && (needs.ios.result == 'success' || needs.ios.result == 'skipped')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -248,6 +618,9 @@ jobs:
             artifacts/release-windows/**/*.msi.sig
             artifacts/release-windows/**/*.exe
             artifacts/release-windows/**/*.exe.sig
+            artifacts/release-android/*.apk
+            artifacts/release-android/*.sha256
+            artifacts/release-ios-dsyms/*.zip
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -376,3 +749,9 @@ jobs:
             --cache-control="public, max-age=300"
           gcloud storage cp -r web/assets "gs://${BUCKET}/" \
             --cache-control="public, max-age=31536000"
+          gcloud storage cp web/privacy/index.html "gs://${BUCKET}/privacy/index.html" \
+            --content-type="text/html" \
+            --cache-control="public, max-age=3600"
+          gcloud storage cp web/account-deletion/index.html "gs://${BUCKET}/account-deletion/index.html" \
+            --content-type="text/html" \
+            --cache-control="public, max-age=3600"

@@ -130,7 +130,7 @@
 				<Text variant="header-table" as="h3" weight="semibold" class="cursor-default">
 					{category.name}
 				</Text>
-				<Tooltip text={$translate('tags.addTag')} position="left" delay={250}>
+				<Tooltip text={$translate('tags.newTag')} position="left" delay={250}>
 					<button
 						type="button"
 						class="rounded p-0.5 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-secondary"

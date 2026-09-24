@@ -6,6 +6,7 @@
 		isDragging,
 		isDraggingTracks,
 		isDraggingReleases,
+		isDraggingDiscoveryTracks,
 		isDraggingPlaylist,
 	} from '$lib/stores'
 	import { DRAG_THRESHOLD, getDistance } from '$shared/utils/drag'
@@ -70,6 +71,7 @@
 		if ($isDraggingTracks && !playlist.is_folder) return true
 		// Discovery playlists accept release drops
 		if ($isDraggingReleases && !playlist.is_folder && playlist.context === 'discovery') return true
+		if ($isDraggingDiscoveryTracks && !playlist.is_folder && playlist.context === 'discovery') return true
 		// Folders accept playlist drops
 		if ($isDraggingPlaylist && playlist.is_folder) return true
 		return false
@@ -201,7 +203,7 @@
 	data-drop-target={disableDrag ? undefined : dropTargetId}
 	aria-selected={selected}
 	aria-expanded={playlist.is_folder ? expanded : undefined}
-	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-all select-none
+	class="flex cursor-pointer items-center gap-2 rounded py-1.5 pr-3 transition-colors select-none
 		{selected || isContextMenuActive
 		? 'bg-brand-muted text-text-primary'
 		: isHovered

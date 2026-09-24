@@ -2,7 +2,6 @@
 	import { get } from 'svelte/store'
 
 	import type {
-		ActiveView,
 		Track,
 		DiscoveryRelease,
 		DiscoveryReleaseCreate,
@@ -14,7 +13,6 @@
 	import { pickTagCategoryColor } from '$shared/types'
 	import {
 		libraryStore,
-		playerStore,
 		tagsStore,
 		playlistsStore,
 		uiStore,
@@ -39,7 +37,12 @@
 	import * as playlistsApi from '$shared/api/playlists'
 
 	import { ContextMenuOrchestrator, ModalOrchestrator, DragPreview, UpdateModal } from '$lib/components/common'
-	import { AddReleaseModal, MergeReleasesModal, PurchaseReleaseModal } from '$lib/components/discovery'
+	import {
+		AddReleaseModal,
+		DiscoveryExportModal,
+		MergeReleasesModal,
+		PurchaseReleaseModal,
+	} from '$lib/components/discovery'
 
 	import type { TagController } from '$lib/controllers/tagController'
 	import type { TrackController } from '$lib/controllers/trackController'
@@ -95,6 +98,7 @@
 	let showAddReleaseModal = $state(false)
 	let purchaseRelease = $state<DiscoveryRelease | null>(null)
 	let mergeReleases = $state<DiscoveryRelease[] | null>(null)
+	let exportReleases = $state<DiscoveryRelease[] | null>(null)
 
 	// =============================================================================
 	// Derived
@@ -161,7 +165,9 @@
 
 	function handleRelocateComplete(updatedTrack: Track) {
 		libraryStore.loadTracks()
-		toastStore.success(`Relocated "${updatedTrack.title || 'track'}"`)
+		toastStore.success(
+			$translate('toast.relocated', { values: { title: updatedTrack.title || $translate('common.untitled') } })
+		)
 	}
 
 	// =============================================================================
@@ -207,6 +213,12 @@
 	onTrackRelocate={(track) => modalOrchestrator.openRelocateModal(track)}
 	onTrackSetColor={trackController.setColorFromContextMenu}
 	onTrackAnalyze={handleTrackAnalyze}
+	onTrackToggleTag={(tracks, tagId, assigned) =>
+		tagController.setTagOnLibraryTracks(
+			tracks.map((t) => t.id),
+			tagId,
+			assigned
+		)}
 	onPlaylistCreatePlaylist={(p) => modalOrchestrator.openCreatePlaylistModal(p.id)}
 	onPlaylistCreateSmartPlaylist={(p) => modalOrchestrator.openCreateSmartPlaylistModal(p.id, p.context)}
 	onPlaylistCreateFolder={(p) => modalOrchestrator.openCreateFolderModal(p.id)}
@@ -269,6 +281,11 @@
 	onDiscoveryReleaseRemoveFromPlaylist={(playlistId, releaseIds) =>
 		modalOrchestrator.openRemoveDiscoveryReleasesFromPlaylistModal(releaseIds, playlistId)}
 	onDiscoveryReleaseMerge={(releases) => (mergeReleases = releases)}
+	onDiscoveryReleaseExport={(releases) => (exportReleases = releases)}
+	onDiscoveryReleaseToggleTag={(releases, tagId, assigned) => {
+		const releaseIds = releases.map((r) => r.id)
+		return assigned ? discoveryStore.removeTags(releaseIds, [tagId]) : discoveryStore.assignTags(releaseIds, [tagId])
+	}}
 	onDiscoveryReleaseAddToPlaylist={async (playlistId, releases) => {
 		const releaseIds = releases.map((r) => r.id)
 		await playlistsStore.addReleases(playlistId, releaseIds)
@@ -276,6 +293,20 @@
 	onDiscoveryTrackLikeToggle={(release, trackIndex) =>
 		discoveryStore.toggleTrackLiked(release.id, release.tracks[trackIndex].id)}
 	{onDiscoveryTrackPlayPreview}
+	onDiscoveryTrackAddToPlaylist={async (playlistId, tracks) => {
+		await playlistsStore.addDiscoveryTracks(
+			playlistId,
+			tracks.map((t) => t.id)
+		)
+	}}
+	onDiscoveryTrackRemoveFromPlaylist={async (playlistId, tracks) => {
+		const trackIds = tracks.map((t) => t.id)
+		await playlistsStore.removeDiscoveryTracks(playlistId, trackIds)
+		discoveryPlaylistStore.filterOutTracks(playlistId, trackIds)
+		uiStore.clearDiscoveryTrackSelection()
+		await playlistsStore.load()
+	}}
+	onDiscoveryTrackToggleTag={(tracks, tagId, assigned) => discoveryStore.setTrackTagOnTracks(tracks, tagId, assigned)}
 	onClose={() => {
 		uiLayoutStore.clearContextMenuPlaylistId()
 		uiLayoutStore.clearContextMenuDiscoveryTrackId()
@@ -385,6 +416,12 @@
 		await tagsStore.deleteCategory(id)
 		await libraryStore.loadTracks()
 	}}
+	onRemoveDiscoveryTracksFromPlaylist={async (trackIds, playlistId) => {
+		await playlistsStore.removeDiscoveryTracks(playlistId, trackIds)
+		discoveryPlaylistStore.filterOutTracks(playlistId, trackIds)
+		uiStore.clearDiscoveryTrackSelection()
+		await playlistsStore.load()
+	}}
 	onRemoveFromPlaylist={async (trackIds, playlistId, deleteFromCollection) => {
 		await playlistsStore.removeTracks(playlistId, trackIds)
 		if (deleteFromCollection) {
@@ -395,7 +432,7 @@
 		}
 		uiStore.clearSelection()
 		const count = trackIds.length
-		toastStore.success(count === 1 ? '1 track removed from playlist' : `${count} tracks removed from playlist`)
+		toastStore.success($translate('toast.trackRemoved', { values: { count } }))
 	}}
 	onRemoveDiscoveryReleases={async (releaseIds) => {
 		await discoveryStore.deleteReleases(releaseIds)
@@ -422,7 +459,7 @@
 		}
 		await playlistsStore.load()
 		const count = trackIds.length
-		toastStore.success(count === 1 ? '1 track removed from library' : `${count} tracks removed from library`)
+		toastStore.success($translate('toast.trackRemovedFromLibrary', { values: { count } }))
 	}}
 	onMoveConflictOverwrite={async (movingItemId, targetParentId) => {
 		const result = await playlistsStore.moveWithResolution(movingItemId, targetParentId, 'overwrite')
@@ -523,8 +560,20 @@
 	/>
 {/if}
 
-<!-- Update Modal -->
-{#if $updateAvailable}
+<!-- Discovery Export Modal (selection scope; the collection scope lives in Settings → Discovery) -->
+{#if exportReleases && exportReleases.length > 0}
+	<DiscoveryExportModal
+		open={true}
+		scope="selection"
+		releases={exportReleases}
+		onClose={() => (exportReleases = null)}
+	/>
+{/if}
+
+<!-- Update Modal — held back while onboarding or the feature tour is up: the modal is a
+     native showModal() dialog, which makes those overlays inert (their Skip / Maybe later
+     buttons stop working) while the dialog itself sits under the layout's pointer-events: none. -->
+{#if $updateAvailable && !$uiStore.isOnboarding && !$uiStore.isWizardTourActive}
 	<UpdateModal open={true} onClose={() => updaterStore.dismiss()} />
 {/if}
 

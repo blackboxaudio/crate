@@ -32,14 +32,27 @@ pub trait CloudBackend: Send + Sync {
 
 #[async_trait]
 pub trait AuthBackend: Send + Sync {
-    /// Exchange an identity-provider ID token for a backend session.
-    async fn sign_in_with_idp(&self, provider_id: &str, id_token: &str) -> Result<AuthSession>;
+    /// Exchange an identity-provider ID token for a backend session. `nonce` carries the
+    /// **raw** (unhashed) OIDC nonce for providers that require it (Apple: Firebase re-hashes
+    /// it and matches `SHA256(nonce)` against the token's `nonce` claim). `None` for providers
+    /// that don't use a nonce (Google).
+    async fn sign_in_with_idp(
+        &self,
+        provider_id: &str,
+        id_token: &str,
+        nonce: Option<&str>,
+    ) -> Result<AuthSession>;
     async fn refresh(&self, refresh_token: &str) -> Result<AuthSession>;
     async fn sign_out(&self, session: &AuthSession) -> Result<()>;
     /// Fetch the latest profile (display name, email, photo URL) for the signed-in
     /// user — used to refresh the cached avatar after the user updates their Google
     /// account info.
     async fn lookup_profile(&self, session: &AuthSession) -> Result<ProfileInfo>;
+
+    /// Permanently delete the signed-in user's auth account (Identity Toolkit
+    /// `accounts:delete`). The runtime treats an "already gone" response as success
+    /// (idempotent account deletion).
+    async fn delete_account(&self, session: &AuthSession) -> Result<()>;
 }
 
 #[async_trait]
@@ -94,6 +107,11 @@ pub trait BlobStore: Send + Sync {
     /// when the key is absent.
     async fn download(&self, session: &AuthSession, key: &str) -> Result<Bytes>;
     async fn delete(&self, session: &AuthSession, key: &str) -> Result<()>;
+
+    /// List every object key under `prefix` (recursive, flat — no delimiter). Used by
+    /// vault/account teardown to sweep blobs the manifest or GC queue may no longer
+    /// reference. Returns full keys ready for [`Self::delete`].
+    async fn list_prefix(&self, session: &AuthSession, prefix: &str) -> Result<Vec<String>>;
 }
 
 #[async_trait]

@@ -24,6 +24,7 @@ use crate::error::{CrateError, Result};
 use super::super::backend::types::{AuthSession, Manifest};
 use super::super::backend::{BlobStore, CloudBackend};
 use super::buckets::Bucket;
+use super::dirty;
 use super::manifest::{compute_local_manifest, diff_manifest};
 use super::merge::{merge_bucket, OverrideEvent};
 use super::rows;
@@ -35,6 +36,11 @@ const LAST_SYNCED_ETAG: &str = "last_synced_manifest_etag";
 /// `sync_state` key: the manifest HLC we last merged (diagnostics / forward-compat).
 const LAST_SYNCED_HLC: &str = "last_synced_manifest_hlc";
 
+/// Max rows merged per transaction / connection-mutex hold (see the chunked merge in
+/// [`pull_and_merge`]). Large enough that a restore stays a handful of transactions per
+/// bucket, small enough that user commands never wait more than one batch.
+const MERGE_CHUNK_ROWS: usize = 500;
+
 /// The result of a pull/merge: whether anything merged, plus any non-trivial overrides
 /// observed (this device's authored values that lost to a higher-HLC remote) for the
 /// override toast. Purely a reporting channel — it does not affect convergence.
@@ -44,6 +50,10 @@ pub struct MergeOutcome {
     /// `"playlists"`, `"tracks/3"`). The runtime maps these to the UI stores that must
     /// reload so a peer's change shows without an app restart. Empty when nothing merged.
     pub buckets: Vec<String>,
+    /// Buckets whose manifest entry pointed at a missing blob — skipped and marked
+    /// dirty so the next push re-uploads local content (the dangling-reference
+    /// self-heal). Surfaced so the runtime can note it in the sync log.
+    pub skipped: Vec<String>,
     pub overrides: Vec<OverrideEvent>,
 }
 
@@ -52,6 +62,7 @@ impl MergeOutcome {
         Self {
             merged: false,
             buckets: Vec::new(),
+            skipped: Vec::new(),
             overrides: Vec::new(),
         }
     }
@@ -123,6 +134,15 @@ pub async fn pull_and_merge(
         let local = compute_local_manifest(&guard, "")?;
         diff_manifest(&local, remote).to_download
     };
+    // A scoped (mobile) node never merges library buckets — drop them from the download
+    // set (fail-closed: an unknown/unparseable bucket name is dropped too). No-op on
+    // desktop, where every bucket syncs.
+    #[cfg(feature = "mobile")]
+    to_download.retain(|name| {
+        Bucket::parse(name)
+            .map(|b| b.syncs_on_mobile())
+            .unwrap_or(false)
+    });
     if to_download.is_empty() {
         return Ok(MergeOutcome::unchanged());
     }
@@ -138,6 +158,7 @@ pub async fn pull_and_merge(
 
     let mut overrides = Vec::new();
     let mut merged_buckets = Vec::new();
+    let mut skipped = Vec::new();
     for name in to_download {
         let bucket = Bucket::parse(&name)
             .ok_or_else(|| CrateError::CloudSync(format!("bad bucket {name}")))?;
@@ -146,11 +167,80 @@ pub async fn pull_and_merge(
         };
         // BucketEntry.object_key is relative; prepend the per-user vault prefix.
         let key = format!("users/{}/vault/{}", session.uid, entry.object_key);
-        let bytes = blobs.download(session, &key).await?;
-        let parsed = rows::parse_bucket(&bucket, &bytes)?;
+        let bytes = match blobs.download(session, &key).await {
+            Ok(bytes) => bytes,
+            // Dangling manifest reference: the blob was reclaimed (or lost) after the
+            // manifest was written. Failing here would wedge every pull AND every push
+            // (push pull-then-merges first), with no path that ever re-uploads the
+            // bucket. Instead skip the bucket and mark it dirty: the next push sees the
+            // local hash differ from the dead entry, uploads local content, and rewrites
+            // the manifest — self-healing. Rows that existed only in the lost blob are
+            // gone from the cloud either way; their authoring device still holds them
+            // locally and re-pushes its union on its next sync.
+            Err(CrateError::CloudSyncBlobNotFound(_)) => {
+                log::warn!(
+                    "cloud_sync: bucket {name} blob missing remotely; skipping merge and scheduling re-upload"
+                );
+                let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+                dirty::mark_dirty(&guard, &name)?;
+                skipped.push(name);
+                continue;
+            }
+            Err(e) => return Err(e),
+        };
+        // Attribute local parse/apply failures to the bucket they happened in, so a bad
+        // row surfaces as "merge error (discovery_tracks): …" instead of a bare SQL
+        // error. Transport/auth errors keep their classification (transience matters).
+        let attribute = |e: CrateError| match e {
+            e @ (CrateError::CloudSyncNetwork(_)
+            | CrateError::CloudSyncHttp { .. }
+            | CrateError::CloudSyncAuth(_)
+            | CrateError::LockPoisoned) => e,
+            other => CrateError::CloudSyncMerge {
+                bucket: name.clone(),
+                message: other.to_string(),
+            },
+        };
+        let parsed = rows::parse_bucket(&bucket, &bytes).map_err(attribute)?;
+
+        // Merge big buckets in chunks, releasing the connection mutex between batches: a
+        // whole-bucket transaction over thousands of rows (an initial restore of a large
+        // library) would otherwise block every user-invoked DB command — taps, playback
+        // lookups — for seconds. Chunking is safe: rows merge independently (per-row HLC,
+        // local state re-read per row) and the etag watermark is only written after the
+        // whole pull succeeds, so a failure mid-bucket re-merges idempotently next pull.
+        //
+        // Exception: the self-referential `playlists` bucket (folder trees via
+        // `playlists.parent_id → playlists.id`) must merge in ONE deferred-FK transaction
+        // so a child row can precede its parent. Every other bucket's FKs point at buckets
+        // merged earlier in `merge_order`, so per-chunk commits satisfy them.
+        let chunkable = !matches!(bucket, Bucket::Playlists);
+        if chunkable && parsed.len() > MERGE_CHUNK_ROWS {
+            for chunk in parsed.chunks(MERGE_CHUNK_ROWS) {
+                {
+                    let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+                    overrides.extend(merge_bucket(&guard, &bucket, chunk).map_err(attribute)?);
+                }
+                // Give queued user commands a chance at the mutex before the next batch.
+                tokio::task::yield_now().await;
+            }
+        } else {
+            let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+            overrides.extend(merge_bucket(&guard, &bucket, &parsed).map_err(attribute)?);
+        }
+
+        // Anti-entropy: if our post-merge content still differs from the blob we just
+        // merged, we hold rows the remote lacks (normal when we have unpushed local
+        // edits — the bucket is already dirty — but also after a peer repaired a
+        // dangling manifest entry from an older copy, where nothing else would ever
+        // push our newer rows back up). Mark the bucket dirty so the next push uploads
+        // the union. No-op when the merge made us byte-identical to the remote.
         {
             let guard = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
-            overrides.extend(merge_bucket(&guard, &bucket, &parsed)?);
+            let local_hash = rows::bucket_hash(&rows::serialize_bucket(&guard, &bucket)?);
+            if local_hash != entry.blob_hash {
+                dirty::mark_dirty(&guard, &name)?;
+            }
         }
         merged_buckets.push(name);
     }
@@ -160,8 +250,11 @@ pub async fn pull_and_merge(
         ev.winner_device_id = remote.last_writer_device.clone();
     }
     Ok(MergeOutcome {
-        merged: true,
+        // Not unconditionally true: every bucket may have been skipped as a dangling
+        // manifest reference (missing blob) above.
+        merged: !merged_buckets.is_empty(),
         buckets: merged_buckets,
+        skipped,
         overrides,
     })
 }

@@ -1,3 +1,6 @@
+// Dual-mode (foreground/headless) access to the Android JVM + Context for JNI bridges.
+#[cfg(target_os = "android")]
+mod android_context;
 mod commands;
 mod db;
 mod error;
@@ -7,6 +10,9 @@ mod menu;
 mod models;
 mod proxy;
 mod services;
+// Updater acceptance rule: desktop-only at runtime, but its pure logic is unit-tested flagless.
+#[cfg(any(feature = "desktop", test))]
+mod updater;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
@@ -17,14 +23,29 @@ use db::Database;
 /// `fetch_preview_stream` can embed it in the URL it returns to the frontend.
 pub(crate) struct ProxyServerPort(pub u16);
 
-/// Tracks in-flight prefetch tasks by release ID to prevent duplicate spawns.
-pub(crate) struct PrefetchTracker(pub Arc<tokio::sync::Mutex<HashSet<String>>>);
+/// Kicks the stream-proxy supervisor into rebinding its listener. iOS closes an app's
+/// listening sockets when the process suspends and axum's accept loop never recovers on
+/// its own, so health checks (app foreground, `fetch_preview_stream`) signal this when
+/// the port stops accepting connections.
+pub(crate) struct ProxyRestartSignal(pub Arc<tokio::sync::Notify>);
+
+/// Global throttle for BACKGROUND stream-URL resolution (playback-queue look-ahead,
+/// offline pre-caching). Foreground `fetch_preview_stream` calls never take a permit,
+/// so a tap-to-play can't queue behind opportunistic work.
+pub(crate) struct StreamFetchPermits(pub Arc<tokio::sync::Semaphore>);
 
 /// Flag to signal cancellation of a running bulk import operation.
 pub(crate) struct BulkImportCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
 
 /// Flag to signal cancellation of a running page scan operation.
 pub(crate) struct ScanPageCancelFlag(pub Arc<std::sync::atomic::AtomicBool>);
+
+/// Whether the app's webview is currently visible/foregrounded. Starts `true` (the app
+/// boots foregrounded); the mobile frontend updates it from `visibilitychange` via the
+/// `set_app_foreground` command. Read by the follow watch loop so automatic sweeps don't
+/// run while backgrounded (background audio keeps the process — and its timers — alive
+/// on iOS, where sustained background CPU gets the app killed).
+pub(crate) struct AppForegroundFlag(pub Arc<std::sync::atomic::AtomicBool>);
 
 /// Set of release IDs that should be skipped by background enrichment.
 /// Populated when the user cancels enrichment for individual releases.
@@ -58,9 +79,11 @@ impl ScanEnrichmentCache {
     }
 }
 
-impl PrefetchTracker {
+impl StreamFetchPermits {
+    /// Two concurrent background extractions: enough to keep the queue window warm
+    /// without hammering the source platforms or the DB while the user is playing.
     pub fn new() -> Self {
-        Self(Arc::new(tokio::sync::Mutex::new(HashSet::new())))
+        Self(Arc::new(tokio::sync::Semaphore::new(2)))
     }
 }
 
@@ -72,8 +95,11 @@ use services::{
 #[cfg(feature = "desktop")]
 use services::{
     export::CheckpointService, AnalysisService, AudioService, DeviceService, DiagnosticsService,
-    ExportService, LibraryService, MediaControlsService, SyncService,
+    ExportService, LibraryService, SyncService,
 };
+// Cross-platform media session (Now Playing / lock-screen controls): souvlaki on desktop,
+// AVAudioSession + MediaPlayer on iOS (#79), no-op elsewhere.
+use services::MediaControlsService;
 use tauri::Manager;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -95,9 +121,28 @@ pub fn run() {
             .append(true)
             .open(std::env::temp_dir().join("crate-crash.log"))
             .and_then(|mut f| std::io::Write::write_all(&mut f, message.as_bytes()));
+        // Also route the panic through `log`: on mobile that's the only channel that reaches the
+        // device console (the default hook prints to stderr, which iOS/Android discard).
+        log::error!("PANIC: {info}");
         default_hook(info);
     }));
 
+    // Route `log` output where each platform can actually see it. A normally-launched mobile app's
+    // stderr is discarded by the OS, so env_logger would be invisible on-device: iOS logs via
+    // os_log (Console.app, subsystem `com.bbx-audio.crate`), Android via logcat (tag `crate`).
+    // Desktop keeps env_logger on stderr, where `RUST_LOG` still applies.
+    #[cfg(target_os = "ios")]
+    oslog::OsLogger::new("com.bbx-audio.crate")
+        .level_filter(log::LevelFilter::Info)
+        .init()
+        .ok();
+    #[cfg(target_os = "android")]
+    android_logger::init_once(
+        android_logger::Config::default()
+            .with_max_level(log::LevelFilter::Info)
+            .with_tag("crate"),
+    );
+    #[cfg(not(any(target_os = "ios", target_os = "android")))]
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
     log::info!("Crash log path: {crash_log_path:?}");
 
@@ -112,14 +157,40 @@ pub fn run() {
     // the process plugin, and window-state (there are no OS windows to persist on mobile).
     #[cfg(feature = "desktop")]
     let builder = builder
-        .plugin(tauri_plugin_updater::Builder::default().build())
+        .plugin(
+            tauri_plugin_updater::Builder::default()
+                .default_version_comparator(updater::version_comparator)
+                .build(),
+        )
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_window_state::Builder::default().build());
+
+    // Mobile-only plugins: native web-auth (iOS ASWebAuthenticationSession / Android Custom Tabs)
+    // backs the mobile OAuth sign-in flow — there is no loopback browser flow on mobile.
+    #[cfg(feature = "mobile")]
+    let builder = builder
+        .plugin(tauri_plugin_web_auth::init())
+        .plugin(tauri_plugin_haptics::init());
+
+    // If the OS kills the WKWebView content process (e.g. iOS jetsam under memory pressure: the
+    // screen goes white while native audio keeps playing), reload the webview so the UI recovers
+    // instead of staying blank until a manual relaunch. iOS/macOS only — the hook is unsupported
+    // on other platforms.
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    let builder = builder.on_web_content_process_terminate(|webview| {
+        log::warn!("Web content process terminated — reloading webview");
+        if let Err(e) = webview.reload() {
+            log::error!("Failed to reload webview after content process termination: {e}");
+        }
+    });
 
     let builder = builder
         .invoke_handler(tauri::generate_handler![
             // App commands
             commands::app::get_app_info,
+            commands::app::set_app_foreground,
+            #[cfg(target_os = "ios")]
+            commands::app::dismiss_native_splash,
             commands::app::open_dev_tools,
             commands::app::close_dev_tools,
             #[cfg(feature = "desktop")]
@@ -214,7 +285,11 @@ pub fn run() {
             commands::playlist::reorder_playlist,
             commands::playlist::add_releases_to_playlist,
             commands::playlist::remove_releases_from_playlist,
+            commands::playlist::add_tracks_to_discovery_playlist,
+            commands::playlist::remove_tracks_from_discovery_playlist,
             commands::playlist::get_playlist_releases,
+            commands::playlist::reorder_playlist_releases,
+            commands::playlist::get_playlist_cover_art,
             commands::playlist::create_smart_playlist,
             commands::playlist::update_smart_rules,
             commands::playlist::get_smart_playlist_tracks,
@@ -223,6 +298,10 @@ pub fn run() {
             // Settings commands
             commands::settings::get_settings,
             commands::settings::set_setting,
+            #[cfg(feature = "desktop")]
+            commands::settings::set_ui_zoom,
+            #[cfg(feature = "desktop")]
+            commands::settings::step_ui_zoom,
             // Device commands (desktop-only)
             #[cfg(feature = "desktop")]
             commands::device::get_devices,
@@ -294,6 +373,8 @@ pub fn run() {
             commands::discovery::delete_discovery_releases,
             commands::discovery::assign_discovery_tags,
             commands::discovery::remove_discovery_tags,
+            commands::discovery::assign_discovery_track_tags,
+            commands::discovery::remove_discovery_track_tags,
             commands::discovery::check_discovery_matches,
             commands::discovery::add_tracks_to_discovery_release,
             commands::discovery::merge_discovery_releases,
@@ -302,9 +383,17 @@ pub fn run() {
             #[cfg(feature = "desktop")]
             commands::discovery::purchase_discovery_release,
             commands::discovery::fetch_preview_stream,
+            commands::discovery::recheck_preview_availability,
             commands::discovery::invalidate_preview_stream_cache,
+            commands::discovery::purge_release_audio_cache,
+            commands::discovery::precache_preview_stream,
+            commands::discovery::get_release_cache_state,
+            commands::discovery::get_cached_release_states,
             commands::discovery::get_discovery_audio_cache_size,
             commands::discovery::clear_discovery_audio_cache,
+            commands::discovery::cache_release_artwork,
+            commands::discovery::get_discovery_artwork_cache_size,
+            commands::discovery::clear_discovery_artwork_cache,
             commands::discovery::nsig_solve_callback,
             commands::discovery::set_discovery_release_artwork,
             commands::discovery::delete_discovery_release_artwork,
@@ -325,28 +414,78 @@ pub fn run() {
             commands::follow::check_followed_source,
             commands::follow::check_all_followed_sources,
             commands::follow::set_release_new_flag,
+            commands::collection::link_collection_account,
+            commands::collection::unlink_collection_account,
+            commands::collection::set_collection_account_enabled,
+            commands::collection::get_collection_accounts,
+            commands::collection::get_collection_items,
+            commands::collection::get_collection_ownership,
+            commands::collection::refresh_collection_account,
+            commands::collection::refresh_all_collection_accounts,
+            #[cfg(feature = "desktop")]
+            commands::collection::get_collection_library_gap,
             // Backup commands
             commands::backup::get_backup_info,
             commands::backup::create_backup,
             commands::backup::restore_from_backup,
-            // Media controls commands (desktop-only)
-            #[cfg(feature = "desktop")]
+            // Share-intent intake (#62): Android drains queued shared URLs; empty elsewhere.
+            commands::share::take_shared_texts,
+            commands::share::share_url,
+            // Media controls commands (cross-platform; no-op backend where unsupported)
             commands::media_controls::update_now_playing,
-            #[cfg(feature = "desktop")]
             commands::media_controls::update_playback_state,
-            #[cfg(feature = "desktop")]
             commands::media_controls::clear_now_playing,
+            // Native iOS preview playback engine (#54): AVPlayer + lock-screen transport.
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_play,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_upcoming,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_pause,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_resume,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_seek,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_next,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_previous,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_stop,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_volume,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_rate,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_liked,
+            #[cfg(target_os = "ios")]
+            commands::native_preview::native_preview_set_repeat_mode,
             // Cloud sync commands
+            #[cfg(feature = "desktop")]
             commands::cloud_sync::sign_in,
+            #[cfg(feature = "mobile")]
+            commands::cloud_sync::begin_sign_in,
+            #[cfg(feature = "mobile")]
+            commands::cloud_sync::complete_sign_in,
+            // Native iOS Sign in with Apple (App Store Guideline 4.8); AuthenticationServices via objc2.
+            #[cfg(target_os = "ios")]
+            commands::cloud_sync::sign_in_with_apple,
             commands::cloud_sync::sign_out,
             commands::cloud_sync::get_sync_status,
+            commands::cloud_sync::get_sync_diagnostics,
             commands::cloud_sync::sync_now,
             commands::cloud_sync::pull_now,
+            commands::cloud_sync::sync_foreground,
+            #[cfg(feature = "mobile")]
+            commands::cloud_sync::schedule_background_sync,
+            #[cfg(feature = "mobile")]
+            commands::cloud_sync::cancel_background_sync,
             commands::cloud_sync::get_recent_overrides,
             commands::cloud_sync::list_devices,
             commands::cloud_sync::rename_device,
             commands::cloud_sync::revoke_device,
             commands::cloud_sync::delete_cloud_vault,
+            commands::cloud_sync::delete_account,
             commands::cloud_sync::list_library_roots,
             commands::cloud_sync::create_library_root,
             commands::cloud_sync::rename_library_root,
@@ -357,6 +496,13 @@ pub fn run() {
             commands::cloud_sync::locate_track,
         ])
         .setup(|app| {
+            // iOS: float a native copy of the launch screen above the not-yet-painted webview
+            // FIRST — before DB init eats into the launch window — so the system launch-screen
+            // crossfade lands on identical pixels instead of a blank white webview. The frontend
+            // dismisses it via `dismiss_native_splash` once the web splash has painted.
+            #[cfg(target_os = "ios")]
+            services::ios_splash::attach(app.handle());
+
             // Get Tauri's app data directory
             let app_data_dir = app
                 .path()
@@ -369,8 +515,46 @@ pub fn run() {
             let db_path = app_data_dir.join("crate.db");
             log::info!("Database path: {db_path:?}");
 
-            let db = Database::new(db_path)?;
+            let db = Database::new(db_path).map_err(|e| {
+                log::error!("Database initialization failed: {e}");
+                e
+            })?;
             let conn = db.connection();
+
+            // Launch heals, best-effort — never block launch. Order matters: URL
+            // re-normalization first (merging same-URL releases can leave same-name
+            // track pairs for the dedupe sweep to collapse).
+            match conn.lock() {
+                Ok(guard) => {
+                    // Re-normalize historically unnormalized release URLs (query-string
+                    // + HTML-entity spellings from label-page scans) so URL-identity
+                    // matching (collection ownership, follow, dedup) works.
+                    match services::discovery::renormalize_release_urls(&guard) {
+                        Ok((0, 0)) => {}
+                        Ok((updated, merged)) => log::info!(
+                            "discovery: re-normalized {updated} release urls ({merged} rows merged)"
+                        ),
+                        Err(e) => log::warn!("discovery: url renormalize sweep failed: {e}"),
+                    }
+                    // Heal historically duplicated discovery tracks (random-id rows
+                    // unioned by cloud sync): collapse local duplicates, preserving
+                    // likes, and tombstone the removed ids so peers drop them too.
+                    match services::discovery::dedupe_discovery_tracks(&guard) {
+                        Ok(0) => {}
+                        Ok(n) => log::info!("discovery: collapsed {n} duplicate track rows"),
+                        Err(e) => log::warn!("discovery: track dedupe sweep failed: {e}"),
+                    }
+                    // Fan whole-release playlist memberships (the pre-track-based rows,
+                    // trackless releases that have since been enriched, rows from peers
+                    // on older builds) out into per-track members.
+                    match services::playlist::expand_release_memberships(&guard) {
+                        Ok(0) => {}
+                        Ok(n) => log::info!("playlists: expanded {n} release memberships"),
+                        Err(e) => log::warn!("playlists: membership expansion sweep failed: {e}"),
+                    }
+                }
+                Err(_) => log::warn!("discovery: launch heal sweeps skipped (lock poisoned)"),
+            }
 
             // Initialize services. Desktop-only services (file import/analysis, audio
             // playback, USB export/sync, device detection, diagnostics) are gated out of
@@ -396,12 +580,18 @@ pub fn run() {
             #[cfg(feature = "desktop")]
             let analysis_service = AnalysisService::new(conn.clone());
             let backup_service = BackupService::new(conn.clone());
-            let discovery_service = DiscoveryService::new(conn.clone(), app_data_dir.clone());
+            let discovery_service = DiscoveryService::with_db(db.handle(), app_data_dir.clone());
             let follow_service = FollowService::new(conn.clone(), app_data_dir.clone());
+            let collection_service =
+                services::CollectionService::new(conn.clone(), app_data_dir.clone());
 
             // Load saved audio device setting (desktop-only: no rodio playback on mobile)
             #[cfg(feature = "desktop")]
             if let Ok(settings) = settings_service.get_settings() {
+                // Re-apply page zoom before the frontend loads so the window opens already
+                // scaled instead of snapping after first paint.
+                services::ui_zoom::apply_startup(app.handle(), settings.ui_zoom);
+
                 if let Some(device_name) = settings.audio_device {
                     if !device_name.is_empty() {
                         let _ = audio_service.set_device(Some(device_name));
@@ -451,6 +641,12 @@ pub fn run() {
             app.manage(analysis_service);
             app.manage(discovery_service);
             app.manage(follow_service);
+            app.manage(collection_service);
+            // Managed BEFORE the watch loop spawns — its mobile foreground gate reads this
+            // state, and `state::<T>()` panics if it isn't managed yet.
+            app.manage(AppForegroundFlag(Arc::new(
+                std::sync::atomic::AtomicBool::new(true),
+            )));
             // Background watch loop: poll followed sources on the configured cadence.
             // No-ops (and makes no network requests) when nothing is followed.
             crate::services::follow::watch::start_watching(
@@ -458,8 +654,16 @@ pub fn run() {
                 conn.clone(),
                 app_data_dir.clone(),
             );
+            // Collection refresh loop: re-scrape linked purchase collections on their own
+            // cadence. Offset from the follow loop (90s vs 30s startup delay) so the two
+            // launch sweeps never hit bandcamp.com together. No-ops when nothing is linked.
+            crate::services::collection::watch::start_watching(
+                app.handle().clone(),
+                conn.clone(),
+                app_data_dir.clone(),
+            );
             app.manage(NsigSolverState::new());
-            app.manage(PrefetchTracker::new());
+            app.manage(StreamFetchPermits::new());
             app.manage(BulkImportCancelFlag(Arc::new(
                 std::sync::atomic::AtomicBool::new(false),
             )));
@@ -527,14 +731,26 @@ pub fn run() {
                     device_name,
                     app_version,
                     app.handle().clone(),
+                    &app_data_dir,
                 ));
                 app.manage(cloud_state.clone());
 
-                // Restore any persisted session, then run one serialized sync task:
-                // each tick pulls other devices' changes (polled every ~10s) and pushes
-                // ours once the dirty queue goes quiescent (~15s after the last
-                // mutation). "Sync now" pushes immediately via the command. A one-shot
-                // GC sweep at startup reclaims superseded blobs past their grace window.
+                // iOS: register the BGTaskScheduler launch handler now (must happen before
+                // `didFinishLaunchingWithOptions` returns — `.setup()` runs within it). The
+                // handler resolves the managed `CloudSyncState` above when the OS later fires an
+                // opportunistic background refresh. The frontend arms the actual schedule after
+                // sign-in via `schedule_background_sync`.
+                #[cfg(target_os = "ios")]
+                services::cloud_sync::background::ios::register(app.handle().clone());
+
+                // Restore any persisted session and run a one-shot startup GC sweep on
+                // both platforms. Desktop then enters a serialized poll loop: each tick
+                // pulls other devices' changes (~10s) and pushes ours once the dirty queue
+                // goes quiescent (~15s after the last mutation). Mobile deliberately has NO
+                // such loop — an always-on 5s tick would drain the battery and iOS/Android
+                // freeze the process when backgrounded anyway — so it syncs on launch and on
+                // every foreground via the `sync_foreground` command instead. "Sync now"
+                // pushes immediately via the command on both.
                 tauri::async_runtime::spawn(async move {
                     cloud_state.restore_session().await;
                     if !cloud_state.is_available() {
@@ -546,40 +762,43 @@ pub fn run() {
                             log::warn!("cloud_sync: gc sweep failed: {e}");
                         }
                     }
-                    let quiescent = std::time::Duration::from_secs(15);
-                    let mut tick: u64 = 0;
-                    loop {
-                        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
-                        tick += 1;
-                        if !cloud_state.is_signed_in().await {
-                            continue;
-                        }
-                        // Pull every other tick (~10s) to halve manifest reads; the
-                        // etag gate keeps an unchanged poll cheap.
-                        if tick.is_multiple_of(2) {
-                            if let Err(e) = cloud_state.run_pull().await {
-                                // A transient connectivity failure is expected while
-                                // offline (already surfaced as the `Offline` phase) —
-                                // don't spam warnings every poll.
-                                if e.is_transient() {
-                                    log::debug!("cloud_sync: pull offline: {e}");
-                                } else {
-                                    log::warn!("cloud_sync: pull failed: {e}");
-                                }
+                    #[cfg(feature = "desktop")]
+                    {
+                        let quiescent = std::time::Duration::from_secs(15);
+                        let mut tick: u64 = 0;
+                        loop {
+                            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                            tick += 1;
+                            if !cloud_state.is_signed_in().await {
+                                continue;
                             }
-                        }
-                        match cloud_state.dirty_quiescent(quiescent) {
-                            Ok(true) => {
-                                if let Err(e) = cloud_state.run_push().await {
+                            // Pull every other tick (~10s) to halve manifest reads; the
+                            // etag gate keeps an unchanged poll cheap.
+                            if tick.is_multiple_of(2) {
+                                if let Err(e) = cloud_state.run_pull().await {
+                                    // A transient connectivity failure is expected while
+                                    // offline (already surfaced as the `Offline` phase) —
+                                    // don't spam warnings every poll.
                                     if e.is_transient() {
-                                        log::debug!("cloud_sync: push offline: {e}");
+                                        log::debug!("cloud_sync: pull offline: {e}");
                                     } else {
-                                        log::warn!("cloud_sync: debounced push failed: {e}");
+                                        log::warn!("cloud_sync: pull failed: {e}");
                                     }
                                 }
                             }
-                            Ok(false) => {}
-                            Err(e) => log::warn!("cloud_sync: dirty check failed: {e}"),
+                            match cloud_state.dirty_quiescent(quiescent) {
+                                Ok(true) => {
+                                    if let Err(e) = cloud_state.run_push().await {
+                                        if e.is_transient() {
+                                            log::debug!("cloud_sync: push offline: {e}");
+                                        } else {
+                                            log::warn!("cloud_sync: debounced push failed: {e}");
+                                        }
+                                    }
+                                }
+                                Ok(false) => {}
+                                Err(e) => log::warn!("cloud_sync: dirty check failed: {e}"),
+                            }
                         }
                     }
                 });
@@ -590,6 +809,15 @@ pub fn run() {
             {
                 let device_service = app.state::<DeviceService>();
                 device_service.start_monitoring(app.handle().clone());
+            }
+
+            // Start audio output monitoring (desktop-only: pause when the output device we're
+            // playing on disappears, e.g. Bluetooth headphones powering off). Runs after the
+            // saved device is applied above, so the watcher's initial snapshot is accurate.
+            #[cfg(feature = "desktop")]
+            {
+                let audio_service = app.state::<AudioService>();
+                audio_service.start_device_monitoring(app.handle().clone());
             }
 
             // Build and set the application menu (desktop-only: no native menu on mobile)
@@ -603,11 +831,43 @@ pub fn run() {
                 app.manage(std::sync::Mutex::new(menu::FullscreenLabels::default()));
             }
 
-            // Initialize media controls (desktop-only: souvlaki Now Playing / media keys)
-            #[cfg(feature = "desktop")]
+            // Initialize the cross-platform media session (Now Playing / lock-screen controls).
+            // The backend is platform-selected: souvlaki on desktop, AVAudioSession + MediaPlayer on
+            // iOS, no-op elsewhere. On iOS, constructing it activates the AVAudioSession `.playback`
+            // category (#79) so audio can continue while the app is backgrounded.
             {
                 let media_controls_service = MediaControlsService::new(app.handle());
                 app.manage(media_controls_service);
+            }
+
+            // iOS native preview playback engine (#54): drives AVPlayer + the lock-screen transport
+            // (prev/next/scrubber that keep working while the WebView's JS is suspended on lock).
+            #[cfg(target_os = "ios")]
+            app.manage(services::media_controls::NativePreviewEngine::new(
+                app.handle().clone(),
+            ));
+
+            // Sweep orphaned partial downloads (`*.part`) from a previous crash/kill. Runs once
+            // HERE, before the proxy below can start new downloads, so it can never touch a live
+            // `.part` — do NOT move this into DiscoveryService construction: background tasks
+            // build sibling service instances mid-session, which would race in-flight downloads.
+            let streams_dir = app_data_dir.join("discovery").join("streams");
+            if let Ok(entries) = std::fs::read_dir(&streams_dir) {
+                for entry in entries.flatten() {
+                    if entry.path().extension().and_then(|e| e.to_str()) == Some("part") {
+                        if let Err(e) = std::fs::remove_file(entry.path()) {
+                            log::warn!(
+                                "Failed to remove orphaned .part {}: {e}",
+                                entry.path().display()
+                            );
+                        } else {
+                            log::info!(
+                                "Removed orphaned partial download {}",
+                                entry.path().display()
+                            );
+                        }
+                    }
+                }
             }
 
             // Bind a stream proxy HTTP server on a random OS-assigned port. Real HTTP is required
@@ -639,19 +899,16 @@ pub fn run() {
 
             let proxy_state = proxy::ProxyServerState::new(app.handle().clone(), proxy_client);
 
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = std_listener.set_nonblocking(true) {
-                    log::error!("Failed to set proxy listener non-blocking: {e}");
-                    return;
-                }
-                let listener = match tokio::net::TcpListener::from_std(std_listener) {
-                    Ok(l) => l,
-                    Err(e) => {
-                        log::error!("Failed to convert proxy listener to tokio: {e}");
-                        return;
-                    }
-                };
+            let proxy_restart = Arc::new(tokio::sync::Notify::new());
+            app.manage(ProxyRestartSignal(proxy_restart.clone()));
 
+            // The server runs under a supervisor loop: iOS closes an app's listening sockets
+            // when the process suspends, after which every AVPlayer connect fails with
+            // NSURLError -1004 for the rest of the app's lifetime — axum's accept loop never
+            // recovers on its own. Health checks (app resume, `fetch_preview_stream`) kick
+            // `ProxyRestartSignal` and the loop rebinds the SAME port, so stream URLs already
+            // handed to the player stay valid.
+            tauri::async_runtime::spawn(async move {
                 let router = axum::Router::new()
                     .route(
                         "/:release_id/:track_position",
@@ -660,8 +917,59 @@ pub fn run() {
                     )
                     .with_state(proxy_state);
 
-                if let Err(e) = axum::serve(listener, router).await {
-                    log::error!("Stream proxy HTTP server error: {e}");
+                let mut initial_listener = Some(std_listener);
+                loop {
+                    let std_listener = match initial_listener.take() {
+                        Some(l) => l,
+                        None => loop {
+                            match std::net::TcpListener::bind(("127.0.0.1", proxy_port)) {
+                                Ok(l) => break l,
+                                Err(e) => {
+                                    log::warn!(
+                                        "Stream proxy rebind to port {proxy_port} failed: {e}; retrying"
+                                    );
+                                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                                }
+                            }
+                        },
+                    };
+
+                    if let Err(e) = std_listener.set_nonblocking(true) {
+                        log::error!("Failed to set proxy listener non-blocking: {e}");
+                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                        continue;
+                    }
+                    let listener = match tokio::net::TcpListener::from_std(std_listener) {
+                        Ok(l) => l,
+                        Err(e) => {
+                            log::error!("Failed to convert proxy listener to tokio: {e}");
+                            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                            continue;
+                        }
+                    };
+
+                    // Deliberately NOT a graceful shutdown: that waits for in-flight
+                    // connections, and a stalled media stream would hold the rebind hostage
+                    // for as long as it hangs. Dropping the server frees the port at once —
+                    // safe here because a restart is only ever signalled after the socket
+                    // already stopped accepting, so anything in flight is doomed regardless.
+                    tokio::select! {
+                        result = axum::serve(listener, router.clone()) => {
+                            match result {
+                                Ok(()) => log::warn!(
+                                    "Stream proxy server exited; rebinding port {proxy_port}"
+                                ),
+                                Err(e) => log::error!(
+                                    "Stream proxy HTTP server error: {e}; rebinding port {proxy_port}"
+                                ),
+                            }
+                        }
+                        _ = proxy_restart.notified() => {
+                            log::info!(
+                                "Stream proxy restart requested; rebinding port {proxy_port}"
+                            );
+                        }
+                    }
                 }
             });
 
@@ -686,8 +994,41 @@ pub fn run() {
         }
     });
 
-    builder.run(tauri::generate_context!()).unwrap_or_else(|e| {
-        log::error!("Fatal: failed to run Tauri application: {e}");
-        std::process::exit(1);
+    let app = builder
+        .build(tauri::generate_context!())
+        .unwrap_or_else(|e| {
+            log::error!("Fatal: failed to run Tauri application: {e}");
+            std::process::exit(1);
+        });
+    app.run(|app_handle, event| match event {
+        tauri::RunEvent::Exit => {
+            // WAL: fold the -wal file back into crate.db on clean shutdown so the main
+            // file stays self-contained for users who copy it manually.
+            if let Some(discovery) = app_handle.try_state::<DiscoveryService>() {
+                if let Ok(conn) = discovery.connection().lock() {
+                    if let Err(e) = conn.execute_batch("PRAGMA wal_checkpoint(TRUNCATE);") {
+                        log::warn!("shutdown wal_checkpoint failed: {e}");
+                    }
+                }
+            }
+        }
+        // Resuming from suspension is when iOS's closed listening sockets surface. The
+        // webview's `visibilitychange` (via `set_app_foreground`) covers this too, but it
+        // doesn't always fire when the app was suspended under background audio — this
+        // event comes from the platform itself, so the proxy is probed either way.
+        tauri::RunEvent::Resumed => {
+            let (Some(port), Some(restart)) = (
+                app_handle.try_state::<ProxyServerPort>().map(|p| p.0),
+                app_handle
+                    .try_state::<ProxyRestartSignal>()
+                    .map(|s| s.0.clone()),
+            ) else {
+                return;
+            };
+            tauri::async_runtime::spawn(async move {
+                proxy::ensure_proxy_alive(port, &restart).await;
+            });
+        }
+        _ => {}
     });
 }

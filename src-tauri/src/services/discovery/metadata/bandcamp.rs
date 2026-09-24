@@ -10,6 +10,10 @@ pub(super) fn is_bandcamp_page_url(url: &str) -> bool {
     if !lower.contains("bandcamp.com") {
         return false;
     }
+    // Fan profiles (bandcamp.com/<username>) are collection accounts, not artist/label pages.
+    if super::bandcamp_fan::is_bandcamp_fan_url(url) {
+        return false;
+    }
     // If the path contains /album/ or /track/, it's a release page
     !lower.contains("/album/") && !lower.contains("/track/")
 }
@@ -30,6 +34,13 @@ pub(super) async fn scan_bandcamp_page(
         .send()
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to fetch Bandcamp page: {e}")))?;
+
+    // Surface a 429 explicitly so the follow watch loop can back off instead of hammering.
+    if response.status() == reqwest::StatusCode::TOO_MANY_REQUESTS {
+        return Err(CrateError::Discovery(
+            "Bandcamp rate limit exceeded (429)".into(),
+        ));
+    }
 
     // Check if we were redirected to an album/track page (common for single-release artists)
     let final_url = response.url().to_string();
@@ -671,6 +682,8 @@ pub(super) fn parse_bandcamp_json_ld(html: &str) -> Option<FetchedMetadata> {
                                 position: 1,
                                 duration_ms,
                                 video_id: None,
+                                // The page URL IS this track's URL; release-URL fallback covers it.
+                                url: None,
                             });
                         }
                     }
@@ -761,11 +774,19 @@ fn parse_bandcamp_tracks(
                     .and_then(|d| d.as_str())
                     .and_then(parse_iso_duration);
 
+                // Per-track page URL — same `@id`-then-`url` fallback as `inAlbum` above.
+                let url = track_item
+                    .get("@id")
+                    .or_else(|| track_item.get("url"))
+                    .and_then(|u| u.as_str())
+                    .map(|s| s.to_string());
+
                 Some(FetchedTrack {
                     name,
                     position,
                     duration_ms,
                     video_id: None,
+                    url,
                 })
             })
             .collect();

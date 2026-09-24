@@ -8,6 +8,7 @@ pub mod artwork;
 pub mod audio;
 pub mod backup;
 pub mod cloud_sync;
+pub mod collection;
 #[cfg(feature = "desktop")]
 pub mod device;
 #[cfg(feature = "desktop")]
@@ -20,14 +21,17 @@ pub mod export;
 pub mod follow;
 #[cfg(feature = "desktop")]
 pub mod hash;
+#[cfg(target_os = "ios")]
+pub mod ios_splash;
 #[cfg(feature = "desktop")]
 pub mod library;
-#[cfg(feature = "desktop")]
 pub mod media_controls;
 pub mod playlist;
 pub mod settings;
 pub mod smart_rules;
 pub mod tag;
+pub mod ui_zoom;
+pub mod watch_gate;
 
 #[cfg(feature = "desktop")]
 pub use analysis::AnalysisService;
@@ -35,6 +39,7 @@ pub use artwork::ArtworkService;
 #[cfg(feature = "desktop")]
 pub use audio::AudioService;
 pub use backup::BackupService;
+pub use collection::CollectionService;
 #[cfg(feature = "desktop")]
 pub use device::DeviceService;
 #[cfg(feature = "desktop")]
@@ -47,7 +52,6 @@ pub use export::ExportService;
 pub use follow::FollowService;
 #[cfg(feature = "desktop")]
 pub use library::LibraryService;
-#[cfg(feature = "desktop")]
 pub use media_controls::MediaControlsService;
 pub use playlist::PlaylistService;
 pub use settings::SettingsService;

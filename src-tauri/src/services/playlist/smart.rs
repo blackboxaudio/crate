@@ -220,6 +220,7 @@ impl PlaylistService {
                     release_date: row.get(6)?,
                     artwork_url: row.get(7)?,
                     artwork_path: row.get(8)?,
+                    artwork_cache_path: None,
                     notes: row.get(9)?,
                     parent_url: row.get(10)?,
                     source_page_url: row.get(11)?,
@@ -230,6 +231,7 @@ impl PlaylistService {
                     source_ids: Vec::new(),
                     tracks: Vec::new(),
                     tags: Vec::new(),
+                    total_track_count: None,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -251,9 +253,11 @@ impl PlaylistService {
             .collect();
 
         let mut stmt = conn.prepare(&format!(
-            "SELECT id, release_id, name, position, duration_ms, video_id, is_liked FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
+            "SELECT id, release_id, name, position, duration_ms, video_id, url, is_liked, liked_at,
+                    EXISTS(SELECT 1 FROM discovery_preview_unavailable pu WHERE pu.release_id = discovery_tracks.release_id AND pu.position = discovery_tracks.position)
+             FROM discovery_tracks WHERE release_id IN ({placeholders}) ORDER BY position"
         ))?;
-        let all_tracks: Vec<DiscoveryTrack> = stmt
+        let mut all_tracks: Vec<DiscoveryTrack> = stmt
             .query_map(param_refs.as_slice(), |row| {
                 Ok(DiscoveryTrack {
                     id: row.get(0)?,
@@ -262,10 +266,15 @@ impl PlaylistService {
                     position: row.get(3)?,
                     duration_ms: row.get(4)?,
                     video_id: row.get(5)?,
-                    is_liked: row.get(6)?,
+                    url: row.get(6)?,
+                    is_liked: row.get(7)?,
+                    liked_at: row.get(8)?,
+                    preview_unavailable: row.get::<_, i32>(9).map(|v| v != 0)?,
+                    tags: Vec::new(),
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
+        crate::services::discovery::attach_track_tags(&conn, &mut all_tracks)?;
 
         let mut stmt = conn.prepare(&format!(
             "SELECT drt.release_id, t.id, t.category_id, t.name, t.color, t.sort_order

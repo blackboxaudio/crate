@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Playlist } from '$shared/types'
-	import { buildPlaylistTree, type PlaylistTreeNode } from '$lib/stores'
+	import { buildPlaylistTree, collectDescendantIds, type PlaylistTreeNode } from '$lib/stores'
 	import { activeView, isDraggingPlaylist, hoveredDropTarget, dragStore } from '$lib/stores'
 	import { getStoredSet, setStoredSet } from '$shared/utils'
 	import { handleSelection } from '$shared/utils/selection'
@@ -11,6 +11,10 @@
 	import { SvelteSet } from 'svelte/reactivity'
 
 	const EXPANDED_STORAGE_KEY = 'expandedPlaylistIds'
+
+	// Sliding a subtree taller than a couple of screens re-lays-out the whole
+	// sidebar every frame without any perceptible animation benefit
+	const MAX_ANIMATED_SUBTREE_ROWS = 50
 
 	type Props = {
 		playlists: Playlist[]
@@ -85,30 +89,24 @@
 		return () => cancelAnimationFrame(id)
 	})
 
-	let expandedIds = $state<Set<string>>(getStoredSet(EXPANDED_STORAGE_KEY))
+	// SvelteSet mutated in place so only rows whose expanded state changed re-render
+	const expandedIds = new SvelteSet(getStoredSet(EXPANDED_STORAGE_KEY))
 
 	$effect(() => {
-		setStoredSet(EXPANDED_STORAGE_KEY, expandedIds)
+		setStoredSet(EXPANDED_STORAGE_KEY, new Set(expandedIds))
 	})
 
 	let tree = $derived(buildPlaylistTree(playlists))
 
-	function getDescendantIds(parentId: string): string[] {
-		const children = playlists.filter((p) => p.parent_id === parentId)
-		return children.flatMap((child) => [child.id, ...getDescendantIds(child.id)])
-	}
-
 	function toggleExpanded(id: string) {
-		const newExpanded = new SvelteSet(expandedIds)
-		if (newExpanded.has(id)) {
-			newExpanded.delete(id)
-			for (const descendantId of getDescendantIds(id)) {
-				newExpanded.delete(descendantId)
+		if (expandedIds.has(id)) {
+			expandedIds.delete(id)
+			for (const descendantId of collectDescendantIds(playlists, id)) {
+				expandedIds.delete(descendantId)
 			}
 		} else {
-			newExpanded.add(id)
+			expandedIds.add(id)
 		}
-		expandedIds = newExpanded
 	}
 
 	// Flatten visible tree nodes (depth-first, respecting expanded state)
@@ -196,8 +194,9 @@
 	/>
 
 	{#if node.playlist.is_folder && expandedIds.has(node.playlist.id)}
-		<div transition:slide={{ duration: transitionEnabled ? 150 : 0 }}>
-			{#each node.children as child, index (index)}
+		{@const animatable = transitionEnabled && flattenVisible(node.children).length <= MAX_ANIMATED_SUBTREE_ROWS}
+		<div transition:slide={{ duration: animatable ? 150 : 0 }}>
+			{#each node.children as child (child.playlist.id)}
 				{@render renderNode(child, depth + 1)}
 			{/each}
 		</div>
@@ -219,7 +218,7 @@
 		></div>
 	{/if}
 
-	{#each tree as node, index (index)}
+	{#each tree as node (node.playlist.id)}
 		{@render renderNode(node, 0)}
 	{/each}
 

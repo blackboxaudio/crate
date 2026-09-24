@@ -129,7 +129,11 @@ impl PlaylistService {
         Ok(tracks)
     }
 
-    pub fn add_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<Playlist> {
+    pub fn add_tracks(
+        &self,
+        playlist_id: &str,
+        track_ids: Vec<String>,
+    ) -> Result<AddToPlaylistResult> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
         // Get current max position
@@ -144,27 +148,35 @@ impl PlaylistService {
         let now = chrono::Utc::now().to_rfc3339();
         let hlc = dirty::next_hlc(&conn)?;
 
-        for (i, track_id) in track_ids.iter().enumerate() {
-            let position = max_position + 1 + i as i32;
-            conn.execute(
+        // Positions advance only on a landed row so ignored duplicates leave no gaps.
+        let mut added = 0usize;
+        for track_id in &track_ids {
+            let position = max_position + 1 + added as i32;
+            added += conn.execute(
                 "INSERT OR IGNORE INTO playlist_tracks (playlist_id, track_id, position, date_added, _hlc) VALUES (?1, ?2, ?3, ?4, ?5)",
                 rusqlite::params![playlist_id, track_id, position, now, hlc],
             )?;
         }
 
-        // Update playlist modified date
-        conn.execute(
-            "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
-            rusqlite::params![now, hlc, playlist_id],
-        )?;
-        dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
-        dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
+        // A re-add of existing members changes nothing, so it must not bump the modified
+        // date or trigger a cloud-sync push.
+        if added > 0 {
+            conn.execute(
+                "UPDATE playlists SET date_modified = ?1, _hlc = ?2 WHERE id = ?3",
+                rusqlite::params![now, hlc, playlist_id],
+            )?;
+            dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
+            dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
+        }
 
         // Drop the lock before calling get_playlist which acquires its own lock
         drop(conn);
 
-        // Return the updated playlist with accurate track count
-        self.get_playlist(playlist_id)
+        Ok(AddToPlaylistResult {
+            playlist: self.get_playlist(playlist_id)?,
+            added,
+            already_present: track_ids.len() - added,
+        })
     }
 
     pub fn remove_tracks(&self, playlist_id: &str, track_ids: Vec<String>) -> Result<Playlist> {

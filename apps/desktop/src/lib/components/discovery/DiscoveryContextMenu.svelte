@@ -6,7 +6,12 @@
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { openUrl } from '@tauri-apps/plugin-opener'
 	import { toastStore } from '$shared/stores/toast'
-	import { buildYouTubeSearchUrl } from '$shared/utils'
+	import { buildYouTubeSearchUrl, joinMenuGroups } from '$shared/utils'
+	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
+	import { buildPlaylistMenuItems } from '$shared/stores/playlists'
+	import { buildTagMenuItems, commonTagIds, tagsStore } from '$shared/stores/tags'
+	import { firstPlayablePreviewIndex } from '$shared/stores/playbackQueue'
+	import { playReleasesNext, addReleasesToQueue } from '$lib/controllers'
 
 	type Props = {
 		open: boolean
@@ -21,9 +26,11 @@
 		onRefreshMetadata?: () => void
 		onImport: () => void
 		onMerge?: () => void
+		onExport: () => void
 		onDelete: () => void
 		onAddToPlaylist?: (playlistId: string) => void
 		onRemoveFromPlaylist?: () => void
+		onToggleTag?: (tagId: string, assigned: boolean) => void
 	}
 
 	let {
@@ -39,93 +46,129 @@
 		onRefreshMetadata,
 		onImport,
 		onMerge,
+		onExport,
 		onDelete,
 		onAddToPlaylist,
 		onRemoveFromPlaylist,
+		onToggleTag,
 	}: Props = $props()
 
-	// Filter to only non-folder discovery playlists
-	const availablePlaylists = $derived(playlists.filter((p) => !p.is_folder && !p.is_smart))
+	const single = $derived(selectedReleases.length === 1)
+	const release = $derived(single ? selectedReleases[0] : null)
+	const assignedTagIds = $derived(commonTagIds(selectedReleases))
+	const currentPlaylist = $derived(currentPlaylistId ? playlists.find((p) => p.id === currentPlaylistId) : null)
 
+	const openInLabel = $derived.by(() => {
+		const platform = release ? getReleasePlatformName(release.source_type) : null
+		return platform
+			? get(translate)('discovery.openInApp', { values: { app: platform } })
+			: get(translate)('discovery.openInBrowser')
+	})
+
+	// Whether any selected release has a track the queue could play (mirrors the mobile release menu).
+	const canQueue = $derived(selectedReleases.some((r) => firstPlayablePreviewIndex(r) !== -1))
+
+	// Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
+	// act → organize → manage → navigate & share → destructive, a divider between non-empty groups.
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
-		const items: ContextMenuItem[] = []
+		// Whole-release queue actions enqueue every track of each selected release, in order.
+		const act: ContextMenuItem[] = [
+			{
+				id: 'play-next',
+				label: get(translate)('queue.playNext'),
+				icon: 'play-next',
+				disabled: !canQueue,
+				action: () => playReleasesNext(selectedReleases),
+			},
+			{
+				id: 'add-to-queue',
+				label: get(translate)('queue.addToQueue'),
+				icon: 'queue-plus',
+				disabled: !canQueue,
+				action: () => addReleasesToQueue(selectedReleases),
+			},
+		]
 
-		// Open in Browser / Copy URL - single release only
-		if (selectedReleases.length === 1) {
-			items.push({
-				id: 'open-in-browser',
-				label: get(translate)('discovery.openInBrowser'),
-				icon: 'external-link',
-				action: onOpenInBrowser,
-			})
-			items.push({
-				id: 'copy-url',
-				label: get(translate)('discovery.copyUrl'),
-				icon: 'copy',
-				action: () => {
-					writeText(selectedReleases[0].url).then(() => {
-						toastStore.info(get(translate)('discovery.copiedUrl'))
-					})
-				},
-			})
-			items.push({
-				id: 'search-youtube',
-				label: get(translate)('discovery.searchOnYouTube'),
-				icon: 'search',
-				action: () => {
-					openUrl(buildYouTubeSearchUrl(selectedReleases[0].artist, selectedReleases[0].title))
-				},
-			})
-			items.push({ id: 'browser-divider', label: '', divider: true })
-		}
-
-		// Refresh metadata - available for single and multi-select
-		if (onRefreshMetadata) {
-			items.push({
-				id: 'refresh-metadata',
-				label: get(translate)('discovery.refreshMetadata'),
-				icon: 'refresh',
-				action: onRefreshMetadata,
-			})
-		}
-
-		// Import to Library
-		if (selectedReleases.length === 1) {
-			items.push({
+		const organize: ContextMenuItem[] = []
+		if (single) {
+			organize.push({
 				id: 'import-to-library',
 				label: get(translate)('discovery.importToLibrary'),
 				icon: 'plus',
 				action: onImport,
 			})
 		}
-
-		// Add to Playlist submenu
-		if (onAddToPlaylist && availablePlaylists.length > 0) {
-			items.push({
+		if (onAddToPlaylist) {
+			const playlistItems = buildPlaylistMenuItems(playlists, (playlistId) => () => onAddToPlaylist(playlistId))
+			organize.push({
 				id: 'add-to-playlist',
 				label: get(translate)('contextMenu.addToPlaylist'),
 				icon: 'playlist',
-				submenu: availablePlaylists.map((p) => ({
-					id: `playlist-${p.id}`,
-					label: p.name,
-					action: () => onAddToPlaylist!(p.id),
-				})),
+				...(playlistItems.length > 0 ? { submenu: playlistItems } : { disabled: true }),
+			})
+		}
+		if (onToggleTag) {
+			const tagItems = buildTagMenuItems($tagsStore.categories, assignedTagIds, onToggleTag)
+			organize.push({
+				id: 'tags',
+				label: get(translate)('nav.tags'),
+				icon: 'tag',
+				...(tagItems.length > 0 ? { submenu: tagItems } : { disabled: true }),
 			})
 		}
 
-		// Merge Releases - when 2+ releases selected
+		const manage: ContextMenuItem[] = []
+		if (onRefreshMetadata) {
+			manage.push({
+				id: 'refresh-metadata',
+				label: get(translate)('discovery.refreshMetadata'),
+				icon: 'refresh',
+				action: onRefreshMetadata,
+			})
+		}
 		if (selectedReleases.length >= 2 && onMerge) {
-			items.push({
+			manage.push({
 				id: 'merge-releases',
 				label: get(translate)('discovery.mergeReleases'),
 				icon: 'copy',
 				action: onMerge,
 			})
 		}
+		manage.push({
+			id: 'export-json',
+			label: get(translate)('discovery.exportAsJson'),
+			icon: 'download',
+			action: onExport,
+		})
 
-		const currentPlaylist = currentPlaylistId ? playlists.find((p) => p.id === currentPlaylistId) : null
+		const navigate: ContextMenuItem[] = []
+		if (release) {
+			navigate.push(
+				{ id: 'open-in-browser', label: openInLabel, icon: 'external-link', action: onOpenInBrowser },
+				{
+					id: 'search-youtube',
+					label: get(translate)('discovery.searchOnYouTube'),
+					icon: 'search',
+					action: () => {
+						openUrl(buildYouTubeSearchUrl(release.artist, release.title))
+					},
+				},
+				{
+					id: 'copy-url',
+					label: get(translate)('discovery.copyUrl'),
+					icon: 'copy',
+					action: () => {
+						writeText(release.url).then(() => {
+							toastStore.info(get(translate)('discovery.copiedUrl'))
+						})
+					},
+				}
+			)
+		}
+
+		const destructive: ContextMenuItem[] = []
 		if (currentPlaylistId && !currentPlaylist?.is_smart && onRemoveFromPlaylist) {
-			items.push({
+			destructive.push({
 				id: 'remove-from-playlist',
 				label: get(translate)('contextMenu.removeFromPlaylist'),
 				icon: 'list-minus',
@@ -133,22 +176,15 @@
 				action: onRemoveFromPlaylist,
 			})
 		}
-
-		items.push({ id: 'actions-divider', label: '', divider: true })
-
-		// Delete
-		items.push({
+		destructive.push({
 			id: 'delete',
-			label:
-				selectedReleases.length === 1
-					? get(translate)('discovery.deleteRelease')
-					: get(translate)('discovery.deleteReleases'),
+			label: single ? get(translate)('discovery.deleteRelease') : get(translate)('discovery.deleteReleases'),
 			icon: 'trash',
 			variant: 'danger',
 			action: onDelete,
 		})
 
-		return items
+		return joinMenuGroups([act, organize, manage, navigate, destructive])
 	})
 </script>
 

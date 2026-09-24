@@ -1,10 +1,16 @@
 <script lang="ts">
-	import type { Tag, TagCategory, TagFilterMode } from '$shared/types'
+	import type { DiscoveryFacet, FilterTriState, Tag, TagCategory, TagFilterMode } from '$shared/types'
+	import { cycleTriState } from '$shared/utils/discoveryFilters'
+	import TriStateControl from '$shared/components/TriStateControl.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$shared/i18n'
 	import { scale, slide, fade } from 'svelte/transition'
+
+	/** A discovery facet (Liked / New / …): its tri-state and the setter. A facet renders only when
+	 *  its prop is provided, so each host opts into exactly the filters that make sense there. */
+	type FacetProp = { value: FilterTriState; onChange: (state: FilterTriState) => void }
 
 	type Props = {
 		activeFilterTags: Tag[]
@@ -14,12 +20,16 @@
 		onToggleTagFilter: (tagId: string) => void
 		onClearAll: () => void
 		onToggleTagFilterMode: () => void
-		showLikedFilter?: boolean
-		likedOnly?: boolean
-		onToggleLikedFilter?: () => void
-		showNewFilter?: boolean
-		newOnly?: boolean
-		onToggleNewFilter?: () => void
+		liked?: FacetProp
+		/** Releases surfaced by a followed source and not yet reviewed. */
+		newReleases?: FacetProp
+		/** Owned in the linked purchase collection(s). */
+		purchased?: FacetProp
+		/** No collection account linked yet: render a "link your collection" action row
+		 *  instead of the control (the feature's discoverable entry point). */
+		onSetupPurchased?: () => void
+		/** Every track's audio cached on disk. */
+		downloaded?: FacetProp
 	}
 
 	let {
@@ -30,13 +40,32 @@
 		onToggleTagFilter,
 		onClearAll,
 		onToggleTagFilterMode,
-		showLikedFilter = false,
-		likedOnly = false,
-		onToggleLikedFilter,
-		showNewFilter = false,
-		newOnly = false,
-		onToggleNewFilter,
+		liked,
+		newReleases,
+		purchased,
+		onSetupPurchased,
+		downloaded,
 	}: Props = $props()
+
+	type FacetRow = { key: DiscoveryFacet; icon: string; labelKey: string; facet: FacetProp }
+	// The unlinked-collection CTA replaces the Purchased control, so that facet drops out of the rows.
+	const facetRows = $derived(
+		(
+			[
+				liked && { key: 'liked', icon: 'heart', labelKey: 'filters.liked', facet: liked },
+				newReleases && { key: 'new', icon: 'rss', labelKey: 'filters.new', facet: newReleases },
+				purchased &&
+					!onSetupPurchased && {
+						key: 'purchased',
+						icon: 'shopping-bag',
+						labelKey: 'filters.purchased',
+						facet: purchased,
+					},
+				downloaded && { key: 'downloaded', icon: 'download', labelKey: 'filters.downloaded', facet: downloaded },
+			] as (FacetRow | false | undefined)[]
+		).filter((row): row is FacetRow => !!row)
+	)
+	const hasFacetRows = $derived(facetRows.length > 0 || !!onSetupPurchased)
 
 	const allTags = $derived(tagCategories.flatMap((c) => c.tags))
 	const activeTagIds = $derived(new Set(activeFilterTags.map((t) => t.id)))
@@ -51,9 +80,7 @@
 	let popoverEl: HTMLDivElement | undefined = $state()
 	let flyoutEl: HTMLDivElement | undefined = $state()
 
-	const badgeCount = $derived(
-		activeFilterTags.length + (showLikedFilter && likedOnly ? 1 : 0) + (showNewFilter && newOnly ? 1 : 0)
-	)
+	const badgeCount = $derived(activeFilterTags.length + facetRows.filter((row) => row.facet.value !== 'off').length)
 	const hasActiveFilters = $derived(badgeCount > 0)
 
 	// =========================================================================
@@ -301,50 +328,76 @@
 			transition:scale={{ start: 0.95, duration: 200 }}
 		>
 			<div class="p-1.5">
-				<!-- Liked filter -->
-				{#if showLikedFilter}
-					<button
-						type="button"
-						class="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:cursor-pointer hover:bg-surface-2"
-						onclick={() => onToggleLikedFilter?.()}
+				<!-- Facet rows: clicking anywhere on the row cycles off → include → exclude; the segmented control
+				     inside sets a state directly (and stops the click so it doesn't also cycle). The row is a
+				     role="button" div rather than a <button> because it contains the control's own buttons. -->
+				{#each facetRows as row (row.key)}
+					{@const state = row.facet.value}
+					{@const cycle = () => row.facet.onChange(cycleTriState(state))}
+					<div
+						role="button"
+						tabindex="0"
+						class="flex w-full items-center justify-between gap-3 rounded px-2 py-1.5 text-sm transition-colors hover:cursor-pointer hover:bg-surface-2 focus-visible:ring-2 focus-visible:ring-brand-primary focus-visible:outline-none"
+						onclick={cycle}
+						onkeydown={(e) => {
+							if (e.key === 'Enter' || e.key === ' ') {
+								e.preventDefault()
+								cycle()
+							}
+						}}
 					>
-						<div class="flex items-center gap-2">
-							<Icon name="heart" class="h-3.5 w-3.5" fill={likedOnly} />
-							<span class="text-xs text-text-tertiary">{$translate('filters.liked')}</span>
+						<div class="flex min-w-0 items-center gap-2">
+							<Icon
+								name={row.icon}
+								class="h-3.5 w-3.5 {state === 'include'
+									? 'text-brand-primary'
+									: state === 'exclude'
+										? 'text-text-secondary'
+										: ''}"
+								fill={row.key === 'liked' && state === 'include'}
+							/>
+							<span
+								class="text-xs {state === 'include'
+									? 'text-brand-primary'
+									: state === 'exclude'
+										? 'text-text-secondary line-through'
+										: 'text-text-tertiary'}"
+							>
+								{$translate(row.labelKey)}
+							</span>
 						</div>
-						<div
-							class="flex h-4 w-7 items-center rounded-full p-0.5 transition-colors {likedOnly
-								? 'bg-brand-primary'
-								: 'bg-stroke'}"
-						>
-							<div class="h-3 w-3 rounded-full bg-white transition-transform {likedOnly ? 'translate-x-3' : ''}"></div>
-						</div>
-					</button>
-				{/if}
+						<TriStateControl value={state} onChange={row.facet.onChange} label={$translate(row.labelKey)} size="sm" />
+					</div>
+				{/each}
 
-				<!-- New filter (releases surfaced by a followed source, not yet reviewed) -->
-				{#if showNewFilter}
+				<!-- Purchased, unlinked: the row doubles as the feature's front door (opens Settings → Discovery). -->
+				{#if onSetupPurchased}
 					<button
 						type="button"
 						class="flex w-full items-center justify-between rounded px-2 py-1.5 text-sm transition-colors hover:cursor-pointer hover:bg-surface-2"
-						onclick={() => onToggleNewFilter?.()}
+						onclick={() => {
+							open = false
+							onSetupPurchased()
+						}}
 					>
 						<div class="flex items-center gap-2">
-							<Icon name="rss" class="h-3.5 w-3.5" />
-							<span class="text-xs text-text-tertiary">{$translate('filters.new')}</span>
+							<Icon name="shopping-bag" class="h-3.5 w-3.5" />
+							<span class="text-xs text-text-tertiary">{$translate('settings.collection.linkAccount')}</span>
 						</div>
-						<div
-							class="flex h-4 w-7 items-center rounded-full p-0.5 transition-colors {newOnly
-								? 'bg-brand-primary'
-								: 'bg-stroke'}"
+						<svg
+							class="h-3 w-3 text-text-tertiary"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.5"
 						>
-							<div class="h-3 w-3 rounded-full bg-white transition-transform {newOnly ? 'translate-x-3' : ''}"></div>
-						</div>
+							<path d="M9 18l6-6-6-6" stroke-linecap="round" stroke-linejoin="round" />
+						</svg>
 					</button>
 				{/if}
 
 				{#if allTags.length > 0}
-					{#if showLikedFilter || showNewFilter}
+					{#if hasFacetRows}
 						<div class="my-1 border-t border-stroke"></div>
 					{/if}
 
@@ -412,25 +465,26 @@
 							<Icon name="chevron-right" class="h-3 w-3 shrink-0 text-text-tertiary" />
 						</div>
 					{/each}
+				{/if}
 
-					<!-- Clear all button -->
-					{#if hasActiveFilters}
-						<div class="mt-1 border-t border-stroke pt-1" transition:slide={{ duration: 150 }}>
-							<div in:fade={{ duration: 100, delay: 50 }} out:fade={{ duration: 75 }}>
-								<Button
-									variant="ghost-danger"
-									size="sm"
-									class="w-full justify-start"
-									onclick={() => {
-										onClearAll()
-										open = false
-									}}
-								>
-									{$translate('library.clearAll')}
-								</Button>
-							</div>
+				<!-- Clear all button — outside the tag block so the toggle-only facets can still be
+				     cleared in a workspace with no tag categories -->
+				{#if hasActiveFilters}
+					<div class="mt-1 border-t border-stroke pt-1" transition:slide={{ duration: 150 }}>
+						<div in:fade={{ duration: 100, delay: 50 }} out:fade={{ duration: 75 }}>
+							<Button
+								variant="ghost-danger"
+								size="sm"
+								class="w-full justify-start"
+								onclick={() => {
+									onClearAll()
+									open = false
+								}}
+							>
+								{$translate('library.clearAll')}
+							</Button>
 						</div>
-					{/if}
+					</div>
 				{/if}
 			</div>
 		</div>

@@ -1,4 +1,5 @@
 import { invoke } from '@tauri-apps/api/core'
+import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import type { AppSettings, AudioDevice } from '../types'
 
 /**
@@ -27,4 +28,29 @@ export async function getAudioDevices(): Promise<AudioDevice[]> {
  */
 export async function setAudioDevice(deviceName: string | null): Promise<void> {
 	return invoke<void>('set_audio_device', { deviceName })
+}
+
+/**
+ * Set the desktop webview page zoom (snapped to the zoom ladder) and persist it.
+ * Desktop-only command; resolves to the applied level.
+ */
+export async function setUiZoom(level: number): Promise<number> {
+	return invoke<number>('set_ui_zoom', { level })
+}
+
+/**
+ * Step the desktop webview page zoom up (+1) or down (-1) the ladder.
+ * Desktop-only command; resolves to the applied level.
+ */
+export async function stepUiZoom(delta: number): Promise<number> {
+	return invoke<number>('step_ui_zoom', { delta })
+}
+
+/**
+ * Listen for zoom changes applied by the backend (native menu shortcuts)
+ */
+export async function onUiZoomChanged(handler: (level: number) => void): Promise<UnlistenFn> {
+	return listen<number>('ui-zoom-changed', (event) => {
+		handler(event.payload)
+	})
 }

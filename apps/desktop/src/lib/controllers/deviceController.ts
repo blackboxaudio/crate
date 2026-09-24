@@ -1,4 +1,6 @@
 import { openPath } from '@tauri-apps/plugin-opener'
+import { get } from 'svelte/store'
+import { translate } from '$shared/i18n'
 import type { UsbDevice } from '$shared/types'
 import type { devicesStore as DevicesStoreType } from '$lib/stores/devices'
 import type { settingsStore as SettingsStoreType } from '$shared/stores/settings'
@@ -45,9 +47,9 @@ export function createDeviceController(
 	async function handleEjectDevice(device: UsbDevice): Promise<void> {
 		try {
 			await devicesApi.ejectDevice(device.mount_point)
-			toastStore.success(`${device.name} ejected`)
+			toastStore.success(get(translate)('toast.deviceEjected', { values: { name: device.name } }))
 		} catch (error) {
-			toastStore.error(`Failed to eject ${device.name}`)
+			toastStore.error(get(translate)('toast.deviceEjectFailed', { values: { name: device.name } }))
 			console.error('Eject error:', error)
 		}
 	}
@@ -87,14 +89,14 @@ export function createDeviceController(
 		devicesStore.setReformattingDevice(device.id)
 		try {
 			await devicesApi.reformatDevice(device.mount_point, volumeName)
-			toastStore.success(`Device reformatted as "${volumeName}"`)
+			toastStore.success(get(translate)('toast.deviceReformatted', { values: { name: volumeName } }))
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error)
 			// Handle user cancellation gracefully - don't show error toast or log
 			if (message.includes('cancelled') || message.includes('canceled')) {
 				return
 			}
-			toastStore.error(`Failed to reformat: ${message}`)
+			toastStore.error(get(translate)('toast.deviceReformatFailed', { values: { error: message } }))
 			console.error('Reformat error:', error)
 		} finally {
 			devicesStore.clearReformattingDevice()

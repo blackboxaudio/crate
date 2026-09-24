@@ -8,10 +8,12 @@ use crate::error::{CrateError, Result};
 
 use super::metadata::{extract_query_param, YT_CONSENT_COOKIE};
 
-const EJS_VERSION: &str = "0.5.0";
+/// Pinned yt-dlp/ejs solver release. Bump alongside yt-dlp's own `[youtube] Update ejs`
+/// changelog entries; each new YouTube player variant lands as an EJS release first.
+const EJS_VERSION: &str = "0.8.0";
 const EJS_CORE_URL: &str =
-    "https://github.com/yt-dlp/ejs/releases/download/0.5.0/yt.solver.core.js";
-const EJS_LIB_URL: &str = "https://github.com/yt-dlp/ejs/releases/download/0.5.0/yt.solver.lib.js";
+    "https://github.com/yt-dlp/ejs/releases/download/0.8.0/yt.solver.core.js";
+const EJS_LIB_URL: &str = "https://github.com/yt-dlp/ejs/releases/download/0.8.0/yt.solver.lib.js";
 const YT_IFRAME_API_URL: &str = "https://www.youtube.com/iframe_api";
 
 /// Tauri-managed state for coordinating WebView <-> Rust solver callbacks.
@@ -179,7 +181,11 @@ async fn fetch_player_version(client: &reqwest::Client) -> Result<String> {
         .await
         .map_err(|e| CrateError::Discovery(format!("Failed to read iframe_api: {e}")))?;
 
-    let re = regex::Regex::new(r"/s/player/([a-zA-Z0-9]+)/")
+    // iframe_api inlines the player path as a JS string literal with escaped slashes
+    // (`https:\/\/www.youtube.com\/s\/player\/8c3fda2d\/...`), so the separators are
+    // optional-backslash + slash. Player ids are 8 hex chars; mirrors yt-dlp's
+    // `_download_player_url`.
+    let re = regex::Regex::new(r"player\\?/([0-9a-fA-F]{8})\\?/")
         .map_err(|e| CrateError::Discovery(format!("Regex error: {e}")))?;
 
     let version = re
@@ -281,9 +287,13 @@ async fn load_solver_into_webview(app_handle: &tauri::AppHandle, solver_dir: &Pa
     let core_js = std::fs::read_to_string(solver_dir.join("yt.solver.core.js"))
         .map_err(|e| CrateError::Discovery(format!("Failed to read solver core: {e}")))?;
 
-    // Wrap in IIFE to avoid polluting the global scope, expose only the solver function
-    let loader_script =
-        format!("(function() {{\n{lib_js}\n{core_js}\nglobalThis.__crate_jsc = jsc;\n}})();",);
+    // Wrap in IIFE to avoid polluting the global scope, expose only the solver function.
+    // lib.js binds its bundled dependencies to a single `lib` object and core.js expects
+    // them as free variables (yt-dlp does `Object.assign(globalThis, lib)`), so bind them
+    // locally inside the IIFE.
+    let loader_script = format!(
+        "(function() {{\n{lib_js}\nvar meriyah = lib.meriyah, astring = lib.astring;\n{core_js}\nglobalThis.__crate_jsc = jsc;\n}})();",
+    );
 
     let webview = app_handle
         .get_webview_window("main")

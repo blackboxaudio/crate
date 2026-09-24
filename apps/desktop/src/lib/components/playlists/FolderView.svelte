@@ -8,6 +8,14 @@
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Text from '$lib/components/common/Text.svelte'
 	import { translate } from '$shared/i18n'
+	import {
+		discoveryStore,
+		likedFilter,
+		newFilter,
+		purchasedFilter,
+		downloadedFilter,
+		hasLinkedCollection,
+	} from '$lib/stores'
 
 	type Props = {
 		folderId: string
@@ -28,8 +36,6 @@
 		onClearAllTagFilters?: () => void
 		onToggleTagFilterMode?: () => void
 		isDiscoveryContext?: boolean
-		likedOnly?: boolean
-		onToggleLikedFilter?: () => void
 	}
 
 	let {
@@ -51,8 +57,6 @@
 		onClearAllTagFilters,
 		onToggleTagFilterMode,
 		isDiscoveryContext = false,
-		likedOnly = false,
-		onToggleLikedFilter,
 	}: Props = $props()
 
 	function handleContentContextMenu(e: MouseEvent) {
@@ -110,9 +114,18 @@
 					onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
 					onClearAll={() => onClearAllTagFilters?.()}
 					onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
-					showLikedFilter={isDiscoveryContext}
-					likedOnly={isDiscoveryContext ? likedOnly : false}
-					onToggleLikedFilter={isDiscoveryContext ? onToggleLikedFilter : undefined}
+					liked={isDiscoveryContext
+						? { value: $likedFilter, onChange: (s) => discoveryStore.setFacetFilter('liked', s) }
+						: undefined}
+					newReleases={isDiscoveryContext
+						? { value: $newFilter, onChange: (s) => discoveryStore.setFacetFilter('new', s) }
+						: undefined}
+					purchased={isDiscoveryContext && $hasLinkedCollection
+						? { value: $purchasedFilter, onChange: (s) => discoveryStore.setFacetFilter('purchased', s) }
+						: undefined}
+					downloaded={isDiscoveryContext
+						? { value: $downloadedFilter, onChange: (s) => discoveryStore.setFacetFilter('downloaded', s) }
+						: undefined}
 				/>
 			</div>
 		{/snippet}

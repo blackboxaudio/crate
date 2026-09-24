@@ -1,11 +1,14 @@
 {
 	"common": {
+		"add": "Ajouter",
+		"clear": "Effacer",
 		"close": "Fermer",
 		"save": "Enregistrer",
 		"search": "Rechercher...",
 		"cancel": "Annuler",
 		"create": "Créer",
 		"delete": "Supprimer",
+		"discard": "Rejeter",
 		"remove": "Retirer",
 		"rename": "Renommer",
 		"default": "Par défaut",
@@ -20,13 +23,26 @@
 		"folder": "dossier",
 		"playlist": "playlist",
 		"next": "Suivant",
-		"back": "Retour"
+		"back": "Retour",
+		"more": "Plus",
+		"select": "Sélectionner",
+		"noResults": "Aucun résultat",
+		"offline": "Vous êtes hors ligne",
+		"audioFiles": "Fichiers audio",
+		"images": "Images",
+		"selectAnOption": "Sélectionnez une option",
+		"unknownError": "Erreur inconnue",
+		"dismiss": "Fermer",
+		"step": "Étape {number}",
+		"reset": "Réinitialiser"
 	},
 	"nav": {
 		"library": "Bibliothèque",
 		"discovery": "Découvertes",
 		"playlists": "Playlists",
-		"tags": "Tags"
+		"tags": "Tags",
+		"openMenu": "Ouvrir le menu",
+		"openSettings": "Ouvrir les paramètres"
 	},
 	"settings": {
 		"title": "Paramètres",
@@ -37,6 +53,7 @@
 			"appearance": "Apparence",
 			"sound": "Son",
 			"cloudSync": "Synchronisation cloud",
+			"storage": "Stockage",
 			"diagnostics": "Diagnostics",
 			"about": "À propos"
 		},
@@ -112,12 +129,20 @@
 			"transferTagsOnImportDescription": "Transférez les tags de sortie aux pistes importées par défaut.",
 			"removeReleaseAfterImport": "Supprimer la sortie après l'import",
 			"removeReleaseAfterImportDescription": "Supprimez automatiquement les sorties des découvertes après avoir importé les fichiers.",
+			"export": "Exporter",
+			"exportCollection": "Exporter la collection",
+			"exportCollectionDescription": "Enregistrez votre collection de découverte complète sous forme de fichier JSON — par exemple pour l'ajouter en tant que connaissance dans un projet d'IA.",
 			"previewCache": "Cache d'aperçu",
 			"previewCacheDescription": "Les pistes découvertes en aperçu sont mises en cache localement pour une lecture instantanée lors des écoutes ultérieures.",
 			"cacheSize": "Taille du cache",
 			"clearCache": "Effacer le cache",
 			"clearCacheConfirmMessage": "Êtes-vous sûr de vouloir effacer tous les fichiers audio d'aperçu en cache?",
-			"clearCacheWarning": "Les pistes précédemment prévisualisées devront être à nouveau diffusées en continu à partir de leur source lors de la lecture suivante. Cela peut être plus lent et certains flux peuvent ne plus être disponibles."
+			"clearCacheWarning": "Les pistes précédemment prévisualisées devront être à nouveau diffusées en continu à partir de leur source lors de la lecture suivante. Cela peut être plus lent et certains flux peuvent ne plus être disponibles.",
+			"audioCache": "Audio",
+			"artworkCache": "Pochette",
+			"artworkCacheDescription": "Les pochettes d'album sont enregistrées sur cet appareil pour s'afficher sans connexion.",
+			"clearArtworkCacheConfirmMessage": "Êtes-vous sûr de vouloir effacer toutes les pochettes en cache?",
+			"cacheLimit": "Limite du cache"
 		},
 		"following": {
 			"title": "Suivi",
@@ -137,9 +162,28 @@
 			"newReleasesSummary": "Résumé des nouvelles sorties",
 			"discogsRateLimitNote": "Discogs limite la fréquence de vérification, donc les listes de suivi volumineux peuvent être mises à jour progressivement."
 		},
+		"collection": {
+			"title": "Collection",
+			"description": "Liez votre collection Bandcamp publique pour que les sorties et pistes que vous avez achetées s'affichent comme possédées.",
+			"linkAccount": "Lier le compte Bandcamp",
+			"linkPrompt": "Lier la collection",
+			"linkPromptInfo": "Saisissez votre nom d'utilisateur Bandcamp ou collez l'URL de votre page de fan (bandcamp.com/nomutilisateur)",
+			"linkPlaceholder": "nomutilisateur",
+			"link": "Lier",
+			"noAccounts": "Aucun compte lié pour le moment",
+			"itemCount": "{count, plural, =1 {1 élément} other {{count} éléments}}",
+			"refreshCadenceDescription": "Fréquence de vérification de vos collections pour les nouveaux achats",
+			"refreshNow": "Actualiser la collection",
+			"removeConfirmTitle": "Délier le compte",
+			"removeConfirmMessage": "Les achats de ce compte ne s'afficheront plus comme possédés.",
+			"enabledToggle": "Compter les achats comme possédés",
+			"privacyNote": "Seule votre collection Bandcamp publique est lue. Les achats privés et les éléments cachés ne sont pas visibles."
+		},
 		"appearance": {
 			"font": "Police",
 			"fontDescription": "Choisissez la police utilisée dans l'application.",
+			"zoom": "Zoom",
+			"zoomDescription": "Agrandissez ou réduisez l'interface entière. S'applique uniquement à cet appareil.",
 			"theme": "Thème",
 			"themeLight": "Clair",
 			"themeDark": "Sombre",
@@ -179,7 +223,8 @@
 			"updates": "Mises à jour",
 			"checkForUpdates": "Vérifier les mises à jour",
 			"upToDate": "À jour",
-			"updateAvailable": "{version} disponible"
+			"updateAvailable": "{version} disponible",
+			"project": "Projet"
 		}
 	},
 	"cloudSync": {
@@ -195,11 +240,27 @@
 			"error": "Erreur de synchronisation",
 			"signedOut": "Non connecté"
 		},
+		"errors": {
+			"network": "Impossible de joindre le service de synchronisation — nouvelle tentative",
+			"auth": "Votre session a expiré — déconnectez-vous et reconnectez-vous",
+			"permission": "Le service de synchronisation a refusé cet appareil (permission refusée)",
+			"quota": "La synchronisation est limitée ou le quota est dépassé — nouvelle tentative",
+			"toolarge": "Votre bibliothèque est trop volumineuse pour être chargée",
+			"conflict": "Un autre appareil se synchronise actuellement — nouvelle tentative",
+			"server": "Le service de synchronisation a des problèmes — nouvelle tentative",
+			"merge": "Impossible d'appliquer les modifications synchronisées sur cet appareil"
+		},
+		"diagnostics": {
+			"copy": "Copier les diagnostics de synchronisation"
+		},
 		"account": {
 			"title": "Compte",
 			"syncNow": "Synchroniser maintenant",
 			"syncing": "Synchronisation…",
 			"signOut": "Déconnexion",
+			"signOutConfirmTitle": "Se déconnecter?",
+			"signOutConfirmMessage": "Vos données locales restent sur cet appareil. La synchronisation s'arrêtera jusqu'à ce que vous vous reconnectiez.",
+			"autoSyncHint": "Votre bibliothèque Discovery se synchronise automatiquement sur tous vos appareils.",
 			"lastSynced": "Dernière synchronisation {time}"
 		},
 		"devices": {
@@ -229,7 +290,14 @@
 			"deleteVaultDescription": "Supprimez définitivement toutes vos données synchronisées du cloud. Votre bibliothèque locale n'est pas affectée.",
 			"confirmTitle": "Supprimer le coffre cloud?",
 			"confirmMessage": "Cela supprime définitivement toutes vos données synchronisées du cloud et vous déconnecte. Votre bibliothèque locale reste intacte. Cette action ne peut pas être annulée.",
-			"error": "Impossible de supprimer votre coffre cloud"
+			"error": "Impossible de supprimer votre coffre cloud",
+			"deleteAccount": "Supprimer le compte",
+			"deleteAccountDescription": "Supprimez définitivement votre compte et toutes vos données synchronisées du cloud. Cela n'affecte pas les fichiers audio ou votre bibliothèque sur cet appareil.",
+			"deleteAccountConfirmTitle": "Supprimer votre compte?",
+			"deleteAccountConfirmMessage": "Cela supprime définitivement votre compte et efface toutes vos données synchronisées — pistes, listes de lecture, étiquettes et découvertes — de chaque appareil connecté. Vos fichiers locaux restent sur cet appareil. Cette action ne peut pas être annulée.",
+			"deletingAccount": "Suppression du compte…",
+			"deleteAccountSuccess": "Votre compte a été supprimé",
+			"deleteAccountError": "Impossible de supprimer votre compte"
 		}
 	},
 	"player": {
@@ -245,7 +313,33 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Réinitialiser le tempo",
-		"trackNotFound": "Impossible de localiser la piste en cours de lecture"
+		"trackNotFound": "Impossible de localiser la piste en cours de lecture",
+		"expand": "Développer le lecteur",
+		"collapse": "Réduire le lecteur",
+		"seek": "Avancer",
+		"repeat": "Répétition",
+		"repeatTrack": "Répéter la piste",
+		"repeatRelease": "Répéter la sortie",
+		"repeatAll": "Répéter tout"
+	},
+	"queue": {
+		"upNext": "À suivre",
+		"openQueue": "File",
+		"playNext": "Lire suivant",
+		"addToQueue": "Ajouter à la file",
+		"playingNext": "En cours de lecture suivant",
+		"addedToQueue": "Ajouté à la file",
+		"nextInQueue": "Suivant dans la file",
+		"upNextFromContext": "À suivre",
+		"addedByYou": "Ajouté par vous",
+		"removeFromQueue": "Retirer de la file",
+		"reorder": "Réorganiser",
+		"clearQueue": "Effacer",
+		"empty": "Rien à suivre",
+		"emptyHint": "Les chansons que vous ajoutez seront lues ensuite",
+		"upcoming": "File",
+		"history": "Historique",
+		"historyEmpty": "Rien n'a été lu encore"
 	},
 	"library": {
 		"searchPlaceholder": "Rechercher des pistes...",
@@ -267,41 +361,76 @@
 		"track": "piste",
 		"tracks": "pistes",
 		"item": "élément",
-		"items": "éléments"
+		"items": "éléments",
+		"clearSearch": "Effacer la recherche",
+		"fileNotFound": "Fichier non trouvé",
+		"dropToImport": "Déposer les fichiers audio pour importer",
+		"noColor": "Pas de couleur",
+		"colorLabel": "Couleur : {color}"
 	},
 	"discovery": {
 		"addRelease": "Ajouter une sortie",
 		"url": "URL",
 		"source": "Source",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Autre"
+		},
 		"release": "sortie",
 		"releases": "sorties",
 		"searchPlaceholder": "Rechercher des sorties...",
 		"noReleasesYet": "Aucune sortie pour le moment",
+		"noResults": "Aucune sortie ne correspond à vos filtres",
 		"addReleaseHint": "Appuyez sur {shortcut} pour ajouter des sorties de Bandcamp, Discogs, YouTube et plus",
+		"mobileAddHint": "Ajouter des sorties de Bandcamp, Discogs, YouTube et plus",
+		"dropHint": "Déposez un lien pour ajouter une sortie",
+		"pending": "En attente",
+		"offlineQueueNotice": "Vous êtes hors ligne — cette sortie sera ajoutée quand vous vous reconnecterez",
+		"addToQueue": "Ajouter à la file d'attente",
+		"editRelease": "Modifier la sortie",
+		"goToRelease": "Aller à la sortie",
+		"sortBy": "Trier par",
+		"selectedCount": "{count, plural, =1 {1 sélectionné} other {{count} sélectionnés}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Supprimer la sortie ?} other {Supprimer {count} sorties ?}}",
+		"confirmDeleteMessage": "Cela ne peut pas être annulé.",
 		"previewNotAvailable": "Aperçu non disponible pour cette source",
 		"columns": {
 			"artistTitle": "Artiste / Titre",
 			"label": "Label",
 			"tags": "Tags",
 			"dateAdded": "Date d'ajout",
-			"released": "Date de sortie",
-			"added": "Ajouté"
+			"dateReleased": "Date de sortie",
+			"dateLiked": "Date aimée"
 		},
 		"fetchingMetadata": "Récupération des métadonnées...",
 		"refreshMetadata": "Actualiser les métadonnées",
+		"downloadForOffline": "Télécharger hors ligne",
+		"downloading": "Téléchargement en cours...",
+		"downloadedForOffline": "Téléchargé",
+		"removeDownload": "Supprimer le téléchargement",
+		"downloadFailed": "Impossible de télécharger hors ligne",
 		"fetchError": "Impossible de récupérer les métadonnées à partir de cette URL",
 		"unsupportedUrl": "Cette URL n'est pas supportée",
+		"shareNoUrl": "Aucun lien trouvé dans le texte partagé",
 		"tracks": "Pistes",
 		"trackCount": "{count, plural, =1 {1 piste} other {{count} pistes}}",
+		"memberTrackCount": "{count} sur {total} pistes",
 		"openInBrowser": "Ouvrir dans le navigateur",
+		"openInApp": "Ouvrir dans {app}",
 		"copyUrl": "Copier l'URL",
 		"copiedUrl": "URL copiée dans le presse-papiers",
+		"share": "Partager",
+		"viewAsGrid": "Afficher en grille",
+		"viewAsList": "Afficher en liste",
+		"pasteLink": "Coller un lien",
+		"clipboardNoUrl": "Aucun lien dans le presse-papiers",
 		"like": "Ajouter aux favoris",
 		"unlike": "Retirer des favoris",
 		"playPreview": "Écouter l'aperçu",
 		"searchOnYouTube": "Chercher sur YouTube",
-		"openReleaseInBrowser": "Ouvrir la sortie dans le navigateur",
-		"copyReleaseUrl": "Copier l'URL de la sortie",
 		"importToLibrary": "Importer dans la bibliothèque",
 		"deleteRelease": "Supprimer la sortie",
 		"deleteReleases": "Supprimer les sorties",
@@ -312,10 +441,11 @@
 			"title": "Titre",
 			"label": "Label",
 			"releaseDate": "Date de sortie",
-			"notes": "Notes"
+			"notes": "Notes",
+			"notesPlaceholder": "Ajouter des notes…",
+			"addTags": "Ajouter des étiquettes"
 		},
 		"import": {
-			"title": "Importer dans la bibliothèque",
 			"selectFiles": "Sélectionner les fichiers",
 			"matched": "Correspondant",
 			"unmatched": "Non correspondant",
@@ -364,6 +494,7 @@
 			"unfollowSelected": "Ne plus suivre",
 			"pauseSelected": "Pause",
 			"unfollow": "Ne plus suivre",
+			"unfollowConfirm": "Arrêter de suivre {name} pour les nouvelles sorties ? Les sorties déjà dans Découvertes sont conservées.",
 			"checkNow": "Vérifier maintenant",
 			"enabledToggle": "Basculer les mises à jour",
 			"artist": "Artiste",
@@ -377,13 +508,11 @@
 			"following": "Suivi",
 			"followForNewReleases": "Suivre pour les nouvelles sorties",
 			"followViaPaste": "Suivre cette source depuis le panneau Suivi",
-			"popoverTitle": "Suivre pour les nouvelles sorties",
 			"upcoming": "À venir",
 			"daysUntil": "{days} j",
 			"surfacedVia": "Affiché via {source}",
 			"markNew": "Marquer comme nouveau",
 			"markNotNew": "Marquer comme non nouveau",
-			"alsoFollow": "Suivre pour les nouvelles sorties",
 			"sortBy": "Trier par",
 			"empty": {
 				"title": "Vous ne suivez personne pour le moment",
@@ -405,12 +534,53 @@
 				"urlPlaceholder": "Coller l'URL d'une page artiste/label Bandcamp, SoundCloud ou Discogs",
 				"urlInfo": "On détecte automatiquement la plateforme et s'il s'agit d'un artiste ou d'un label, puis on guette ses nouvelles sorties à partir de maintenant. Les sorties plus anciennes ne seront pas ajoutées."
 			}
+		},
+		"releaseArtwork": "Pochette de sortie",
+		"mergeTarget": "Cible",
+		"mergeTagCount": "{count, plural, =1 {1 tag} other {{count} tags}}",
+		"exportAsJson": "Exporter en JSON…",
+		"export": {
+			"title": "Exporter les sorties",
+			"description": "Enregistrez les sorties sous forme de fichier JSON — par exemple pour les ajouter comme connaissance dans un projet d'IA.",
+			"format": "Format",
+			"formatCurated": "Organisé",
+			"formatCuratedHint": "Champs simples et lisibles. Idéal pour les bases de connaissances d'IA.",
+			"formatRaw": "Brut",
+			"formatRawHint": "Chaque champ stocké, sans modification.",
+			"tracks": "Pistes",
+			"tracksAll": "Toutes les pistes",
+			"tracksLiked": "Pistes aimées uniquement",
+			"tracksNone": "Pas de pistes",
+			"summary": "{count, plural, =1 {1 sortie} other {{count} sorties}} · ~{size}",
+			"preparing": "Préparation des sorties…",
+			"failed": "Erreur d'export."
 		}
 	},
 	"filters": {
 		"title": "Filtres",
 		"liked": "Aimés",
-		"new": "Nouveau"
+		"new": "Nouveau",
+		"downloaded": "Téléchargé",
+		"purchased": "Acheté",
+		"off": "Non",
+		"only": "Seul",
+		"not": "Sauf"
+	},
+	"collection": {
+		"notInCrate": "Pas dans {appName}",
+		"addToDiscovery": "Ajouter à la Découverte",
+		"emptyTitle": "Aucune collection liée",
+		"emptyHint": "Liez votre collection Bandcamp pour voir vos achats ici",
+		"noItems": "Pas encore d'achats",
+		"ownedBadge": "Possédé",
+		"partialBadge": "{owned}/{total} possédés",
+		"gap": {
+			"title": "Manquant de la bibliothèque",
+			"missingCount": "{count, plural, =1 {1 achat introuvable dans votre bibliothèque} other {{count} achats introuvables dans votre bibliothèque}}",
+			"missingOnly": "Seulement manquants",
+			"inLibrary": "Dans la bibliothèque",
+			"notInLibrary": "Pas dans la bibliothèque"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nouvelle playlist",
@@ -423,7 +593,16 @@
 		"rootNoFolder": "Racine (aucun dossier)",
 		"folderEmpty": "Ce dossier est vide",
 		"noPlaylistsYet": "Aucune playlist pour le moment",
-		"exportToDevice": "Exporter vers l'appareil"
+		"allPlaylists": "Toutes les playlists",
+		"searchPlaceholder": "Rechercher des playlists…",
+		"emptyHint": "Créez des playlists pour organiser vos découvertes",
+		"detailEmptyHint": "Appuyez longtemps sur une sortie dans Découvertes pour l'ajouter à une playlist",
+		"exportToDevice": "Exporter vers l'appareil",
+		"playlistOrder": "Ordre de la playlist",
+		"sort": {
+			"dateCreated": "Date de création",
+			"dateModified": "Date de modification"
+		}
 	},
 	"tags": {
 		"newCategory": "Nouvelle catégorie",
@@ -432,11 +611,11 @@
 		"renameCategory": "Renommer la catégorie",
 		"deleteTag": "Supprimer le tag",
 		"deleteCategory": "Supprimer la catégorie",
-		"addCategory": "Ajouter une catégorie",
-		"addTag": "Ajouter un tag",
 		"moveToCategory": "Déplacer vers la catégorie",
 		"noTags": "Aucun tag",
-		"noTagCategoriesYet": "Aucune catégorie de tag pour le moment"
+		"noTagCategoriesYet": "Aucune catégorie de tag pour le moment",
+		"emptyHint": "Créez des catégories de tags colorées pour organiser vos découvertes",
+		"removeTag": "Retirer le tag"
 	},
 	"contextMenu": {
 		"viewInFinder": "Afficher dans le Finder",
@@ -445,7 +624,6 @@
 		"addToPlaylist": "Ajouter à la playlist",
 		"setColor": "Définir la couleur",
 		"removeColor": "Supprimer la couleur",
-		"remove": "Supprimer",
 		"removeFromPlaylist": "Retirer de la playlist",
 		"removeFromLibrary": "Retirer de la bibliothèque",
 		"relocate": "Relocaliser...",
@@ -485,6 +663,8 @@
 			"placeholder": "Nom de la catégorie"
 		},
 		"confirm": {
+			"discardChangesTitle": "Rejeter les modifications",
+			"discardChangesMessage": "Êtes-vous sûr de vouloir rejeter vos modifications ?",
 			"deletePlaylistTitle": "Supprimer la playlist",
 			"deletePlaylistMessage": "Êtes-vous sûr de vouloir supprimer cette playlist ?",
 			"deleteFolderTitle": "Supprimer le dossier",
@@ -503,8 +683,8 @@
 			"removeFromLibraryMessage": "{count, plural, =0 {Retirer cette piste de votre bibliothèque ?} =1 {Retirer cette piste de votre bibliothèque ?} other {Retirer {count} pistes de votre bibliothèque ?}}",
 			"removeFromLibraryWarning": "Cette action est irréversible. Les pistes seront retirées de toutes les playlists.",
 			"deleteTracksFromCollection": "Supprimer également les pistes de ma collection",
-			"removeDiscoveryReleasesTitle": "Supprimer de la découverte",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Supprimer cette sortie de la découverte ?} other {Supprimer {count} sorties de la découverte ?}}",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Supprimer la sortie} other {Supprimer les sorties}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Supprimer cette sortie ?} other {Supprimer {count} sorties ?}}",
 			"removeDiscoveryReleasesWarning": "Cette action est irréversible. Les sorties seront supprimées de toutes les playlists.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Retirer de la playlist",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Retirer cette sortie de la playlist ?} other {Retirer {count} sorties de la playlist ?}}",
@@ -512,9 +692,22 @@
 		},
 		"relocate": {
 			"title": "Relocaliser la piste",
-			"message": "Sélectionnez le nouvel emplacement de cette piste."
+			"cloudSyncedMessage": "Cette piste a été ajoutée sur un autre appareil. Choisissez le dossier local qui contient sa racine de bibliothèque pour la rendre lisible ici.",
+			"missingFileMessage": "Le fichier de cette piste n'a pas pu être trouvé à son emplacement d'origine.",
+			"selectRootFolder": "Sélectionner le dossier racine de la bibliothèque",
+			"selectReplacementFile": "Sélectionner le fichier de remplacement",
+			"validating": "Validation du fichier...",
+			"unsupportedFormat": "Format audio non supporté.",
+			"hashMatch": "Le contenu du fichier correspond. Hash vérifié.",
+			"hashMismatch": "Le contenu du fichier ne correspond pas à l'original.",
+			"noOriginalHash": "Aucun hash d'origine disponible pour comparaison. Le fichier peut toujours être correct.",
+			"useAnyway": "Utiliser ce fichier de toute façon",
+			"relocate": "Relocaliser",
+			"relocating": "Délocalisation...",
+			"validateFailed": "Échec de la validation du fichier",
+			"relocateFailed": "Échec de la relocalisation de la piste"
 		},
-		"albumArt": "Pochette d'album",
+		"albumArt": "Pochette",
 		"deviceInfo": {
 			"title": "Infos appareil",
 			"diskType": "Type de disque",
@@ -524,15 +717,6 @@
 			"available": "Disponible :",
 			"total": "Total :",
 			"percentUsed": "% utilisé"
-		},
-		"update": {
-			"title": "Mise à jour disponible",
-			"description": "{version} est prêt à être installé.",
-			"releaseNotes": "Quoi de neuf",
-			"installAndRestart": "Installer et redémarrer",
-			"later": "Plus tard",
-			"downloading": "Téléchargement... {progress}%",
-			"installing": "Installation..."
 		},
 		"duplicate": {
 			"title": "Doublon détecté",
@@ -547,6 +731,15 @@
 			"replace": "Remplacer",
 			"replaceDescription": "Nouvelle importation depuis le nouveau fichier. Conserve uniquement l'appartenance aux playlists. Réinitialise les points de repère, tags et historique de lecture.",
 			"applyToAll": "Appliquer à tous les doublons restants ({count})"
+		},
+		"update": {
+			"title": "Mise à jour disponible",
+			"description": "{version} est prêt à être installé.",
+			"releaseNotes": "Quoi de neuf",
+			"installAndRestart": "Installer et redémarrer",
+			"later": "Plus tard",
+			"downloading": "Téléchargement... {progress}%",
+			"installing": "Installation..."
 		},
 		"conflict": {
 			"title": "Conflit de nom",
@@ -567,8 +760,11 @@
 	"toast": {
 		"trackAdded": "{count, plural, =0 {1 piste} =1 {1 piste} other {{count} pistes}} ajoutée(s) à {playlistName}",
 		"trackAddedWithFailed": "{count, plural, =0 {1 piste} =1 {1 piste} other {{count} pistes}} ajoutée(s) à {playlistName}, {failed} échoué(s)",
+		"trackAddedWithExisting": "{count, plural, =0 {1 piste} =1 {1 piste} other {{count} pistes}} ajoutée(s) à {playlistName}, {existing} déjà présente(s)",
+		"alreadyInPlaylist": "Déjà dans {playlistName}",
 		"tracksImported": "{count, plural, =0 {1 piste} =1 {1 piste} other {{count} pistes}} importée(s)",
 		"tracksImportedWithSkipped": "{imported, plural, =0 {1 piste} =1 {1 piste} other {{imported} pistes}} importée(s), {skipped} ignorée(s)",
+		"tracksExported": "{exported, plural, =1 {1 piste} other {{exported} pistes}} exportée(s) vers {deviceName}, {skipped, plural, =1 {1 ignorée} other {{skipped} ignorées}}",
 		"trackRemoved": "{count, plural, =0 {1 piste} =1 {1 piste} other {{count} pistes}} retirée(s) de la playlist",
 		"trackRemovedFromLibrary": "{count, plural, =0 {1 piste} =1 {1 piste} other {{count} pistes}} retirée(s) de la bibliothèque",
 		"movedSuccessfully": "Déplacé avec succès",
@@ -577,6 +773,7 @@
 		"replacedExisting": "Élément existant remplacé",
 		"deviceConnected": "{name} connecté",
 		"deviceDisconnected": "{name} déconnecté",
+		"audioDeviceDisconnected": "{name} déconnecté — lecture en pause",
 		"deviceEjected": "{name} éjecté",
 		"deviceEjectFailed": "Échec de l'éjection de {name}",
 		"relocated": "\"{title}\" relocalisé",
@@ -587,7 +784,14 @@
 		"failedToUpdateTracks": "Échec de la mise à jour des pistes",
 		"failedToSetArtwork": "Échec de la définition de la pochette",
 		"failedToRemoveArtwork": "Échec de la suppression de la pochette",
-		"noArtworkInFile": "Aucune pochette trouvée dans le fichier audio"
+		"noArtworkInFile": "Aucune pochette trouvée dans le fichier audio",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 piste} other {{count} pistes}} importée(s), {failed} échouée(s)",
+		"failedToSetTrackColor": "Échec de la définition de la couleur de la piste",
+		"exportCleanedUp": "Export partiel nettoyé",
+		"exportCleanUpFailed": "Échec du nettoyage de l'export",
+		"deviceNotFound": "Appareil non trouvé",
+		"deviceReformatted": "Appareil reformaté en \"{name}\"",
+		"deviceReformatFailed": "Échec du reformatage : {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Impossible de déposer un dossier dans lui-même",
@@ -596,8 +800,13 @@
 		"exportInProgress": "Exportation déjà en cours",
 		"tagNameConflict": "Un tag portant ce nom existe déjà dans la catégorie cible",
 		"previewStreamFailed": "Échec du chargement du flux d'aperçu",
+		"previewNotAvailableOffline": "Cette piste n'est pas disponible hors ligne",
 		"updateCheckFailed": "Échec de la vérification des mises à jour",
-		"updateInstallFailed": "Échec de l'installation de la mise à jour"
+		"updateInstallFailed": "Échec de l'installation de la mise à jour",
+		"generic": "Une erreur s'est produite",
+		"previewPlaybackFailed": "Erreur de lecture de l'aperçu",
+		"previewPlayFailed": "Échec de la lecture de l'aperçu",
+		"previewResumeFailed": "Échec de la reprise de l'aperçu"
 	},
 	"devices": {
 		"title": "Appareils",
@@ -701,6 +910,9 @@
 		"emerald": "Émeraude"
 	},
 	"dates": {
+		"justNow": "À l'instant",
+		"minutesAgo": "{count, plural, =1 {il y a 1 minute} other {il y a {count} minutes}}",
+		"hoursAgo": "{count, plural, =1 {il y a 1 heure} other {il y a {count} heures}}",
 		"today": "Aujourd'hui",
 		"yesterday": "Hier",
 		"daysAgo": "{count, plural, =1 {il y a 1 jour} other {il y a {count} jours}}",
@@ -759,12 +971,16 @@
 		"mute": "Muet",
 		"jumpToPlaying": "Aller à la piste en cours de lecture",
 		"toggleEditor": "Afficher/Masquer l'éditeur",
+		"toggleQueue": "Afficher/Masquer la file",
 		"toggleView": "Basculer la vue",
 		"showDevTools": "Afficher les outils de développement",
 		"enterFullScreen": "Passer en plein écran",
 		"exitFullScreen": "Quitter le mode plein écran",
 		"expandAllReleases": "Développer toutes les sorties",
 		"collapseAllReleases": "Réduire toutes les sorties",
+		"zoomIn": "Zoom avant",
+		"zoomOut": "Zoom arrière",
+		"actualSize": "Taille réelle",
 		"minimize": "Réduire",
 		"zoom": "Zoom",
 		"featureTour": "Visite des fonctionnalités...",
@@ -852,6 +1068,14 @@
 			"aqua": "Aqua",
 			"blue": "Bleu",
 			"purple": "Violet"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {
@@ -891,6 +1115,26 @@
 			"title": "Vous êtes prêt!",
 			"subtitle": "Commencez à construire votre collection."
 		},
-		"getStarted": "Commencer"
+		"getStarted": "Commencer",
+		"mobile": {
+			"welcome": {
+				"title": "Bienvenue dans {appName}",
+				"subtitle": "Découvrez de la musique et construisez votre collection — directement depuis votre poche."
+			},
+			"discover": {
+				"title": "Ajouter et prévisualiser les sorties",
+				"description": "Collez un lien de Bandcamp, SoundCloud, et plus pour enregistrer une sortie, puis appuyez pour obtenir un aperçu instantané."
+			},
+			"sync": {
+				"title": "Synchronisez avec votre bureau",
+				"description": "Connectez-vous en option pour garder votre collection en synchronisation sur tous vos appareils. Vous pouvez toujours le faire plus tard."
+			},
+			"appearance": {
+				"title": "Personnalisez-le",
+				"description": "Choisissez un thème et une couleur d'accent. Vous pouvez les modifier à tout moment dans Paramètres."
+			},
+			"skip": "Ignorer",
+			"maybeLater": "Peut-être plus tard"
+		}
 	}
 }

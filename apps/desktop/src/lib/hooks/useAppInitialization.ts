@@ -1,6 +1,6 @@
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
 import { getCurrentWebview } from '@tauri-apps/api/webview'
-import type { DiscoveryRelease, FollowedReleasesFound, UsbDevice } from '$shared/types'
+import type { AudioDeviceLostPayload, DiscoveryRelease, FollowedReleasesFound, UsbDevice } from '$shared/types'
 import type { appStore as AppStoreType } from '$lib/stores/app'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
 import type { tagsStore as TagsStoreType } from '$shared/stores/tags'
@@ -10,8 +10,12 @@ import type { devicesStore as DevicesStoreType } from '$lib/stores/devices'
 import type { syncStore as SyncStoreType } from '$lib/stores/sync'
 import type { toastStore as ToastStoreType } from '$shared/stores/toast'
 import type { discoveryStore as DiscoveryStoreType } from '$shared/stores/discovery'
-import { followStore } from '$lib/stores/follow'
+import type { playerStore as PlayerStoreType } from '$shared/stores/player'
+import { followStore } from '$shared/stores/follow'
+import { collectionStore } from '$shared/stores/collection'
+import { offlineCacheStore } from '$shared/stores/offlineCache'
 import { uiStore } from '$shared/stores/ui'
+import { onUiZoomChanged } from '$shared/api/settings'
 import { translate } from '$shared/i18n'
 import { get } from 'svelte/store'
 
@@ -29,6 +33,7 @@ export interface AppInitConfig {
 		devicesStore: typeof DevicesStoreType
 		syncStore: typeof SyncStoreType
 		discoveryStore: typeof DiscoveryStoreType
+		playerStore: typeof PlayerStoreType
 	}
 	toastStore: typeof ToastStoreType
 	onExternalFileDrop: (audioPaths: string[]) => Promise<void>
@@ -55,8 +60,17 @@ export let hasAudioDrag = false
  */
 export async function useAppInitialization(config: AppInitConfig): Promise<() => void> {
 	const { stores, toastStore, onExternalFileDrop, onDragStateChange } = config
-	const { appStore, libraryStore, tagsStore, playlistsStore, settingsStore, devicesStore, syncStore, discoveryStore } =
-		stores
+	const {
+		appStore,
+		libraryStore,
+		tagsStore,
+		playlistsStore,
+		settingsStore,
+		devicesStore,
+		syncStore,
+		discoveryStore,
+		playerStore,
+	} = stores
 
 	// Store unlisten functions
 	let unlistenDevices: UnlistenFn | undefined
@@ -65,6 +79,13 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenEnrichmentQueued: UnlistenFn | undefined
 	let unlistenCloudSyncMerge: UnlistenFn | undefined
 	let unlistenFollowed: UnlistenFn | undefined
+	let unlistenCollection: UnlistenFn | undefined
+	let unlistenAudioCache: UnlistenFn | undefined
+	let audioCacheDebounce: ReturnType<typeof setTimeout> | null = null
+	let unlistenAvailability: UnlistenFn | undefined
+	let unlistenAudioOutputLost: UnlistenFn | undefined
+	let unlistenAudioDevices: UnlistenFn | undefined
+	let unlistenUiZoom: UnlistenFn | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -78,6 +99,8 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		settingsStore.load(),
 		devicesStore.loadDevices(),
 		followStore.load(),
+		collectionStore.load(),
+		offlineCacheStore.refresh(),
 	])
 
 	// Set up Tauri's native drag-drop event listener for external file drops
@@ -146,7 +169,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 
 					// Suppress toast if a reformat is in progress
 					if (!reformattingId) {
-						toastStore.info(`${device.name} connected`)
+						toastStore.info(get(translate)('toast.deviceConnected', { values: { name: device.name } }))
 					}
 
 					// Trigger auto-sync on device connected (if enabled)
@@ -165,7 +188,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 
 					// Suppress toast if this device is being reformatted
 					if (reformattingId !== device.id) {
-						toastStore.info(`${device.name} disconnected`)
+						toastStore.info(get(translate)('toast.deviceDisconnected', { values: { name: device.name } }))
 					}
 				}
 			}
@@ -213,7 +236,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 						label: get(translate)('discovery.following.review'),
 						onClick: () => {
 							uiStore.setActiveView('discovery')
-							discoveryStore.toggleNewFilter(true)
+							discoveryStore.setFacetFilter('new', 'include')
 						},
 					})
 				}
@@ -223,7 +246,8 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 
 	// Map merged sync buckets to the stores that must reload. Tag name/color and track-tag
 	// links are embedded on tracks and discovery releases, so a tag-related merge reloads
-	// those stores too.
+	// those stores too. Ownership badges derive from collection items AND discovery
+	// releases/tracks, so merges touching either refresh the collection store.
 	function reloadStoresForBuckets(buckets: string[]): void {
 		let library = false
 		let playlists = false
@@ -231,13 +255,14 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		let discovery = false
 		let settings = false
 		let follow = false
+		let collection = false
 
 		for (const bucket of buckets) {
 			if (bucket.startsWith('tracks/') || bucket === 'cues' || bucket === 'library_roots') {
 				library = true
 			} else if (bucket === 'playlists' || bucket === 'playlist_tracks') {
 				playlists = true
-			} else if (bucket === 'playlist_discovery_releases') {
+			} else if (bucket === 'playlist_discovery_releases' || bucket === 'playlist_discovery_tracks') {
 				playlists = true
 				discovery = true
 			} else if (bucket === 'tag_categories' || bucket === 'tags') {
@@ -247,16 +272,19 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 			} else if (bucket === 'track_tags') {
 				tags = true
 				library = true
-			} else if (bucket === 'discovery_release_tags') {
+			} else if (bucket === 'discovery_release_tags' || bucket === 'discovery_track_tags') {
 				tags = true
 				discovery = true
 			} else if (bucket === 'discovery_releases' || bucket === 'discovery_tracks') {
 				discovery = true
+				collection = true
 			} else if (bucket === 'followed_sources') {
 				follow = true
 			} else if (bucket === 'discovery_release_sources') {
 				follow = true
 				discovery = true
+			} else if (bucket === 'collection_accounts' || bucket === 'collection_items') {
+				collection = true
 			} else if (bucket === 'settings') {
 				settings = true
 			}
@@ -268,15 +296,89 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		if (discovery) discoveryStore.loadReleases()
 		if (settings) settingsStore.load()
 		if (follow) followStore.load()
+		if (collection) void collectionStore.refresh()
+	}
+
+	// Collection-changed listener: link/unlink/refresh landed new purchase data (locally or
+	// from a background sweep) — refresh accounts, items, and the derived ownership badges.
+	async function setupCollectionListener(): Promise<void> {
+		unlistenCollection = await listen('collection-changed', () => {
+			void collectionStore.refresh()
+		})
+	}
+
+	// Audio-cache listener: the backend reports every cache mutation (a preview played through and
+	// downloaded, a purge, an LRU eviction), which the Downloaded filter reads. Debounced because a
+	// whole release streaming through fires one event per track.
+	async function setupAudioCacheListener(): Promise<void> {
+		unlistenAudioCache = await listen('discovery-cache-changed', () => {
+			if (audioCacheDebounce) clearTimeout(audioCacheDebounce)
+			audioCacheDebounce = setTimeout(() => {
+				audioCacheDebounce = null
+				void offlineCacheStore.refresh()
+			}, 500)
+		})
+	}
+
+	// Preview-availability listener: a stream extraction refreshed a release's per-track
+	// availability flags (pre-order tracks with no stream) — grey/un-grey the rows in place.
+	async function setupAvailabilityListener(): Promise<void> {
+		unlistenAvailability = await listen<{ releaseId: string; unavailable: number[] }>(
+			'discovery-availability-changed',
+			(event) => {
+				discoveryStore.applyPreviewAvailability(event.payload.releaseId, event.payload.unavailable)
+			}
+		)
+	}
+
+	// Audio output listeners: the backend pauses library playback when the output device it was
+	// playing on disappears (Bluetooth headphones powering off, interface unplugged) and rebuilds
+	// the stream on the new default, so we mirror the paused state rather than follow the user's
+	// headphones out onto the built-in speakers.
+	async function setupAudioOutputListener(): Promise<void> {
+		unlistenAudioOutputLost = await listen<AudioDeviceLostPayload>('audio-output-device-lost', (event) => {
+			const { wasPlaying, lostDevice, newDevice, playbackState } = event.payload
+
+			playerStore.applyExternalPause(playbackState)
+			void settingsStore.refreshAudioDevices()
+
+			// Silent when we were already paused — nothing the user could hear changed.
+			if (wasPlaying) {
+				toastStore.info(
+					get(translate)('toast.audioDeviceDisconnected', {
+						values: { name: lostDevice ?? get(translate)('common.unknown') },
+					})
+				)
+			}
+			if (!newDevice) {
+				console.warn('[audio] no output device available after disconnect')
+			}
+		})
+
+		unlistenAudioDevices = await listen('audio-devices-changed', () => {
+			void settingsStore.refreshAudioDevices()
+		})
+	}
+
+	// Native View → Zoom In / Out / Actual Size are handled in Rust; mirror the result here
+	async function setupUiZoomListener(): Promise<void> {
+		unlistenUiZoom = await onUiZoomChanged((level) => {
+			settingsStore.syncUiZoom(level)
+		})
 	}
 
 	// Initialize listeners
 	await setupDragDrop()
 	await setupDeviceListener()
+	await setupAudioOutputListener()
 	await setupDiscoveryUpdateListener()
 	await setupEnrichmentQueuedListener()
 	await setupCloudSyncMergeListener()
 	await setupFollowedReleasesListener()
+	await setupCollectionListener()
+	await setupAudioCacheListener()
+	await setupAvailabilityListener()
+	await setupUiZoomListener()
 
 	// Return cleanup function
 	return () => {
@@ -286,5 +388,12 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenEnrichmentQueued?.()
 		unlistenCloudSyncMerge?.()
 		unlistenFollowed?.()
+		unlistenCollection?.()
+		if (audioCacheDebounce) clearTimeout(audioCacheDebounce)
+		unlistenAudioCache?.()
+		unlistenAvailability?.()
+		unlistenAudioOutputLost?.()
+		unlistenAudioDevices?.()
+		unlistenUiZoom?.()
 	}
 }

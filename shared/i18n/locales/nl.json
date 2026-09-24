@@ -1,11 +1,14 @@
 {
 	"common": {
+		"add": "Toevoegen",
+		"clear": "Wissen",
 		"close": "Sluiten",
 		"save": "Opslaan",
 		"search": "Zoeken...",
 		"cancel": "Annuleren",
 		"create": "Maken",
 		"delete": "Verwijderen",
+		"discard": "Verwerpen",
 		"remove": "Verwijderen",
 		"rename": "Hernoemen",
 		"default": "Standaard",
@@ -20,13 +23,26 @@
 		"folder": "map",
 		"playlist": "afspeellijst",
 		"next": "Volgende",
-		"back": "Terug"
+		"back": "Terug",
+		"more": "Meer",
+		"select": "Selecteren",
+		"noResults": "Geen resultaten",
+		"offline": "U bent offline",
+		"audioFiles": "Audiobestanden",
+		"images": "Afbeeldingen",
+		"selectAnOption": "Selecteer een optie",
+		"unknownError": "Onbekende fout",
+		"dismiss": "Sluiten",
+		"step": "Stap {number}",
+		"reset": "Resetten"
 	},
 	"nav": {
 		"library": "Bibliotheek",
 		"discovery": "Ontdekkingen",
 		"playlists": "Afspeellijsten",
-		"tags": "Tags"
+		"tags": "Tags",
+		"openMenu": "Menu openen",
+		"openSettings": "Instellingen openen"
 	},
 	"settings": {
 		"title": "Instellingen",
@@ -37,6 +53,7 @@
 			"appearance": "Uiterlijk",
 			"sound": "Geluid",
 			"cloudSync": "Cloudsynchronisatie",
+			"storage": "Opslag",
 			"diagnostics": "Diagnostiek",
 			"about": "Over"
 		},
@@ -112,12 +129,20 @@
 			"transferTagsOnImportDescription": "Overdraag release-tags standaard naar geïmporteerde nummers.",
 			"removeReleaseAfterImport": "Release na import verwijderen",
 			"removeReleaseAfterImportDescription": "Verwijder automatisch releases uit ontdekkingen na het importeren van bestanden.",
+			"export": "Exporteren",
+			"exportCollection": "Collectie exporteren",
+			"exportCollectionDescription": "Sla je volledige ontdekkingscollectie op als JSON-bestand — bijvoorbeeld om toe te voegen als kennis in een AI-project.",
 			"previewCache": "Voorbeeldcache",
 			"previewCacheDescription": "Voorbeeldweergegeven ontdekkingsnummers worden lokaal in het cachegeheugen opgeslagen voor onmiddellijke afspeling bij volgende luisteringen.",
 			"cacheSize": "Cachegrootte",
 			"clearCache": "Cache wissen",
 			"clearCacheConfirmMessage": "Weet je zeker dat je alle cachegeheugen voor voorbeeldaudio wilt wissen?",
-			"clearCacheWarning": "Eerder bekeken nummers moeten bij volgende afspeling opnieuw van hun bron worden gestreamd. Dit kan trager zijn en sommige streams zijn mogelijk niet meer beschikbaar."
+			"clearCacheWarning": "Eerder bekeken nummers moeten bij volgende afspeling opnieuw van hun bron worden gestreamd. Dit kan trager zijn en sommige streams zijn mogelijk niet meer beschikbaar.",
+			"audioCache": "Audio",
+			"artworkCache": "Albumhoes",
+			"artworkCacheDescription": "Albumhoezen worden op dit apparaat opgeslagen zodat ze zonder verbinding kunnen worden weergegeven.",
+			"clearArtworkCacheConfirmMessage": "Weet je zeker dat je alle cachegeheugen voor albumhoezen wilt wissen?",
+			"cacheLimit": "Cachemimiet"
 		},
 		"following": {
 			"title": "Volgend",
@@ -137,9 +162,28 @@
 			"newReleasesSummary": "Samenvatting nieuwe releases",
 			"discogsRateLimitNote": "Discogs beperkt hoe vaak het kan worden gecontroleerd, dus grote volgende lijsten kunnen geleidelijk worden bijgewerkt."
 		},
+		"collection": {
+			"title": "Verzameling",
+			"description": "Koppel uw openbare Bandcamp-verzameling zodat releases en nummers die u hebt gekocht als bezeten worden weergegeven.",
+			"linkAccount": "Bandcamp-account koppelen",
+			"linkPrompt": "Verzameling koppelen",
+			"linkPromptInfo": "Voer uw Bandcamp-gebruikersnaam in of plak de URL van uw fanpagina (bandcamp.com/gebruikersnaam)",
+			"linkPlaceholder": "gebruikersnaam",
+			"link": "Koppelen",
+			"noAccounts": "Nog geen accounts gekoppeld",
+			"itemCount": "{count, plural, =1 {1 item} other {{count} items}}",
+			"refreshCadenceDescription": "Hoe vaak uw verzamelingen moeten worden gecontroleerd op nieuwe aankopen",
+			"refreshNow": "Verzameling vernieuwen",
+			"removeConfirmTitle": "Account ontkoppelen",
+			"removeConfirmMessage": "Aankopen van dit account worden niet langer als bezeten weergegeven.",
+			"enabledToggle": "Aankopen als bezeten tellen",
+			"privacyNote": "Alleen uw openbare Bandcamp-verzameling wordt gelezen. Privé aankopen en verborgen items zijn niet zichtbaar."
+		},
 		"appearance": {
 			"font": "Lettertype",
 			"fontDescription": "Kies het lettertype dat in de applicatie wordt gebruikt.",
+			"zoom": "Zoomen",
+			"zoomDescription": "Vergroot of verklein de volledige interface. Dit geldt alleen voor dit apparaat.",
 			"theme": "Thema",
 			"themeLight": "Licht",
 			"themeDark": "Donker",
@@ -179,7 +223,8 @@
 			"updates": "Updates",
 			"checkForUpdates": "Op updates controleren",
 			"upToDate": "Up-to-date",
-			"updateAvailable": "{version} beschikbaar"
+			"updateAvailable": "{version} beschikbaar",
+			"project": "Project"
 		}
 	},
 	"cloudSync": {
@@ -195,11 +240,27 @@
 			"error": "Synchronisatiefout",
 			"signedOut": "Niet aangemeld"
 		},
+		"errors": {
+			"network": "Kan de synchronisatieservice niet bereiken — wordt opnieuw geprobeerd",
+			"auth": "Uw sessie is verlopen — meld u af en meld u opnieuw aan",
+			"permission": "De synchronisatieservice heeft dit apparaat geweigerd (toestemming geweigerd)",
+			"quota": "Synchronisatie is beperkt of het quotum is opgebruikt — wordt opnieuw geprobeerd",
+			"toolarge": "Uw bibliotheek is te groot om te uploaden",
+			"conflict": "Een ander apparaat wordt nu gesynchroniseerd — wordt opnieuw geprobeerd",
+			"server": "De synchronisatieservice heeft problemen — wordt opnieuw geprobeerd",
+			"merge": "Gesynchroniseerde wijzigingen kunnen niet op dit apparaat worden toegepast"
+		},
+		"diagnostics": {
+			"copy": "Synchronisatiediagnostiek kopiëren"
+		},
 		"account": {
 			"title": "Account",
 			"syncNow": "Nu synchroniseren",
 			"syncing": "Synchroniseren…",
 			"signOut": "Afmelden",
+			"signOutConfirmTitle": "Afmelden?",
+			"signOutConfirmMessage": "Uw lokale gegevens blijven op dit apparaat. Synchronisatie stopt totdat u zich opnieuw aanmeldt.",
+			"autoSyncHint": "Uw Discovery-bibliotheek wordt automatisch gesynchroniseerd op al uw apparaten.",
 			"lastSynced": "Laatst gesynchroniseerd {time}"
 		},
 		"devices": {
@@ -229,7 +290,14 @@
 			"deleteVaultDescription": "Verwijder permanent alle gesynchroniseerde gegevens uit de cloud. Uw lokale bibliotheek wordt niet beïnvloed.",
 			"confirmTitle": "Cloudkluis verwijderen?",
 			"confirmMessage": "Hiermee verwijdert u permanent alle uw gesynchroniseerde gegevens uit de cloud en meldt u af. Uw lokale bibliotheek blijft intact. Deze actie kan niet ongedaan worden gemaakt.",
-			"error": "Kon uw cloudkluis niet verwijderen"
+			"error": "Kon uw cloudkluis niet verwijderen",
+			"deleteAccount": "Account verwijderen",
+			"deleteAccountDescription": "Verwijder permanent uw account en alle gesynchroniseerde gegevens uit de cloud. Dit heeft geen invloed op de audiobestanden of bibliotheek op dit apparaat.",
+			"deleteAccountConfirmTitle": "Account verwijderen?",
+			"deleteAccountConfirmMessage": "Hiermee verwijdert u permanent uw account en wist u alle gesynchroniseerde gegevens — nummers, afspeellijsten, labels en ontdekkingen — van elk apparaat waarbij u bent aangemeld. Uw lokale bestanden blijven op dit apparaat. Deze actie kan niet ongedaan worden gemaakt.",
+			"deletingAccount": "Account verwijderen…",
+			"deleteAccountSuccess": "Uw account is verwijderd",
+			"deleteAccountError": "Kon uw account niet verwijderen"
 		}
 	},
 	"player": {
@@ -245,7 +313,33 @@
 		"volume": "Volume",
 		"tempo": "Tempo",
 		"resetTempo": "Tempo resetten",
-		"trackNotFound": "Kon het afspelende nummer niet vinden"
+		"trackNotFound": "Kon het afspelende nummer niet vinden",
+		"expand": "Speler uitvouwen",
+		"collapse": "Speler samenvouwen",
+		"seek": "Zoeken",
+		"repeat": "Herhalen",
+		"repeatTrack": "Track herhalen",
+		"repeatRelease": "Release herhalen",
+		"repeatAll": "Alles herhalen"
+	},
+	"queue": {
+		"upNext": "Volgende",
+		"openQueue": "Wachtrij",
+		"playNext": "Volgende afspelen",
+		"addToQueue": "Toevoegen aan wachtrij",
+		"playingNext": "Volgende afspelen",
+		"addedToQueue": "Toegevoegd aan wachtrij",
+		"nextInQueue": "Volgende in wachtrij",
+		"upNextFromContext": "Volgende",
+		"addedByYou": "Toegevoegd door jou",
+		"removeFromQueue": "Verwijderen uit wachtrij",
+		"reorder": "Opnieuw ordenen",
+		"clearQueue": "Wissen",
+		"empty": "Niets volgende",
+		"emptyHint": "Nummers die je toevoegt worden hierna afgespeeld",
+		"upcoming": "Wachtrij",
+		"history": "Geschiedenis",
+		"historyEmpty": "Nog niets afgespeeld"
 	},
 	"library": {
 		"searchPlaceholder": "Tracks zoeken...",
@@ -267,41 +361,76 @@
 		"track": "track",
 		"tracks": "tracks",
 		"item": "item",
-		"items": "items"
+		"items": "items",
+		"clearSearch": "Zoekopdracht wissen",
+		"fileNotFound": "Bestand niet gevonden",
+		"dropToImport": "Audiobestanden hiernaartoe slepen om te importeren",
+		"noColor": "Geen kleur",
+		"colorLabel": "Kleur: {color}"
 	},
 	"discovery": {
 		"addRelease": "Release toevoegen",
 		"url": "URL",
 		"source": "Bron",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Overig"
+		},
 		"release": "release",
 		"releases": "releases",
 		"searchPlaceholder": "Releases zoeken...",
 		"noReleasesYet": "Nog geen releases",
+		"noResults": "Geen releases komen overeen met je filters",
 		"addReleaseHint": "Druk {shortcut} om releases van Bandcamp, Discogs, YouTube en meer toe te voegen",
+		"mobileAddHint": "Releases van Bandcamp, Discogs, YouTube en meer toevoegen",
+		"dropHint": "Sleep een link hiernaartoe om een release toe te voegen",
+		"pending": "In behandeling",
+		"offlineQueueNotice": "Je bent offline — deze release wordt toegevoegd als je verbonden bent",
+		"addToQueue": "Toevoegen aan wachtrij",
+		"editRelease": "Release bewerken",
+		"goToRelease": "Ga naar Release",
+		"sortBy": "Sorteren op",
+		"selectedCount": "{count, plural, =1 {1 geselecteerd} other {{count} geselecteerd}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Release verwijderen?} other {{count} releases verwijderen?}}",
+		"confirmDeleteMessage": "Dit kan niet ongedaan gemaakt worden.",
 		"previewNotAvailable": "Voorbeeld niet beschikbaar voor deze bron",
 		"columns": {
 			"artistTitle": "Artiest / Titel",
 			"label": "Label",
 			"tags": "Tags",
 			"dateAdded": "Toegevoegd op",
-			"released": "Uitgebracht",
-			"added": "Toegevoegd"
+			"dateReleased": "Releasedatum",
+			"dateLiked": "Geliked op"
 		},
 		"fetchingMetadata": "Metagegevens ophalen...",
 		"refreshMetadata": "Metagegevens vernieuwen",
+		"downloadForOffline": "Voor offline downloaden",
+		"downloading": "Bezig met downloaden...",
+		"downloadedForOffline": "Gedownload",
+		"removeDownload": "Download verwijderen",
+		"downloadFailed": "Kon niet downloaden voor offline",
 		"fetchError": "Kan metagegevens niet ophalen van deze URL",
 		"unsupportedUrl": "Deze URL wordt niet ondersteund",
+		"shareNoUrl": "Geen link gevonden in de gedeelde tekst",
 		"tracks": "Tracks",
 		"trackCount": "{count, plural, =1 {1 track} other {{count} tracks}}",
+		"memberTrackCount": "{count} van {total} tracks",
 		"openInBrowser": "In browser openen",
+		"openInApp": "In {app} openen",
 		"copyUrl": "URL kopiëren",
 		"copiedUrl": "URL gekopieerd naar klembord",
+		"share": "Delen",
+		"viewAsGrid": "Weergeven als raster",
+		"viewAsList": "Weergeven als lijst",
+		"pasteLink": "Link plakken",
+		"clipboardNoUrl": "Geen link in klembord",
 		"like": "Toevoegen aan favorieten",
 		"unlike": "Verwijderen uit favorieten",
 		"playPreview": "Voorbeeld afspelen",
 		"searchOnYouTube": "Zoeken op YouTube",
-		"openReleaseInBrowser": "Release in browser openen",
-		"copyReleaseUrl": "Release URL kopiëren",
 		"importToLibrary": "Importeren naar bibliotheek",
 		"deleteRelease": "Release verwijderen",
 		"deleteReleases": "Releases verwijderen",
@@ -312,10 +441,11 @@
 			"title": "Titel",
 			"label": "Label",
 			"releaseDate": "Releasedatum",
-			"notes": "Opmerkingen"
+			"notes": "Opmerkingen",
+			"notesPlaceholder": "Opmerkingen toevoegen…",
+			"addTags": "Tags toevoegen"
 		},
 		"import": {
-			"title": "Importeren naar bibliotheek",
 			"selectFiles": "Bestanden selecteren",
 			"matched": "Gekoppeld",
 			"unmatched": "Niet gekoppeld",
@@ -364,6 +494,7 @@
 			"unfollowSelected": "Niet meer volgen",
 			"pauseSelected": "Pauzeren",
 			"unfollow": "Niet meer volgen",
+			"unfollowConfirm": "Wil je {name} niet meer volgen voor nieuwe releases? Releases die al in Ontdekkingen staan blijven behouden.",
 			"checkNow": "Nu controleren",
 			"enabledToggle": "Updates in-/uitschakelen",
 			"artist": "Artiest",
@@ -377,13 +508,11 @@
 			"following": "Volgend",
 			"followForNewReleases": "Volg voor nieuwe releases",
 			"followViaPaste": "Volg deze bron vanuit het volgende paneel",
-			"popoverTitle": "Volg voor nieuwe releases",
 			"upcoming": "Binnenkort",
 			"daysUntil": "{days} d",
 			"surfacedVia": "Weergegeven via {source}",
 			"markNew": "Markeren als nieuw",
 			"markNotNew": "Markeren als niet nieuw",
-			"alsoFollow": "Volg voor nieuwe releases",
 			"sortBy": "Sorteren op",
 			"empty": {
 				"title": "Je volgt nog niemand",
@@ -405,12 +534,53 @@
 				"urlPlaceholder": "Plak een Bandcamp-, SoundCloud- of Discogs-artiest-/labelpagina-URL",
 				"urlInfo": "We herkennen automatisch het platform en of het om een artiest of label gaat, en houden het vanaf nu in de gaten voor nieuwe releases. Oudere releases worden niet toegevoegd."
 			}
+		},
+		"releaseArtwork": "Hoesafbeelding",
+		"mergeTarget": "Doel",
+		"mergeTagCount": "{count, plural, =1 {1 tag} other {{count} tags}}",
+		"exportAsJson": "Exporteren als JSON…",
+		"export": {
+			"title": "Releases exporteren",
+			"description": "Sla releases op als JSON-bestand — bijvoorbeeld om toe te voegen als kennis in een AI-project.",
+			"format": "Indeling",
+			"formatCurated": "Uitgekozen",
+			"formatCuratedHint": "Slanke, leesbare velden. Ideaal voor AI-kennisbases.",
+			"formatRaw": "Onbewerkt",
+			"formatRawHint": "Elk opgeslagen veld, ongewijzigd.",
+			"tracks": "Nummers",
+			"tracksAll": "Alle nummers",
+			"tracksLiked": "Alleen gelikete nummers",
+			"tracksNone": "Geen nummers",
+			"summary": "{count, plural, =1 {1 release} other {{count} releases}} · ~{size}",
+			"preparing": "Releases worden voorbereid…",
+			"failed": "Exporteren mislukt."
 		}
 	},
 	"filters": {
 		"title": "Filters",
 		"liked": "Geliked",
-		"new": "Nieuw"
+		"new": "Nieuw",
+		"downloaded": "Gedownload",
+		"purchased": "Gekocht",
+		"off": "Uit",
+		"only": "Alleen",
+		"not": "Niet"
+	},
+	"collection": {
+		"notInCrate": "Niet in {appName}",
+		"addToDiscovery": "Toevoegen aan Ontdekking",
+		"emptyTitle": "Geen verzameling gekoppeld",
+		"emptyHint": "Koppel uw Bandcamp-verzameling om uw aankopen hier te zien",
+		"noItems": "Nog geen aankopen",
+		"ownedBadge": "Bezet",
+		"partialBadge": "{owned}/{total} bezet",
+		"gap": {
+			"title": "Ontbreekt in bibliotheek",
+			"missingCount": "{count, plural, =1 {1 aankoop niet in uw bibliotheek} other {{count} aankopen niet in uw bibliotheek}}",
+			"missingOnly": "Alleen ontbrekend",
+			"inLibrary": "In bibliotheek",
+			"notInLibrary": "Niet in bibliotheek"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Nieuwe afspeellijst",
@@ -423,7 +593,16 @@
 		"rootNoFolder": "Hoofdmap (geen map)",
 		"folderEmpty": "Deze map is leeg",
 		"noPlaylistsYet": "Nog geen afspeellijsten",
-		"exportToDevice": "Exporteren naar apparaat"
+		"allPlaylists": "Alle afspeellijsten",
+		"searchPlaceholder": "Afspeellijsten zoeken…",
+		"emptyHint": "Maak afspeellijsten om je ontdekkingen in te delen",
+		"detailEmptyHint": "Houd een release in Ontdekkingen ingedrukt om het aan een afspeellijst toe te voegen",
+		"exportToDevice": "Exporteren naar apparaat",
+		"playlistOrder": "Afspeellijstvolgorde",
+		"sort": {
+			"dateCreated": "Aanmaakdatum",
+			"dateModified": "Wijzigingsdatum"
+		}
 	},
 	"tags": {
 		"newCategory": "Nieuwe categorie",
@@ -432,11 +611,11 @@
 		"renameCategory": "Categorie hernoemen",
 		"deleteTag": "Tag verwijderen",
 		"deleteCategory": "Categorie verwijderen",
-		"addCategory": "Categorie toevoegen",
-		"addTag": "Tag toevoegen",
 		"moveToCategory": "Verplaatsen naar categorie",
 		"noTags": "Geen tags",
-		"noTagCategoriesYet": "Nog geen tagcategorieën"
+		"noTagCategoriesYet": "Nog geen tagcategorieën",
+		"emptyHint": "Maak kleurgecodeerde tagcategorieën om je ontdekkingen in te delen",
+		"removeTag": "Tag verwijderen"
 	},
 	"contextMenu": {
 		"viewInFinder": "Bekijken in Finder",
@@ -445,7 +624,6 @@
 		"addToPlaylist": "Toevoegen aan afspeellijst",
 		"setColor": "Kleur instellen",
 		"removeColor": "Kleur verwijderen",
-		"remove": "Verwijderen",
 		"removeFromPlaylist": "Verwijderen uit afspeellijst",
 		"removeFromLibrary": "Verwijderen uit bibliotheek",
 		"relocate": "Verplaatsen...",
@@ -485,6 +663,8 @@
 			"placeholder": "Categorienaam"
 		},
 		"confirm": {
+			"discardChangesTitle": "Wijzigingen verwerpen",
+			"discardChangesMessage": "Weet je zeker dat je je wijzigingen wilt verwerpen?",
 			"deletePlaylistTitle": "Afspeellijst verwijderen",
 			"deletePlaylistMessage": "Weet je zeker dat je deze afspeellijst wilt verwijderen?",
 			"deleteFolderTitle": "Map verwijderen",
@@ -503,8 +683,8 @@
 			"removeFromLibraryMessage": "{count, plural, =1 {Deze track verwijderen uit je bibliotheek?} other {{count} tracks verwijderen uit je bibliotheek?}}",
 			"removeFromLibraryWarning": "Deze actie kan niet ongedaan worden gemaakt. Tracks worden uit alle afspeellijsten verwijderd.",
 			"deleteTracksFromCollection": "Tracks ook uit mijn collectie verwijderen",
-			"removeDiscoveryReleasesTitle": "Verwijderen uit discovery",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Deze release verwijderen uit discovery?} other {{count} releases verwijderen uit discovery?}}",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Release verwijderen} other {Releases verwijderen}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Deze release verwijderen?} other {{count} releases verwijderen?}}",
 			"removeDiscoveryReleasesWarning": "Deze actie kan niet ongedaan worden gemaakt. Releases worden uit alle afspeellijsten verwijderd.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Verwijderen uit afspeellijst",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Deze release verwijderen uit de afspeellijst?} other {{count} releases verwijderen uit de afspeellijst?}}",
@@ -512,7 +692,20 @@
 		},
 		"relocate": {
 			"title": "Track verplaatsen",
-			"message": "Selecteer de nieuwe locatie voor deze track."
+			"cloudSyncedMessage": "Deze track is op een ander apparaat toegevoegd. Kies de lokale map die de bibliotheekwortel bevat om deze hier afspeelbaar te maken.",
+			"missingFileMessage": "Het bestand voor deze track kon niet op de oorspronkelijke locatie worden gevonden.",
+			"selectRootFolder": "Selecteer bibliotheekwortelmap",
+			"selectReplacementFile": "Selecteer vervangingsbestand",
+			"validating": "Bestand valideren...",
+			"unsupportedFormat": "Niet-ondersteund audioformaat.",
+			"hashMatch": "Bestandsinhoud komt overeen. Hash geverifieerd.",
+			"hashMismatch": "Bestandsinhoud komt niet overeen met het origineel.",
+			"noOriginalHash": "Geen originele hash beschikbaar voor vergelijking. Het bestand kan nog steeds correct zijn.",
+			"useAnyway": "Dit bestand toch gebruiken",
+			"relocate": "Verplaatsen",
+			"relocating": "Bezig met verplaatsen...",
+			"validateFailed": "Bestandsvalidatie mislukt",
+			"relocateFailed": "Track verplaatsen mislukt"
 		},
 		"albumArt": "Albumhoes",
 		"deviceInfo": {
@@ -524,15 +717,6 @@
 			"available": "Beschikbaar:",
 			"total": "Totaal:",
 			"percentUsed": "% gebruikt"
-		},
-		"update": {
-			"title": "Update beschikbaar",
-			"description": "{version} is gereed om te installeren.",
-			"releaseNotes": "Wat is er nieuw",
-			"installAndRestart": "Installeren en herstarten",
-			"later": "Later",
-			"downloading": "Downloaden... {progress}%",
-			"installing": "Installeren..."
 		},
 		"duplicate": {
 			"title": "Dubbele track gedetecteerd",
@@ -547,6 +731,15 @@
 			"replace": "Vervangen",
 			"replaceDescription": "Nieuwe import van nieuw bestand. Behoudt alleen afspeellijstlidmaatschappen. Reset cue-punten, tags en afspeelgeschiedenis.",
 			"applyToAll": "Toepassen op alle overige duplicaten ({count})"
+		},
+		"update": {
+			"title": "Update beschikbaar",
+			"description": "{version} is gereed om te installeren.",
+			"releaseNotes": "Wat is er nieuw",
+			"installAndRestart": "Installeren en herstarten",
+			"later": "Later",
+			"downloading": "Downloaden... {progress}%",
+			"installing": "Installeren..."
 		},
 		"conflict": {
 			"title": "Naamconflict",
@@ -567,8 +760,11 @@
 	"toast": {
 		"trackAdded": "{count, plural, =1 {1 track} other {{count} tracks}} toegevoegd aan {playlistName}",
 		"trackAddedWithFailed": "{count, plural, =1 {1 track} other {{count} tracks}} toegevoegd aan {playlistName}, {failed} mislukt",
+		"trackAddedWithExisting": "{count, plural, =1 {1 track} other {{count} tracks}} toegevoegd aan {playlistName}, {existing} al aanwezig",
+		"alreadyInPlaylist": "Al in {playlistName}",
 		"tracksImported": "{count, plural, =1 {1 track} other {{count} tracks}} geïmporteerd",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 track} other {{imported} tracks}} geïmporteerd, {skipped} overgeslagen",
+		"tracksExported": "{exported, plural, =1 {1 track} other {{exported} tracks}} geëxporteerd naar {deviceName}, {skipped, plural, =1 {1 overgeslagen} other {{skipped} overgeslagen}}",
 		"trackRemoved": "{count, plural, =1 {1 track} other {{count} tracks}} verwijderd uit afspeellijst",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1 track} other {{count} tracks}} verwijderd uit bibliotheek",
 		"movedSuccessfully": "Succesvol verplaatst",
@@ -577,6 +773,7 @@
 		"replacedExisting": "Bestaand item vervangen",
 		"deviceConnected": "{name} verbonden",
 		"deviceDisconnected": "{name} losgekoppeld",
+		"audioDeviceDisconnected": "{name} losgekoppeld — afspelen onderbroken",
 		"deviceEjected": "{name} uitgeworpen",
 		"deviceEjectFailed": "Uitwerpen van {name} mislukt",
 		"relocated": "\"{title}\" verplaatst",
@@ -587,7 +784,14 @@
 		"failedToUpdateTracks": "Tracks bijwerken mislukt",
 		"failedToSetArtwork": "Artwork instellen mislukt",
 		"failedToRemoveArtwork": "Artwork verwijderen mislukt",
-		"noArtworkInFile": "Geen artwork gevonden in audiobestand"
+		"noArtworkInFile": "Geen artwork gevonden in audiobestand",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 track} other {{count} tracks}} geïmporteerd, {failed} mislukt",
+		"failedToSetTrackColor": "Trackkleur instellen mislukt",
+		"exportCleanedUp": "Gedeeltelijke export opgeruimd",
+		"exportCleanUpFailed": "Export opruimen mislukt",
+		"deviceNotFound": "Apparaat niet gevonden",
+		"deviceReformatted": "Apparaat opnieuw geformatteerd als \"{name}\"",
+		"deviceReformatFailed": "Opnieuw formatteren mislukt: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Kan een map niet in zichzelf slepen",
@@ -596,8 +800,13 @@
 		"exportInProgress": "Exporteren is al bezig",
 		"tagNameConflict": "Een tag met deze naam bestaat al in de doelcategorie",
 		"previewStreamFailed": "Voorbeeldstream kon niet worden geladen",
+		"previewNotAvailableOffline": "Dit nummer is offline niet beschikbaar",
 		"updateCheckFailed": "Controleren op updates mislukt",
-		"updateInstallFailed": "Update installeren mislukt"
+		"updateInstallFailed": "Update installeren mislukt",
+		"generic": "Er is iets fout gegaan",
+		"previewPlaybackFailed": "Fout bij voorbeeldweergave",
+		"previewPlayFailed": "Voorbeeldweergave afspelen mislukt",
+		"previewResumeFailed": "Voorbeeldweergave hervatten mislukt"
 	},
 	"devices": {
 		"title": "Apparaten",
@@ -701,6 +910,9 @@
 		"emerald": "Smaragd"
 	},
 	"dates": {
+		"justNow": "Zojuist",
+		"minutesAgo": "{count, plural, =1 {1 minuut geleden} other {{count} minuten geleden}}",
+		"hoursAgo": "{count, plural, =1 {1 uur geleden} other {{count} uren geleden}}",
 		"today": "Vandaag",
 		"yesterday": "Gisteren",
 		"daysAgo": "{count, plural, =1 {1 dag geleden} other {{count} dagen geleden}}",
@@ -759,36 +971,20 @@
 		"mute": "Dempen",
 		"jumpToPlaying": "Naar huidig afgespeelde track",
 		"toggleEditor": "Editor wisselen",
+		"toggleQueue": "Wachtrij wisselen",
 		"toggleView": "Weergave wisselen",
 		"showDevTools": "DevTools tonen",
 		"enterFullScreen": "Vollscherm activeren",
 		"exitFullScreen": "Sluit volledig scherm",
 		"expandAllReleases": "Alle releases uitvouwen",
 		"collapseAllReleases": "Alle releases samenvouwen",
+		"zoomIn": "Inzoomen",
+		"zoomOut": "Uitzoomen",
+		"actualSize": "Werkelijke grootte",
 		"minimize": "Minimaliseren",
 		"zoom": "Zoomen",
 		"featureTour": "Functiegereedschapstips...",
 		"reportIssue": "Probleem melden..."
-	},
-	"wizard": {
-		"discovery": {
-			"title": "Ontdekkingen",
-			"description": "Blader en sla releases van Bandcamp, SoundCloud en meer op. Voeg een release-URL toe om je collectie op te bouwen."
-		},
-		"library": {
-			"title": "Bibliotheek",
-			"description": "Je persoonlijke nummercollectie. Importeer audiobestanden om nummers te organiseren, taggen en voor te bereiden voor je sets."
-		},
-		"playlists": {
-			"title": "Afspeellijsten",
-			"description": "Organiseer nummers in afspeellijsten en mappen. Maak intelligente afspeellijsten die automatisch bijwerken op basis van je criteria."
-		},
-		"tags": {
-			"title": "Tags & Categorieën",
-			"description": "Maak categorieën en tags om je muziek in te delen. Filter je bibliotheek of tag meerdere nummers tegelijk."
-		},
-		"skip": "Rondleiding overslaan",
-		"finish": "Klaar"
 	},
 	"smartPlaylist": {
 		"createTitle": "Slimme afspeellijst maken",
@@ -872,7 +1068,35 @@
 			"aqua": "Aqua",
 			"blue": "Blauw",
 			"purple": "Paars"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Ontdekkingen",
+			"description": "Blader en sla releases van Bandcamp, SoundCloud en meer op. Voeg een release-URL toe om je collectie op te bouwen."
+		},
+		"library": {
+			"title": "Bibliotheek",
+			"description": "Je persoonlijke nummercollectie. Importeer audiobestanden om nummers te organiseren, taggen en voor te bereiden voor je sets."
+		},
+		"playlists": {
+			"title": "Afspeellijsten",
+			"description": "Organiseer nummers in afspeellijsten en mappen. Maak intelligente afspeellijsten die automatisch bijwerken op basis van je criteria."
+		},
+		"tags": {
+			"title": "Tags & Categorieën",
+			"description": "Maak categorieën en tags om je muziek in te delen. Filter je bibliotheek of tag meerdere nummers tegelijk."
+		},
+		"skip": "Rondleiding overslaan",
+		"finish": "Klaar"
 	},
 	"onboarding": {
 		"welcome": {
@@ -891,6 +1115,26 @@
 			"title": "Je bent helemaal klaar!",
 			"subtitle": "Begin met het opbouwen van je collectie."
 		},
-		"getStarted": "Aan de slag"
+		"getStarted": "Aan de slag",
+		"mobile": {
+			"welcome": {
+				"title": "Welkom bij {appName}",
+				"subtitle": "Ontdek muziek en bouw je collectie op — direct vanuit je zak."
+			},
+			"discover": {
+				"title": "Voeg releases toe en bekijk een voorbeeld",
+				"description": "Plak een link van Bandcamp, SoundCloud en meer om een release op te slaan, tik vervolgens om direct een voorbeeld te bekijken."
+			},
+			"sync": {
+				"title": "Synchroniseer met je bureaublad",
+				"description": "Meld je optioneel aan om je collectie op al je apparaten gesynchroniseerd te houden. Je kunt dit altijd later doen."
+			},
+			"appearance": {
+				"title": "Maak het van jou",
+				"description": "Kies een thema en een accentkleur. Je kunt deze op elk moment in Instellingen wijzigen."
+			},
+			"skip": "Overslaan",
+			"maybeLater": "Misschien later"
+		}
 	}
 }

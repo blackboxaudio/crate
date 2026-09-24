@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	type Props = {
 		totalSteps: number
 		currentStep: number
@@ -16,7 +17,7 @@
 				? 'bg-brand-primary'
 				: 'bg-surface-2 hover:bg-text-tertiary/25'}"
 			onclick={() => onStepClick?.(i)}
-			aria-label="Step {i + 1}"
+			aria-label={$translate('common.step', { values: { number: i + 1 } })}
 		></button>
 	{/each}
 </div>

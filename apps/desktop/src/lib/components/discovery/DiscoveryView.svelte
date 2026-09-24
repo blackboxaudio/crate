@@ -7,13 +7,24 @@
 	import Text from '$lib/components/common/Text.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$shared/i18n'
-	import { expandedReleaseIds, newOnly, discoveryStore } from '$lib/stores'
+	import {
+		expandedReleaseIds,
+		likedFilter,
+		newFilter,
+		purchasedFilter,
+		downloadedFilter,
+		hasLinkedCollection,
+		discoveryStore,
+		pageActions,
+	} from '$lib/stores'
 	import { FollowingButton } from '$lib/components/follow'
 
 	type Props = {
 		releases: DiscoveryRelease[]
 		releaseCount: number
 		selectedIds: Set<string>
+		selectedTrackIds?: Set<string>
+		onTrackSelectionChange?: (ids: Set<string>) => void
 		sortConfig: DiscoverySortConfig
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -40,8 +51,6 @@
 		onEmptySpaceContextMenu?: (e: MouseEvent) => void
 		onUrlDrop?: (url: string) => void
 		onToggleEditor?: () => void
-		likedOnly?: boolean
-		onToggleLikedFilter?: () => void
 		scrollOffset?: number
 		onScrollChange?: (offset: number) => void
 	}
@@ -50,6 +59,8 @@
 		releases,
 		releaseCount,
 		selectedIds,
+		selectedTrackIds = new Set<string>(),
+		onTrackSelectionChange,
 		sortConfig,
 		categoryColors,
 		categorySortOrders,
@@ -76,8 +87,6 @@
 		onEmptySpaceContextMenu,
 		onUrlDrop,
 		onToggleEditor,
-		likedOnly = false,
-		onToggleLikedFilter,
 		scrollOffset = 0,
 		onScrollChange,
 	}: Props = $props()
@@ -179,12 +188,13 @@
 				onToggleTagFilter={(tagId) => onToggleTagFilter?.(tagId)}
 				onClearAll={() => onClearAllTagFilters?.()}
 				onToggleTagFilterMode={() => onToggleTagFilterMode?.()}
-				showLikedFilter
-				{likedOnly}
-				{onToggleLikedFilter}
-				showNewFilter
-				newOnly={$newOnly}
-				onToggleNewFilter={() => discoveryStore.toggleNewFilter()}
+				liked={{ value: $likedFilter, onChange: (s) => discoveryStore.setFacetFilter('liked', s) }}
+				newReleases={{ value: $newFilter, onChange: (s) => discoveryStore.setFacetFilter('new', s) }}
+				purchased={{ value: $purchasedFilter, onChange: (s) => discoveryStore.setFacetFilter('purchased', s) }}
+				onSetupPurchased={$hasLinkedCollection
+					? undefined
+					: () => $pageActions?.getModalOrchestrator()?.openSettingsModal('discovery')}
+				downloaded={{ value: $downloadedFilter, onChange: (s) => discoveryStore.setFacetFilter('downloaded', s) }}
 			/>
 			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />
@@ -207,13 +217,16 @@
 		<DiscoveryList
 			{releases}
 			{selectedIds}
+			{selectedTrackIds}
+			{onTrackSelectionChange}
 			expandedIds={$expandedReleaseIds}
 			{sortConfig}
 			{categoryColors}
 			{categorySortOrders}
 			{isDragOver}
 			{scrollOffset}
-			{likedOnly}
+			likedOnly={$likedFilter === 'include'}
+			hasAnyReleases={$discoveryStore.releases.length > 0}
 			{onSelectionChange}
 			{onReleaseOpen}
 			{onReleaseOpenUrl}

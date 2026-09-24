@@ -561,206 +561,184 @@ pub async fn extract_youtube_streams(url: &str) -> Result<Vec<StreamInfo>> {
 
 /// Extract a single video's audio stream URL via the youtubei player API.
 ///
-/// Tries each YouTube client configuration in [`metadata::YT_CLIENTS`] until one
-/// returns a playable response with audio streams. A persistent cookie jar is shared
-/// across all client attempts to accumulate session cookies. For non-browser clients
-/// (e.g. ANDROID_VR), retries up to 3 extra times with exponential backoff + jitter
-/// on transient bot detection responses (`LOGIN_REQUIRED`, `UNPLAYABLE`).
+/// Tries each YouTube client configuration in [`metadata::YT_CLIENTS`] until one returns a
+/// playable response with a direct audio stream URL. Every request rides on the shared
+/// [`metadata::yt_session`]; a `LOGIN_REQUIRED` answer (YouTube's "Sign in to confirm you're
+/// not a bot") means the session's visitor identity is burned, so the session is replaced and
+/// the client retried once before moving down the chain. Transport errors also get one retry.
 pub async fn extract_single_youtube_stream(video_id: &str, position: i32) -> Result<StreamInfo> {
+    const MAX_ATTEMPTS: u32 = 2;
+
     let mut last_error =
         CrateError::Discovery(format!("All YouTube clients failed for video {video_id}"));
-
-    // Shared cookie jar across all client attempts — accumulates YouTube session cookies
-    let jar = metadata::new_yt_cookie_jar();
+    let mut session = metadata::yt_session().await;
 
     for config in metadata::YT_CLIENTS {
-        let client = match metadata::build_yt_client_with_config(config, Some(jar.clone())) {
-            Ok(c) => c,
-            Err(e) => {
-                log::warn!("YouTube {} client build failed: {e}", config.client_name,);
-                last_error = e;
-                continue;
-            }
-        };
-
-        // Non-browser clients (e.g. ANDROID_VR) may hit transient bot detection;
-        // retry up to 3 extra times with exponential backoff + jitter.
-        let max_attempts: u32 = if config.browser_compatible { 1 } else { 4 };
-        let mut player = None;
-        for attempt in 0..max_attempts {
+        for attempt in 0..MAX_ATTEMPTS {
             if attempt > 0 {
-                // Exponential backoff: 2s, 4s, 8s base with jitter
-                let base_ms = 2000u64 * 2u64.pow(attempt - 1);
-                let delay = metadata::jittered_delay(base_ms);
-                log::debug!(
-                    "YouTube {} retrying {video_id} (attempt {}/{max_attempts}, backoff {}ms)",
-                    config.client_name,
-                    attempt + 1,
-                    delay.as_millis(),
-                );
-                tokio::time::sleep(delay).await;
+                tokio::time::sleep(metadata::jittered_delay(2000)).await;
             }
 
-            match metadata::fetch_yt_player_response_with_config(&client, video_id, config).await {
-                Ok(p) => {
-                    let status = p
-                        .get("playabilityStatus")
-                        .and_then(|ps| ps.get("status"))
-                        .and_then(|s| s.as_str())
-                        .unwrap_or("UNKNOWN");
-
-                    if status == "OK" {
-                        player = Some(p);
+            let client =
+                match metadata::build_yt_client_with_config(config, Some(session.jar.clone())) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        last_error = e;
                         break;
                     }
+                };
 
-                    let reason = p
-                        .get("playabilityStatus")
-                        .and_then(|ps| ps.get("reason"))
-                        .and_then(|r| r.as_str())
-                        .unwrap_or("Unknown reason");
-
-                    // Retry on LOGIN_REQUIRED or UNPLAYABLE (both used as transient bot detection)
-                    if (status == "LOGIN_REQUIRED" || status == "UNPLAYABLE")
-                        && attempt + 1 < max_attempts
-                    {
-                        log::debug!(
-                            "YouTube {} got {status} for {video_id}, will retry",
-                            config.client_name,
-                        );
-                        last_error = CrateError::Discovery(format!(
-                            "YouTube video {video_id} not playable: {reason}"
-                        ));
-                        continue;
-                    }
-
-                    log::warn!(
-                        "YouTube {} client returned {status} for {video_id}: {reason}",
-                        config.client_name,
-                    );
-                    last_error = CrateError::Discovery(format!(
-                        "YouTube video {video_id} not playable: {reason}"
-                    ));
-                    break;
-                }
+            let player = match metadata::fetch_yt_player_response_with_config(
+                &client,
+                video_id,
+                config,
+                &session.visitor_data,
+            )
+            .await
+            {
+                Ok(p) => p,
                 Err(e) => {
-                    // Retry on HTTP-level fetch errors (network transient) instead of breaking
-                    if attempt + 1 < max_attempts {
-                        log::debug!(
-                            "YouTube {} fetch error for {video_id}, will retry: {e}",
-                            config.client_name,
-                        );
-                        last_error = e;
-                        continue;
-                    }
                     log::warn!(
-                        "YouTube {} client fetch failed for {video_id}: {e}",
+                        "YouTube {} client fetch failed for {video_id} (attempt {}): {e}",
                         config.client_name,
+                        attempt + 1,
                     );
                     last_error = e;
-                    break;
+                    continue;
+                }
+            };
+
+            let status = player
+                .get("playabilityStatus")
+                .and_then(|ps| ps.get("status"))
+                .and_then(|s| s.as_str())
+                .unwrap_or("UNKNOWN");
+
+            if status == "OK" {
+                match select_audio_stream(&player, config, video_id, position) {
+                    Ok(stream) => return Ok(stream),
+                    Err(e) => {
+                        last_error = e;
+                        break;
+                    }
                 }
             }
-        }
 
-        let player = match player {
-            Some(p) => p,
-            None => continue,
-        };
-
-        // Extract audio stream
-        let adaptive_formats = match player
-            .get("streamingData")
-            .and_then(|sd| sd.get("adaptiveFormats"))
-            .and_then(|af| af.as_array())
-        {
-            Some(af) => af,
-            None => {
-                log::warn!(
-                    "YouTube {} client returned OK but no adaptive formats for {video_id}",
-                    config.client_name,
-                );
-                last_error = CrateError::Discovery(format!(
-                    "No adaptive formats found for YouTube video {video_id}"
-                ));
-                continue;
-            }
-        };
-
-        // Prefer itag 140 (audio/mp4 AAC 128kbps), fall back to any audio format with direct URL
-        let stream = adaptive_formats
-            .iter()
-            .find(|f| f.get("itag").and_then(|i| i.as_u64()) == Some(140) && f.get("url").is_some())
-            .or_else(|| {
-                adaptive_formats.iter().find(|f| {
-                    f.get("mimeType")
-                        .and_then(|m| m.as_str())
-                        .is_some_and(|m| m.starts_with("audio/"))
-                        && f.get("url").is_some()
-                })
-            });
-
-        let stream = match stream {
-            Some(s) => s,
-            None => {
-                log::warn!(
-                    "YouTube {} client returned no audio streams for {video_id}",
-                    config.client_name,
-                );
-                last_error = CrateError::Discovery(format!(
-                    "No audio stream found for YouTube video {video_id}"
-                ));
-                continue;
-            }
-        };
-
-        let stream_url = match stream.get("url").and_then(|u| u.as_str()) {
-            Some(url) => url,
-            None => {
-                log::warn!(
-                    "YouTube {} client stream requires signature deciphering for {video_id}",
-                    config.client_name,
-                );
-                last_error = CrateError::Discovery(format!(
-                    "YouTube video {video_id} requires signature deciphering (not supported)"
-                ));
-                continue;
-            }
-        };
-
-        log::info!(
-            "YouTube {} client succeeded for {video_id}",
-            config.client_name,
-        );
-
-        // Log query param keys for debugging n-param/throttle issues
-        if let Some(query) = stream_url.split('?').nth(1) {
-            let param_keys: Vec<&str> = query
-                .split('&')
-                .filter_map(|p| p.split('=').next())
-                .collect();
-            log::debug!(
-                "YouTube {} stream URL param keys for {video_id}: {param_keys:?}",
+            let reason = player
+                .get("playabilityStatus")
+                .and_then(|ps| ps.get("reason"))
+                .and_then(|r| r.as_str())
+                .unwrap_or("Unknown reason");
+            log::warn!(
+                "YouTube {} client returned {status} for {video_id}: {reason}",
                 config.client_name,
             );
+            last_error = CrateError::Discovery(format!(
+                "YouTube video {video_id} not playable ({status}): {reason}"
+            ));
+
+            if status == "LOGIN_REQUIRED" {
+                session = metadata::reset_yt_session(&session).await;
+                continue;
+            }
+            break;
         }
-
-        let expires_at = parse_youtube_expiry(stream_url);
-        let proxy_ua = if config.browser_compatible {
-            None
-        } else {
-            Some(config.user_agent.to_string())
-        };
-
-        return Ok(StreamInfo {
-            track_position: position,
-            stream_url: stream_url.to_string(),
-            expires_at,
-            proxy_ua,
-        });
     }
 
     Err(last_error)
+}
+
+/// Pick the audio stream to play from an `OK` player response.
+///
+/// Prefers itag 140 (audio/mp4 AAC 128kbps) for the widest decoder support, falling back to
+/// any audio-only format that carries a direct URL. Formats that only offer a
+/// `signatureCipher` are skipped: deciphering needs the JS player, which the clients in the
+/// chain don't require, so seeing one means the chain needs revisiting against yt-dlp.
+fn select_audio_stream(
+    player: &serde_json::Value,
+    config: &metadata::YtClientConfig,
+    video_id: &str,
+    position: i32,
+) -> Result<StreamInfo> {
+    let adaptive_formats = player
+        .get("streamingData")
+        .and_then(|sd| sd.get("adaptiveFormats"))
+        .and_then(|af| af.as_array())
+        .ok_or_else(|| {
+            log::warn!(
+                "YouTube {} client returned OK but no adaptive formats for {video_id}",
+                config.client_name,
+            );
+            CrateError::Discovery(format!(
+                "No adaptive formats found for YouTube video {video_id}"
+            ))
+        })?;
+
+    let is_audio = |f: &&serde_json::Value| {
+        f.get("mimeType")
+            .and_then(|m| m.as_str())
+            .is_some_and(|m| m.starts_with("audio/"))
+    };
+    let has_url = |f: &&serde_json::Value| f.get("url").and_then(|u| u.as_str()).is_some();
+
+    let stream = adaptive_formats
+        .iter()
+        .find(|f| f.get("itag").and_then(|i| i.as_u64()) == Some(140) && has_url(f))
+        .or_else(|| adaptive_formats.iter().find(|f| is_audio(f) && has_url(f)));
+
+    let Some(stream) = stream else {
+        let ciphered = adaptive_formats
+            .iter()
+            .filter(is_audio)
+            .any(|f| f.get("signatureCipher").is_some());
+        let audio_count = adaptive_formats.iter().filter(is_audio).count();
+        log::warn!(
+            "YouTube {} client returned no direct audio stream for {video_id} \
+             (audio formats: {audio_count}, signatureCipher: {ciphered})",
+            config.client_name,
+        );
+        return Err(CrateError::Discovery(if ciphered {
+            format!("YouTube video {video_id} requires signature deciphering (not supported)")
+        } else {
+            format!("No direct audio stream URL for YouTube video {video_id}")
+        }));
+    };
+
+    let stream_url = stream
+        .get("url")
+        .and_then(|u| u.as_str())
+        .unwrap_or_default();
+
+    log::info!(
+        "YouTube {} client succeeded for {video_id}",
+        config.client_name,
+    );
+
+    // Log query param keys for debugging n-param/throttle issues
+    if let Some(query) = stream_url.split('?').nth(1) {
+        let param_keys: Vec<&str> = query
+            .split('&')
+            .filter_map(|p| p.split('=').next())
+            .collect();
+        log::debug!(
+            "YouTube {} stream URL param keys for {video_id}: {param_keys:?}",
+            config.client_name,
+        );
+    }
+
+    let expires_at = parse_youtube_expiry(stream_url);
+    let proxy_ua = if config.browser_compatible {
+        None
+    } else {
+        Some(config.user_agent.to_string())
+    };
+
+    Ok(StreamInfo {
+        track_position: position,
+        stream_url: stream_url.to_string(),
+        expires_at,
+        proxy_ua,
+    })
 }
 
 /// Parse expiry from a YouTube stream URL's `expire=` query parameter.

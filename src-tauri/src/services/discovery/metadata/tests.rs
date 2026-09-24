@@ -6,7 +6,8 @@ use super::discogs::{
 };
 use super::soundcloud::parse_sc_hydration;
 use super::youtube::{
-    extract_playlist_videos, extract_query_param, parse_youtube_url, parse_yt_initial_data,
+    extract_playlist_videos, extract_query_param, parse_duration_text, parse_playlist_header,
+    parse_visitor_data, parse_youtube_url, parse_yt_initial_data,
 };
 
 #[test]
@@ -200,6 +201,37 @@ fn test_bandcamp_type_as_array() {
     assert_eq!(meta.tracks.len(), 1);
     assert_eq!(meta.tracks[0].name, "Track One");
     assert_eq!(meta.tracks[0].duration_ms, Some(180_000));
+}
+
+#[test]
+fn test_bandcamp_track_urls_captured() {
+    // Real Bandcamp JSON-LD track items carry their page URL as `@id` (sometimes `url`);
+    // both spellings must land in FetchedTrack.url, and absence must stay None.
+    let html = make_bandcamp_json_ld_html(
+        r#"{
+                "@type": "MusicAlbum",
+                "name": "Url Album",
+                "byArtist": {"name": "Test Artist"},
+                "track": {
+                    "itemListElement": [
+                        {"position": 1, "item": {"@id": "https://artist.bandcamp.com/track/one", "name": "One", "duration": "PT3M00S"}},
+                        {"position": 2, "item": {"url": "https://artist.bandcamp.com/track/two", "name": "Two"}},
+                        {"position": 3, "item": {"name": "Three"}}
+                    ]
+                }
+            }"#,
+    );
+    let meta = parse_bandcamp_json_ld(&html).expect("should parse MusicAlbum");
+    assert_eq!(meta.tracks.len(), 3);
+    assert_eq!(
+        meta.tracks[0].url.as_deref(),
+        Some("https://artist.bandcamp.com/track/one")
+    );
+    assert_eq!(
+        meta.tracks[1].url.as_deref(),
+        Some("https://artist.bandcamp.com/track/two")
+    );
+    assert_eq!(meta.tracks[2].url, None);
 }
 
 // =========================================================================
@@ -478,6 +510,102 @@ fn test_extract_playlist_videos_empty() {
     let yt_data = serde_json::json!({"contents": {}});
     let videos = extract_playlist_videos(&yt_data);
     assert!(videos.is_empty());
+}
+
+/// Since mid 2026 playlist pages render items as a flat run of `lockupViewModel`s.
+#[test]
+fn test_extract_playlist_videos_lockup_view_model() {
+    let lockup = |id: &str, title: &str, badge: &str| {
+        serde_json::json!({
+            "lockupViewModel": {
+                "contentId": id,
+                "contentType": "LOCKUP_CONTENT_TYPE_VIDEO",
+                "contentImage": {"thumbnailViewModel": {"overlays": [
+                    {"thumbnailBottomOverlayViewModel": {"badges": [
+                        {"thumbnailBadgeViewModel": {"text": badge}}
+                    ]}},
+                    {"thumbnailHoverOverlayToggleActionsViewModel": {"buttons": []}}
+                ]}},
+                "metadata": {"lockupMetadataViewModel": {"title": {"content": title}}}
+            }
+        })
+    };
+    let yt_data = serde_json::json!({
+        "contents": {"twoColumnBrowseResultsRenderer": {"tabs": [{"tabRenderer": {"content": {
+            "sectionListRenderer": {"contents": [{"itemSectionRenderer": {"contents": [
+                lockup("abc123", "Track One", "3:39"),
+                {"lockupViewModel": {"contentId": "PLxyz", "contentType": "LOCKUP_CONTENT_TYPE_PLAYLIST"}},
+                lockup("def456", "Track Two", "1:02:03"),
+                {"continuationItemRenderer": {}}
+            ]}}]}
+        }}}]}}
+    });
+
+    let videos = extract_playlist_videos(&yt_data);
+    assert_eq!(videos.len(), 2);
+    assert_eq!(videos[0].video_id, "abc123");
+    assert_eq!(videos[0].title, "Track One");
+    assert_eq!(videos[0].position, 1);
+    assert_eq!(videos[0].duration_ms, Some(219_000));
+    assert_eq!(videos[1].video_id, "def456");
+    assert_eq!(videos[1].position, 2);
+    assert_eq!(videos[1].duration_ms, Some(3_723_000));
+}
+
+#[test]
+fn test_parse_duration_text() {
+    assert_eq!(parse_duration_text("0:24"), Some(24_000));
+    assert_eq!(parse_duration_text("3:39"), Some(219_000));
+    assert_eq!(parse_duration_text("1:02:03"), Some(3_723_000));
+    assert_eq!(parse_duration_text("LIVE"), None);
+    assert_eq!(parse_duration_text("1:2:3:4"), None);
+}
+
+#[test]
+fn test_parse_playlist_header_legacy() {
+    let yt_data = serde_json::json!({"header": {"playlistHeaderRenderer": {
+        "title": {"simpleText": "Uploads from Rick Astley"},
+        "ownerText": {"runs": [{"text": "Rick Astley"}]}
+    }}});
+    assert_eq!(
+        parse_playlist_header(&yt_data),
+        (
+            Some("Uploads from Rick Astley".into()),
+            Some("Rick Astley".into())
+        )
+    );
+}
+
+#[test]
+fn test_parse_playlist_header_page_header() {
+    let yt_data = serde_json::json!({"header": {"pageHeaderRenderer": {
+        "pageTitle": "Rick Astley - 50 (Album)",
+        "content": {"pageHeaderViewModel": {"metadata": {"contentMetadataViewModel": {
+            "metadataRows": [
+                {"metadataParts": [{"avatarStack": {"avatarStackViewModel": {"text": {"content": "Rick Astley"}}}}]},
+                {"metadataParts": [{"text": {"content": "Playlist"}}, {"text": {"content": "13 videos"}}]}
+            ]
+        }}}}
+    }}});
+    assert_eq!(
+        parse_playlist_header(&yt_data),
+        (
+            Some("Rick Astley - 50 (Album)".into()),
+            Some("Rick Astley".into())
+        )
+    );
+    assert_eq!(parse_playlist_header(&serde_json::json!({})), (None, None));
+}
+
+#[test]
+fn test_parse_visitor_data() {
+    let html = r#"<script>ytcfg.set({"VISITOR_DATA":"CgtKRnFCXzN3Q280QSj4hqDVBg%3D%3D","OTHER":1});</script>"#;
+    assert_eq!(
+        parse_visitor_data(html).as_deref(),
+        Some("CgtKRnFCXzN3Q280QSj4hqDVBg%3D%3D")
+    );
+    assert_eq!(parse_visitor_data(r#"{"VISITOR_DATA":""}"#), None);
+    assert_eq!(parse_visitor_data("<html></html>"), None);
 }
 
 // =========================================================================

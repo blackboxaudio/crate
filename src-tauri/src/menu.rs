@@ -8,6 +8,8 @@ use tauri::{
     AppHandle, Emitter, Manager, Wry,
 };
 
+use crate::services::ui_zoom;
+
 /// Cached fullscreen menu labels for dynamic text toggling.
 /// Stored as Tauri state so the backend can update the menu text
 /// when the window enters/exits fullscreen without needing the frontend.
@@ -100,8 +102,12 @@ pub struct MenuTranslations {
     // View menu items
     pub toggle_view: String,
     pub toggle_editor: String,
+    pub toggle_queue: String,
     pub expand_all_releases: String,
     pub collapse_all_releases: String,
+    pub zoom_in: String,
+    pub zoom_out: String,
+    pub actual_size: String,
     pub show_dev_tools: String,
     // Settings submenu
     pub settings_submenu: String,
@@ -163,8 +169,13 @@ pub mod ids {
     // View menu items
     pub const TOGGLE_VIEW: &str = "toggle_view";
     pub const TOGGLE_EDITOR: &str = "toggle_editor";
+    pub const TOGGLE_QUEUE: &str = "toggle_queue";
     pub const EXPAND_ALL_RELEASES: &str = "expand_all_releases";
     pub const COLLAPSE_ALL_RELEASES: &str = "collapse_all_releases";
+    // Page zoom (distinct from `ZOOM`, the Window-menu maximize toggle)
+    pub const ZOOM_IN: &str = "zoom_in";
+    pub const ZOOM_OUT: &str = "zoom_out";
+    pub const ACTUAL_SIZE: &str = "actual_size";
     pub const SHOW_DEVTOOLS: &str = "show_devtools";
 
     // Settings submenu items
@@ -465,6 +476,13 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
             true,
             Some("CmdOrCtrl+I"),
         )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::TOGGLE_QUEUE,
+            "Toggle Queue",
+            true,
+            Some("CmdOrCtrl+U"),
+        )?)
         .separator()
         .item(&MenuItem::with_id(
             app,
@@ -479,6 +497,30 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
             "Collapse All Releases",
             true,
             Some("CmdOrCtrl+Shift+W"),
+        )?)
+        .separator()
+        // muda's accelerator parser knows `=`, `-` and `0` but not `Plus`/`+`; a bad string
+        // is swallowed and the item silently loses its shortcut.
+        .item(&MenuItem::with_id(
+            app,
+            ids::ZOOM_IN,
+            "Zoom In",
+            true,
+            Some("CmdOrCtrl+="),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::ZOOM_OUT,
+            "Zoom Out",
+            true,
+            Some("CmdOrCtrl+-"),
+        )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::ACTUAL_SIZE,
+            "Actual Size",
+            true,
+            Some("CmdOrCtrl+0"),
         )?)
         .separator()
         .item(&settings_submenu)
@@ -568,6 +610,19 @@ pub fn setup_menu_handlers(app: &AppHandle<Wry>) {
                 }
                 return;
             }
+            // Page zoom is backend-owned so the shortcuts work during onboarding and
+            // while the Settings modal is open; the frontend mirrors via `ui-zoom-changed`.
+            ids::ZOOM_IN | ids::ZOOM_OUT | ids::ACTUAL_SIZE => {
+                let result = match id {
+                    ids::ZOOM_IN => ui_zoom::step_and_apply(app, 1),
+                    ids::ZOOM_OUT => ui_zoom::step_and_apply(app, -1),
+                    _ => ui_zoom::apply(app, ui_zoom::DEFAULT_UI_ZOOM),
+                };
+                if let Err(e) = result {
+                    log::error!("Failed to change UI zoom from menu: {e}");
+                }
+                return;
+            }
             #[cfg(feature = "devtools")]
             ids::SHOW_DEVTOOLS => {
                 if let Some(window) = app.get_webview_window("main") {
@@ -643,6 +698,7 @@ const ONBOARDING_DISABLED_ITEMS: &[&str] = &[
     // View menu
     ids::TOGGLE_VIEW,
     ids::TOGGLE_EDITOR,
+    ids::TOGGLE_QUEUE,
     ids::EXPAND_ALL_RELEASES,
     ids::COLLAPSE_ALL_RELEASES,
     // Help menu
@@ -821,6 +877,7 @@ pub fn update_menu_translations(
     // Update View menu items
     update_item_text(&menu, ids::TOGGLE_VIEW, &translations.toggle_view)?;
     update_item_text(&menu, ids::TOGGLE_EDITOR, &translations.toggle_editor)?;
+    update_item_text(&menu, ids::TOGGLE_QUEUE, &translations.toggle_queue)?;
     update_item_text(
         &menu,
         ids::EXPAND_ALL_RELEASES,
@@ -831,6 +888,9 @@ pub fn update_menu_translations(
         ids::COLLAPSE_ALL_RELEASES,
         &translations.collapse_all_releases,
     )?;
+    update_item_text(&menu, ids::ZOOM_IN, &translations.zoom_in)?;
+    update_item_text(&menu, ids::ZOOM_OUT, &translations.zoom_out)?;
+    update_item_text(&menu, ids::ACTUAL_SIZE, &translations.actual_size)?;
     if is_dev {
         update_item_text(&menu, ids::SHOW_DEVTOOLS, &translations.show_dev_tools)?;
     }

@@ -1,4 +1,6 @@
 import { open } from '@tauri-apps/plugin-dialog'
+import { get } from 'svelte/store'
+import { translate } from '$shared/i18n'
 import type { ActiveView, DiscoveryFilter, Playlist, TrackFilter } from '$shared/types'
 import { withNativeDialog } from '$shared/utils'
 import type { playlistsStore as PlaylistsStoreType } from '$shared/stores/playlists'
@@ -220,7 +222,7 @@ export function createPlaylistController(
 		// No conflict, proceed with move
 		const result = await playlistsStore.move(playlistId, targetFolderId)
 		if (result) {
-			toastStore.success('Moved successfully')
+			toastStore.success(get(translate)('toast.movedSuccessfully'))
 		}
 	}
 

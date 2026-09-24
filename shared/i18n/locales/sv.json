@@ -1,11 +1,14 @@
 {
 	"common": {
+		"add": "Lägg till",
+		"clear": "Rensa",
 		"close": "Stäng",
 		"save": "Spara",
 		"search": "Sök...",
 		"cancel": "Avbryt",
 		"create": "Skapa",
 		"delete": "Ta bort",
+		"discard": "Förkasta",
 		"remove": "Ta bort",
 		"rename": "Byt namn",
 		"default": "Standard",
@@ -20,13 +23,26 @@
 		"folder": "mapp",
 		"playlist": "spellista",
 		"next": "Nästa",
-		"back": "Tillbaka"
+		"back": "Tillbaka",
+		"more": "Mer",
+		"select": "Välj",
+		"noResults": "Inga resultat",
+		"offline": "Du är offline",
+		"audioFiles": "Audiofiler",
+		"images": "Bilder",
+		"selectAnOption": "Välj ett alternativ",
+		"unknownError": "Okänt fel",
+		"dismiss": "Stäng",
+		"step": "Steg {number}",
+		"reset": "Återställ"
 	},
 	"nav": {
 		"library": "Bibliotek",
 		"discovery": "Upptäckter",
 		"playlists": "Spellistor",
-		"tags": "Taggar"
+		"tags": "Taggar",
+		"openMenu": "Öppna meny",
+		"openSettings": "Öppna inställningar"
 	},
 	"settings": {
 		"title": "Inställningar",
@@ -37,6 +53,7 @@
 			"appearance": "Utseende",
 			"sound": "Ljud",
 			"cloudSync": "Molnsynkronisering",
+			"storage": "Lagring",
 			"diagnostics": "Diagnostik",
 			"about": "Om"
 		},
@@ -112,12 +129,20 @@
 			"transferTagsOnImportDescription": "Överför utgåvtaggar till importerade spår som standard.",
 			"removeReleaseAfterImport": "Ta bort utgåva efter import",
 			"removeReleaseAfterImportDescription": "Ta automatiskt bort utgåvor från upptäckterna efter att ha importerat filer.",
+			"export": "Exportera",
+			"exportCollection": "Exportera samling",
+			"exportCollectionDescription": "Spara hela din discovery-samling som en JSON-fil — till exempel för att lägga till som kunskap i ett AI-projekt.",
 			"previewCache": "Förhandsgranskningscache",
 			"previewCacheDescription": "Förhandsgranskat upptäcktspår lagras lokalt i cachen för omedelbar uppspelning vid senare lyssningar.",
 			"cacheSize": "Cachestorlek",
 			"clearCache": "Rensa cache",
 			"clearCacheConfirmMessage": "Är du säker på att du vill rensa all cachelagrat förhandsgranskningsljud?",
-			"clearCacheWarning": "Tidigare förhandsgranskat spår måste strömmas igen från sin källa vid nästa uppspelning. Detta kan vara långsammare och vissa strömmar kanske inte längre är tillgängliga."
+			"clearCacheWarning": "Tidigare förhandsgranskat spår måste strömmas igen från sin källa vid nästa uppspelning. Detta kan vara långsammare och vissa strömmar kanske inte längre är tillgängliga.",
+			"audioCache": "Ljud",
+			"artworkCache": "Albumomslag",
+			"artworkCacheDescription": "Albumomslag sparas på denna enhet så att de visas utan anslutning.",
+			"clearArtworkCacheConfirmMessage": "Är du säker på att du vill rensa alla cachelagrade albumomslag?",
+			"cacheLimit": "Cachegräns"
 		},
 		"following": {
 			"title": "Följar",
@@ -127,7 +152,7 @@
 			"cadenceDaily": "Vid start och dagligen",
 			"cadenceManual": "Endast manuellt",
 			"checkAllNow": "Kontrollera allt nu",
-			"autoFollowDescription": "Standard för alternativet \"Följ också\" när du importerar en utgåva.",
+			"autoFollowDescription": "Standard för alternativet \"Följ för nya utgåvor\" när du importerar en utgåva.",
 			"autoFollowOff": "Av",
 			"autoFollowArtist": "Artist",
 			"autoFollowLabel": "Etikett",
@@ -137,9 +162,28 @@
 			"newReleasesSummary": "Sammanfattning av nya utgåvor",
 			"discogsRateLimitNote": "Discogs begränsar hur ofta det kan kontrolleras, så stora följlistor kan uppdateras gradvis."
 		},
+		"collection": {
+			"title": "Samling",
+			"description": "Länka din offentliga Bandcamp-samling så att utgåvor och spår du har köpt visas som ägda.",
+			"linkAccount": "Länka Bandcamp-konto",
+			"linkPrompt": "Länka samling",
+			"linkPromptInfo": "Ange ditt Bandcamp-användarnamn eller klistra in webbadressen till din fansida (bandcamp.com/användarnamn)",
+			"linkPlaceholder": "användarnamn",
+			"link": "Länka",
+			"noAccounts": "Inga konton länkade än",
+			"itemCount": "{count, plural, =1 {1 objekt} other {{count} objekt}}",
+			"refreshCadenceDescription": "Hur ofta dina samlingar ska kontrolleras för nya köp",
+			"refreshNow": "Uppdatera samling",
+			"removeConfirmTitle": "Avlänka konto",
+			"removeConfirmMessage": "Köp från det här kontot visas inte längre som ägda.",
+			"enabledToggle": "Räkna köp som ägda",
+			"privacyNote": "Endast din offentliga Bandcamp-samling läses. Privata köp och dolda objekt är inte synliga."
+		},
 		"appearance": {
 			"font": "Typsnitt",
 			"fontDescription": "Välj typsnitt som används i programmet.",
+			"zoom": "Zoom",
+			"zoomDescription": "Zooma in eller ut i gränssnittet. Gäller endast denna enhet.",
 			"theme": "Tema",
 			"themeLight": "Ljust",
 			"themeDark": "Mörkt",
@@ -179,7 +223,8 @@
 			"updates": "Uppdateringar",
 			"checkForUpdates": "Sök efter uppdateringar",
 			"upToDate": "Uppdaterad",
-			"updateAvailable": "{version} tillgänglig"
+			"updateAvailable": "{version} tillgänglig",
+			"project": "Projekt"
 		}
 	},
 	"cloudSync": {
@@ -195,11 +240,27 @@
 			"error": "Synkroniseringsfel",
 			"signedOut": "Inte inloggad"
 		},
+		"errors": {
+			"network": "Kan inte nå synkroniseringstjänsten — försöker igen",
+			"auth": "Din session har upphört — logga ut och logga in igen",
+			"permission": "Synkroniseringstjänsten vägrade denna enhet (behörighet nekad)",
+			"quota": "Synkronisering är begränsad eller kvoten är slut — försöker igen",
+			"toolarge": "Ditt bibliotek är för stort för att ladda upp",
+			"conflict": "En annan enhet synkroniseras just nu — försöker igen",
+			"server": "Synkroniseringstjänsten har problem — försöker igen",
+			"merge": "Kunde inte tillämpa synkroniserade ändringar på denna enhet"
+		},
+		"diagnostics": {
+			"copy": "Kopiera synkroniseringsdiagnostik"
+		},
 		"account": {
 			"title": "Konto",
 			"syncNow": "Synkronisera nu",
 			"syncing": "Synkroniserar…",
 			"signOut": "Logga ut",
+			"signOutConfirmTitle": "Logga ut?",
+			"signOutConfirmMessage": "Dina lokala data förblir på den här enheten. Synkroniseringen stoppas tills du loggar in igen.",
+			"autoSyncHint": "Ditt Discovery-bibliotek synkroniseras automatiskt på alla dina enheter.",
 			"lastSynced": "Senast synkroniserad {time}"
 		},
 		"devices": {
@@ -229,7 +290,14 @@
 			"deleteVaultDescription": "Ta permanent bort all synkroniserad data från molnet. Ditt lokala bibliotek påverkas inte.",
 			"confirmTitle": "Ta bort molnvalv?",
 			"confirmMessage": "Detta tar permanent bort all din synkroniserad data från molnet och loggar ut dig. Ditt lokala bibliotek förblir intakt. Den här åtgärden kan inte ångras.",
-			"error": "Det gick inte att ta bort ditt molnvalv"
+			"error": "Det gick inte att ta bort ditt molnvalv",
+			"deleteAccount": "Ta bort konto",
+			"deleteAccountDescription": "Ta permanent bort ditt konto och all synkroniserad data från molnet. Detta påverkar inte ljudfilerna eller biblioteket på den här enheten.",
+			"deleteAccountConfirmTitle": "Ta bort ditt konto?",
+			"deleteAccountConfirmMessage": "Detta tar permanent bort ditt konto och tar bort all din synkroniserade data — spår, spellistor, taggar och upptäckter — från varje enhet du är inloggad på. Dina lokala filer förblir på den här enheten. Den här åtgärden kan inte ångras.",
+			"deletingAccount": "Tar bort konto…",
+			"deleteAccountSuccess": "Ditt konto har tagits bort",
+			"deleteAccountError": "Det gick inte att ta bort ditt konto"
 		}
 	},
 	"player": {
@@ -245,7 +313,33 @@
 		"volume": "Volym",
 		"tempo": "Tempo",
 		"resetTempo": "Återställ tempo",
-		"trackNotFound": "Kunde inte hitta det spelande spåret"
+		"trackNotFound": "Kunde inte hitta det spelande spåret",
+		"expand": "Expandera spelare",
+		"collapse": "Fäll ihop spelare",
+		"seek": "Sök",
+		"repeat": "Upprepa",
+		"repeatTrack": "Upprepa spår",
+		"repeatRelease": "Upprepa utgåva",
+		"repeatAll": "Upprepa alla"
+	},
+	"queue": {
+		"upNext": "Upp nästa",
+		"openQueue": "Kö",
+		"playNext": "Spela nästa",
+		"addToQueue": "Lägg till i kö",
+		"playingNext": "Spelar nästa",
+		"addedToQueue": "Tillagt i kö",
+		"nextInQueue": "Nästa i kö",
+		"upNextFromContext": "Upp nästa",
+		"addedByYou": "Tillagt av dig",
+		"removeFromQueue": "Ta bort från kö",
+		"reorder": "Sortera om",
+		"clearQueue": "Rensa",
+		"empty": "Inget upp nästa",
+		"emptyHint": "Spår du lägger till kommer spelas nästa",
+		"upcoming": "Kö",
+		"history": "Historik",
+		"historyEmpty": "Inget spelade ännu"
 	},
 	"library": {
 		"searchPlaceholder": "Sök spår...",
@@ -267,41 +361,76 @@
 		"track": "spår",
 		"tracks": "spår",
 		"item": "objekt",
-		"items": "objekt"
+		"items": "objekt",
+		"clearSearch": "Rensa sökning",
+		"fileNotFound": "Fil hittades inte",
+		"dropToImport": "Dra ljudfiler för att importera",
+		"noColor": "Ingen färg",
+		"colorLabel": "Färg: {color}"
 	},
 	"discovery": {
 		"addRelease": "Lägg till utgåva",
 		"url": "URL",
 		"source": "Källa",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Annat"
+		},
 		"release": "utgåva",
 		"releases": "utgåvor",
 		"searchPlaceholder": "Sök släpp...",
 		"noReleasesYet": "Inga utgåvor än",
+		"noResults": "Inga utgåvor matchar dina filter",
 		"addReleaseHint": "Tryck {shortcut} för att lägga till utgåvor från Bandcamp, Discogs, YouTube och mer",
+		"mobileAddHint": "Lägg till utgåvor från Bandcamp, Discogs, YouTube och mer",
+		"dropHint": "Dra en länk för att lägga till en utgåva",
+		"pending": "Väntande",
+		"offlineQueueNotice": "Du är offline — denna utgåva kommer att läggas till när du ansluter igen",
+		"addToQueue": "Lägg till i kö",
+		"editRelease": "Redigera utgåva",
+		"goToRelease": "Gå till utgåva",
+		"sortBy": "Sortera efter",
+		"selectedCount": "{count, plural, =1 {1 vald} other {{count} valda}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Ta bort utgåva?} other {Ta bort {count} utgåvor?}}",
+		"confirmDeleteMessage": "Detta kan inte ångras.",
 		"previewNotAvailable": "Förhandsvisning inte tillgänglig för denna källa",
 		"columns": {
 			"artistTitle": "Artist / Titel",
 			"label": "Skivbolag",
 			"tags": "Taggar",
 			"dateAdded": "Tillagd",
-			"released": "Lanserad",
-			"added": "Tillagd"
+			"dateReleased": "Utgivningsdatum",
+			"dateLiked": "Datum gillad"
 		},
 		"fetchingMetadata": "Hämtar metadata...",
 		"refreshMetadata": "Uppdatera metadata",
+		"downloadForOffline": "Ladda ned för offline",
+		"downloading": "Laddar ned...",
+		"downloadedForOffline": "Nedladdad",
+		"removeDownload": "Ta bort nedladdning",
+		"downloadFailed": "Kunde inte ladda ned för offline",
 		"fetchError": "Kunde inte hämta metadata från denna URL",
 		"unsupportedUrl": "Denna URL stöds inte",
+		"shareNoUrl": "Ingen länk hittad i den delade texten",
 		"tracks": "Spår",
 		"trackCount": "{count, plural, =1 {1 spår} other {{count} spår}}",
+		"memberTrackCount": "{count} av {total} spår",
 		"openInBrowser": "Öppna i webbläsare",
+		"openInApp": "Öppna i {app}",
 		"copyUrl": "Kopiera URL",
 		"copiedUrl": "URL kopierad till urklipp",
+		"share": "Dela",
+		"viewAsGrid": "Visa som rutnät",
+		"viewAsList": "Visa som lista",
+		"pasteLink": "Klistra in länk",
+		"clipboardNoUrl": "Ingen länk i urklipp",
 		"like": "Lägg till i gillat",
 		"unlike": "Ta bort från gillat",
 		"playPreview": "Spela förhandsgranskning",
 		"searchOnYouTube": "Sök på YouTube",
-		"openReleaseInBrowser": "Öppna utgåva i webbläsare",
-		"copyReleaseUrl": "Kopiera utgåva URL",
 		"importToLibrary": "Importera till bibliotek",
 		"deleteRelease": "Ta bort utgåva",
 		"deleteReleases": "Ta bort utgåvor",
@@ -312,10 +441,11 @@
 			"title": "Titel",
 			"label": "Skivbolag",
 			"releaseDate": "Releasedatum",
-			"notes": "Anteckningar"
+			"notes": "Anteckningar",
+			"notesPlaceholder": "Lägg till anteckningar…",
+			"addTags": "Lägg till taggar"
 		},
 		"import": {
-			"title": "Importera till bibliotek",
 			"selectFiles": "Välj filer",
 			"matched": "Matchad",
 			"unmatched": "Omatchad",
@@ -364,8 +494,9 @@
 			"unfollowSelected": "Sluta följa",
 			"pauseSelected": "Pausa",
 			"unfollow": "Sluta följa",
+			"unfollowConfirm": "Sluta följa {name} för nya utgåvor? Utgåvor som redan är i Upptäckningar behålls.",
 			"checkNow": "Kontrollera nu",
-			"enabledToggle": "Slå uppdateringar på/av",
+			"enabledToggle": "Sök efter nya utgåvor",
 			"artist": "Artist",
 			"label": "Etikett",
 			"checkedAgo": "Kontrollerad {time}",
@@ -377,13 +508,11 @@
 			"following": "Följar",
 			"followForNewReleases": "Följ för nya utgåvor",
 			"followViaPaste": "Följ denna källa från panelen Följar",
-			"popoverTitle": "Följ för nya utgåvor",
 			"upcoming": "Kommande",
 			"daysUntil": "{days} d",
 			"surfacedVia": "Visas via {source}",
 			"markNew": "Markera som ny",
 			"markNotNew": "Markera som inte ny",
-			"alsoFollow": "Följ för nya utgåvor",
 			"sortBy": "Sortera efter",
 			"empty": {
 				"title": "Du följer ingen än",
@@ -405,12 +534,53 @@
 				"urlPlaceholder": "Klistra in URL för artist-/etikettsida från Bandcamp, SoundCloud eller Discogs",
 				"urlInfo": "Vi känner automatiskt av plattformen och om det är en artist eller ett skivbolag, och håller från och med nu utkik efter nya släpp. Äldre släpp läggs inte till."
 			}
+		},
+		"releaseArtwork": "Utgåvans omslag",
+		"mergeTarget": "Mål",
+		"mergeTagCount": "{count, plural, =1 {1 tagg} other {{count} taggar}}",
+		"exportAsJson": "Exportera som JSON…",
+		"export": {
+			"title": "Exportera utgåvor",
+			"description": "Spara utgåvor som en JSON-fil — till exempel för att lägga till som kunskap i ett AI-projekt.",
+			"format": "Format",
+			"formatCurated": "Utvald",
+			"formatCuratedHint": "Enkla, läsbara fält. Bäst för AI-kunskapsbaser.",
+			"formatRaw": "Rå",
+			"formatRawHint": "Varje lagrat fält, oförändrat.",
+			"tracks": "Spår",
+			"tracksAll": "Alla spår",
+			"tracksLiked": "Endast gillat spår",
+			"tracksNone": "Inga spår",
+			"summary": "{count, plural, =1 {1 utgåva} other {{count} utgåvor}} · ~{size}",
+			"preparing": "Förbereder utgåvor…",
+			"failed": "Export misslyckades."
 		}
 	},
 	"filters": {
 		"title": "Filter",
 		"liked": "Gillad",
-		"new": "Ny"
+		"new": "Ny",
+		"downloaded": "Nedladdat",
+		"purchased": "Köpt",
+		"off": "Av",
+		"only": "Endast",
+		"not": "Inte"
+	},
+	"collection": {
+		"notInCrate": "Inte i {appName}",
+		"addToDiscovery": "Lägg till i Upptäckande",
+		"emptyTitle": "Ingen samling länkad",
+		"emptyHint": "Länka din Bandcamp-samling för att se dina köp här",
+		"noItems": "Inga köp än",
+		"ownedBadge": "Ägd",
+		"partialBadge": "{owned}/{total} ägda",
+		"gap": {
+			"title": "Saknas från bibliotek",
+			"missingCount": "{count, plural, =1 {1 köp inte i ditt bibliotek} other {{count} köp inte i ditt bibliotek}}",
+			"missingOnly": "Bara saknat",
+			"inLibrary": "I bibliotek",
+			"notInLibrary": "Inte i bibliotek"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Ny spellista",
@@ -423,7 +593,16 @@
 		"rootNoFolder": "Rot (ingen mapp)",
 		"folderEmpty": "Denna mapp är tom",
 		"noPlaylistsYet": "Inga spellistor än",
-		"exportToDevice": "Exportera till enhet"
+		"allPlaylists": "Alla spellistor",
+		"searchPlaceholder": "Sök spellistor…",
+		"emptyHint": "Skapa spellistor för att organisera dina upptäckter",
+		"detailEmptyHint": "Håll ned en utgåva i Upptäckter för att lägga till den i en spellista",
+		"exportToDevice": "Exportera till enhet",
+		"playlistOrder": "Spellistans ordning",
+		"sort": {
+			"dateCreated": "Skapandedatum",
+			"dateModified": "Ändrings datum"
+		}
 	},
 	"tags": {
 		"newCategory": "Ny kategori",
@@ -432,11 +611,11 @@
 		"renameCategory": "Byt namn på kategori",
 		"deleteTag": "Ta bort tagg",
 		"deleteCategory": "Ta bort kategori",
-		"addCategory": "Lägg till kategori",
-		"addTag": "Lägg till tagg",
 		"moveToCategory": "Flytta till kategori",
 		"noTags": "Inga taggar",
-		"noTagCategoriesYet": "Inga taggkategorier än"
+		"noTagCategoriesYet": "Inga taggkategorier än",
+		"emptyHint": "Skapa färgkodade taggkategorier för att organisera dina upptäckter",
+		"removeTag": "Ta bort tagg"
 	},
 	"contextMenu": {
 		"viewInFinder": "Visa i Finder",
@@ -445,7 +624,6 @@
 		"addToPlaylist": "Lägg till i spellista",
 		"setColor": "Ange färg",
 		"removeColor": "Ta bort färg",
-		"remove": "Ta bort",
 		"removeFromPlaylist": "Ta bort från spellista",
 		"removeFromLibrary": "Ta bort från bibliotek",
 		"relocate": "Flytta...",
@@ -485,6 +663,8 @@
 			"placeholder": "Kategorinamn"
 		},
 		"confirm": {
+			"discardChangesTitle": "Förkasta ändringar",
+			"discardChangesMessage": "Är du säker på att du vill förkasta dina ändringar?",
 			"deletePlaylistTitle": "Ta bort spellista",
 			"deletePlaylistMessage": "Är du säker på att du vill ta bort denna spellista?",
 			"deleteFolderTitle": "Ta bort mapp",
@@ -502,17 +682,30 @@
 			"removeFromLibraryTitle": "Ta bort från bibliotek",
 			"removeFromLibraryMessage": "{count, plural, =1 {Ta bort detta spår från ditt bibliotek?} other {Ta bort {count} spår från ditt bibliotek?}}",
 			"removeFromLibraryWarning": "Denna åtgärd kan inte ångras. Spår kommer att tas bort från alla spellistor.",
-			"deleteTracksFromCollection": "Ta även bort spår från min samling",
-			"removeDiscoveryReleasesTitle": "Ta bort från upptäckt",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Ta bort det här släppet från upptäckt?} other {Ta bort {count} släpp från upptäckt?}}",
+			"deleteTracksFromCollection": "Ta även bort spår från din samling",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Ta bort utgåva} other {Ta bort utgåvor}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Ta bort den här utgåvan?} other {Ta bort {count} utgåvor?}}",
 			"removeDiscoveryReleasesWarning": "Denna åtgärd kan inte ångras. Släppen kommer att tas bort från alla spellistor.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Ta bort från spellista",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Ta bort det här släppet från spellistan?} other {Ta bort {count} släpp från spellistan?}}",
-			"deleteReleasesFromCollection": "Ta även bort släpp från min samling"
+			"deleteReleasesFromCollection": "Ta även bort släpp från din samling"
 		},
 		"relocate": {
 			"title": "Flytta spår",
-			"message": "Välj den nya platsen för detta spår."
+			"cloudSyncedMessage": "Det här spåret lades till på en annan enhet. Välj den lokala mappen som innehåller dess biblioteksrot för att göra den uppspelbar här.",
+			"missingFileMessage": "Filen för det här spåret kunde inte hittas på dess ursprungliga plats.",
+			"selectRootFolder": "Välj biblioteksrotmapp",
+			"selectReplacementFile": "Välj ersättningsfil",
+			"validating": "Validerar fil...",
+			"unsupportedFormat": "Audioformat stöds inte.",
+			"hashMatch": "Filinnehållet motsvarar. Hash verifierad.",
+			"hashMismatch": "Filinnehållet motsvarar inte originalet.",
+			"noOriginalHash": "Ingen original-hash tillgänglig för jämförelse. Filen kan fortfarande vara korrekt.",
+			"useAnyway": "Använd denna fil ändå",
+			"relocate": "Flytta",
+			"relocating": "Flyttar...",
+			"validateFailed": "Det gick inte att validera fil",
+			"relocateFailed": "Det gick inte att flytta spår"
 		},
 		"albumArt": "Albumomslag",
 		"deviceInfo": {
@@ -524,15 +717,6 @@
 			"available": "Tillgängligt:",
 			"total": "Totalt:",
 			"percentUsed": "% använt"
-		},
-		"update": {
-			"title": "Uppdatering tillgänglig",
-			"description": "{version} är redo att installeras.",
-			"releaseNotes": "Vad är nytt",
-			"installAndRestart": "Installera och starta om",
-			"later": "Senare",
-			"downloading": "Hämtar... {progress}%",
-			"installing": "Installerar..."
 		},
 		"duplicate": {
 			"title": "Dubblettspår upptäckt",
@@ -547,6 +731,15 @@
 			"replace": "Ersätt",
 			"replaceDescription": "Ny import från ny fil. Behåller endast spellistemedlemskap. Återställer cue-punkter, taggar och spelhistorik.",
 			"applyToAll": "Tillämpa på alla återstående dubbletter ({count})"
+		},
+		"update": {
+			"title": "Uppdatering tillgänglig",
+			"description": "{version} är redo att installeras.",
+			"releaseNotes": "Vad är nytt",
+			"installAndRestart": "Installera och starta om",
+			"later": "Senare",
+			"downloading": "Hämtar... {progress}%",
+			"installing": "Installerar..."
 		},
 		"conflict": {
 			"title": "Namnkonflikt",
@@ -567,8 +760,11 @@
 	"toast": {
 		"trackAdded": "{count, plural, =1 {1 spår} other {{count} spår}} tillagt i {playlistName}",
 		"trackAddedWithFailed": "{count, plural, =1 {1 spår} other {{count} spår}} tillagt i {playlistName}, {failed} misslyckades",
+		"trackAddedWithExisting": "{count, plural, =1 {1 spår} other {{count} spår}} tillagt i {playlistName}, {existing} redan där",
+		"alreadyInPlaylist": "Redan i {playlistName}",
 		"tracksImported": "{count, plural, =1 {1 spår} other {{count} spår}} importerat",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 spår} other {{imported} spår}} importerat, {skipped} hoppades över",
+		"tracksExported": "{exported, plural, =1 {1 spår} other {{exported} spår}} exporterat till {deviceName}, {skipped, plural, =1 {1 hoppat över} other {{skipped} hoppade över}}",
 		"trackRemoved": "{count, plural, =1 {1 spår} other {{count} spår}} borttaget från spellista",
 		"trackRemovedFromLibrary": "{count, plural, =1 {1 spår} other {{count} spår}} borttaget från bibliotek",
 		"movedSuccessfully": "Flyttades framgångsrikt",
@@ -577,6 +773,7 @@
 		"replacedExisting": "Ersatte befintligt objekt",
 		"deviceConnected": "{name} ansluten",
 		"deviceDisconnected": "{name} frånkopplad",
+		"audioDeviceDisconnected": "{name} frånkopplad — uppspelning pausad",
 		"deviceEjected": "{name} matad ut",
 		"deviceEjectFailed": "Kunde inte mata ut {name}",
 		"relocated": "\"{title}\" flyttad",
@@ -587,7 +784,14 @@
 		"failedToUpdateTracks": "Kunde inte uppdatera spår",
 		"failedToSetArtwork": "Kunde inte ställa in omslag",
 		"failedToRemoveArtwork": "Kunde inte ta bort omslag",
-		"noArtworkInFile": "Inget omslag hittades i ljudfilen"
+		"noArtworkInFile": "Inget omslag hittades i ljudfilen",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 spår} other {{count} spår}} importerat, {failed} misslyckades",
+		"failedToSetTrackColor": "Kunde inte ställa in spårfärg",
+		"exportCleanedUp": "Rensade upp partiell export",
+		"exportCleanUpFailed": "Kunde inte rensa upp export",
+		"deviceNotFound": "Enheten hittades inte",
+		"deviceReformatted": "Enheten omformaterad som \"{name}\"",
+		"deviceReformatFailed": "Kunde inte omformatera: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Kan inte släppa en mapp i sig själv",
@@ -596,15 +800,20 @@
 		"exportInProgress": "Export är redan i gång",
 		"tagNameConflict": "En tagg med detta namn finns redan i målkategorin",
 		"previewStreamFailed": "Misslyckades att ladda förhandsvisningsströmmen",
+		"previewNotAvailableOffline": "Denna låt är inte tillgänglig offline",
 		"updateCheckFailed": "Misslyckades att söka efter uppdateringar",
-		"updateInstallFailed": "Misslyckades att installera uppdateringen"
+		"updateInstallFailed": "Misslyckades att installera uppdateringen",
+		"generic": "Något gick fel",
+		"previewPlaybackFailed": "Förhandsvisningsuppspelningsfel",
+		"previewPlayFailed": "Kunde inte spela förhandsvisning",
+		"previewResumeFailed": "Kunde inte återuppta förhandsvisning"
 	},
 	"devices": {
 		"title": "Enheter",
 		"eject": "Mata ut",
 		"ignore": "Ignorera",
 		"unignore": "Sluta ignorera",
-		"selectDevice": "Välj enhet",
+		"selectDevice": "Välj en enhet",
 		"deviceInfo": "Enhetsinformation",
 		"capacity": "Kapacitet",
 		"available": "Tillgängligt",
@@ -638,7 +847,7 @@
 		"selectDevice": "Välj en enhet",
 		"selectDevicesDescription": "Välj en eller flera enheter att exportera till.",
 		"devicesSelected": "{count, plural, =1 {1 enhet vald} other {{count} enheter valda}}",
-		"devicesToExport": "Enheter",
+		"devicesToExport": "Enheter att exportera till",
 		"noDevicesConnected": "Inga USB-enheter anslutna",
 		"noPlaylistsAvailable": "Inga spellistor tillgängliga",
 		"destination": "Destination",
@@ -701,6 +910,9 @@
 		"emerald": "Smaragd"
 	},
 	"dates": {
+		"justNow": "Just nu",
+		"minutesAgo": "{count, plural, =1 {för 1 minut sedan} other {för {count} minuter sedan}}",
+		"hoursAgo": "{count, plural, =1 {för 1 timme sedan} other {för {count} timmar sedan}}",
 		"today": "Idag",
 		"yesterday": "Igår",
 		"daysAgo": "{count, plural, =1 {för 1 dag sedan} other {för {count} dagar sedan}}",
@@ -759,39 +971,23 @@
 		"mute": "Tyst",
 		"jumpToPlaying": "Gå till spår som spelas upp",
 		"toggleEditor": "Visa/Dölj redigerare",
+		"toggleQueue": "Visa/Dölj kö",
 		"toggleView": "Växla vy",
 		"showDevTools": "Visa DevTools",
 		"enterFullScreen": "Gå till helskärm",
 		"exitFullScreen": "Avsluta helskärm",
 		"expandAllReleases": "Expandera alla utgåvor",
 		"collapseAllReleases": "Minimera alla utgåvor",
+		"zoomIn": "Zooma in",
+		"zoomOut": "Zooma ut",
+		"actualSize": "Faktisk storlek",
 		"minimize": "Minimera",
 		"zoom": "Zooma",
 		"featureTour": "Funktionstur...",
 		"reportIssue": "Rapportera ett problem..."
 	},
-	"wizard": {
-		"discovery": {
-			"title": "Upptäckter",
-			"description": "Bläddra och spara utgåvor från Bandcamp, SoundCloud och mer. Lägg till en utgåv-URL för att börja bygga din samling."
-		},
-		"library": {
-			"title": "Bibliotek",
-			"description": "Ditt personliga spårbibliotek. Importera ljudfiler för att organisera, tagga och förbereda spår för dina set."
-		},
-		"playlists": {
-			"title": "Spellistor",
-			"description": "Organisera spår i spellistor och mappar. Skapa smarta spellistor som uppdateras automatiskt baserat på dina kriterier."
-		},
-		"tags": {
-			"title": "Taggar och kategorier",
-			"description": "Skapa kategorier och taggar för att klassificera din musik. Filtrera ditt bibliotek eller tagga flera spår på en gång."
-		},
-		"skip": "Hoppa över guidad tur",
-		"finish": "Slutför"
-	},
 	"smartPlaylist": {
-		"createTitle": "Skapa smart spellista",
+		"createTitle": "Ny smart spellista",
 		"editTitle": "Redigera smart spellista",
 		"name": "Namn",
 		"namePlaceholder": "Namn på smart spellista",
@@ -872,7 +1068,35 @@
 			"aqua": "Aqua",
 			"blue": "Blå",
 			"purple": "Lila"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
+	},
+	"wizard": {
+		"discovery": {
+			"title": "Upptäckter",
+			"description": "Bläddra och spara utgåvor från Bandcamp, SoundCloud och mer. Lägg till en utgåv-URL för att börja bygga din samling."
+		},
+		"library": {
+			"title": "Bibliotek",
+			"description": "Ditt personliga spårbibliotek. Importera ljudfiler för att organisera, tagga och förbereda spår för dina set."
+		},
+		"playlists": {
+			"title": "Spellistor",
+			"description": "Organisera spår i spellistor och mappar. Skapa smarta spellistor som uppdateras automatiskt baserat på dina kriterier."
+		},
+		"tags": {
+			"title": "Taggar och kategorier",
+			"description": "Skapa kategorier och taggar för att klassificera din musik. Filtrera ditt bibliotek eller tagga flera spår på en gång."
+		},
+		"skip": "Hoppa över guidad tur",
+		"finish": "Slutför"
 	},
 	"onboarding": {
 		"welcome": {
@@ -891,6 +1115,26 @@
 			"title": "Du är redo!",
 			"subtitle": "Börja bygga din samling."
 		},
-		"getStarted": "Kom igång"
+		"getStarted": "Kom igång",
+		"mobile": {
+			"welcome": {
+				"title": "Välkommen till {appName}",
+				"subtitle": "Upptäck musik och bygg din samling — direkt från din ficka."
+			},
+			"discover": {
+				"title": "Lägg till och förhandsgranska utgåvor",
+				"description": "Klistra in en länk från Bandcamp, SoundCloud och mer för att spara en utgåva, sedan tryck för att förhandsgranska direkt."
+			},
+			"sync": {
+				"title": "Synkronisera med din skrivbord",
+				"description": "Logga in valfritt för att hålla din samling synkroniserad på alla dina enheter. Du kan alltid göra det senare."
+			},
+			"appearance": {
+				"title": "Gör det ditt",
+				"description": "Välj ett tema och en accentfärg. Du kan ändra dessa när som helst i Inställningar."
+			},
+			"skip": "Hoppa över",
+			"maybeLater": "Kanske senare"
+		}
 	}
 }

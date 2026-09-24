@@ -12,7 +12,8 @@ impl PlaylistService {
                 p.smart_rules, p.sort_order, p.date_created, p.date_modified,
                 COALESCE(
                     CASE WHEN p.context = 'discovery'
-                        THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                        THEN (SELECT COUNT(*) FROM playlist_discovery_tracks WHERE playlist_id = p.id)
+                           + (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
                         ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
                     END, 0
                 ) as track_count,
@@ -237,8 +238,12 @@ impl PlaylistService {
 
         for (playlist_id, context) in &rows {
             if context == "discovery" {
+                // Member tracks' parent releases, plus whole releases still pending expansion.
                 let mut rel_stmt = conn.prepare(
-                    "SELECT release_id FROM playlist_discovery_releases WHERE playlist_id = ?1",
+                    "SELECT dt.release_id FROM playlist_discovery_tracks pdt \
+                     JOIN discovery_tracks dt ON dt.id = pdt.track_id WHERE pdt.playlist_id = ?1 \
+                     UNION \
+                     SELECT release_id FROM playlist_discovery_releases WHERE playlist_id = ?1",
                 )?;
                 let ids: Vec<String> = rel_stmt
                     .query_map([playlist_id], |row| row.get(0))?
@@ -274,6 +279,7 @@ impl PlaylistService {
         dirty::mark_dirty(&conn, buckets::PLAYLISTS)?;
         dirty::mark_dirty(&conn, buckets::PLAYLIST_TRACKS)?;
         dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_RELEASES)?;
+        dirty::mark_dirty(&conn, buckets::PLAYLIST_DISCOVERY_TRACKS)?;
 
         Ok(())
     }
@@ -289,7 +295,8 @@ impl PlaylistService {
                 p.smart_rules, p.sort_order, p.date_created, p.date_modified,
                 COALESCE(
                     CASE WHEN p.context = 'discovery'
-                        THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                        THEN (SELECT COUNT(*) FROM playlist_discovery_tracks WHERE playlist_id = p.id)
+                           + (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
                         ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
                     END, 0
                 ) as track_count,
@@ -330,7 +337,8 @@ impl PlaylistService {
                 p.smart_rules, p.sort_order, p.date_created, p.date_modified,
                 COALESCE(
                     CASE WHEN p.context = 'discovery'
-                        THEN (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
+                        THEN (SELECT COUNT(*) FROM playlist_discovery_tracks WHERE playlist_id = p.id)
+                           + (SELECT COUNT(*) FROM playlist_discovery_releases WHERE playlist_id = p.id)
                         ELSE (SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = p.id)
                     END, 0
                 ) as track_count,

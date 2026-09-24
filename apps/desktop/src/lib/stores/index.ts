@@ -10,13 +10,20 @@ export {
 	volume,
 	playbackProgress,
 	shuffleEnabled,
+	repeatMode,
 	playbackSource,
 	playbackSpeed,
 	previewInfo,
 	previewTrackIndex,
 } from '$shared/stores/player'
 export { tagsStore, allTags, getTagById, getCategoryById, computeTagStates } from '$shared/stores/tags'
-export { playlistsStore, rootPlaylists, getPlaylistChildren, buildPlaylistTree } from '$shared/stores/playlists'
+export {
+	playlistsStore,
+	rootPlaylists,
+	getPlaylistChildren,
+	buildPlaylistTree,
+	collectDescendantIds,
+} from '$shared/stores/playlists'
 export type { PlaylistTreeNode } from '$shared/stores/playlists'
 export {
 	uiStore,
@@ -30,11 +37,14 @@ export {
 	selectedTagIds,
 	tagFilterMode,
 	scrollOffset,
+	selectedDiscoveryTrackIds,
+	selectedDiscoveryTrackCount,
 } from '$shared/stores/ui'
 export {
 	uiLayoutStore,
 	rightSidebarVisible,
 	rightSidebarWidth,
+	queuePanelVisible,
 	selectedTreeIds,
 	contextMenuPlaylistId,
 	contextMenuDiscoveryTrackId,
@@ -54,6 +64,7 @@ export {
 	continuousPlayback,
 	hasCompletedOnboarding,
 	hasCompletedWizard,
+	uiZoom,
 } from '$shared/stores/settings'
 export {
 	devicesStore,
@@ -78,6 +89,7 @@ export {
 	isDraggingPlaylist,
 	isDraggingTag,
 	needsDropTargetRefresh,
+	isDraggingDiscoveryTracks,
 } from './drag'
 export type { DragData } from './drag'
 export { crashStore, hasCrashed, crashError } from './crash'
@@ -90,10 +102,31 @@ export {
 	releaseCount,
 	isDiscoveryLoading,
 	refreshingReleaseIds,
-	newOnly,
+	facetFilters,
+	likedFilter,
+	newFilter,
+	purchasedFilter,
+	downloadedFilter,
 } from '$shared/stores/discovery'
-export { followStore, followedSources, followNewCount, followedEntityKeys, sortedFollowedSources } from './follow'
-export type { FollowSort } from './follow'
+export { offlineCacheStore, fullyCachedIds } from '$shared/stores/offlineCache'
+export {
+	followStore,
+	followedSources,
+	followNewCount,
+	followedEntityKeys,
+	sortedFollowedSources,
+} from '$shared/stores/follow'
+export type { FollowSort } from '$shared/stores/follow'
+export {
+	collectionStore,
+	collectionAccounts,
+	collectionItems,
+	hasLinkedCollection,
+	fullyOwnedReleaseIds,
+	partiallyOwnedReleaseIds,
+	ownedReleaseIds,
+	ownedTrackIds,
+} from '$shared/stores/collection'
 export { updaterStore, updateStatus, updateAvailable } from './updater'
 export { expandedReleaseIds } from '$shared/stores/expandedReleases'
 export { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'

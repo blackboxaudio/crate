@@ -1,8 +1,11 @@
 import { writable, derived } from 'svelte/store'
 import type {
 	ActiveView,
+	AddToPlaylistResult,
+	ContextMenuItem,
 	DiscoveryRelease,
 	Playlist,
+	PlaylistCoverArt,
 	SmartRules,
 	Track,
 	BreadcrumbItem,
@@ -235,22 +238,24 @@ function createPlaylistsStore() {
 		/**
 		 * Add tracks to a playlist
 		 */
-		async addTracks(playlistId: string, trackIds: string[]) {
+		async addTracks(playlistId: string, trackIds: string[]): Promise<AddToPlaylistResult | null> {
 			try {
-				const updatedPlaylist = await playlistsApi.addToPlaylist(playlistId, trackIds)
+				const result = await playlistsApi.addToPlaylist(playlistId, trackIds)
 				// Update playlist with accurate data from backend
 				update((state) => ({
 					...state,
-					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
+					playlists: state.playlists.map((p) => (p.id === playlistId ? result.playlist : p)),
 				}))
 
 				// Notify sync store about playlist changes (for auto-sync)
-				onPlaylistsChanged?.([playlistId])
+				if (result.added > 0) onPlaylistsChanged?.([playlistId])
+				return result
 			} catch (error) {
 				update((state) => ({
 					...state,
 					error: error instanceof Error ? error.message : 'Failed to add tracks',
 				}))
+				return null
 			}
 		},
 
@@ -296,18 +301,20 @@ function createPlaylistsStore() {
 		/**
 		 * Add discovery releases to a playlist
 		 */
-		async addReleases(playlistId: string, releaseIds: string[]) {
+		async addReleases(playlistId: string, releaseIds: string[]): Promise<AddToPlaylistResult | null> {
 			try {
-				const updatedPlaylist = await playlistsApi.addReleasesToPlaylist(playlistId, releaseIds)
+				const result = await playlistsApi.addReleasesToPlaylist(playlistId, releaseIds)
 				update((state) => ({
 					...state,
-					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
+					playlists: state.playlists.map((p) => (p.id === playlistId ? result.playlist : p)),
 				}))
+				return result
 			} catch (error) {
 				update((state) => ({
 					...state,
 					error: error instanceof Error ? error.message : 'Failed to add releases',
 				}))
+				return null
 			}
 		},
 
@@ -330,6 +337,55 @@ function createPlaylistsStore() {
 		},
 
 		/**
+		 * Add individual discovery tracks to a playlist
+		 */
+		async addDiscoveryTracks(playlistId: string, trackIds: string[]): Promise<AddToPlaylistResult | null> {
+			try {
+				const result = await playlistsApi.addTracksToDiscoveryPlaylist(playlistId, trackIds)
+				update((state) => ({
+					...state,
+					playlists: state.playlists.map((p) => (p.id === playlistId ? result.playlist : p)),
+				}))
+				return result
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to add tracks',
+				}))
+				return null
+			}
+		},
+
+		/**
+		 * Remove individual discovery tracks from a playlist
+		 */
+		async removeDiscoveryTracks(playlistId: string, trackIds: string[]) {
+			try {
+				const updatedPlaylist = await playlistsApi.removeTracksFromDiscoveryPlaylist(playlistId, trackIds)
+				update((state) => ({
+					...state,
+					playlists: state.playlists.map((p) => (p.id === playlistId ? updatedPlaylist : p)),
+				}))
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to remove tracks',
+				}))
+			}
+		},
+
+		async reorderReleases(playlistId: string, releaseIds: string[]) {
+			try {
+				await playlistsApi.reorderPlaylistReleases(playlistId, releaseIds)
+			} catch (error) {
+				update((state) => ({
+					...state,
+					error: error instanceof Error ? error.message : 'Failed to reorder releases',
+				}))
+			}
+		},
+
+		/**
 		 * Get discovery releases in a playlist
 		 */
 		async getPlaylistReleases(playlistId: string): Promise<DiscoveryRelease[]> {
@@ -340,6 +396,16 @@ function createPlaylistsStore() {
 					...state,
 					error: error instanceof Error ? error.message : 'Failed to get playlist releases',
 				}))
+				return []
+			}
+		},
+
+		// Up to 4 distinct release covers per playlist, for mosaic thumbnails. Fails silently
+		// (empty result) — thumbnails are cosmetic and shouldn't surface an error to the user.
+		async getPlaylistCoverArt(playlistIds: string[]): Promise<PlaylistCoverArt[]> {
+			try {
+				return await playlistsApi.getPlaylistCoverArt(playlistIds)
+			} catch {
 				return []
 			}
 		},
@@ -426,29 +492,124 @@ export interface PlaylistTreeNode {
 	children: PlaylistTreeNode[]
 }
 
+// Cached collator: localeCompare with options constructs a new collator per call
+const playlistNameCollator = new Intl.Collator(undefined, { sensitivity: 'base' })
+
 export function buildPlaylistTree(playlists: Playlist[]): PlaylistTreeNode[] {
+	const childrenByParent = new Map<string | null, Playlist[]>()
+	for (const playlist of playlists) {
+		const key = playlist.parent_id ?? null
+		const group = childrenByParent.get(key)
+		if (group) {
+			group.push(playlist)
+		} else {
+			childrenByParent.set(key, [playlist])
+		}
+	}
+
 	// Sort items: folders first, then alphabetically by name
 	const sortItems = (items: Playlist[]) =>
-		[...items].sort((a, b) => {
+		items.sort((a, b) => {
 			if (a.is_folder !== b.is_folder) {
 				return a.is_folder ? -1 : 1
 			}
-			return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+			return playlistNameCollator.compare(a.name, b.name)
 		})
 
-	const rootItems = sortItems(playlists.filter((p) => p.parent_id === null))
-
-	function buildChildren(parentId: string): PlaylistTreeNode[] {
-		return sortItems(playlists.filter((p) => p.parent_id === parentId)).map((playlist) => ({
+	function buildNodes(parentId: string | null): PlaylistTreeNode[] {
+		const items = childrenByParent.get(parentId)
+		if (!items) return []
+		return sortItems(items).map((playlist) => ({
 			playlist,
-			children: buildChildren(playlist.id),
+			children: buildNodes(playlist.id),
 		}))
 	}
 
-	return rootItems.map((playlist) => ({
-		playlist,
-		children: buildChildren(playlist.id),
-	}))
+	return buildNodes(null)
+}
+
+/**
+ * "Add to playlist" submenu mirroring the sidebar hierarchy: folders become nested submenus,
+ * playlists the clickable leaves. Smart playlists are rule-generated so never a target, and a
+ * folder with no reachable target is pruned rather than shown as a dead end.
+ */
+export function buildPlaylistMenuItems(
+	playlists: Playlist[],
+	makeAction: (playlistId: string) => () => void,
+	idPrefix = 'playlist'
+): ContextMenuItem[] {
+	function toItems(nodes: PlaylistTreeNode[]): ContextMenuItem[] {
+		const items: ContextMenuItem[] = []
+		for (const { playlist, children } of nodes) {
+			if (playlist.is_folder) {
+				const submenu = toItems(children)
+				if (submenu.length > 0) {
+					items.push({ id: `${idPrefix}-${playlist.id}`, label: playlist.name, icon: 'folder', submenu })
+				}
+			} else if (!playlist.is_smart) {
+				items.push({ id: `${idPrefix}-${playlist.id}`, label: playlist.name, action: makeAction(playlist.id) })
+			}
+		}
+		return items
+	}
+	return toItems(buildPlaylistTree(playlists))
+}
+
+/**
+ * "Move to Folder" submenu: every folder nested by parent, alphabetical per level. Folders in
+ * `excludeIds` (the item itself, its current parent, a selected folder) can't be targets: they
+ * stay as disabled parents when they still lead somewhere, and are pruned when they don't.
+ */
+export function buildFolderMenuItems(
+	folders: Playlist[],
+	excludeIds: ReadonlySet<string>,
+	makeAction: (folderId: string) => () => void,
+	idPrefix = 'move'
+): ContextMenuItem[] {
+	function toItems(parentId: string | null): ContextMenuItem[] {
+		return folders
+			.filter((f) => f.parent_id === parentId)
+			.sort((a, b) => playlistNameCollator.compare(a.name, b.name))
+			.reduce<ContextMenuItem[]>((acc, folder) => {
+				const isExcluded = excludeIds.has(folder.id)
+				const children = toItems(folder.id)
+				if (isExcluded && children.length === 0) return acc
+				acc.push({
+					id: `${idPrefix}-${folder.id}`,
+					label: folder.name,
+					...(isExcluded ? { disabled: true } : { action: makeAction(folder.id) }),
+					...(children.length > 0 ? { submenu: children } : {}),
+				})
+				return acc
+			}, [])
+	}
+	return toItems(null)
+}
+
+/**
+ * Collect all descendant ids of a playlist/folder (single pass over the list)
+ */
+export function collectDescendantIds(playlists: Playlist[], rootId: string): string[] {
+	const childIdsByParent = new Map<string, string[]>()
+	for (const playlist of playlists) {
+		if (playlist.parent_id === null) continue
+		const group = childIdsByParent.get(playlist.parent_id)
+		if (group) {
+			group.push(playlist.id)
+		} else {
+			childIdsByParent.set(playlist.parent_id, [playlist.id])
+		}
+	}
+
+	const result: string[] = []
+	const stack = [...(childIdsByParent.get(rootId) ?? [])]
+	while (stack.length > 0) {
+		const id = stack.pop()!
+		result.push(id)
+		const childIds = childIdsByParent.get(id)
+		if (childIds) stack.push(...childIds)
+	}
+	return result
 }
 
 // =============================================================================
@@ -526,11 +687,8 @@ export function buildBreadcrumbItems(
 			} else {
 				const count = trackCount ?? playlist.track_count
 				item.count = count
-				if (activeView === 'discovery') {
-					item.countLabel = count === 1 ? t('discovery.release') : t('discovery.releases')
-				} else {
-					item.countLabel = count === 1 ? t('library.track') : t('library.tracks')
-				}
+				// Discovery playlists count member tracks too, since membership is per track.
+				item.countLabel = count === 1 ? t('library.track') : t('library.tracks')
 			}
 		}
 

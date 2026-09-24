@@ -4,8 +4,9 @@ use rusqlite::Connection;
 use serde_json;
 
 use crate::error::{CrateError, Result};
-use crate::models::AppSettings;
+use crate::models::{AccentColor, AppSettings, Theme};
 use crate::services::cloud_sync::{self, pipeline::dirty};
+use crate::services::ui_zoom;
 
 pub struct SettingsService {
     conn: Arc<Mutex<Connection>>,
@@ -19,15 +20,25 @@ impl SettingsService {
     pub fn get_settings(&self) -> Result<AppSettings> {
         let conn = self.conn.lock().map_err(|_| CrateError::LockPoisoned)?;
 
+        #[cfg(feature = "mobile")]
+        let theme_default = Theme::Light;
+        #[cfg(not(feature = "mobile"))]
+        let theme_default = Theme::default();
+
         let theme = self
             .get_setting_value(&conn, "theme")?
             .and_then(|v| v.parse().ok())
-            .unwrap_or_default();
+            .unwrap_or(theme_default);
+
+        #[cfg(feature = "mobile")]
+        let accent_default = AccentColor::Teal;
+        #[cfg(not(feature = "mobile"))]
+        let accent_default = AccentColor::default();
 
         let accent_color = self
             .get_setting_value(&conn, "accent_color")?
             .and_then(|v| v.parse().ok())
-            .unwrap_or_default();
+            .unwrap_or(accent_default);
 
         let font = self
             .get_setting_value(&conn, "font")?
@@ -93,6 +104,11 @@ impl SettingsService {
             .and_then(|v| v.parse().ok())
             .unwrap_or_default();
 
+        let collection_refresh_cadence = self
+            .get_setting_value(&conn, "collection_refresh_cadence")?
+            .and_then(|v| v.parse().ok())
+            .unwrap_or_default();
+
         let auto_follow_on_import = self
             .get_setting_value(&conn, "auto_follow_on_import")?
             .and_then(|v| v.parse().ok())
@@ -150,6 +166,22 @@ impl SettingsService {
                     > 0
             });
 
+        // Device-local cache-size caps (MB) for the discovery audio + artwork caches. Read
+        // directly by the cache LRU sweeps; surfaced here so the settings UI shows the value.
+        let discovery_audio_cache_limit_mb = self
+            .get_setting_value(&conn, "discovery_audio_cache_limit_mb")?
+            .and_then(|v| v.parse().ok())
+            .filter(|mb: &i64| *mb > 0)
+            .unwrap_or(500);
+
+        let discovery_artwork_cache_limit_mb = self
+            .get_setting_value(&conn, "discovery_artwork_cache_limit_mb")?
+            .and_then(|v| v.parse().ok())
+            .filter(|mb: &i64| *mb > 0)
+            .unwrap_or(250);
+
+        let ui_zoom = ui_zoom::parse_setting(self.get_setting_value(&conn, ui_zoom::SETTING_KEY)?);
+
         Ok(AppSettings {
             theme,
             accent_color,
@@ -166,6 +198,7 @@ impl SettingsService {
             transfer_tags_on_import,
             remove_release_after_import,
             follow_check_cadence,
+            collection_refresh_cadence,
             auto_follow_on_import,
             release_day_reminders,
             new_releases_summary,
@@ -175,6 +208,9 @@ impl SettingsService {
             last_backup_type,
             has_completed_onboarding,
             has_completed_wizard,
+            discovery_audio_cache_limit_mb,
+            discovery_artwork_cache_limit_mb,
+            ui_zoom,
         })
     }
 

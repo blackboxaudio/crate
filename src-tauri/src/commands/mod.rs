@@ -4,6 +4,7 @@ pub mod analysis;
 pub mod app;
 pub mod backup;
 pub mod cloud_sync;
+pub mod collection;
 #[cfg(feature = "desktop")]
 pub mod device;
 #[cfg(feature = "desktop")]
@@ -14,12 +15,16 @@ pub mod export;
 pub mod follow;
 #[cfg(feature = "desktop")]
 pub mod library;
-#[cfg(feature = "desktop")]
 pub mod media_controls;
+// iOS-only native preview playback engine commands (#54).
+#[cfg(target_os = "ios")]
+pub mod native_preview;
 #[cfg(feature = "desktop")]
 pub mod playback;
 pub mod playlist;
 pub mod settings;
+// Android share-intent intake (#62): a JNI drain on Android, an empty list everywhere else.
+pub mod share;
 #[cfg(feature = "desktop")]
 pub mod sync;
 pub mod tag;

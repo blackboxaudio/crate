@@ -324,6 +324,7 @@ pub(super) async fn fetch_discogs(client: &reqwest::Client, url: &str) -> Result
                         position: (idx + 1) as i32,
                         duration_ms,
                         video_id: None,
+                        url: None,
                     })
                 })
                 .collect::<Vec<_>>()

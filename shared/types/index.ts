@@ -56,6 +56,9 @@ export const TAG_CATEGORY_COLORS: { id: TagCategoryColor; label: string; hex: st
 	{ id: 'rose', label: 'Rose', hex: '#f43f5e' },
 ]
 
+/** Fallback chip/dot color when neither a tag nor its category has one (the indigo preset). */
+export const DEFAULT_TAG_COLOR = '#6366f1'
+
 export const ACCENT_TO_TAG_COLOR_HEX: Record<AccentColor, string> = {
 	blue: '#3b82f6',
 	indigo: '#6366f1',
@@ -252,6 +255,18 @@ export type TagSelectionState = 'active' | 'inactive' | 'mixed'
 export type TagFilterMode = 'and' | 'or'
 
 // =============================================================================
+// Discovery Facet Filters
+// =============================================================================
+
+/** Three-way filter: `off` ignores the dimension, `include` keeps only matches, `exclude` hides them. */
+export type FilterTriState = 'off' | 'include' | 'exclude'
+
+export type DiscoveryFacet = 'liked' | 'new' | 'purchased' | 'downloaded'
+
+/** One tri-state per discovery filter dimension; dimensions compose with AND. */
+export type DiscoveryFacetFilters = Record<DiscoveryFacet, FilterTriState>
+
+// =============================================================================
 // Playlist Types
 // =============================================================================
 
@@ -269,6 +284,12 @@ export interface Playlist {
 	context: ActiveView
 }
 
+/** The first few distinct release covers for a playlist, for 2x2 mosaic thumbnails. */
+export interface PlaylistCoverArt {
+	playlist_id: string
+	artwork_urls: string[]
+}
+
 export type MoveConflictResolution = 'overwrite' | 'merge'
 
 export interface MoveConflict {
@@ -279,6 +300,12 @@ export interface MoveConflict {
 export interface MovePlaylistResult {
 	playlist: Playlist
 	nestedConflicts: MoveConflict[]
+}
+
+export interface AddToPlaylistResult {
+	playlist: Playlist
+	added: number
+	alreadyPresent: number
 }
 
 // =============================================================================
@@ -338,6 +365,21 @@ export interface PlaybackState {
 	speed: number
 	current_track_id: string | null
 	current_track_path: string | null
+}
+
+/**
+ * Payload of the `audio-output-device-lost` event: the output device library playback was
+ * using disappeared. The backend has already rebuilt the stream on the new default and left
+ * it paused, so `playbackState` is authoritative and always has `is_playing: false`.
+ */
+export interface AudioDeviceLostPayload {
+	/** Device playback was on when it died; null if the name couldn't be read. */
+	lostDevice: string | null
+	/** Device the stream was rebuilt on; null when no output device exists at all. */
+	newDevice: string | null
+	/** False when playback was already paused — fix up state silently, don't toast. */
+	wasPlaying: boolean
+	playbackState: PlaybackState
 }
 
 // =============================================================================
@@ -469,7 +511,7 @@ export type AccentColor =
 	| 'emerald'
 	| 'teal'
 
-export type Font = 'inter' | 'nunito' | 'open-sans' | 'fira-code' | 'ibm-plex-mono' | 'source-code-pro'
+export type Font = 'system' | 'inter' | 'nunito' | 'open-sans' | 'fira-code' | 'ibm-plex-mono' | 'source-code-pro'
 
 export type Language =
 	| 'en'
@@ -526,6 +568,7 @@ export interface AppSettings {
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
 	followCheckCadence: FollowCheckCadence
+	collectionRefreshCadence: FollowCheckCadence
 	autoFollowOnImport: AutoFollowOnImport
 	releaseDayReminders: boolean
 	newReleasesSummary: boolean
@@ -535,6 +578,12 @@ export interface AppSettings {
 	lastBackupType: string | null
 	hasCompletedOnboarding: boolean
 	hasCompletedWizard: boolean
+	/** Device-local cap (MB) on the on-disk discovery audio-preview cache; drives LRU eviction. */
+	discoveryAudioCacheLimitMb: number
+	/** Device-local cap (MB) on the on-disk discovery artwork cache; drives LRU eviction. */
+	discoveryArtworkCacheLimitMb: number
+	/** Device-local, desktop-only webview page zoom (1 = 100%). */
+	uiZoom: number
 }
 
 export interface AudioDevice {
@@ -705,7 +754,15 @@ export interface DiscoveryTrack {
 	position: number
 	duration_ms: number | null
 	video_id: string | null
+	/** The track's own page URL (Bandcamp track page, SoundCloud permalink) when the source provides one; share/copy falls back to the release URL. */
+	url: string | null
 	is_liked: boolean
+	/** RFC3339 stamp of the most recent like; null when unliked or for likes that predate the column (those sort last under Date Liked). */
+	liked_at: string | null
+	/** The source currently serves no preview stream for this track (e.g. an unreleased track on a Bandcamp pre-order). Device-local, refreshed on every stream extraction. */
+	preview_unavailable: boolean
+	/** Track-level tags, independent of the parent release's tags. Omitted by the backend when empty. */
+	tags?: Tag[]
 }
 
 export interface DiscoveryRelease {
@@ -718,6 +775,8 @@ export interface DiscoveryRelease {
 	release_date: string | null
 	artwork_url: string | null
 	artwork_path: string | null
+	/** Relative path to the on-disk cached remote cover, or null if not yet cached. Drives cache-first offline artwork on mobile. */
+	artwork_cache_path: string | null
 	notes: string | null
 	parent_url: string | null
 	source_page_url: string | null
@@ -728,6 +787,8 @@ export interface DiscoveryRelease {
 	source_ids: string[]
 	tracks: DiscoveryTrack[]
 	tags: Tag[]
+	/** Playlist reads only: `tracks` is filtered to the playlist's member tracks and this carries the release's full track count (so the UI can show "3 of 12 tracks"). Absent when `tracks` is the whole release. */
+	total_track_count?: number
 }
 
 export interface DiscoveryReleaseCreate {
@@ -749,6 +810,7 @@ export interface DiscoveryTrackCreate {
 	position: number
 	duration_ms?: number
 	video_id?: string
+	url?: string
 }
 
 export interface FetchedMetadata {
@@ -768,6 +830,7 @@ export interface FetchedTrack {
 	position: number
 	duration_ms: number | null
 	video_id: string | null
+	url: string | null
 }
 
 export interface DiscoveryReleaseUpdate {
@@ -784,6 +847,10 @@ export interface DiscoveryFilter {
 	search?: string
 	tag_ids?: string[]
 	tag_filter_mode?: TagFilterMode
+	// Page size / row offset for chunked loading (see discoveryStore.loadReleases). Omitted =
+	// full set in one response (legacy behavior).
+	limit?: number
+	offset?: number
 }
 
 // =============================================================================
@@ -833,11 +900,112 @@ export interface FollowedReleasesFound {
 	checkedAt: string
 }
 
+// =============================================================================
+// Purchased collection (linked Bandcamp fan accounts + owned items)
+// =============================================================================
+
+/** A linked collection account: the synced row + device-local refresh state + item count. */
+export interface CollectionAccount {
+	id: string
+	url: string
+	sourceType: string
+	externalId: string | null
+	username: string | null
+	name: string | null
+	avatarUrl: string | null
+	enabled: boolean
+	dateAdded: string
+	dateModified: string
+	lastCheckedAt: string | null
+	health: string
+	lastError: string | null
+	itemCount: number
+}
+
+/** One owned item (album or single-track purchase) for the Purchased view. */
+export interface CollectionItem {
+	id: string
+	accountId: string
+	sourceType: string
+	itemType: 'album' | 'track'
+	url: string
+	externalId: string | null
+	artist: string | null
+	title: string | null
+	artworkUrl: string | null
+	purchasedAt: string | null
+	dateAdded: string
+	/** The local discovery release this purchase corresponds to (by URL identity), if any. */
+	matchedReleaseId: string | null
+}
+
+/** Derived ownership id-sets. `ownedTrackIds` holds only individually purchased tracks —
+ *  a track inside a fully-owned release is implied by its release. */
+export interface CollectionOwnership {
+	fullyOwnedReleaseIds: string[]
+	partiallyOwnedReleaseIds: string[]
+	ownedTrackIds: string[]
+}
+
+/** One purchase's presence in the local track library (desktop gap view; fuzzy match). */
+export interface CollectionGapItem {
+	item: CollectionItem
+	inLibrary: boolean
+}
+
+export interface AccountRefreshResult {
+	accountId: string
+	name: string | null
+	newItems: number
+	health: string
+	error: string | null
+}
+
+export interface CollectionRefreshSummary {
+	totalNew: number
+	byAccount: AccountRefreshResult[]
+	checkedAt: string
+}
+
 export interface PreviewInfo {
 	releaseId: string
 	release: DiscoveryRelease
+	/** Index into `release.tracks` — the list the pick came from (a playlist's member-filtered tracks differ from the feed's full list). */
 	trackIndex: number
+	/** The track's stable id; compare on this across contexts, never on `trackIndex`. */
+	trackId?: string
 }
+
+// =============================================================================
+// Playback queue (two-tier: implicit context queue + explicit user queue)
+// =============================================================================
+
+/**
+ * The identity of one queued playable unit. A discriminated union so the model can later cover
+ * library tracks too (`{ kind: 'library'; trackId }`); only the discovery-preview variant is
+ * implemented today. This is the PERSISTED shape — ids only, never heavy `DiscoveryRelease`
+ * snapshots — so the explicit queue survives a relaunch and re-hydrates the releases by id.
+ */
+export type QueuePayload = { kind: 'preview'; releaseId: string; trackIndex: number; trackId?: string }
+
+/** One entry in the explicit user queue. `entryId` is a stable per-entry id (NOT release/track id —
+ *  the same track can be queued twice) so reorder/remove can target a single occurrence. */
+export interface QueueItem {
+	entryId: string
+	payload: QueuePayload
+}
+
+/**
+ * A runtime "Up Next" row for the UI: the resolved pick plus where it came from. User entries carry
+ * their queue `entryId` (for reorder/remove); context entries carry a synthetic key. Not persisted —
+ * rebuilt from live state whenever the queue changes. Preview rows resolve a release + track index;
+ * library rows (desktop sessions started from the track list) carry the track itself.
+ */
+export type UpNextEntry = {
+	/** Queue `entryId` for user items; a synthetic `pickKey:n` key for context items. */
+	key: string
+	source: 'user' | 'context'
+} & ({ kind: 'preview'; release: DiscoveryRelease; trackIndex: number } | { kind: 'library'; track: Track })
 
 export interface ScannedRelease {
 	url: string
@@ -897,7 +1065,15 @@ export interface BackupProgress {
 	status: BackupStatus
 }
 
-export type DiscoverySortField = 'artist' | 'title' | 'label' | 'release_date' | 'source_type' | 'date_added'
+export type DiscoverySortField =
+	| 'artist'
+	| 'title'
+	| 'label'
+	| 'release_date'
+	| 'source_type'
+	| 'date_added'
+	| 'date_liked'
+	| 'track_count'
 
 export interface DiscoverySortConfig {
 	field: DiscoverySortField
@@ -913,6 +1089,18 @@ export type CloudSyncPhase = 'disabled' | 'signedout' | 'idle' | 'syncing' | 'of
 /** First-sign-in onboarding hint — only present on the sign-in response. */
 export type CloudSyncOnboarding = 'initial' | 'restore'
 
+/** Category of the last sync failure (mirrors the backend's `SyncErrorKind`). */
+export type CloudSyncErrorKind =
+	| 'network'
+	| 'auth'
+	| 'permission'
+	| 'quota'
+	| 'toolarge'
+	| 'conflict'
+	| 'server'
+	| 'merge'
+	| 'unknown'
+
 export interface CloudSyncStatus {
 	phase: CloudSyncPhase
 	email: string | null
@@ -921,6 +1109,7 @@ export interface CloudSyncStatus {
 	device_id: string
 	device_name: string
 	last_error: string | null
+	last_error_kind: CloudSyncErrorKind | null
 	last_synced_at: string | null
 	onboarding: CloudSyncOnboarding | null
 }

@@ -1,5 +1,5 @@
 import { writable, derived } from 'svelte/store'
-import type { DiscoveryRelease } from '../types'
+import type { DiscoveryRelease, Tag } from '../types'
 import { SvelteMap } from 'svelte/reactivity'
 
 // =============================================================================
@@ -49,12 +49,48 @@ function createDiscoveryPlaylistStore() {
 		},
 
 		updateTagCategory(tagId: string, newCategoryId: string) {
+			const moveTag = (tag: Tag) => (tag.id === tagId ? { ...tag, category_id: newCategoryId } : tag)
 			update((state) => ({
 				releases: state.releases.map((r) => ({
 					...r,
-					tags: r.tags.map((tag) => (tag.id === tagId ? { ...tag, category_id: newCategoryId } : tag)),
+					tags: r.tags.map(moveTag),
+					tracks: r.tracks.map((t) => (t.tags ? { ...t, tags: t.tags.map(moveTag) } : t)),
 				})),
 			}))
+		},
+
+		/** Mirror of discoveryStore.applyTrackTags for this store's (member-filtered) release copies. */
+		applyTrackTags(releaseId: string, tagsByTrack: Map<string, Tag[]>) {
+			const updateTracks = (releases: DiscoveryRelease[]) =>
+				releases.map((r) =>
+					r.id === releaseId
+						? {
+								...r,
+								tracks: r.tracks.map((t) => (tagsByTrack.has(t.id) ? { ...t, tags: tagsByTrack.get(t.id) } : t)),
+							}
+						: r
+				)
+			update((state) => ({ releases: updateTracks(state.releases) }))
+			for (const [key, releases] of cache) {
+				if (releases.some((r) => r.id === releaseId)) {
+					cache.set(key, updateTracks(releases))
+				}
+			}
+		},
+
+		/**
+		 * Drop member tracks from a playlist's release groups (a group with no members left goes
+		 * too), in the current view and the cache.
+		 */
+		filterOutTracks(playlistId: string, trackIds: string[]) {
+			const ids = new Set(trackIds)
+			const prune = (releases: DiscoveryRelease[]) =>
+				releases
+					.map((r) => ({ ...r, tracks: r.tracks.filter((t) => !ids.has(t.id)) }))
+					.filter((r) => r.tracks.length > 0)
+			update((state) => ({ releases: prune(state.releases) }))
+			const cached = cache.get(playlistId)
+			if (cached) cache.set(playlistId, prune(cached))
 		},
 
 		filterOutReleases(releaseIds: string[]) {
@@ -104,11 +140,14 @@ function createDiscoveryPlaylistStore() {
 			}
 		},
 
-		updateTrackLiked(releaseId: string, trackId: string, isLiked: boolean) {
+		updateTrackLiked(releaseId: string, trackId: string, isLiked: boolean, likedAt: string | null) {
 			const updateTracks = (releases: DiscoveryRelease[]) =>
 				releases.map((r) =>
 					r.id === releaseId
-						? { ...r, tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)) }
+						? {
+								...r,
+								tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked, liked_at: likedAt } : t)),
+							}
 						: r
 				)
 			update((state) => ({ releases: updateTracks(state.releases) }))
@@ -117,6 +156,32 @@ function createDiscoveryPlaylistStore() {
 					cache.set(key, updateTracks(releases))
 				}
 			}
+		},
+
+		/** Mirror of discoveryStore.applyPreviewAvailability for this store's release copies. */
+		applyPreviewAvailability(releaseId: string, unavailablePositions: number[]) {
+			const unavailable = new Set(unavailablePositions)
+			const updateTracks = (releases: DiscoveryRelease[]) =>
+				releases.map((r) =>
+					r.id === releaseId
+						? { ...r, tracks: r.tracks.map((t) => ({ ...t, preview_unavailable: unavailable.has(t.position) })) }
+						: r
+				)
+			update((state) => ({ releases: updateTracks(state.releases) }))
+			for (const [key, releases] of cache) {
+				if (releases.some((r) => r.id === releaseId)) {
+					cache.set(key, updateTracks(releases))
+				}
+			}
+		},
+
+		reorderInCache(playlistId: string, releaseIds: string[]) {
+			update((state) => {
+				const byId = new Map(state.releases.map((r) => [r.id, r]))
+				const reordered = releaseIds.map((id) => byId.get(id)).filter(Boolean) as DiscoveryRelease[]
+				cache.set(playlistId, reordered)
+				return { releases: reordered }
+			})
 		},
 
 		getCache() {

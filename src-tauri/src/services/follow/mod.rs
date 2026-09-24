@@ -28,6 +28,10 @@ pub struct SourceToCheck {
     pub baseline_established: bool,
 }
 
+/// The check-gate state lives in `watch_gate` (shared with the collection refresh loop);
+/// re-exported so `crud`'s `get_check_gate` keeps its natural `super::CheckGate` path.
+pub use crate::services::watch_gate::CheckGate;
+
 /// A surfaced release hitting its release date today, for a release-day notification.
 pub struct ReleaseDayItem {
     pub release_id: String,

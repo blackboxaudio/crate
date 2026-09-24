@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { DiscoveryRelease } from '$shared/types'
+	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import {
 		daysUntilRelease,
 		deriveArtistUrl,
@@ -20,8 +21,11 @@
 		discoveryStore,
 		contextMenuDiscoveryTrackId,
 		followedSources,
+		fullyOwnedReleaseIds,
+		ownedTrackIds,
 	} from '$lib/stores'
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$shared/stores/player'
+	import { isPreviewPlayable } from '$shared/stores/playbackQueue'
 	import { DRAG_THRESHOLD, getDistance } from '$shared/utils/drag'
 	import { translate } from '$shared/i18n'
 	import * as discoveryApi from '$shared/api/discovery'
@@ -31,7 +35,6 @@
 		release: DiscoveryRelease
 		selected?: boolean
 		expanded?: boolean
-		isPreviewable?: boolean
 		dragReleaseIds?: string[]
 		categoryColors?: Map<string, string | null>
 		categorySortOrders?: Map<string, number>
@@ -44,6 +47,9 @@
 		onTrackPlay?: (trackIndex: number) => void
 		onTrackLikeToggle?: (trackId: string) => void
 		onTrackContextMenu?: (trackIndex: number, canPlay: boolean, e: MouseEvent) => void
+		onTrackClick?: (trackIndex: number, e: MouseEvent) => void
+		selectedTrackIds?: Set<string>
+		dragTrackIds?: string[]
 		likedOnly?: boolean
 	}
 
@@ -51,7 +57,6 @@
 		release,
 		selected = false,
 		expanded = false,
-		isPreviewable = true,
 		dragReleaseIds = [],
 		categoryColors,
 		categorySortOrders,
@@ -64,15 +69,32 @@
 		onTrackPlay,
 		onTrackLikeToggle,
 		onTrackContextMenu,
+		onTrackClick,
+		selectedTrackIds = new Set<string>(),
+		dragTrackIds = [],
 		likedOnly = false,
 	}: Props = $props()
 
 	let isTagDragHovered = $state(false)
+	let tagDragHoveredTrackId = $state<string | null>(null)
 	let showArtworkModal = $state(false)
 
 	// Days until release for the "Upcoming" badge + countdown (null once out / unknown).
 	// Computed at render, so the badge clears automatically when the date passes.
 	const upcomingDays = $derived(daysUntilRelease(release.release_date))
+
+	// Purchased-collection ownership: "Owned" pill when the whole release is purchased,
+	// "x/y" when only some tracks are (individually purchased tracks).
+	const isFullyOwned = $derived($fullyOwnedReleaseIds.has(release.id))
+	const ownedTrackCount = $derived(isFullyOwned ? 0 : release.tracks.filter((t) => $ownedTrackIds.has(t.id)).length)
+
+	// Sub-rows carry their original index (preview playback addresses tracks by release position),
+	// so the liked filter has to narrow the list here rather than skip inside the loop — the row
+	// separator keys off the visible position, and DiscoveryList sizes the expanded slot by the
+	// visible count.
+	const visibleTracks = $derived(
+		release.tracks.map((track, index) => ({ track, index })).filter(({ track }) => !likedOnly || track.is_liked)
+	)
 
 	// Follow button + quick-follow popover. The open popover is tracked globally so opening
 	// one dismisses any other (only one visible at a time).
@@ -95,7 +117,10 @@
 
 	// Clear hover when tag drag ends
 	$effect(() => {
-		if (!$isDraggingTag) isTagDragHovered = false
+		if (!$isDraggingTag) {
+			isTagDragHovered = false
+			tagDragHoveredTrackId = null
+		}
 	})
 
 	// Track pointer state for drag detection
@@ -121,27 +146,56 @@
 	}
 
 	function isTrackPlaying(idx: number): boolean {
-		return $playbackSource === 'preview' && $previewInfo?.releaseId === release.id && $previewInfo?.trackIndex === idx
+		if ($playbackSource !== 'preview' || !$previewInfo || $previewInfo.releaseId !== release.id) return false
+		// By id, not index: this row's `tracks` may be a playlist's member-filtered list while the
+		// playing pick came from the full release (or vice versa).
+		const playingId = $previewInfo.trackId ?? $previewInfo.release.tracks[$previewInfo.trackIndex]?.id
+		return playingId ? playingId === release.tracks[idx]?.id : $previewInfo.trackIndex === idx
 	}
 
 	function trackCanPlay(trackIndex: number): boolean {
-		const track = release.tracks[trackIndex]
-		if (!track?.duration_ms) return false
-		if (release.source_type === 'discogs') return track.video_id !== null
-		return isPreviewable
+		return isPreviewPlayable(release, trackIndex)
 	}
 
-	const sourceLabels: Record<string, string> = {
-		bandcamp: 'Bandcamp',
-		soundcloud: 'SoundCloud',
-		youtube: 'YouTube',
-		discogs: 'Discogs',
-		other: 'Other',
-	}
+	// Pre-order upkeep: expanding the tracklist re-checks preview availability at the source
+	// (once per release per session, background priority) so a pre-order's greyed unreleased
+	// tracks heal themselves once the album is out.
+	$effect(() => {
+		if (expanded) discoveryStore.maybeRecheckAvailability(release)
+	})
 
 	function handlePointerUp() {
 		pointerStartPos = null
 		isDragStarted = false
+	}
+
+	// Sub-row drag: a selected track carries the whole track selection, an unselected one only itself.
+	let trackPointerStart: { x: number; y: number; trackId: string } | null = null
+	let trackDragStarted = false
+
+	function handleTrackPointerDown(e: PointerEvent, trackId: string) {
+		if (e.button !== 0) return
+		if ((e.target as HTMLElement).closest('button')) return
+		trackPointerStart = { x: e.clientX, y: e.clientY, trackId }
+		trackDragStarted = false
+	}
+
+	function handleTrackPointerMove(e: PointerEvent) {
+		if (!trackPointerStart) return
+		const distance = getDistance(trackPointerStart.x, trackPointerStart.y, e.clientX, e.clientY)
+		if (!trackDragStarted && distance >= DRAG_THRESHOLD) {
+			trackDragStarted = true
+			const ids =
+				selectedTrackIds.has(trackPointerStart.trackId) && dragTrackIds.length > 0
+					? dragTrackIds
+					: [trackPointerStart.trackId]
+			dragStore.startDiscoveryTrackDrag(ids, e.clientX, e.clientY)
+		}
+	}
+
+	function handleTrackPointerUp() {
+		trackPointerStart = null
+		trackDragStarted = false
 	}
 
 	function handleKeyDown(e: KeyboardEvent) {
@@ -157,7 +211,7 @@
 	tabindex="0"
 	data-release-row
 	data-release-id={release.id}
-	class="grid cursor-pointer grid-cols-[24px_40px_1.25fr_0.6fr_1fr_90px_110px_100px_92px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
+	class="grid shrink-0 grow cursor-pointer grid-cols-[24px_40px_1.25fr_0.6fr_1fr_90px_130px_110px_92px] items-center gap-2 border-b border-stroke-subtle px-3 py-1.5 text-sm transition-colors select-none {selected
 		? 'bg-brand-muted'
 		: 'hover:bg-surface-2/50'} {isTagDragHovered ? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset' : ''}"
 	{onclick}
@@ -220,7 +274,13 @@
 			</Text>
 			{#if release.tracks.length > 0}
 				<Text as="span" size="xs" color="tertiary" class="shrink-0">
-					{$translate('discovery.trackCount', { values: { count: release.tracks.length } })}
+					{#if release.total_track_count != null && release.total_track_count > release.tracks.length}
+						{$translate('discovery.memberTrackCount', {
+							values: { count: release.tracks.length, total: release.total_track_count },
+						})}
+					{:else}
+						{$translate('discovery.trackCount', { values: { count: release.tracks.length } })}
+					{/if}
 				</Text>
 			{/if}
 			{#if upcomingDays !== null}
@@ -228,6 +288,21 @@
 					class="shrink-0 rounded-full bg-orange-500/15 px-1.5 py-0.5 text-[10px] leading-none font-medium text-orange-500"
 				>
 					{$translate('discovery.following.upcoming')}
+				</span>
+			{/if}
+			{#if isFullyOwned}
+				<span
+					class="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] leading-none font-medium text-emerald-500"
+				>
+					{$translate('collection.ownedBadge')}
+				</span>
+			{:else if ownedTrackCount > 0}
+				<span
+					class="shrink-0 rounded-full bg-emerald-500/15 px-1.5 py-0.5 text-[10px] leading-none font-medium text-emerald-500"
+				>
+					{$translate('collection.partialBadge', {
+						values: { owned: ownedTrackCount, total: release.tracks.length },
+					})}
 				</span>
 			{/if}
 		</div>
@@ -260,7 +335,7 @@
 
 	<!-- Source -->
 	<div class="truncate text-left text-text-tertiary">
-		{sourceLabels[release.source_type] ?? release.source_type}
+		{$translate(`discovery.sources.${release.source_type}`, { default: release.source_type })}
 	</div>
 
 	<!-- Release Date -->
@@ -332,68 +407,90 @@
 
 <!-- Track sub-rows (CSS grid-template-rows transition for smooth expand/collapse) -->
 {#if release.tracks.length > 0}
-	<div class="grid overflow-hidden" style="grid-template-rows: {expanded ? '1fr' : '0fr'}">
+	<div class="grid shrink-0 overflow-hidden" style="grid-template-rows: {expanded ? '1fr' : '0fr'}">
 		<div class="min-h-0 overflow-hidden">
 			<div class="border-b border-stroke-subtle bg-surface-1/30">
-				{#each release.tracks as track, idx (track.id)}
-					{#if !likedOnly || track.is_liked}
-						{@const canPlay = trackCanPlay(idx)}
-						{@const playing = canPlay && isTrackPlaying(idx)}
-						{@const isContextActive = track.id === $contextMenuDiscoveryTrackId}
-						<!-- svelte-ignore a11y_no_static_element_interactions -->
-						<div
-							class="group/track grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
-								? 'cursor-pointer hover:bg-surface-2/50'
-								: 'cursor-default opacity-60'} {isContextActive ? 'bg-surface-2/50' : ''} {track.position > 1
-								? 'border-t border-stroke-subtle/50'
-								: ''}"
-							ondblclick={canPlay
-								? (e) => {
-										e.stopPropagation()
-										onTrackPlay?.(idx)
-									}
-								: undefined}
-							onmouseenter={canPlay
-								? () => {
-										discoveryApi.fetchPreviewStream(release.id, track.position).catch(() => {})
-									}
-								: undefined}
-							oncontextmenu={(e) => {
-								e.preventDefault()
-								e.stopPropagation()
-								onTrackContextMenu?.(idx, canPlay, e)
-							}}
-						>
-							<div class="flex items-center justify-center">
-								<button
-									class="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors {track.is_liked
-										? 'text-brand-primary'
-										: isContextActive
-											? 'text-text-tertiary opacity-100'
-											: 'text-text-tertiary opacity-0 group-hover/track:opacity-100 hover:opacity-100'}"
-									onclick={(e) => {
-										e.stopPropagation()
-										e.currentTarget.animate(
-											[{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }],
-											{ duration: 300, easing: 'ease-out' }
-										)
-										onTrackLikeToggle?.(track.id)
-									}}
-									ondblclick={(e) => e.stopPropagation()}
-								>
-									<Icon name="heart" class="h-3 w-3" fill={track.is_liked} />
-								</button>
-							</div>
-							<div
-								class="text-center text-xs {playing
+				{#each visibleTracks as { track, index: idx }, visibleIdx (track.id)}
+					{@const canPlay = trackCanPlay(idx)}
+					{@const playing = canPlay && isTrackPlaying(idx)}
+					{@const isContextActive = track.id === $contextMenuDiscoveryTrackId}
+					{@const isSelected = selectedTrackIds.has(track.id)}
+					{@const owned = isFullyOwned || $ownedTrackIds.has(track.id)}
+					<!-- svelte-ignore a11y_click_events_have_key_events -->
+					<!-- svelte-ignore a11y_no_static_element_interactions -->
+					<div
+						data-track-row
+						data-track-id={track.id}
+						class="group/track grid grid-cols-[24px_40px_1fr_80px] items-center gap-2 px-3 py-1 {canPlay
+							? 'cursor-pointer'
+							: 'cursor-default opacity-60'} {isSelected
+							? 'bg-brand-muted'
+							: isContextActive
+								? 'bg-surface-2/50'
+								: canPlay
+									? 'hover:bg-surface-2/50'
+									: ''} {visibleIdx > 0 ? 'border-t border-stroke-subtle/50' : ''} {tagDragHoveredTrackId === track.id
+							? 'bg-brand-primary/10 ring-1 ring-brand-primary ring-inset'
+							: ''}"
+						onpointerenter={() => $isDraggingTag && (tagDragHoveredTrackId = track.id)}
+						onpointerleave={() => tagDragHoveredTrackId === track.id && (tagDragHoveredTrackId = null)}
+						onclick={(e) => {
+							e.stopPropagation()
+							onTrackClick?.(idx, e)
+						}}
+						onpointerdown={(e) => handleTrackPointerDown(e, track.id)}
+						onpointermove={handleTrackPointerMove}
+						onpointerup={handleTrackPointerUp}
+						ondblclick={canPlay
+							? (e) => {
+									e.stopPropagation()
+									onTrackPlay?.(idx)
+								}
+							: undefined}
+						onmouseenter={canPlay
+							? () => {
+									// Speculative warm-up: background priority so hovering rows
+									// never competes with the track actually being played.
+									discoveryApi.fetchPreviewStream(release.id, track.position, true).catch(() => {})
+								}
+							: undefined}
+						oncontextmenu={(e) => {
+							e.preventDefault()
+							e.stopPropagation()
+							onTrackContextMenu?.(idx, canPlay, e)
+						}}
+					>
+						<div class="flex items-center justify-center">
+							<button
+								class="flex h-5 w-5 cursor-pointer items-center justify-center rounded transition-colors {track.is_liked
 									? 'text-brand-primary'
-									: canPlay
-										? 'text-text-tertiary'
-										: 'text-text-tertiary/50'}"
+									: isContextActive
+										? 'text-text-tertiary opacity-100'
+										: 'text-text-tertiary opacity-0 group-hover/track:opacity-100 hover:opacity-100'}"
+								onclick={(e) => {
+									e.stopPropagation()
+									e.currentTarget.animate(
+										[{ transform: 'scale(1)' }, { transform: 'scale(1.35)' }, { transform: 'scale(1)' }],
+										{ duration: 300, easing: 'ease-out' }
+									)
+									onTrackLikeToggle?.(track.id)
+								}}
+								ondblclick={(e) => e.stopPropagation()}
 							>
-								{track.position}
-							</div>
-							<div
+								<Icon name="heart" class="h-3 w-3" fill={track.is_liked} />
+							</button>
+						</div>
+						<div
+							class="text-center text-xs {playing
+								? 'text-brand-primary'
+								: canPlay
+									? 'text-text-tertiary'
+									: 'text-text-tertiary/50'}"
+						>
+							{track.position}
+						</div>
+						<div class="flex min-w-0 items-center gap-1.5">
+							<span
 								class="truncate text-xs {playing
 									? 'font-medium text-brand-primary'
 									: canPlay
@@ -401,18 +498,37 @@
 										: 'text-text-tertiary'}"
 							>
 								{track.name}
-							</div>
-							<div
-								class="mr-1 text-right text-xs {playing
-									? 'text-brand-primary'
-									: canPlay
-										? 'text-text-tertiary'
-										: 'text-text-tertiary/50'}"
-							>
-								{track.duration_ms ? formatDuration(track.duration_ms) : ''}
-							</div>
+							</span>
+							{#if track.tags?.length}
+								<span class="flex shrink-0 items-center gap-0.5">
+									{#each track.tags.slice(0, 4) as tag (tag.id)}
+										<Tooltip text={tag.name} position="top" delay={250}>
+											<span
+												class="block h-1.5 w-1.5 rounded-full"
+												style="background-color: {tag.color ?? DEFAULT_TAG_COLOR}"
+											></span>
+										</Tooltip>
+									{/each}
+								</span>
+							{/if}
 						</div>
-					{/if}
+						<div
+							class="mr-1 flex flex-row items-center justify-end text-right text-xs {playing
+								? 'text-brand-primary'
+								: canPlay
+									? 'text-text-tertiary'
+									: 'text-text-tertiary/50'}"
+						>
+							<div class="mt-0.5 mr-2.5">
+								{#if owned}
+									<Tooltip text={$translate('collection.ownedBadge')} position="top" delay={250}>
+										<Icon name="shopping-bag" class="h-3 w-3 shrink-0 text-emerald-500" />
+									</Tooltip>
+								{/if}
+							</div>
+							{track.duration_ms ? formatDuration(track.duration_ms) : ''}
+						</div>
+					</div>
 				{/each}
 			</div>
 		</div>

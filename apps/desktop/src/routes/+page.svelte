@@ -31,6 +31,7 @@
 		activeView,
 		selectedTrackIds,
 		selectedReleaseIds,
+		selectedDiscoveryTrackIds,
 		tagFilterMode,
 		visibleDevices,
 		rightSidebarVisible,
@@ -49,7 +50,7 @@
 		expandedReleaseIds,
 	} from '$lib/stores'
 	import { playbackSource, isPlaying } from '$shared/stores/player'
-	import { likedOnly } from '$shared/stores/discovery'
+	import { isPreviewPlayable, firstPlayablePreviewIndex } from '$shared/stores/playbackQueue'
 	import { buildBreadcrumbItems, getPlaylistChildren } from '$shared/stores/playlists'
 	import { createAppSetup } from '$lib/hooks'
 
@@ -132,6 +133,7 @@
 		handleToggleDevTools,
 		playNextTrack,
 		playPreviousTrack,
+		playPreview,
 		openAddReleaseModal: () => orchestratorLayer?.openAddReleaseModal(),
 		getModalOrchestrator: () => orchestratorLayer?.getModalOrchestrator(),
 		getContextMenuOrchestrator: () => orchestratorLayer?.getContextMenuOrchestrator(),
@@ -408,41 +410,28 @@
 		discoveryStore.setSort(config)
 	}
 
-	const PREVIEWABLE_SOURCES = new Set(['bandcamp', 'soundcloud', 'youtube'])
-
-	function releaseHasAnyPreviewableTrack(release: DiscoveryRelease): boolean {
-		if (PREVIEWABLE_SOURCES.has(release.source_type)) return release.tracks.some((t) => t.duration_ms !== null)
-		return release.tracks.some((t) => t.video_id !== null && t.duration_ms !== null)
-	}
-
 	function handleReleaseOpen(release: DiscoveryRelease) {
-		if (releaseHasAnyPreviewableTrack(release)) {
-			const firstPlayable = release.tracks.findIndex((t) => {
-				if (!t.duration_ms) return false
-				if (release.source_type === 'discogs') return t.video_id !== null
-				return true
-			})
-			if (firstPlayable >= 0) {
-				playPreview(release, firstPlayable)
-				return
-			}
+		const firstPlayable = firstPlayablePreviewIndex(release)
+		if (firstPlayable >= 0) {
+			playPreview(release, firstPlayable)
+			return
 		}
 		openUrl(release.url)
 	}
 
 	function handleTrackPlayInRelease(release: DiscoveryRelease, trackIndex: number) {
 		uiStore.clearReleaseSelection()
-		const track = release.tracks[trackIndex]
-		const canPlay =
-			track?.duration_ms &&
-			(PREVIEWABLE_SOURCES.has(release.source_type) || (release.source_type === 'discogs' && track?.video_id !== null))
-		if (canPlay && release.tracks.length > 0) {
+		if (isPreviewPlayable(release, trackIndex)) {
 			playPreview(release, trackIndex)
 		}
 	}
 
 	function handleReleaseSelectionChange(ids: Set<string>) {
 		uiStore.setSelectedReleases(ids)
+	}
+
+	function handleDiscoveryTrackSelectionChange(ids: Set<string>) {
+		uiStore.setSelectedDiscoveryTracks(ids)
 	}
 
 	// =============================================================================
@@ -477,8 +466,15 @@
 		canPlay: boolean,
 		e: MouseEvent
 	) {
-		uiLayoutStore.setContextMenuDiscoveryTrackId(release.tracks[trackIndex].id)
-		orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryTrackMenu(e, release, trackIndex, canPlay)
+		const track = release.tracks[trackIndex]
+		uiLayoutStore.setContextMenuDiscoveryTrackId(track.id)
+		// Inside a multi-track selection the menu acts on all of it (the list has already made the
+		// clicked track the selection when it was not part of one).
+		const selection = $selectedDiscoveryTrackIds
+		const tracks = selection.has(track.id)
+			? $displayedReleases.flatMap((r) => r.tracks.filter((t) => selection.has(t.id)))
+			: [track]
+		orchestratorLayer?.getContextMenuOrchestrator()?.openDiscoveryTrackMenu(e, release, trackIndex, canPlay, tracks)
 	}
 
 	function handleTrackLikeToggle(releaseId: string, trackId: string) {
@@ -601,12 +597,10 @@
 			onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 			onClearAllTagFilters={() => {
 				tagController.clearTagFilters()
-				if ($activeView === 'discovery' && get(likedOnly)) discoveryStore.toggleLikedFilter()
+				if ($activeView === 'discovery') discoveryStore.clearFacetFilters()
 			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
 			isDiscoveryContext={$activeView === 'discovery'}
-			likedOnly={$activeView === 'discovery' ? $likedOnly : false}
-			onToggleLikedFilter={$activeView === 'discovery' ? () => discoveryStore.toggleLikedFilter() : undefined}
 		/>
 	{:else if selectedPlaylistId}
 		{@const playlist = contextPlaylists.find((p) => p.id === selectedPlaylistId)}
@@ -635,12 +629,12 @@
 					onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 					onClearAllTagFilters={() => {
 						tagController.clearTagFilters()
-						if (get(likedOnly)) discoveryStore.toggleLikedFilter()
+						discoveryStore.clearFacetFilters()
 					}}
 					onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
-					likedOnly={$likedOnly}
-					onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 					onSelectionChange={handleReleaseSelectionChange}
+					selectedDiscoveryTrackIds={$selectedDiscoveryTrackIds}
+					onDiscoveryTrackSelectionChange={handleDiscoveryTrackSelectionChange}
 					onDiscoveryTrackPlay={handleTrackPlayInRelease}
 					onDiscoveryTrackLikeToggle={handleTrackLikeToggle}
 					onDiscoveryTrackContextMenu={handleTrackContextMenuInRelease}
@@ -712,12 +706,12 @@
 			onToggleTagFilter={(tagId) => tagController.selectTag(tagId)}
 			onClearAllTagFilters={() => {
 				tagController.clearTagFilters()
-				if (get(likedOnly)) discoveryStore.toggleLikedFilter()
+				discoveryStore.clearFacetFilters()
 			}}
 			onToggleTagFilterMode={() => tagController.toggleTagFilterMode()}
-			likedOnly={$likedOnly}
-			onToggleLikedFilter={() => discoveryStore.toggleLikedFilter()}
 			onSelectionChange={handleReleaseSelectionChange}
+			selectedTrackIds={$selectedDiscoveryTrackIds}
+			onTrackSelectionChange={handleDiscoveryTrackSelectionChange}
 			onReleaseOpen={handleReleaseOpen}
 			onReleaseOpenUrl={(release) => openUrl(release.url)}
 			onReleaseImport={(release) => orchestratorLayer?.setPurchaseRelease(release)}

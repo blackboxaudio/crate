@@ -21,6 +21,9 @@ import { setLanguage as setI18nLanguage, translate } from '../i18n'
 // State
 // =============================================================================
 
+/** Desktop page-zoom ladder; must match `UI_ZOOM_LEVELS` in `src-tauri/src/services/ui_zoom.rs`. */
+export const UI_ZOOM_LEVELS = [0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5] as const
+
 interface SettingsState {
 	theme: Theme
 	accentColor: AccentColor
@@ -40,6 +43,7 @@ interface SettingsState {
 	transferTagsOnImport: boolean
 	removeReleaseAfterImport: boolean
 	followCheckCadence: FollowCheckCadence
+	collectionRefreshCadence: FollowCheckCadence
 	autoFollowOnImport: AutoFollowOnImport
 	releaseDayReminders: boolean
 	newReleasesSummary: boolean
@@ -49,6 +53,9 @@ interface SettingsState {
 	lastBackupType: string | null
 	hasCompletedOnboarding: boolean
 	hasCompletedWizard: boolean
+	discoveryAudioCacheLimitMb: number
+	discoveryArtworkCacheLimitMb: number
+	uiZoom: number
 	loading: boolean
 	error: string | null
 }
@@ -72,6 +79,7 @@ const initialState: SettingsState = {
 	transferTagsOnImport: true,
 	removeReleaseAfterImport: true,
 	followCheckCadence: 'daily',
+	collectionRefreshCadence: 'daily',
 	autoFollowOnImport: 'off',
 	releaseDayReminders: true,
 	newReleasesSummary: true,
@@ -81,6 +89,9 @@ const initialState: SettingsState = {
 	lastBackupType: null,
 	hasCompletedOnboarding: false,
 	hasCompletedWizard: false,
+	discoveryAudioCacheLimitMb: 500,
+	discoveryArtworkCacheLimitMb: 250,
+	uiZoom: 1,
 	loading: false,
 	error: null,
 }
@@ -116,7 +127,16 @@ function createSettingsStore() {
 
 	function applyTheme(resolvedTheme: 'light' | 'dark') {
 		if (typeof document === 'undefined') return
-		document.documentElement.setAttribute('data-theme', resolvedTheme)
+		const root = document.documentElement
+		root.setAttribute('data-theme', resolvedTheme)
+		// The boot script (app.html) writes inline --surface-0/--text-primary/--text-tertiary for a
+		// flash-free first paint. Those inline values outrank the stylesheet's [data-theme] rules, so a
+		// runtime theme switch would leave them stale (mismatched surfaces, invisible text). Clear them
+		// here so theme.css becomes authoritative — by now it's loaded and supplies identical values, so
+		// the removal is invisible on first load but lets every later switch re-theme correctly.
+		root.style.removeProperty('--surface-0')
+		root.style.removeProperty('--text-primary')
+		root.style.removeProperty('--text-tertiary')
 	}
 
 	function applyAccentColor(color: AccentColor) {
@@ -229,8 +249,12 @@ function createSettingsStore() {
 			// View menu items
 			toggleView: t('menu.toggleView'),
 			toggleEditor: t('menu.toggleEditor'),
+			toggleQueue: t('menu.toggleQueue'),
 			expandAllReleases: t('menu.expandAllReleases'),
 			collapseAllReleases: t('menu.collapseAllReleases'),
+			zoomIn: t('menu.zoomIn'),
+			zoomOut: t('menu.zoomOut'),
+			actualSize: t('menu.actualSize'),
 			showDevTools: t('menu.showDevTools'),
 			enterFullScreen: t('menu.enterFullScreen'),
 			exitFullScreen: t('menu.exitFullScreen'),
@@ -273,11 +297,17 @@ function createSettingsStore() {
 		/**
 		 * Load settings from backend
 		 */
-		async load() {
+		async load(opts?: { skipLanguage?: boolean }) {
 			update((s) => ({ ...s, loading: true, error: null }))
 
 			try {
-				const [settings, audioDevices] = await Promise.all([settingsApi.getSettings(), settingsApi.getAudioDevices()])
+				const [settings, audioDevices] = await Promise.all([
+					settingsApi.getSettings(),
+					// get_audio_devices is desktop-only (#[cfg(feature = "desktop")]); on mobile the command
+					// is absent, so default to an empty list rather than letting the whole load() reject and
+					// fall back to hardcoded theme defaults.
+					settingsApi.getAudioDevices().catch(() => [] as AudioDevice[]),
+				])
 				const resolvedTheme = resolveTheme(settings.theme)
 
 				update((s) => ({
@@ -299,6 +329,7 @@ function createSettingsStore() {
 					transferTagsOnImport: settings.transferTagsOnImport,
 					removeReleaseAfterImport: settings.removeReleaseAfterImport,
 					followCheckCadence: settings.followCheckCadence ?? 'daily',
+					collectionRefreshCadence: settings.collectionRefreshCadence ?? 'daily',
 					autoFollowOnImport: settings.autoFollowOnImport ?? 'off',
 					releaseDayReminders: settings.releaseDayReminders ?? true,
 					newReleasesSummary: settings.newReleasesSummary ?? true,
@@ -308,6 +339,9 @@ function createSettingsStore() {
 					lastBackupType: settings.lastBackupType ?? null,
 					hasCompletedOnboarding: settings.hasCompletedOnboarding,
 					hasCompletedWizard: settings.hasCompletedWizard,
+					discoveryAudioCacheLimitMb: settings.discoveryAudioCacheLimitMb ?? 500,
+					discoveryArtworkCacheLimitMb: settings.discoveryArtworkCacheLimitMb ?? 250,
+					uiZoom: settings.uiZoom ?? 1,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -318,10 +352,11 @@ function createSettingsStore() {
 				persistToLocalStorage(settings.theme, settings.accentColor, settings.language, settings.font)
 				setupSystemThemeListener()
 
-				// Update i18n language and menu
-				await setI18nLanguage(settings.language)
-				await tick()
-				await updateMenuTranslations()
+				if (!opts?.skipLanguage) {
+					await setI18nLanguage(settings.language)
+					await tick()
+					await updateMenuTranslations()
+				}
 			} catch (error) {
 				update((s) => ({
 					...s,
@@ -474,6 +509,71 @@ function createSettingsStore() {
 			}
 		},
 
+		async setAudioCacheLimitMb(mb: number) {
+			update((s) => ({ ...s, discoveryAudioCacheLimitMb: mb }))
+
+			try {
+				await settingsApi.setSetting('discovery_audio_cache_limit_mb', String(mb))
+			} catch (error) {
+				console.error('Failed to save audio cache limit setting:', error)
+			}
+		},
+
+		async setArtworkCacheLimitMb(mb: number) {
+			update((s) => ({ ...s, discoveryArtworkCacheLimitMb: mb }))
+
+			try {
+				await settingsApi.setSetting('discovery_artwork_cache_limit_mb', String(mb))
+			} catch (error) {
+				console.error('Failed to save artwork cache limit setting:', error)
+			}
+		},
+
+		// Page zoom is backend-owned (desktop only): Rust snaps, applies, persists, and
+		// answers with the applied level, so these never apply anything themselves.
+		async setUiZoom(level: number) {
+			try {
+				const applied = await settingsApi.setUiZoom(level)
+				update((s) => ({ ...s, uiZoom: applied }))
+			} catch (error) {
+				console.error('Failed to set UI zoom:', error)
+			}
+		},
+
+		async zoomIn() {
+			try {
+				const applied = await settingsApi.stepUiZoom(1)
+				update((s) => ({ ...s, uiZoom: applied }))
+			} catch (error) {
+				console.error('Failed to zoom in:', error)
+			}
+		},
+
+		async zoomOut() {
+			try {
+				const applied = await settingsApi.stepUiZoom(-1)
+				update((s) => ({ ...s, uiZoom: applied }))
+			} catch (error) {
+				console.error('Failed to zoom out:', error)
+			}
+		},
+
+		async resetUiZoom() {
+			try {
+				const applied = await settingsApi.setUiZoom(1)
+				update((s) => ({ ...s, uiZoom: applied }))
+			} catch (error) {
+				console.error('Failed to reset UI zoom:', error)
+			}
+		},
+
+		/**
+		 * Mirror a zoom change the backend applied on its own (native menu shortcuts)
+		 */
+		syncUiZoom(level: number) {
+			update((s) => (s.uiZoom === level ? s : { ...s, uiZoom: level }))
+		},
+
 		/**
 		 * Set auto-analyze on import
 		 */
@@ -558,6 +658,15 @@ function createSettingsStore() {
 				await settingsApi.setSetting('follow_check_cadence', cadence)
 			} catch (error) {
 				console.error('Failed to save follow check cadence setting:', error)
+			}
+		},
+
+		async setCollectionRefreshCadence(cadence: FollowCheckCadence) {
+			update((s) => ({ ...s, collectionRefreshCadence: cadence }))
+			try {
+				await settingsApi.setSetting('collection_refresh_cadence', cadence)
+			} catch (error) {
+				console.error('Failed to save collection refresh cadence setting:', error)
 			}
 		},
 
@@ -680,6 +789,8 @@ export const accentColor = derived(settingsStore, ($s) => $s.accentColor)
 
 export const font = derived(settingsStore, ($s) => $s.font)
 
+export const uiZoom = derived(settingsStore, ($s) => $s.uiZoom)
+
 export const resolvedTheme = derived(settingsStore, ($s) => $s.resolvedTheme)
 
 export const audioDevice = derived(settingsStore, ($s) => $s.audioDevice)
@@ -709,6 +820,7 @@ export const transferTagsOnImport = derived(settingsStore, ($s) => $s.transferTa
 export const removeReleaseAfterImport = derived(settingsStore, ($s) => $s.removeReleaseAfterImport)
 
 export const followCheckCadence = derived(settingsStore, ($s) => $s.followCheckCadence)
+export const collectionRefreshCadence = derived(settingsStore, ($s) => $s.collectionRefreshCadence)
 
 export const autoFollowOnImport = derived(settingsStore, ($s) => $s.autoFollowOnImport)
 
@@ -721,6 +833,10 @@ export const ignoredDeviceIds = derived(settingsStore, ($s) => $s.ignoredDeviceI
 export const lastBackupAt = derived(settingsStore, ($s) => $s.lastBackupAt)
 
 export const backupFrequency = derived(settingsStore, ($s) => $s.backupFrequency)
+
+export const audioCacheLimitMb = derived(settingsStore, ($s) => $s.discoveryAudioCacheLimitMb)
+
+export const artworkCacheLimitMb = derived(settingsStore, ($s) => $s.discoveryArtworkCacheLimitMb)
 
 export const lastBackupType = derived(settingsStore, ($s) => $s.lastBackupType)
 

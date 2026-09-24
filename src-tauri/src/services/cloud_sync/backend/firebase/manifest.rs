@@ -62,9 +62,8 @@ impl ManifestStore for FirebaseManifest {
         );
         let resp = self
             .inner
-            .client
-            .get(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::GET, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("manifest read request", e))?;
@@ -128,9 +127,8 @@ impl ManifestStore for FirebaseManifest {
         let commit_url = format!("{}:commit", self.inner.firestore_base());
         let resp = self
             .inner
-            .client
-            .post(&commit_url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::POST, &commit_url, s)
+            .await
             .json(&json!({ "writes": writes }))
             .send()
             .await
@@ -185,9 +183,8 @@ impl ManifestStore for FirebaseManifest {
         );
         let resp = self
             .inner
-            .client
-            .get(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::GET, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("gc list request", e))?;
@@ -232,9 +229,8 @@ impl ManifestStore for FirebaseManifest {
         );
         let resp = self
             .inner
-            .client
-            .delete(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::DELETE, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("gc ack request", e))?;
@@ -252,9 +248,8 @@ impl ManifestStore for FirebaseManifest {
         );
         let resp = self
             .inner
-            .client
-            .delete(&url)
-            .bearer_auth(&s.access_token)
+            .authed(reqwest::Method::DELETE, &url, s)
+            .await
             .send()
             .await
             .map_err(|e| rest::send_error("manifest delete request", e))?;

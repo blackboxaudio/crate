@@ -1,7 +1,9 @@
 use tauri::State;
 
 use crate::error::Result;
-use crate::models::{DiscoveryRelease, MovePlaylistResult, Playlist, Track};
+use crate::models::{
+    AddToPlaylistResult, DiscoveryRelease, MovePlaylistResult, Playlist, PlaylistCoverArt, Track,
+};
 use crate::services::{DiscoveryService, PlaylistService};
 // LibraryService is only used by the desktop variant of `delete_playlist`.
 #[cfg(feature = "desktop")]
@@ -117,7 +119,7 @@ pub async fn add_to_playlist(
     playlist_id: String,
     track_ids: Vec<String>,
     playlists: State<'_, PlaylistService>,
-) -> Result<Playlist> {
+) -> Result<AddToPlaylistResult> {
     playlists.add_tracks(&playlist_id, track_ids)
 }
 
@@ -144,7 +146,7 @@ pub async fn add_releases_to_playlist(
     playlist_id: String,
     release_ids: Vec<String>,
     playlists: State<'_, PlaylistService>,
-) -> Result<Playlist> {
+) -> Result<AddToPlaylistResult> {
     playlists.add_releases(&playlist_id, release_ids)
 }
 
@@ -158,11 +160,46 @@ pub async fn remove_releases_from_playlist(
 }
 
 #[tauri::command]
+pub async fn add_tracks_to_discovery_playlist(
+    playlist_id: String,
+    track_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<AddToPlaylistResult> {
+    playlists.add_discovery_tracks(&playlist_id, track_ids)
+}
+
+#[tauri::command]
+pub async fn remove_tracks_from_discovery_playlist(
+    playlist_id: String,
+    track_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Playlist> {
+    playlists.remove_discovery_tracks(&playlist_id, track_ids)
+}
+
+#[tauri::command]
 pub async fn get_playlist_releases(
     playlist_id: String,
     playlists: State<'_, PlaylistService>,
 ) -> Result<Vec<DiscoveryRelease>> {
     playlists.get_playlist_releases(&playlist_id)
+}
+
+#[tauri::command]
+pub async fn reorder_playlist_releases(
+    playlist_id: String,
+    release_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<()> {
+    playlists.reorder_releases(&playlist_id, release_ids)
+}
+
+#[tauri::command]
+pub async fn get_playlist_cover_art(
+    playlist_ids: Vec<String>,
+    playlists: State<'_, PlaylistService>,
+) -> Result<Vec<PlaylistCoverArt>> {
+    playlists.get_playlist_cover_art(&playlist_ids)
 }
 
 #[tauri::command]

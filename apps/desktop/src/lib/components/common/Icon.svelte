@@ -28,6 +28,12 @@
 		trash:
 			'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
 		'minus-circle': 'M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z',
+		// Playback queue: list lines + a play triangle (mirrors the mobile Up Next trigger)
+		queue: '<path d="M4 6h16M4 12h16M4 18h9" /><path d="M15 16.5l5 2.5-5 2.5z" fill="currentColor" stroke="none" />',
+		// Play next: a play triangle followed by a bar
+		'play-next': '<path d="M5 5l11 7-11 7z" fill="currentColor" stroke="none" /><path d="M19 5v14" />',
+		// Add to queue: list lines + a plus
+		'queue-plus': '<path d="M4 6h11M4 12h11M4 18h7" /><path d="M19 14v6M16 17h6" />',
 		'list-minus':
 			'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6',
 		palette:
@@ -56,6 +62,7 @@
 		'sliders-horizontal':
 			'<path d="M10 5H3" /><path d="M12 19H3" /><path d="M14 3v4" /><path d="M16 17v4" /><path d="M21 12h-9" /><path d="M21 19h-5" /><path d="M21 5h-7" /><path d="M8 10v4" /><path d="M8 12H3" />',
 		plus: 'M12 4v16m8-8H4',
+		minus: 'M20 12H4',
 		grid: 'M4 6h16M4 10h16M4 14h16M4 18h16',
 		terminal: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
 		tag: 'M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a4 4 0 014-4z',
@@ -80,6 +87,7 @@
 		activity: 'M4 12h3l3-9 4 18 3-9h3',
 		rss: '<path d="M4 11a9 9 0 0 1 9 9" /><path d="M4 4a16 16 0 0 1 16 16" /><circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />',
 		user: '<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" />',
+		'shopping-bag': '<path d="M6 8h12l-1.2 12H7.2L6 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" />',
 		loader:
 			'M12 2v4m0 12v4m10-10h-4M6 12H2m15.07-5.07l-2.83 2.83M9.76 14.24l-2.83 2.83m11.14 0l-2.83-2.83M9.76 9.76L6.93 6.93',
 		'eye-slash':
@@ -95,6 +103,14 @@
 			'<line x1="3" y1="6" x2="21" y2="6" /><line x1="6" y1="12" x2="18" y2="12" /><line x1="9" y1="18" x2="15" y2="18" />',
 		shuffle:
 			'<path d="M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.7-1.1 2-1.7 3.3-1.7H22" /><path d="m18 2 4 4-4 4" /><path d="M2 6h1.9c1.5 0 2.9.9 3.6 2.2" /><path d="M22 18h-5.9c-1.3 0-2.5-.6-3.3-1.7l-.5-.8" /><path d="m18 14 4 4-4 4" />',
+		// Repeat glyphs (Tabler Icons, MIT): plain loop, loop with "1" (repeat-track), loop with a
+		// center dot (repeat-release — no standard glyph distinguishes release from context).
+		repeat:
+			'<path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" /><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" />',
+		'repeat-once':
+			'<path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" /><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" /><path d="M11 11l1 -1v4" />',
+		'repeat-dot':
+			'<path d="M4 12v-3a3 3 0 0 1 3 -3h13m-3 -3l3 3l-3 3" /><path d="M20 12v3a3 3 0 0 1 -3 3h-13m3 3l-3 -3l3 -3" /><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />',
 	}
 
 	// Fill-based icons (use fill={true})

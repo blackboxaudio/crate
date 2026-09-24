@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	import { onMount } from 'svelte'
 	import { scale } from 'svelte/transition'
 	import Icon from './Icon.svelte'
@@ -28,7 +29,7 @@
 	let {
 		value = $bindable(''),
 		options,
-		placeholder = 'Select an option',
+		placeholder = '',
 		disabled = false,
 		class: className = '',
 		onchange,
@@ -216,7 +217,7 @@
 		aria-expanded={open}
 	>
 		<span class={selectedLabel ? 'text-text-primary' : 'text-text-tertiary'}>
-			{selectedLabel || placeholder}
+			{selectedLabel || placeholder || $translate('common.selectAnOption')}
 		</span>
 		<Icon name="chevron-down" class="h-4 w-4 text-text-tertiary transition-transform {open ? 'rotate-180' : ''}" />
 	</button>

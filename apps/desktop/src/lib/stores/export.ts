@@ -160,25 +160,3 @@ export const exportProgressPercent = derived(exportStore, ($store) => {
 	if ($store.progress.files_total === 0) return 0
 	return Math.round(($store.progress.files_copied / $store.progress.files_total) * 100)
 })
-
-/**
- * Human-readable export status
- */
-export const exportStatusLabel = derived(exportStore, ($store) => {
-	if (!$store.progress) return ''
-
-	switch ($store.progress.status) {
-		case 'pending':
-			return 'Preparing...'
-		case 'copying':
-			return 'Copying files...'
-		case 'generating_database':
-			return 'Generating database...'
-		case 'completed':
-			return 'Complete'
-		case 'failed':
-			return 'Failed'
-		default:
-			return ''
-	}
-})

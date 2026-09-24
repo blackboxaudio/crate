@@ -153,21 +153,38 @@ impl std::str::FromStr for AccentColor {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum Font {
+    /// The native platform UI font (San Francisco on iOS/macOS). The mobile default — no web font is
+    /// fetched, so the app paints instantly and works offline.
+    System,
     Inter,
     Nunito,
-    #[default]
     OpenSans,
     FiraCode,
     IbmPlexMono,
     SourceCodePro,
 }
 
+/// The *unset* default UI font differs by platform: mobile ships the **native system** font (San
+/// Francisco on iOS), desktop keeps **Open Sans**. An explicit user choice persists in the settings
+/// table (and cloud-syncs), so this only governs a fresh node that has never set a font. A bare/test
+/// build (neither feature) uses Open Sans, matching desktop.
+impl Default for Font {
+    fn default() -> Self {
+        if cfg!(feature = "mobile") {
+            Font::System
+        } else {
+            Font::OpenSans
+        }
+    }
+}
+
 impl std::fmt::Display for Font {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Font::System => write!(f, "system"),
             Font::Inter => write!(f, "inter"),
             Font::Nunito => write!(f, "nunito"),
             Font::OpenSans => write!(f, "open-sans"),
@@ -183,6 +200,7 @@ impl std::str::FromStr for Font {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
+            "system" => Ok(Font::System),
             "inter" => Ok(Font::Inter),
             "nunito" => Ok(Font::Nunito),
             "open-sans" => Ok(Font::OpenSans),
@@ -387,6 +405,9 @@ pub struct AppSettings {
     pub transfer_tags_on_import: bool,
     pub remove_release_after_import: bool,
     pub follow_check_cadence: FollowCheckCadence,
+    /// Auto-refresh cadence for linked purchase collections (reuses the follow cadence
+    /// vocabulary). Device-local, like `follow_check_cadence`.
+    pub collection_refresh_cadence: FollowCheckCadence,
     pub auto_follow_on_import: AutoFollowOnImport,
     pub release_day_reminders: bool,
     pub new_releases_summary: bool,
@@ -396,6 +417,13 @@ pub struct AppSettings {
     pub last_backup_type: Option<String>,
     pub has_completed_onboarding: bool,
     pub has_completed_wizard: bool,
+    /// Device-local cap (MB) on the on-disk discovery audio-preview cache; drives LRU eviction.
+    pub discovery_audio_cache_limit_mb: i64,
+    /// Device-local cap (MB) on the on-disk discovery artwork cache; drives LRU eviction.
+    pub discovery_artwork_cache_limit_mb: i64,
+    /// Device-local, desktop-only webview page zoom (1.0 = 100%). Never cloud-synced: it
+    /// depends on the display, not the user.
+    pub ui_zoom: f64,
 }
 
 impl Default for AppSettings {
@@ -416,6 +444,7 @@ impl Default for AppSettings {
             transfer_tags_on_import: true,
             remove_release_after_import: true,
             follow_check_cadence: FollowCheckCadence::default(),
+            collection_refresh_cadence: FollowCheckCadence::default(),
             auto_follow_on_import: AutoFollowOnImport::default(),
             release_day_reminders: true,
             new_releases_summary: true,
@@ -425,6 +454,9 @@ impl Default for AppSettings {
             last_backup_type: None,
             has_completed_onboarding: false,
             has_completed_wizard: false,
+            discovery_audio_cache_limit_mb: 500,
+            discovery_artwork_cache_limit_mb: 250,
+            ui_zoom: 1.0,
         }
     }
 }

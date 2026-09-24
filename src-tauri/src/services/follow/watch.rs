@@ -9,6 +9,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
+use chrono::Utc;
 use rusqlite::Connection;
 use tauri::{AppHandle, Emitter, Manager};
 use tauri_plugin_notification::NotificationExt;
@@ -19,9 +20,23 @@ use crate::models::{
     SourceCheckResult,
 };
 use crate::services::discovery::{metadata, DiscoveryService};
+use crate::services::watch_gate::{health_for_error, should_skip_scan};
 use crate::services::SettingsService;
 
 use super::{diff, FollowService, SourceToCheck};
+
+/// Don't re-fetch a source's page more often than this on automatic sweeps — the cache
+/// window that keeps a relaunch loop or a spammed "Check all" from hammering a platform
+/// into a rate limit. A user's explicit single-source "Check now" bypasses it (`force`).
+/// The failure backoff lives in `watch_gate` and is shared with the collection loop.
+const RESCAN_COOLDOWN_SECS: i64 = 30 * 60;
+
+/// At most one full sweep runs at a time. The watch loop's launch sweep, the frontend's
+/// pull-to-refresh, and "Check all now" can otherwise race and scan every source
+/// concurrently — the per-source cooldown can't stop that because both sweeps read the
+/// gate before either has marked anything checked. A caller that loses the race skips
+/// (the winner's results land via `followed-releases-found` anyway).
+static SWEEP_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
 
 /// Scan a page for the forward-looking baseline: the full current page contents,
 /// independent of what is already in Discovery.
@@ -72,7 +87,8 @@ pub async fn establish_baseline(
             follow.record_baseline(&source_id, &urls)
         }
         Err(e) => {
-            let _ = follow.mark_checked(&source_id, FollowHealth::Error, Some(&e.to_string()));
+            let health = health_for_error(&e.to_string());
+            let _ = follow.mark_checked(&source_id, health, Some(&e.to_string()));
             Err(e)
         }
     }
@@ -143,9 +159,30 @@ pub async fn check_one(
     app: AppHandle,
     app_data_dir: PathBuf,
     source: SourceToCheck,
+    force: bool,
 ) -> (SourceCheckResult, Vec<String>) {
     let follow = FollowService::new(conn.clone(), app_data_dir.clone());
     let name = source.name.clone();
+
+    // Rate-limit gate: skip the network scan entirely if this source is inside its
+    // failure-backoff window, or (on automatic sweeps) was scanned within the re-scan
+    // cooldown. This is the cache that stops repeated sweeps from hammering
+    // Bandcamp/SoundCloud/Discogs into a rate limit. A missing state row → never checked
+    // → scan. Returns the last known health/error unchanged (no DB write, no clock reset).
+    if let Ok(gate) = follow.get_check_gate(&source.id) {
+        if should_skip_scan(Utc::now(), &gate, force, RESCAN_COOLDOWN_SECS) {
+            return (
+                SourceCheckResult {
+                    source_id: source.id,
+                    name,
+                    new_count: 0,
+                    health: gate.health,
+                    error: gate.last_error,
+                },
+                Vec::new(),
+            );
+        }
+    }
 
     // Baseline pass: a source with no local baseline (new follow, or synced from another
     // device) records the page as known and surfaces nothing — this is the anti-flood guard.
@@ -160,7 +197,10 @@ pub async fn check_one(
         .await;
         let (health, error) = match res {
             Ok(()) => ("ok".to_string(), None),
-            Err(e) => ("error".to_string(), Some(e.to_string())),
+            Err(e) => (
+                health_for_error(&e.to_string()).to_string(),
+                Some(e.to_string()),
+            ),
         };
         return (
             SourceCheckResult {
@@ -177,13 +217,14 @@ pub async fn check_one(
     let page = match scan_for_baseline(&source.url, &app).await {
         Ok(p) => p,
         Err(e) => {
-            let _ = follow.mark_checked(&source.id, FollowHealth::Error, Some(&e.to_string()));
+            let health = health_for_error(&e.to_string());
+            let _ = follow.mark_checked(&source.id, health, Some(&e.to_string()));
             return (
                 SourceCheckResult {
                     source_id: source.id,
                     name,
                     new_count: 0,
-                    health: "error".to_string(),
+                    health: health.to_string(),
                     error: Some(e.to_string()),
                 },
                 Vec::new(),
@@ -258,21 +299,45 @@ pub async fn check_all(
     app: AppHandle,
     app_data_dir: PathBuf,
 ) -> Result<FollowedReleasesFound> {
+    let Ok(_sweep) = SWEEP_LOCK.try_lock() else {
+        log::info!("follow: sweep already in progress — skipping duplicate check_all");
+        return Ok(FollowedReleasesFound {
+            total_new: 0,
+            by_source: Vec::new(),
+            release_ids: Vec::new(),
+            checked_at: chrono::Utc::now().to_rfc3339(),
+        });
+    };
+
     let follow = FollowService::new(conn.clone(), app_data_dir.clone());
     let sources = follow.enabled_sources()?;
 
     let mut by_source = Vec::new();
     let mut release_ids = Vec::new();
     for source in sources {
-        let base_ms = match source.source_type.as_str() {
-            "discogs" => 8000,
-            "soundcloud" => 2000,
-            _ => 1500,
-        };
-        tokio::time::sleep(metadata::jittered_delay(base_ms)).await;
+        // Only pay the inter-source rate-limit spacing when this source will actually be
+        // scanned — a gated-out source makes no network call, so it needs no delay.
+        let will_scan = follow
+            .get_check_gate(&source.id)
+            .map(|g| !should_skip_scan(Utc::now(), &g, false, RESCAN_COOLDOWN_SECS))
+            .unwrap_or(true);
+        if will_scan {
+            let base_ms = match source.source_type.as_str() {
+                "discogs" => 8000,
+                "soundcloud" => 2000,
+                _ => 1500,
+            };
+            tokio::time::sleep(metadata::jittered_delay(base_ms)).await;
+        }
 
-        let (result, ids) =
-            check_one(conn.clone(), app.clone(), app_data_dir.clone(), source).await;
+        let (result, ids) = check_one(
+            conn.clone(),
+            app.clone(),
+            app_data_dir.clone(),
+            source,
+            false,
+        )
+        .await;
         release_ids.extend(ids);
         by_source.push(result);
     }
@@ -316,6 +381,28 @@ pub fn start_watching(app_handle: AppHandle, conn: Arc<Mutex<Connection>>, app_d
                 interval.is_some()
             };
             if should_check {
+                // Mobile: an automatic sweep landing while the app is backgrounded (easy to
+                // hit — the launch sweep fires 30s after boot, and background audio keeps the
+                // process and its timers alive) burns background CPU that iOS hard-kills at
+                // 80% over 60s. Wait for the webview to be foregrounded first — bounded, and
+                // fail-OPEN so a stale flag degrades to a delayed sweep rather than a silently
+                // dead cadence (the background summary notification relies on sweeps still
+                // running eventually).
+                #[cfg(feature = "mobile")]
+                {
+                    use std::sync::atomic::Ordering;
+                    let cap = Duration::from_secs(15 * 60);
+                    let mut waited = Duration::ZERO;
+                    while !app_handle
+                        .state::<crate::AppForegroundFlag>()
+                        .0
+                        .load(Ordering::Relaxed)
+                        && waited < cap
+                    {
+                        tokio::time::sleep(Duration::from_secs(30)).await;
+                        waited += Duration::from_secs(30);
+                    }
+                }
                 if let Ok(found) =
                     check_all(conn.clone(), app_handle.clone(), app_data_dir.clone()).await
                 {
@@ -340,7 +427,8 @@ pub fn start_watching(app_handle: AppHandle, conn: Arc<Mutex<Connection>>, app_d
 }
 
 /// `(run_on_launch, periodic_interval)` for a cadence. "Daily" is on-launch + every 24h.
-fn cadence_schedule(cadence: FollowCheckCadence) -> (bool, Option<Duration>) {
+/// Shared with the collection refresh loop, which reuses `FollowCheckCadence`.
+pub(crate) fn cadence_schedule(cadence: FollowCheckCadence) -> (bool, Option<Duration>) {
     match cadence {
         FollowCheckCadence::Manual => (false, None),
         FollowCheckCadence::OnLaunch => (true, None),

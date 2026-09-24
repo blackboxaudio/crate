@@ -24,7 +24,7 @@ impl TagCategory {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Tag {
     pub id: String,
     pub category_id: String,

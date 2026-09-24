@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	import { formatDuration } from '$shared/utils'
 	import { Text } from '$lib/components/common'
 
@@ -57,7 +58,7 @@
 	<div
 		role="slider"
 		tabindex="0"
-		aria-label="Seek"
+		aria-label={$translate('player.seek')}
 		aria-valuemin={0}
 		aria-valuemax={duration}
 		aria-valuenow={displayPosition}

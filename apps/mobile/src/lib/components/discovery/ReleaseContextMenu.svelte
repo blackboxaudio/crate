@@ -1,0 +1,369 @@
+<script lang="ts">
+	import { get } from 'svelte/store'
+	import { translate } from '$shared/i18n'
+	import type { DiscoveryRelease } from '$shared/types'
+	import { discoveryStore } from '$shared/stores/discovery'
+	import * as playbackQueue from '$shared/stores/playbackQueue'
+	import { toastStore } from '$shared/stores/toast'
+	import { shareUrl } from '$shared/api/app'
+	import { openUrl } from '@tauri-apps/plugin-opener'
+	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
+	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
+	import { deriveArtistUrl, deriveLabelUrl, isCompilation } from '$shared/utils'
+	import { mobileUIStore, actionsReleaseId, actionsContext, actionsAnchorRect } from '$lib/stores/mobileUI'
+	import { confirmDialog } from '$lib/utils/dialog'
+	import { lightTap } from '$lib/utils/haptics'
+	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
+	import ContextMenuItem from '$lib/components/common/ContextMenuItem.svelte'
+	import ReleaseCardContent from './ReleaseCardContent.svelte'
+	import MobileTagPicker from './MobileTagPicker.svelte'
+	import SourceIcon from './SourceIcon.svelte'
+
+	// iOS-style context menu for a discovery release (the long-press menu on a feed/playlist row). Wraps the
+	// generic `ContextMenu`: it lifts a preview of the row (rendered via `ReleaseCardContent`, no DOM clone)
+	// and lists the same actions the bottom action sheet used to. Driven by the shared `actions*` store; the
+	// caller mounts one always-present instance per context (feed vs playlist) and passes the `context` it
+	// serves, so only the matching instance opens (and the close animation isn't cut short by an unmount).
+	type Props = {
+		/** Which context this instance serves. It opens only when the store's context matches, so the feed,
+		 *  playlist-detail and tag-detail instances (each always mounted in its overlay) never both render for
+		 *  the same release. */
+		context: 'feed' | 'playlist' | 'tag' | 'follow'
+		releases: DiscoveryRelease[]
+		playlistId?: string | null
+		/** Playlist context only: whether manual reorder is currently meaningful (natural order, no
+		 *  active view sort/filter). The Reorder item hides when false. */
+		canReorder?: boolean
+		onAddToPlaylist?: (releaseId: string) => void
+		onRemoveFromPlaylist?: (releaseId: string) => void
+	}
+	let {
+		context,
+		releases,
+		playlistId = null,
+		canReorder = true,
+		onAddToPlaylist,
+		onRemoveFromPlaylist,
+	}: Props = $props()
+
+	const releaseId = $derived($actionsReleaseId)
+	const anchorRect = $derived($actionsAnchorRect)
+	const release = $derived(releaseId ? (releases.find((r) => r.id === releaseId) ?? null) : null)
+	const open = $derived(release != null && anchorRect != null && $actionsContext === context)
+
+	// Latch the release so the lifted preview keeps rendering through the dismiss animation (after an action
+	// clears the store, `release` goes null but the menu is still sliding out). Cleared on `onClosed`.
+	let displayed = $state<DiscoveryRelease | null>(null)
+	$effect(() => {
+		if (release) displayed = release
+	})
+	// Latch the anchor the same way: the store's rect clears the moment anything closes the menu, and
+	// ContextMenu positions (and shows) the platter/preview from it — passing the live value snaps the
+	// menu invisible at close instead of letting the dismiss animation play.
+	let displayedAnchor = $state<{ top: number; left: number; width: number; height: number } | null>(null)
+	$effect(() => {
+		if (anchorRect) displayedAnchor = anchorRect
+	})
+	function handleClosed() {
+		displayed = null
+		displayedAnchor = null
+	}
+	const platformName = $derived(displayed ? getReleasePlatformName(displayed.source_type) : null)
+
+	// Whether the release exposes a followable artist/label page (Bandcamp / SoundCloud, or a known label
+	// page) — gates the "Follow" action. A Various-Artists comp has no artist target but may have a label.
+	const canFollow = $derived.by(() => {
+		if (!displayed) return false
+		const comp = isCompilation(displayed.artist)
+		const artistUrl = comp ? null : deriveArtistUrl(displayed)
+		const labelUrl = comp ? (deriveLabelUrl(displayed) ?? deriveArtistUrl(displayed)) : deriveLabelUrl(displayed)
+		return !!artistUrl || !!labelUrl
+	})
+
+	// If the release vanishes while this instance's menu is open (e.g. a sync deletes it), tear it down.
+	$effect(() => {
+		if ($actionsContext === context && releaseId && !release) mobileUIStore.closeActionsSheet()
+	})
+
+	function close() {
+		mobileUIStore.closeActionsSheet()
+	}
+
+	// Open the inline follow sheet for this release. Snapshot the id before close() clears the store.
+	function handleFollow() {
+		const id = releaseId
+		if (!id) return
+		close()
+		mobileUIStore.openFollowSheet(id)
+	}
+
+	// Each handler snapshots the id/release up front: `close()` clears the store, after which the derived
+	// `releaseId`/`release` read null — so we must capture before closing (and before any await).
+	function handleSelect() {
+		const id = releaseId
+		if (!id) return
+		close()
+		mobileUIStore.enterSelectMode(id)
+	}
+
+	function handleAddToPlaylist() {
+		const id = releaseId
+		if (!id) return
+		close()
+		onAddToPlaylist?.(id)
+	}
+
+	// Tags open the shared bottom-sheet picker (mobile's answer to desktop's nested Tags submenu). The
+	// menu owns the sheet so every host context gets it without extra wiring; the id is snapshotted
+	// because close() clears the store.
+	let tagPickerOpen = $state(false)
+	let tagPickerReleaseId = $state<string | null>(null)
+	function handleTags() {
+		const id = releaseId
+		if (!id) return
+		close()
+		tagPickerReleaseId = id
+		tagPickerOpen = true
+	}
+
+	function handleRemoveFromPlaylist() {
+		const id = releaseId
+		if (!id) return
+		close()
+		onRemoveFromPlaylist?.(id)
+	}
+
+	// Release-level queue actions enqueue every track of the release, in order — the whole-release
+	// equivalent of the per-track Play next / Add to queue in the detail screen.
+	function handlePlayNext() {
+		const r = release
+		if (!r || r.tracks.length === 0) return
+		void lightTap()
+		playbackQueue.playReleaseNext(r)
+		toastStore.success(get(translate)('queue.playingNext'))
+		close()
+	}
+
+	function handleAddToQueue() {
+		const r = release
+		if (!r || r.tracks.length === 0) return
+		void lightTap()
+		playbackQueue.addReleaseToQueue(r)
+		toastStore.success(get(translate)('queue.addedToQueue'))
+		close()
+	}
+
+	function handleReorder() {
+		close()
+		mobileUIStore.toggleReorderMode()
+	}
+
+	async function handleDelete() {
+		const id = releaseId
+		if (!id) return
+		const ok = await confirmDialog($translate('discovery.confirmDeleteMessage'), {
+			title: $translate('discovery.confirmDeleteTitle', { values: { count: 1 } }),
+			confirmLabel: $translate('common.delete'),
+		})
+		if (!ok) return
+		close()
+		await discoveryStore.deleteRelease(id)
+	}
+
+	function handleOpenInSource() {
+		const r = release
+		if (!r) return
+		void openUrl(r.url).catch(() => {})
+		close()
+	}
+
+	function handleShare() {
+		const r = release
+		if (!r) return
+		close()
+		// The OS share sheet is the feedback — no toast.
+		void shareUrl(r.url, r.title ?? undefined).catch(() => {})
+	}
+
+	async function handleCopyUrl() {
+		const r = release
+		if (!r) return
+		close()
+		try {
+			await writeText(r.url)
+			// Exception to the sparing-toasts rule: a clipboard write has no other visible feedback.
+			toastStore.info(get(translate)('discovery.copiedUrl'))
+		} catch {
+			// Clipboard denied — nothing useful to surface.
+		}
+	}
+</script>
+
+<ContextMenu {open} anchorRect={displayedAnchor} onClose={close} onClosed={handleClosed}>
+	{#snippet preview()}
+		{#if displayed}
+			<ReleaseCardContent release={displayed} />
+		{/if}
+	{/snippet}
+
+	<!-- Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
+	     act → organize → mode → navigate & share → destructive. -->
+	<ContextMenuItem onclick={handlePlayNext}>
+		{$translate('queue.playNext')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="currentColor">
+				<path d="M5 5l11 7-11 7z" />
+				<rect x="17.5" y="5" width="2" height="14" rx="1" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={handleAddToQueue}>
+		{$translate('queue.addToQueue')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M4 6h11M4 12h11M4 18h7M19 14v6M16 17h6" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem separatorBefore onclick={handleAddToPlaylist}>
+		{$translate('contextMenu.addToPlaylist')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M12 5v14M5 12h14" stroke-linecap="round" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={handleTags}>
+		{$translate('nav.tags')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M20 12l-8 8-9-9V3h8l9 9z" stroke-linecap="round" stroke-linejoin="round" />
+				<circle cx="7.5" cy="7.5" r="1.5" fill="currentColor" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	{#if canFollow}
+		<ContextMenuItem onclick={handleFollow}>
+			{$translate('discovery.following.follow')}
+			{#snippet icon()}
+				<svg
+					class="h-5 w-5"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				>
+					<path d="M5 12a7 7 0 0 1 7 7" />
+					<path d="M5 5a14 14 0 0 1 14 14" />
+					<circle cx="5.5" cy="18.5" r="1.5" fill="currentColor" stroke="none" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
+	<ContextMenuItem separatorBefore onclick={handleSelect}>
+		{$translate('common.select')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path d="M9 11l3 3L22 4" stroke-linecap="round" stroke-linejoin="round" />
+				<path
+					d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	{#if context === 'playlist' && playlistId && canReorder}
+		<ContextMenuItem onclick={handleReorder}>
+			{$translate('queue.reorder')}
+			{#snippet icon()}
+				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M7 15l5 5 5-5M7 9l5-5 5 5" stroke-linecap="round" stroke-linejoin="round" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
+	<ContextMenuItem separatorBefore onclick={handleOpenInSource}>
+		{platformName
+			? $translate('discovery.openInApp', { values: { app: platformName } })
+			: $translate('discovery.openInBrowser')}
+		{#snippet icon()}
+			{#if displayed}<SourceIcon source={displayed.source_type} />{/if}
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={handleShare}>
+		{$translate('discovery.share')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<path d="M12 3v12M8 7l4-4 4 4" />
+				<path d="M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	<ContextMenuItem onclick={handleCopyUrl}>
+		{$translate('discovery.copyUrl')}
+		{#snippet icon()}
+			<svg
+				class="h-5 w-5"
+				viewBox="0 0 24 24"
+				fill="none"
+				stroke="currentColor"
+				stroke-width="2"
+				stroke-linecap="round"
+				stroke-linejoin="round"
+			>
+				<rect x="9" y="9" width="11" height="11" rx="2" />
+				<path d="M5 15V5a2 2 0 012-2h10" />
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+
+	{#if context === 'playlist' && playlistId}
+		<ContextMenuItem separatorBefore destructive onclick={handleRemoveFromPlaylist}>
+			{$translate('contextMenu.removeFromPlaylist')}
+			{#snippet icon()}
+				<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+					<path d="M5 12h14" stroke-linecap="round" />
+				</svg>
+			{/snippet}
+		</ContextMenuItem>
+	{/if}
+
+	<ContextMenuItem separatorBefore={!(context === 'playlist' && playlistId)} destructive onclick={handleDelete}>
+		{$translate('common.delete')}
+		{#snippet icon()}
+			<svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+				<path
+					d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+				/>
+			</svg>
+		{/snippet}
+	</ContextMenuItem>
+</ContextMenu>
+
+<MobileTagPicker
+	open={tagPickerOpen}
+	releaseIds={tagPickerReleaseId ? [tagPickerReleaseId] : []}
+	onClose={() => (tagPickerOpen = false)}
+/>

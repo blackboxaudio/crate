@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySourceType } from '$shared/types'
+	import type { DiscoveryRelease, DiscoverySortConfig } from '$shared/types'
 	import { tick } from 'svelte'
 	import { handleSelection } from '$shared/utils'
 	import { createVirtualList } from '$shared/utils/virtualizer.svelte'
@@ -12,13 +12,6 @@
 
 	const addReleaseShortcut = $derived(navigator.userAgent.includes('Mac') ? '⌘D' : 'Ctrl+D')
 
-	const BASE_PREVIEWABLE: Set<DiscoverySourceType> = new Set(['bandcamp', 'soundcloud', 'youtube'])
-
-	function isReleasePreviewable(release: DiscoveryRelease): boolean {
-		if (BASE_PREVIEWABLE.has(release.source_type)) return true
-		return release.tracks.some((t) => t.video_id !== null)
-	}
-
 	const HEADER_HEIGHT = 33
 	const ROW_HEIGHT = 49
 	const TRACK_ROW_HEIGHT = 29
@@ -26,6 +19,9 @@
 	type Props = {
 		releases: DiscoveryRelease[]
 		selectedIds: Set<string>
+		/** Discovery TRACK selection (sub-rows); mutually exclusive with `selectedIds` (releases). */
+		selectedTrackIds?: Set<string>
+		onTrackSelectionChange?: (ids: Set<string>) => void
 		expandedIds?: Set<string>
 		sortConfig: DiscoverySortConfig
 		categoryColors?: Map<string, string | null>
@@ -45,11 +41,16 @@
 		onTrackContextMenu?: (release: DiscoveryRelease, trackIndex: number, canPlay: boolean, e: MouseEvent) => void
 		onScrollChange?: (offset: number) => void
 		likedOnly?: boolean
+		/** Releases exist but the active search/filters hid them all — show the "no matches" state
+		 *  rather than the add-your-first-release CTA. */
+		hasAnyReleases?: boolean
 	}
 
 	let {
 		releases,
 		selectedIds,
+		selectedTrackIds = new Set<string>(),
+		onTrackSelectionChange,
 		expandedIds = new Set<string>(),
 		sortConfig,
 		categoryColors,
@@ -69,9 +70,11 @@
 		onTrackContextMenu,
 		onScrollChange,
 		likedOnly = false,
+		hasAnyReleases = false,
 	}: Props = $props()
 
 	let lastClickedId: string | null = $state(null)
+	let lastClickedTrackId: string | null = $state(null)
 	let scrollContainerEl: HTMLElement | undefined = $state(undefined)
 	let scrollRestoredForView = $state(false)
 	let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null
@@ -147,6 +150,37 @@
 		onSelectionChange?.(result.selectedIds)
 	}
 
+	// Shift-range over tracks follows what is on screen: the expanded releases in list order, each
+	// narrowed by the liked filter exactly as the rows render them.
+	function visibleTrackItems(): { id: string }[] {
+		const items: { id: string }[] = []
+		for (const r of releases) {
+			if (!expandedIds.has(r.id)) continue
+			for (const t of r.tracks) if (!likedOnly || t.is_liked) items.push({ id: t.id })
+		}
+		return items
+	}
+
+	function handleTrackClick(release: DiscoveryRelease, trackIndex: number, e: MouseEvent) {
+		const track = release.tracks[trackIndex]
+		if (!track) return
+		const result = handleSelection(visibleTrackItems(), selectedTrackIds, track.id, lastClickedTrackId, {
+			shiftKey: e.shiftKey,
+			metaKey: e.metaKey,
+			ctrlKey: e.ctrlKey,
+		})
+		lastClickedTrackId = result.lastClickedId
+		onTrackSelectionChange?.(result.selectedIds)
+	}
+
+	function handleTrackContextMenu(release: DiscoveryRelease, trackIndex: number, canPlay: boolean, e: MouseEvent) {
+		const track = release.tracks[trackIndex]
+		if (track && !selectedTrackIds.has(track.id)) {
+			onTrackSelectionChange?.(new Set([track.id]))
+		}
+		onTrackContextMenu?.(release, trackIndex, canPlay, e)
+	}
+
 	function handleReleaseDoubleClick(release: DiscoveryRelease) {
 		onToggleExpand?.(release.id)
 	}
@@ -163,8 +197,9 @@
 
 	function handleContainerClick(e: MouseEvent) {
 		const target = e.target as HTMLElement
-		if (target.closest('[data-release-row]')) return
+		if (target.closest('[data-release-row], [data-track-row]')) return
 		onSelectionChange?.(new Set())
+		onTrackSelectionChange?.(new Set())
 	}
 
 	function handleContainerContextMenu(e: MouseEvent) {
@@ -191,7 +226,12 @@
 	>
 		<DiscoveryListHeader {sortConfig} onSort={onSortChange} />
 
-		{#if releases.length === 0}
+		{#if releases.length === 0 && hasAnyReleases}
+			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
+				<Icon name="filter" class="mb-4 h-16 w-16" />
+				<Text color="tertiary" class="max-w-sm text-center">{$translate('discovery.noResults')}</Text>
+			</div>
+		{:else if releases.length === 0}
 			<div class="flex h-full flex-col items-center justify-center p-8 text-text-tertiary">
 				<Icon name="globe" class="mb-4 h-16 w-16" />
 				<Text variant="header-1" weight="medium" class="mb-2">{$translate('discovery.noReleasesYet')}</Text>
@@ -203,16 +243,19 @@
 			<div class="bg-surface-0" style="height: {virtualList.totalSize}px; position: relative; pointer-events: none;">
 				{#each virtualList.virtualItems as virtualItem (virtualItem.key)}
 					{@const release = releases[virtualItem.index]}
+					<!-- Flex column so the release row stretches into any slack between its natural height and
+					     the estimated slot height. Without it, an estimate even 1px too tall leaves a strip of the
+					     container's background showing between rows — reading as a gap above a selected row's
+					     highlight, just under the border it shares with the release above. -->
 					<div
 						data-vkey={virtualItem.key}
-						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; transform: translateY({virtualItem.start -
+						style="position: absolute; top: 0; left: 0; width: 100%; height: {virtualItem.size}px; overflow: hidden; display: flex; flex-direction: column; transform: translateY({virtualItem.start -
 							HEADER_HEIGHT}px); pointer-events: auto;"
 					>
 						<DiscoveryRow
 							{release}
 							selected={selectedIds.has(release.id)}
 							expanded={expandedIds.has(release.id)}
-							isPreviewable={isReleasePreviewable(release)}
 							dragReleaseIds={Array.from(selectedIds)}
 							{categoryColors}
 							{categorySortOrders}
@@ -225,7 +268,10 @@
 							onToggleExpand={() => onToggleExpand?.(release.id)}
 							onTrackPlay={(idx) => onTrackPlay?.(release, idx)}
 							onTrackLikeToggle={(trackId) => onTrackLikeToggle?.(release.id, trackId)}
-							onTrackContextMenu={(idx, canPlay, e) => onTrackContextMenu?.(release, idx, canPlay, e)}
+							onTrackContextMenu={(idx, canPlay, e) => handleTrackContextMenu(release, idx, canPlay, e)}
+							onTrackClick={(idx, e) => handleTrackClick(release, idx, e)}
+							{selectedTrackIds}
+							dragTrackIds={Array.from(selectedTrackIds)}
 						/>
 					</div>
 				{/each}

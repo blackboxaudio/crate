@@ -15,7 +15,7 @@ use rusqlite::{params, Connection, OptionalExtension};
 
 use crate::error::{CrateError, Result};
 use crate::services::cloud_sync::backend::mock::MockCloudBackend;
-use crate::services::cloud_sync::backend::types::{GcEntry, Manifest};
+use crate::services::cloud_sync::backend::types::{BucketEntry, GcEntry, Manifest};
 use crate::services::cloud_sync::backend::CloudBackend;
 use crate::services::cloud_sync::hlc::Hlc;
 use crate::services::cloud_sync::pipeline::buckets::{self, Bucket};
@@ -691,5 +691,767 @@ async fn gc_sweep_reclaims_due_blobs() -> Result<()> {
             .is_empty(),
         "queue drained"
     );
+    Ok(())
+}
+
+/// The sweep must never delete a blob the CURRENT manifest references: keys are
+/// content-addressed, so a key enqueued at supersession can re-enter the manifest later
+/// (a bucket serializing back to earlier bytes), and deleting it would dangle the
+/// manifest and wedge every pull. The entry is acked without deleting.
+#[tokio::test]
+async fn gc_sweep_spares_still_referenced_blobs() -> Result<()> {
+    let backend: Arc<dyn CloudBackend> = Arc::new(MockCloudBackend::new());
+    let session = test_session();
+    let relative = "playlists-cafebabe.jsonl.gz";
+    let key = format!("users/test-uid/vault/{relative}");
+
+    backend
+        .blobs()
+        .upload(
+            &session,
+            &key,
+            Bytes::from_static(b"live"),
+            "application/x-ndjson",
+        )
+        .await?;
+
+    // The manifest references the key while a stale, past-due GC entry names it too.
+    let mut manifest = Manifest::empty("A");
+    manifest.buckets.insert(
+        "playlists".to_string(),
+        BucketEntry {
+            blob_hash: "cafebabe".into(),
+            object_key: relative.to_string(),
+            count: 1,
+            hlc: String::new(),
+        },
+    );
+    let past = SystemTime::now() - Duration::from_secs(120);
+    backend
+        .manifest()
+        .write(
+            &session,
+            &manifest,
+            None,
+            &[GcEntry {
+                object_key: key.clone(),
+                delete_after: past,
+            }],
+        )
+        .await?;
+
+    assert_eq!(
+        gc::gc_sweep(&backend, &session).await?,
+        1,
+        "entry processed (acked)"
+    );
+    assert!(
+        backend.blobs().download(&session, &key).await.is_ok(),
+        "still-referenced blob spared"
+    );
+    assert!(
+        backend
+            .manifest()
+            .dequeue_gc(&session, SystemTime::now() + Duration::from_secs(3600), 100)
+            .await?
+            .is_empty(),
+        "stale entry still drained from the queue"
+    );
+    Ok(())
+}
+
+/// A manifest entry whose blob is gone (a dangling reference — e.g. reclaimed by a
+/// pre-guard GC sweep) must not wedge sync. The pull skips the bucket and marks it
+/// dirty; the next push re-uploads local content and rewrites the manifest; and the
+/// device still holding the lost rows re-pushes its union after merging the repaired
+/// (older) blob via the post-merge anti-entropy mark. Nothing is lost, all converge.
+#[tokio::test]
+async fn dangling_manifest_reference_self_heals() -> Result<()> {
+    let backend: Arc<dyn CloudBackend> = Arc::new(MockCloudBackend::new());
+    let session = test_session();
+    let a_conn = new_device(0x0A);
+    create_playlist(&a_conn, 0x0A, 5, "p", "Lost");
+    let a = Arc::new(Mutex::new(a_conn));
+    let b = Arc::new(Mutex::new(new_device(0x0B)));
+
+    // A pushes, then the playlists blob vanishes out from under the manifest.
+    push_remote(a.clone(), &backend, &session, "A").await?;
+    let (manifest, _) = backend.manifest().read(&session).await?.expect("manifest");
+    let dead = manifest
+        .bucket("playlists")
+        .expect("playlists entry")
+        .clone();
+    backend
+        .blobs()
+        .delete(
+            &session,
+            &format!("users/{}/vault/{}", session.uid, dead.object_key),
+        )
+        .await?;
+
+    // B's pull survives: the bucket is skipped and scheduled for re-upload.
+    let outcome = pull_remote(b.clone(), &backend, &session, "B").await?;
+    assert_eq!(
+        outcome.skipped,
+        vec!["playlists".to_string()],
+        "dangling bucket skipped, not fatal"
+    );
+    let dirty_count = |conn: &Connection| -> i64 {
+        conn.query_row(
+            "SELECT COUNT(*) FROM sync_dirty_buckets WHERE bucket = 'playlists'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+    };
+    assert_eq!(
+        dirty_count(&b.lock().unwrap()),
+        1,
+        "skipped bucket marked dirty on B"
+    );
+
+    // B's push repairs the manifest: playlists points at a live blob again.
+    push_remote(b.clone(), &backend, &session, "B").await?;
+    let (manifest, _) = backend.manifest().read(&session).await?.expect("manifest");
+    let repaired = manifest.bucket("playlists").expect("playlists entry");
+    assert_ne!(
+        repaired.blob_hash, dead.blob_hash,
+        "manifest entry rewritten"
+    );
+    assert!(
+        backend
+            .blobs()
+            .download(
+                &session,
+                &format!("users/{}/vault/{}", session.uid, repaired.object_key),
+            )
+            .await
+            .is_ok(),
+        "repaired blob is live"
+    );
+
+    // A merges the repaired (empty) blob, keeps its playlist, and the anti-entropy
+    // mark schedules the union push that restores the lost rows to the cloud.
+    pull_remote(a.clone(), &backend, &session, "A").await?;
+    assert_eq!(
+        dirty_count(&a.lock().unwrap()),
+        1,
+        "A marked dirty after merging a remote that lacks its rows"
+    );
+    push_remote(a.clone(), &backend, &session, "A").await?;
+    assert!(
+        pull_remote(b.clone(), &backend, &session, "B")
+            .await?
+            .merged,
+        "B merges the restored rows"
+    );
+    assert_eq!(
+        playlist_name(&b.lock().unwrap(), "p").as_deref(),
+        Some("Lost"),
+        "lost rows recovered from their authoring device"
+    );
+    assert_eq!(
+        state_hash(&a.lock().unwrap())?,
+        state_hash(&b.lock().unwrap())?,
+        "A and B converged"
+    );
+    Ok(())
+}
+
+// --- discovery duplicate collapse -----------------------------------------
+//
+// Discovery tracks/releases historically minted random v4 ids with no natural-key
+// uniqueness, so two devices independently materializing the same content produced
+// duplicate rows (tracks) or a UNIQUE(url)-skip id split-brain (releases). These
+// cases exercise the content-based collapse in the merge engine plus the startup
+// dedupe sweep. Seeding helpers mirror the real mutation sites (stamp + dirty).
+
+fn create_discovery_release(conn: &Connection, node: u32, wall: u64, id: &str, url: &str) {
+    conn.execute(
+        "INSERT INTO discovery_releases (id, url, source_type, date_added, date_modified, _hlc) \
+         VALUES (?1, ?2, 'bandcamp', ?3, ?3, ?4)",
+        params![id, url, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::DISCOVERY_RELEASES).unwrap();
+}
+
+fn create_discovery_track(
+    conn: &Connection,
+    node: u32,
+    wall: u64,
+    id: &str,
+    release_id: &str,
+    name: &str,
+    position: i32,
+) {
+    conn.execute(
+        "INSERT INTO discovery_tracks (id, release_id, name, position, _hlc) \
+         VALUES (?1, ?2, ?3, ?4, ?5)",
+        params![id, release_id, name, position, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::DISCOVERY_TRACKS).unwrap();
+}
+
+/// Deterministic stand-in for the like toggle's `Utc::now()` stamp, keyed by the wall tick.
+fn liked_stamp(wall: u64) -> String {
+    format!("2026-01-01T00:00:00.{wall:03}+00:00")
+}
+
+fn like_discovery_track(conn: &Connection, node: u32, wall: u64, id: &str) {
+    conn.execute(
+        "UPDATE discovery_tracks SET is_liked = 1, liked_at = ?3, _hlc = ?1 WHERE id = ?2",
+        params![hlc(node, wall), id, liked_stamp(wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::DISCOVERY_TRACKS).unwrap();
+}
+
+fn discovery_track_liked_at(conn: &Connection, id: &str) -> Option<String> {
+    conn.query_row(
+        "SELECT liked_at FROM discovery_tracks WHERE id = ?1",
+        [id],
+        |r| r.get(0),
+    )
+    .unwrap()
+}
+
+fn add_discovery_release_tag(conn: &Connection, node: u32, wall: u64, release: &str, tag: &str) {
+    conn.execute(
+        "INSERT INTO discovery_release_tags (release_id, tag_id, _hlc) VALUES (?1, ?2, ?3) \
+         ON CONFLICT(release_id, tag_id) DO UPDATE SET _hlc = excluded._hlc",
+        params![release, tag, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::DISCOVERY_RELEASE_TAGS).unwrap();
+}
+
+/// `(id, name, is_liked)` of a release's live tracks, ordered by id.
+fn discovery_tracks_for(conn: &Connection, release: &str) -> Vec<(String, String, bool)> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, name, is_liked FROM discovery_tracks WHERE release_id = ?1 ORDER BY id",
+        )
+        .unwrap();
+    stmt.query_map([release], |r| {
+        Ok((
+            r.get::<_, String>(0)?,
+            r.get::<_, String>(1)?,
+            r.get::<_, i32>(2)? != 0,
+        ))
+    })
+    .unwrap()
+    .collect::<std::result::Result<Vec<_>, _>>()
+    .unwrap()
+}
+
+fn discovery_release_ids(conn: &Connection) -> Vec<String> {
+    let mut stmt = conn
+        .prepare("SELECT id FROM discovery_releases ORDER BY id")
+        .unwrap();
+    stmt.query_map([], |r| r.get::<_, String>(0))
+        .unwrap()
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn tombstone_exists(conn: &Connection, entity_type: &str, id: &str) -> bool {
+    conn.query_row(
+        "SELECT 1 FROM sync_tombstones WHERE entity_type = ?1 AND entity_id = ?2",
+        params![entity_type, id],
+        |_| Ok(()),
+    )
+    .optional()
+    .unwrap()
+    .is_some()
+}
+
+fn release_tag_exists(conn: &Connection, release: &str, tag: &str) -> bool {
+    conn.query_row(
+        "SELECT 1 FROM discovery_release_tags WHERE release_id = ?1 AND tag_id = ?2",
+        params![release, tag],
+        |_| Ok(()),
+    )
+    .optional()
+    .unwrap()
+    .is_some()
+}
+
+/// Both devices independently populate the same (synced) release's tracks — the
+/// pre-deterministic-id bug shape. The merge must collapse the two id sets into
+/// one row per track, keeping the like and tombstoning the losing id.
+#[tokio::test]
+async fn independent_track_fetches_collapse_to_one_row() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    create_discovery_release(&a, 0x0A, 5, "rel-1", "https://x.bandcamp.com/album/y");
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+
+    // Same logical track, different ids, different name case; B also likes its copy.
+    create_discovery_track(&a, 0x0A, 10, "aaaa-track", "rel-1", "Intro", 1);
+    create_discovery_track(&b, 0x0B, 20, "bbbb-track", "rel-1", "intro", 1);
+    like_discovery_track(&b, 0x0B, 25, "bbbb-track");
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        let tracks = discovery_tracks_for(conn, "rel-1");
+        assert_eq!(tracks.len(), 1, "duplicates collapsed to one row");
+        let (id, _, liked) = &tracks[0];
+        assert_eq!(id, "aaaa-track", "smaller id survives");
+        assert!(*liked, "the like on the losing copy was folded in");
+        assert_eq!(
+            discovery_track_liked_at(conn, "aaaa-track"),
+            Some(liked_stamp(25)),
+            "the like stamp rode along with the fold"
+        );
+        assert!(tombstone_exists(conn, "discovery_tracks", "bbbb-track"));
+    }
+    Ok(())
+}
+
+/// Same as above with the push order mirrored — the collapse rule must be
+/// direction-independent (same survivor, byte-identical buckets).
+#[tokio::test]
+async fn independent_track_fetches_collapse_mirrored_order() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    create_discovery_release(&a, 0x0A, 5, "rel-1", "https://x.bandcamp.com/album/y");
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+
+    create_discovery_track(&a, 0x0A, 10, "aaaa-track", "rel-1", "Intro", 1);
+    create_discovery_track(&b, 0x0B, 20, "bbbb-track", "rel-1", "intro", 1);
+    like_discovery_track(&b, 0x0B, 25, "bbbb-track");
+
+    // B pushes first this time.
+    push(&b, &cloud, "B").await?;
+    pull(&a, &cloud).await?;
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+    push(&b, &cloud, "B").await?;
+    pull(&a, &cloud).await?;
+    assert_eq!(state_hash(&a)?, state_hash(&b)?);
+
+    for conn in [&a, &b] {
+        let tracks = discovery_tracks_for(conn, "rel-1");
+        assert_eq!(tracks.len(), 1);
+        assert_eq!(
+            tracks[0].0, "aaaa-track",
+            "same survivor in both directions"
+        );
+        assert!(tracks[0].2);
+    }
+    Ok(())
+}
+
+/// Existing (already-synced) duplicates, swept on one device while the OTHER
+/// device concurrently likes the copy the sweep removed. The like must not be
+/// destroyed by the sweep's tombstone — it outranks it, survives the pull, and
+/// the merge collapse folds it into the survivor.
+#[tokio::test]
+async fn sweep_preserves_concurrent_like_on_removed_copy() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    // Seed identical (converged) duplicate state on both devices, as if it had
+    // synced before the fix shipped. Same node in the stamps → same bytes.
+    for conn in [&a, &b] {
+        create_discovery_release(conn, 0x0A, 5, "rel-1", "https://x.bandcamp.com/album/y");
+        create_discovery_track(conn, 0x0A, 10, "xxxx-track", "rel-1", "Intro", 1);
+        create_discovery_track(conn, 0x0A, 20, "yyyy-track", "rel-1", "Intro", 1);
+    }
+    assert_eq!(state_hash(&a)?, state_hash(&b)?, "seeded converged");
+
+    // B likes the copy A's sweep is about to remove.
+    like_discovery_track(&b, 0x0B, 30, "yyyy-track");
+
+    let removed = crate::services::discovery::dedupe_discovery_tracks(&a)?;
+    assert_eq!(removed, 1, "A's sweep removed the duplicate");
+    assert_eq!(
+        discovery_tracks_for(&a, "rel-1").len(),
+        1,
+        "one row left on A"
+    );
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        let tracks = discovery_tracks_for(conn, "rel-1");
+        assert_eq!(tracks.len(), 1);
+        assert_eq!(tracks[0].0, "xxxx-track", "smallest id survives everywhere");
+        assert!(tracks[0].2, "B's like on the removed copy was preserved");
+    }
+
+    // A later sweep on B is a no-op — nothing left to collapse.
+    assert_eq!(crate::services::discovery::dedupe_discovery_tracks(&b)?, 0);
+    assert_eq!(state_hash(&a)?, state_hash(&b)?);
+    Ok(())
+}
+
+/// A new-build device minting a content-derived (v5) id meets an old device's
+/// legacy random id for the same track: they collapse like any other pair.
+#[tokio::test]
+async fn deterministic_id_meets_legacy_v4_id() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    create_discovery_release(&a, 0x0A, 5, "rel-1", "https://x.bandcamp.com/album/y");
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+
+    let det_id = crate::models::deterministic_track_id("rel-1", "Intro");
+    create_discovery_track(&a, 0x0A, 10, "zzzz-legacy", "rel-1", "Intro", 1);
+    create_discovery_track(&b, 0x0B, 20, &det_id, "rel-1", "Intro", 1);
+    like_discovery_track(&b, 0x0B, 25, &det_id);
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    // Hex uuids sort below "zzzz-…", so the deterministic id is the survivor.
+    for conn in [&a, &b] {
+        let tracks = discovery_tracks_for(conn, "rel-1");
+        assert_eq!(tracks.len(), 1);
+        assert_eq!(tracks[0].0, det_id);
+        assert!(tracks[0].2);
+        assert!(tombstone_exists(conn, "discovery_tracks", "zzzz-legacy"));
+    }
+    Ok(())
+}
+
+/// Two devices independently add the SAME release URL before syncing (the release
+/// split-brain the UNIQUE(url) merge-skip used to cause). The merge must collapse
+/// the two release ids into one, re-parent children (tracks, tag links) onto the
+/// survivor, and collapse the now-sibling duplicate tracks — no permanent id
+/// divergence, no lost likes or tags.
+#[tokio::test]
+async fn same_url_releases_collapse_and_reparent_children() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    let url = "https://x.bandcamp.com/album/split-brain";
+    create_discovery_release(&a, 0x0A, 5, "p-rel", url);
+    create_discovery_track(&a, 0x0A, 6, "aaaa-track", "p-rel", "Intro", 1);
+
+    create_discovery_release(&b, 0x0B, 7, "q-rel", url);
+    create_discovery_track(&b, 0x0B, 8, "bbbb-track", "q-rel", "Intro", 1);
+    like_discovery_track(&b, 0x0B, 9, "bbbb-track");
+    create_tag_category(&b, 0x0B, 9, "cat", "Genre");
+    create_tag(&b, 0x0B, 9, "tag-house", "cat", "House");
+    add_discovery_release_tag(&b, 0x0B, 9, "q-rel", "tag-house");
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        assert_eq!(
+            discovery_release_ids(conn),
+            vec!["p-rel".to_string()],
+            "one release, smaller id"
+        );
+        assert!(tombstone_exists(conn, "discovery_releases", "q-rel"));
+        let tracks = discovery_tracks_for(conn, "p-rel");
+        assert_eq!(tracks.len(), 1, "re-parented duplicate tracks collapsed");
+        assert_eq!(tracks[0].0, "aaaa-track");
+        assert!(tracks[0].2, "like survived the re-parent + collapse");
+        assert!(
+            release_tag_exists(conn, "p-rel", "tag-house"),
+            "tag link re-parented onto the survivor"
+        );
+    }
+    Ok(())
+}
+
+// --- purchased-collection cases --------------------------------------------
+//
+// Collection accounts/items mint deterministic v5 ids from their natural keys
+// (account: normalized fan URL; item: account_id|normalized item URL), so two
+// devices independently linking and scraping the SAME account must converge on
+// identical rows by PK — never via the UNIQUE(url) collision-skip path. Seeding
+// helpers mirror the real mutation sites (stamp + dirty + state seeding).
+
+fn link_collection_account_row(conn: &Connection, node: u32, wall: u64, id: &str, url: &str) {
+    conn.execute(
+        "INSERT INTO collection_accounts (id, url, source_type, enabled, date_added, date_modified, _hlc) \
+         VALUES (?1, ?2, 'bandcamp', 1, ?3, ?3, ?4)",
+        params![id, url, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    conn.execute(
+        "INSERT OR IGNORE INTO collection_account_state (account_id) VALUES (?1)",
+        [id],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::COLLECTION_ACCOUNTS).unwrap();
+}
+
+fn add_collection_item(
+    conn: &Connection,
+    node: u32,
+    wall: u64,
+    id: &str,
+    account_id: &str,
+    url: &str,
+    title: &str,
+) {
+    conn.execute(
+        "INSERT INTO collection_items \
+            (id, account_id, source_type, item_type, url, title, date_added, date_modified, _hlc) \
+         VALUES (?1, ?2, 'bandcamp', 'album', ?3, ?4, ?5, ?5, ?6)",
+        params![id, account_id, url, title, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::COLLECTION_ITEMS).unwrap();
+}
+
+/// Mirrors `CollectionService::unlink_account`: item tombstones + account tombstone
+/// under one HLC, then the cascading delete.
+fn unlink_collection_account_row(conn: &Connection, node: u32, wall: u64, id: &str) {
+    let h = hlc(node, wall);
+    let item_ids: Vec<String> = {
+        let mut stmt = conn
+            .prepare("SELECT id FROM collection_items WHERE account_id = ?1")
+            .unwrap();
+        let rows = stmt
+            .query_map([id], |r| r.get::<_, String>(0))
+            .unwrap()
+            .collect::<std::result::Result<Vec<_>, _>>()
+            .unwrap();
+        rows
+    };
+    for item_id in &item_ids {
+        dirty::record_tombstone(conn, buckets::COLLECTION_ITEMS, item_id, &h).unwrap();
+    }
+    dirty::record_tombstone(conn, buckets::COLLECTION_ACCOUNTS, id, &h).unwrap();
+    conn.execute("DELETE FROM collection_accounts WHERE id = ?1", [id])
+        .unwrap();
+    dirty::mark_dirty(conn, buckets::COLLECTION_ACCOUNTS).unwrap();
+    dirty::mark_dirty(conn, buckets::COLLECTION_ITEMS).unwrap();
+}
+
+fn collection_item_titles(conn: &Connection, account_id: &str) -> Vec<String> {
+    let mut stmt = conn
+        .prepare("SELECT title FROM collection_items WHERE account_id = ?1 ORDER BY title")
+        .unwrap();
+    let rows = stmt
+        .query_map([account_id], |r| r.get::<_, String>(0))
+        .unwrap();
+    rows.collect::<std::result::Result<Vec<_>, _>>().unwrap()
+}
+
+fn collection_account_exists(conn: &Connection, id: &str) -> bool {
+    conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM collection_accounts WHERE id = ?1)",
+        [id],
+        |r| r.get(0),
+    )
+    .unwrap()
+}
+
+#[tokio::test]
+async fn same_collection_account_converges_by_deterministic_id() -> Result<()> {
+    use crate::models::{deterministic_account_id, deterministic_collection_item_id};
+
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    // Both devices link the SAME fan page and scrape overlapping item sets.
+    let fan_url = "https://bandcamp.com/somefan";
+    let acct = deterministic_account_id(fan_url);
+    let shared_url = "https://artist.bandcamp.com/album/shared";
+    let shared_item = deterministic_collection_item_id(&acct, shared_url);
+
+    link_collection_account_row(&a, 0x0A, 5, &acct, fan_url);
+    add_collection_item(&a, 0x0A, 6, &shared_item, &acct, shared_url, "Shared");
+    let a_only = deterministic_collection_item_id(&acct, "https://x.bandcamp.com/album/a-only");
+    add_collection_item(
+        &a,
+        0x0A,
+        6,
+        &a_only,
+        &acct,
+        "https://x.bandcamp.com/album/a-only",
+        "AOnly",
+    );
+
+    link_collection_account_row(&b, 0x0B, 7, &acct, fan_url);
+    add_collection_item(&b, 0x0B, 8, &shared_item, &acct, shared_url, "Shared");
+    let b_only = deterministic_collection_item_id(&acct, "https://y.bandcamp.com/album/b-only");
+    add_collection_item(
+        &b,
+        0x0B,
+        8,
+        &b_only,
+        &acct,
+        "https://y.bandcamp.com/album/b-only",
+        "BOnly",
+    );
+
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        assert!(collection_account_exists(conn, &acct));
+        assert_eq!(
+            collection_item_titles(conn, &acct),
+            vec![
+                "AOnly".to_string(),
+                "BOnly".to_string(),
+                "Shared".to_string()
+            ],
+            "identical ids collapsed the shared item; disjoint items unioned"
+        );
+    }
+    Ok(())
+}
+
+#[tokio::test]
+async fn unlink_collection_account_propagates() -> Result<()> {
+    use crate::models::{deterministic_account_id, deterministic_collection_item_id};
+
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    let fan_url = "https://bandcamp.com/somefan";
+    let acct = deterministic_account_id(fan_url);
+    let item = deterministic_collection_item_id(&acct, "https://z.bandcamp.com/album/one");
+
+    link_collection_account_row(&a, 0x0A, 5, &acct, fan_url);
+    add_collection_item(
+        &a,
+        0x0A,
+        6,
+        &item,
+        &acct,
+        "https://z.bandcamp.com/album/one",
+        "One",
+    );
+    assert_converged(&a, &b, &cloud).await?;
+    assert!(collection_account_exists(&b, &acct));
+
+    // B unlinks; the delete (and the cascaded items) must reach A.
+    unlink_collection_account_row(&b, 0x0B, 20, &acct);
+    assert_converged(&a, &b, &cloud).await?;
+
+    for conn in [&a, &b] {
+        assert!(!collection_account_exists(conn, &acct));
+        assert!(collection_item_titles(conn, &acct).is_empty());
+    }
+    Ok(())
+}
+
+// --- track-based discovery playlists ----------------------------------------
+
+fn create_discovery_playlist(conn: &Connection, node: u32, wall: u64, id: &str) {
+    conn.execute(
+        "INSERT INTO playlists \
+            (id, name, parent_id, is_folder, is_smart, smart_rules, sort_order, context, \
+             date_created, date_modified, _hlc) \
+         VALUES (?1, ?1, NULL, 0, 0, NULL, 0, 'discovery', ?2, ?2, ?3)",
+        params![id, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::PLAYLISTS).unwrap();
+}
+
+/// A whole-release membership as an older build (or a pre-transition backup) writes it.
+fn add_release_to_playlist_ledger(conn: &Connection, node: u32, wall: u64, pl: &str, rel: &str) {
+    conn.execute(
+        "INSERT INTO playlist_discovery_releases (playlist_id, release_id, position, date_added, _hlc) \
+         VALUES (?1, ?2, 0, ?3, ?4)",
+        params![pl, rel, DATE, hlc(node, wall)],
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::PLAYLIST_DISCOVERY_RELEASES).unwrap();
+}
+
+fn remove_track_from_discovery_playlist(
+    conn: &Connection,
+    node: u32,
+    wall: u64,
+    pl: &str,
+    tr: &str,
+) {
+    conn.execute(
+        "DELETE FROM playlist_discovery_tracks WHERE playlist_id = ?1 AND track_id = ?2",
+        params![pl, tr],
+    )
+    .unwrap();
+    dirty::record_tombstone(
+        conn,
+        buckets::PLAYLIST_DISCOVERY_TRACKS,
+        &dirty::junction_entity_id(pl, tr),
+        &hlc(node, wall),
+    )
+    .unwrap();
+    dirty::mark_dirty(conn, buckets::PLAYLIST_DISCOVERY_TRACKS).unwrap();
+}
+
+fn discovery_playlist_members(conn: &Connection, pl: &str) -> Vec<String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT track_id FROM playlist_discovery_tracks WHERE playlist_id = ?1 ORDER BY position",
+        )
+        .unwrap();
+    stmt.query_map([pl], |r| r.get::<_, String>(0))
+        .unwrap()
+        .collect::<std::result::Result<Vec<_>, _>>()
+        .unwrap()
+}
+
+fn ledger_rows(conn: &Connection) -> i64 {
+    conn.query_row(
+        "SELECT COUNT(*) FROM playlist_discovery_releases",
+        [],
+        |r| r.get(0),
+    )
+    .unwrap()
+}
+
+/// A release-level membership from a peer (older build / restored backup) syncs in,
+/// each device expands it into per-track members, and the two devices still converge
+/// byte-for-byte — the expansion stamps are a pure function of the ledger row.
+#[tokio::test]
+async fn ledger_expansion_converges_across_devices() -> Result<()> {
+    let cloud = MockCloudBackend::new();
+    let a = new_device(0x0A);
+    let b = new_device(0x0B);
+
+    create_discovery_playlist(&a, 0x0A, 1, "p1");
+    create_discovery_release(&a, 0x0A, 1, "r1", "https://x.bandcamp.com/album/a");
+    create_discovery_track(&a, 0x0A, 1, "d1", "r1", "One", 1);
+    create_discovery_track(&a, 0x0A, 1, "d2", "r1", "Two", 2);
+    add_release_to_playlist_ledger(&a, 0x0A, 5, "p1", "r1");
+    push(&a, &cloud, "A").await?;
+    pull(&b, &cloud).await?;
+
+    // Both devices expand the same ledger row independently (launch sweep on each).
+    crate::services::playlist::expand_release_memberships(&a)?;
+    crate::services::playlist::expand_release_memberships(&b)?;
+    assert_eq!(discovery_playlist_members(&a, "p1"), ["d1", "d2"]);
+    assert_eq!(discovery_playlist_members(&b, "p1"), ["d1", "d2"]);
+    assert_eq!(ledger_rows(&a), 0);
+    assert!(tombstone_exists(
+        &a,
+        buckets::PLAYLIST_DISCOVERY_RELEASES,
+        "p1|r1"
+    ));
+
+    assert_converged(&a, &b, &cloud).await?;
+    assert_eq!(ledger_rows(&b), 0, "ledger row stays consumed after sync");
+
+    // Pruning one member on B propagates to A.
+    remove_track_from_discovery_playlist(&b, 0x0B, 20, "p1", "d2");
+    assert_converged(&a, &b, &cloud).await?;
+    assert_eq!(discovery_playlist_members(&a, "p1"), ["d1"]);
+    assert_eq!(discovery_playlist_members(&b, "p1"), ["d1"]);
     Ok(())
 }

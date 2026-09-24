@@ -23,6 +23,7 @@
     "fs:allow-read-dir",
     "fs:allow-appdata-write-recursive",
     "fs:allow-mkdir",
+    "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-write-text",
     "notification:default"
   ]

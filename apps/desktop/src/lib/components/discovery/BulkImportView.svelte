@@ -267,7 +267,7 @@
 					<Checkbox
 						checked={followSource}
 						onchange={(v) => (followSource = v)}
-						label={$translate('discovery.following.alsoFollow')}
+						label={$translate('discovery.following.followForNewReleases')}
 						disabled={importing}
 					/>
 				{/if}

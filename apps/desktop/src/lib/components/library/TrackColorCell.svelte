@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	import type { TrackColor } from '$shared/types'
 	import { TRACK_COLORS } from '$shared/types'
 
@@ -22,6 +23,6 @@
 		style={currentColor ? `background-color: ${currentColor.hex};` : ''}
 		onclick={() => {}}
 		{disabled}
-		aria-label={color ? `Color: ${color}` : 'No color'}
+		aria-label={color ? $translate('library.colorLabel', { values: { color } }) : $translate('library.noColor')}
 	></button>
 </div>

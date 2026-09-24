@@ -3,6 +3,8 @@
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { translate } from '$shared/i18n'
 	import { get } from 'svelte/store'
+	import { buildFolderMenuItems } from '$shared/stores/playlists'
+	import { joinMenuGroups } from '$shared/utils'
 	import { SvelteSet } from 'svelte/reactivity'
 
 	type Props = {
@@ -48,49 +50,19 @@
 	const isBulk = $derived(targetPlaylists.length > 1)
 	const playlist = $derived(targetPlaylists.length === 1 ? targetPlaylists[0] : null)
 
-	function buildFolderMenuItems(
-		allFolders: Playlist[],
-		parentId: string | null,
-		excludeIds: Set<string>,
-		makeAction: (folderId: string) => () => void,
-		idPrefix: string
-	): ContextMenuItem[] {
-		return allFolders
-			.filter((f) => f.parent_id === parentId)
-			.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }))
-			.reduce<ContextMenuItem[]>((acc, folder) => {
-				const isExcluded = excludeIds.has(folder.id)
-				const children = buildFolderMenuItems(allFolders, folder.id, excludeIds, makeAction, idPrefix)
-
-				// Skip excluded leaf folders entirely
-				if (isExcluded && children.length === 0) return acc
-
-				acc.push({
-					id: `${idPrefix}-${folder.id}`,
-					label: folder.name,
-					...(isExcluded ? { disabled: true } : { action: makeAction(folder.id) }),
-					...(children.length > 0 ? { submenu: children } : {}),
-				})
-				return acc
-			}, [])
-	}
-
+	// Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
+	// create → manage → destructive, a divider between non-empty groups.
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
-		// Bulk mode: show move to folder + delete
 		if (isBulk) {
-			const bulkItems: ContextMenuItem[] = []
-
-			// Build "Move to Folder" submenu (exclude folders that are in the selection)
+			const manage: ContextMenuItem[] = []
+			// Folders in the selection can't receive it.
 			const selectedIdSet = new Set(targetPlaylists.map((p) => p.id))
 			const moveSubmenu = buildFolderMenuItems(
 				folders,
-				null,
 				selectedIdSet,
 				(folderId) => () => onBulkMove?.(targetPlaylists, folderId),
 				'bulk-move'
 			)
-
-			// Option to move to root
 			if (targetPlaylists.some((p) => p.parent_id !== null)) {
 				moveSubmenu.unshift({
 					id: 'bulk-move-root',
@@ -98,35 +70,33 @@
 					action: () => onBulkMove?.(targetPlaylists, null),
 				})
 			}
-
 			if (moveSubmenu.length > 0) {
-				bulkItems.push({
+				manage.push({
 					id: 'bulk-move',
 					label: get(translate)('playlists.moveToFolder'),
 					icon: 'folder-arrow',
 					submenu: moveSubmenu,
 				})
-				bulkItems.push({ id: 'bulk-divider', label: '', divider: true })
 			}
 
-			bulkItems.push({
-				id: 'bulk-delete',
-				label: get(translate)('common.delete'),
-				icon: 'trash',
-				variant: 'danger',
-				action: () => onBulkDelete?.(targetPlaylists),
-			})
-			return bulkItems
+			const destructive: ContextMenuItem[] = [
+				{
+					id: 'bulk-delete',
+					label: get(translate)('common.delete'),
+					icon: 'trash',
+					variant: 'danger',
+					action: () => onBulkDelete?.(targetPlaylists),
+				},
+			]
+			return joinMenuGroups([manage, destructive])
 		}
 
 		if (!playlist) return []
 
-		const items: ContextMenuItem[] = []
-
-		// New Folder / New Playlist / New Smart Playlist (only for folders)
+		const create: ContextMenuItem[] = []
 		if (playlist.is_folder) {
 			if (onCreateFolder) {
-				items.push({
+				create.push({
 					id: 'new-folder',
 					label: get(translate)('playlists.newFolder'),
 					icon: 'folder',
@@ -134,7 +104,7 @@
 				})
 			}
 			if (onCreatePlaylist) {
-				items.push({
+				create.push({
 					id: 'new-playlist',
 					label: get(translate)('playlists.newPlaylist'),
 					icon: 'music-note',
@@ -142,51 +112,36 @@
 				})
 			}
 			if (onCreateSmartPlaylist) {
-				items.push({
+				create.push({
 					id: 'new-smart-playlist',
 					label: get(translate)('playlists.newSmartPlaylist'),
 					icon: 'bolt',
 					action: () => onCreateSmartPlaylist(playlist),
 				})
 			}
-			if (onCreatePlaylist || onCreateFolder || onCreateSmartPlaylist) {
-				items.push({ id: 'divider-create', label: '', divider: true })
-			}
 		}
 
-		// Edit Smart Playlist (for smart playlists, before Rename)
+		const manage: ContextMenuItem[] = [
+			{
+				id: 'rename',
+				label: get(translate)('common.rename'),
+				icon: 'pencil',
+				action: () => onRename(playlist),
+			},
+		]
 		if (playlist.is_smart && onEditSmartPlaylist) {
-			items.push({
+			manage.push({
 				id: 'edit-smart-playlist',
 				label: get(translate)('playlists.editSmartPlaylist'),
 				icon: 'bolt',
 				action: () => onEditSmartPlaylist(playlist),
 			})
 		}
-
-		// Rename
-		items.push({
-			id: 'rename',
-			label: get(translate)('common.rename'),
-			icon: 'pencil',
-			action: () => onRename(playlist),
-		})
-
-		// Move to Folder (only for non-folders)
 		if (!playlist.is_folder) {
-			const excludeIds = new SvelteSet<string>()
+			// Neither the item itself nor its current parent is a move target.
+			const excludeIds = new SvelteSet<string>([playlist.id])
 			if (playlist.parent_id) excludeIds.add(playlist.parent_id)
-			excludeIds.add(playlist.id)
-
-			const moveSubmenu = buildFolderMenuItems(
-				folders,
-				null,
-				excludeIds,
-				(folderId) => () => onMove(playlist, folderId),
-				'move'
-			)
-
-			// Option to move to root (no parent)
+			const moveSubmenu = buildFolderMenuItems(folders, excludeIds, (folderId) => () => onMove(playlist, folderId))
 			if (playlist.parent_id !== null) {
 				moveSubmenu.unshift({
 					id: 'move-root',
@@ -194,19 +149,17 @@
 					action: () => onMove(playlist, null),
 				})
 			}
-
 			if (moveSubmenu.length > 0) {
-				items.push({
+				manage.push({
 					id: 'move',
 					label: get(translate)('playlists.moveToFolder'),
 					icon: 'folder-arrow',
 					submenu: moveSubmenu,
 				})
 			}
-
-			// Export to device (only for non-folders, library context only)
+			// Only library playlists export to a device.
 			if (playlist.context === 'library') {
-				items.push({
+				manage.push({
 					id: 'export',
 					label: get(translate)('playlists.exportToDevice'),
 					icon: 'arrow-up-from-bracket',
@@ -215,18 +168,19 @@
 			}
 		}
 
-		items.push({ id: 'divider-1', label: '', divider: true })
+		const destructive: ContextMenuItem[] = [
+			{
+				id: 'delete',
+				label: playlist.is_folder
+					? get(translate)('playlists.deleteFolder')
+					: get(translate)('playlists.deletePlaylist'),
+				icon: 'trash',
+				variant: 'danger',
+				action: () => onDelete(playlist),
+			},
+		]
 
-		// Delete
-		items.push({
-			id: 'delete',
-			label: playlist.is_folder ? get(translate)('playlists.deleteFolder') : get(translate)('playlists.deletePlaylist'),
-			icon: 'trash',
-			variant: 'danger',
-			action: () => onDelete(playlist),
-		})
-
-		return items
+		return joinMenuGroups([create, manage, destructive])
 	})
 </script>
 

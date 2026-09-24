@@ -3,6 +3,7 @@
 	import ContextMenu from '$lib/components/common/ContextMenu.svelte'
 	import { translate } from '$shared/i18n'
 	import { get } from 'svelte/store'
+	import { joinMenuGroups } from '$shared/utils'
 
 	type Props = {
 		open: boolean
@@ -47,53 +48,62 @@
 		return get(translate)('contextMenu.viewInFileManager')
 	})
 
-	const menuItems = $derived<ContextMenuItem[]>(
-		device
-			? [
-					{
-						id: 'export',
-						label: get(translate)('devices.exportTo'),
-						icon: 'arrow-up-from-bracket',
-						disabled: isDeviceBusy,
-						action: () => onExport(device),
-					},
-					{
-						id: 'view-info',
-						label: get(translate)('devices.viewInfo'),
-						icon: 'info',
-						action: () => onViewInfo(device),
-					},
-					{
-						id: 'reveal-in-finder',
-						label: revealLabel(),
-						icon: 'folder-open',
-						action: () => onRevealInFinder(device),
-					},
-					{ id: 'divider-1', label: '', divider: true },
-					{
-						id: 'reformat',
-						label: get(translate)('devices.reformat.menuItem'),
-						icon: 'hard-drive',
-						disabled: isDeviceBusy,
-						action: () => onReformat(device),
-					},
-					{
-						id: 'ignore',
-						label: get(translate)('devices.ignore'),
-						icon: 'eye-slash',
-						disabled: isDeviceBusy,
-						action: () => onIgnore(device),
-					},
-					{
-						id: 'eject',
-						label: get(translate)('devices.eject'),
-						icon: 'eject',
-						disabled: isDeviceBusy,
-						action: () => onEject(device),
-					},
-				]
-			: []
-	)
+	// Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
+	// act → manage → navigate → destructive. Reformat erases the device, so it is styled as such.
+	const menuItems = $derived.by<ContextMenuItem[]>(() => {
+		if (!device) return []
+		return joinMenuGroups([
+			[
+				{
+					id: 'export',
+					label: get(translate)('devices.exportTo'),
+					icon: 'arrow-up-from-bracket',
+					disabled: isDeviceBusy,
+					action: () => onExport(device),
+				},
+			],
+			[
+				{
+					id: 'view-info',
+					label: get(translate)('devices.viewInfo'),
+					icon: 'info',
+					action: () => onViewInfo(device),
+				},
+			],
+			[
+				{
+					id: 'reveal-in-finder',
+					label: revealLabel(),
+					icon: 'folder-open',
+					action: () => onRevealInFinder(device),
+				},
+			],
+			[
+				{
+					id: 'eject',
+					label: get(translate)('devices.eject'),
+					icon: 'eject',
+					disabled: isDeviceBusy,
+					action: () => onEject(device),
+				},
+				{
+					id: 'ignore',
+					label: get(translate)('devices.ignore'),
+					icon: 'eye-slash',
+					disabled: isDeviceBusy,
+					action: () => onIgnore(device),
+				},
+				{
+					id: 'reformat',
+					label: get(translate)('devices.reformat.menuItem'),
+					icon: 'hard-drive',
+					variant: 'danger',
+					disabled: isDeviceBusy,
+					action: () => onReformat(device),
+				},
+			],
+		])
+	})
 </script>
 
 <ContextMenu {open} {x} {y} items={menuItems} {onClose} {onClosed} />

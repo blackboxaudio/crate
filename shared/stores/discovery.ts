@@ -3,16 +3,32 @@ import type {
 	DiscoveryRelease,
 	DiscoveryReleaseCreate,
 	DiscoveryReleaseUpdate,
+	DiscoveryFacet,
+	DiscoveryFacetFilters,
 	DiscoveryFilter,
 	DiscoverySortConfig,
+	DiscoveryTrack,
+	FilterTriState,
 	ImportResultWithDuplicates,
+	Tag,
 } from '../types'
 import * as discoveryApi from '../api/discovery'
 import * as followApi from '../api/follow'
+import { sortDiscoveryReleases } from '../utils/sorting'
+import { releaseHasTag } from '../utils/tagComputation'
+import {
+	applyDiscoveryFilters,
+	cycleTriState,
+	emptyFacetFilters,
+	isDateLikedSortAllowed,
+} from '../utils/discoveryFilters'
+import { daysUntilRelease } from '../utils/format'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
 import { toastStore } from './toast'
+import { hasLinkedCollection, ownedReleaseIds } from './collection'
+import { fullyCachedIds } from './offlineCache'
 import { translate } from '../i18n'
 
 // =============================================================================
@@ -26,22 +42,29 @@ interface DiscoveryState {
 	filter: DiscoveryFilter
 	sort: DiscoverySortConfig
 	refreshingIds: Set<string>
-	likedOnly: boolean
-	newOnly: boolean
+	/** The Liked / New / Purchased / Downloaded facet filters (off / include / exclude), shared by both
+	 *  platforms and applied through `applyDiscoveryFilters` wherever a release list is displayed. */
+	facets: DiscoveryFacetFilters
 }
+
+const DEFAULT_DISCOVERY_SORT: DiscoverySortConfig = { field: 'date_added', direction: 'desc' }
 
 const initialState: DiscoveryState = {
 	releases: [],
 	loading: false,
 	error: null,
 	filter: {},
-	sort: {
-		field: 'date_added',
-		direction: 'desc',
-	},
+	sort: DEFAULT_DISCOVERY_SORT,
 	refreshingIds: new Set(),
-	likedOnly: false,
-	newOnly: false,
+	facets: emptyFacetFilters(),
+}
+
+/** Replace the facets, dropping a Date Liked sort the moment the Liked facet stops being `include`. Done
+ *  inside the mutators (not a subscription) so the meaningless combination is never published at all. */
+function withFacets(state: DiscoveryState, facets: DiscoveryFacetFilters): DiscoveryState {
+	const sort =
+		state.sort.field === 'date_liked' && !isDateLikedSortAllowed(facets) ? DEFAULT_DISCOVERY_SORT : state.sort
+	return { ...state, facets, sort }
 }
 
 // =============================================================================
@@ -56,27 +79,81 @@ function sleep(ms: number): Promise<void> {
 }
 
 // =============================================================================
+// Chunked loading
+// =============================================================================
+
+// Releases load in pages instead of one giant IPC response: with thousands of releases
+// (each carrying nested tracks/tags), a single multi-MB payload injected and parsed on the
+// webview main thread in one shot both freezes the UI and can push the mobile WKWebView
+// content process into an out-of-memory kill. A small first page paints fast; follow-up
+// pages stream in with an event-loop yield between them so user interactions (taps,
+// scrolling, playback) are handled between pages.
+const FIRST_PAGE_SIZE = 200
+const PAGE_SIZE = 500
+
+// Monotonic token: a newer loadReleases() call silently cancels any in-flight paged load
+// (each page checks it fetched under the current generation before touching the store).
+let loadGeneration = 0
+
+// =============================================================================
 // Store
 // =============================================================================
 
 function createDiscoveryStore() {
 	const { subscribe, set, update } = writable<DiscoveryState>(initialState)
 
+	// Last availability-recheck attempt per release. The recheck is a full page fetch at the
+	// source, so it's rate-limited — but by a cooldown rather than once per app run: a mobile
+	// session can outlive a pre-order's release day, and the tracks must un-grey without a restart.
+	const AVAILABILITY_RECHECK_COOLDOWN_MS = 30 * 60 * 1000
+	const availabilityChecked = new Map<string, number>()
+
 	return {
 		subscribe,
 
 		async loadReleases(filter?: DiscoveryFilter) {
-			update((state) => ({ ...state, loading: true, error: null }))
+			const generation = ++loadGeneration
+			// Publish pages progressively only while the feed is EMPTY (first load / boot restore). Pages
+			// arrive in backend (date-added) order, so publishing them mid-RELOAD visibly collapses a
+			// custom-sorted list to a re-sorted subset of the newest page and then snaps back once the
+			// last page lands — the "sort flash" on pull-to-refresh. With content already on screen,
+			// keep showing it untouched and swap to the fresh set once, at the end.
+			let progressive = true
+			update((state) => {
+				progressive = state.releases.length === 0
+				return { ...state, loading: true, error: null }
+			})
 
 			try {
-				const releases = await discoveryApi.getReleases(filter)
-				update((state) => ({
-					...state,
-					releases,
-					loading: false,
-					filter: filter ?? {},
-				}))
+				let offset = 0
+				let pageSize = FIRST_PAGE_SIZE
+				let accumulated: DiscoveryRelease[] = []
+				for (;;) {
+					const page = await discoveryApi.getReleases({ ...(filter ?? {}), limit: pageSize, offset })
+					if (generation !== loadGeneration) return // superseded by a newer load
+					accumulated = offset === 0 ? page : accumulated.concat(page)
+					const done = page.length < pageSize
+					const releases = accumulated
+					// `loading` stays true until the last page so empty-state logic still waits for a
+					// complete load. NOTE: an in-place mutation (delete/update) landing mid-load can be
+					// transiently overwritten by the next publish — it self-heals on the next reload;
+					// the window is sub-second per page (progressive) or one load (buffered reload).
+					if (progressive || done) {
+						update((state) => ({
+							...state,
+							releases,
+							loading: !done,
+							filter: filter ?? {},
+						}))
+					}
+					if (done) break
+					offset += page.length
+					pageSize = PAGE_SIZE
+					// Yield the main thread between pages so queued user input runs first.
+					await sleep(0)
+				}
 			} catch (error) {
+				if (generation !== loadGeneration) return
 				update((state) => ({
 					...state,
 					loading: false,
@@ -192,6 +269,66 @@ function createDiscoveryStore() {
 			}
 		},
 
+		/**
+		 * Track-level tags. Patched in place (one release re-read) rather than reloading the whole
+		 * feed: a playlist view holds member-filtered copies of the release that a full replace
+		 * would un-filter, and the feed reload is the expensive path on large collections.
+		 */
+		async assignTrackTags(releaseId: string, trackIds: string[], tagIds: string[]) {
+			try {
+				await discoveryApi.assignTrackTags(trackIds, tagIds)
+				await this.refreshTrackTags(releaseId)
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to assign tags'
+				)
+			}
+		},
+
+		async removeTrackTags(releaseId: string, trackIds: string[], tagIds: string[]) {
+			try {
+				await discoveryApi.removeTrackTags(trackIds, tagIds)
+				await this.refreshTrackTags(releaseId)
+			} catch (error) {
+				toastStore.error(
+					typeof error === 'string' ? error : error instanceof Error ? error.message : 'Failed to remove tags'
+				)
+			}
+		},
+
+		/** Assign (or remove) one tag across a track selection that may span several releases. */
+		async setTrackTagOnTracks(tracks: Pick<DiscoveryTrack, 'id' | 'release_id'>[], tagId: string, remove: boolean) {
+			// The tag patch re-reads one release at a time, so group the selection by release.
+			const byRelease = new Map<string, string[]>()
+			for (const t of tracks) byRelease.set(t.release_id, [...(byRelease.get(t.release_id) ?? []), t.id])
+			for (const [releaseId, trackIds] of byRelease) {
+				if (remove) await this.removeTrackTags(releaseId, trackIds, [tagId])
+				else await this.assignTrackTags(releaseId, trackIds, [tagId])
+			}
+		},
+
+		async refreshTrackTags(releaseId: string) {
+			const fresh = await discoveryApi.getRelease(releaseId)
+			const tagsByTrack = new Map(fresh.tracks.map((t) => [t.id, t.tags ?? []]))
+			this.applyTrackTags(releaseId, tagsByTrack)
+		},
+
+		/** Apply per-track tag lists (keyed by track id) to every in-memory holder of the release. */
+		applyTrackTags(releaseId: string, tagsByTrack: Map<string, Tag[]>) {
+			update((state) => ({
+				...state,
+				releases: state.releases.map((r) =>
+					r.id === releaseId
+						? {
+								...r,
+								tracks: r.tracks.map((t) => (tagsByTrack.has(t.id) ? { ...t, tags: tagsByTrack.get(t.id) } : t)),
+							}
+						: r
+				),
+			}))
+			discoveryPlaylistStore.applyTrackTags(releaseId, tagsByTrack)
+		},
+
 		async purchaseRelease(
 			releaseId: string,
 			filePaths: string[],
@@ -242,27 +379,111 @@ function createDiscoveryStore() {
 		async toggleTrackLiked(releaseId: string, trackId: string) {
 			try {
 				const isLiked = await discoveryApi.toggleTrackLiked(trackId)
-				update((state) => ({
-					...state,
-					releases: state.releases.map((r) =>
-						r.id === releaseId
-							? { ...r, tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked } : t)) }
-							: r
-					),
-				}))
-				playerStore.setPreviewTrackLiked(trackId, isLiked)
-				discoveryPlaylistStore.updateTrackLiked(releaseId, trackId, isLiked)
+				this.applyTrackLiked(releaseId, trackId, isLiked)
 			} catch (error) {
 				console.error('Failed to toggle track liked:', error)
 			}
 		},
 
-		toggleLikedFilter() {
-			update((state) => ({ ...state, likedOnly: !state.likedOnly }))
+		/**
+		 * Apply an is_liked change that already happened in the DB (the API toggle above, or the iOS
+		 * lock-screen Like, which the native engine writes directly) to every in-memory holder.
+		 */
+		applyTrackLiked(releaseId: string, trackId: string, isLiked: boolean) {
+			// Stamped here rather than returned by the backend: same device clock as the DB's own stamp
+			// (milliseconds apart), every reload re-reads DB truth, and the iOS lock-screen path lands
+			// here too — so one line keeps the Date Liked sort live without widening the IPC/event payloads.
+			const likedAt = isLiked ? new Date().toISOString() : null
+			update((state) => ({
+				...state,
+				releases: state.releases.map((r) =>
+					r.id === releaseId
+						? {
+								...r,
+								tracks: r.tracks.map((t) => (t.id === trackId ? { ...t, is_liked: isLiked, liked_at: likedAt } : t)),
+							}
+						: r
+				),
+			}))
+			playerStore.setPreviewTrackLiked(trackId, isLiked)
+			discoveryPlaylistStore.updateTrackLiked(releaseId, trackId, isLiked, likedAt)
 		},
 
-		toggleNewFilter(value?: boolean) {
-			update((state) => ({ ...state, newOnly: value ?? !state.newOnly }))
+		/**
+		 * Apply a preview-availability change that already happened in the DB (the backend emits
+		 * `discovery-availability-changed` whenever a stream extraction refreshes a release's flags)
+		 * to every in-memory holder, so rows grey out / un-grey without a full reload.
+		 */
+		applyPreviewAvailability(releaseId: string, unavailablePositions: number[]) {
+			const unavailable = new Set(unavailablePositions)
+			update((state) => ({
+				...state,
+				releases: state.releases.map((r) =>
+					r.id === releaseId
+						? { ...r, tracks: r.tracks.map((t) => ({ ...t, preview_unavailable: unavailable.has(t.position) })) }
+						: r
+				),
+			}))
+			discoveryPlaylistStore.applyPreviewAvailability(releaseId, unavailablePositions)
+		},
+
+		/**
+		 * Silently refresh a release's per-track preview availability (one background page
+		 * fetch, at most once per release per cooldown window). Fires when the release shows flagged tracks
+		 * (a pre-order's unreleased tracks — heals them once the album is out) or has a
+		 * future release date with no flags yet (flags a fresh pre-order on first view).
+		 */
+		maybeRecheckAvailability(release: DiscoveryRelease) {
+			if (release.source_type !== 'bandcamp' && release.source_type !== 'soundcloud') return
+			const lastChecked = availabilityChecked.get(release.id)
+			if (lastChecked != null && Date.now() - lastChecked < AVAILABILITY_RECHECK_COOLDOWN_MS) return
+			// Same "upcoming" semantics as the release row's badge (null once out / unknown).
+			const isPreRelease = daysUntilRelease(release.release_date) != null
+			// Duration-less tracks are the pre-flag symptom of an unstreamable track (Bandcamp serves
+			// no duration for unreleased pre-order tracks) — and many pre-orders carry no release date,
+			// so the date check alone would never fire for them.
+			const hasSuspectTracks =
+				release.tracks.length > 0 && release.tracks.some((t) => t.preview_unavailable || !t.duration_ms)
+			if (!hasSuspectTracks && !isPreRelease) return
+			availabilityChecked.set(release.id, Date.now())
+			discoveryApi
+				.recheckPreviewAvailability(release.id)
+				.then((tracks) => {
+					update((state) => ({
+						...state,
+						releases: state.releases.map((r) => (r.id === release.id ? { ...r, tracks } : r)),
+					}))
+					// Release-day transition: a track just proved streamable but still lacks a duration
+					// (pre-order rows are created without one, and stream extraction doesn't supply it) —
+					// the duration gate would keep the row greyed, so backfill via a metadata refresh.
+					if (tracks.some((t) => !t.preview_unavailable && !t.duration_ms)) {
+						void this.refreshMetadata(release.id)
+					}
+				})
+				.catch((error) => {
+					// A failed attempt (offline, rate-limited) proved nothing — let the next open retry.
+					availabilityChecked.delete(release.id)
+					console.error('Preview availability recheck failed:', error)
+				})
+		},
+
+		/** Set one facet explicitly. A no-op when unchanged, so re-tapping the active segment doesn't
+		 *  re-run the filter chain over the whole feed. */
+		setFacetFilter(facet: DiscoveryFacet, value: FilterTriState) {
+			update((state) =>
+				state.facets[facet] === value ? state : withFacets(state, { ...state.facets, [facet]: value })
+			)
+		},
+
+		/** off → include → exclude → off (the row-label tap). */
+		cycleFacetFilter(facet: DiscoveryFacet) {
+			update((state) => withFacets(state, { ...state.facets, [facet]: cycleTriState(state.facets[facet]) }))
+		},
+
+		/** Reset every facet at once ("Clear all"). Leaves the search term alone — that has its own
+		 *  affordance in the search bar. */
+		clearFacetFilters() {
+			update((state) => withFacets(state, emptyFacetFilters()))
 		},
 
 		/** Manual "mark as new / not-new" override (the auto-clear rule lives in clearNew). */
@@ -444,96 +665,84 @@ function createDiscoveryStore() {
 
 export const discoveryStore = createDiscoveryStore()
 
+// A discovery preview starting means the user has listened to the release — clear its "new" flag.
+// Registered here (rather than imported by the player store) because the player store must not depend
+// on this store: discovery already imports playerStore, so wiring it the other way would be circular.
+playerStore.setPreviewPlayedHandler((releaseId) => discoveryStore.clearNew(releaseId))
+
+// iOS lock-screen Like: the native engine has already toggled the DB; mirror the change into the
+// in-memory stores once JS is running again. Same inversion rationale as above.
+playerStore.setNativeLikeChangedHandler((trackId, isLiked) => {
+	const release = get(discoveryStore).releases.find((r) => r.tracks.some((t) => t.id === trackId))
+	if (release) discoveryStore.applyTrackLiked(release.id, trackId, isLiked)
+})
+
+// Unlinking the last collection account hides the Purchased row in every filter UI, so an active
+// Purchased facet would otherwise become an invisible filter (emptying the feed on `include`).
+hasLinkedCollection.subscribe((linked) => {
+	if (!linked) discoveryStore.setFacetFilter('purchased', 'off')
+})
+
 // =============================================================================
 // Derived Stores
 // =============================================================================
 
-export const likedOnly = derived(discoveryStore, ($discovery) => $discovery.likedOnly)
+export const facetFilters = derived(discoveryStore, ($discovery) => $discovery.facets)
 
-export const newOnly = derived(discoveryStore, ($discovery) => $discovery.newOnly)
+export const likedFilter = derived(discoveryStore, ($discovery) => $discovery.facets.liked)
 
-function sortReleases(releases: DiscoveryRelease[], sort: DiscoverySortConfig): DiscoveryRelease[] {
-	const { field, direction } = sort
-	const dir = direction === 'asc' ? 1 : -1
+export const newFilter = derived(discoveryStore, ($discovery) => $discovery.facets.new)
 
-	return [...releases].sort((a, b) => {
-		let cmp = 0
-		if (field === 'release_date') {
-			const aDate = a.release_date ? new Date(a.release_date).getTime() : NaN
-			const bDate = b.release_date ? new Date(b.release_date).getTime() : NaN
-			const aValid = !isNaN(aDate)
-			const bValid = !isNaN(bDate)
-			if (!aValid && !bValid) cmp = 0
-			else if (!aValid) return 1
-			else if (!bValid) return -1
-			else if (aDate < bDate) cmp = -1 * dir
-			else if (aDate > bDate) cmp = 1 * dir
-		} else {
-			const aVal = a[field] ?? ''
-			const bVal = b[field] ?? ''
-			if (aVal < bVal) cmp = -1 * dir
-			else if (aVal > bVal) cmp = 1 * dir
+export const purchasedFilter = derived(discoveryStore, ($discovery) => $discovery.facets.purchased)
+
+export const downloadedFilter = derived(discoveryStore, ($discovery) => $discovery.facets.downloaded)
+
+export const sortedReleases = derived(
+	[discoveryStore, ownedReleaseIds, fullyCachedIds],
+	([$discovery, $owned, $cached]) => {
+		let releases = applyDiscoveryFilters($discovery.releases, $discovery.facets, {
+			ownedIds: $owned,
+			cachedIds: $cached,
+		})
+
+		// Apply client-side search filter
+		if ($discovery.filter.search) {
+			const search = $discovery.filter.search.toLowerCase()
+			releases = releases.filter(
+				(r) =>
+					r.artist?.toLowerCase().includes(search) ||
+					r.title?.toLowerCase().includes(search) ||
+					r.label?.toLowerCase().includes(search) ||
+					r.notes?.toLowerCase().includes(search) ||
+					r.tracks.some((t) => t.name?.toLowerCase().includes(search))
+			)
 		}
-		if (cmp !== 0) return cmp
-		return a.id < b.id ? -1 : a.id > b.id ? 1 : 0
-	})
-}
 
-export const sortedReleases = derived(discoveryStore, ($discovery) => {
-	let releases = [...$discovery.releases]
-
-	// Apply liked filter
-	if ($discovery.likedOnly) {
-		releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
+		// Apply sorting
+		return sortDiscoveryReleases(releases, $discovery.sort)
 	}
-
-	// Apply "new" filter (surfaced by a followed source, not yet reviewed)
-	if ($discovery.newOnly) {
-		releases = releases.filter((r) => r.is_new)
-	}
-
-	// Apply client-side search filter
-	if ($discovery.filter.search) {
-		const search = $discovery.filter.search.toLowerCase()
-		releases = releases.filter(
-			(r) =>
-				r.artist?.toLowerCase().includes(search) ||
-				r.title?.toLowerCase().includes(search) ||
-				r.label?.toLowerCase().includes(search) ||
-				r.notes?.toLowerCase().includes(search) ||
-				r.tracks.some((t) => t.name?.toLowerCase().includes(search))
-		)
-	}
-
-	// Apply sorting
-	return sortReleases(releases, $discovery.sort)
-})
+)
 
 export const displayedReleases = derived(
-	[sortedReleases, discoveryStore, uiStore, discoveryPlaylistStore],
-	([$sortedReleases, $discovery, $ui, $playlist]) => {
+	[sortedReleases, discoveryStore, uiStore, discoveryPlaylistStore, ownedReleaseIds, fullyCachedIds],
+	([$sortedReleases, $discovery, $ui, $playlist, $owned, $cached]) => {
 		if ($ui.activeView !== 'discovery' || !$ui.selectedPlaylistId) {
 			return $sortedReleases
 		}
 
 		// Inside a discovery playlist — apply client-side filters to playlist releases
-		let releases = [...$playlist.releases]
-
-		if ($discovery.likedOnly) {
-			releases = releases.filter((r) => r.tracks.some((t) => t.is_liked))
-		}
-
-		if ($discovery.newOnly) {
-			releases = releases.filter((r) => r.is_new)
-		}
+		let releases = applyDiscoveryFilters($playlist.releases, $discovery.facets, {
+			ownedIds: $owned,
+			cachedIds: $cached,
+		})
 
 		const discoveryFilters = $ui.viewFilters.discovery
 		if (discoveryFilters.selectedTagIds.length > 0) {
 			const tagIds = new Set(discoveryFilters.selectedTagIds)
 			if (discoveryFilters.tagFilterMode === 'and') {
-				releases = releases.filter((r) => [...tagIds].every((id) => r.tags.some((t) => t.id === id)))
+				releases = releases.filter((r) => [...tagIds].every((id) => releaseHasTag(r, id)))
 			} else {
-				releases = releases.filter((r) => r.tags.some((t) => tagIds.has(t.id)))
+				releases = releases.filter((r) => [...tagIds].some((id) => releaseHasTag(r, id)))
 			}
 		}
 
@@ -549,7 +758,7 @@ export const displayedReleases = derived(
 			)
 		}
 
-		return sortReleases(releases, $discovery.sort)
+		return sortDiscoveryReleases(releases, $discovery.sort)
 	}
 )
 

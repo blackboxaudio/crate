@@ -1,17 +1,28 @@
+mod artwork_cache;
 mod audio_cache;
+mod dedupe;
+pub mod fmp4;
 mod release_crud;
 mod release_ops;
+mod renormalize;
 mod stream_cache;
+mod track_tags;
+
+pub use dedupe::dedupe_discovery_tracks;
+pub use renormalize::renormalize_release_urls;
+pub use track_tags::{attach_track_tags, repoint_track_junctions};
 
 pub mod metadata;
 pub mod n_transform;
 pub mod streams;
 
+use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
 
+use crate::db::Db;
 use crate::error::{CrateError, Result};
 use crate::models::{
     DiscoveryFilter, DiscoveryRelease, DiscoveryReleaseCreate, DiscoveryReleaseUpdate,
@@ -29,13 +40,35 @@ pub struct CachedStream {
 }
 
 pub struct DiscoveryService {
+    /// Read/write-split handle: hot read paths go through `db.read` (pooled snapshot
+    /// readers under WAL), writes through the shared writer.
+    db: Db,
+    /// The legacy writer Arc (`== db.writer()`), kept so write paths and not-yet-
+    /// migrated reads stay untouched.
     conn: Arc<Mutex<Connection>>,
     artwork_service: ArtworkService,
     app_data_dir: PathBuf,
+    /// Shared client for artwork downloads — building a fresh client (connection pool, TLS
+    /// context) per cover fetch is wasteful when the feed requests dozens while scrolling.
+    artwork_http: reqwest::Client,
+    /// Caps concurrent artwork download+decode work: a fast flick through a large uncached feed
+    /// mounts many rows at once, and an unbounded fan-out of fetches and image decodes can
+    /// pressure a mobile device into killing the webview process.
+    artwork_fetch_permits: tokio::sync::Semaphore,
+    /// Release ids with an artwork download currently in flight (dedup — the virtualized feed
+    /// can remount a row while its first request is still running).
+    artwork_in_flight: Mutex<HashSet<String>>,
 }
 
 impl DiscoveryService {
+    /// Construct from the legacy writer Arc alone (no reader pool — reads fall back to
+    /// the writer mutex). Kept so background construction sites (follow watch, spawned
+    /// enrichment tasks) compile unchanged; prefer [`Self::with_db`].
     pub fn new(conn: Arc<Mutex<Connection>>, app_data_dir: PathBuf) -> Self {
+        Self::with_db(Db::from_writer(conn), app_data_dir)
+    }
+
+    pub fn with_db(db: Db, app_data_dir: PathBuf) -> Self {
         let artwork_service = ArtworkService::new(app_data_dir.clone());
 
         let streams_dir = app_data_dir.join("discovery").join("streams");
@@ -43,10 +76,24 @@ impl DiscoveryService {
             log::warn!("Failed to create audio cache directory: {e}");
         }
 
+        let artwork_cache_dir = app_data_dir.join("discovery").join("artwork");
+        if let Err(e) = std::fs::create_dir_all(&artwork_cache_dir) {
+            log::warn!("Failed to create artwork cache directory: {e}");
+        }
+
+        let artwork_http = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(30))
+            .build()
+            .unwrap_or_default();
+
         Self {
-            conn,
+            conn: db.writer(),
+            db,
             artwork_service,
             app_data_dir,
+            artwork_http,
+            artwork_fetch_permits: tokio::sync::Semaphore::new(3),
+            artwork_in_flight: Mutex::new(HashSet::new()),
         }
     }
 
@@ -54,9 +101,36 @@ impl DiscoveryService {
         self.app_data_dir.clone()
     }
 
+    /// Read a device-local cache-size cap (in MB) from the `settings` table, converted to
+    /// bytes. Falls back to `default_mb` when the setting is unset, unparseable, or non-positive.
+    /// Shared by the audio and artwork LRU sweeps so their caps are user-configurable.
+    fn cache_limit_bytes(&self, key: &str, default_mb: i64) -> i64 {
+        let mb = self
+            .db
+            .read(|conn| {
+                Ok(conn
+                    .query_row("SELECT value FROM settings WHERE key = ?1", [key], |row| {
+                        row.get::<_, String>(0)
+                    })
+                    .ok())
+            })
+            .ok()
+            .flatten()
+            .and_then(|v| v.parse::<i64>().ok())
+            .filter(|mb| *mb > 0)
+            .unwrap_or(default_mb);
+        mb * 1024 * 1024
+    }
+
     /// Get a clone of the database connection Arc for use in background tasks.
     pub fn connection(&self) -> Arc<Mutex<Connection>> {
         self.conn.clone()
+    }
+
+    /// The read/write-split handle, for spawning sibling services in background tasks
+    /// without losing the reader pool.
+    pub fn db(&self) -> Db {
+        self.db.clone()
     }
 
     pub fn assign_tags(&self, release_ids: Vec<String>, tag_ids: Vec<String>) -> Result<()> {
@@ -125,11 +199,24 @@ pub(crate) fn followable_page_url(page_url: &str, source_type: &str) -> Option<S
 }
 
 /// Normalize a URL for consistent storage and deduplication.
+/// - Decodes HTML-entity ampersands (hrefs lifted from HTML carry `&amp;`)
 /// - Lowercases the domain (not path)
 /// - Strips trailing slashes
-/// - Removes common tracking query parameters
+/// - Drops the query string entirely on Bandcamp-shaped `/album/`+`/track/` paths
+///   (never identity-bearing there — label pages link with `?label=…&tab=music`)
+/// - Removes common tracking query parameters everywhere else
 pub(crate) fn normalize_url(url: &str) -> String {
     let url = url.trim();
+    let decoded;
+    let url = if url.contains("&amp;") || url.contains("&#38;") || url.contains("&#x26;") {
+        decoded = url
+            .replace("&amp;", "&")
+            .replace("&#38;", "&")
+            .replace("&#x26;", "&");
+        decoded.as_str()
+    } else {
+        url
+    };
 
     // Parse into parts: scheme, domain, path+query
     let (scheme, rest) = match url.find("://") {
@@ -154,6 +241,12 @@ pub(crate) fn normalize_url(url: &str) -> String {
     // Strip trailing slashes from path (but keep at least "/")
     let path = path.trim_end_matches('/');
     let path = if path.is_empty() { "" } else { path };
+
+    // Bandcamp album/track pages (including custom artist domains) are fully
+    // identified by host + path; any query is navigation chrome.
+    if path.starts_with("/album/") || path.starts_with("/track/") {
+        return format!("{scheme}://{authority_lower}{path}");
+    }
 
     // Filter out tracking query params
     let tracking_params: &[&str] = &[
@@ -198,5 +291,49 @@ pub(crate) fn detect_source_type(url: &str) -> String {
         "discogs".to_string()
     } else {
         "other".to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_url;
+
+    #[test]
+    fn album_and_track_paths_drop_all_query_params() {
+        assert_eq!(
+            normalize_url(
+                "https://inarmatura.bandcamp.com/album/10-11?label=1615933898&amp;tab=music"
+            ),
+            "https://inarmatura.bandcamp.com/album/10-11"
+        );
+        assert_eq!(
+            normalize_url("https://a.bandcamp.com/track/one?from=fanpub_fnb"),
+            "https://a.bandcamp.com/track/one"
+        );
+    }
+
+    #[test]
+    fn entity_ampersands_decode_before_param_filtering() {
+        // On a non-album path, `&amp;` must not glue params into one bogus key.
+        assert_eq!(
+            normalize_url("https://example.com/page?keep=1&amp;utm_source=share"),
+            "https://example.com/page?keep=1"
+        );
+    }
+
+    #[test]
+    fn non_bandcamp_shaped_urls_keep_meaningful_queries() {
+        assert_eq!(
+            normalize_url("https://www.youtube.com/watch?v=abc123"),
+            "https://www.youtube.com/watch?v=abc123"
+        );
+    }
+
+    #[test]
+    fn domain_lowercased_slashes_and_tracking_params_stripped() {
+        assert_eq!(
+            normalize_url("https://Artist.Bandcamp.com/Music/?utm_source=x"),
+            "https://artist.bandcamp.com/Music"
+        );
     }
 }

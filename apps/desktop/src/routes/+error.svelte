@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/stores'
+	import { translate } from '$shared/i18n'
 	import Button from '$lib/components/common/Button.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import IconButton from '$lib/components/common/IconButton.svelte'
@@ -54,15 +55,15 @@
 				<Icon name="alert-circle" class="h-5 w-5 text-danger" />
 			</div>
 			<div>
-				<h2 class="text-lg font-semibold text-text-primary">Something went wrong</h2>
-				<p class="text-sm text-text-secondary">The application encountered an unexpected error.</p>
+				<h2 class="text-lg font-semibold text-text-primary">{$translate('crash.title')}</h2>
+				<p class="text-sm text-text-secondary">{$translate('crash.description')}</p>
 			</div>
 		</div>
 
 		<!-- Error details box -->
 		<div class="mb-4 rounded-md border border-stroke bg-surface-2 p-3">
 			<div class="mb-2 flex items-center justify-between">
-				<span class="text-xs font-medium text-text-secondary">Error Details</span>
+				<span class="text-xs font-medium text-text-secondary">{$translate('crash.errorDetails')}</span>
 				<Tooltip bind:this={copyTooltip} position="left">
 					<IconButton
 						size="sm"
@@ -81,7 +82,7 @@
 
 		<!-- Action buttons -->
 		<div class="flex justify-end">
-			<Button variant="primary" onclick={handleReset}>Reset Application</Button>
+			<Button variant="primary" onclick={handleReset}>{$translate('crash.resetApp')}</Button>
 		</div>
 	</div>
 </div>

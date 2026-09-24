@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte'
 	import type { Playlist, TagCategory, Tag, TagSelectionState, UsbDevice } from '$shared/types'
-	import { Button, Text } from '$lib/components/common'
+	import { Text, Tooltip } from '$lib/components/common'
 	import { PlaylistTree } from '$lib/components/playlists'
 	import { TagList } from '$lib/components/tags'
 	import { DeviceList } from '$lib/components/devices'
@@ -36,9 +36,7 @@
 		onTagToggle?: (tagId: string, state: TagSelectionState) => void
 		onTagContextMenu?: (e: MouseEvent, tag: Tag, category: TagCategory) => void
 		onCategoryContextMenu?: (e: MouseEvent, category: TagCategory) => void
-		onCreatePlaylist?: () => void
-		onCreateSmartPlaylist?: () => void
-		onCreateFolder?: () => void
+		onOpenPlaylistCreateMenu?: (trigger: HTMLElement) => void
 		onCreateCategory?: () => void
 		onCreateTag?: (categoryId: string) => void
 		onTagsWhitespaceContextMenu?: (e: MouseEvent) => void
@@ -72,9 +70,7 @@
 		onTagToggle,
 		onTagContextMenu,
 		onCategoryContextMenu,
-		onCreatePlaylist,
-		onCreateSmartPlaylist,
-		onCreateFolder,
+		onOpenPlaylistCreateMenu,
 		onCreateCategory,
 		onCreateTag,
 		onTagsWhitespaceContextMenu,
@@ -120,6 +116,19 @@
 
 	// When tracks are selected and we're on the Tags tab, enable toggle mode
 	let isTagToggleMode = $derived(activeSection === 'tags' && (selectedTrackIds?.size ?? 0) > 0)
+
+	// One "+" serves both sections: a create dropdown for playlists, a direct action for tags
+	// (a single-item dropdown would be pointless).
+	const canCreateCategory = $derived(tagCategories.length < 4)
+	const createDisabled = $derived(activeSection === 'tags' && !canCreateCategory)
+
+	function handleCreateClick(e: MouseEvent) {
+		if (activeSection === 'tags') {
+			onCreateCategory?.()
+		} else {
+			onOpenPlaylistCreateMenu?.(e.currentTarget as HTMLElement)
+		}
+	}
 </script>
 
 <div class="flex h-full flex-col rounded-tr-md bg-surface-1">
@@ -147,37 +156,57 @@
 		</div>
 	</div>
 
-	<!-- Section tabs -->
-	<div class="relative mx-0 mt-1 flex border-b border-stroke">
-		<!-- Sliding indicator -->
-		<div
-			class="absolute bottom-0 h-0.5 w-1/2 bg-brand-primary transition-transform duration-200 ease-in-out motion-reduce:transition-none"
-			style="transform: translateX({activeSection === 'playlists' ? '0%' : '100%'})"
-		></div>
-		<button
-			id="wizard-playlists-tab"
-			type="button"
-			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
-			'playlists'
-				? 'text-text-primary'
-				: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
-			onclick={() => (activeSection = 'playlists')}
-		>
-			<Icon name="grid" class="h-3.5 w-3.5" />
-			{$translate('nav.playlists')}
-		</button>
-		<button
-			id="wizard-tags-tab"
-			type="button"
-			class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
-			'tags'
-				? 'text-text-primary'
-				: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
-			onclick={() => (activeSection = 'tags')}
-		>
-			<Icon name="tag" class="h-3.5 w-3.5" />
-			{$translate('nav.tags')}
-		</button>
+	<!-- Section tabs + contextual create button -->
+	<div class="mx-0 mt-1 flex border-b border-stroke">
+		<div class="relative flex flex-1">
+			<!-- Sliding indicator -->
+			<div
+				class="absolute bottom-0 h-0.5 w-1/2 bg-brand-primary transition-transform duration-200 ease-in-out motion-reduce:transition-none"
+				style="transform: translateX({activeSection === 'playlists' ? '0%' : '100%'})"
+			></div>
+			<button
+				id="wizard-playlists-tab"
+				type="button"
+				class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
+				'playlists'
+					? 'text-text-primary'
+					: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+				onclick={() => (activeSection = 'playlists')}
+			>
+				<Icon name="grid" class="h-3.5 w-3.5" />
+				{$translate('nav.playlists')}
+			</button>
+			<button
+				id="wizard-tags-tab"
+				type="button"
+				class="flex flex-1 items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium transition-colors {activeSection ===
+				'tags'
+					? 'text-text-primary'
+					: 'text-text-tertiary hover:cursor-pointer hover:text-text-secondary'}"
+				onclick={() => (activeSection = 'tags')}
+			>
+				<Icon name="tag" class="h-3.5 w-3.5" />
+				{$translate('nav.tags')}
+			</button>
+		</div>
+		<div class="flex items-center pr-1.5">
+			<Tooltip
+				text={$translate(activeSection === 'playlists' ? 'common.create' : 'tags.newCategory')}
+				position="bottom"
+				delay={250}
+			>
+				<button
+					type="button"
+					class="rounded p-0.5 text-text-tertiary transition-colors hover:cursor-pointer hover:bg-surface-2 hover:text-text-secondary disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent disabled:hover:text-text-tertiary"
+					disabled={createDisabled}
+					aria-label={$translate(activeSection === 'playlists' ? 'common.create' : 'tags.newCategory')}
+					aria-haspopup={activeSection === 'playlists' ? 'menu' : undefined}
+					onclick={handleCreateClick}
+				>
+					<Icon name="plus" class="h-3.5 w-3.5" />
+				</button>
+			</Tooltip>
+		</div>
 	</div>
 
 	<!-- Content -->
@@ -231,35 +260,6 @@
 				{onCategoryContextMenu}
 				onWhitespaceContextMenu={onTagsWhitespaceContextMenu}
 			/>
-		{/if}
-	</div>
-
-	<!-- Actions -->
-	<div class="space-y-1 border-t border-stroke p-2">
-		{#if activeSection === 'playlists'}
-			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateFolder}>
-				<Icon name="folder" class="mr-2 h-4 w-4" />
-				{$translate('playlists.newFolder')}
-			</Button>
-			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreatePlaylist}>
-				<Icon name="music-note" class="mr-2 h-4 w-4" />
-				{$translate('playlists.newPlaylist')}
-			</Button>
-			<Button variant="ghost" size="sm" class="w-full justify-start" onclick={onCreateSmartPlaylist}>
-				<Icon name="bolt" class="mr-2 h-4 w-4" />
-				{$translate('playlists.newSmartPlaylist')}
-			</Button>
-		{:else}
-			<Button
-				variant="ghost"
-				size="sm"
-				class="w-full justify-start"
-				onclick={onCreateCategory}
-				disabled={tagCategories.length >= 4}
-			>
-				<Icon name="plus" class="mr-2 h-4 w-4" />
-				{$translate('tags.newCategory')}
-			</Button>
 		{/if}
 	</div>
 </div>

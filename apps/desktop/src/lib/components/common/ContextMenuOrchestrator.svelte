@@ -12,18 +12,28 @@
 		| { type: 'track'; x: number; y: number; tracks: Track[] }
 		| { type: 'playlist'; x: number; y: number; playlists: Playlist[]; source: 'tree' | 'folder' }
 		| { type: 'folderView'; x: number; y: number; folderId: string }
-		| { type: 'playlistTree'; x: number; y: number }
+		| { type: 'playlistTree'; x: number; y: number; align?: 'left' | 'right'; trigger?: HTMLElement }
 		| { type: 'libraryView'; x: number; y: number }
 		| { type: 'playlistView'; x: number; y: number; playlist: Playlist }
 		| { type: 'tag'; x: number; y: number; target: TagContextTarget }
 		| { type: 'tagsSidebar'; x: number; y: number }
 		| { type: 'device'; x: number; y: number; device: UsbDevice }
 		| { type: 'discoveryRelease'; x: number; y: number; releases: DiscoveryRelease[] }
-		| { type: 'discoveryTrack'; x: number; y: number; release: DiscoveryRelease; trackIndex: number; canPlay: boolean }
+		| {
+				type: 'discoveryTrack'
+				x: number
+				y: number
+				release: DiscoveryRelease
+				trackIndex: number
+				canPlay: boolean
+				/** The clicked track, or the whole track selection when the click landed inside one. */
+				tracks: DiscoveryTrack[]
+		  }
 		| { type: 'discoveryView'; x: number; y: number }
 </script>
 
 <script lang="ts">
+	import type { ContextMenuItem, DiscoveryTrack } from '$shared/types'
 	import TrackContextMenu from '$lib/components/library/TrackContextMenu.svelte'
 	import PlaylistContextMenu from '$lib/components/playlists/PlaylistContextMenu.svelte'
 	import TagContextMenu from '$lib/components/tags/TagContextMenu.svelte'
@@ -57,6 +67,7 @@
 		onTrackRelocate: (track: Track) => void
 		onTrackSetColor: (color: TrackColor | null, tracks: Track[]) => void
 		onTrackAnalyze: (tracks: Track[]) => void
+		onTrackToggleTag?: (tracks: Track[], tagId: string, assigned: boolean) => void
 
 		// Playlist callbacks
 		onPlaylistCreatePlaylist: (playlist: Playlist) => void
@@ -123,11 +134,16 @@
 		onDiscoveryReleaseDelete: (releaseIds: string[]) => void
 		onDiscoveryReleaseRemoveFromPlaylist?: (playlistId: string, releaseIds: string[]) => void
 		onDiscoveryReleaseMerge?: (releases: DiscoveryRelease[]) => void
+		onDiscoveryReleaseExport: (releases: DiscoveryRelease[]) => void
+		onDiscoveryReleaseToggleTag?: (releases: DiscoveryRelease[], tagId: string, assigned: boolean) => void
 		onDiscoveryReleaseAddToPlaylist?: (playlistId: string, releases: DiscoveryRelease[]) => void
 
 		// Discovery track callbacks
 		onDiscoveryTrackLikeToggle: (release: DiscoveryRelease, trackIndex: number) => void
 		onDiscoveryTrackPlayPreview: (release: DiscoveryRelease, trackIndex: number) => void
+		onDiscoveryTrackAddToPlaylist?: (playlistId: string, tracks: DiscoveryTrack[]) => void
+		onDiscoveryTrackRemoveFromPlaylist?: (playlistId: string, tracks: DiscoveryTrack[]) => void
+		onDiscoveryTrackToggleTag?: (tracks: DiscoveryTrack[], tagId: string, assigned: boolean) => void
 
 		// Close callback
 		onClose?: () => void
@@ -145,6 +161,7 @@
 		onTrackRelocate,
 		onTrackSetColor,
 		onTrackAnalyze,
+		onTrackToggleTag,
 		onPlaylistCreatePlaylist,
 		onPlaylistCreateSmartPlaylist,
 		onPlaylistCreateFolder,
@@ -185,9 +202,14 @@
 		onDiscoveryReleaseDelete,
 		onDiscoveryReleaseRemoveFromPlaylist,
 		onDiscoveryReleaseMerge,
+		onDiscoveryReleaseExport,
+		onDiscoveryReleaseToggleTag,
 		onDiscoveryReleaseAddToPlaylist,
 		onDiscoveryTrackLikeToggle,
 		onDiscoveryTrackPlayPreview,
+		onDiscoveryTrackAddToPlaylist,
+		onDiscoveryTrackRemoveFromPlaylist,
+		onDiscoveryTrackToggleTag,
 		onClose,
 	}: Props = $props()
 
@@ -272,6 +294,25 @@
 			type: 'playlistTree' as const,
 			x: e.clientX,
 			y: e.clientY,
+		}
+		activeMenu = menu
+		visibleMenu = menu
+	}
+
+	// The sidebar's "+" offers the same create group as tree whitespace, hung from the button's
+	// bottom-right corner so the dropdown stays inside the sidebar. Clicking it again closes.
+	export function togglePlaylistCreateMenu(trigger: HTMLElement) {
+		if (activeMenu.type === 'playlistTree' && activeMenu.trigger === trigger) {
+			closeAll()
+			return
+		}
+		const rect = trigger.getBoundingClientRect()
+		const menu = {
+			type: 'playlistTree' as const,
+			x: rect.right,
+			y: rect.bottom + 4,
+			align: 'right' as const,
+			trigger,
 		}
 		activeMenu = menu
 		visibleMenu = menu
@@ -362,7 +403,8 @@
 		e: MouseEvent,
 		release: DiscoveryRelease,
 		trackIndex: number,
-		canPlay: boolean
+		canPlay: boolean,
+		tracks: DiscoveryTrack[] = [release.tracks[trackIndex]]
 	) {
 		e.preventDefault()
 		const menu = {
@@ -372,6 +414,7 @@
 			release,
 			trackIndex,
 			canPlay,
+			tracks,
 		}
 		activeMenu = menu
 		visibleMenu = menu
@@ -432,6 +475,14 @@
 			const tracks = activeMenu.tracks
 			closeAll()
 			onTrackAnalyze(tracks)
+		}
+	}
+
+	function handleTrackToggleTag(tagId: string, assigned: boolean) {
+		if (activeMenu.type === 'track') {
+			const tracks = activeMenu.tracks
+			closeAll()
+			onTrackToggleTag?.(tracks, tagId, assigned)
 		}
 	}
 
@@ -657,6 +708,14 @@
 		}
 	}
 
+	function handleDiscoveryReleaseExport() {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releases = [...activeMenu.releases]
+			closeAll()
+			onDiscoveryReleaseExport(releases)
+		}
+	}
+
 	function handleDiscoveryReleaseMerge() {
 		if (activeMenu.type === 'discoveryRelease' && activeMenu.releases.length >= 2) {
 			const releases = [...activeMenu.releases]
@@ -670,6 +729,14 @@
 			const releases = activeMenu.releases
 			closeAll()
 			onDiscoveryReleaseAddToPlaylist?.(playlistId, releases)
+		}
+	}
+
+	function handleDiscoveryReleaseToggleTag(tagId: string, assigned: boolean) {
+		if (activeMenu.type === 'discoveryRelease') {
+			const releases = activeMenu.releases
+			closeAll()
+			onDiscoveryReleaseToggleTag?.(releases, tagId, assigned)
 		}
 	}
 
@@ -690,8 +757,55 @@
 		}
 	}
 
+	function handleDiscoveryTrackAddToPlaylist(playlistId: string) {
+		if (activeMenu.type === 'discoveryTrack') {
+			const { tracks } = activeMenu
+			closeAll()
+			onDiscoveryTrackAddToPlaylist?.(playlistId, tracks)
+		}
+	}
+
+	function handleDiscoveryTrackRemoveFromPlaylist() {
+		if (activeMenu.type === 'discoveryTrack' && currentPlaylistId) {
+			const { tracks } = activeMenu
+			closeAll()
+			onDiscoveryTrackRemoveFromPlaylist?.(currentPlaylistId, tracks)
+		}
+	}
+
+	function handleDiscoveryTrackToggleTag(tagId: string, assigned: boolean) {
+		if (activeMenu.type === 'discoveryTrack') {
+			const { tracks } = activeMenu
+			closeAll()
+			onDiscoveryTrackToggleTag?.(tracks, tagId, assigned)
+		}
+	}
+
 	// Discovery playlists for the context menu submenu
 	const discoveryPlaylists = $derived(playlists.filter((p) => p.context === 'discovery'))
+
+	// The sidebar-whitespace and folder-view menus offer the same "create" group, scoped differently.
+	function createPlaylistItems(handlers: {
+		onFolder: () => void
+		onPlaylist: () => void
+		onSmartPlaylist: () => void
+	}): ContextMenuItem[] {
+		return [
+			{ id: 'add-folder', label: get(translate)('playlists.newFolder'), icon: 'folder', action: handlers.onFolder },
+			{
+				id: 'add-playlist',
+				label: get(translate)('playlists.newPlaylist'),
+				icon: 'playlist',
+				action: handlers.onPlaylist,
+			},
+			{
+				id: 'add-smart-playlist',
+				label: get(translate)('playlists.newSmartPlaylist'),
+				icon: 'bolt',
+				action: handlers.onSmartPlaylist,
+			},
+		]
+	}
 </script>
 
 <!-- Track Context Menu -->
@@ -713,6 +827,7 @@
 		onRelocate={handleTrackRelocate}
 		onSetColor={handleTrackSetColor}
 		onAnalyze={handleTrackAnalyze}
+		onToggleTag={handleTrackToggleTag}
 	/>
 {/if}
 
@@ -745,16 +860,13 @@
 		open={activeMenu.type === 'playlistTree'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[
-			{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handlePlaylistTreeCreateFolder },
-			{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handlePlaylistTreeCreatePlaylist },
-			{
-				id: 'add-smart-playlist',
-				label: get(translate)('playlists.newSmartPlaylist'),
-				icon: 'bolt',
-				action: handlePlaylistTreeCreateSmartPlaylist,
-			},
-		]}
+		align={visibleMenu.align}
+		trigger={visibleMenu.trigger}
+		items={createPlaylistItems({
+			onFolder: handlePlaylistTreeCreateFolder,
+			onPlaylist: handlePlaylistTreeCreatePlaylist,
+			onSmartPlaylist: handlePlaylistTreeCreateSmartPlaylist,
+		})}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -766,16 +878,11 @@
 		open={activeMenu.type === 'folderView'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[
-			{ id: 'add-folder', label: 'New Folder', icon: 'folder', action: handleFolderViewCreateFolder },
-			{ id: 'add-playlist', label: 'New Playlist', icon: 'playlist', action: handleFolderViewCreatePlaylist },
-			{
-				id: 'add-smart-playlist',
-				label: get(translate)('playlists.newSmartPlaylist'),
-				icon: 'bolt',
-				action: handleFolderViewCreateSmartPlaylist,
-			},
-		]}
+		items={createPlaylistItems({
+			onFolder: handleFolderViewCreateFolder,
+			onPlaylist: handleFolderViewCreatePlaylist,
+			onSmartPlaylist: handleFolderViewCreateSmartPlaylist,
+		})}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -787,7 +894,14 @@
 		open={activeMenu.type === 'libraryView'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handleLibraryViewImport }]}
+		items={[
+			{
+				id: 'import',
+				label: get(translate)('library.importTracks'),
+				icon: 'upload',
+				action: handleLibraryViewImport,
+			},
+		]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -799,7 +913,14 @@
 		open={activeMenu.type === 'discoveryView'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[{ id: 'add-release', label: 'Add release', icon: 'globe', action: handleDiscoveryViewAddRelease }]}
+		items={[
+			{
+				id: 'add-release',
+				label: get(translate)('discovery.addRelease'),
+				icon: 'globe',
+				action: handleDiscoveryViewAddRelease,
+			},
+		]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -811,7 +932,14 @@
 		open={activeMenu.type === 'playlistView'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
-		items={[{ id: 'import', label: 'Import track', icon: 'upload', action: handlePlaylistViewImport }]}
+		items={[
+			{
+				id: 'import',
+				label: get(translate)('library.importTracks'),
+				icon: 'upload',
+				action: handlePlaylistViewImport,
+			},
+		]}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 	/>
@@ -887,9 +1015,11 @@
 		onRefreshMetadata={handleDiscoveryReleaseRefreshMetadata}
 		onImport={handleDiscoveryReleaseImport}
 		onMerge={handleDiscoveryReleaseMerge}
+		onExport={handleDiscoveryReleaseExport}
 		onDelete={handleDiscoveryReleaseDelete}
 		onAddToPlaylist={handleDiscoveryReleaseAddToPlaylist}
 		onRemoveFromPlaylist={currentPlaylistId ? handleDiscoveryReleaseRemoveFromPlaylist : undefined}
+		onToggleTag={handleDiscoveryReleaseToggleTag}
 	/>
 {/if}
 
@@ -901,10 +1031,16 @@
 		y={visibleMenu.y}
 		release={visibleMenu.release}
 		track={visibleMenu.release.tracks[visibleMenu.trackIndex]}
+		tracks={visibleMenu.tracks}
 		canPlay={visibleMenu.canPlay}
+		playlists={discoveryPlaylists}
+		{currentPlaylistId}
 		onClose={closeAll}
 		onClosed={handleMenuClosed}
 		onLikeToggle={handleDiscoveryTrackLikeToggle}
 		onPlayPreview={handleDiscoveryTrackPlayPreview}
+		onAddToPlaylist={handleDiscoveryTrackAddToPlaylist}
+		onRemoveFromPlaylist={currentPlaylistId ? handleDiscoveryTrackRemoveFromPlaylist : undefined}
+		onToggleTag={handleDiscoveryTrackToggleTag}
 	/>
 {/if}

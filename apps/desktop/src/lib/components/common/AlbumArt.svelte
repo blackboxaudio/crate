@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { translate } from '$shared/i18n'
 	import { getArtworkUrl } from '$shared/utils'
 	import { appDataDir } from '$lib/stores/app'
 	import Icon from './Icon.svelte'
@@ -77,7 +78,12 @@
 	onkeydown={onclick ? handleKeydown : undefined}
 >
 	{#if displayUrl}
-		<img src={displayUrl} alt="Album artwork" class="h-full w-full object-cover" onerror={handleError} />
+		<img
+			src={displayUrl}
+			alt={$translate('modals.albumArt')}
+			class="h-full w-full object-cover"
+			onerror={handleError}
+		/>
 	{:else}
 		<Icon name="music-note" class="{iconSizes[size]} text-text-tertiary" />
 	{/if}

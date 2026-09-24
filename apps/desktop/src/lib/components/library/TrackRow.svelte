@@ -175,7 +175,7 @@
 	<!-- Title -->
 	<div class="flex items-center truncate font-medium {playing ? 'text-brand-primary' : 'text-text-primary'}">
 		{#if isMissing}
-			<span class="mr-1.5 flex-shrink-0" title="File not found">
+			<span class="mr-1.5 flex-shrink-0" title={$translate('library.fileNotFound')}>
 				<Icon name="warning" class="h-3.5 w-3.5 text-red-500" />
 			</span>
 			<!--{:else if playing}-->

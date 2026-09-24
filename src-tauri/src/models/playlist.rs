@@ -70,3 +70,23 @@ pub struct MovePlaylistResult {
     pub playlist: Playlist,
     pub nested_conflicts: Vec<MoveConflict>,
 }
+
+/// Membership inserts are `OR IGNORE`, so the counts are the only way a caller can tell
+/// a fresh add from a re-add of tracks the playlist already holds.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AddToPlaylistResult {
+    pub playlist: Playlist,
+    pub added: usize,
+    pub already_present: usize,
+}
+
+/// The first few distinct release covers for a playlist, used to render Spotify-style
+/// 2x2 mosaic thumbnails in playlist lists without loading the full playlist contents.
+/// Serialized snake_case to match the `DiscoveryRelease` field convention on the frontend.
+#[derive(Debug, Serialize)]
+pub struct PlaylistCoverArt {
+    pub playlist_id: String,
+    /// Up to 4 distinct artwork URLs, ordered by the release's position in the playlist.
+    pub artwork_urls: Vec<String>,
+}

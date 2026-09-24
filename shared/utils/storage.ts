@@ -23,6 +23,37 @@ export function setStoredSet(key: string, value: Set<string>): void {
 	}
 }
 
+export function getStoredArray(key: string): string[] {
+	try {
+		const stored = localStorage.getItem(STORAGE_PREFIX + key)
+		if (stored) {
+			const parsed = JSON.parse(stored)
+			if (Array.isArray(parsed)) {
+				return parsed
+			}
+		}
+	} catch {
+		// Ignore parse errors, return empty array
+	}
+	return []
+}
+
+export function setStoredArray(key: string, value: string[]): void {
+	try {
+		localStorage.setItem(STORAGE_PREFIX + key, JSON.stringify(value))
+	} catch {
+		// Ignore storage errors (e.g., quota exceeded)
+	}
+}
+
+export function removeStored(key: string): void {
+	try {
+		localStorage.removeItem(STORAGE_PREFIX + key)
+	} catch {
+		// Ignore storage errors
+	}
+}
+
 export function getStoredNumber(key: string, defaultValue: number): number {
 	try {
 		const stored = localStorage.getItem(STORAGE_PREFIX + key)

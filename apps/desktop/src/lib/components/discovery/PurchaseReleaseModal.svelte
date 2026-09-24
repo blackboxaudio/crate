@@ -212,7 +212,7 @@
 	}
 </script>
 
-<Modal open={isOpen} title={$translate('discovery.import.title')} onClose={handleClose}>
+<Modal open={isOpen} title={$translate('discovery.importToLibrary')} onClose={handleClose}>
 	<div class="flex flex-col gap-4">
 		<!-- Release info -->
 		<div class="flex items-center gap-3">
@@ -317,7 +317,7 @@
 				/>
 				{#if artistUrl || labelUrl}
 					<div class="flex flex-col gap-1.5">
-						<Text size="xs" color="tertiary">{$translate('discovery.following.alsoFollow')}</Text>
+						<Text size="xs" color="tertiary">{$translate('discovery.following.followForNewReleases')}</Text>
 						{#if labelUrl}
 							{#if labelFollowing}
 								<div class="flex items-center gap-2 pl-1 text-sm text-text-tertiary">

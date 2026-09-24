@@ -169,7 +169,7 @@
 			<div class="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-brand-muted">
 				<div class="rounded-lg border-2 border-dashed border-brand-primary bg-surface-1/90 px-8 py-6 text-center">
 					<Icon name="upload" class="mx-auto mb-2 h-10 w-10 text-brand-primary" />
-					<Text variant="body-2" color="brand">Drop audio files to import</Text>
+					<Text variant="body-2" color="brand">{$translate('library.dropToImport')}</Text>
 				</div>
 			</div>
 		{/if}

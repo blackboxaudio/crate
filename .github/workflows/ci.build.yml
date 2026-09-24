@@ -49,17 +49,16 @@ jobs:
 
       - name: Build Tauri app (macOS)
         if: matrix.os == 'macos-latest'
-        run: yarn tauri build --target universal-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}' -f desktop
+        run: yarn tauri build --target universal-apple-darwin --config '{"bundle":{"createUpdaterArtifacts":false}}' --features desktop
 
       - name: Build Tauri app (Windows)
         if: matrix.os == 'windows-latest'
-        run: yarn tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}' -f desktop
+        run: yarn tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}' --features desktop
 
   # Mobile targets are compile-checked only (cargo check, no app bundle) so a desktop change
   # that leaks into shared code can't silently break the mobile build. The feature flags from
   # #141 exclude desktop-only code via `--no-default-features --features mobile`.
   ios:
-    name: iOS
     runs-on: macos-latest
     defaults:
       run:
@@ -87,7 +86,6 @@ jobs:
         run: cargo check --target aarch64-apple-ios --no-default-features --features mobile
 
   android:
-    name: Android
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -112,7 +110,8 @@ jobs:
           save-if: ${{ github.ref == 'refs/heads/develop' }}
 
       # Vendored OpenSSL + SQLCipher are built from C source, so cross-compiling to Android
-      # needs the NDK clang/ar toolchain wired up for both `cc` and openssl-src.
+      # needs the NDK clang/ar toolchain wired up for both `cc` and openssl-src. The clang API
+      # level matches minSdk 29 (gen/android/app/build.gradle.kts).
       - name: Configure Android NDK toolchain
         run: |
           NDK="$ANDROID_NDK_LATEST_HOME"
@@ -121,18 +120,17 @@ jobs:
           {
             echo "ANDROID_NDK_ROOT=$NDK"
             echo "ANDROID_NDK_HOME=$NDK"
-            echo "CC_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
-            echo "CXX_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android24-clang++"
+            echo "CC_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android29-clang"
+            echo "CXX_aarch64-linux-android=$TOOLCHAIN/bin/aarch64-linux-android29-clang++"
             echo "AR_aarch64-linux-android=$TOOLCHAIN/bin/llvm-ar"
-            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android24-clang"
+            echo "CARGO_TARGET_AARCH64_LINUX_ANDROID_LINKER=$TOOLCHAIN/bin/aarch64-linux-android29-clang"
           } >> "$GITHUB_ENV"
 
-      # `tauri::mobile_entry_point` turns the app identifier's last segment into a Rust
-      # identifier for the Android JNI binding. The desktop bundle id `com.bbx-audio.crate`
-      # ends in `crate` — a reserved keyword — so the Android target won't compile. Override
-      # only the compile-check identifier here; the real desktop id is untouched. Choosing the
-      # production Android identifier is M.002 follow-up work.
+      # `tauri.android.conf.json` (auto-merged for android targets from the src-tauri working
+      # dir) supplies the PERMANENT Android identifier `com.bbx-audio.crateapp` — the JNI anchor:
+      # `tauri::mobile_entry_point` derives the Android binding from it, and the hand-written
+      # JNI symbols/Kotlin package are literal against it (the desktop id ends in `crate`, a Rust
+      # keyword, so it can't be used). Channel identity (installed app id / label) lives in the
+      # Gradle applicationId instead, stamped by scripts/write-android-channel.mjs.
       - name: Check Android compilation
-        env:
-          TAURI_CONFIG: '{"identifier":"com.bbx-audio.crateapp"}'
         run: cargo check --target aarch64-linux-android --no-default-features --features mobile

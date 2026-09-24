@@ -14,11 +14,16 @@
 		x: number
 		y: number
 		items: ContextMenuItem[]
+		/** Which top corner of the menu sits at (x, y). Right-aligned menus hang from a button at
+		 *  the edge of a panel so they stay inside it instead of spilling over the neighbour. */
+		align?: 'left' | 'right'
+		/** The button that opened the menu: clicks on it are the caller's toggle, not "outside". */
+		trigger?: HTMLElement
 		onClose: () => void
 		onClosed?: () => void
 	}
 
-	let { open, x, y, items, onClose, onClosed }: Props = $props()
+	let { open, x, y, items, align = 'left', trigger, onClose, onClosed }: Props = $props()
 
 	let menuEl: HTMLDivElement | undefined = $state()
 	/* eslint-disable svelte/prefer-writable-derived */
@@ -48,28 +53,24 @@
 		menuOrigin = 'top-left'
 	})
 
+	function positionMenu() {
+		if (!menuEl) return
+		const rect = menuEl.getBoundingClientRect()
+		const anchorX = align === 'right' ? x - rect.width : x
+		const result = calculateBoundedPosition({ x: anchorX, y }, { width: rect.width, height: rect.height })
+		adjustedPosition = result.position
+		menuOrigin = align === 'right' ? (result.origin.replace('left', 'right') as AnchorOrigin) : result.origin
+	}
+
 	// Adjust position when menu opens to prevent overflow
 	$effect(() => {
-		if (open && menuEl) {
-			const rect = menuEl.getBoundingClientRect()
-			const result = calculateBoundedPosition({ x, y }, { width: rect.width, height: rect.height })
-			adjustedPosition = result.position
-			menuOrigin = result.origin
-		}
+		if (open && menuEl) positionMenu()
 	})
 
 	// Recalculate position on window resize
 	$effect(() => {
 		if (open) {
-			const handleResize = () => {
-				if (menuEl) {
-					const rect = menuEl.getBoundingClientRect()
-					const result = calculateBoundedPosition({ x, y }, { width: rect.width, height: rect.height })
-					adjustedPosition = result.position
-					menuOrigin = result.origin
-				}
-			}
-
+			const handleResize = () => positionMenu()
 			window.addEventListener('resize', handleResize)
 			return () => window.removeEventListener('resize', handleResize)
 		}
@@ -77,9 +78,9 @@
 
 	// Close on click outside
 	function handleClickOutside(e: MouseEvent) {
-		if (menuEl && !menuEl.contains(e.target as Node)) {
-			onClose()
-		}
+		const target = e.target as Node
+		if (menuEl?.contains(target) || trigger?.contains(target)) return
+		onClose()
 	}
 
 	// Close on Escape

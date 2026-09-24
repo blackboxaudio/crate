@@ -1,6 +1,6 @@
 [package]
 name = "crate-app"
-version = "0.2.9"
+version = "0.3.0-staging.53"
 description = "Cross-platform DJ library manager with music discovery, track analysis, and USB export"
 authors = ["you"]
 edition = "2021"
@@ -11,14 +11,14 @@ name = "crate_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [features]
-# No default features: Tauri's mobile build (`tauri ios/android dev|build`) inherits the crate's
-# default features and exposes NO `--no-default-features` opt-out, so a default of `["desktop"]`
-# drags desktop-only deps (souvlaki, the native menu, …) into the iOS/Android build and breaks it.
-# Desktop therefore opts in explicitly via `--features desktop` (package.json scripts + CI); mobile
-# builds use `--no-default-features --features mobile`.
+# No default features: every build selects its platform explicitly — desktop with
+# `--features desktop`, mobile with `--features mobile`. `desktop` MUST NOT be a default
+# feature: `tauri ios/android dev|build` has no `--no-default-features` flag and always
+# inherits the crate's default features, so a desktop default leaks desktop-only deps
+# (souvlaki, the native menu, rodio, …) into the iOS/Android build and breaks compilation.
 default = []
-# Desktop-only backend: audio playback, USB export, media keys, file import/analysis, native menu,
-# and the window/process/updater plugins. Opt-in via `--features desktop` (see `default` above).
+# Desktop-only backend: audio playback, USB export, media keys, file import/analysis,
+# native menu, and the window/process/updater plugins. Opt in with `--features desktop`.
 desktop = [
   "dep:rodio",
   "dep:souvlaki",
@@ -34,18 +34,22 @@ desktop = [
   "dep:tauri-plugin-process",
   "dep:tauri-plugin-updater",
 ]
-# Marker feature for mobile (iOS/Android) builds: opts out of `desktop`. Empty by design —
-# the secure-store DB key providers (#134) are non-optional `[target.'cfg(target_os = …)']`
-# dependencies (see below), so they attach per-target rather than via this feature.
-mobile = []
+# Mobile (iOS/Android) build feature. Pulls in mobile-only plugins (native web-auth for the OAuth
+# sign-in flow). Note: the iOS SQLCipher key provider (#134) uses `security-framework`, which
+# attaches via `[target.'cfg(target_os = "ios")'.dependencies]` (below) rather than this feature —
+# the keychain dep is selected by target OS, not by the Cargo feature.
+mobile = ["dep:tauri-plugin-web-auth", "dep:tauri-plugin-haptics"]
 devtools = ["tauri/devtools"]
 
 [build-dependencies]
 tauri-build = { version = "2.5.3", features = [] }
+# Read at build time by build.rs to bake cloud-sync config into mobile binaries via rustc-env.
+serde_json = "1.0.145"
 
 [dependencies]
 # Tauri
-tauri = { version = "2.10.2", features = ["protocol-asset"] }
+# 2.11 floor: `Builder::on_web_content_process_terminate` (webview crash recovery) landed in 2.11.
+tauri = { version = "2.11", features = ["protocol-asset"] }
 tauri-plugin-opener = "2.5.3"
 tauri-plugin-dialog = "2.6.0"
 tauri-plugin-fs = "2.4.5"
@@ -54,6 +58,10 @@ tauri-plugin-window-state = { version = "2.4.1", optional = true }
 tauri-plugin-updater = { version = "2.10.0", optional = true }
 tauri-plugin-process = { version = "2.3.1", optional = true }
 tauri-plugin-notification = "2"
+# Mobile-only: native OAuth via ASWebAuthenticationSession (iOS) / Custom Tabs (Android).
+tauri-plugin-web-auth = { version = "1.0.0", optional = true }
+# Mobile-only: light haptic feedback (UIImpactFeedbackGenerator on iOS / Vibrator on Android).
+tauri-plugin-haptics = { version = "2", optional = true }
 souvlaki = { version = "0.8", optional = true }
 raw-window-handle = { version = "0.6", optional = true }
 
@@ -75,13 +83,18 @@ binrw = { version = "0.14.1", optional = true }
 
 # Async
 tokio = { version = "1.48.0", features = ["full"] }
-tokio-util = { version = "0.7", features = ["rt"] }
+tokio-util = { version = "0.7", features = ["rt", "io"] }
 async-trait = "0.1"
 futures = "0.3"
 bytes = "1"
 
 # Image processing
 image = { version = "0.25.9", default-features = false, features = ["png", "jpeg", "webp"] }
+# Transitive dep of `image` (via zune-jpeg), pinned: zune-core 0.5.2 changed its no-op log
+# macros to expand to nothing, which breaks every published zune-jpeg 0.5.x (`warn!(...)` in
+# tail-expression position no longer parses). Drop this pin once a zune-jpeg built against the
+# 0.5.2 macros ships stable (0.5.16-rc1 targets it).
+zune-core = "=0.5.1"
 
 # Hashing
 blake3 = "1.8.2"
@@ -94,9 +107,10 @@ axum = "0.7"
 regex = "1"
 
 # Utilities
-uuid = { version = "1.19.0", features = ["v4", "serde"] }
+uuid = { version = "1.19.0", features = ["v4", "v5", "serde"] }
 chrono = { version = "0.4.42", features = ["serde"] }
 thiserror = "2.0.17"
+semver = "1.0.28"
 log = "0.4.29"
 env_logger = "0.11.8"
 walkdir = { version = "2.5.0", optional = true }
@@ -115,17 +129,97 @@ base85 = { version = "2.0", optional = true }
 # Cloud sync (auth: PKCE S256 hashing)
 sha2 = "0.10"
 
-# Mobile secure-store providers for the SQLCipher DB key (#134). Non-optional within each
-# target table so they're pulled only for that target and never for desktop — referencing a
-# target-specific optional dep from the `mobile` feature would break the OTHER target's build.
-
-# iOS Keychain access (after-first-unlock, this-device-only).
+# iOS-only: SQLCipher key provisioning via the Keychain (#134). See src/db/key_provider.rs
+# (`#[cfg(target_os = "ios")]`). Selected by target OS rather than the `mobile` feature because
+# `[target.'cfg()']` dependency tables are feature-independent. Absent from desktop macOS builds
+# (target_os = "macos" ≠ "ios"); already present transitively via reqwest, so this only promotes it
+# to a direct dependency.
 [target.'cfg(target_os = "ios")'.dependencies]
 security-framework = "3.7"
+security-framework-sys = "2"
+# iOS media session (#79, #54): background audio + the native lock-screen playback engine, via objc2
+# FFI (mirrors the Keychain FFI above). `AVAudioSession` `.playback` keeps WebView/native audio alive
+# when backgrounded; `AVPlayer` + `MPNowPlayingInfoCenter` + `MPRemoteCommandCenter` provide a native
+# lock-screen transport (prev/next/scrubber that keep working while the WebView's JS is suspended on
+# lock). `block2` backs the remote-command / periodic-time-observer / NotificationCenter blocks.
+# Framework-crate `features` name each class used; reconcile against `cargo check --target
+# aarch64-apple-ios` (objc2 0.3 framework crates gate every type behind its own feature).
+objc2 = "0.6.4"
+block2 = "0.6.2"
+# `block2` enables the block-taking method (NSNotificationCenter addObserverForName:…:usingBlock:).
+objc2-foundation = { version = "0.3.2", features = [
+  "NSString",
+  "NSURL",
+  "NSArray",
+  "NSData",
+  "NSDictionary",
+  "NSValue",
+  "NSError",
+  "NSNotification",
+  "NSOperation",
+  "block2",
+] }
+objc2-avf-audio = { version = "0.3.2", features = ["AVAudioSession", "AVAudioSessionTypes"] }
+# `block2` + `dispatch2` + `objc2-core-media` are needed for AVPlayer.addPeriodicTimeObserver
+# (block handler, dispatch-queue param type, and CMTime in the player's time methods).
+objc2-av-foundation = { version = "0.3.2", features = [
+  "AVPlayer",
+  "AVPlayerItem",
+  "AVAsset",
+  "AVAudioProcessingSettings",
+  "block2",
+  "dispatch2",
+  "objc2-core-media",
+] }
+objc2-core-media = { version = "0.3.2", features = ["CMTime"] }
+# `MPMediaItemArtwork` is not its own feature — it lives in `MPMediaItem` (which also carries the
+# MPMediaItemProperty* keys). `block2` enables MPRemoteCommand.addTargetWithHandler.
+objc2-media-player = { version = "0.3.2", features = [
+  "MPRemoteCommandCenter",
+  "MPRemoteCommand",
+  "MPRemoteCommandEvent",
+  "MPNowPlayingInfoCenter",
+  "MPMediaItem",
+  "block2",
+] }
+# App Check via Apple App Attest (#139): DCAppAttestService mints the raw attestation/assertion
+# that the Rust App Check exchange (services/cloud_sync/backend/firebase/appcheck/app_attest.rs)
+# trades for a Firebase App Check token. `block2` backs the generateKey / attestKey /
+# generateAssertion completion handlers. Reconcile against `cargo check --target aarch64-apple-ios`.
+objc2-device-check = { version = "0.3.2", features = ["DCAppAttestService", "block2"] }
+# Native Sign in with Apple (App Store Guideline 4.8): ASAuthorizationController /
+# ASAuthorizationAppleIDProvider mint an Apple identity token that the Rust auth flow exchanges into
+# Firebase via signInWithIdp (services/cloud_sync/auth/apple_native.rs). `default-features = false` +
+# an explicit feature list keeps the surface minimal (this crate, unlike the others, defaults to
+# nearly all features on). No `block2`: the result arrives via a delegate, not a completion block.
+# The `ASAuthorizationController` feature also gates the delegate/presentation protocols;
+# `ASAuthorizationOpenIDRequest` gates the setNonce/setRequestedScopes setters. Reconcile the exact
+# feature set against `cargo check --target aarch64-apple-ios`.
+objc2-authentication-services = { version = "0.3.2", default-features = false, features = [
+  "ASAuthorizationController",
+  "ASAuthorizationAppleIDProvider",
+  "ASAuthorizationAppleIDRequest",
+  "ASAuthorizationOpenIDRequest",
+  "ASAuthorizationRequest",
+  "ASAuthorizationAppleIDCredential",
+  "ASAuthorization",
+] }
+# iOS unified logging: a normally-launched app's stderr is discarded by iOS, so `env_logger`
+# output never reaches Console.app and on-device builds are undebuggable. `oslog` routes the
+# `log` facade to os_log (subsystem `com.bbx-audio.crate`), making cloud-sync / App Check
+# diagnostics — and panic messages, via the hook in lib.rs — visible for TestFlight builds.
+oslog = "0.2"
 
-# Android Keystore-wrapped key via JNI; ndk-context is provided by Tauri Mobile.
-# `keyring` is the API surface (Entry/Error); `android-keyring` registers the Keystore backend.
+# Android-only: App Check via Play Integrity (#139). Selected by target OS (like the iOS block
+# above), not the `mobile` feature. `jni` calls the Kotlin Play Integrity helper
+# (gen/android/.../AppCheckPlayIntegrity.kt) that mints the raw integrity token; `ndk-context`
+# supplies the JVM + Android `Context` the call needs. The Rust App Check exchange
+# (services/cloud_sync/backend/firebase/appcheck/play_integrity.rs) trades that token for a
+# Firebase App Check token. Reconcile against `cargo check --target aarch64-linux-android`.
 [target.'cfg(target_os = "android")'.dependencies]
-keyring = { version = "3.6", default-features = false }
-android-keyring = { version = "0.2", features = ["ndk-context"] }
+jni = "0.21"
+ndk-context = "0.1"
+# Android counterpart of the iOS `oslog` routing above: stderr never reaches logcat, so route
+# the `log` facade there (tag "crate"). See lib.rs logger init.
+android_logger = "0.14"
 

@@ -45,3 +45,17 @@ export function looseUrlEq(a: string, b: string): boolean {
 	const n = (s: string) => s.toLowerCase().replace(/\/+$/, '')
 	return n(a) === n(b)
 }
+
+/**
+ * The discovery releases that belong to a followed source: those whose own artist page (Bandcamp
+ * subdomain / SoundCloud profile) or the label page they were discovered from loosely matches the
+ * source URL — the same match the desktop DiscoveryRow uses for its follow indicator. Used to drill into
+ * a followed artist/label's releases and to scope preview playback started from that view.
+ */
+export function releasesFromSource(releases: DiscoveryRelease[], sourceUrl: string): DiscoveryRelease[] {
+	return releases.filter((r) => {
+		const artistUrl = deriveArtistUrl(r)
+		const labelUrl = deriveLabelUrl(r)
+		return (!!artistUrl && looseUrlEq(sourceUrl, artistUrl)) || (!!labelUrl && looseUrlEq(sourceUrl, labelUrl))
+	})
+}

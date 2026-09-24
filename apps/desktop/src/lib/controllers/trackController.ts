@@ -3,6 +3,7 @@ import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { get } from 'svelte/store'
 import { translate } from '$shared/i18n'
 import { withNativeDialog } from '$shared/utils'
+import { toastPlaylistAdd } from '$shared/utils'
 import type { Track, TrackColor, Playlist, DuplicateTrack } from '$shared/types'
 import type { playerStore as PlayerStoreType } from '$shared/stores/player'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
@@ -27,6 +28,10 @@ export interface TrackControllerDeps {
 	getSelectedPlaylistId: () => string | null
 	getPlaylists: () => Playlist[]
 	getMissingTrackIds: () => Set<string>
+	// The visible track list a user-initiated play captures as its playback-queue context. Called
+	// AFTER the missing-file check, so a play that only opens the relocate modal never captures one —
+	// the caller may also record view-origin state inside it.
+	getPlaybackContext: () => Track[]
 }
 
 export interface TrackControllerModalActions {
@@ -82,10 +87,12 @@ export function createTrackController(
 		getSelectedPlaylistId,
 		getPlaylists,
 		getMissingTrackIds,
+		getPlaybackContext,
 	} = deps
 
 	/**
-	 * Play a track, or open relocate modal if the track file is missing
+	 * Play a track, or open relocate modal if the track file is missing. A user-initiated play seeds
+	 * the shared playback queue with the visible list as its context.
 	 */
 	function play(track: Track): void {
 		if (getMissingTrackIds().has(track.id)) {
@@ -96,7 +103,7 @@ export function createTrackController(
 			}
 			return
 		}
-		playerStore.play(track)
+		playerStore.play(track, getPlaybackContext())
 	}
 
 	/**
@@ -128,17 +135,9 @@ export function createTrackController(
 	 * Handle dropping tracks onto a playlist
 	 */
 	async function handleTracksDropOnPlaylist(playlistId: string, trackIds: string[]): Promise<void> {
-		try {
-			await playlistsStore.addTracks(playlistId, trackIds)
-			// Find playlist name for the toast message
-			const playlists = getPlaylists()
-			const playlist = playlists.find((p) => p.id === playlistId)
-			const playlistName = playlist?.name || 'playlist'
-			const count = trackIds.length
-			toastStore.success(get(translate)('toast.trackAdded', { values: { count, playlistName } }))
-		} catch (error) {
-			toastStore.error(get(translate)('toast.failedToAddPlaylist'))
-		}
+		const result = await playlistsStore.addTracks(playlistId, trackIds)
+		const playlistName = getPlaylists().find((p) => p.id === playlistId)?.name ?? ''
+		toastPlaylistAdd(result, playlistName)
 	}
 
 	/**

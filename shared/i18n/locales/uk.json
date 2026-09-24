@@ -1,11 +1,14 @@
 {
 	"common": {
+		"add": "Додати",
+		"clear": "Очистити",
 		"close": "Закрити",
 		"save": "Зберегти",
 		"search": "Пошук...",
 		"cancel": "Скасувати",
 		"create": "Створити",
 		"delete": "Видалити",
+		"discard": "Відхилити",
 		"remove": "Вилучити",
 		"rename": "Перейменувати",
 		"default": "За замовчуванням",
@@ -20,13 +23,26 @@
 		"folder": "папка",
 		"playlist": "плейлист",
 		"next": "Далі",
-		"back": "Назад"
+		"back": "Назад",
+		"more": "Ще",
+		"select": "Вибрати",
+		"noResults": "Результатів не знайдено",
+		"offline": "Ви не в мережі",
+		"audioFiles": "Аудіофайли",
+		"images": "Зображення",
+		"selectAnOption": "Виберіть параметр",
+		"unknownError": "Невідома помилка",
+		"dismiss": "Закрити",
+		"step": "Крок {number}",
+		"reset": "Скинути"
 	},
 	"nav": {
 		"library": "Бібліотека",
 		"discovery": "Пошук",
 		"playlists": "Плейлисти",
-		"tags": "Теги"
+		"tags": "Теги",
+		"openMenu": "Відкрити меню",
+		"openSettings": "Відкрити параметри"
 	},
 	"settings": {
 		"title": "Параметри",
@@ -37,6 +53,7 @@
 			"appearance": "Оформлення",
 			"sound": "Звук",
 			"cloudSync": "Синхронізація в хмарі",
+			"storage": "Сховище",
 			"diagnostics": "Діагностика",
 			"about": "Про програму"
 		},
@@ -112,12 +129,20 @@
 			"transferTagsOnImportDescription": "За замовчуванням передавайте теги видання до імпортованих доріжок.",
 			"removeReleaseAfterImport": "Видалити видання після імпорту",
 			"removeReleaseAfterImportDescription": "Автоматично видаляйте видання з пошуку після імпорту файлів.",
+			"export": "Експорт",
+			"exportCollection": "Експортувати колекцію",
+			"exportCollectionDescription": "Збережіть усю вашу колекцію пошуку як JSON-файл — наприклад, щоб додати як знання в проект AI.",
 			"previewCache": "Кеш попередніх переглядів",
 			"previewCacheDescription": "Доріжки пошуку, які було переглянуто, кешуються локально для миттєвого відтворення при наступних прослуховуваннях.",
 			"cacheSize": "Розмір кешу",
 			"clearCache": "Очистити кеш",
 			"clearCacheConfirmMessage": "Ви впевнені, що хочете очистити весь кешований аудіо попередній перегляд?",
-			"clearCacheWarning": "Попередньо переглянуті доріжки потребуватимуть повторного потокового передавання з їхнього джерела при наступному програванні. Це може бути повільнішим, і деякі потоки можуть бути недоступними."
+			"clearCacheWarning": "Попередньо переглянуті доріжки потребуватимуть повторного потокового передавання з їхнього джерела при наступному програванні. Це може бути повільнішим, і деякі потоки можуть бути недоступними.",
+			"audioCache": "Аудіо",
+			"artworkCache": "Обкладинка",
+			"artworkCacheDescription": "Обкладинки зберігаються на цьому пристрої, тому вони відображаються без з'єднання.",
+			"clearArtworkCacheConfirmMessage": "Ви впевнені, що хочете очистити всі кешовані обкладинки?",
+			"cacheLimit": "Межа кешу"
 		},
 		"following": {
 			"title": "Ми стежимо",
@@ -127,7 +152,7 @@
 			"cadenceDaily": "При запуску та щодня",
 			"cadenceManual": "Тільки вручну",
 			"checkAllNow": "Перевірити все зараз",
-			"autoFollowDescription": "За замовчуванням для опції \"Також стежити\" при імпорті видання.",
+			"autoFollowDescription": "За замовчуванням для опції \"Стежити за новими виданнями\" при імпорті видання.",
 			"autoFollowOff": "Вимкнено",
 			"autoFollowArtist": "Виконавець",
 			"autoFollowLabel": "Лейбл",
@@ -137,9 +162,28 @@
 			"newReleasesSummary": "Підсумок нових видань",
 			"discogsRateLimitNote": "Discogs обмежує частоту перевірки, тому великі списки стеження можуть оновлюватися поступово."
 		},
+		"collection": {
+			"title": "Колекція",
+			"description": "Пов'яжіть свою публічну колекцію Bandcamp, щоб релізи та треки, які ви придбали, відображалися як власні.",
+			"linkAccount": "Пов'язати обліковий запис Bandcamp",
+			"linkPrompt": "Пов'язати колекцію",
+			"linkPromptInfo": "Введіть ваше ім'я користувача Bandcamp або вставте URL вашої фан-сторінки (bandcamp.com/ім'я користувача)",
+			"linkPlaceholder": "ім'я користувача",
+			"link": "Пов'язати",
+			"noAccounts": "Поки немає пов'язаних облікових записів",
+			"itemCount": "{count, plural, one {1 елемент} few {{count} елементи} many {{count} елементів} other {{count} елементів}}",
+			"refreshCadenceDescription": "Як часто перевіряти колекції на наявність нових покупок",
+			"refreshNow": "Оновити колекцію",
+			"removeConfirmTitle": "Від'єднати обліковий запис",
+			"removeConfirmMessage": "Покупки з цього облікового запису більше не будуть відображатися як власні.",
+			"enabledToggle": "Рахувати покупки як власні",
+			"privacyNote": "Читається тільки ваша публічна колекція Bandcamp. Приватні покупки та приховані елементи не видимі."
+		},
 		"appearance": {
 			"font": "Шрифт",
 			"fontDescription": "Виберіть шрифт, який використовується в усій програмі.",
+			"zoom": "Масштаб",
+			"zoomDescription": "Збільште або зменште весь інтерфейс. Застосовується тільки до цього пристрою.",
 			"theme": "Тема",
 			"themeLight": "Світла",
 			"themeDark": "Темна",
@@ -179,7 +223,8 @@
 			"updates": "Оновлення",
 			"checkForUpdates": "Перевірити наявність оновлень",
 			"upToDate": "Актуально",
-			"updateAvailable": "Доступна версія {version}"
+			"updateAvailable": "Доступна версія {version}",
+			"project": "Проект"
 		}
 	},
 	"cloudSync": {
@@ -195,11 +240,27 @@
 			"error": "Помилка синхронізації",
 			"signedOut": "Не увійшли"
 		},
+		"errors": {
+			"network": "Не можна з'єднатися зі службою синхронізації — буде повторена спроба",
+			"auth": "Ваш сеанс закінчився — вийдіть і увійдіть знову",
+			"permission": "Служба синхронізації відхилила цей пристрій (доступ заборонено)",
+			"quota": "Синхронізація обмежена або перевищена квота — буде повторена спроба",
+			"toolarge": "Ваша бібліотека занадто велика для завантаження",
+			"conflict": "Інший пристрій синхронізується зараз — буде повторена спроба",
+			"server": "Служба синхронізації має проблеми — буде повторена спроба",
+			"merge": "Не вдалося застосувати синхронізовані зміни на цьому пристрої"
+		},
+		"diagnostics": {
+			"copy": "Скопіювати діагностику синхронізації"
+		},
 		"account": {
 			"title": "Обліковий запис",
 			"syncNow": "Синхронізувати зараз",
 			"syncing": "Синхронізація…",
 			"signOut": "Вийти",
+			"signOutConfirmTitle": "Вийти?",
+			"signOutConfirmMessage": "Ваші локальні дані залишаються на цьому пристрої. Синхронізація зупиниться до повторного входу.",
+			"autoSyncHint": "Ваша бібліотека Discovery автоматично синхронізується на всіх ваших пристроях.",
 			"lastSynced": "Остання синхронізація {time}"
 		},
 		"devices": {
@@ -229,7 +290,14 @@
 			"deleteVaultDescription": "Постійно видалити всі синхронізовані дані з хмари. Ваша локальна бібліотека не порушується.",
 			"confirmTitle": "Видалити хмарне сховище?",
 			"confirmMessage": "Це постійно видалить усі синхронізовані дані з хмари та вас розлогує. Ваша локальна бібліотека залишається нетронутою. Цю дію не можна скасувати.",
-			"error": "Не вдалося видалити ваше хмарне сховище"
+			"error": "Не вдалося видалити ваше хмарне сховище",
+			"deleteAccount": "Видалити обліковий запис",
+			"deleteAccountDescription": "Постійно видалити свій обліковий запис і всі синхронізовані дані з хмари. Це не впливає на аудіофайли або бібліотеку на цьому пристрої.",
+			"deleteAccountConfirmTitle": "Видалити свій обліковий запис?",
+			"deleteAccountConfirmMessage": "Це постійно видалить ваш обліковий запис і видалить усі синхронізовані дані — треки, плейлисти, теги та відкриття — з кожного пристрою, на якому ви ввійшли. Ваші локальні файли залишаються на цьому пристрої. Цю дію не можна скасувати.",
+			"deletingAccount": "Видалення облікового запису…",
+			"deleteAccountSuccess": "Ваш обліковий запис було видалено",
+			"deleteAccountError": "Не вдалося видалити ваш обліковий запис"
 		}
 	},
 	"player": {
@@ -245,7 +313,33 @@
 		"volume": "Гучність",
 		"tempo": "Темп",
 		"resetTempo": "Скинути темп",
-		"trackNotFound": "Не вдалося знайти відтворюваний трек"
+		"trackNotFound": "Не вдалося знайти відтворюваний трек",
+		"expand": "Розширити програвач",
+		"collapse": "Згорнути програвач",
+		"seek": "Пошук",
+		"repeat": "Повторити",
+		"repeatTrack": "Повторити доріжку",
+		"repeatRelease": "Повторити видання",
+		"repeatAll": "Повторити все"
+	},
+	"queue": {
+		"upNext": "Далі",
+		"openQueue": "Черга",
+		"playNext": "Програти далі",
+		"addToQueue": "Додати в чергу",
+		"playingNext": "Програється далі",
+		"addedToQueue": "Додано в чергу",
+		"nextInQueue": "Далі в черзі",
+		"upNextFromContext": "Далі",
+		"addedByYou": "Додано вами",
+		"removeFromQueue": "Видалити з черги",
+		"reorder": "Змінити порядок",
+		"clearQueue": "Очистити",
+		"empty": "Далі нічого",
+		"emptyHint": "Доріжки, які ви додаєте, будуть програватися далі",
+		"upcoming": "Черга",
+		"history": "Історія",
+		"historyEmpty": "Поки що нічого не програвалося"
 	},
 	"library": {
 		"searchPlaceholder": "Пошук доріжок...",
@@ -267,40 +361,76 @@
 		"track": "доріжка",
 		"tracks": "доріжки",
 		"item": "елемент",
-		"items": "елементи"
+		"items": "елементи",
+		"clearSearch": "Очистити пошук",
+		"fileNotFound": "Файл не знайдено",
+		"dropToImport": "Перетягніть аудіофайли для імпорту",
+		"noColor": "Без кольору",
+		"colorLabel": "Колір: {color}"
 	},
 	"discovery": {
 		"addRelease": "Додати видання",
 		"url": "URL",
 		"source": "Джерело",
+		"sources": {
+			"bandcamp": "Bandcamp",
+			"soundcloud": "SoundCloud",
+			"youtube": "YouTube",
+			"discogs": "Discogs",
+			"other": "Інше"
+		},
 		"release": "видання",
 		"releases": "видання",
 		"searchPlaceholder": "Пошук видань...",
 		"noReleasesYet": "Видань ще немає",
+		"noResults": "Жодне видання не відповідає вашим фільтрам",
 		"addReleaseHint": "Натисніть {shortcut}, щоб додати видання з Bandcamp, Discogs, YouTube та інших",
+		"mobileAddHint": "Додайте видання з Bandcamp, Discogs, YouTube та інших",
+		"dropHint": "Перетягніть посилання, щоб додати видання",
+		"pending": "Очікування",
+		"offlineQueueNotice": "Ви в режимі офлайн — це видання буде додано, коли ви знову підключитесь",
+		"addToQueue": "Додати в чергу",
+		"editRelease": "Редагувати видання",
+		"goToRelease": "Перейти до видання",
+		"sortBy": "Сортувати за",
+		"selectedCount": "{count, plural, =1 {1 вибрано} other {{count} вибрано}}",
+		"confirmDeleteTitle": "{count, plural, =1 {Видалити видання?} other {Видалити {count} видання?}}",
+		"confirmDeleteMessage": "Це неможливо скасувати.",
 		"previewNotAvailable": "Попередній перегляд недоступний для цього джерела",
 		"columns": {
 			"artistTitle": "Виконавець / Назва",
 			"label": "Лейбл",
 			"tags": "Теги",
 			"dateAdded": "Дата додавання",
-			"released": "Випущено",
-			"added": "Додано"
+			"dateReleased": "Дата випуску",
+			"dateLiked": "Дата вподобання"
 		},
 		"fetchingMetadata": "Завантаження метаданих...",
 		"refreshMetadata": "Оновити метаданні",
+		"downloadForOffline": "Завантажити для офлайну",
+		"downloading": "Завантаження...",
+		"downloadedForOffline": "Завантажено",
+		"removeDownload": "Видалити завантаження",
+		"downloadFailed": "Не вдалося завантажити для офлайну",
 		"fetchError": "Не вдалося завантажити метаданні з цієї URL",
+		"unsupportedUrl": "Ця URL не підтримується",
+		"shareNoUrl": "У спільному тексті не знайдено посилання",
 		"tracks": "Доріжки",
 		"trackCount": "{count, plural, =1 {1 доріжка} other {{count} доріжок}}",
+		"memberTrackCount": "{count} з {total} доріжок",
 		"openInBrowser": "Відкрити в браузері",
+		"openInApp": "Відкрити в {app}",
 		"copyUrl": "Копіювати URL",
 		"copiedUrl": "URL скопійовано до буфера обміну",
+		"share": "Поділитися",
+		"viewAsGrid": "Переглянути як сітку",
+		"viewAsList": "Переглянути як список",
+		"pasteLink": "Вставити посилання",
+		"clipboardNoUrl": "Немає посилання в буфері обміну",
 		"like": "Додати до вподобаних",
 		"unlike": "Видалити з вподобаних",
 		"playPreview": "Відтворити попередній перегляд",
 		"searchOnYouTube": "Шукати на YouTube",
-		"openReleaseInBrowser": "Відкрити видання в браузері",
-		"copyReleaseUrl": "Копіювати URL видання",
 		"importToLibrary": "Імпортувати до бібліотеки",
 		"deleteRelease": "Видалити видання",
 		"deleteReleases": "Видалити видання",
@@ -311,10 +441,11 @@
 			"title": "Назва",
 			"label": "Лейбл",
 			"releaseDate": "Дата випуску",
-			"notes": "Примітки"
+			"notes": "Примітки",
+			"notesPlaceholder": "Додати примітки…",
+			"addTags": "Додати теги"
 		},
 		"import": {
-			"title": "Імпортувати до бібліотеки",
 			"selectFiles": "Вибрати файли",
 			"matched": "Збігнуто",
 			"unmatched": "Не збігнуто",
@@ -363,8 +494,9 @@
 			"unfollowSelected": "Припинити стеження",
 			"pauseSelected": "Пауза",
 			"unfollow": "Припинити стеження",
+			"unfollowConfirm": "Припинити стеження за {name} для нових видань? Видання, які вже є в Пошуку, зберігаються.",
 			"checkNow": "Перевірити зараз",
-			"enabledToggle": "Перемикання оновлень",
+			"enabledToggle": "Перевіряти на нові видання",
 			"artist": "Виконавець",
 			"label": "Лейбл",
 			"checkedAgo": "Перевірено {time}",
@@ -376,13 +508,11 @@
 			"following": "Ми стежимо",
 			"followForNewReleases": "Стежити за новими виданнями",
 			"followViaPaste": "Стежити за цим джерелом із панелі \"Ми стежимо\"",
-			"popoverTitle": "Стежити за новими виданнями",
 			"upcoming": "Скоро",
 			"daysUntil": "{days} д",
 			"surfacedVia": "Відображено через {source}",
 			"markNew": "Позначити як нове",
 			"markNotNew": "Позначити як не нове",
-			"alsoFollow": "Стежити за новими виданнями",
 			"sortBy": "Сортувати за",
 			"empty": {
 				"title": "Ви ще нікого не стежите",
@@ -404,12 +534,53 @@
 				"urlPlaceholder": "Вставте URL-адресу сторінки виконавця/лейбла Bandcamp, SoundCloud або Discogs",
 				"urlInfo": "Ми автоматично визначимо платформу й те, виконавець це чи лейбл, і відтепер стежитимемо за новими релізами. Старіші релізи додаватися не будуть."
 			}
+		},
+		"releaseArtwork": "Обкладинка видання",
+		"mergeTarget": "Ціль",
+		"mergeTagCount": "{count, plural, =1 {1 тег} one {1 тег} few {{count} теги} many {{count} тегів} other {{count} тегів}}",
+		"exportAsJson": "Експортувати як JSON…",
+		"export": {
+			"title": "Експортувати видання",
+			"description": "Збережіть видання як JSON-файл — наприклад, щоб додати як знання в проект AI.",
+			"format": "Формат",
+			"formatCurated": "Відібрано",
+			"formatCuratedHint": "Лаконічні та легко читаються поля. Найкраще для баз знань AI.",
+			"formatRaw": "Без обробки",
+			"formatRawHint": "Кожне збережене поле без змін.",
+			"tracks": "Доріжки",
+			"tracksAll": "Усі доріжки",
+			"tracksLiked": "Тільки вподобані доріжки",
+			"tracksNone": "Без доріжок",
+			"summary": "{count, plural, =1 {1 видання} one {{count} видання} few {{count} видання} many {{count} видань} other {{count} видань}} · ~{size}",
+			"preparing": "Підготовка видань…",
+			"failed": "Експорт не вдався."
 		}
 	},
 	"filters": {
 		"title": "Фільтри",
 		"liked": "Вподобані",
-		"new": "Нове"
+		"new": "Нове",
+		"downloaded": "Завантажено",
+		"purchased": "Придбано",
+		"off": "Вимк.",
+		"only": "Тільки",
+		"not": "Не"
+	},
+	"collection": {
+		"notInCrate": "Немає в {appName}",
+		"addToDiscovery": "Додати до Збільшення",
+		"emptyTitle": "Немає пов'язаної колекції",
+		"emptyHint": "Пов'яжіть свою колекцію Bandcamp, щоб побачити свої покупки тут",
+		"noItems": "Поки немає покупок",
+		"ownedBadge": "Володіння",
+		"partialBadge": "{owned}/{total} володіння",
+		"gap": {
+			"title": "Відсутній у бібліотеці",
+			"missingCount": "{count, plural, one {1 покупка не в вашій бібліотеці} few {{count} покупки не в вашій бібліотеці} many {{count} покупок не в вашій бібліотеці} other {{count} покупок не в вашій бібліотеці}}",
+			"missingOnly": "Тільки відсутні",
+			"inLibrary": "У бібліотеці",
+			"notInLibrary": "Немає в бібліотеці"
+		}
 	},
 	"playlists": {
 		"newPlaylist": "Новий плейлист",
@@ -422,7 +593,16 @@
 		"rootNoFolder": "Корінь (без папки)",
 		"folderEmpty": "Ця папка порожня",
 		"noPlaylistsYet": "Плейлистів ще немає",
-		"exportToDevice": "Експортувати на пристрій"
+		"allPlaylists": "Усі плейлисти",
+		"searchPlaceholder": "Пошук плейлистів…",
+		"emptyHint": "Створюйте плейлисти для організації своїх пошуків",
+		"detailEmptyHint": "Утримуйте видання в Пошуку, щоб додати його до плейлиста",
+		"exportToDevice": "Експортувати на пристрій",
+		"playlistOrder": "Порядок плейлиста",
+		"sort": {
+			"dateCreated": "Дата створення",
+			"dateModified": "Дата модифікації"
+		}
 	},
 	"tags": {
 		"newCategory": "Нова категорія",
@@ -431,11 +611,11 @@
 		"renameCategory": "Перейменувати категорію",
 		"deleteTag": "Видалити тег",
 		"deleteCategory": "Видалити категорію",
-		"addCategory": "Додати категорію",
-		"addTag": "Додати тег",
 		"moveToCategory": "Перемістити до категорії",
 		"noTags": "Немає тегів",
-		"noTagCategoriesYet": "Категорій тегів ще немає"
+		"noTagCategoriesYet": "Категорій тегів ще немає",
+		"emptyHint": "Створюйте категорії тегів з кодуванням за кольором для організації своїх пошуків",
+		"removeTag": "Видалити тег"
 	},
 	"contextMenu": {
 		"viewInFinder": "Показати у Finder",
@@ -444,7 +624,6 @@
 		"addToPlaylist": "Додати до плейлиста",
 		"setColor": "Установити колір",
 		"removeColor": "Видалити колір",
-		"remove": "Вилучити",
 		"removeFromPlaylist": "Вилучити з плейлиста",
 		"removeFromLibrary": "Вилучити з бібліотеки",
 		"relocate": "Переміщення...",
@@ -484,6 +663,8 @@
 			"placeholder": "Назва категорії"
 		},
 		"confirm": {
+			"discardChangesTitle": "Відхилити зміни",
+			"discardChangesMessage": "Ви впевнені, що хочете відхилити свої зміни?",
 			"deletePlaylistTitle": "Видалити плейлист",
 			"deletePlaylistMessage": "Ви впевнені, що хочете видалити цей плейлист?",
 			"deleteFolderTitle": "Видалити папку",
@@ -501,19 +682,32 @@
 			"removeFromLibraryTitle": "Вилучити з бібліотеки",
 			"removeFromLibraryMessage": "{count, plural, =1 {Вилучити цю доріжку з бібліотеки?} other {Вилучити {count} доріжок з бібліотеки?}}",
 			"removeFromLibraryWarning": "Цю дію не можна скасувати. Доріжки будуть вилучені з усіх плейлистів.",
-			"deleteTracksFromCollection": "Також видалити доріжки з моєї колекції",
-			"removeDiscoveryReleasesTitle": "Вилучити з пошуку",
-			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Вилучити це видання з пошуку?} other {Вилучити {count} видань з пошуку?}}",
+			"deleteTracksFromCollection": "Також видалити доріжки з вашої колекції",
+			"removeDiscoveryReleasesTitle": "{count, plural, =1 {Видалити видання} one {Видалити видання} few {Видалити видання} many {Видалити видань} other {Видалити видань}}",
+			"removeDiscoveryReleasesMessage": "{count, plural, =1 {Видалити це видання?} one {Видалити це видання?} few {Видалити ці {count} видання?} many {Видалити ці {count} видань?} other {Видалити ці {count} видань?}}",
 			"removeDiscoveryReleasesWarning": "Цю дію не можна скасувати. Видання будуть вилучені з усіх плейлистів.",
 			"removeDiscoveryReleasesFromPlaylistTitle": "Вилучити з плейлиста",
 			"removeDiscoveryReleasesFromPlaylistMessage": "{count, plural, =1 {Вилучити це видання з плейлиста?} other {Вилучити {count} видань з плейлиста?}}",
-			"deleteReleasesFromCollection": "Також видалити видання з моєї колекції"
+			"deleteReleasesFromCollection": "Також видалити видання з вашої колекції"
 		},
 		"relocate": {
 			"title": "Переміщення доріжки",
-			"message": "Виберіть нове місце розташування для цієї доріжки."
+			"cloudSyncedMessage": "Цю доріжку було додано на іншому пристрої. Виберіть локальну папку, яка містить коренем бібліотеки, щоб зробити її відтворюваною тут.",
+			"missingFileMessage": "Файл для цієї доріжки не міг бути знайдений у його оригінальному місцезнаходженні.",
+			"selectRootFolder": "Виберіть корінь папку бібліотеки",
+			"selectReplacementFile": "Виберіть файл заміни",
+			"validating": "Перевірка файлу...",
+			"unsupportedFormat": "Непідтримуваний аудіоформат.",
+			"hashMatch": "Вміст файлу збігається. Хеш перевірено.",
+			"hashMismatch": "Вміст файлу не збігається з оригіналом.",
+			"noOriginalHash": "Немає оригінального хешу для порівняння. Файл все ще може бути правильним.",
+			"useAnyway": "Все одно використовуйте цей файл",
+			"relocate": "Перемістити",
+			"relocating": "Переміщення...",
+			"validateFailed": "Не вдалося перевірити файл",
+			"relocateFailed": "Не вдалося перемістити доріжку"
 		},
-		"albumArt": "Обкладинка альбому",
+		"albumArt": "Обкладинка",
 		"deviceInfo": {
 			"title": "Інформація про пристрій",
 			"diskType": "Тип диска",
@@ -566,6 +760,8 @@
 	"toast": {
 		"trackAdded": "{count, plural, =1 {1 доріжка} other {{count} доріжок}} додано до {playlistName}",
 		"trackAddedWithFailed": "{count, plural, =1 {1 доріжка} other {{count} доріжок}} додано до {playlistName}, {failed} невдалих",
+		"trackAddedWithExisting": "{count, plural, =1 {1 доріжка} other {{count} доріжок}} додано до {playlistName}, {existing} уже там",
+		"alreadyInPlaylist": "Вже в {playlistName}",
 		"tracksImported": "{count, plural, =1 {1 доріжка} other {{count} доріжок}} імпортована",
 		"tracksImportedWithSkipped": "{imported, plural, =1 {1 доріжка} other {{imported} доріжок}} імпортована, {skipped} пропущено",
 		"tracksExported": "{exported, plural, =1 {1 доріжка} other {{exported} доріжок}} експортована на {deviceName}, {skipped, plural, =1 {1 пропущено} other {{skipped} пропущено}}",
@@ -577,6 +773,7 @@
 		"replacedExisting": "Замінено існуючий елемент",
 		"deviceConnected": "{name} підключено",
 		"deviceDisconnected": "{name} відключено",
+		"audioDeviceDisconnected": "{name} відключено — відтворення призупинено",
 		"deviceEjected": "{name} видалено",
 		"deviceEjectFailed": "Не вдалося видалити {name}",
 		"relocated": "Переміщено \"{title}\"",
@@ -587,7 +784,14 @@
 		"failedToUpdateTracks": "Не вдалося оновити доріжки",
 		"failedToSetArtwork": "Не вдалося встановити обкладинку",
 		"failedToRemoveArtwork": "Не вдалося видалити обкладинку",
-		"noArtworkInFile": "У аудіофайлі не знайдено обкладинки"
+		"noArtworkInFile": "У аудіофайлі не знайдено обкладинки",
+		"tracksImportedWithFailed": "{count, plural, =1 {1 доріжка} other {{count} доріжок}} імпортована, {failed} невдалих",
+		"failedToSetTrackColor": "Не вдалося встановити колір доріжки",
+		"exportCleanedUp": "Вичищений частковий експорт",
+		"exportCleanUpFailed": "Не вдалося очистити експорт",
+		"deviceNotFound": "Пристрій не знайдено",
+		"deviceReformatted": "Пристрій переформатований як \"{name}\"",
+		"deviceReformatFailed": "Не вдалося переформатувати: {error}"
 	},
 	"errors": {
 		"cannotDropIntoSelf": "Не можна перетягнути папку саму в себе",
@@ -596,8 +800,13 @@
 		"exportInProgress": "Експорт вже в процесі",
 		"tagNameConflict": "Тег з цією назвою вже існує в цільовій категорії",
 		"previewStreamFailed": "Не вдалося завантажити потік попереднього перегляду",
+		"previewNotAvailableOffline": "Цей трек недоступний у режимі без підключення",
 		"updateCheckFailed": "Не вдалося перевірити наявність оновлень",
-		"updateInstallFailed": "Не вдалося встановити оновлення"
+		"updateInstallFailed": "Не вдалося встановити оновлення",
+		"generic": "Щось пішло не так",
+		"previewPlaybackFailed": "Помилка відтворення попереднього перегляду",
+		"previewPlayFailed": "Не вдалося програти попередній перегляд",
+		"previewResumeFailed": "Не вдалося вінозвити попередній перегляд"
 	},
 	"devices": {
 		"title": "Пристрої",
@@ -638,7 +847,7 @@
 		"selectDevice": "Виберіть пристрій",
 		"selectDevicesDescription": "Виберіть один або кілька пристроїв для експорту.",
 		"devicesSelected": "{count, plural, =1 {1 пристрій вибрано} other {{count} пристроїв вибрано}}",
-		"devicesToExport": "Пристрої",
+		"devicesToExport": "Пристрої для експорту",
 		"noDevicesConnected": "USB-пристрої не підключені",
 		"noPlaylistsAvailable": "Плейлисти недоступні",
 		"destination": "Призначення",
@@ -701,6 +910,9 @@
 		"emerald": "Смарагдовий"
 	},
 	"dates": {
+		"justNow": "Щойно",
+		"minutesAgo": "{count, plural, =1 {1 хвилину тому} other {{count} хвилин тому}}",
+		"hoursAgo": "{count, plural, =1 {1 годину тому} other {{count} годин тому}}",
 		"today": "Сьогодні",
 		"yesterday": "Вчора",
 		"daysAgo": "{count, plural, =1 {1 день тому} other {{count} днів тому}}",
@@ -731,6 +943,9 @@
 		"settingsSound": "Звук",
 		"settingsDiagnostics": "Діагностика",
 		"quit": "Завершити {appName}",
+		"hide": "Приховати {appName}",
+		"hideOthers": "Приховати інші",
+		"showAll": "Показати все",
 		"importTracks": "Імпортувати доріжки...",
 		"addRelease": "Додати видання...",
 		"refreshMetadata": "Оновити метаданні",
@@ -756,19 +971,23 @@
 		"mute": "Вимкнути звук",
 		"jumpToPlaying": "Перейти до доріжки, яка програється",
 		"toggleEditor": "Перемкнути редактор",
+		"toggleQueue": "Перемкнути чергу",
 		"toggleView": "Перемкнути вид",
 		"showDevTools": "Показати DevTools",
 		"enterFullScreen": "Перейти в повноекранний режим",
 		"exitFullScreen": "Вийти з повноекранного режиму",
 		"expandAllReleases": "Розгорнути всі видання",
 		"collapseAllReleases": "Згорнути всі видання",
+		"zoomIn": "Збільшити",
+		"zoomOut": "Зменшити",
+		"actualSize": "Дійсний розмір",
 		"minimize": "Мінімізувати",
 		"zoom": "Масштаб",
 		"featureTour": "Тур функцій...",
 		"reportIssue": "Звітувати про проблему..."
 	},
 	"smartPlaylist": {
-		"createTitle": "Створити розумний плейлист",
+		"createTitle": "Новий розумний плейлист",
 		"editTitle": "Редагувати розумний плейлист",
 		"name": "Назва",
 		"namePlaceholder": "Назва розумного плейлиста",
@@ -849,6 +1068,14 @@
 			"aqua": "Блакитний",
 			"blue": "Синій",
 			"purple": "Фіолетовий"
+		},
+		"formats": {
+			"mp3": "MP3",
+			"flac": "FLAC",
+			"wav": "WAV",
+			"aiff": "AIFF",
+			"aac": "AAC",
+			"ogg": "OGG"
 		}
 	},
 	"wizard": {
@@ -888,6 +1115,26 @@
 			"title": "Все готово!",
 			"subtitle": "Почніть збирати свою колекцію."
 		},
-		"getStarted": "Почнемо"
+		"getStarted": "Почнемо",
+		"mobile": {
+			"welcome": {
+				"title": "Ласкаво просимо у {appName}",
+				"subtitle": "Відкривайте музику та створюйте свою колекцію — прямо з кишені."
+			},
+			"discover": {
+				"title": "Додайте та переглядайте випуски",
+				"description": "Вставте посилання з Bandcamp, SoundCloud та інших джерел, щоб зберегти випуск, а потім торкніться для миттєвого перегляду."
+			},
+			"sync": {
+				"title": "Синхронізуйте з комп'ютером",
+				"description": "За бажанням увійдіть, щоб синхронізувати колекцію на всіх пристроях. Ви завжди можете зробити це пізніше."
+			},
+			"appearance": {
+				"title": "Зробіть це своїм",
+				"description": "Виберіть тему та колір акценту. Ви можете змінювати ці параметри будь-коли в Параметрах."
+			},
+			"skip": "Пропустити",
+			"maybeLater": "Можливо, пізніше"
+		}
 	}
 }

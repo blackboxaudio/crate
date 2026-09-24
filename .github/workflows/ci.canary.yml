@@ -1,0 +1,175 @@
+name: Source Canary
+
+# Discovery previews for YouTube and Discogs releases depend on YouTube's undocumented
+# innertube API, which changes without notice. This workflow is the early-warning system:
+# a daily live probe of the exact extraction path the app uses, plus a watch on yt-dlp
+# releases (the reference implementation the app's client table mirrors). Either job opens
+# or updates a `source-canary` issue instead of failing silently in users' hands.
+
+on:
+  schedule:
+    - cron: '17 13 * * *' # daily Node probe
+    - cron: '17 14 * * 1' # weekly Rust canaries
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  # Daily: the dependency-free Node probe (seconds, no Rust build). It replays the app's
+  # client chain and session bootstrap; keep its CLIENTS table in sync with youtube.rs.
+  live-probe:
+    name: YouTube / Discogs live probe
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Run probe
+        id: probe
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          node scripts/yt-probe.mjs 2>&1 | tee probe.log
+
+      - name: Classify outcome
+        id: classify
+        run: |
+          if grep -q "^RESULT: OK" probe.log; then
+            echo "verdict=ok" >> "$GITHUB_OUTPUT"
+          elif grep -q "^RESULT: INCONCLUSIVE" probe.log; then
+            echo "verdict=inconclusive" >> "$GITHUB_OUTPUT"
+            echo "::warning::YouTube's bot check rejected the runner's IP; probe inconclusive. Run \`node scripts/yt-probe.mjs\` from a residential connection to confirm."
+          else
+            echo "verdict=broken" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update issue
+        if: steps.classify.outputs.verdict == 'broken'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh label create source-canary --description "Third-party source protocol drift" --color D93F0B --force
+          title="Canary: YouTube/Discogs preview extraction is failing"
+          body_file=$(mktemp)
+          {
+            echo "The scheduled live probe failed on $(date -u +%Y-%m-%d). Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            echo "Reproduce locally with \`node scripts/yt-probe.mjs\`, then confirm against the app's own code with \`cd src-tauri && cargo test --features desktop -- --ignored canary_\`."
+            echo "First stop for the fix: diff \`YT_CLIENTS\` in \`src-tauri/src/services/discovery/metadata/youtube.rs\` against yt-dlp's \`INNERTUBE_CLIENTS\` (\`yt_dlp/extractor/youtube/_base.py\`)."
+            echo
+            echo '```'
+            tail -40 probe.log
+            echo '```'
+          } > "$body_file"
+          existing=$(gh issue list --label source-canary --state open --search "\"$title\" in:title" --json number --jq '.[0].number')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body-file "$body_file"
+          else
+            gh issue create --title "$title" --label source-canary --body-file "$body_file"
+          fi
+
+  # Weekly (and on demand): the Rust canaries, which exercise the exact code the app ships.
+  rust-canary:
+    name: Rust canaries (app extraction path)
+    if: github.event_name == 'workflow_dispatch' || github.event.schedule == '17 14 * * 1'
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: canary
+          cache-targets: true
+          cache-on-failure: true
+
+      - name: Run canaries
+        id: canary
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          cargo test --features desktop -- --ignored --test-threads=1 canary_ 2>&1 | tee canary.log
+
+      - name: Classify outcome
+        run: |
+          if [ "${{ steps.canary.outcome }}" = "success" ]; then
+            echo "Rust canaries passed"
+          elif grep -q "INCONCLUSIVE" canary.log && ! grep -q "protocol change\|renderer changed\|header shape changed\|Discogs" canary.log; then
+            echo "::warning::YouTube bot check rejected the runner's IP; Rust canary inconclusive."
+          else
+            echo "::error::Rust canaries failed — see canary.log in the job output (the daily Node probe files the issue)."
+            exit 1
+          fi
+
+  ytdlp-release-watch:
+    name: yt-dlp release watch
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compare latest yt-dlp release with the tracked one
+        id: compare
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tracked=$(tr -d '[:space:]' < .github/canary/yt-dlp-release)
+          latest=$(gh api repos/yt-dlp/yt-dlp/releases/latest --jq .tag_name)
+          echo "tracked=$tracked" >> "$GITHUB_OUTPUT"
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          if [ "$tracked" != "$latest" ]; then
+            gh api "repos/yt-dlp/yt-dlp/releases/tags/$latest" --jq .body > release-notes.md
+            if grep -qi "youtube" release-notes.md; then
+              echo "verdict=youtube-changes" >> "$GITHUB_OUTPUT"
+            else
+              echo "verdict=no-youtube-changes" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "verdict=current" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update issue
+        if: steps.compare.outputs.verdict == 'youtube-changes'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          LATEST: ${{ steps.compare.outputs.latest }}
+          TRACKED: ${{ steps.compare.outputs.tracked }}
+        run: |
+          gh label create source-canary --description "Third-party source protocol drift" --color D93F0B --force
+          title="yt-dlp $LATEST shipped YouTube changes — review the client table"
+          body_file=$(mktemp)
+          {
+            echo "yt-dlp released **$LATEST** (tracked: $TRACKED) with YouTube extractor changes. Review whether \`YT_CLIENTS\` in \`src-tauri/src/services/discovery/metadata/youtube.rs\` or the pinned EJS version in \`n_transform.rs\` need to follow."
+            echo
+            echo "- Client table diff: https://github.com/yt-dlp/yt-dlp/compare/$TRACKED...$LATEST#diff-$(printf 'yt_dlp/extractor/youtube/_base.py' | sha256sum | cut -c1-64)"
+            echo "- Release notes: https://github.com/yt-dlp/yt-dlp/releases/tag/$LATEST"
+            echo
+            echo "Once reviewed, set \`.github/canary/yt-dlp-release\` to \`$LATEST\` to silence this until the next release."
+            echo
+            echo "### YouTube entries in the release notes"
+            echo
+            grep -iA12 "^- \*\*youtube\*\*" release-notes.md | head -40 || true
+          } > "$body_file"
+          existing=$(gh issue list --label source-canary --state open --search "\"yt-dlp $LATEST\" in:title" --json number --jq '.[0].number')
+          if [ -z "$existing" ]; then
+            gh issue create --title "$title" --label source-canary --body-file "$body_file"
+          fi
