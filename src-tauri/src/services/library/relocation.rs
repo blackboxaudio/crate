@@ -40,8 +40,7 @@ impl LibraryService {
             .map(|e| e.to_lowercase())
             .unwrap_or_default();
 
-        let supported_formats = ["mp3", "wav", "aiff", "aif", "flac", "m4a", "aac"];
-        let format_valid = supported_formats.contains(&new_format.as_str());
+        let format_valid = SUPPORTED_AUDIO_EXTENSIONS.contains(&new_format.as_str());
 
         // Compute hash of new file
         let new_hash = compute_audio_hash(new_path)?;

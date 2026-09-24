@@ -240,6 +240,12 @@ pub fn run() {
             commands::library::import_tracks_with_duplicates,
             #[cfg(feature = "desktop")]
             commands::library::resolve_duplicate,
+            #[cfg(feature = "desktop")]
+            commands::library::get_music_library_folder,
+            #[cfg(feature = "desktop")]
+            commands::library::set_music_library_folder,
+            #[cfg(feature = "desktop")]
+            commands::library::scan_music_library_folder,
             // Playback commands (desktop-only)
             #[cfg(feature = "desktop")]
             commands::playback::play_track,
