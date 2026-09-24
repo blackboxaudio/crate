@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Added interface zoom on desktop: scale the whole UI from 75% to 150% via Settings → Appearance or View → Zoom In / Zoom Out / Actual Size (⌘= / ⌘- / ⌘0); the level is remembered per device and never cloud-synced
 
-## [0.3.0-staging.1] - 2026-06-24
+## [0.3.0] - 2026-09-24
 
 ### Added
 
@@ -221,8 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.2.9...HEAD
-[0.3.0-staging.1]: https://github.com/blackboxaudio/crate/compare/v0.2.9...v0.3.0-staging.1
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/blackboxaudio/crate/compare/v0.2.9...v0.3.0
 [0.2.9]: https://github.com/blackboxaudio/crate/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/blackboxaudio/crate/compare/v0.2.7...v0.2.8
 [0.2.7]: https://github.com/blackboxaudio/crate/compare/v0.2.6...v0.2.7
