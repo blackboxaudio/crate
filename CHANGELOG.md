@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+
+- Added interface zoom on desktop: scale the whole UI from 75% to 150% via Settings → Appearance or View → Zoom In / Zoom Out / Actual Size (⌘= / ⌘- / ⌘0); the level is remembered per device and never cloud-synced
+
 ## [0.3.0-staging.1] - 2026-06-24
 
 ### Added

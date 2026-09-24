@@ -33,7 +33,8 @@
 		"selectAnOption": "Seleziona un'opzione",
 		"unknownError": "Errore sconosciuto",
 		"dismiss": "Chiudi",
-		"step": "Passaggio {number}"
+		"step": "Passaggio {number}",
+		"reset": "Ripristina"
 	},
 	"nav": {
 		"library": "Libreria",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Carattere",
 			"fontDescription": "Scegli il carattere utilizzato nell'applicazione.",
+			"zoom": "Zoom",
+			"zoomDescription": "Ingrandisci o rimpicciolisci l'intera interfaccia. Si applica solo a questo dispositivo.",
 			"theme": "Tema",
 			"themeLight": "Chiaro",
 			"themeDark": "Scuro",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Esci dalla modalità a schermo intero",
 		"expandAllReleases": "Espandi tutti i rilasci",
 		"collapseAllReleases": "Comprimi tutti i rilasci",
+		"zoomIn": "Ingrandisci",
+		"zoomOut": "Rimpicciolisci",
+		"actualSize": "Dimensione reale",
 		"minimize": "Riduci a icona",
 		"zoom": "Zoom",
 		"featureTour": "Tour delle funzionalità...",

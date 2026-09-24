@@ -33,7 +33,8 @@
 		"selectAnOption": "Wybierz opcję",
 		"unknownError": "Nieznany błąd",
 		"dismiss": "Zamknij",
-		"step": "Krok {number}"
+		"step": "Krok {number}",
+		"reset": "Resetuj"
 	},
 	"nav": {
 		"library": "Biblioteka",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Czcionka",
 			"fontDescription": "Wybierz czcionkę używaną w całej aplikacji.",
+			"zoom": "Powiększenie",
+			"zoomDescription": "Powiększ lub pomniejsz cały interfejs. Dotyczy tylko tego urządzenia.",
 			"theme": "Motyw",
 			"themeLight": "Jasny",
 			"themeDark": "Ciemny",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Wyjdź z trybu pełnoekranowego",
 		"expandAllReleases": "Rozwiń wszystkie wydania",
 		"collapseAllReleases": "Zwiń wszystkie wydania",
+		"zoomIn": "Powiększ",
+		"zoomOut": "Pomniejsz",
+		"actualSize": "Rozmiar rzeczywisty",
 		"minimize": "Minimalizuj",
 		"zoom": "Powiększ",
 		"featureTour": "Przewodnik funkcji...",

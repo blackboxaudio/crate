@@ -33,7 +33,8 @@
 		"selectAnOption": "Välj ett alternativ",
 		"unknownError": "Okänt fel",
 		"dismiss": "Stäng",
-		"step": "Steg {number}"
+		"step": "Steg {number}",
+		"reset": "Återställ"
 	},
 	"nav": {
 		"library": "Bibliotek",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Typsnitt",
 			"fontDescription": "Välj typsnitt som används i programmet.",
+			"zoom": "Zoom",
+			"zoomDescription": "Zooma in eller ut i gränssnittet. Gäller endast denna enhet.",
 			"theme": "Tema",
 			"themeLight": "Ljust",
 			"themeDark": "Mörkt",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Avsluta helskärm",
 		"expandAllReleases": "Expandera alla utgåvor",
 		"collapseAllReleases": "Minimera alla utgåvor",
+		"zoomIn": "Zooma in",
+		"zoomOut": "Zooma ut",
+		"actualSize": "Faktisk storlek",
 		"minimize": "Minimera",
 		"zoom": "Zooma",
 		"featureTour": "Funktionstur...",

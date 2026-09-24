@@ -108,6 +108,9 @@ export interface MenuTranslations {
 	toggleQueue: string
 	expandAllReleases: string
 	collapseAllReleases: string
+	zoomIn: string
+	zoomOut: string
+	actualSize: string
 	showDevTools: string
 	enterFullScreen: string
 	exitFullScreen: string

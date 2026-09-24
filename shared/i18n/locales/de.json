@@ -33,7 +33,8 @@
 		"selectAnOption": "Wähle eine Option",
 		"unknownError": "Unbekannter Fehler",
 		"dismiss": "Schließen",
-		"step": "Schritt {number}"
+		"step": "Schritt {number}",
+		"reset": "Zurücksetzen"
 	},
 	"nav": {
 		"library": "Bibliothek",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Schriftart",
 			"fontDescription": "Wählen Sie die in der Anwendung verwendete Schriftart.",
+			"zoom": "Zoom",
+			"zoomDescription": "Skalieren Sie die gesamte Benutzeroberfläche vergrößern oder verkleinern. Gilt nur für dieses Gerät.",
 			"theme": "Thema",
 			"themeLight": "Hell",
 			"themeDark": "Dunkel",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Vollbild beenden",
 		"expandAllReleases": "Alle Releases erweitern",
 		"collapseAllReleases": "Alle Releases reduzieren",
+		"zoomIn": "Vergrößern",
+		"zoomOut": "Verkleinern",
+		"actualSize": "Originalgröße",
 		"minimize": "Minimieren",
 		"zoom": "Zoom",
 		"featureTour": "Funktionsrundgang...",

@@ -64,6 +64,7 @@ export {
 	continuousPlayback,
 	hasCompletedOnboarding,
 	hasCompletedWizard,
+	uiZoom,
 } from '$shared/stores/settings'
 export {
 	devicesStore,

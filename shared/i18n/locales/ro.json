@@ -33,7 +33,8 @@
 		"selectAnOption": "Selectați o opțiune",
 		"unknownError": "Eroare necunoscută",
 		"dismiss": "Închide",
-		"step": "Pasul {number}"
+		"step": "Pasul {number}",
+		"reset": "Resetează"
 	},
 	"nav": {
 		"library": "Bibliotecă",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Font",
 			"fontDescription": "Alegeți fontul folosit în toată aplicația.",
+			"zoom": "Zoom",
+			"zoomDescription": "Măriți sau micșorați interfața în ansamblu. Se aplică doar acestui dispozitiv.",
 			"theme": "Temă",
 			"themeLight": "Deschis",
 			"themeDark": "Închis",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Ieși din Ecran Complet",
 		"expandAllReleases": "Extindeți Toate Lanserile",
 		"collapseAllReleases": "Restrângeți Toate Lanserile",
+		"zoomIn": "Mărire",
+		"zoomOut": "Micșorare",
+		"actualSize": "Dimensiune reală",
 		"minimize": "Minimizează",
 		"zoom": "Zoom",
 		"featureTour": "Tur caracteristici...",

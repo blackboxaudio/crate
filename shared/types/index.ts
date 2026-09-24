@@ -582,6 +582,8 @@ export interface AppSettings {
 	discoveryAudioCacheLimitMb: number
 	/** Device-local cap (MB) on the on-disk discovery artwork cache; drives LRU eviction. */
 	discoveryArtworkCacheLimitMb: number
+	/** Device-local, desktop-only webview page zoom (1 = 100%). */
+	uiZoom: number
 }
 
 export interface AudioDevice {

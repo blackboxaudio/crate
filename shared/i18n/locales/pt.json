@@ -33,7 +33,8 @@
 		"selectAnOption": "Selecione uma opção",
 		"unknownError": "Erro desconhecido",
 		"dismiss": "Fechar",
-		"step": "Etapa {number}"
+		"step": "Etapa {number}",
+		"reset": "Redefinir"
 	},
 	"nav": {
 		"library": "Biblioteca",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Fonte",
 			"fontDescription": "Escolha a fonte usada no aplicativo.",
+			"zoom": "Zoom",
+			"zoomDescription": "Amplie ou reduza a interface inteira. Aplica-se apenas a este dispositivo.",
 			"theme": "Tema",
 			"themeLight": "Claro",
 			"themeDark": "Escuro",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Sair da tela cheia",
 		"expandAllReleases": "Expandir todos os lançamentos",
 		"collapseAllReleases": "Recolher todos os lançamentos",
+		"zoomIn": "Ampliar",
+		"zoomOut": "Reduzir",
+		"actualSize": "Tamanho real",
 		"minimize": "Minimizar",
 		"zoom": "Zoom",
 		"featureTour": "Tour de recursos...",

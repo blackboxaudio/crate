@@ -421,6 +421,9 @@ pub struct AppSettings {
     pub discovery_audio_cache_limit_mb: i64,
     /// Device-local cap (MB) on the on-disk discovery artwork cache; drives LRU eviction.
     pub discovery_artwork_cache_limit_mb: i64,
+    /// Device-local, desktop-only webview page zoom (1.0 = 100%). Never cloud-synced: it
+    /// depends on the display, not the user.
+    pub ui_zoom: f64,
 }
 
 impl Default for AppSettings {
@@ -453,6 +456,7 @@ impl Default for AppSettings {
             has_completed_wizard: false,
             discovery_audio_cache_limit_mb: 500,
             discovery_artwork_cache_limit_mb: 250,
+            ui_zoom: 1.0,
         }
     }
 }

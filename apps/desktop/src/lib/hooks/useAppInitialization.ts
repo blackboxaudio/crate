@@ -15,6 +15,7 @@ import { followStore } from '$shared/stores/follow'
 import { collectionStore } from '$shared/stores/collection'
 import { offlineCacheStore } from '$shared/stores/offlineCache'
 import { uiStore } from '$shared/stores/ui'
+import { onUiZoomChanged } from '$shared/api/settings'
 import { translate } from '$shared/i18n'
 import { get } from 'svelte/store'
 
@@ -84,6 +85,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	let unlistenAvailability: UnlistenFn | undefined
 	let unlistenAudioOutputLost: UnlistenFn | undefined
 	let unlistenAudioDevices: UnlistenFn | undefined
+	let unlistenUiZoom: UnlistenFn | undefined
 
 	// Load all stores in parallel
 	await Promise.all([
@@ -358,6 +360,13 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		})
 	}
 
+	// Native View → Zoom In / Out / Actual Size are handled in Rust; mirror the result here
+	async function setupUiZoomListener(): Promise<void> {
+		unlistenUiZoom = await onUiZoomChanged((level) => {
+			settingsStore.syncUiZoom(level)
+		})
+	}
+
 	// Initialize listeners
 	await setupDragDrop()
 	await setupDeviceListener()
@@ -369,6 +378,7 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 	await setupCollectionListener()
 	await setupAudioCacheListener()
 	await setupAvailabilityListener()
+	await setupUiZoomListener()
 
 	// Return cleanup function
 	return () => {
@@ -384,5 +394,6 @@ export async function useAppInitialization(config: AppInitConfig): Promise<() =>
 		unlistenAvailability?.()
 		unlistenAudioOutputLost?.()
 		unlistenAudioDevices?.()
+		unlistenUiZoom?.()
 	}
 }

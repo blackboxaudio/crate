@@ -21,6 +21,9 @@ import { setLanguage as setI18nLanguage, translate } from '../i18n'
 // State
 // =============================================================================
 
+/** Desktop page-zoom ladder; must match `UI_ZOOM_LEVELS` in `src-tauri/src/services/ui_zoom.rs`. */
+export const UI_ZOOM_LEVELS = [0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5] as const
+
 interface SettingsState {
 	theme: Theme
 	accentColor: AccentColor
@@ -52,6 +55,7 @@ interface SettingsState {
 	hasCompletedWizard: boolean
 	discoveryAudioCacheLimitMb: number
 	discoveryArtworkCacheLimitMb: number
+	uiZoom: number
 	loading: boolean
 	error: string | null
 }
@@ -87,6 +91,7 @@ const initialState: SettingsState = {
 	hasCompletedWizard: false,
 	discoveryAudioCacheLimitMb: 500,
 	discoveryArtworkCacheLimitMb: 250,
+	uiZoom: 1,
 	loading: false,
 	error: null,
 }
@@ -247,6 +252,9 @@ function createSettingsStore() {
 			toggleQueue: t('menu.toggleQueue'),
 			expandAllReleases: t('menu.expandAllReleases'),
 			collapseAllReleases: t('menu.collapseAllReleases'),
+			zoomIn: t('menu.zoomIn'),
+			zoomOut: t('menu.zoomOut'),
+			actualSize: t('menu.actualSize'),
 			showDevTools: t('menu.showDevTools'),
 			enterFullScreen: t('menu.enterFullScreen'),
 			exitFullScreen: t('menu.exitFullScreen'),
@@ -333,6 +341,7 @@ function createSettingsStore() {
 					hasCompletedWizard: settings.hasCompletedWizard,
 					discoveryAudioCacheLimitMb: settings.discoveryAudioCacheLimitMb ?? 500,
 					discoveryArtworkCacheLimitMb: settings.discoveryArtworkCacheLimitMb ?? 250,
+					uiZoom: settings.uiZoom ?? 1,
 					resolvedTheme,
 					loading: false,
 				}))
@@ -518,6 +527,51 @@ function createSettingsStore() {
 			} catch (error) {
 				console.error('Failed to save artwork cache limit setting:', error)
 			}
+		},
+
+		// Page zoom is backend-owned (desktop only): Rust snaps, applies, persists, and
+		// answers with the applied level, so these never apply anything themselves.
+		async setUiZoom(level: number) {
+			try {
+				const applied = await settingsApi.setUiZoom(level)
+				update((s) => ({ ...s, uiZoom: applied }))
+			} catch (error) {
+				console.error('Failed to set UI zoom:', error)
+			}
+		},
+
+		async zoomIn() {
+			try {
+				const applied = await settingsApi.stepUiZoom(1)
+				update((s) => ({ ...s, uiZoom: applied }))
+			} catch (error) {
+				console.error('Failed to zoom in:', error)
+			}
+		},
+
+		async zoomOut() {
+			try {
+				const applied = await settingsApi.stepUiZoom(-1)
+				update((s) => ({ ...s, uiZoom: applied }))
+			} catch (error) {
+				console.error('Failed to zoom out:', error)
+			}
+		},
+
+		async resetUiZoom() {
+			try {
+				const applied = await settingsApi.setUiZoom(1)
+				update((s) => ({ ...s, uiZoom: applied }))
+			} catch (error) {
+				console.error('Failed to reset UI zoom:', error)
+			}
+		},
+
+		/**
+		 * Mirror a zoom change the backend applied on its own (native menu shortcuts)
+		 */
+		syncUiZoom(level: number) {
+			update((s) => (s.uiZoom === level ? s : { ...s, uiZoom: level }))
 		},
 
 		/**
@@ -734,6 +788,8 @@ export const theme = derived(settingsStore, ($s) => $s.theme)
 export const accentColor = derived(settingsStore, ($s) => $s.accentColor)
 
 export const font = derived(settingsStore, ($s) => $s.font)
+
+export const uiZoom = derived(settingsStore, ($s) => $s.uiZoom)
 
 export const resolvedTheme = derived(settingsStore, ($s) => $s.resolvedTheme)
 

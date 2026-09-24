@@ -298,6 +298,10 @@ pub fn run() {
             // Settings commands
             commands::settings::get_settings,
             commands::settings::set_setting,
+            #[cfg(feature = "desktop")]
+            commands::settings::set_ui_zoom,
+            #[cfg(feature = "desktop")]
+            commands::settings::step_ui_zoom,
             // Device commands (desktop-only)
             #[cfg(feature = "desktop")]
             commands::device::get_devices,
@@ -584,6 +588,10 @@ pub fn run() {
             // Load saved audio device setting (desktop-only: no rodio playback on mobile)
             #[cfg(feature = "desktop")]
             if let Ok(settings) = settings_service.get_settings() {
+                // Re-apply page zoom before the frontend loads so the window opens already
+                // scaled instead of snapping after first paint.
+                services::ui_zoom::apply_startup(app.handle(), settings.ui_zoom);
+
                 if let Some(device_name) = settings.audio_device {
                     if !device_name.is_empty() {
                         let _ = audio_service.set_device(Some(device_name));

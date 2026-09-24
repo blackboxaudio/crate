@@ -33,7 +33,8 @@
 		"selectAnOption": "Selecteer een optie",
 		"unknownError": "Onbekende fout",
 		"dismiss": "Sluiten",
-		"step": "Stap {number}"
+		"step": "Stap {number}",
+		"reset": "Resetten"
 	},
 	"nav": {
 		"library": "Bibliotheek",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Lettertype",
 			"fontDescription": "Kies het lettertype dat in de applicatie wordt gebruikt.",
+			"zoom": "Zoomen",
+			"zoomDescription": "Vergroot of verklein de volledige interface. Dit geldt alleen voor dit apparaat.",
 			"theme": "Thema",
 			"themeLight": "Licht",
 			"themeDark": "Donker",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Sluit volledig scherm",
 		"expandAllReleases": "Alle releases uitvouwen",
 		"collapseAllReleases": "Alle releases samenvouwen",
+		"zoomIn": "Inzoomen",
+		"zoomOut": "Uitzoomen",
+		"actualSize": "Werkelijke grootte",
 		"minimize": "Minimaliseren",
 		"zoom": "Zoomen",
 		"featureTour": "Functiegereedschapstips...",

@@ -6,6 +6,7 @@ use serde_json;
 use crate::error::{CrateError, Result};
 use crate::models::{AccentColor, AppSettings, Theme};
 use crate::services::cloud_sync::{self, pipeline::dirty};
+use crate::services::ui_zoom;
 
 pub struct SettingsService {
     conn: Arc<Mutex<Connection>>,
@@ -179,6 +180,8 @@ impl SettingsService {
             .filter(|mb: &i64| *mb > 0)
             .unwrap_or(250);
 
+        let ui_zoom = ui_zoom::parse_setting(self.get_setting_value(&conn, ui_zoom::SETTING_KEY)?);
+
         Ok(AppSettings {
             theme,
             accent_color,
@@ -207,6 +210,7 @@ impl SettingsService {
             has_completed_wizard,
             discovery_audio_cache_limit_mb,
             discovery_artwork_cache_limit_mb,
+            ui_zoom,
         })
     }
 

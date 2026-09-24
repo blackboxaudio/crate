@@ -33,7 +33,8 @@
 		"selectAnOption": "Select an option",
 		"unknownError": "Unknown error",
 		"dismiss": "Dismiss",
-		"step": "Step {number}"
+		"step": "Step {number}",
+		"reset": "Reset"
 	},
 	"nav": {
 		"library": "Library",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Font",
 			"fontDescription": "Choose the font used throughout the application.",
+			"zoom": "Zoom",
+			"zoomDescription": "Scale the whole interface up or down. Applies to this device only.",
 			"theme": "Theme",
 			"themeLight": "Light",
 			"themeDark": "Dark",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Exit Full Screen",
 		"expandAllReleases": "Expand All Releases",
 		"collapseAllReleases": "Collapse All Releases",
+		"zoomIn": "Zoom In",
+		"zoomOut": "Zoom Out",
+		"actualSize": "Actual Size",
 		"minimize": "Minimize",
 		"zoom": "Zoom",
 		"featureTour": "Feature Tour...",

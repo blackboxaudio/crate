@@ -30,6 +30,7 @@ pub mod playlist;
 pub mod settings;
 pub mod smart_rules;
 pub mod tag;
+pub mod ui_zoom;
 pub mod watch_gate;
 
 #[cfg(feature = "desktop")]

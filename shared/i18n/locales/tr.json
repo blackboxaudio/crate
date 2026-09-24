@@ -33,7 +33,8 @@
 		"selectAnOption": "Seçeneği seçiniz",
 		"unknownError": "Bilinmeyen hata",
 		"dismiss": "Kapat",
-		"step": "Adım {number}"
+		"step": "Adım {number}",
+		"reset": "Sıfırla"
 	},
 	"nav": {
 		"library": "Kütüphane",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "Yazı Tipi",
 			"fontDescription": "Uygulamada kullanılan yazı tipini seçin.",
+			"zoom": "Yakınlaştırma",
+			"zoomDescription": "Tüm arayüzü yakınlaştırın veya uzaklaştırın. Yalnızca bu cihaz için geçerli.",
 			"theme": "Tema",
 			"themeLight": "Açık",
 			"themeDark": "Koyu",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "Tam Ekrandan Çık",
 		"expandAllReleases": "Tüm Yayınları Genişlet",
 		"collapseAllReleases": "Tüm Yayınları Daralt",
+		"zoomIn": "Yakınlaştır",
+		"zoomOut": "Uzaklaştır",
+		"actualSize": "Gerçek Boyut",
 		"minimize": "Küçült",
 		"zoom": "Yakınlaştır",
 		"featureTour": "Özellik Turu...",

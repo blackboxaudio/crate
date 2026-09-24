@@ -33,7 +33,8 @@
 		"selectAnOption": "オプションを選択",
 		"unknownError": "不明なエラー",
 		"dismiss": "閉じる",
-		"step": "ステップ {number}"
+		"step": "ステップ {number}",
+		"reset": "リセット"
 	},
 	"nav": {
 		"library": "ライブラリ",
@@ -181,6 +182,8 @@
 		"appearance": {
 			"font": "フォント",
 			"fontDescription": "アプリケーション全体で使用するフォントを選択します。",
+			"zoom": "ズーム",
+			"zoomDescription": "インターフェース全体を拡大または縮小します。このデバイスでのみ適用されます。",
 			"theme": "テーマ",
 			"themeLight": "ライト",
 			"themeDark": "ダーク",
@@ -975,6 +978,9 @@
 		"exitFullScreen": "フルスクリーンを解除",
 		"expandAllReleases": "すべてのリリースを展開",
 		"collapseAllReleases": "すべてのリリースを折りたたむ",
+		"zoomIn": "ズームイン",
+		"zoomOut": "ズームアウト",
+		"actualSize": "実際のサイズ",
 		"minimize": "しまう",
 		"zoom": "拡大/縮小",
 		"featureTour": "機能ツアー...",
