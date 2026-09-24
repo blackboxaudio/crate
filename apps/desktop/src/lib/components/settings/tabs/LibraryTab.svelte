@@ -17,7 +17,6 @@
 	import { translate } from '$shared/i18n'
 	import { withNativeDialog } from '$shared/utils'
 	import { open } from '@tauri-apps/plugin-dialog'
-	import { get } from 'svelte/store'
 
 	let musicFolderPath = $state<string | null>(null)
 	let busy = $state(false)
@@ -47,14 +46,9 @@
 		scanError = null
 		scanning = true
 		try {
-			const result = await libraryStore.scanMusicLibraryFolder()
-			// The store returns a safe empty result on failure and records the backend message as its error.
-			const state = get(libraryStore)
-			if (state.error) {
-				scanError = state.error
-			} else {
-				scanResult = result
-			}
+			scanResult = await libraryStore.scanMusicLibraryFolder()
+		} catch (error) {
+			scanError = toErrorMessage(error)
 		} finally {
 			scanning = false
 		}

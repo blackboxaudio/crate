@@ -143,7 +143,7 @@ function createLibraryStore() {
 		/**
 		 * Scan the configured music folder and import any new audio files.
 		 * The library is refetched afterwards because the backend returns ids, not tracks.
-		 * Returns the scan result (empty on failure) so the caller owns the user-visible message.
+		 * Returns the scan result, or throws on failure so the caller owns the user-visible message.
 		 */
 		async scanMusicLibraryFolder(): Promise<LibraryFolderScanResult> {
 			update((state) => ({ ...state, loading: true, error: null }))
@@ -170,14 +170,9 @@ function createLibraryStore() {
 					loading: false,
 					error: errorMessage,
 				}))
-				return {
-					scanned_count: 0,
-					imported_count: 0,
-					skipped_existing_count: 0,
-					failed_count: 0,
-					imported_track_ids: [],
-					errors: [],
-				}
+				// Rethrow instead of returning an empty result: a failed scan must not be
+				// reported as an empty successful scan.
+				throw error
 			}
 		},
 

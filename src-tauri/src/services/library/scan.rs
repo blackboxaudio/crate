@@ -109,9 +109,19 @@ impl LibraryService {
                 }
             };
 
-            if self.find_track_by_hash(&hash)?.is_some() {
-                result.skipped_existing_count += 1;
-                continue;
+            // Absorb a lookup error like any other per-file failure: propagating it would
+            // discard the counts and imported ids already accumulated for this run.
+            match self.find_track_by_hash(&hash) {
+                Ok(Some(_)) => {
+                    result.skipped_existing_count += 1;
+                    continue;
+                }
+                Ok(None) => {}
+                Err(e) => {
+                    result.failed_count += 1;
+                    result.errors.push(format!("{}: {e}", path.display()));
+                    continue;
+                }
             }
 
             match self.import_single_track_with_hash(&path, hash) {
