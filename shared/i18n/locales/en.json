@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Up Next",
-		"openQueue": "Up Next",
+		"openQueue": "Queue",
 		"playNext": "Play Next",
 		"addToQueue": "Add to Queue",
 		"playingNext": "Playing Next",
@@ -334,7 +334,7 @@
 		"clearQueue": "Clear",
 		"empty": "Nothing up next",
 		"emptyHint": "Tracks you add will play next",
-		"upcoming": "Up Next",
+		"upcoming": "Queue",
 		"history": "History",
 		"historyEmpty": "Nothing played yet"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Mute",
 		"jumpToPlaying": "Jump to Playing Track",
 		"toggleEditor": "Toggle Editor",
+		"toggleQueue": "Toggle Queue",
 		"toggleView": "Toggle View",
 		"showDevTools": "Show DevTools",
 		"enterFullScreen": "Enter Full Screen",

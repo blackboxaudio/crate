@@ -133,6 +133,7 @@
 		handleToggleDevTools,
 		playNextTrack,
 		playPreviousTrack,
+		playPreview,
 		openAddReleaseModal: () => orchestratorLayer?.openAddReleaseModal(),
 		getModalOrchestrator: () => orchestratorLayer?.getModalOrchestrator(),
 		getContextMenuOrchestrator: () => orchestratorLayer?.getContextMenuOrchestrator(),

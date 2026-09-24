@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "接下来",
-		"openQueue": "接下来",
+		"openQueue": "队列",
 		"playNext": "播放下一首",
 		"addToQueue": "添加到队列",
 		"playingNext": "接下来播放",
@@ -334,7 +334,7 @@
 		"clearQueue": "清除",
 		"empty": "接下来没有内容",
 		"emptyHint": "您添加的曲目将接下来播放",
-		"upcoming": "即将推出",
+		"upcoming": "队列",
 		"history": "历史记录",
 		"historyEmpty": "还没有播放任何内容"
 	},
@@ -968,6 +968,7 @@
 		"mute": "静音",
 		"jumpToPlaying": "跳转到正在播放的曲目",
 		"toggleEditor": "切换编辑器",
+		"toggleQueue": "切换队列",
 		"toggleView": "切换视图",
 		"showDevTools": "显示开发者工具",
 		"enterFullScreen": "进入全屏",

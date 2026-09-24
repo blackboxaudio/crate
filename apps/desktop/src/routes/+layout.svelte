@@ -419,9 +419,8 @@
 						onTagToggle={(tagId, state) => $pageActions?.tagController.toggleTagOnTracks(tagId, state)}
 						onTagContextMenu={handleTagContextMenu}
 						onCategoryContextMenu={handleCategoryContextMenu}
-						onCreatePlaylist={() => $pageActions?.playlistController.handleCreatePlaylist()}
-						onCreateSmartPlaylist={() => $pageActions?.playlistController.handleCreateSmartPlaylist($activeView)}
-						onCreateFolder={() => $pageActions?.playlistController.handleCreateFolder()}
+						onOpenPlaylistCreateMenu={(trigger) =>
+							$pageActions?.getContextMenuOrchestrator()?.togglePlaylistCreateMenu(trigger)}
 						onCreateCategory={() => $pageActions?.getModalOrchestrator()?.openCreateCategoryModal()}
 						onCreateTag={(categoryId) => $pageActions?.getModalOrchestrator()?.openCreateTagModal(categoryId)}
 						onTagsWhitespaceContextMenu={(e) => $pageActions?.getContextMenuOrchestrator()?.openTagsSidebarMenu(e)}

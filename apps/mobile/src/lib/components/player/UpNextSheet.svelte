@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
-	import type { DiscoveryRelease } from '$shared/types'
+	import type { DiscoveryRelease, UpNextEntry } from '$shared/types'
 	import { upNext, userQueueCount, recentlyPlayed } from '$shared/stores/playbackQueue'
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { discoveryStore } from '$shared/stores/discovery'
@@ -25,8 +25,12 @@
 	let tab = $state<'upcoming' | 'history'>('upcoming')
 
 	// Split the unified Up Next list by tier: user-added items are interactive, context items are a forecast.
-	const userEntries = $derived($upNext.filter((e) => e.source === 'user'))
-	const contextEntries = $derived($upNext.filter((e) => e.source === 'context'))
+	// Mobile only ever plays previews, so the library variant of an entry never occurs here; the
+	// narrowing just lets the rows read the release.
+	type PreviewEntry = Extract<UpNextEntry, { kind: 'preview' }>
+	const previewEntries = $derived($upNext.filter((e): e is PreviewEntry => e.kind === 'preview'))
+	const userEntries = $derived(previewEntries.filter((e) => e.source === 'user'))
+	const contextEntries = $derived(previewEntries.filter((e) => e.source === 'context'))
 
 	// History entries persist ids only; resolve them against the loaded discovery set, silently
 	// dropping releases that were deleted (or whose track list shrank) since. Newest first.

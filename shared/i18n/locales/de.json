@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Als Nächstes",
-		"openQueue": "Übernächstes",
+		"openQueue": "Warteschlange",
 		"playNext": "Als nächstes abspielen",
 		"addToQueue": "Zur Warteschlange hinzufügen",
 		"playingNext": "Wird als nächstes abgespielt",
@@ -334,7 +334,7 @@
 		"clearQueue": "Löschen",
 		"empty": "Nichts übernächstes",
 		"emptyHint": "Die Lieder, die du hinzufügst, werden als nächstes abgespielt",
-		"upcoming": "Bevorstehend",
+		"upcoming": "Warteschlange",
 		"history": "Verlauf",
 		"historyEmpty": "Noch nichts abgespielt"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Stumm",
 		"jumpToPlaying": "Zum laufenden Track springen",
 		"toggleEditor": "Editor ein-/ausblenden",
+		"toggleQueue": "Warteschlange ein-/ausblenden",
 		"toggleView": "Ansicht wechseln",
 		"showDevTools": "Entwicklertools anzeigen",
 		"enterFullScreen": "Vollbild aktivieren",

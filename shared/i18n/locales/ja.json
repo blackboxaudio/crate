@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "次に再生",
-		"openQueue": "次に再生",
+		"openQueue": "キュー",
 		"playNext": "次に再生",
 		"addToQueue": "キューに追加",
 		"playingNext": "次に再生中",
@@ -334,7 +334,7 @@
 		"clearQueue": "クリア",
 		"empty": "次はありません",
 		"emptyHint": "追加したトラックが次に再生されます",
-		"upcoming": "次に再生",
+		"upcoming": "キュー",
 		"history": "履歴",
 		"historyEmpty": "まだ再生されていません"
 	},
@@ -968,6 +968,7 @@
 		"mute": "ミュート",
 		"jumpToPlaying": "再生中のトラックへジャンプ",
 		"toggleEditor": "エディターを切り替え",
+		"toggleQueue": "キューを切り替え",
 		"toggleView": "ビューを切り替え",
 		"showDevTools": "開発者ツールを表示",
 		"enterFullScreen": "フルスクリーンに入る",

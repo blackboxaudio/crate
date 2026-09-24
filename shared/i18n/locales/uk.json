@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Далі",
-		"openQueue": "Далі",
+		"openQueue": "Черга",
 		"playNext": "Програти далі",
 		"addToQueue": "Додати в чергу",
 		"playingNext": "Програється далі",
@@ -334,7 +334,7 @@
 		"clearQueue": "Очистити",
 		"empty": "Далі нічого",
 		"emptyHint": "Доріжки, які ви додаєте, будуть програватися далі",
-		"upcoming": "Далі",
+		"upcoming": "Черга",
 		"history": "Історія",
 		"historyEmpty": "Поки що нічого не програвалося"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Вимкнути звук",
 		"jumpToPlaying": "Перейти до доріжки, яка програється",
 		"toggleEditor": "Перемкнути редактор",
+		"toggleQueue": "Перемкнути чергу",
 		"toggleView": "Перемкнути вид",
 		"showDevTools": "Показати DevTools",
 		"enterFullScreen": "Перейти в повноекранний режим",

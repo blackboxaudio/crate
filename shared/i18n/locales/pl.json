@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Kolejne",
-		"openQueue": "Kolejne",
+		"openQueue": "Kolejka",
 		"playNext": "Odtwórz następne",
 		"addToQueue": "Dodaj do kolejki",
 		"playingNext": "Odtwarzanie następne",
@@ -334,7 +334,7 @@
 		"clearQueue": "Wyczyść",
 		"empty": "Nic kolejnego",
 		"emptyHint": "Ścieżki, które dodasz, będą odtwarzane dalej",
-		"upcoming": "Kolejne",
+		"upcoming": "Kolejka",
 		"history": "Historia",
 		"historyEmpty": "Nic nie zostało jeszcze odtworzone"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Wycisz",
 		"jumpToPlaying": "Przeskocz do aktualnie odtwarzanej ścieżki",
 		"toggleEditor": "Przełącz edytor",
+		"toggleQueue": "Przełącz kolejkę",
 		"toggleView": "Przełącz widok",
 		"showDevTools": "Pokaż narzędzia deweloperskie",
 		"enterFullScreen": "Przejdź do trybu pełnoekranowego",

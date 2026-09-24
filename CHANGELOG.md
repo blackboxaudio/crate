@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Brought the mobile playback queue to desktop: the player bar gains a Queue button (also View → Toggle Queue, ⌘U) that opens a panel showing the tracks you've queued — reorderable by drag and removable — followed by what the current list will play next (including a library session's upcoming tracks, so you can see what shuffle drew), with a History tab of the last 50 previews you played that replays one on click. Discovery releases and individual tracks (including a multi-track selection) now offer "Play Next" and "Add to Queue" in their right-click menus, and a queued preview plays next even while a library track is playing, then hands back to the library list
+
 - Added exporting discovery releases to a JSON file on desktop, either the whole collection from Settings → Discovery or a hand-picked selection from the release context menu. The export dialog offers a curated shape (lean, readable fields with tags flattened to "Category: Name", made for AI knowledge bases) or a raw dump of every stored field, lets you include all tracks, liked tracks only, or none, and shows a live release count and size estimate before writing
 
 - Added track-level tagging for discovery releases on desktop and mobile: individual tracks can be tagged independently of their release (from the track's context menu on desktop, the track's long-press menu on mobile), tagged tracks show their tag colors inline, a tag filter now matches a release when either the release or one of its tracks carries the tag, and track tags sync across devices and are included in backups. Release-level tags keep working unchanged
@@ -37,6 +39,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Brought the mobile discovery filters and owned markers to the desktop discovery list: the filter menu gained a "Downloaded" toggle (releases whose previews are all cached on disk, so they play with no network) alongside Liked, New, and Purchased, those filters are now also reachable from discovery playlist and folder views instead of only the main feed, "Clear all" resets every filter (not just tags) and shows up even with no tag categories, and each track inside an expanded release now carries a small bag marker when that track is owned in your linked Bandcamp collection — so a partly-owned release shows exactly which tracks you already bought
 
 ### Changed
+
+- Replaced the desktop sidebar's bottom row of "New Folder" / "New Playlist" / "New Smart Playlist" buttons with a single "+" button beside the Playlists / Tags tabs: on the Playlists tab it opens a dropdown with the three create actions, on the Tags tab it creates a new category, and the tree gains the vertical space the old button panel took up
 
 - Unified navigation on the mobile Playlists tab: opening a folder now pushes a full-screen level with its own back header and toolbar, exactly like opening a playlist, tag, or followed artist — the same slide, back chevron, edge-swipe back, and one-level-at-a-time Android Back — instead of swapping the list in place under the tab's header, and nested levels are restored in place on relaunch
 

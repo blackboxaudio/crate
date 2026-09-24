@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Upp nästa",
-		"openQueue": "Nästa",
+		"openQueue": "Kö",
 		"playNext": "Spela nästa",
 		"addToQueue": "Lägg till i kö",
 		"playingNext": "Spelar nästa",
@@ -334,7 +334,7 @@
 		"clearQueue": "Rensa",
 		"empty": "Inget upp nästa",
 		"emptyHint": "Spår du lägger till kommer spelas nästa",
-		"upcoming": "Upp nästa",
+		"upcoming": "Kö",
 		"history": "Historik",
 		"historyEmpty": "Inget spelade ännu"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Tyst",
 		"jumpToPlaying": "Gå till spår som spelas upp",
 		"toggleEditor": "Visa/Dölj redigerare",
+		"toggleQueue": "Visa/Dölj kö",
 		"toggleView": "Växla vy",
 		"showDevTools": "Visa DevTools",
 		"enterFullScreen": "Gå till helskärm",

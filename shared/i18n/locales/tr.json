@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Sırada",
-		"openQueue": "Sırada",
+		"openQueue": "Sıra",
 		"playNext": "Sonrakini oynat",
 		"addToQueue": "Sıraya ekle",
 		"playingNext": "Sonraki oynatılıyor",
@@ -334,7 +334,7 @@
 		"clearQueue": "Temizle",
 		"empty": "Sırada hiçbir şey yok",
 		"emptyHint": "Eklediğin parçalar sonra oynatılacak",
-		"upcoming": "Sırada",
+		"upcoming": "Sıra",
 		"history": "Geçmiş",
 		"historyEmpty": "Henüz hiçbir şey oynatılmadı"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Sessiz",
 		"jumpToPlaying": "Oynatılan Şarkıya Git",
 		"toggleEditor": "Düzenleyiciyi Aç/Kapat",
+		"toggleQueue": "Sırayı Aç/Kapat",
 		"toggleView": "Görünümü Aç/Kapat",
 		"showDevTools": "DevTools'u Göster",
 		"enterFullScreen": "Tam Ekrana Gir",

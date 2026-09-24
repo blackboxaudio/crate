@@ -17,6 +17,9 @@ interface UILayoutState {
 	rightSidebarVisible: boolean
 	rightSidebarWidth: number
 
+	// Up Next panel (the playback queue, hung from the player bar)
+	queuePanelVisible: boolean
+
 	// Modals
 	activeModal: string | null
 
@@ -41,6 +44,7 @@ const initialState: UILayoutState = {
 	sidebarWidth: getStoredNumber('sidebarWidth', 240),
 	rightSidebarVisible: getStoredBoolean('rightSidebarVisible', false),
 	rightSidebarWidth: getStoredNumber('rightSidebarWidth', 320),
+	queuePanelVisible: getStoredBoolean('queuePanelVisible', false),
 	activeModal: null,
 	contextMenuOpen: false,
 	contextMenuPosition: { x: 0, y: 0 },
@@ -106,6 +110,23 @@ function createUILayoutStore() {
 			const clampedWidth = Math.max(280, Math.min(500, width))
 			setStoredNumber('rightSidebarWidth', clampedWidth)
 			update((state) => ({ ...state, rightSidebarWidth: clampedWidth }))
+		},
+
+		// =========================================================================
+		// Up Next panel
+		// =========================================================================
+
+		toggleQueuePanel() {
+			update((state) => {
+				const newVisible = !state.queuePanelVisible
+				setStoredBoolean('queuePanelVisible', newVisible)
+				return { ...state, queuePanelVisible: newVisible }
+			})
+		},
+
+		setQueuePanelVisible(visible: boolean) {
+			setStoredBoolean('queuePanelVisible', visible)
+			update((state) => (state.queuePanelVisible === visible ? state : { ...state, queuePanelVisible: visible }))
 		},
 
 		// =========================================================================
@@ -236,6 +257,8 @@ export const uiLayoutStore = createUILayoutStore()
 export const rightSidebarVisible = derived(uiLayoutStore, ($ui) => $ui.rightSidebarVisible)
 
 export const rightSidebarWidth = derived(uiLayoutStore, ($ui) => $ui.rightSidebarWidth)
+
+export const queuePanelVisible = derived(uiLayoutStore, ($ui) => $ui.queuePanelVisible)
 
 export const selectedTreeIds = derived(uiLayoutStore, ($ui) => $ui.selectedTreeIds)
 

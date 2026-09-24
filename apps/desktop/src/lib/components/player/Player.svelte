@@ -12,8 +12,11 @@
 		previewInfo,
 		discoveryStore,
 	} from '$lib/stores'
-	import { canAdvance } from '$shared/stores/playbackQueue'
+	import { canAdvance, userQueueCount } from '$shared/stores/playbackQueue'
+	import { uiLayoutStore, queuePanelVisible } from '$lib/stores/uiLayout'
+	import { onMount } from 'svelte'
 	import PlaybackControls from './PlaybackControls.svelte'
+	import QueuePanel from './QueuePanel.svelte'
 	import SeekBar from './SeekBar.svelte'
 	import TempoControl from './TempoControl.svelte'
 	import VolumeControl from './VolumeControl.svelte'
@@ -59,9 +62,32 @@
 			discoveryStore.toggleTrackLiked($previewInfo.releaseId, track.id)
 		}
 	}
+
+	// The queue panel hangs from the bar's top edge but right-aligns to its button (the rightmost
+	// transport control), so it reads as the button's popover. Measured on open and on resize (the
+	// centre block is fluid, so the button's x shifts with the window).
+	let barEl: HTMLDivElement | undefined = $state()
+	let queueButtonEl: HTMLDivElement | undefined = $state()
+	let panelRight = $state(16)
+
+	function updatePanelAnchor() {
+		if (!barEl || !queueButtonEl) return
+		panelRight = barEl.getBoundingClientRect().right - queueButtonEl.getBoundingClientRect().right
+	}
+
+	$effect(() => {
+		if ($queuePanelVisible) updatePanelAnchor()
+	})
+
+	onMount(() => {
+		if (!barEl) return
+		const observer = new ResizeObserver(updatePanelAnchor)
+		observer.observe(barEl)
+		return () => observer.disconnect()
+	})
 </script>
 
-<div class="flex items-center gap-4 border-t border-stroke bg-surface-1 px-4 py-3">
+<div class="relative flex items-center gap-4 border-t border-stroke bg-surface-1 px-4 py-3" bind:this={barEl}>
 	<!-- Track Info -->
 	<div class="w-64 flex-shrink-0">
 		<TrackInfo
@@ -84,6 +110,10 @@
 			onStop={handleStop}
 			onToggleShuffle={() => playerStore.toggleShuffle()}
 			onCycleRepeat={() => playerStore.cycleRepeatMode()}
+			queueOpen={$queuePanelVisible}
+			queueCount={$userQueueCount}
+			onToggleQueue={() => uiLayoutStore.toggleQueuePanel()}
+			bind:queueButtonEl
 			{onPrevious}
 			{onNext}
 		/>
@@ -91,6 +121,10 @@
 		<SeekBar position={$playbackPosition} duration={$playbackDuration} disabled={!hasTrack} onSeek={handleSeek} />
 	</div>
 
+	<!-- Queue: sits with the secondary controls (tempo, volume) rather than in the transport row, so
+	     shuffle / repeat keep flanking prev-play-next. Vertically centred in the bar; `mr-auto` splits
+	     the bar's slack evenly on either side of it — with only the centre block's auto margins, all
+	     of that slack landed between the seek bar and this button. -->
 	<!-- Tempo -->
 	<TempoControl speed={$playbackSpeed} onSpeedChange={handleSpeedChange} onSpeedCommit={handleSpeedCommit} />
 
@@ -98,4 +132,8 @@
 	<div class="flex w-40 flex-shrink-0 justify-end">
 		<VolumeControl volume={$volume} onVolumeChange={handleVolumeChange} />
 	</div>
+
+	{#if $queuePanelVisible}
+		<QueuePanel right={panelRight} trigger={queueButtonEl} onClose={() => uiLayoutStore.setQueuePanelVisible(false)} />
+	{/if}
 </div>

@@ -10,6 +10,7 @@
 	import { buildPlaylistMenuItems } from '$shared/stores/playlists'
 	import { buildYouTubeSearchUrl, joinMenuGroups } from '$shared/utils'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
+	import { playTracksNext, addTracksToQueue } from '$lib/controllers'
 
 	type Props = {
 		open: boolean
@@ -65,7 +66,8 @@
 
 	// Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
 	// act → organize → navigate & share → destructive, a divider between non-empty groups.
-	// Act and navigate are single-track only; a multi-track menu starts at the organizing items.
+	// Play / Like and navigate are single-track only; the queue items take the whole selection (in
+	// its list order), so a multi-track menu still opens with them.
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
 		const act: ContextMenuItem[] = single
 			? [
@@ -77,15 +79,33 @@
 						disabled: !canPlay,
 						action: onPlayPreview,
 					},
-					{
-						id: 'like-toggle',
-						label: track.is_liked ? get(translate)('discovery.unlike') : get(translate)('discovery.like'),
-						icon: 'heart',
-						iconFill: track.is_liked,
-						action: onLikeToggle,
-					},
 				]
 			: []
+		act.push(
+			{
+				id: 'play-next',
+				label: get(translate)('queue.playNext'),
+				icon: 'play-next',
+				disabled: single && !canPlay,
+				action: () => playTracksNext(tracks),
+			},
+			{
+				id: 'add-to-queue',
+				label: get(translate)('queue.addToQueue'),
+				icon: 'queue-plus',
+				disabled: single && !canPlay,
+				action: () => addTracksToQueue(tracks),
+			}
+		)
+		if (single) {
+			act.push({
+				id: 'like-toggle',
+				label: track.is_liked ? get(translate)('discovery.unlike') : get(translate)('discovery.like'),
+				icon: 'heart',
+				iconFill: track.is_liked,
+				action: onLikeToggle,
+			})
+		}
 
 		const organize: ContextMenuItem[] = []
 		if (onAddToPlaylist) {

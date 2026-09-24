@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Prossimo",
-		"openQueue": "Prossimo",
+		"openQueue": "Coda",
 		"playNext": "Riproduci prossimo",
 		"addToQueue": "Aggiungi alla coda",
 		"playingNext": "Riproduzione prossimo",
@@ -334,7 +334,7 @@
 		"clearQueue": "Cancella",
 		"empty": "Niente di prossimo",
 		"emptyHint": "Le tracce che aggiungi verranno riprodotte dopo",
-		"upcoming": "Prossimo",
+		"upcoming": "Coda",
 		"history": "Cronologia",
 		"historyEmpty": "Nulla è stato riprodotto ancora"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Muto",
 		"jumpToPlaying": "Vai alla traccia in riproduzione",
 		"toggleEditor": "Mostra/Nascondi editor",
+		"toggleQueue": "Mostra/Nascondi coda",
 		"toggleView": "Cambia vista",
 		"showDevTools": "Mostra DevTools",
 		"enterFullScreen": "Attiva schermo intero",

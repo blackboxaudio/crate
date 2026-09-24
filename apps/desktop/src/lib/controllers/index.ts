@@ -12,3 +12,5 @@ export type { ExportController, ExportControllerDeps, ExportControllerModalActio
 
 export { createPlaylistController } from './playlistController'
 export type { PlaylistController, PlaylistControllerDeps, PlaylistControllerModalActions } from './playlistController'
+
+export { playTracksNext, addTracksToQueue, playReleasesNext, addReleasesToQueue } from './queueActions'

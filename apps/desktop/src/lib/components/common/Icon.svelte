@@ -28,6 +28,12 @@
 		trash:
 			'M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16',
 		'minus-circle': 'M15 12H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z',
+		// Playback queue: list lines + a play triangle (mirrors the mobile Up Next trigger)
+		queue: '<path d="M4 6h16M4 12h16M4 18h9" /><path d="M15 16.5l5 2.5-5 2.5z" fill="currentColor" stroke="none" />',
+		// Play next: a play triangle followed by a bar
+		'play-next': '<path d="M5 5l11 7-11 7z" fill="currentColor" stroke="none" /><path d="M19 5v14" />',
+		// Add to queue: list lines + a plus
+		'queue-plus': '<path d="M4 6h11M4 12h11M4 18h7" /><path d="M19 14v6M16 17h6" />',
 		'list-minus':
 			'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9h6',
 		palette:

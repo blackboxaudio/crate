@@ -642,6 +642,7 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			onJumpToPlayingTrack: handlers.jumpToPlayingTrack,
 			onToggleView: handlers.toggleView,
 			onToggleEditor: () => uiLayoutStore.toggleRightSidebar(),
+			onToggleQueue: () => uiLayoutStore.toggleQueuePanel(),
 			onExpandAllReleases: () => {
 				const releases = get(displayedReleases)
 				expandedReleaseIds.expandAll(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))

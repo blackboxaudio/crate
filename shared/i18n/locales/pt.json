@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Próximo",
-		"openQueue": "Próximo",
+		"openQueue": "Fila",
 		"playNext": "Reproduzir próximo",
 		"addToQueue": "Adicionar à fila",
 		"playingNext": "Reproduzindo próximo",
@@ -334,7 +334,7 @@
 		"clearQueue": "Limpar",
 		"empty": "Nada próximo",
 		"emptyHint": "As faixas que você adicionar serão reproduzidas a seguir",
-		"upcoming": "Próximo",
+		"upcoming": "Fila",
 		"history": "Histórico",
 		"historyEmpty": "Nada foi reproduzido ainda"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Silenciar",
 		"jumpToPlaying": "Ir para a faixa em reprodução",
 		"toggleEditor": "Alternar editor",
+		"toggleQueue": "Alternar fila",
 		"toggleView": "Alternar visualização",
 		"showDevTools": "Mostrar DevTools",
 		"enterFullScreen": "Entrar em tela cheia",

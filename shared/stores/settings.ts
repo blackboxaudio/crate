@@ -244,6 +244,7 @@ function createSettingsStore() {
 			// View menu items
 			toggleView: t('menu.toggleView'),
 			toggleEditor: t('menu.toggleEditor'),
+			toggleQueue: t('menu.toggleQueue'),
 			expandAllReleases: t('menu.expandAllReleases'),
 			collapseAllReleases: t('menu.collapseAllReleases'),
 			showDevTools: t('menu.showDevTools'),

@@ -105,6 +105,7 @@ export interface MenuTranslations {
 	// View menu items
 	toggleView: string
 	toggleEditor: string
+	toggleQueue: string
 	expandAllReleases: string
 	collapseAllReleases: string
 	showDevTools: string

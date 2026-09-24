@@ -1406,6 +1406,7 @@ function createPlayerStore() {
 				}
 				const pick = playbackQueue.advancePrev()
 				if (pick?.kind === 'library') await this.play(pick.track)
+				else if (pick) await this.playPreview(pick.release, pick.trackIndex)
 				else await this.seek(0)
 				return
 			}
@@ -1448,7 +1449,7 @@ function createPlayerStore() {
 				}
 			}
 			if (pick.kind === 'preview') await this.playPreview(pick.release, pick.trackIndex)
-			else await this.seek(0)
+			else await this.play(pick.track)
 		},
 
 		/**
@@ -1462,10 +1463,13 @@ function createPlayerStore() {
 			const state = getState()
 			// Library: the shared queue is the single source of "next" (user-replay ++ user queue ++
 			// context under the active shuffle/repeat scope). Null means the queue refuses (repeat off at
-			// the end of the list) — playback simply stops.
+			// the end of the list) — playback simply stops. The pick's KIND decides the engine, not the
+			// session's source: a preview the user queued from discovery plays next even mid-library, and
+			// the library context resumes after it.
 			if (state.playbackSource === 'library' && state.currentTrack) {
 				const pick = playbackQueue.advanceNext()
 				if (pick?.kind === 'library') await this.play(pick.track)
+				else if (pick) await this.playPreview(pick.release, pick.trackIndex)
 				return
 			}
 			if (!state.previewInfo) return
@@ -1521,6 +1525,8 @@ function createPlayerStore() {
 				)
 					return
 			}
+			// A queued preview interlude handing back to a library context.
+			if (pick?.kind === 'library') await this.play(pick.track)
 		},
 
 		/**

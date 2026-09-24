@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "À suivre",
-		"openQueue": "À suivre",
+		"openQueue": "File",
 		"playNext": "Lire suivant",
 		"addToQueue": "Ajouter à la file",
 		"playingNext": "En cours de lecture suivant",
@@ -334,7 +334,7 @@
 		"clearQueue": "Effacer",
 		"empty": "Rien à suivre",
 		"emptyHint": "Les chansons que vous ajoutez seront lues ensuite",
-		"upcoming": "À venir",
+		"upcoming": "File",
 		"history": "Historique",
 		"historyEmpty": "Rien n'a été lu encore"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Muet",
 		"jumpToPlaying": "Aller à la piste en cours de lecture",
 		"toggleEditor": "Afficher/Masquer l'éditeur",
+		"toggleQueue": "Afficher/Masquer la file",
 		"toggleView": "Basculer la vue",
 		"showDevTools": "Afficher les outils de développement",
 		"enterFullScreen": "Passer en plein écran",

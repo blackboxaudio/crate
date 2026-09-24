@@ -994,17 +994,16 @@ export interface QueueItem {
 }
 
 /**
- * A runtime "Up Next" row for the UI: the resolved release + track plus where it came from. User
- * entries carry their queue `entryId` (for reorder/remove); context entries carry a synthetic key.
- * Not persisted — rebuilt from live state whenever the queue changes.
+ * A runtime "Up Next" row for the UI: the resolved pick plus where it came from. User entries carry
+ * their queue `entryId` (for reorder/remove); context entries carry a synthetic key. Not persisted —
+ * rebuilt from live state whenever the queue changes. Preview rows resolve a release + track index;
+ * library rows (desktop sessions started from the track list) carry the track itself.
  */
-export interface UpNextEntry {
-	/** Queue `entryId` for user items; a synthetic `releaseId:trackIndex:n` key for context items. */
+export type UpNextEntry = {
+	/** Queue `entryId` for user items; a synthetic `pickKey:n` key for context items. */
 	key: string
 	source: 'user' | 'context'
-	release: DiscoveryRelease
-	trackIndex: number
-}
+} & ({ kind: 'preview'; release: DiscoveryRelease; trackIndex: number } | { kind: 'library'; track: Track })
 
 export interface ScannedRelease {
 	url: string

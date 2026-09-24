@@ -12,7 +12,7 @@
 		| { type: 'track'; x: number; y: number; tracks: Track[] }
 		| { type: 'playlist'; x: number; y: number; playlists: Playlist[]; source: 'tree' | 'folder' }
 		| { type: 'folderView'; x: number; y: number; folderId: string }
-		| { type: 'playlistTree'; x: number; y: number }
+		| { type: 'playlistTree'; x: number; y: number; align?: 'left' | 'right'; trigger?: HTMLElement }
 		| { type: 'libraryView'; x: number; y: number }
 		| { type: 'playlistView'; x: number; y: number; playlist: Playlist }
 		| { type: 'tag'; x: number; y: number; target: TagContextTarget }
@@ -294,6 +294,25 @@
 			type: 'playlistTree' as const,
 			x: e.clientX,
 			y: e.clientY,
+		}
+		activeMenu = menu
+		visibleMenu = menu
+	}
+
+	// The sidebar's "+" offers the same create group as tree whitespace, hung from the button's
+	// bottom-right corner so the dropdown stays inside the sidebar. Clicking it again closes.
+	export function togglePlaylistCreateMenu(trigger: HTMLElement) {
+		if (activeMenu.type === 'playlistTree' && activeMenu.trigger === trigger) {
+			closeAll()
+			return
+		}
+		const rect = trigger.getBoundingClientRect()
+		const menu = {
+			type: 'playlistTree' as const,
+			x: rect.right,
+			y: rect.bottom + 4,
+			align: 'right' as const,
+			trigger,
 		}
 		activeMenu = menu
 		visibleMenu = menu
@@ -841,6 +860,8 @@
 		open={activeMenu.type === 'playlistTree'}
 		x={visibleMenu.x}
 		y={visibleMenu.y}
+		align={visibleMenu.align}
+		trigger={visibleMenu.trigger}
 		items={createPlaylistItems({
 			onFolder: handlePlaylistTreeCreateFolder,
 			onPlaylist: handlePlaylistTreeCreatePlaylist,

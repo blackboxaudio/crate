@@ -100,6 +100,7 @@ pub struct MenuTranslations {
     // View menu items
     pub toggle_view: String,
     pub toggle_editor: String,
+    pub toggle_queue: String,
     pub expand_all_releases: String,
     pub collapse_all_releases: String,
     pub show_dev_tools: String,
@@ -163,6 +164,7 @@ pub mod ids {
     // View menu items
     pub const TOGGLE_VIEW: &str = "toggle_view";
     pub const TOGGLE_EDITOR: &str = "toggle_editor";
+    pub const TOGGLE_QUEUE: &str = "toggle_queue";
     pub const EXPAND_ALL_RELEASES: &str = "expand_all_releases";
     pub const COLLAPSE_ALL_RELEASES: &str = "collapse_all_releases";
     pub const SHOW_DEVTOOLS: &str = "show_devtools";
@@ -465,6 +467,13 @@ fn build_view_menu(app: &AppHandle<Wry>, is_dev: bool) -> Result<Submenu<Wry>, t
             true,
             Some("CmdOrCtrl+I"),
         )?)
+        .item(&MenuItem::with_id(
+            app,
+            ids::TOGGLE_QUEUE,
+            "Toggle Queue",
+            true,
+            Some("CmdOrCtrl+U"),
+        )?)
         .separator()
         .item(&MenuItem::with_id(
             app,
@@ -643,6 +652,7 @@ const ONBOARDING_DISABLED_ITEMS: &[&str] = &[
     // View menu
     ids::TOGGLE_VIEW,
     ids::TOGGLE_EDITOR,
+    ids::TOGGLE_QUEUE,
     ids::EXPAND_ALL_RELEASES,
     ids::COLLAPSE_ALL_RELEASES,
     // Help menu
@@ -821,6 +831,7 @@ pub fn update_menu_translations(
     // Update View menu items
     update_item_text(&menu, ids::TOGGLE_VIEW, &translations.toggle_view)?;
     update_item_text(&menu, ids::TOGGLE_EDITOR, &translations.toggle_editor)?;
+    update_item_text(&menu, ids::TOGGLE_QUEUE, &translations.toggle_queue)?;
     update_item_text(
         &menu,
         ids::EXPAND_ALL_RELEASES,

@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Următorul",
-		"openQueue": "Următorul",
+		"openQueue": "Coadă",
 		"playNext": "Redează următorul",
 		"addToQueue": "Adaugă la coadă",
 		"playingNext": "Redare următorul",
@@ -334,7 +334,7 @@
 		"clearQueue": "Șterge",
 		"empty": "Nimic mai departe",
 		"emptyHint": "Melodiile pe care le adaugi vor fi redate mai departe",
-		"upcoming": "Următorul",
+		"upcoming": "Coadă",
 		"history": "Istoric",
 		"historyEmpty": "Nimic nu a fost redat încă"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Silențios",
 		"jumpToPlaying": "Salt la Melodia în Redare",
 		"toggleEditor": "Comutare Editor",
+		"toggleQueue": "Comutare Coadă",
 		"toggleView": "Comutare Vizualizare",
 		"showDevTools": "Arată DevTools",
 		"enterFullScreen": "Intră în Ecran Complet",

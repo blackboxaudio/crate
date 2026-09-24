@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "Volgende",
-		"openQueue": "Volgende",
+		"openQueue": "Wachtrij",
 		"playNext": "Volgende afspelen",
 		"addToQueue": "Toevoegen aan wachtrij",
 		"playingNext": "Volgende afspelen",
@@ -334,7 +334,7 @@
 		"clearQueue": "Wissen",
 		"empty": "Niets volgende",
 		"emptyHint": "Nummers die je toevoegt worden hierna afgespeeld",
-		"upcoming": "Aankomend",
+		"upcoming": "Wachtrij",
 		"history": "Geschiedenis",
 		"historyEmpty": "Nog niets afgespeeld"
 	},
@@ -968,6 +968,7 @@
 		"mute": "Dempen",
 		"jumpToPlaying": "Naar huidig afgespeelde track",
 		"toggleEditor": "Editor wisselen",
+		"toggleQueue": "Wachtrij wisselen",
 		"toggleView": "Weergave wisselen",
 		"showDevTools": "DevTools tonen",
 		"enterFullScreen": "Vollscherm activeren",

@@ -321,7 +321,7 @@
 	},
 	"queue": {
 		"upNext": "다음 곡",
-		"openQueue": "다음 곡",
+		"openQueue": "대기열",
 		"playNext": "다음 재생",
 		"addToQueue": "대기열에 추가",
 		"playingNext": "다음 재생 중",
@@ -334,7 +334,7 @@
 		"clearQueue": "지우기",
 		"empty": "다음이 없습니다",
 		"emptyHint": "추가하는 트랙이 다음에 재생됩니다",
-		"upcoming": "다음 곡",
+		"upcoming": "대기열",
 		"history": "재생 기록",
 		"historyEmpty": "아직 재생된 것이 없습니다"
 	},
@@ -968,6 +968,7 @@
 		"mute": "음소거",
 		"jumpToPlaying": "재생 중인 트랙으로 이동",
 		"toggleEditor": "에디터 전환",
+		"toggleQueue": "대기열 전환",
 		"toggleView": "보기 전환",
 		"showDevTools": "개발자 도구 표시",
 		"enterFullScreen": "전체 화면 진입",

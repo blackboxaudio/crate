@@ -10,6 +10,8 @@
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
 	import { buildPlaylistMenuItems } from '$shared/stores/playlists'
 	import { buildTagMenuItems, commonTagIds, tagsStore } from '$shared/stores/tags'
+	import { firstPlayablePreviewIndex } from '$shared/stores/playbackQueue'
+	import { playReleasesNext, addReleasesToQueue } from '$lib/controllers'
 
 	type Props = {
 		open: boolean
@@ -63,9 +65,30 @@
 			: get(translate)('discovery.openInBrowser')
 	})
 
+	// Whether any selected release has a track the queue could play (mirrors the mobile release menu).
+	const canQueue = $derived(selectedReleases.some((r) => firstPlayablePreviewIndex(r) !== -1))
+
 	// Groups follow the shared convention (.claude/docs/CONTEXT_MENUS.md):
-	// organize → manage → navigate & share → destructive, a divider between non-empty groups.
+	// act → organize → manage → navigate & share → destructive, a divider between non-empty groups.
 	const menuItems = $derived.by<ContextMenuItem[]>(() => {
+		// Whole-release queue actions enqueue every track of each selected release, in order.
+		const act: ContextMenuItem[] = [
+			{
+				id: 'play-next',
+				label: get(translate)('queue.playNext'),
+				icon: 'play-next',
+				disabled: !canQueue,
+				action: () => playReleasesNext(selectedReleases),
+			},
+			{
+				id: 'add-to-queue',
+				label: get(translate)('queue.addToQueue'),
+				icon: 'queue-plus',
+				disabled: !canQueue,
+				action: () => addReleasesToQueue(selectedReleases),
+			},
+		]
+
 		const organize: ContextMenuItem[] = []
 		if (single) {
 			organize.push({
@@ -161,7 +184,7 @@
 			action: onDelete,
 		})
 
-		return joinMenuGroups([organize, manage, navigate, destructive])
+		return joinMenuGroups([act, organize, manage, navigate, destructive])
 	})
 </script>
 

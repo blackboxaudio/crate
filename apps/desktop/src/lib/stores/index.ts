@@ -44,6 +44,7 @@ export {
 	uiLayoutStore,
 	rightSidebarVisible,
 	rightSidebarWidth,
+	queuePanelVisible,
 	selectedTreeIds,
 	contextMenuPlaylistId,
 	contextMenuDiscoveryTrackId,

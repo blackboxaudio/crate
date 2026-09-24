@@ -1,5 +1,5 @@
 import { writable } from 'svelte/store'
-import type { ActiveView } from '$shared/types'
+import type { ActiveView, DiscoveryRelease } from '$shared/types'
 import type {
 	TagController,
 	TrackController,
@@ -20,6 +20,8 @@ export interface PageActions {
 	handleToggleDevTools: () => void
 	playNextTrack: () => void
 	playPreviousTrack: () => void
+	/** User-initiated preview play with the visible release list as the queue context. */
+	playPreview: (release: DiscoveryRelease, trackIndex: number) => void
 	openAddReleaseModal: () => void
 	getModalOrchestrator: () => ReturnType<typeof ModalOrchestrator> | undefined
 	getContextMenuOrchestrator: () => ReturnType<typeof ContextMenuOrchestrator> | undefined

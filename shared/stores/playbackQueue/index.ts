@@ -112,10 +112,10 @@ let cur: Pick | null = null
 let onQueueChanged: (() => void) | null = null
 
 // How many upcoming CONTEXT items the Up Next surface previews beyond the user queue. The whole user
-// queue is always shown; this only bounds the (potentially looping) context forecast. Library sessions
-// render no Up Next sheet, so their forecast depth is 0 (canAdvance commits its own single pick).
+// queue is always shown; this only bounds the (potentially looping) context forecast. Both session
+// kinds forecast: desktop's queue panel shows the library walk too (the only way to see what shuffle
+// drew next).
 function displayContextDepth(): number {
-	if (contextKind === 'library') return 0
 	// Repeat-track forecasts the looping track ONCE — a 20-deep list of the same track reads as noise
 	// (the native window sizes itself separately via `peekUpcoming`, unaffected by this).
 	return repeatMode === 'track' ? 1 : 20
@@ -595,20 +595,12 @@ function computeCanAdvance(): boolean {
 function refresh() {
 	const replayCount = Math.max(0, history.length - 1 - historyPos)
 	const depth = replayCount + userQueue.length + displayContextDepth()
-	// UpNextEntry stays preview-shaped (its only consumers are the mobile queue sheet / pager);
-	// library picks are simply not surfaced there.
-	const entries = upcomingPicks(depth).flatMap((u, i): UpNextEntry[] =>
-		u.pick.kind === 'preview'
-			? [
-					{
-						key: u.entryId ?? `${pickKey(u.pick)}:${i}`,
-						source: u.source,
-						release: u.pick.release,
-						trackIndex: u.pick.trackIndex,
-					},
-				]
-			: []
-	)
+	const entries = upcomingPicks(depth).map((u, i): UpNextEntry => {
+		const key = u.entryId ?? `${pickKey(u.pick)}:${i}`
+		return u.pick.kind === 'preview'
+			? { key, source: u.source, kind: 'preview', release: u.pick.release, trackIndex: u.pick.trackIndex }
+			: { key, source: u.source, kind: 'library', track: u.pick.track }
+	})
 	upNextStore.set(entries)
 	userQueueCountStore.set(userQueue.length)
 	canAdvanceStore.set(computeCanAdvance())

@@ -32,6 +32,7 @@ export interface MenuActionHandlers {
 	onJumpToPlayingTrack: () => void
 	onToggleView: () => void
 	onToggleEditor: () => void
+	onToggleQueue: () => void
 	onExpandAllReleases: () => void
 	onCollapseAllReleases: () => void
 	onRefreshMetadata: () => void
@@ -56,6 +57,7 @@ export interface MenuActionHandlers {
  * - quick_export: Open quick export modal
  * - jump_to_playing: Jump to currently playing track
  * - toggle_editor: Toggle right sidebar editor
+ * - toggle_queue: Toggle the Up Next (queue) panel
  * - report_issue: Open GitHub issues page
  * - feature_tour: Handled by layout
  *
@@ -89,6 +91,7 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 		onJumpToPlayingTrack,
 		onToggleView,
 		onToggleEditor,
+		onToggleQueue,
 		onExpandAllReleases,
 		onCollapseAllReleases,
 		onRefreshMetadata,
@@ -188,6 +191,9 @@ export async function useMenuActions(handlers: MenuActionHandlers): Promise<() =
 				break
 			case 'toggle_editor':
 				onToggleEditor()
+				break
+			case 'toggle_queue':
+				onToggleQueue()
 				break
 			case 'expand_all_releases':
 				onExpandAllReleases()
