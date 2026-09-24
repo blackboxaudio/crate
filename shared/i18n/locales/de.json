@@ -183,7 +183,7 @@
 			"font": "Schriftart",
 			"fontDescription": "Wählen Sie die in der Anwendung verwendete Schriftart.",
 			"zoom": "Zoom",
-			"zoomDescription": "Skalieren Sie die gesamte Benutzeroberfläche vergrößern oder verkleinern. Gilt nur für dieses Gerät.",
+			"zoomDescription": "Vergrößern oder verkleinern Sie die gesamte Benutzeroberfläche. Gilt nur für dieses Gerät.",
 			"theme": "Thema",
 			"themeLight": "Hell",
 			"themeDark": "Dunkel",

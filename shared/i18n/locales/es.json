@@ -183,7 +183,7 @@
 			"font": "Fuente",
 			"fontDescription": "Elige la fuente utilizada en la aplicación.",
 			"zoom": "Zoom",
-			"zoomDescription": "Amplia o reduce la escala de toda la interfaz. Se aplica solo a este dispositivo.",
+			"zoomDescription": "Amplía o reduce toda la interfaz. Se aplica solo a este dispositivo.",
 			"theme": "Tema",
 			"themeLight": "Claro",
 			"themeDark": "Oscuro",
