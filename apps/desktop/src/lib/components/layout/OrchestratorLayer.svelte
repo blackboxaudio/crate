@@ -113,7 +113,7 @@
 	async function handleTrackAnalyze(tracks: Track[]) {
 		const trackIds = tracks.map((t) => t.id)
 		try {
-			await analysisStore.analyzeTracks(trackIds)
+			await analysisStore.analyzeTracks(trackIds, true)
 		} catch (error) {
 			console.error('Analysis failed:', error)
 			toastStore.error(get(translate)('errors.analysisFailed'))

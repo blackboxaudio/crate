@@ -83,7 +83,7 @@ function createAnalysisStore() {
 		/**
 		 * Analyze tracks for BPM and key detection
 		 */
-		async analyzeTracks(trackIds: string[]): Promise<void> {
+		async analyzeTracks(trackIds: string[], force: boolean = false): Promise<void> {
 			// Mark tracks as pending
 			update((state) => {
 				const newTrackStates = new Map(state.trackStates)
@@ -103,7 +103,7 @@ function createAnalysisStore() {
 				await this.startListening()
 
 				// Call backend - returns immediately, results come via events
-				await analysisApi.analyzeTracks(trackIds)
+				await analysisApi.analyzeTracks(trackIds, force)
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : 'Analysis failed'
 

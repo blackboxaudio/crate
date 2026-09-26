@@ -92,11 +92,65 @@ impl AnalysisService {
         Ok(())
     }
 
+    /// Read the stored BPM/key for a track. Returns `Some` only when BOTH are present,
+    /// because a partial analysis is not a reason to skip the DSP.
+    fn get_existing_analysis(
+        conn: &Arc<Mutex<Connection>>,
+        track_id: &str,
+    ) -> Result<Option<(f64, String)>> {
+        let conn = conn.lock().map_err(|_| CrateError::LockPoisoned)?;
+        let row = conn.query_row(
+            "SELECT bpm, key FROM tracks WHERE id = ?1",
+            [track_id],
+            |row| {
+                Ok((
+                    row.get::<_, Option<f64>>(0)?,
+                    row.get::<_, Option<String>>(1)?,
+                ))
+            },
+        )?;
+        Ok(match row {
+            (Some(bpm), Some(key)) => Some((bpm, key)),
+            _ => None,
+        })
+    }
+
+    /// Emit a terminal `Completed` event for a track that was skipped, so the UI clears
+    /// its pending state without any DSP having run.
+    fn emit_skip_completion(
+        app: &AppHandle,
+        track_id: &str,
+        bpm: f64,
+        key: String,
+        tasks: &Arc<Mutex<HashMap<String, TrackAnalysisTask>>>,
+    ) {
+        let _ = app.emit(
+            "analysis-track-event",
+            TrackAnalysisEvent {
+                track_id: track_id.to_string(),
+                state: AnalysisStatus::Completed,
+                result: Some(AnalysisResult {
+                    track_id: track_id.to_string(),
+                    bpm: Some(bpm),
+                    key: Some(key),
+                    success: true,
+                    error: None,
+                }),
+                updated_track: None,
+                error: None,
+            },
+        );
+        if let Ok(mut t) = tasks.lock() {
+            t.remove(track_id);
+        }
+    }
+
     /// Analyze multiple tracks with per-track events (async, non-blocking)
     pub async fn analyze_tracks_async(
         &self,
         app_handle: AppHandle,
         track_ids: Vec<String>,
+        force: bool,
     ) -> Result<()> {
         for track_id in track_ids {
             let cancel_token = CancellationToken::new();
@@ -119,7 +173,7 @@ impl AnalysisService {
             );
 
             let handle = tauri::async_runtime::spawn(async move {
-                Self::analyze_single_track_task(conn, app, tid, token, tasks).await;
+                Self::analyze_single_track_task(conn, app, tid, token, tasks, force).await;
             });
 
             // Store task for potential cancellation
@@ -143,6 +197,7 @@ impl AnalysisService {
         track_id: String,
         cancel_token: CancellationToken,
         tasks: Arc<Mutex<HashMap<String, TrackAnalysisTask>>>,
+        force: bool,
     ) {
         // Check if already cancelled before starting
         if cancel_token.is_cancelled() {
@@ -160,6 +215,23 @@ impl AnalysisService {
                 t.remove(&track_id);
             }
             return;
+        }
+
+        // Skip tracks that already carry BPM and key (typically from their own tags at import)
+        // unless the caller explicitly forced a re-analysis.
+        if !force {
+            match Self::get_existing_analysis(&conn, &track_id) {
+                Ok(Some((bpm, key))) => {
+                    Self::emit_skip_completion(&app, &track_id, bpm, key, &tasks);
+                    return;
+                }
+                Ok(None) => {}
+                Err(e) => {
+                    // A lookup failure must not silently skip analysis; fall through to the
+                    // normal path so the real error surfaces the usual way.
+                    log::warn!("Failed to check existing analysis for {track_id}: {e}");
+                }
+            }
         }
 
         // Emit "analyzing" status
@@ -688,5 +760,45 @@ impl Clone for AnalysisService {
             conn: self.conn.clone(),
             tasks: self.tasks.clone(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The skip guard only fires on a complete pair: a row missing either half must not
+    /// be treated as already analyzed.
+    #[test]
+    fn get_existing_analysis_only_returns_a_complete_pair() {
+        let conn = Arc::new(Mutex::new(Connection::open_in_memory().unwrap()));
+        conn.lock()
+            .unwrap()
+            .execute_batch("CREATE TABLE tracks (id TEXT PRIMARY KEY, bpm REAL, key TEXT)")
+            .unwrap();
+
+        let insert = |id: &str, bpm: Option<f64>, key: Option<&str>| {
+            conn.lock()
+                .unwrap()
+                .execute(
+                    "INSERT INTO tracks (id, bpm, key) VALUES (?1, ?2, ?3)",
+                    rusqlite::params![id, bpm, key],
+                )
+                .unwrap();
+        };
+        insert("complete", Some(120.0), Some("Am"));
+        insert("bpm-only", Some(120.0), None);
+        insert("neither", None, None);
+
+        assert_eq!(
+            AnalysisService::get_existing_analysis(&conn, "complete").unwrap(),
+            Some((120.0, "Am".to_string()))
+        );
+        assert!(AnalysisService::get_existing_analysis(&conn, "bpm-only")
+            .unwrap()
+            .is_none());
+        assert!(AnalysisService::get_existing_analysis(&conn, "neither")
+            .unwrap()
+            .is_none());
     }
 }
