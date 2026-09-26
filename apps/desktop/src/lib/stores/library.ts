@@ -1,6 +1,13 @@
 import { writable, derived, get } from 'svelte/store'
 import { translate } from '$shared/i18n'
-import type { Track, TrackColor, TrackFilter, SortConfig, ImportResultWithDuplicates } from '$shared/types'
+import type {
+	Track,
+	TrackColor,
+	TrackFilter,
+	SortConfig,
+	ImportResultWithDuplicates,
+	LibraryFolderScanResult,
+} from '$shared/types'
 import { sortTracks } from '$shared/utils/sorting'
 import * as libraryApi from '$shared/api/library'
 import * as playlistsApi from '$shared/api/playlists'
@@ -130,6 +137,42 @@ function createLibraryStore() {
 				}))
 				toastStore.error(errorMessage)
 				return { tracks: [], failed_count: paths.length, errors: [errorMessage], duplicates: [] }
+			}
+		},
+
+		/**
+		 * Scan the configured music folder and import any new audio files.
+		 * The library is refetched afterwards because the backend returns ids, not tracks.
+		 * Returns the scan result, or throws on failure so the caller owns the user-visible message.
+		 */
+		async scanMusicLibraryFolder(): Promise<LibraryFolderScanResult> {
+			update((state) => ({ ...state, loading: true, error: null }))
+
+			try {
+				const result = await libraryApi.scanMusicLibraryFolder()
+
+				// The response carries ids only, so refresh the full library instead of prepending.
+				await this.loadTracks()
+
+				// Auto-analyze imported tracks if enabled
+				if (result.imported_track_ids.length > 0 && get(autoAnalyzeOnImport)) {
+					// Run analysis asynchronously, don't await to avoid blocking the scan UI
+					analysisStore.analyzeTracks(result.imported_track_ids).catch((error) => {
+						console.error('Auto-analysis failed:', error)
+					})
+				}
+
+				return result
+			} catch (error) {
+				const errorMessage = error instanceof Error ? error.message : 'Failed to scan music library folder'
+				update((state) => ({
+					...state,
+					loading: false,
+					error: errorMessage,
+				}))
+				// Rethrow instead of returning an empty result: a failed scan must not be
+				// reported as an empty successful scan.
+				throw error
 			}
 		},
 

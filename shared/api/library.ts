@@ -4,6 +4,7 @@ import type {
 	FileMatchResult,
 	ImportResult,
 	ImportResultWithDuplicates,
+	LibraryFolderScanResult,
 	Track,
 	TrackColor,
 	TrackFilter,
@@ -152,4 +153,26 @@ export async function importTracksWithDuplicates(paths: string[]): Promise<Impor
  */
 export async function resolveDuplicate(resolution: DuplicateResolution): Promise<Track | null> {
 	return invoke<Track | null>('resolve_duplicate', { resolution })
+}
+
+/**
+ * Get the music folder configured for this device, if any
+ */
+export async function getMusicLibraryFolder(): Promise<string | null> {
+	return invoke<string | null>('get_music_library_folder')
+}
+
+/**
+ * Persist this device's music folder and return the canonical path actually stored
+ */
+export async function setMusicLibraryFolder(path: string): Promise<string> {
+	return invoke<string>('set_music_library_folder', { path })
+}
+
+/**
+ * Recursively import supported audio files from the configured music folder.
+ * Files already in the library are skipped silently by the backend.
+ */
+export async function scanMusicLibraryFolder(): Promise<LibraryFolderScanResult> {
+	return invoke<LibraryFolderScanResult>('scan_music_library_folder')
 }

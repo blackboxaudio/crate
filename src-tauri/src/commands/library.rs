@@ -7,7 +7,7 @@ use crate::models::{
     DuplicateResolution, FileMatchResult, ImportResult, ImportResultWithDuplicates, Track,
     TrackFilter, TrackUpdate,
 };
-use crate::services::library::RescanResult;
+use crate::services::library::{LibraryFolderScanResult, RescanResult};
 use crate::services::LibraryService;
 
 #[tauri::command]
@@ -161,4 +161,26 @@ pub async fn resolve_duplicate(
     library: State<'_, LibraryService>,
 ) -> Result<Option<Track>> {
     library.resolve_duplicate(resolution)
+}
+
+#[tauri::command]
+pub async fn get_music_library_folder(
+    library: State<'_, LibraryService>,
+) -> Result<Option<String>> {
+    library.music_library_folder()
+}
+
+#[tauri::command]
+pub async fn set_music_library_folder(
+    path: String,
+    library: State<'_, LibraryService>,
+) -> Result<String> {
+    library.set_music_library_folder(&path)
+}
+
+#[tauri::command]
+pub async fn scan_music_library_folder(
+    library: State<'_, LibraryService>,
+) -> Result<LibraryFolderScanResult> {
+    library.scan_music_library_folder()
 }

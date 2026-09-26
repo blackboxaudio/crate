@@ -48,8 +48,7 @@ impl LibraryService {
             .unwrap_or_default();
 
         // Check if supported format
-        let supported_formats = ["mp3", "wav", "aiff", "aif", "flac", "m4a", "aac"];
-        if !supported_formats.contains(&format.as_str()) {
+        if !SUPPORTED_AUDIO_EXTENSIONS.contains(&format.as_str()) {
             return Err(CrateError::Import(format!("Unsupported format: {format}")));
         }
 
@@ -228,8 +227,7 @@ impl LibraryService {
             .map(|e| e.to_lowercase())
             .unwrap_or_default();
 
-        let supported_formats = ["mp3", "wav", "aiff", "aif", "flac", "m4a", "aac"];
-        if !supported_formats.contains(&format.as_str()) {
+        if !SUPPORTED_AUDIO_EXTENSIONS.contains(&format.as_str()) {
             return Err(CrateError::Import(format!("Unsupported format: {format}")));
         }
 
