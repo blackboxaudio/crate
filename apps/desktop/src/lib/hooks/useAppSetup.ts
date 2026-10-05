@@ -31,6 +31,8 @@ import {
 	missingTracksStore,
 	missingTrackIds,
 	displayedReleases,
+	discoveryPlaybackContext,
+	discoveryTrackScope,
 	expandedReleaseIds,
 	discoveryStore,
 	updaterStore,
@@ -263,13 +265,14 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 	let previewContextPlaylistId: string | null = null
 
 	/**
-	 * Play a discovery preview, capturing the release list as the session's queue context.
-	 * Use this instead of playerStore.playPreview() for user-initiated preview playback.
+	 * Play a discovery preview, capturing the release list (and the tracks its filters show) as the
+	 * session's queue context. Use this instead of playerStore.playPreview() for user-initiated preview
+	 * playback.
 	 */
 	function playPreview(release: DiscoveryRelease, trackIndex: number) {
 		const ui = get(uiStore)
 		previewContextPlaylistId = ui.activeView === 'discovery' ? (ui.selectedPlaylistId ?? null) : null
-		void playerStore.playPreview(release, trackIndex, get(displayedReleases))
+		void playerStore.playPreview(release, trackIndex, get(discoveryPlaybackContext))
 	}
 
 	// =========================================================================
@@ -306,8 +309,9 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			// Nothing loaded — play first item in current view
 			if (get(activeView) === 'discovery') {
 				const releases = get(displayedReleases)
+				const scope = get(discoveryTrackScope)
 				for (const release of releases) {
-					const trackIdx = firstPlayablePreviewIndex(release)
+					const trackIdx = firstPlayablePreviewIndex(release, 0, scope)
 					if (trackIdx !== -1) {
 						playPreview(release, trackIdx)
 						return
@@ -438,12 +442,12 @@ export function createAppSetup(config: AppSetupConfig): AppSetupResult {
 			if (get(libraryStore).selectedPlaylistId !== libraryContextPlaylistId) return
 			playbackQueue.updateLibraryContext(tracks)
 		})
-		const unsubscribePreviewContext = displayedReleases.subscribe((releases) => {
+		const unsubscribePreviewContext = discoveryPlaybackContext.subscribe((context) => {
 			if (playbackQueue.contextKindOf() !== 'preview') return
 			const ui = get(uiStore)
 			if (ui.activeView !== 'discovery') return
 			if ((ui.selectedPlaylistId ?? null) !== previewContextPlaylistId) return
-			playbackQueue.updatePreviewContext(releases)
+			playbackQueue.updatePreviewContext(context.releases, context.scope)
 		})
 
 		// Restore last-playing track/preview from localStorage now that stores are loaded

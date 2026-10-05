@@ -6,6 +6,8 @@
 	import { getSmartPlaylistReleases } from '$shared/api/playlists'
 	import { discoveryPlaylistStore, discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
 	import { sortDiscoveryReleases } from '$shared/utils/sorting'
+	import { previewPlaybackContext } from '$shared/utils/discoveryFilters'
+	import { discoveryFacetContext, playbackFollowsFilters } from '$shared/stores/discovery'
 	import {
 		mobileUIStore,
 		playlistReorderMode,
@@ -14,11 +16,10 @@
 		overlayPopNonce,
 		detailReleaseId,
 	} from '$lib/stores/mobileUI'
-	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import { overlayMiniPlayerInset } from '$lib/stores/insets'
-	import { ownedReleaseIds } from '$shared/stores/collection'
 	import {
 		applyViewFilter,
+		viewCriteria,
 		emptyViewFilter,
 		hasActiveViewFilter,
 		reconcileViewSort,
@@ -61,7 +62,7 @@
 	// order) — and never writes positions. Reset naturally on close (the component unmounts).
 	let viewSort = $state<DiscoverySortConfig | null>(null)
 	let viewFilter = $state(emptyViewFilter())
-	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds, $ownedReleaseIds))
+	const filtered = $derived(applyViewFilter(releases, viewFilter, $discoveryFacetContext))
 	const displayed = $derived(viewSort ? sortDiscoveryReleases(filtered, viewSort) : filtered)
 	// Manual reorder writes junction positions, which is only meaningful while the user is looking
 	// at the unfiltered natural order — a sorted/filtered list would persist a misleading result.
@@ -77,11 +78,21 @@
 		viewSort = field === 'playlist_order' ? null : { field: field as DiscoverySortField, direction }
 	}
 
-	// Publish the displayed list so playback started from this view queues exactly what's on
-	// screen (sorted/filtered); cleared when the view unmounts or before each re-publish.
+	// Publish the playback context so playback started from this view queues exactly what's on
+	// screen (sorted/filtered, narrowed to the matching tracks); cleared when the view unmounts or
+	// before each re-publish.
 	$effect(() => {
-		mobileUIStore.setOverlayReleases(displayed)
-		return () => mobileUIStore.setOverlayReleases(null)
+		mobileUIStore.setOverlayPlaybackContext(
+			previewPlaybackContext(
+				displayed,
+				releases,
+				viewCriteria(viewFilter),
+				$discoveryFacetContext,
+				viewSort,
+				$playbackFollowsFilters
+			)
+		)
+		return () => mobileUIStore.setOverlayPlaybackContext(null)
 	})
 
 	// Android Back exits reorder mode before it closes this drawer (#62): reorder activates after

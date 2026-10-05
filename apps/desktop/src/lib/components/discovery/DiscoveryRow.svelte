@@ -27,6 +27,7 @@
 	import { playbackSource, previewInfo, previewLoadingReleaseId } from '$shared/stores/player'
 	import { isPreviewPlayable } from '$shared/stores/playbackQueue'
 	import { DRAG_THRESHOLD, getDistance } from '$shared/utils/drag'
+	import { releaseTrackMatcher, type TrackScope } from '$shared/utils/discoveryFilters'
 	import { translate } from '$shared/i18n'
 	import * as discoveryApi from '$shared/api/discovery'
 	import { FollowPopover, openFollowPopoverId } from '$lib/components/follow'
@@ -50,7 +51,8 @@
 		onTrackClick?: (trackIndex: number, e: MouseEvent) => void
 		selectedTrackIds?: Set<string>
 		dragTrackIds?: string[]
-		likedOnly?: boolean
+		/** The tracks the active filters show (null = all); the rest are hidden. */
+		trackScope?: TrackScope | null
 	}
 
 	let {
@@ -72,7 +74,7 @@
 		onTrackClick,
 		selectedTrackIds = new Set<string>(),
 		dragTrackIds = [],
-		likedOnly = false,
+		trackScope = null,
 	}: Props = $props()
 
 	let isTagDragHovered = $state(false)
@@ -89,12 +91,15 @@
 	const ownedTrackCount = $derived(isFullyOwned ? 0 : release.tracks.filter((t) => $ownedTrackIds.has(t.id)).length)
 
 	// Sub-rows carry their original index (preview playback addresses tracks by release position),
-	// so the liked filter has to narrow the list here rather than skip inside the loop — the row
+	// so the track scope has to narrow the list here rather than skip inside the loop — the row
 	// separator keys off the visible position, and DiscoveryList sizes the expanded slot by the
 	// visible count.
-	const visibleTracks = $derived(
-		release.tracks.map((track, index) => ({ track, index })).filter(({ track }) => !likedOnly || track.is_liked)
-	)
+	const visibleTracks = $derived.by(() => {
+		const all = release.tracks.map((track, index) => ({ track, index }))
+		if (!trackScope) return all
+		const matches = releaseTrackMatcher(release, trackScope.criteria, trackScope.ctx)
+		return all.filter(({ index }) => matches(index))
+	})
 
 	// Follow button + quick-follow popover. The open popover is tracked globally so opening
 	// one dismisses any other (only one visible at a time).

@@ -12,7 +12,7 @@
 	import { playerStore, previewInfo } from '$shared/stores/player'
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { isAndroid, isIOS } from '$shared/utils/platform'
-	import { mobileUIStore, isPlayerExpanded, flushNavPersistence } from '$lib/stores/mobileUI'
+	import { mobileUIStore, isPlayerExpanded, flushNavPersistence, queueOrigin } from '$lib/stores/mobileUI'
 	import { collectionStore } from '$shared/stores/collection'
 	import { discoveryStore } from '$shared/stores/discovery'
 	import { offlineCacheStore } from '$shared/stores/offlineCache'
@@ -67,7 +67,12 @@
 	// Tauri IPC (getRelease), which is ready at mount, so it doesn't wait on i18n/settings; the mini-player
 	// renders reactively once previewInfo resolves.
 	onMount(() => {
-		void playerStore.restorePreview()
+		void playerStore.restorePreview().then(() => {
+			// The restored session's context is just its own release (the feed isn't persisted). Hand it to
+			// the feed's live re-scope, as desktop does, so next / shuffle follow the feed and its filters
+			// once the feed loads — otherwise they'd stay inside that one release for the whole session.
+			if (playbackQueue.currentPick() && get(queueOrigin) === null) mobileUIStore.setQueueOrigin('discovery')
+		})
 		// Hydrate the persisted user queue UNCONDITIONALLY: restorePreview only reaches its own hydrate
 		// when a preview was playing at last close, so a queue built with nothing playing survived the
 		// relaunch in storage but never reached memory — and the next addToQueue overwrote it with one

@@ -10,6 +10,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 ### Added
 
 - Added interface zoom on desktop: scale the whole UI from 75% to 150% via Settings → Appearance or View → Zoom In / Zoom Out / Actual Size (⌘= / ⌘- / ⌘0); the level is remembered per device and never cloud-synced
+- Added an "Apply to playback" switch to the discovery filter menu on desktop and mobile (on by default, remembered per device): when on, shuffle, Next, and auto-advance only play the tracks your filters show; when off, playback spans the whole unfiltered view
+
+### Changed
+
+- Discovery filters now judge individual tracks: Liked, Purchased, Downloaded, tags, and search each match tracks (only New applies to whole releases), a release is listed when one of its tracks matches every active filter, and preview playback continues only through matching tracks — so "Liked: Only" plays just your liked tracks, and "Purchased: Not" keeps an EP you bought one track from while skipping that track
+- Mobile release details dim the tracks your filters leave out of playback; tapping one still plays it
+
+### Fixed
+
+- Fixed preview shuffle replaying tracks before the rest of the list had played, and sequential preview playback stopping after the current release instead of continuing through the list
+- Fixed a preview session restored on mobile launch staying inside its one release instead of following the discovery feed and its filters
+- Fixed preview playback started from the mobile Purchased view continuing in the feed's order instead of the on-screen purchase order, and made the Purchased view's search match labels, notes, and track names like the feed
 
 ## [0.3.0] - 2026-09-24
 
