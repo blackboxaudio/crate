@@ -564,7 +564,9 @@
 		"purchased": "구매됨",
 		"off": "끔",
 		"only": "만",
-		"not": "제외"
+		"not": "제외",
+		"applyToPlayback": "재생에 적용",
+		"applyToPlaybackHint": "셔플과 다음은 일치하는 트랙만 재생합니다"
 	},
 	"collection": {
 		"notInCrate": "{appName}에 없음",

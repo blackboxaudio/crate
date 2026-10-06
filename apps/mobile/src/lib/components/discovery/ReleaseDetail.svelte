@@ -24,6 +24,7 @@
 	import { writeText } from '@tauri-apps/plugin-clipboard-manager'
 	import { formatDate, formatDurationCompact } from '$shared/utils/format'
 	import { getReleasePlatformName } from '$shared/utils/discoveryLinks'
+	import { releaseTrackMatcher } from '$shared/utils/discoveryFilters'
 	import { deriveArtistUrl, deriveLabelUrl, isCompilation } from '$shared/utils'
 	import { mobileUIStore, activePlaybackContext, overlayPopNonce } from '$lib/stores/mobileUI'
 	import { overlayMiniPlayerInset } from '$lib/stores/insets'
@@ -370,6 +371,13 @@
 	// duration means the source never exposed the track as playable (unreleased pre-order tracks,
 	// unenriched rows), `preview_unavailable` is the extraction-confirmed flag, and Discogs tracks
 	// play via their matched YouTube video only. Unplayable rows render greyed-out and inert.
+	// The tracks the view's filters leave out of playback (with "Apply to playback" on): next / shuffle
+	// skip them, so they're dimmed — not hidden or disabled, since a tap still plays exactly that track.
+	const scopeMatcher = $derived.by(() => {
+		const scope = $activePlaybackContext.scope
+		return scope ? releaseTrackMatcher(release, scope.criteria, scope.ctx) : null
+	})
+
 	function trackPlayable(track: DiscoveryTrack): boolean {
 		if (!track.duration_ms) return false
 		if (track.preview_unavailable) return false
@@ -392,7 +400,7 @@
 		// queue keeps following the feed's live filter (see +page); a tag/follow/playlist queue stays fixed.
 		const context = get(activePlaybackContext)
 		mobileUIStore.setQueueOrigin(context.origin)
-		void playerStore.playPreview(release, index, context.releases)
+		void playerStore.playPreview(release, index, context)
 		if (wasIdle) mobileUIStore.expandPlayer()
 	}
 
@@ -607,7 +615,10 @@
 							>
 								<button
 									type="button"
-									class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-10 pl-2 text-left active:bg-surface-2 disabled:opacity-40 disabled:active:bg-transparent"
+									class="flex min-h-[44px] w-full min-w-0 items-center gap-3 rounded py-2 pr-10 pl-2 text-left transition-opacity active:bg-surface-2 disabled:opacity-40 disabled:active:bg-transparent {scopeMatcher &&
+									!scopeMatcher(index)
+										? 'opacity-50'
+										: ''}"
 									aria-label={$translate('discovery.playPreview')}
 									disabled={!trackPlayable(track)}
 									onclick={() => playTrack(index)}

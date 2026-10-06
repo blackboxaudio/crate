@@ -1,9 +1,16 @@
 import { writable, derived, get } from 'svelte/store'
-import { sortedReleases, discoveryStore } from '$shared/stores/discovery'
+import { sortedReleases, discoveryStore, discoveryFacetContext, playbackFollowsFilters } from '$shared/stores/discovery'
 import { discoveryPlaylistReleases } from '$shared/stores/discoveryPlaylist'
+import { collectionItems } from '$shared/stores/collection'
 import { followStore, followedSources } from '$shared/stores/follow'
 import { releasesFromSource } from '$shared/utils'
 import { releaseHasTag } from '$shared/utils/tagComputation'
+import {
+	filterDiscoveryReleases,
+	previewPlaybackContext,
+	type DiscoveryCriteria,
+	type PreviewPlaybackContext,
+} from '$shared/utils/discoveryFilters'
 import {
 	getStoredArray,
 	getStoredNumber,
@@ -13,7 +20,8 @@ import {
 	setStoredNumber,
 	setStoredString,
 } from '$shared/utils/storage'
-import type { DiscoveryRelease, SortDirection, TagFilterMode } from '$shared/types'
+import type { SortDirection, TagFilterMode } from '$shared/types'
+import { filterPurchasedRows, matchedReleases, pairCollectionItems, type PurchasedRow } from '$lib/utils/purchasedRows'
 
 /** The app's primary navigation destinations, surfaced as bottom tabs. Settings is intentionally NOT a
  *  tab — it opens as a right-side drawer from the Header's gear button (see `openSettings`). */
@@ -168,12 +176,12 @@ interface MobileUIState {
 	/** Discovery feed layout: classic rows or the 3-column artwork grid. Persisted. */
 	discoveryViewMode: 'list' | 'grid'
 	/**
-	 * The displayed (sorted/filtered) list of the OPEN detail overlay (playlist/tag/follow), published
-	 * by the overlay while mounted so `activePlaybackContext` scopes playback to exactly what's on
-	 * screen — not the raw unsorted set. Null when no overlay is open (or it hasn't published yet).
-	 * Ephemeral by design.
+	 * The playback context of the OPEN detail overlay (playlist/tag/follow) — its displayed (sorted/
+	 * filtered) list and the track scope its filters impose — published by the overlay while mounted so
+	 * `activePlaybackContext` scopes playback to exactly what's on screen, not the raw unsorted set. Null
+	 * when no overlay is open (or it hasn't published yet). Ephemeral by design.
 	 */
-	overlayDisplayedReleases: DiscoveryRelease[] | null
+	overlayPlaybackContext: PreviewPlaybackContext | null
 }
 
 const defaultState: MobileUIState = {
@@ -212,7 +220,7 @@ const defaultState: MobileUIState = {
 	discoveryRestoreAnchor: null,
 	playlistsSort: { field: 'name', direction: 'asc' },
 	discoveryViewMode: 'list',
-	overlayDisplayedReleases: null,
+	overlayPlaybackContext: null,
 }
 
 // --- Persisted navigation state (localStorage via shared/utils/storage) -------------------------
@@ -498,9 +506,9 @@ function createMobileUIStore() {
 		setDiscoveryViewMode(mode: 'list' | 'grid') {
 			update((s) => (s.discoveryViewMode === mode ? s : { ...s, discoveryViewMode: mode }))
 		},
-		/** Publish (or clear, with null) the open detail overlay's displayed list — see the state doc. */
-		setOverlayReleases(releases: DiscoveryRelease[] | null) {
-			update((s) => (s.overlayDisplayedReleases === releases ? s : { ...s, overlayDisplayedReleases: releases }))
+		/** Publish (or clear, with null) the open detail overlay's playback context — see the state doc. */
+		setOverlayPlaybackContext(context: PreviewPlaybackContext | null) {
+			update((s) => (s.overlayPlaybackContext === context ? s : { ...s, overlayPlaybackContext: context }))
 		},
 
 		/** Whether this overlay kind was restored from storage at boot — consumed once, so the restored
@@ -782,60 +790,115 @@ export const settingsPage = derived(mobileUIStore, ($s) => $s.settingsPage)
 export const tagFilterIds = derived(mobileUIStore, ($s) => $s.tagFilterIds)
 export const tagFilterMode = derived(mobileUIStore, ($s) => $s.tagFilterMode)
 
-/** Client-side tag filter over the loaded feed (AND = all selected tags, OR = any). Exported so the
- *  detail views' per-view filters (see `utils/listControls.ts`) apply the exact same semantics. */
-export function applyTagFilter(list: DiscoveryRelease[], ids: string[], mode: TagFilterMode): DiscoveryRelease[] {
-	if (ids.length === 0) return list
-	const set = new Set(ids)
-	return mode === 'and'
-		? list.filter((r) => ids.every((id) => releaseHasTag(r, id)))
-		: list.filter((r) => [...set].some((id) => releaseHasTag(r, id)))
-}
-
-/**
- * The discovery feed's displayed list: the shared `sortedReleases` (search + the liked/new/purchased/
- * downloaded facets + sort) with the mobile-only tag filter applied. Single source of truth for both the
- * rendered feed and the playback queue captured when a preview starts — so "play / shuffle the whole
- * list" spans exactly what's on screen. (When the Purchased facet is `include`, the feed component swaps
- * to the collection view, which ALSO lists the unmatched collection items — those aren't releases and
- * never enter this list or the playback context.)
- */
-export const mobileDisplayedReleases = derived(
-	[sortedReleases, tagFilterIds, tagFilterMode],
-	([$sorted, $ids, $mode]) => applyTagFilter($sorted, $ids, $mode)
+/** The discovery feed's complete filter state: the shared facets + search, and the mobile-only tags. */
+export const mobileFeedCriteria = derived(
+	[discoveryStore, tagFilterIds, tagFilterMode],
+	([$disc, $ids, $mode]): DiscoveryCriteria => ({
+		facets: $disc.facets,
+		tagIds: $ids,
+		tagMode: $mode,
+		search: $disc.filter.search ?? '',
+	})
 )
 
 /**
- * The release list + origin a preview started *right now* would use as its playback context: the topmost
- * open overlay's list (follow / tag / playlist detail), or — with no detail open — the discovery feed's
- * on-screen list. Read once at play time (`ReleaseDetail`) so next / shuffle scope to the view the user is
- * in. The three detail overlays are mutually exclusive, so the precedence order here never conflicts.
+ * The discovery feed's displayed list: the shared `sortedReleases` (search + the liked/new/purchased/
+ * downloaded facets + sort) narrowed by the mobile-only tag filter. Single source of truth for both the
+ * rendered feed and the playback queue captured when a preview starts — so "play / shuffle the whole
+ * list" spans exactly what's on screen. The tags are judged in ONE pass with every other filter (a track
+ * must satisfy all of them at once); re-filtering the already-sorted list keeps its order without a
+ * second sort, since every release passing the full criteria passes the tagless ones. (While the Purchased
+ * facet is `include` the feed component swaps to the collection view, whose list is `mobilePurchasedRows`.)
+ */
+export const mobileDisplayedReleases = derived(
+	[sortedReleases, mobileFeedCriteria, discoveryFacetContext],
+	([$sorted, $criteria, $ctx]) =>
+		$criteria.tagIds.length === 0 ? $sorted : filterDiscoveryReleases($sorted, $criteria, $ctx)
+)
+
+/** The Purchased view's criteria: the feed's with the Purchased facet forced off — the view only shows
+ *  while it is `include`, so every row is owned by definition. */
+const mobilePurchasedCriteria = derived(
+	mobileFeedCriteria,
+	($criteria): DiscoveryCriteria => ({ ...$criteria, facets: { ...$criteria.facets, purchased: 'off' } })
+)
+
+// Empty while the Purchased view isn't showing, so the feed never pays for pairing the whole collection.
+const purchasedSourceRows = derived([collectionItems, discoveryStore], ([$items, $disc]): PurchasedRow[] =>
+	$disc.facets.purchased === 'include' ? pairCollectionItems($items, $disc.releases) : []
+)
+
+/**
+ * The Purchased view's displayed rows (see `filterPurchasedRows`). Like `mobileDisplayedReleases` for the
+ * feed, the one list both the rendered view and its playback context read, so they can't drift.
+ */
+export const mobilePurchasedRows = derived(
+	[purchasedSourceRows, mobilePurchasedCriteria, discoveryFacetContext],
+	([$rows, $criteria, $ctx]) => filterPurchasedRows($rows, $criteria, $ctx)
+)
+
+// The Purchased view keeps its rows in purchase order (no sort), so its unfiltered source does too. Unmatched
+// collection items aren't releases and never play.
+const mobilePurchasedPlaybackContext = derived(
+	[mobilePurchasedRows, purchasedSourceRows, mobilePurchasedCriteria, discoveryFacetContext, playbackFollowsFilters],
+	([$rows, $source, $criteria, $ctx, $follows]) =>
+		previewPlaybackContext(matchedReleases($rows), matchedReleases($source), $criteria, $ctx, null, $follows)
+)
+
+/** What a preview started from the discovery feed plays through — see `previewPlaybackContext`. While the
+ *  Purchased facet is `include` the feed is replaced by the Purchased view, so that view's context applies. */
+export const mobileFeedPlaybackContext = derived(
+	[
+		mobileDisplayedReleases,
+		discoveryStore,
+		mobileFeedCriteria,
+		discoveryFacetContext,
+		playbackFollowsFilters,
+		mobilePurchasedPlaybackContext,
+	],
+	([$displayed, $disc, $criteria, $ctx, $follows, $purchased]) =>
+		$disc.facets.purchased === 'include'
+			? $purchased
+			: previewPlaybackContext($displayed, $disc.releases, $criteria, $ctx, $disc.sort, $follows)
+)
+
+/**
+ * The playback context + origin a preview started *right now* would use: the topmost open overlay's
+ * (follow / tag / playlist detail), or — with no detail open — the discovery feed's. Read once at play
+ * time (`ReleaseDetail`) so next / shuffle scope to the view the user is in, and by the release detail to
+ * dim the tracks that scope skips. The three detail overlays are mutually exclusive, so the precedence
+ * order here never conflicts.
  */
 export const activePlaybackContext = derived(
-	[mobileUIStore, discoveryStore, discoveryPlaylistReleases, followedSources, mobileDisplayedReleases],
-	([$ui, $disc, $playlistReleases, $follows, $displayed]): {
-		origin: PlaybackContextOrigin
-		releases: DiscoveryRelease[]
-	} => {
-		// An open overlay that has published its displayed (sorted/filtered) list wins — playback
-		// should span exactly what the user sees, not the raw unsorted set.
+	[mobileUIStore, discoveryStore, discoveryPlaylistReleases, followedSources, mobileFeedPlaybackContext],
+	([$ui, $disc, $playlistReleases, $follows, $feed]): PreviewPlaybackContext & { origin: PlaybackContextOrigin } => {
+		// An open overlay that has published its playback context wins — playback should span exactly
+		// what the user sees, not the raw unsorted set.
 		if ($ui.detailFollowSourceId) {
 			const source = $follows.find((s) => s.id === $ui.detailFollowSourceId)
 			if (source)
 				return {
 					origin: 'follow',
-					releases: $ui.overlayDisplayedReleases ?? releasesFromSource($disc.releases, source.url),
+					...($ui.overlayPlaybackContext ?? {
+						releases: releasesFromSource($disc.releases, source.url),
+						scope: null,
+					}),
 				}
 		}
 		if ($ui.detailTagId) {
 			const tagId = $ui.detailTagId
 			return {
 				origin: 'tag',
-				releases: $ui.overlayDisplayedReleases ?? $disc.releases.filter((r) => releaseHasTag(r, tagId)),
+				...($ui.overlayPlaybackContext ?? {
+					releases: $disc.releases.filter((r) => releaseHasTag(r, tagId)),
+					scope: null,
+				}),
 			}
 		}
-		if ($ui.detailPlaylistId) return { origin: 'playlist', releases: $ui.overlayDisplayedReleases ?? $playlistReleases }
-		return { origin: 'discovery', releases: $displayed }
+		if ($ui.detailPlaylistId) {
+			return { origin: 'playlist', ...($ui.overlayPlaybackContext ?? { releases: $playlistReleases, scope: null }) }
+		}
+		return { origin: 'discovery', ...$feed }
 	}
 )
 export const selectMode = derived(mobileUIStore, ($s) => $s.selectMode)

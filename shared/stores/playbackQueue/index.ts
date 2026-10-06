@@ -3,6 +3,12 @@ import type { DiscoveryRelease, QueueItem, Track, UpNextEntry } from '../../type
 import * as discoveryApi from '../../api/discovery'
 import { getStoredString, setStoredString } from '../../utils/storage'
 import {
+	releaseTrackMatcher,
+	trackMatches,
+	type DiscoveryCriteria,
+	type TrackScope,
+} from '../../utils/discoveryFilters'
+import {
 	isPlayablePick,
 	isPreviewPlayable,
 	libraryGroupKey,
@@ -68,10 +74,13 @@ interface UserEntry {
 
 // One flat context slot: a pick plus its precomputed identity/group keys (playability is evaluated
 // live — `preview_unavailable` flags mutate in place on stream extraction, without a context swap).
+// `inScope` is whether the session's track scope (the list's filters) lets the context continue into
+// it; fixed per install, since any change that could flip it re-installs (see `samePreviewContext`).
 interface ContextItem {
 	key: string
 	groupKey: string
 	pick: Pick
+	inScope: boolean
 }
 
 const USER_QUEUE_KEY = 'player.userQueue'
@@ -89,6 +98,9 @@ let contextRaw: DiscoveryRelease[] | Track[] = []
 let contextItems: ContextItem[] = []
 let contextIndexByKey = new Map<string, number>()
 let contextGroupKeys = new Set<string>()
+// The tracks a preview context may continue into (null = every playable track). Narrows only the
+// automatic continuation — an explicitly played or queued track always plays.
+let previewScope: TrackScope | null = null
 let userQueue: UserEntry[] = []
 // Committed upcoming CONTEXT picks beyond the current track, drawn lazily. Committing the order here
 // (rather than re-deriving per call) is what makes the Up Next forecast match what actually plays —
@@ -190,43 +202,85 @@ export function clearRecentlyPlayed() {
 }
 
 // --- Context construction --------------------------------------------------------------------------
-function flattenPreview(releases: DiscoveryRelease[]): ContextItem[] {
-	// Every track is flattened, playable or not: `preview_unavailable` is refreshed on stream
-	// extraction, so keying the item list off playability would churn the context on every extraction.
+function flattenPreview(releases: DiscoveryRelease[], scope: TrackScope | null): ContextItem[] {
+	// Every track is flattened, playable or in scope or not: `preview_unavailable` is refreshed on
+	// stream extraction, so keying the item list off playability would churn the context on every
+	// extraction — and keeping out-of-scope tracks lets an explicitly played one (a tap on a dimmed
+	// row) find its place in the list, so the walk continues from there to the next matching track.
 	const items: ContextItem[] = []
 	for (const release of releases) {
+		const matches = scope ? releaseTrackMatcher(release, scope.criteria, scope.ctx) : null
 		for (let i = 0; i < release.tracks.length; i++) {
-			items.push({
-				key: `p:${release.id}:${i}`,
-				groupKey: `r:${release.id}`,
-				pick: { kind: 'preview', release, trackIndex: i },
-			})
+			const pick: PreviewPick = { kind: 'preview', release, trackIndex: i }
+			items.push({ key: pickKey(pick), groupKey: `r:${release.id}`, pick, inScope: matches ? matches(i) : true })
 		}
 	}
 	return items
 }
 
 function flattenLibrary(tracks: Track[]): ContextItem[] {
-	return tracks.map((t) => ({ key: `l:${t.id}`, groupKey: libraryGroupKey(t), pick: { kind: 'library', track: t } }))
+	return tracks.map((t) => ({
+		key: `l:${t.id}`,
+		groupKey: libraryGroupKey(t),
+		pick: { kind: 'library', track: t },
+		inScope: true,
+	}))
 }
 
-function installContext(kind: 'preview' | 'library', raw: DiscoveryRelease[] | Track[], items: ContextItem[]) {
+function installContext(
+	kind: 'preview' | 'library',
+	raw: DiscoveryRelease[] | Track[],
+	items: ContextItem[],
+	scope: TrackScope | null = null
+) {
 	contextKind = kind
 	contextRaw = raw
 	contextItems = items
 	contextIndexByKey = new Map(items.map((it, i) => [it.key, i]))
 	contextGroupKeys = new Set(items.map((it) => it.groupKey))
+	previewScope = scope
 }
 
-// Shallow content equality for two release lists (same ids, same order, same track counts). Lets
-// `updatePreviewContext` ignore the feed's derived re-emitting an identical list (it recomputes on
-// unrelated UI-store changes). Track count is part of the identity: a release that gained tracks
-// after a metadata refresh must re-flatten.
-function samePreviewList(a: DiscoveryRelease[], b: DiscoveryRelease[]): boolean {
+function sameCriteria(a: DiscoveryCriteria, b: DiscoveryCriteria): boolean {
 	if (a === b) return true
-	if (a.length !== b.length) return false
-	for (let i = 0; i < a.length; i++) {
-		if (a[i].id !== b[i].id || a[i].tracks.length !== b[i].tracks.length) return false
+	return (
+		a.facets.liked === b.facets.liked &&
+		a.facets.new === b.facets.new &&
+		a.facets.purchased === b.facets.purchased &&
+		a.facets.downloaded === b.facets.downloaded &&
+		a.tagMode === b.tagMode &&
+		a.search.trim().toLowerCase() === b.search.trim().toLowerCase() &&
+		a.tagIds.length === b.tagIds.length &&
+		a.tagIds.every((id, i) => id === b.tagIds[i])
+	)
+}
+
+// Content equality of the installed preview context and an incoming one (same ids, same order, same
+// track counts, same scope). Lets `updatePreviewContext` ignore the feed's derived re-emitting an
+// identical list (it recomputes on unrelated UI-store changes). Track count is part of the identity: a
+// release that gained tracks after a metadata refresh must re-flatten. Under a scope, so is every
+// track's eligibility: a like, a tag, a purchase or a download that moves a track in or out of scope
+// changes nothing about the list's shape, yet must re-flatten (the installed release objects are
+// snapshots — eligibility is never re-read from them).
+function samePreviewContext(b: DiscoveryRelease[], bScope: TrackScope | null): boolean {
+	if (contextKind !== 'preview') return false
+	if ((previewScope === null) !== (bScope === null)) return false
+	if (previewScope && bScope && !sameCriteria(previewScope.criteria, bScope.criteria)) return false
+	const a = contextRaw as DiscoveryRelease[]
+	if (a !== b) {
+		if (a.length !== b.length) return false
+		for (let i = 0; i < a.length; i++) {
+			if (a[i].id !== b[i].id || a[i].tracks.length !== b[i].tracks.length) return false
+		}
+	}
+	if (!bScope) return true
+	// Items are laid out release-by-release, track-by-track — the same walk as `flattenPreview`.
+	let k = 0
+	for (const release of b) {
+		const matches = releaseTrackMatcher(release, bScope.criteria, bScope.ctx)
+		for (let i = 0; i < release.tracks.length; i++, k++) {
+			if (contextItems[k].inScope !== matches(i)) return false
+		}
 	}
 	return true
 }
@@ -256,11 +310,23 @@ function indexOfPick(p: Pick): number {
 	return contextIndexByKey.get(pickKey(p)) ?? -1
 }
 
+// Whether the context may continue INTO this item: playable now and inside the session's track scope.
+function isItemEligible(it: ContextItem): boolean {
+	return it.inScope && isPlayablePick(it.pick)
+}
+
+// The same, for a track of a foreign release (one the context list doesn't hold) — judged live, since
+// it has no installed item.
+function isForeignPreviewEligible(release: DiscoveryRelease, trackIndex: number): boolean {
+	if (!isPreviewPlayable(release, trackIndex)) return false
+	return !previewScope || trackMatches(release, trackIndex, previewScope.criteria, previewScope.ctx)
+}
+
 function nextPlayableFrom(i: number, group?: string): number {
 	for (let j = i + 1; j < contextItems.length; j++) {
 		const it = contextItems[j]
 		if (group !== undefined && it.groupKey !== group) continue
-		if (isPlayablePick(it.pick)) return j
+		if (isItemEligible(it)) return j
 	}
 	return -1
 }
@@ -269,7 +335,7 @@ function prevPlayableFrom(i: number, group?: string): number {
 	for (let j = Math.min(i, contextItems.length) - 1; j >= 0; j--) {
 		const it = contextItems[j]
 		if (group !== undefined && it.groupKey !== group) continue
-		if (isPlayablePick(it.pick)) return j
+		if (isItemEligible(it)) return j
 	}
 	return -1
 }
@@ -293,21 +359,21 @@ function lastPlayable(group?: string): number {
 
 function localPreviewNext(p: PreviewPick): PreviewPick | null {
 	for (let i = p.trackIndex + 1; i < p.release.tracks.length; i++) {
-		if (isPreviewPlayable(p.release, i)) return { kind: 'preview', release: p.release, trackIndex: i }
+		if (isForeignPreviewEligible(p.release, i)) return { kind: 'preview', release: p.release, trackIndex: i }
 	}
 	return null
 }
 
 function localPreviewPrev(p: PreviewPick): PreviewPick | null {
 	for (let i = Math.min(p.trackIndex, p.release.tracks.length) - 1; i >= 0; i--) {
-		if (isPreviewPlayable(p.release, i)) return { kind: 'preview', release: p.release, trackIndex: i }
+		if (isForeignPreviewEligible(p.release, i)) return { kind: 'preview', release: p.release, trackIndex: i }
 	}
 	return null
 }
 
 function localPreviewLast(p: PreviewPick): PreviewPick | null {
 	for (let i = p.release.tracks.length - 1; i >= 0; i--) {
-		if (isPreviewPlayable(p.release, i)) return { kind: 'preview', release: p.release, trackIndex: i }
+		if (isForeignPreviewEligible(p.release, i)) return { kind: 'preview', release: p.release, trackIndex: i }
 	}
 	return null
 }
@@ -318,7 +384,7 @@ function foreignReleasePool(p: PreviewPick, exclude: Set<string>): Pick[] {
 	const pool: Pick[] = []
 	for (let i = 0; i < p.release.tracks.length; i++) {
 		const pick: PreviewPick = { kind: 'preview', release: p.release, trackIndex: i }
-		if (isPreviewPlayable(p.release, i) && !exclude.has(pickKey(pick))) pool.push(pick)
+		if (isForeignPreviewEligible(p.release, i) && !exclude.has(pickKey(pick))) pool.push(pick)
 	}
 	return pool
 }
@@ -343,7 +409,7 @@ function buildContextPool(exclude: Set<string>, onlyGroup?: string): Pick[] {
 	const pool: Pick[] = []
 	for (const it of contextItems) {
 		if (onlyGroup !== undefined && it.groupKey !== onlyGroup) continue
-		if (isPlayablePick(it.pick) && !exclude.has(it.key)) pool.push(it.pick)
+		if (isItemEligible(it) && !exclude.has(it.key)) pool.push(it.pick)
 	}
 	return pool
 }
@@ -382,7 +448,7 @@ function sequentialAfterInRelease(from: Pick): Pick | null {
 
 function localPreviewFirst(p: PreviewPick): PreviewPick | null {
 	for (let i = 0; i < p.release.tracks.length; i++) {
-		if (isPreviewPlayable(p.release, i)) return { kind: 'preview', release: p.release, trackIndex: i }
+		if (isForeignPreviewEligible(p.release, i)) return { kind: 'preview', release: p.release, trackIndex: i }
 	}
 	return null
 }
@@ -683,9 +749,10 @@ function startSessionWith(
 	pick: Pick,
 	items: ContextItem[],
 	raw: DiscoveryRelease[] | Track[],
-	opts?: { logPlay?: boolean }
+	opts?: { logPlay?: boolean },
+	scope: TrackScope | null = null
 ) {
-	installContext(kind, raw, items)
+	installContext(kind, raw, items, scope)
 	cur = pick
 	history = [pick]
 	historySource = ['context']
@@ -697,24 +764,27 @@ function startSessionWith(
 }
 
 /**
- * Begin a preview session from a user-initiated play: capture the context list, anchor the current
- * track and a fresh play history, and reset the shuffle bag/lookahead. The user queue is intentionally
- * KEPT — explicitly queued items survive starting a new track. `opts.logPlay: false` skips the
- * listening log (the relaunch restore re-anchors the last session's track without the user playing
- * anything).
+ * Begin a preview session from a user-initiated play: capture the context list (and the track scope
+ * its filters impose — see `TrackScope`), anchor the current track and a fresh play history, and reset
+ * the shuffle bag/lookahead. The user queue is intentionally KEPT — explicitly queued items survive
+ * starting a new track. The started track itself always plays, in scope or not. `opts.logPlay: false`
+ * skips the listening log (the relaunch restore re-anchors the last session's track without the user
+ * playing anything).
  */
 export function startPreviewSession(
 	release: DiscoveryRelease,
 	trackIndex: number,
 	contextReleases: DiscoveryRelease[],
-	opts?: { logPlay?: boolean }
+	opts?: { logPlay?: boolean; scope?: TrackScope | null }
 ) {
+	const scope = opts?.scope ?? null
 	startSessionWith(
 		'preview',
 		{ kind: 'preview', release, trackIndex },
-		flattenPreview(contextReleases),
+		flattenPreview(contextReleases, scope),
 		contextReleases,
-		opts
+		opts,
+		scope
 	)
 }
 
@@ -725,9 +795,9 @@ export function startLibrarySession(track: Track, contextTracks: Track[], opts?:
 }
 
 /**
- * Swap the CONTEXT list of the active session in place, keeping the current track, play history, user
- * queue, committed lookahead (filtered to survivors), and the shuffle bag — only picks that left the
- * list are re-derived. Used when the view the session was started from changes its on-screen set
+ * Swap the CONTEXT list (and track scope) of the active session in place, keeping the current track,
+ * play history, user queue, committed lookahead (filtered to survivors), and the shuffle bag — only
+ * picks that left the list or the scope are re-derived. Used when the view the session was started from changes its on-screen set
  * (e.g. the discovery feed's filter is applied/reset while a feed-originated preview plays), so
  * next/shuffle keep spanning exactly what's on screen. No-op shape when nothing is playing (`cur`
  * null): it just stores the list for the next session start. A repeat-release loop on a foreign
@@ -740,11 +810,11 @@ export function startLibrarySession(track: Track, contextTracks: Track[], opts?:
  * inert — `buildContextPool` iterates the CURRENT context — and keeping the rest is what makes
  * no-repeat-until-exhausted actually mean that.
  */
-export function updatePreviewContext(contextReleases: DiscoveryRelease[]) {
+export function updatePreviewContext(contextReleases: DiscoveryRelease[], scope: TrackScope | null = null) {
 	// No-op when the list is unchanged: the feed's derived re-emits on unrelated UI-store changes, and
 	// re-flattening/filtering every time would churn the native window for nothing.
-	if (contextKind === 'preview' && samePreviewList(contextRaw as DiscoveryRelease[], contextReleases)) return
-	installContext('preview', contextReleases, flattenPreview(contextReleases))
+	if (samePreviewContext(contextReleases, scope)) return
+	installContext('preview', contextReleases, flattenPreview(contextReleases, scope), scope)
 	reconcileLookaheadAfterContextSwap()
 }
 
@@ -757,19 +827,23 @@ export function updateLibraryContext(contextTracks: Track[]) {
 }
 
 function reconcileLookaheadAfterContextSwap() {
-	const before = contextLookahead.length
-	// Keep the committed order for picks still on screen, re-mapped onto the fresh objects (the list's
-	// releases/tracks may be new instances carrying updated flags).
-	contextLookahead = contextLookahead.flatMap((p) => {
-		const i = contextIndexByKey.get(pickKey(p))
-		return i !== undefined ? [contextItems[i].pick] : []
-	})
-	const filtered = contextLookahead.length
+	const before = contextLookahead.map(pickKey).join('|')
+	if (shuffleEnabled) {
+		// Keep the committed (random) order for picks still on screen and in scope, re-mapped onto the
+		// fresh objects (the list's releases/tracks may be new instances carrying updated flags).
+		contextLookahead = contextLookahead.flatMap((p) => {
+			const i = contextIndexByKey.get(pickKey(p))
+			return i !== undefined && contextItems[i].inScope ? [contextItems[i].pick] : []
+		})
+	} else {
+		// A sequential continuation is a pure function of the list — rebuild it, so a track that joined the
+		// list or the scope AHEAD of the committed tail (a like, a synced release) isn't walked past.
+		contextLookahead = []
+	}
 	refresh()
-	// The upcoming content changed if the filter dropped committed picks OR the refresh drew fresh ones
-	// into the vacated/extended slots — either way the iOS engine's tail must be re-fed. Checking only
-	// the post-refresh length would miss a drop that refilled back to the same depth.
-	if (filtered !== before || contextLookahead.length !== filtered) onQueueChanged?.()
+	// Compared by content, not length: a drop that refilled back to the same depth still changed what
+	// comes next, and the iOS engine's tail must be re-fed.
+	if (contextLookahead.map(pickKey).join('|') !== before) onQueueChanged?.()
 }
 
 /** Toggle shuffle: re-anchor + redraw the CONTEXT order only. User queue and history are untouched. */
@@ -1001,6 +1075,7 @@ export function clearAll() {
 	contextItems = []
 	contextIndexByKey = new Map()
 	contextGroupKeys = new Set()
+	previewScope = null
 	contextLookahead = []
 	history = []
 	historySource = []

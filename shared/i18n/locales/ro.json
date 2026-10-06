@@ -564,7 +564,9 @@
 		"purchased": "Cumpărat",
 		"off": "Nu",
 		"only": "Doar",
-		"not": "Exclude"
+		"not": "Exclude",
+		"applyToPlayback": "Aplicați la redare",
+		"applyToPlaybackHint": "Redarea aleatorie și Următorul redau doar piesele potrivite"
 	},
 	"collection": {
 		"notInCrate": "Nu este în {appName}",

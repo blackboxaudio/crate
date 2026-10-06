@@ -2,6 +2,7 @@
 	import type { DiscoveryFacet, FilterTriState, Tag, TagCategory, TagFilterMode } from '$shared/types'
 	import { cycleTriState } from '$shared/utils/discoveryFilters'
 	import TriStateControl from '$shared/components/TriStateControl.svelte'
+	import SwitchRow from '$shared/components/SwitchRow.svelte'
 	import Icon from '$lib/components/common/Icon.svelte'
 	import Button from '$lib/components/common/Button.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
@@ -28,8 +29,11 @@
 		/** No collection account linked yet: render a "link your collection" action row
 		 *  instead of the control (the feature's discoverable entry point). */
 		onSetupPurchased?: () => void
-		/** Every track's audio cached on disk. */
+		/** Track audio cached on disk. */
 		downloaded?: FacetProp
+		/** "Apply to playback": whether these filters also shape what shuffle / next play. A preference,
+		 *  not a filter — never counted in the badge, untouched by Clear all. */
+		playbackFollowsFilters?: { value: boolean; onChange: (enabled: boolean) => void }
 	}
 
 	let {
@@ -45,6 +49,7 @@
 		purchased,
 		onSetupPurchased,
 		downloaded,
+		playbackFollowsFilters,
 	}: Props = $props()
 
 	type FacetRow = { key: DiscoveryFacet; icon: string; labelKey: string; facet: FacetProp }
@@ -465,6 +470,16 @@
 							<Icon name="chevron-right" class="h-3 w-3 shrink-0 text-text-tertiary" />
 						</div>
 					{/each}
+				{/if}
+
+				{#if playbackFollowsFilters}
+					<div class="my-1 border-t border-stroke"></div>
+					<SwitchRow
+						checked={playbackFollowsFilters.value}
+						onChange={playbackFollowsFilters.onChange}
+						label={$translate('filters.applyToPlayback')}
+						hint={$translate('filters.applyToPlaybackHint')}
+					/>
 				{/if}
 
 				<!-- Clear all button — outside the tag block so the toggle-only facets can still be

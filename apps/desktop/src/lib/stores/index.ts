@@ -107,8 +107,13 @@ export {
 	newFilter,
 	purchasedFilter,
 	downloadedFilter,
+	discoveryFacetContext,
+	discoveryTrackScope,
+	discoveryPlaybackContext,
+	playbackFollowsFilters,
+	setPlaybackFollowsFilters,
 } from '$shared/stores/discovery'
-export { offlineCacheStore, fullyCachedIds } from '$shared/stores/offlineCache'
+export { offlineCacheStore, fullyCachedIds, cachedTrackIds } from '$shared/stores/offlineCache'
 export {
 	followStore,
 	followedSources,

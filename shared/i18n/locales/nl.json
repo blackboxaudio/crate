@@ -564,7 +564,9 @@
 		"purchased": "Gekocht",
 		"off": "Uit",
 		"only": "Alleen",
-		"not": "Niet"
+		"not": "Niet",
+		"applyToPlayback": "Toepassen op afspelen",
+		"applyToPlaybackHint": "Shuffle en Volgende spelen alleen overeenkomende nummers"
 	},
 	"collection": {
 		"notInCrate": "Niet in {appName}",
