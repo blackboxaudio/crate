@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- Discovery filters and sort are now remembered per device: the Liked / New / Purchased / Downloaded filters and the sort order on desktop and mobile, plus the tag filter on mobile, come back after a restart or when iOS reloads the app in the background, so the feed and preview playback pick up with the same filters (search still starts empty)
+
 ## [0.3.1-staging.1] - 2026-10-06
 
 ### Added

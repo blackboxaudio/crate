@@ -225,10 +225,12 @@ const defaultState: MobileUIState = {
 
 // --- Persisted navigation state (localStorage via shared/utils/storage) -------------------------
 // The persisted slice of the UI state: active tab, open detail overlays, the Playlists folder trail,
-// and the discovery feed's scroll position (raw offset + release-ID anchor) — so a killed app reopens
-// where the user left off. Ephemeral state (multi-select, expanded player, sheets, tag filters, nonces)
-// intentionally resets. Stale IDs (entities deleted from another device) are validated and cleared
-// after the stores load — see `navRestore.ts`.
+// the discovery feed's scroll position (raw offset + release-ID anchor) and its tag filter — so a killed
+// app (or an iOS webview reload under still-playing audio) reopens where the user left off, on the same
+// filtered feed the scroll anchor and preview queue were built from. The feed's facets + sort persist
+// alongside in the shared `discoveryStore`. Ephemeral state (multi-select, expanded player, sheets,
+// nonces) intentionally resets. Stale IDs (entities deleted from another device) are validated and
+// cleared after the stores load — see `navRestore.ts`.
 const STORAGE_KEYS = {
 	activeTab: 'mobile.nav.activeTab',
 	detailReleaseId: 'mobile.nav.detailReleaseId',
@@ -241,6 +243,8 @@ const STORAGE_KEYS = {
 	anchorOffset: 'mobile.discovery.anchorOffset',
 	playlistsSort: 'mobile.playlists.sort',
 	discoveryViewMode: 'mobile.discovery.viewMode',
+	tagFilterIds: 'mobile.discovery.tagFilterIds',
+	tagFilterMode: 'mobile.discovery.tagFilterMode',
 } as const
 
 /** Row height (px) of the discovery feed's release cards (list mode) — the feed passes it to
@@ -324,6 +328,8 @@ function seedInitialState(): MobileUIState {
 			: null,
 		playlistsSort: readStoredPlaylistsSort(),
 		discoveryViewMode: getStoredString<'list' | 'grid'>(STORAGE_KEYS.discoveryViewMode, 'list', ['list', 'grid']),
+		tagFilterIds: getStoredArray(STORAGE_KEYS.tagFilterIds).filter((id) => typeof id === 'string'),
+		tagFilterMode: getStoredString<TagFilterMode>(STORAGE_KEYS.tagFilterMode, 'or', ['or', 'and']),
 	}
 }
 
@@ -539,6 +545,13 @@ function createMobileUIStore() {
 		clearTagFilters() {
 			update((s) => (s.tagFilterIds.length === 0 ? s : { ...s, tagFilterIds: [] }))
 		},
+		/** Drop filter ids for tags that no longer exist (boot validation of the persisted filter). */
+		pruneTagFilters(existingIds: ReadonlySet<string>) {
+			update((s) => {
+				const kept = s.tagFilterIds.filter((id) => existingIds.has(id))
+				return kept.length === s.tagFilterIds.length ? s : { ...s, tagFilterIds: kept }
+			})
+		},
 
 		// --- Multi-select -------------------------------------------------------------------------
 		/** Enter multi-select mode, seeding the selection with the long-pressed release (one update,
@@ -739,7 +752,7 @@ export const mobileUIStore = createMobileUIStore()
 
 // Persist the navigation slice on change. One targeted diff-subscribe (rather than a write in every
 // setter) so no transition — present or future — can forget to persist; the diff touches only these
-// six fields, so the Set-valued ephemeral state costs nothing. The scroll offset/anchor persist
+// few fields, so the Set-valued ephemeral state costs nothing. The scroll offset/anchor persist
 // separately (debounced) from `setDiscoveryScrollTop`.
 let prevPersisted = initialState
 mobileUIStore.subscribe((s) => {
@@ -757,6 +770,8 @@ mobileUIStore.subscribe((s) => {
 		setStoredString(STORAGE_KEYS.playlistsSort, JSON.stringify(s.playlistsSort))
 	if (s.discoveryViewMode !== prevPersisted.discoveryViewMode)
 		setStoredString(STORAGE_KEYS.discoveryViewMode, s.discoveryViewMode)
+	if (s.tagFilterIds !== prevPersisted.tagFilterIds) setStoredArray(STORAGE_KEYS.tagFilterIds, s.tagFilterIds)
+	if (s.tagFilterMode !== prevPersisted.tagFilterMode) setStoredString(STORAGE_KEYS.tagFilterMode, s.tagFilterMode)
 	prevPersisted = s
 })
 

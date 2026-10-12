@@ -7,6 +7,7 @@ import type {
 	DiscoveryFacetFilters,
 	DiscoveryFilter,
 	DiscoverySortConfig,
+	DiscoverySortField,
 	DiscoveryTrack,
 	FilterTriState,
 	ImportResultWithDuplicates,
@@ -25,14 +26,14 @@ import {
 	type DiscoveryCriteria,
 	type FacetContext,
 } from '../utils/discoveryFilters'
-import { getStoredBoolean, setStoredBoolean } from '../utils/storage'
+import { getStoredBoolean, getStoredString, setStoredBoolean, setStoredString } from '../utils/storage'
 import { dedupe } from '../utils/stores'
 import { daysUntilRelease } from '../utils/format'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
 import { toastStore } from './toast'
-import { fullyOwnedReleaseIds, hasLinkedCollection, ownedTrackIds } from './collection'
+import { collectionLinkState, fullyOwnedReleaseIds, ownedTrackIds } from './collection'
 import { cachedTrackIds } from './offlineCache'
 import { translate } from '../i18n'
 
@@ -72,6 +73,67 @@ function withFacets(state: DiscoveryState, facets: DiscoveryFacetFilters): Disco
 	return { ...state, facets, sort }
 }
 
+// --- Persisted view state (device-local; never cloud-synced) -----------------------------------
+// The facets and sort survive restarts — and, on iOS, the WKWebView content-process reloads that wipe
+// JS state while native audio keeps playing — so the restored scroll anchor and preview queue are
+// evaluated against the same filtered feed the user left. Search is deliberately NOT persisted: it is
+// cleared on every navigation, and a stale query hidden in a collapsed search bar reads as missing data.
+const FACETS_KEY = 'discovery.facets'
+const SORT_KEY = 'discovery.sort'
+
+const FACETS: DiscoveryFacet[] = ['liked', 'new', 'purchased', 'downloaded']
+const TRI_STATES: FilterTriState[] = ['off', 'include', 'exclude']
+const SORT_FIELDS: DiscoverySortField[] = [
+	'artist',
+	'title',
+	'label',
+	'release_date',
+	'source_type',
+	'date_added',
+	'date_liked',
+	'track_count',
+]
+
+function readStoredJson(key: string): Record<string, unknown> | null {
+	try {
+		const parsed: unknown = JSON.parse(getStoredString(key, ''))
+		return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null
+	} catch {
+		return null
+	}
+}
+
+/** Per-facet validation, so one unknown value (a downgrade, a renamed state) resets only that facet. */
+function readStoredFacets(): DiscoveryFacetFilters {
+	const stored = readStoredJson(FACETS_KEY)
+	const facets = emptyFacetFilters()
+	if (!stored) return facets
+	for (const facet of FACETS) {
+		const value = stored[facet]
+		if (TRI_STATES.includes(value as FilterTriState)) facets[facet] = value as FilterTriState
+	}
+	return facets
+}
+
+function readStoredSort(): DiscoverySortConfig {
+	const stored = readStoredJson(SORT_KEY)
+	if (
+		stored &&
+		SORT_FIELDS.includes(stored.field as DiscoverySortField) &&
+		(stored.direction === 'asc' || stored.direction === 'desc')
+	) {
+		return { field: stored.field as DiscoverySortField, direction: stored.direction }
+	}
+	return DEFAULT_DISCOVERY_SORT
+}
+
+/** Boot state, seeded synchronously at store construction (before any feed renders) so the first
+ *  published list is already the filtered one. Routed through `withFacets` so a stored Date Liked sort
+ *  without its Liked facet is dropped exactly as a live toggle would. */
+function seedInitialState(): DiscoveryState {
+	return withFacets({ ...initialState, sort: readStoredSort() }, readStoredFacets())
+}
+
 // =============================================================================
 // Bulk Refresh
 // =============================================================================
@@ -105,7 +167,7 @@ let loadGeneration = 0
 // =============================================================================
 
 function createDiscoveryStore() {
-	const { subscribe, set, update } = writable<DiscoveryState>(initialState)
+	const { subscribe, set, update } = writable<DiscoveryState>(seedInitialState())
 
 	// Last availability-recheck attempt per release. The recheck is a full page fetch at the
 	// source, so it's rate-limited — but by a cooldown rather than once per app run: a mobile
@@ -670,6 +732,15 @@ function createDiscoveryStore() {
 
 export const discoveryStore = createDiscoveryStore()
 
+// One diff-subscribe rather than a write in every mutator, so no present or future facet/sort path can
+// forget to persist. Reference checks are enough: the mutators replace `facets`/`sort` only on change.
+let prevPersisted = get(discoveryStore)
+discoveryStore.subscribe((s) => {
+	if (s.facets !== prevPersisted.facets) setStoredString(FACETS_KEY, JSON.stringify(s.facets))
+	if (s.sort !== prevPersisted.sort) setStoredString(SORT_KEY, JSON.stringify(s.sort))
+	prevPersisted = s
+})
+
 // A discovery preview starting means the user has listened to the release — clear its "new" flag.
 // Registered here (rather than imported by the player store) because the player store must not depend
 // on this store: discovery already imports playerStore, so wiring it the other way would be circular.
@@ -683,9 +754,11 @@ playerStore.setNativeLikeChangedHandler((trackId, isLiked) => {
 })
 
 // Unlinking the last collection account hides the Purchased row in every filter UI, so an active
-// Purchased facet would otherwise become an invisible filter (emptying the feed on `include`).
-hasLinkedCollection.subscribe((linked) => {
-	if (!linked) discoveryStore.setFacetFilter('purchased', 'off')
+// Purchased facet would otherwise become an invisible filter (emptying the feed on `include`). Waits for
+// the accounts to actually load: the boot placeholder is empty too, and acting on it would wipe a
+// Purchased facet restored from storage before the collection had a chance to confirm the link.
+collectionLinkState.subscribe((state) => {
+	if (state === 'none') discoveryStore.setFacetFilter('purchased', 'off')
 })
 
 // =============================================================================
