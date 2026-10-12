@@ -27,7 +27,7 @@
 		detailTagId,
 		detailFollowSourceId,
 		followReleaseId,
-		mobileDisplayedReleases,
+		mobileFeedPlaybackContext,
 		queueOrigin,
 		settingsOpen,
 	} from '$lib/stores/mobileUI'
@@ -38,7 +38,6 @@
 	import { followedSources } from '$shared/stores/follow'
 	import * as playbackQueue from '$shared/stores/playbackQueue'
 	import { validateRestoredNavigation } from '$lib/stores/navRestore'
-	import { get } from 'svelte/store'
 	import { onMount } from 'svelte'
 
 	// Resolve the open detail release from the feed first, then the open playlist's loaded set, then the full
@@ -87,14 +86,17 @@
 		void validateRestoredNavigation()
 	})
 
-	// Keep a discovery-feed-originated playback queue in sync with the feed's live filter: when the on-screen
-	// list changes — a tag filter / search / sort applied or reset, or releases synced in — re-scope the active
-	// queue to it so next / shuffle keep spanning exactly what's on screen. Gated on the recorded origin: a
-	// tag / follow / playlist queue is a fixed snapshot of the list it began with, so those are left untouched.
+	// Keep a discovery-feed-originated playback queue in sync with the feed's live filter (or, while Purchased
+	// is `include`, the Purchased view that replaces the feed): when the on-screen list or its track scope
+	// changes — a filter / search / sort applied or reset, a like, releases synced in — re-scope the active
+	// queue to it so next / shuffle keep spanning exactly what's on screen. Gated on the
+	// recorded origin: a tag / follow / playlist queue is a fixed snapshot of the list it began with, so those
+	// are left untouched. The origin is tracked too, so a session handed to the feed later (the relaunch
+	// restore, see +layout) re-scopes even when the feed itself doesn't change.
 	$effect(() => {
-		const list = $mobileDisplayedReleases
-		if (get(queueOrigin) === 'discovery' && playbackQueue.currentPick()) {
-			playbackQueue.updatePreviewContext(list)
+		const context = $mobileFeedPlaybackContext
+		if ($queueOrigin === 'discovery' && playbackQueue.currentPick()) {
+			playbackQueue.updatePreviewContext(context.releases, context.scope)
 		}
 	})
 </script>

@@ -276,6 +276,23 @@ impl DiscoveryService {
         })
     }
 
+    /// Ids of every track whose audio is on disk — the per-track Downloaded filter. Cache rows
+    /// are keyed by position, so this resolves them against the current track list (a stale row
+    /// for a position the release no longer has resolves to nothing). Pooled reader.
+    pub fn get_cached_track_ids(&self) -> Result<Vec<String>> {
+        self.db.read(|conn| {
+            let mut stmt = conn.prepare(
+                "SELECT dt.id
+                 FROM discovery_tracks dt
+                 JOIN discovery_audio_cache dac
+                   ON dac.release_id = dt.release_id AND dac.track_position = dt.position",
+            )?;
+            let rows = stmt.query_map([], |row| row.get::<_, String>(0))?;
+            let out = rows.collect::<std::result::Result<Vec<_>, _>>()?;
+            Ok(out)
+        })
+    }
+
     /// Get total size of all cached audio files in bytes (calculated from disk).
     pub fn get_audio_cache_total_size(&self) -> Result<i64> {
         let cache_dir = self.audio_cache_dir();

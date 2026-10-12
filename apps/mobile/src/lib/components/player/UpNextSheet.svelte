@@ -76,7 +76,7 @@
 	function playAgain(release: DiscoveryRelease, trackIndex: number) {
 		void lightTap()
 		mobileUIStore.setQueueOrigin(null)
-		void playerStore.playPreview(release, trackIndex, [release])
+		void playerStore.playPreview(release, trackIndex, { releases: [release], scope: null })
 	}
 
 	// --- Drag-to-reorder (user queue only) ----------------------------------------------------------

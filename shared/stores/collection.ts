@@ -11,6 +11,8 @@ interface CollectionState {
 	fullyOwned: Set<string>
 	partiallyOwned: Set<string>
 	ownedTracks: Set<string>
+	/** Whether `accounts` reflects a completed fetch (vs. the empty boot placeholder). */
+	accountsLoaded: boolean
 	loading: boolean
 	linking: boolean
 	refreshingIds: Set<string>
@@ -23,6 +25,7 @@ const initialState: CollectionState = {
 	fullyOwned: new Set(),
 	partiallyOwned: new Set(),
 	ownedTracks: new Set(),
+	accountsLoaded: false,
 	loading: false,
 	linking: false,
 	refreshingIds: new Set(),
@@ -55,6 +58,7 @@ function createCollectionStore() {
 					fullyOwned: new Set(ownership.fullyOwnedReleaseIds),
 					partiallyOwned: new Set(ownership.partiallyOwnedReleaseIds),
 					ownedTracks: new Set(ownership.ownedTrackIds),
+					accountsLoaded: true,
 					loading: false,
 				}))
 			} catch {
@@ -162,6 +166,12 @@ export const collectionAccounts = derived(collectionStore, ($c) => $c.accounts)
 export const collectionItems = derived(collectionStore, ($c) => $c.items)
 
 export const hasLinkedCollection = derived(collectionStore, ($c) => $c.accounts.length > 0)
+
+/** `hasLinkedCollection` that can tell "no accounts" from "not fetched yet" — for rules that must not
+ *  fire on the empty boot placeholder (e.g. clearing a Purchased facet restored from storage). */
+export const collectionLinkState = derived(collectionStore, ($c): 'unknown' | 'linked' | 'none' =>
+	!$c.accountsLoaded ? 'unknown' : $c.accounts.length > 0 ? 'linked' : 'none'
+)
 
 // The id-set stores below are membership-deduped: every collection refresh rebuilds the Sets with
 // fresh identities even when nothing was purchased, and downstream these Sets fan out wide — every

@@ -8,10 +8,11 @@ import { mobileUIStore } from './mobileUI'
 
 /**
  * Boot validation for the persisted navigation state (see `mobileUI.ts`): the restored folder trail /
- * detail-overlay IDs / scroll anchor may reference entities deleted since the last session (removed on
- * another device and cloud-synced away). Once the owning stores load, stale references are silently
- * cleared — the trail truncates at the first missing folder, a stale detail overlay closes back to its
- * tab, and a stale scroll anchor is dropped so the feed falls back to its raw offset.
+ * detail-overlay IDs / scroll anchor / feed tag filter may reference entities deleted since the last
+ * session (removed on another device and cloud-synced away). Once the owning stores load, stale
+ * references are silently cleared — the trail truncates at the first missing folder, a stale detail
+ * overlay closes back to its tab, a stale scroll anchor is dropped so the feed falls back to its raw
+ * offset, and stale tag-filter ids are pruned.
  *
  * Called fire-and-forget from `+page.svelte`'s `onMount`, which runs AFTER the tab views' `onMount`
  * loads have synchronously flipped their store's `loading` flag — so "already loading" reliably means
@@ -24,8 +25,8 @@ export async function validateRestoredNavigation(): Promise<void> {
 	if (ui.playlistFolderTrail.length > 0 || ui.detailPlaylistId !== null) {
 		tasks.push(waitUntilLoaded(playlistsStore, () => playlistsStore.load()).then(validatePlaylists))
 	}
-	if (ui.detailTagId !== null) {
-		tasks.push(waitUntilLoaded(tagsStore, () => tagsStore.load()).then(validateTag))
+	if (ui.detailTagId !== null || ui.tagFilterIds.length > 0) {
+		tasks.push(waitUntilLoaded(tagsStore, () => tagsStore.load()).then(validateTags))
 	}
 	if (ui.detailFollowSourceId !== null) {
 		tasks.push(waitUntilLoaded(followStore, () => followStore.load()).then(validateFollowSource))
@@ -92,11 +93,13 @@ function validatePlaylists(): void {
 	if (playlistId !== null && !playlists.some((p) => p.id === playlistId)) mobileUIStore.closePlaylist()
 }
 
-function validateTag(): void {
+function validateTags(): void {
+	const existing = new Set(get(tagsStore).categories.flatMap((c) => c.tags.map((t) => t.id)))
 	const tagId = get(mobileUIStore).detailTagId
-	if (tagId === null) return
-	const exists = get(tagsStore).categories.some((c) => c.tags.some((t) => t.id === tagId))
-	if (!exists) mobileUIStore.closeTag()
+	if (tagId !== null && !existing.has(tagId)) mobileUIStore.closeTag()
+	// A stale id in the persisted feed filter has no chip to untick yet still counts toward the filter
+	// badge — and in AND mode (or alone in OR mode) silently empties the feed.
+	mobileUIStore.pruneTagFilters(existing)
 }
 
 function validateFollowSource(): void {

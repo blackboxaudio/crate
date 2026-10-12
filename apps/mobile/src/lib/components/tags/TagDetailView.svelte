@@ -3,14 +3,18 @@
 	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySortField, Tag } from '$shared/types'
 	import { DEFAULT_TAG_COLOR } from '$shared/types'
 	import { translate } from '$shared/i18n'
-	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
+	import {
+		discoveryStore,
+		isDiscoveryLoading,
+		discoveryFacetContext,
+		playbackFollowsFilters,
+	} from '$shared/stores/discovery'
 	import { sortDiscoveryReleases } from '$shared/utils/sorting'
 	import { releaseHasTag } from '$shared/utils/tagComputation'
+	import { filterDiscoveryReleases, previewPlaybackContext } from '$shared/utils/discoveryFilters'
 	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
-	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import { overlayMiniPlayerInset } from '$lib/stores/insets'
-	import { ownedReleaseIds } from '$shared/stores/collection'
-	import { applyViewFilter, emptyViewFilter, reconcileViewSort, releaseSortOptions } from '$lib/utils/listControls'
+	import { emptyViewFilter, reconcileViewSort, releaseSortOptions, viewCriteria } from '$lib/utils/listControls'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import DetailHeader from '$lib/components/common/DetailHeader.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
@@ -47,14 +51,19 @@
 	// omitted (filtering a tag's own list by tags is noise). null sort = the derived natural order.
 	let viewSort = $state<DiscoverySortConfig | null>(null)
 	let viewFilter = $state(emptyViewFilter())
-	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds, $ownedReleaseIds))
+	// The tag itself is part of this view's criteria, so a release tagged only on some tracks lists (and
+	// plays) just those tracks — the same per-track judgement as every other filter.
+	const criteria = $derived({ ...viewCriteria(viewFilter), tagIds: [tag.id], tagMode: 'or' as const })
+	const filtered = $derived(filterDiscoveryReleases(releases, criteria, $discoveryFacetContext))
 	const displayed = $derived(viewSort ? sortDiscoveryReleases(filtered, viewSort) : filtered)
 	const sortOptions = $derived(releaseSortOptions(viewFilter.facets))
 
-	// Publish the displayed list so playback started from this view queues exactly what's on screen.
+	// Publish the playback context so playback started from this view queues exactly what's on screen.
 	$effect(() => {
-		mobileUIStore.setOverlayReleases(displayed)
-		return () => mobileUIStore.setOverlayReleases(null)
+		mobileUIStore.setOverlayPlaybackContext(
+			previewPlaybackContext(displayed, releases, criteria, $discoveryFacetContext, viewSort, $playbackFollowsFilters)
+		)
+		return () => mobileUIStore.setOverlayPlaybackContext(null)
 	})
 
 	const isSelectMode = $derived($selectMode)

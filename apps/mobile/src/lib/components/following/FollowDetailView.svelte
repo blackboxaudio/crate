@@ -2,15 +2,25 @@
 	import { get } from 'svelte/store'
 	import type { DiscoveryRelease, DiscoverySortConfig, DiscoverySortField, FollowedSource } from '$shared/types'
 	import { translate } from '$shared/i18n'
-	import { discoveryStore, isDiscoveryLoading } from '$shared/stores/discovery'
+	import {
+		discoveryStore,
+		isDiscoveryLoading,
+		discoveryFacetContext,
+		playbackFollowsFilters,
+	} from '$shared/stores/discovery'
 	import { followStore } from '$shared/stores/follow'
 	import { releasesFromSource } from '$shared/utils'
 	import { sortDiscoveryReleases } from '$shared/utils/sorting'
+	import { previewPlaybackContext } from '$shared/utils/discoveryFilters'
 	import { mobileUIStore, selectMode, selectedReleaseIds, overlayPopNonce, detailReleaseId } from '$lib/stores/mobileUI'
-	import { fullyCachedIds } from '$shared/stores/offlineCache'
 	import { overlayMiniPlayerInset } from '$lib/stores/insets'
-	import { ownedReleaseIds } from '$shared/stores/collection'
-	import { applyViewFilter, emptyViewFilter, reconcileViewSort, releaseSortOptions } from '$lib/utils/listControls'
+	import {
+		applyViewFilter,
+		emptyViewFilter,
+		reconcileViewSort,
+		releaseSortOptions,
+		viewCriteria,
+	} from '$lib/utils/listControls'
 	import Drawer from '$lib/components/common/Drawer.svelte'
 	import DetailHeader from '$lib/components/common/DetailHeader.svelte'
 	import Spinner from '$lib/components/common/Spinner.svelte'
@@ -55,14 +65,23 @@
 	// null sort = the derived natural order.
 	let viewSort = $state<DiscoverySortConfig | null>(null)
 	let viewFilter = $state(emptyViewFilter())
-	const filtered = $derived(applyViewFilter(releases, viewFilter, $fullyCachedIds, $ownedReleaseIds))
+	const filtered = $derived(applyViewFilter(releases, viewFilter, $discoveryFacetContext))
 	const displayed = $derived(viewSort ? sortDiscoveryReleases(filtered, viewSort) : filtered)
 	const sortOptions = $derived(releaseSortOptions(viewFilter.facets))
 
-	// Publish the displayed list so playback started from this view queues exactly what's on screen.
+	// Publish the playback context so playback started from this view queues exactly what's on screen.
 	$effect(() => {
-		mobileUIStore.setOverlayReleases(displayed)
-		return () => mobileUIStore.setOverlayReleases(null)
+		mobileUIStore.setOverlayPlaybackContext(
+			previewPlaybackContext(
+				displayed,
+				releases,
+				viewCriteria(viewFilter),
+				$discoveryFacetContext,
+				viewSort,
+				$playbackFollowsFilters
+			)
+		)
+		return () => mobileUIStore.setOverlayPlaybackContext(null)
 	})
 
 	const isSelectMode = $derived($selectMode)

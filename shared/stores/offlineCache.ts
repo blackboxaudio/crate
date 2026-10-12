@@ -1,9 +1,10 @@
 import { derived, writable } from 'svelte/store'
-import { getCachedReleaseStates } from '../api/discovery'
+import { getCachedReleaseStates, getCachedTrackIds } from '../api/discovery'
 import { dedupe, setsEqual } from '../utils/stores'
 
-// Bulk audio-cache state for the UI: which releases are fully downloaded (playable offline) and
-// which are pinned ("Download for Offline"). Refreshed on boot, after download/remove/clear
+// Bulk audio-cache state for the UI: which releases are fully downloaded (playable offline), which
+// are pinned ("Download for Offline"), and which individual tracks are on disk (the Downloaded filter
+// is per track — a release can be partly downloaded). Refreshed on boot, after download/remove/clear
 // actions, and on the backend's `discovery-cache-changed` event (each app debounces that in its
 // own boot path). Kept as id-Sets so row badges and the Downloaded filter stay O(1) per release.
 
@@ -12,6 +13,8 @@ interface OfflineCacheState {
 	fullyCached: Set<string>
 	/** Releases with at least one pinned (explicitly downloaded) track. */
 	pinned: Set<string>
+	/** Tracks whose audio is on disk. */
+	cachedTracks: Set<string>
 	loaded: boolean
 }
 
@@ -19,6 +22,7 @@ function createOfflineCacheStore() {
 	const { subscribe, set } = writable<OfflineCacheState>({
 		fullyCached: new Set(),
 		pinned: new Set(),
+		cachedTracks: new Set(),
 		loaded: false,
 	})
 
@@ -29,15 +33,15 @@ function createOfflineCacheStore() {
 		/** Refetch the bulk cached-state; concurrent calls share one in-flight request. */
 		refresh(): Promise<void> {
 			if (inFlight) return inFlight
-			inFlight = getCachedReleaseStates()
-				.then((states) => {
+			inFlight = Promise.all([getCachedReleaseStates(), getCachedTrackIds()])
+				.then(([states, trackIds]) => {
 					const fullyCached = new Set<string>()
 					const pinned = new Set<string>()
 					for (const s of states) {
 						if (s.fully_cached) fullyCached.add(s.release_id)
 						if (s.pinned) pinned.add(s.release_id)
 					}
-					set({ fullyCached, pinned, loaded: true })
+					set({ fullyCached, pinned, cachedTracks: new Set(trackIds), loaded: true })
 				})
 				.catch(() => {
 					// Startup races / transient failures: stale badge state beats an error surface.
@@ -57,5 +61,12 @@ export const offlineCacheStore = createOfflineCacheStore()
  *  subscribes here — an identity-only emission would re-run them all for nothing. */
 export const fullyCachedIds = dedupe(
 	derived(offlineCacheStore, ($s) => $s.fullyCached),
+	setsEqual
+)
+
+/** Tracks whose audio is cached on disk — the per-track Downloaded filter. Membership-deduped for the
+ *  same reason as `fullyCachedIds`: it feeds every filtered release list. */
+export const cachedTrackIds = dedupe(
+	derived(offlineCacheStore, ($s) => $s.cachedTracks),
 	setsEqual
 )

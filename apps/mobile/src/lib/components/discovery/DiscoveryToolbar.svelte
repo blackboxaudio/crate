@@ -1,6 +1,11 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
-	import { discoveryStore, facetFilters } from '$shared/stores/discovery'
+	import {
+		discoveryStore,
+		facetFilters,
+		playbackFollowsFilters,
+		setPlaybackFollowsFilters,
+	} from '$shared/stores/discovery'
 	import { hasLinkedCollection } from '$shared/stores/collection'
 	import type { DiscoverySortField } from '$shared/types'
 	import { countActiveFacets } from '$shared/utils/discoveryFilters'
@@ -155,6 +160,7 @@
 		onToggleTag: (id) => mobileUIStore.toggleTagFilter(id),
 		onToggleMode: mobileUIStore.toggleTagFilterMode,
 	}}
+	playbackFollowsFilters={{ value: $playbackFollowsFilters, onChange: setPlaybackFollowsFilters }}
 	onClearAll={() => {
 		discoveryStore.clearFacetFilters()
 		mobileUIStore.clearTagFilters()

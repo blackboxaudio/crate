@@ -564,7 +564,9 @@
 		"purchased": "Köpt",
 		"off": "Av",
 		"only": "Endast",
-		"not": "Inte"
+		"not": "Inte",
+		"applyToPlayback": "Använd vid uppspelning",
+		"applyToPlaybackHint": "Blanda och Nästa spelar bara matchande låtar"
 	},
 	"collection": {
 		"notInCrate": "Inte i {appName}",

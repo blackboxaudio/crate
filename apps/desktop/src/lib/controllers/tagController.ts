@@ -6,7 +6,6 @@ import type {
 	TagSelectionState,
 	TagFilterMode,
 	TrackFilter,
-	DiscoveryFilter,
 } from '$shared/types'
 import type { tagsStore as TagsStoreType } from '$shared/stores/tags'
 import type { libraryStore as LibraryStoreType } from '$lib/stores/library'
@@ -96,7 +95,7 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 	}
 
 	/**
-	 * Toggle a tag in the filter and reload tracks/releases
+	 * Toggle a tag in the filter (and reload library tracks)
 	 */
 	async function selectTag(tagId: string): Promise<void> {
 		// Capture current state BEFORE toggling (subscription updates synchronously)
@@ -109,24 +108,19 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 
 		uiStore.toggleTagFilter(tagId)
 
-		if (getActiveView() === 'discovery') {
-			const filter: DiscoveryFilter = {}
-			if (updatedTagIds.length > 0) {
-				filter.tag_ids = updatedTagIds
-				filter.tag_filter_mode = tagFilterMode
-			}
-			await discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
-		} else {
-			const filter: TrackFilter = {}
-			if (updatedTagIds.length > 0) {
-				filter.tag_ids = updatedTagIds
-				filter.tag_filter_mode = tagFilterMode
-			}
-			if (selectedPlaylistId) {
-				filter.playlist_id = selectedPlaylistId
-			}
-			await libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
+		// Discovery tag filters apply client-side (`sortedReleases` / `displayedReleases`), judged per
+		// track like every other filter — the ui store update above is the whole change.
+		if (getActiveView() === 'discovery') return
+
+		const filter: TrackFilter = {}
+		if (updatedTagIds.length > 0) {
+			filter.tag_ids = updatedTagIds
+			filter.tag_filter_mode = tagFilterMode
 		}
+		if (selectedPlaylistId) {
+			filter.playlist_id = selectedPlaylistId
+		}
+		await libraryStore.loadTracks(Object.keys(filter).length > 0 ? filter : undefined)
 	}
 
 	/**
@@ -168,27 +162,27 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 	}
 
 	/**
-	 * Clear all tag filters and reload tracks/releases
+	 * Clear all tag filters (and reload library tracks)
 	 */
 	async function clearTagFilters(): Promise<void> {
 		const selectedPlaylistId = getSelectedPlaylistId()
 
 		uiStore.clearTagFilters()
 
-		if (getActiveView() === 'discovery') {
-			await discoveryStore.loadReleases()
+		// Discovery tag filters apply client-side (`sortedReleases` / `displayedReleases`), judged per
+		// track like every other filter — the ui store update above is the whole change.
+		if (getActiveView() === 'discovery') return
+
+		libraryStore.clearFilters()
+		if (selectedPlaylistId) {
+			await libraryStore.loadPlaylistTracks(selectedPlaylistId)
 		} else {
-			libraryStore.clearFilters()
-			if (selectedPlaylistId) {
-				await libraryStore.loadPlaylistTracks(selectedPlaylistId)
-			} else {
-				await libraryStore.loadTracks()
-			}
+			await libraryStore.loadTracks()
 		}
 	}
 
 	/**
-	 * Remove a single tag from the filter and reload tracks/releases
+	 * Remove a single tag from the filter (and reload library tracks)
 	 */
 	async function removeTagFilter(tagId: string): Promise<void> {
 		const selectedTagIds = getSelectedTagIds()
@@ -198,29 +192,24 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 		uiStore.removeTagFilter(tagId)
 		const updatedTagIds = selectedTagIds.filter((id) => id !== tagId)
 
-		if (getActiveView() === 'discovery') {
-			const filter: DiscoveryFilter = {}
-			if (updatedTagIds.length > 0) {
-				filter.tag_ids = updatedTagIds
-				filter.tag_filter_mode = tagFilterMode
-			}
-			await discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
-		} else {
-			const filter: TrackFilter = {}
-			if (updatedTagIds.length > 0) {
-				filter.tag_ids = updatedTagIds
-				filter.tag_filter_mode = tagFilterMode
-			}
-			if (selectedPlaylistId) {
-				filter.playlist_id = selectedPlaylistId
-			}
+		// Discovery tag filters apply client-side (`sortedReleases` / `displayedReleases`), judged per
+		// track like every other filter — the ui store update above is the whole change.
+		if (getActiveView() === 'discovery') return
 
-			if (Object.keys(filter).length > 0) {
-				await libraryStore.loadTracks(filter)
-			} else {
-				libraryStore.clearFilters()
-				await libraryStore.loadTracks()
-			}
+		const filter: TrackFilter = {}
+		if (updatedTagIds.length > 0) {
+			filter.tag_ids = updatedTagIds
+			filter.tag_filter_mode = tagFilterMode
+		}
+		if (selectedPlaylistId) {
+			filter.playlist_id = selectedPlaylistId
+		}
+
+		if (Object.keys(filter).length > 0) {
+			await libraryStore.loadTracks(filter)
+		} else {
+			libraryStore.clearFilters()
+			await libraryStore.loadTracks()
 		}
 	}
 
@@ -234,26 +223,17 @@ export function createTagController(deps: TagControllerDeps, modalActions?: TagC
 
 		uiStore.toggleTagFilterMode()
 
-		// Reload with the new mode if tags are selected
-		if (selectedTagIds.length > 0) {
-			const newMode = tagFilterMode === 'or' ? 'and' : 'or'
-
-			if (getActiveView() === 'discovery') {
-				const filter: DiscoveryFilter = {
-					tag_ids: selectedTagIds,
-					tag_filter_mode: newMode,
-				}
-				await discoveryStore.loadReleases(filter)
-			} else {
-				const filter: TrackFilter = {
-					tag_ids: selectedTagIds,
-					tag_filter_mode: newMode,
-				}
-				if (selectedPlaylistId) {
-					filter.playlist_id = selectedPlaylistId
-				}
-				await libraryStore.loadTracks(filter)
+		// Reload the library with the new mode if tags are selected. Discovery tag filters apply
+		// client-side — the ui store update above is the whole change.
+		if (selectedTagIds.length > 0 && getActiveView() !== 'discovery') {
+			const filter: TrackFilter = {
+				tag_ids: selectedTagIds,
+				tag_filter_mode: tagFilterMode === 'or' ? 'and' : 'or',
 			}
+			if (selectedPlaylistId) {
+				filter.playlist_id = selectedPlaylistId
+			}
+			await libraryStore.loadTracks(filter)
 		}
 	}
 

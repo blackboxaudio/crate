@@ -64,8 +64,13 @@ export {
 	newFilter,
 	purchasedFilter,
 	downloadedFilter,
+	discoveryFacetContext,
+	discoveryTrackScope,
+	discoveryPlaybackContext,
+	playbackFollowsFilters,
+	setPlaybackFollowsFilters,
 } from './discovery'
-export { offlineCacheStore, fullyCachedIds } from './offlineCache'
+export { offlineCacheStore, fullyCachedIds, cachedTrackIds } from './offlineCache'
 export { expandedReleaseIds } from './expandedReleases'
 export { discoveryPlaylistStore, discoveryPlaylistReleases } from './discoveryPlaylist'
 export {

@@ -6,12 +6,13 @@ import type {
 	TagFilterMode,
 } from '$shared/types'
 import {
-	applyDiscoveryFilters,
 	countActiveFacets,
 	emptyFacetFilters,
+	filterDiscoveryReleases,
 	isDateLikedSortAllowed,
+	type DiscoveryCriteria,
+	type FacetContext,
 } from '$shared/utils/discoveryFilters'
-import { applyTagFilter } from '$lib/stores/mobileUI'
 
 // Shared shapes for the generalized list controls (SortSheet / FilterSheet / ListControlsBar):
 // the discovery feed keeps its state in the discovery + mobileUI stores, while the detail views
@@ -88,29 +89,13 @@ export function countActiveViewFilters(f: ReleaseViewFilter): number {
 	return f.tagIds.length + countActiveFacets(f.facets)
 }
 
-/**
- * Apply a per-view filter over an in-memory release list. Search semantics mirror the feed's
- * `sortedReleases` (artist/title/label/notes/track names); tags reuse the feed's AND/OR filter; the
- * facets go through the one shared `applyDiscoveryFilters` so include/exclude mean the same as in the feed.
- */
-export function applyViewFilter(
-	list: DiscoveryRelease[],
-	f: ReleaseViewFilter,
-	cachedIds: ReadonlySet<string>,
-	ownedIds: ReadonlySet<string>
-): DiscoveryRelease[] {
-	let releases = applyDiscoveryFilters(list, f.facets, { ownedIds, cachedIds })
-	releases = applyTagFilter(releases, f.tagIds, f.tagMode)
-	const search = f.search.trim().toLowerCase()
-	if (search) {
-		releases = releases.filter(
-			(r) =>
-				r.artist?.toLowerCase().includes(search) ||
-				r.title?.toLowerCase().includes(search) ||
-				r.label?.toLowerCase().includes(search) ||
-				r.notes?.toLowerCase().includes(search) ||
-				r.tracks.some((t) => t.name?.toLowerCase().includes(search))
-		)
-	}
-	return releases
+/** A per-view filter as the shared engine's criteria (the shapes match field for field). */
+export function viewCriteria(f: ReleaseViewFilter): DiscoveryCriteria {
+	return { facets: f.facets, tagIds: f.tagIds, tagMode: f.tagMode, search: f.search }
+}
+
+/** Apply a per-view filter over an in-memory release list, through the one shared filter engine, so every
+ *  filter means the same as in the feed (and as in the playback queue). */
+export function applyViewFilter(list: DiscoveryRelease[], f: ReleaseViewFilter, ctx: FacetContext): DiscoveryRelease[] {
+	return filterDiscoveryReleases(list, viewCriteria(f), ctx)
 }

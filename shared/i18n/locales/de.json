@@ -564,7 +564,9 @@
 		"purchased": "Gekauft",
 		"off": "Aus",
 		"only": "Nur",
-		"not": "Nicht"
+		"not": "Nicht",
+		"applyToPlayback": "Auf Wiedergabe anwenden",
+		"applyToPlaybackHint": "Zufallswiedergabe und Weiter spielen nur passende Titel"
 	},
 	"collection": {
 		"notInCrate": "Nicht in {appName}",

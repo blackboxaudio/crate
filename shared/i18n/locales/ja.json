@@ -564,7 +564,9 @@
 		"purchased": "購入済み",
 		"off": "オフ",
 		"only": "のみ",
-		"not": "以外"
+		"not": "以外",
+		"applyToPlayback": "再生に適用",
+		"applyToPlaybackHint": "シャッフルと次へは一致するトラックのみを再生します"
 	},
 	"collection": {
 		"notInCrate": "{appName}に含まれていません",

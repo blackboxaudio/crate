@@ -15,6 +15,9 @@
 		downloadedFilter,
 		hasLinkedCollection,
 		discoveryStore,
+		discoveryTrackScope,
+		playbackFollowsFilters,
+		setPlaybackFollowsFilters,
 		pageActions,
 	} from '$lib/stores'
 	import { FollowingButton } from '$lib/components/follow'
@@ -195,6 +198,7 @@
 					? undefined
 					: () => $pageActions?.getModalOrchestrator()?.openSettingsModal('discovery')}
 				downloaded={{ value: $downloadedFilter, onChange: (s) => discoveryStore.setFacetFilter('downloaded', s) }}
+				playbackFollowsFilters={{ value: $playbackFollowsFilters, onChange: setPlaybackFollowsFilters }}
 			/>
 			<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
 				<IconButton icon="unfold-vertical" size="sm" disabled={!hasExpandableReleases} onclick={handleExpandAll} />
@@ -225,7 +229,7 @@
 			{categorySortOrders}
 			{isDragOver}
 			{scrollOffset}
-			likedOnly={$likedFilter === 'include'}
+			trackScope={$discoveryTrackScope}
 			hasAnyReleases={$discoveryStore.releases.length > 0}
 			{onSelectionChange}
 			{onReleaseOpen}

@@ -564,7 +564,9 @@
 		"purchased": "Acquistato",
 		"off": "No",
 		"only": "Solo",
-		"not": "Escluso"
+		"not": "Escluso",
+		"applyToPlayback": "Applica alla riproduzione",
+		"applyToPlaybackHint": "Casuale e Successivo riproducono solo i brani corrispondenti"
 	},
 	"collection": {
 		"notInCrate": "Non in {appName}",

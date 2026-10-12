@@ -564,7 +564,9 @@
 		"purchased": "Satın Alınan",
 		"off": "Kapalı",
 		"only": "Sadece",
-		"not": "Hariç"
+		"not": "Hariç",
+		"applyToPlayback": "Oynatmaya uygula",
+		"applyToPlaybackHint": "Karıştır ve Sonraki yalnızca eşleşen parçaları çalar"
 	},
 	"collection": {
 		"notInCrate": "{appName} içinde değil",
