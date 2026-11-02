@@ -175,6 +175,22 @@ export interface ImportResult {
 	errors: string[]
 }
 
+/**
+ * Outcome of a recursive scan of this device's configured music folder.
+ *
+ * `scanned_count` counts supported audio files discovered, not files walked.
+ * `imported_track_ids` carries ids only: callers refresh the library instead of
+ * prepending partial track objects.
+ */
+export interface LibraryFolderScanResult {
+	scanned_count: number
+	imported_count: number
+	skipped_existing_count: number
+	failed_count: number
+	imported_track_ids: string[]
+	errors: string[]
+}
+
 // =============================================================================
 // Duplicate Track Detection Types
 // =============================================================================
