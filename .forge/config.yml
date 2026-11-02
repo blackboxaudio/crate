@@ -1,0 +1,154 @@
+# Forge configuration. Every key is documented in docs/CONFIG.md of the Forge plugin.
+# Re-run `/forge init` to change answers interactively, or edit this file directly.
+schemaVersion: 52
+project:
+  name: Crate
+git:
+  base: develop
+worktrees:
+  copy:
+    - CLAUDE.md
+    - .claude/docs
+  setup:
+    - yarn install --frozen-lockfile
+  cargo:
+    sharedTarget: true
+commands:
+  setup: yarn install --frozen-lockfile
+  test: cd src-tauri && cargo test
+  lint: yarn lint:check && cd src-tauri && cargo clippy --features desktop -- -D warnings
+  format: yarn format
+  typecheck: yarn check:svelte && yarn check:svelte:mobile
+  format-check: yarn format:check && cd src-tauri && cargo fmt --check
+verify:
+  - format-check
+  - typecheck
+  - lint
+  - test
+runtime:
+  models:
+    approver: sonnet
+tracker:
+  kind: github
+  github:
+    repo: blackboxaudio/crate
+    ready:
+      projectStatus: 🔖 Todo
+    statusSync: project
+review:
+  panel:
+    - name: code
+      always: true
+    - name: tests
+      always: true
+    - name: security
+      model: opus
+      when: input handling, auth, secrets, network, IPC, dependencies, file or process access
+      paths:
+        - package.json
+        - yarn.lock
+        - src-tauri/Cargo.toml
+        - src-tauri/Cargo.lock
+        - src-tauri/capabilities/**
+    - name: docs
+      when: documentation changes or behavior the docs describe
+      paths:
+        - "*.md"
+        - docs/**
+    - name: design
+      when: user-visible UI changes
+      paths:
+        - "**/*.svelte"
+      needsApp: false
+    - name: performance
+      when: large-library lists, mobile rendering, database queries, IPC payload size, startup
+    - name: api
+      when: Tauri IPC commands or shared types that must match the Rust models
+      paths:
+        - src-tauri/src/commands/**
+        - src-tauri/src/models/**
+        - shared/types/**
+        - shared/api/**
+merge:
+  auto: true
+  autoWhen:
+    - docs-only changes
+    - test-only changes
+  requiredChecks:
+    - name: ts-format
+      workflow: .github/workflows/ci.lint.yml
+    - name: ts-lint
+      workflow: .github/workflows/ci.lint.yml
+    - name: svelte-check
+      workflow: .github/workflows/ci.lint.yml
+    - name: svelte-check-mobile
+      workflow: .github/workflows/ci.lint.yml
+    - name: rust-format
+      workflow: .github/workflows/ci.lint.yml
+    - name: rust-lint
+      workflow: .github/workflows/ci.lint.yml
+infra:
+  mode: plan-only
+  allowed:
+    - gcloud config list
+    - gcloud projects describe
+    - gcloud services list
+policy:
+  protectedPaths:
+    - paths:
+        - .github/workflows/**
+        - .gitlab-ci.yml
+        - Jenkinsfile
+        - .circleci/**
+      action: escalate
+      reason: CI/CD configuration
+    - paths:
+        - Dockerfile*
+        - "**/*.tf"
+      action: escalate
+      reason: infrastructure
+    - paths:
+        - "**/migrations/**"
+        - src-tauri/src/db/schema.rs
+      action: escalate
+      reason: database migrations
+    - paths:
+        - package-lock.json
+        - yarn.lock
+        - pnpm-lock.yaml
+        - Cargo.lock
+      action: escalate
+      reason: dependency lockfile
+    - paths:
+        - "**/.env*"
+      action: escalate
+      reason: environment files can hold credentials
+    - paths:
+        - "**/*.pem"
+      action: refuse
+      reason: private keys and certificates are never committed by Forge
+    - paths:
+        - .forge/config.yml
+        - .forge/secrets-allow.txt
+        - .forge/trackers/**
+        - .forge/ci/**
+      action: refuse
+      reason: Forge's own policy changes only by a human on the base branch
+    - paths:
+        - src-tauri/capabilities/**
+        - src-tauri/tauri*.conf.json
+      action: escalate
+      reason: Tauri permissions and app configuration
+    - paths:
+        - src-tauri/gen/**
+      action: escalate
+      reason: mobile signing, entitlements and platform projects
+    - paths:
+        - "**/AGENTS.md"
+        - "**/CLAUDE.md"
+        - "**/CLAUDE.local.md"
+        - .claude
+        - "**/.claude/**"
+        - .mcp.json
+      action: escalate
+      reason: "agent instructions and Claude Code settings: every session reads them"
