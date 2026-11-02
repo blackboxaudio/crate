@@ -18,21 +18,19 @@
 	import Breadcrumbs from '$lib/components/common/Breadcrumbs.svelte'
 	import Tooltip from '$lib/components/common/Tooltip.svelte'
 	import { translate } from '$shared/i18n'
-	import { sortDiscoveryReleases } from '$shared/utils/sorting'
 	import {
 		expandedReleaseIds,
 		discoveryStore,
-		facetFilters,
+		discoveryPlaylistReleases,
+		discoveryTrackScope,
 		likedFilter,
 		newFilter,
 		purchasedFilter,
 		downloadedFilter,
 		hasLinkedCollection,
-		ownedReleaseIds,
-		fullyCachedIds,
+		playbackFollowsFilters,
+		setPlaybackFollowsFilters,
 	} from '$lib/stores'
-	import { applyDiscoveryFilters, emptyFacetFilters } from '$shared/utils/discoveryFilters'
-	import { releaseHasTag } from '$shared/utils/tagComputation'
 
 	type Props = {
 		playlist: Playlist
@@ -45,6 +43,8 @@
 		categorySortOrders?: Map<string, number>
 		breadcrumbItems: BreadcrumbItem[]
 		isDiscovery?: boolean
+		/** Discovery playlists: the filtered + sorted rows (`displayedReleases`), never re-derived here — they
+		 *  are exactly what the playback queue spans, so the on-screen order and Up Next can't drift apart. */
 		releases?: DiscoveryRelease[]
 		editorVisible?: boolean
 		hasSelection?: boolean
@@ -135,40 +135,10 @@
 		onEmptySpaceContextMenu?.(e, playlist)
 	}
 
-	const filteredReleases = $derived.by(() => {
-		// The same facet semantics as the feed (shared helper), so what's shown here matches what plays.
-		let result = applyDiscoveryFilters(releases, isDiscovery ? $facetFilters : emptyFacetFilters(), {
-			ownedIds: $ownedReleaseIds,
-			cachedIds: $fullyCachedIds,
-		})
-		if (activeFilterTags && activeFilterTags.length > 0) {
-			const tagIds = new Set(activeFilterTags.map((t) => t.id))
-			if (tagFilterMode === 'and') {
-				result = result.filter((r) => [...tagIds].every((id) => releaseHasTag(r, id)))
-			} else {
-				result = result.filter((r) => [...tagIds].some((id) => releaseHasTag(r, id)))
-			}
-		}
-		if (searchValue) {
-			const search = searchValue.toLowerCase()
-			result = result.filter(
-				(r) =>
-					r.artist?.toLowerCase().includes(search) ||
-					r.title?.toLowerCase().includes(search) ||
-					r.label?.toLowerCase().includes(search) ||
-					r.notes?.toLowerCase().includes(search) ||
-					r.tracks.some((t) => t.name?.toLowerCase().includes(search))
-			)
-		}
-
-		// Apply sorting via the one shared comparator (handles release_date validity, track_count, ties).
-		return sortDiscoveryReleases(result, discoverySortConfig)
-	})
-
-	const hasExpandableReleases = $derived(filteredReleases.some((r) => r.tracks.length > 0))
+	const hasExpandableReleases = $derived(releases.some((r) => r.tracks.length > 0))
 
 	function handleExpandAll() {
-		expandedReleaseIds.expandAll(filteredReleases.filter((r) => r.tracks.length > 0).map((r) => r.id))
+		expandedReleaseIds.expandAll(releases.filter((r) => r.tracks.length > 0).map((r) => r.id))
 	}
 
 	function handleCollapseAll() {
@@ -213,6 +183,9 @@
 					downloaded={isDiscovery
 						? { value: $downloadedFilter, onChange: (s) => discoveryStore.setFacetFilter('downloaded', s) }
 						: undefined}
+					playbackFollowsFilters={isDiscovery
+						? { value: $playbackFollowsFilters, onChange: setPlaybackFollowsFilters }
+						: undefined}
 				/>
 				{#if isDiscovery}
 					<Tooltip text={$translate('discovery.expandAll')} position="bottom" delay={250}>
@@ -243,7 +216,7 @@
 	<div class="flex-1 overflow-hidden">
 		{#if isDiscovery}
 			<DiscoveryList
-				releases={filteredReleases}
+				{releases}
 				{selectedIds}
 				selectedTrackIds={selectedDiscoveryTrackIds}
 				onTrackSelectionChange={onDiscoveryTrackSelectionChange}
@@ -251,8 +224,8 @@
 				sortConfig={discoverySortConfig}
 				{categoryColors}
 				{categorySortOrders}
-				likedOnly={isDiscovery && $likedFilter === 'include'}
-				hasAnyReleases={releases.length > 0}
+				trackScope={$discoveryTrackScope}
+				hasAnyReleases={$discoveryPlaylistReleases.length > 0}
 				{scrollOffset}
 				{onSelectionChange}
 				onSortChange={onDiscoverySortChange}

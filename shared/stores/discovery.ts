@@ -1,4 +1,4 @@
-import { writable, derived, get } from 'svelte/store'
+import { writable, derived, get, type Readable } from 'svelte/store'
 import type {
 	DiscoveryRelease,
 	DiscoveryReleaseCreate,
@@ -7,6 +7,7 @@ import type {
 	DiscoveryFacetFilters,
 	DiscoveryFilter,
 	DiscoverySortConfig,
+	DiscoverySortField,
 	DiscoveryTrack,
 	FilterTriState,
 	ImportResultWithDuplicates,
@@ -15,20 +16,25 @@ import type {
 import * as discoveryApi from '../api/discovery'
 import * as followApi from '../api/follow'
 import { sortDiscoveryReleases } from '../utils/sorting'
-import { releaseHasTag } from '../utils/tagComputation'
 import {
-	applyDiscoveryFilters,
 	cycleTriState,
 	emptyFacetFilters,
+	filterDiscoveryReleases,
 	isDateLikedSortAllowed,
+	previewPlaybackContext,
+	trackScopeOf,
+	type DiscoveryCriteria,
+	type FacetContext,
 } from '../utils/discoveryFilters'
+import { getStoredBoolean, getStoredString, setStoredBoolean, setStoredString } from '../utils/storage'
+import { dedupe } from '../utils/stores'
 import { daysUntilRelease } from '../utils/format'
 import { playerStore } from './player'
 import { discoveryPlaylistStore } from './discoveryPlaylist'
 import { uiStore } from './ui'
 import { toastStore } from './toast'
-import { hasLinkedCollection, ownedReleaseIds } from './collection'
-import { fullyCachedIds } from './offlineCache'
+import { collectionLinkState, fullyOwnedReleaseIds, ownedTrackIds } from './collection'
+import { cachedTrackIds } from './offlineCache'
 import { translate } from '../i18n'
 
 // =============================================================================
@@ -43,7 +49,7 @@ interface DiscoveryState {
 	sort: DiscoverySortConfig
 	refreshingIds: Set<string>
 	/** The Liked / New / Purchased / Downloaded facet filters (off / include / exclude), shared by both
-	 *  platforms and applied through `applyDiscoveryFilters` wherever a release list is displayed. */
+	 *  platforms and applied through `filterDiscoveryReleases` wherever a release list is displayed. */
 	facets: DiscoveryFacetFilters
 }
 
@@ -65,6 +71,67 @@ function withFacets(state: DiscoveryState, facets: DiscoveryFacetFilters): Disco
 	const sort =
 		state.sort.field === 'date_liked' && !isDateLikedSortAllowed(facets) ? DEFAULT_DISCOVERY_SORT : state.sort
 	return { ...state, facets, sort }
+}
+
+// --- Persisted view state (device-local; never cloud-synced) -----------------------------------
+// The facets and sort survive restarts — and, on iOS, the WKWebView content-process reloads that wipe
+// JS state while native audio keeps playing — so the restored scroll anchor and preview queue are
+// evaluated against the same filtered feed the user left. Search is deliberately NOT persisted: it is
+// cleared on every navigation, and a stale query hidden in a collapsed search bar reads as missing data.
+const FACETS_KEY = 'discovery.facets'
+const SORT_KEY = 'discovery.sort'
+
+const FACETS: DiscoveryFacet[] = ['liked', 'new', 'purchased', 'downloaded']
+const TRI_STATES: FilterTriState[] = ['off', 'include', 'exclude']
+const SORT_FIELDS: DiscoverySortField[] = [
+	'artist',
+	'title',
+	'label',
+	'release_date',
+	'source_type',
+	'date_added',
+	'date_liked',
+	'track_count',
+]
+
+function readStoredJson(key: string): Record<string, unknown> | null {
+	try {
+		const parsed: unknown = JSON.parse(getStoredString(key, ''))
+		return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null
+	} catch {
+		return null
+	}
+}
+
+/** Per-facet validation, so one unknown value (a downgrade, a renamed state) resets only that facet. */
+function readStoredFacets(): DiscoveryFacetFilters {
+	const stored = readStoredJson(FACETS_KEY)
+	const facets = emptyFacetFilters()
+	if (!stored) return facets
+	for (const facet of FACETS) {
+		const value = stored[facet]
+		if (TRI_STATES.includes(value as FilterTriState)) facets[facet] = value as FilterTriState
+	}
+	return facets
+}
+
+function readStoredSort(): DiscoverySortConfig {
+	const stored = readStoredJson(SORT_KEY)
+	if (
+		stored &&
+		SORT_FIELDS.includes(stored.field as DiscoverySortField) &&
+		(stored.direction === 'asc' || stored.direction === 'desc')
+	) {
+		return { field: stored.field as DiscoverySortField, direction: stored.direction }
+	}
+	return DEFAULT_DISCOVERY_SORT
+}
+
+/** Boot state, seeded synchronously at store construction (before any feed renders) so the first
+ *  published list is already the filtered one. Routed through `withFacets` so a stored Date Liked sort
+ *  without its Liked facet is dropped exactly as a live toggle would. */
+function seedInitialState(): DiscoveryState {
+	return withFacets({ ...initialState, sort: readStoredSort() }, readStoredFacets())
 }
 
 // =============================================================================
@@ -100,7 +167,7 @@ let loadGeneration = 0
 // =============================================================================
 
 function createDiscoveryStore() {
-	const { subscribe, set, update } = writable<DiscoveryState>(initialState)
+	const { subscribe, set, update } = writable<DiscoveryState>(seedInitialState())
 
 	// Last availability-recheck attempt per release. The recheck is a full page fetch at the
 	// source, so it's rate-limited — but by a cooldown rather than once per app run: a mobile
@@ -665,6 +732,15 @@ function createDiscoveryStore() {
 
 export const discoveryStore = createDiscoveryStore()
 
+// One diff-subscribe rather than a write in every mutator, so no present or future facet/sort path can
+// forget to persist. Reference checks are enough: the mutators replace `facets`/`sort` only on change.
+let prevPersisted = get(discoveryStore)
+discoveryStore.subscribe((s) => {
+	if (s.facets !== prevPersisted.facets) setStoredString(FACETS_KEY, JSON.stringify(s.facets))
+	if (s.sort !== prevPersisted.sort) setStoredString(SORT_KEY, JSON.stringify(s.sort))
+	prevPersisted = s
+})
+
 // A discovery preview starting means the user has listened to the release — clear its "new" flag.
 // Registered here (rather than imported by the player store) because the player store must not depend
 // on this store: discovery already imports playerStore, so wiring it the other way would be circular.
@@ -678,9 +754,11 @@ playerStore.setNativeLikeChangedHandler((trackId, isLiked) => {
 })
 
 // Unlinking the last collection account hides the Purchased row in every filter UI, so an active
-// Purchased facet would otherwise become an invisible filter (emptying the feed on `include`).
-hasLinkedCollection.subscribe((linked) => {
-	if (!linked) discoveryStore.setFacetFilter('purchased', 'off')
+// Purchased facet would otherwise become an invisible filter (emptying the feed on `include`). Waits for
+// the accounts to actually load: the boot placeholder is empty too, and acting on it would wipe a
+// Purchased facet restored from storage before the collection had a chance to confirm the link.
+collectionLinkState.subscribe((state) => {
+	if (state === 'none') discoveryStore.setFacetFilter('purchased', 'off')
 })
 
 // =============================================================================
@@ -697,69 +775,108 @@ export const purchasedFilter = derived(discoveryStore, ($discovery) => $discover
 
 export const downloadedFilter = derived(discoveryStore, ($discovery) => $discovery.facets.downloaded)
 
-export const sortedReleases = derived(
-	[discoveryStore, ownedReleaseIds, fullyCachedIds],
-	([$discovery, $owned, $cached]) => {
-		let releases = applyDiscoveryFilters($discovery.releases, $discovery.facets, {
-			ownedIds: $owned,
-			cachedIds: $cached,
-		})
+/** The id sets the purchased / downloaded filters read — one shared object so every list (and the
+ *  playback scope) judges ownership and downloads the same way. Inputs are membership-deduped, so this
+ *  only re-emits when a purchase or a download actually changes. */
+export const discoveryFacetContext = derived(
+	[fullyOwnedReleaseIds, ownedTrackIds, cachedTrackIds],
+	([$fullyOwned, $ownedTracks, $cachedTracks]): FacetContext => ({
+		fullyOwnedIds: $fullyOwned,
+		ownedTrackIds: $ownedTracks,
+		cachedTrackIds: $cachedTracks,
+	})
+)
 
-		// Apply client-side search filter
-		if ($discovery.filter.search) {
-			const search = $discovery.filter.search.toLowerCase()
-			releases = releases.filter(
-				(r) =>
-					r.artist?.toLowerCase().includes(search) ||
-					r.title?.toLowerCase().includes(search) ||
-					r.label?.toLowerCase().includes(search) ||
-					r.notes?.toLowerCase().includes(search) ||
-					r.tracks.some((t) => t.name?.toLowerCase().includes(search))
-			)
-		}
+// The feed's tag selection lives in the shared ui store's per-view filters (desktop's tag sidebar);
+// mobile keeps its own tag filter (mobileUI), so on mobile it is always empty. Selected out of the ui
+// store and deduped: the object only gets a new identity when the discovery tag filter changes, so the
+// filtered + sorted feed doesn't recompute on every unrelated ui-store tick (selection clicks, hovers).
+const discoveryTagFilter = dedupe(derived(uiStore, ($ui) => $ui.viewFilters.discovery))
 
-		// Apply sorting
-		return sortDiscoveryReleases(releases, $discovery.sort)
+// The discovery playlist on screen, or null on the main feed (or outside the discovery view). A
+// primitive, so it only notifies when it actually changes.
+const discoveryPlaylistInView = derived(uiStore, ($ui) =>
+	$ui.activeView === 'discovery' ? ($ui.selectedPlaylistId ?? null) : null
+)
+
+function feedCriteria(
+	$discovery: DiscoveryState,
+	tagFilter: { selectedTagIds: string[]; tagFilterMode: DiscoveryCriteria['tagMode'] }
+): DiscoveryCriteria {
+	return {
+		facets: $discovery.facets,
+		tagIds: tagFilter.selectedTagIds,
+		tagMode: tagFilter.tagFilterMode,
+		search: $discovery.filter.search ?? '',
 	}
+}
+
+export const sortedReleases = derived(
+	[discoveryStore, discoveryTagFilter, discoveryFacetContext],
+	([$discovery, $tagFilter, $ctx]) =>
+		sortDiscoveryReleases(
+			filterDiscoveryReleases($discovery.releases, feedCriteria($discovery, $tagFilter), $ctx),
+			$discovery.sort
+		)
 )
 
 export const displayedReleases = derived(
-	[sortedReleases, discoveryStore, uiStore, discoveryPlaylistStore, ownedReleaseIds, fullyCachedIds],
-	([$sortedReleases, $discovery, $ui, $playlist, $owned, $cached]) => {
-		if ($ui.activeView !== 'discovery' || !$ui.selectedPlaylistId) {
-			return $sortedReleases
-		}
-
-		// Inside a discovery playlist — apply client-side filters to playlist releases
-		let releases = applyDiscoveryFilters($playlist.releases, $discovery.facets, {
-			ownedIds: $owned,
-			cachedIds: $cached,
-		})
-
-		const discoveryFilters = $ui.viewFilters.discovery
-		if (discoveryFilters.selectedTagIds.length > 0) {
-			const tagIds = new Set(discoveryFilters.selectedTagIds)
-			if (discoveryFilters.tagFilterMode === 'and') {
-				releases = releases.filter((r) => [...tagIds].every((id) => releaseHasTag(r, id)))
-			} else {
-				releases = releases.filter((r) => [...tagIds].some((id) => releaseHasTag(r, id)))
-			}
-		}
-
-		if ($discovery.filter.search) {
-			const search = $discovery.filter.search.toLowerCase()
-			releases = releases.filter(
-				(r) =>
-					r.artist?.toLowerCase().includes(search) ||
-					r.title?.toLowerCase().includes(search) ||
-					r.label?.toLowerCase().includes(search) ||
-					r.notes?.toLowerCase().includes(search) ||
-					r.tracks.some((t) => t.name?.toLowerCase().includes(search))
-			)
-		}
-
-		return sortDiscoveryReleases(releases, $discovery.sort)
+	[
+		sortedReleases,
+		discoveryStore,
+		discoveryTagFilter,
+		discoveryPlaylistInView,
+		discoveryPlaylistStore,
+		discoveryFacetContext,
+	],
+	([$sortedReleases, $discovery, $tagFilter, $playlistId, $playlist, $ctx]) => {
+		if (!$playlistId) return $sortedReleases
+		const criteria = feedCriteria($discovery, $tagFilter)
+		return sortDiscoveryReleases(filterDiscoveryReleases($playlist.releases, criteria, $ctx), $discovery.sort)
 	}
+)
+
+// "Apply filters to playback": whether a preview started from a filtered list continues only through
+// what the filters show (the default) or through the whole unfiltered view. A device-local playback
+// preference like shuffle — not a filter, so it never counts toward the filter badge.
+const PLAYBACK_FOLLOWS_FILTERS_KEY = 'discovery.playbackFollowsFilters'
+const playbackFollowsFiltersStore = writable(getStoredBoolean(PLAYBACK_FOLLOWS_FILTERS_KEY, true))
+
+export const playbackFollowsFilters: Readable<boolean> = { subscribe: playbackFollowsFiltersStore.subscribe }
+
+export function setPlaybackFollowsFilters(enabled: boolean) {
+	setStoredBoolean(PLAYBACK_FOLLOWS_FILTERS_KEY, enabled)
+	playbackFollowsFiltersStore.set(enabled)
+}
+
+/** The track scope the discovery view's filters impose (null = no track-level filter is active). Drives
+ *  the desktop expanded rows' visible tracks — display filtering, independent of the playback switch. */
+export const discoveryTrackScope = derived(
+	[discoveryStore, discoveryTagFilter, discoveryFacetContext],
+	([$discovery, $tagFilter, $ctx]) => trackScopeOf(feedCriteria($discovery, $tagFilter), $ctx)
+)
+
+/** What a preview started from the desktop discovery view (feed or playlist) plays through — see
+ *  `previewPlaybackContext`. */
+export const discoveryPlaybackContext = derived(
+	[
+		displayedReleases,
+		discoveryStore,
+		discoveryTagFilter,
+		discoveryPlaylistInView,
+		discoveryPlaylistStore,
+		discoveryFacetContext,
+		playbackFollowsFilters,
+	],
+	([$displayed, $discovery, $tagFilter, $playlistId, $playlist, $ctx, $follows]) =>
+		previewPlaybackContext(
+			$displayed,
+			$playlistId ? $playlist.releases : $discovery.releases,
+			feedCriteria($discovery, $tagFilter),
+			$ctx,
+			$discovery.sort,
+			$follows
+		)
 )
 
 export const releaseCount = derived(sortedReleases, ($releases) => $releases.length)

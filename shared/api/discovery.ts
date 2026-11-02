@@ -158,6 +158,11 @@ export async function getCachedReleaseStates(): Promise<CachedReleaseState[]> {
 	return invoke<CachedReleaseState[]>('get_cached_release_states')
 }
 
+/** Ids of every track whose audio is on disk (the per-track Downloaded filter). */
+export async function getCachedTrackIds(): Promise<string[]> {
+	return invoke<string[]>('get_cached_track_ids')
+}
+
 /** Proactively download + cache one track's audio for offline playback. Idempotent. */
 export async function precachePreviewStream(releaseId: string, trackPosition: number): Promise<void> {
 	return invoke<void>('precache_preview_stream', { releaseId, trackPosition })

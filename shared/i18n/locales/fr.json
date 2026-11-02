@@ -564,7 +564,9 @@
 		"purchased": "Acheté",
 		"off": "Non",
 		"only": "Seul",
-		"not": "Sauf"
+		"not": "Sauf",
+		"applyToPlayback": "Appliquer à la lecture",
+		"applyToPlaybackHint": "Lecture aléatoire et Suivant ne lisent que les titres correspondants"
 	},
 	"collection": {
 		"notInCrate": "Pas dans {appName}",

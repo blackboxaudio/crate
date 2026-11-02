@@ -564,7 +564,9 @@
 		"purchased": "Придбано",
 		"off": "Вимк.",
 		"only": "Тільки",
-		"not": "Не"
+		"not": "Не",
+		"applyToPlayback": "Застосувати до відтворення",
+		"applyToPlaybackHint": "Перемішати й Наступна відтворюють лише відповідні треки"
 	},
 	"collection": {
 		"notInCrate": "Немає в {appName}",

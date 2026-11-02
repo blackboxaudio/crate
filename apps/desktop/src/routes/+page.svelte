@@ -9,7 +9,6 @@
 		Track,
 		SortConfig,
 		DiscoverySortConfig,
-		DiscoveryFilter,
 		DiscoveryRelease,
 		Playlist,
 		TagCategory,
@@ -41,6 +40,7 @@
 		discoveryStore,
 		sortedReleases,
 		displayedReleases,
+		discoveryTrackScope,
 		releaseCount,
 		previewInfo,
 		pageActions,
@@ -72,7 +72,6 @@
 	// =============================================================================
 
 	let sortConfig = $state<SortConfig>({ field: 'date_added', direction: 'desc' })
-	let discoverySortConfig = $state<DiscoverySortConfig>({ field: 'date_added', direction: 'desc' })
 	let playlists = $state<Playlist[]>([])
 	let tagCategories = $state<TagCategory[]>([])
 	let devices = $state<UsbDevice[]>([])
@@ -344,8 +343,7 @@
 		if (currentView !== view) {
 			sortConfig = { field: 'date_added', direction: 'desc' }
 			libraryStore.setSort(sortConfig)
-			discoverySortConfig = { field: 'date_added', direction: 'desc' }
-			discoveryStore.setSort(discoverySortConfig)
+			discoveryStore.setSort({ field: 'date_added', direction: 'desc' })
 		}
 
 		// Cache discovery playlist releases before switching away
@@ -388,12 +386,8 @@
 			discoveryPlaylistStore.clearReleases()
 			const viewFilters = get(uiStore).viewFilters[view]
 			if (view === 'discovery') {
-				const filter: DiscoveryFilter = {}
-				if (viewFilters.selectedTagIds.length > 0) {
-					filter.tag_ids = viewFilters.selectedTagIds
-					filter.tag_filter_mode = viewFilters.tagFilterMode
-				}
-				discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
+				// Tag filters apply client-side (`sortedReleases`), so the feed always loads whole.
+				discoveryStore.loadReleases()
 			} else {
 				const filter: TrackFilter = {}
 				if (viewFilters.selectedTagIds.length > 0) {
@@ -406,12 +400,11 @@
 	}
 
 	function handleDiscoverySortChange(config: DiscoverySortConfig) {
-		discoverySortConfig = config
 		discoveryStore.setSort(config)
 	}
 
 	function handleReleaseOpen(release: DiscoveryRelease) {
-		const firstPlayable = firstPlayablePreviewIndex(release)
+		const firstPlayable = firstPlayablePreviewIndex(release, 0, $discoveryTrackScope)
 		if (firstPlayable >= 0) {
 			playPreview(release, firstPlayable)
 			return
@@ -525,6 +518,9 @@
 	// Search state from context stores
 	const librarySearchValue = $derived($libraryStore.filter.search ?? '')
 	const discoverySearchValue = $derived($discoveryStore.filter.search ?? '')
+	// Never a page-local copy: the store changes the sort on its own (a Date Liked sort falls back once Liked
+	// leaves Only) and the playback queue sorts by it, so the headers and rows must read the same value.
+	const discoverySortConfig = $derived($discoveryStore.sort)
 	const searchValue = $derived($activeView === 'discovery' ? discoverySearchValue : librarySearchValue)
 	const onSearchChange = $derived(
 		$activeView === 'discovery'
@@ -609,7 +605,7 @@
 				<PlaylistView
 					{playlist}
 					isDiscovery
-					releases={$discoveryPlaylistReleases}
+					releases={$displayedReleases}
 					tracks={[]}
 					selectedIds={$selectedReleaseIds}
 					{sortConfig}

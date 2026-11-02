@@ -2,6 +2,7 @@
 	import { translate } from '$shared/i18n'
 	import type { DiscoveryFacet, FilterTriState, SortDirection } from '$shared/types'
 	import { hasLinkedCollection } from '$shared/stores/collection'
+	import { playbackFollowsFilters, setPlaybackFollowsFilters } from '$shared/stores/discovery'
 	import { emptyFacetFilters } from '$shared/utils/discoveryFilters'
 	import { countActiveViewFilters, type ReleaseViewFilter, type SortOption } from '$lib/utils/listControls'
 	import MobileSearchInput from '$lib/components/common/MobileSearchInput.svelte'
@@ -121,5 +122,6 @@
 				onToggleMode: () => onFilterChange({ ...filter, tagMode: filter.tagMode === 'or' ? 'and' : 'or' }),
 			}
 		: undefined}
+	playbackFollowsFilters={{ value: $playbackFollowsFilters, onChange: setPlaybackFollowsFilters }}
 	onClearAll={() => onFilterChange({ ...filter, facets: emptyFacetFilters(), tagIds: [] })}
 />

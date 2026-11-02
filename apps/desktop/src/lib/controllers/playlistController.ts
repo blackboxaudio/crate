@@ -1,7 +1,7 @@
 import { open } from '@tauri-apps/plugin-dialog'
 import { get } from 'svelte/store'
 import { translate } from '$shared/i18n'
-import type { ActiveView, DiscoveryFilter, Playlist, TrackFilter } from '$shared/types'
+import type { ActiveView, Playlist, TrackFilter } from '$shared/types'
 import { withNativeDialog } from '$shared/utils'
 import type { playlistsStore as PlaylistsStoreType } from '$shared/stores/playlists'
 import type { discoveryStore as DiscoveryStoreType } from '$shared/stores/discovery'
@@ -89,12 +89,8 @@ export function createPlaylistController(
 		const tagFilterMode = getTagFilterMode()
 
 		if (getActiveView() === 'discovery') {
-			const filter: DiscoveryFilter = {}
-			if (selectedTagIds.length > 0) {
-				filter.tag_ids = selectedTagIds
-				filter.tag_filter_mode = tagFilterMode
-			}
-			await discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
+			// Tag filters apply client-side (`sortedReleases`), so the feed always loads whole.
+			await discoveryStore.loadReleases()
 		} else {
 			libraryStore.clearPlaylistTracks()
 			if (selectedTagIds.length > 0) {

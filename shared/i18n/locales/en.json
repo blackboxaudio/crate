@@ -564,7 +564,9 @@
 		"purchased": "Purchased",
 		"off": "Off",
 		"only": "Only",
-		"not": "Not"
+		"not": "Not",
+		"applyToPlayback": "Apply to playback",
+		"applyToPlaybackHint": "Shuffle and Next only play matching tracks"
 	},
 	"collection": {
 		"notInCrate": "Not in {appName}",

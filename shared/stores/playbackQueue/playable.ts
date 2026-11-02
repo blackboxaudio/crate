@@ -1,4 +1,5 @@
 import type { DiscoveryRelease, Track } from '../../types'
+import { releaseTrackMatcher, type TrackScope } from '../../utils/discoveryFilters'
 
 /**
  * Pick model + playability predicates for the playback queue.
@@ -73,9 +74,13 @@ export function isPreviewPlayable(release: DiscoveryRelease, trackIndex: number)
 	return true
 }
 
-/** First playable track index at or after `from`, or -1 when the release has none left. */
-export function firstPlayablePreviewIndex(release: DiscoveryRelease, from = 0): number {
-	for (let i = from; i < release.tracks.length; i++) if (isPreviewPlayable(release, i)) return i
+/** First playable track index at or after `from` (inside `scope`, when the list's filters impose one),
+ *  or -1 when the release has none left. */
+export function firstPlayablePreviewIndex(release: DiscoveryRelease, from = 0, scope?: TrackScope | null): number {
+	const matches = scope ? releaseTrackMatcher(release, scope.criteria, scope.ctx) : null
+	for (let i = from; i < release.tracks.length; i++) {
+		if (isPreviewPlayable(release, i) && (!matches || matches(i))) return i
+	}
 	return -1
 }
 

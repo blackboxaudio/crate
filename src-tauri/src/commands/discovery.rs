@@ -509,6 +509,13 @@ pub async fn get_cached_release_states(
         .collect())
 }
 
+/// Ids of every track with its audio on disk — the per-track Downloaded filter (a release can be
+/// partly downloaded). Consumers refetch alongside `get_cached_release_states`.
+#[tauri::command]
+pub async fn get_cached_track_ids(discovery: State<'_, DiscoveryService>) -> Result<Vec<String>> {
+    discovery.get_cached_track_ids()
+}
+
 /// Proactively download and cache a track's audio bytes for offline playback ("Download for
 /// offline" / re-cache on demand). Resolves the stream URL via [`fetch_preview_stream`], then
 /// makes a server-side request to the localhost proxy — which downloads the full stream and

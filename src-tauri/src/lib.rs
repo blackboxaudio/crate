@@ -389,6 +389,7 @@ pub fn run() {
             commands::discovery::precache_preview_stream,
             commands::discovery::get_release_cache_state,
             commands::discovery::get_cached_release_states,
+            commands::discovery::get_cached_track_ids,
             commands::discovery::get_discovery_audio_cache_size,
             commands::discovery::clear_discovery_audio_cache,
             commands::discovery::cache_release_artwork,
