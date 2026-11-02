@@ -1,6 +1,21 @@
 fn main() {
     bake_cloud_sync_config();
-    tauri_build::build()
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let is_mobile_target = target_os == "ios" || target_os == "android";
+    if std::env::var_os("CARGO_FEATURE_DESKTOP").is_none() && !is_mobile_target {
+        // capabilities/desktop.json grants permissions of plugins that only the `desktop` feature pulls
+        // in, so a featureless host build can't validate it. That build (`cargo test`) is never a
+        // runnable app: it needs a valid capability set, not a complete one.
+        //
+        // tauri-build only emits this rerun hint when no pattern is set.
+        println!("cargo:rerun-if-changed=capabilities");
+        tauri_build::try_build(
+            tauri_build::Attributes::new().capabilities_path_pattern("./capabilities/default.json"),
+        )
+        .expect("tauri build failed");
+    } else {
+        tauri_build::build()
+    }
 }
 
 /// Bake the cloud-sync config into the binary so a mobile build can find it at runtime.
