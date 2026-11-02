@@ -10,8 +10,11 @@ pub async fn analyze_tracks(
     track_ids: Vec<String>,
     analysis: State<'_, AnalysisService>,
     app_handle: AppHandle,
+    force: bool,
 ) -> Result<()> {
-    analysis.analyze_tracks_async(app_handle, track_ids).await
+    analysis
+        .analyze_tracks_async(app_handle, track_ids, force)
+        .await
 }
 
 /// Cancel analysis for a specific track
