@@ -1,0 +1,69 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - '**'
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-test-desktop:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: test-desktop-macos-latest
+          cache-targets: true
+          cache-on-failure: true
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
+
+      - name: Run tests
+        run: cargo test --features desktop
+
+  # Flagless on purpose: src/db/key_provider.rs selects its provider by target_os rather than by
+  # feature, so this build must keep compiling and passing without a platform feature.
+  rust-test:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: src-tauri
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2026-02-19
+
+      - name: Cache Rust dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+          shared-key: test-macos-latest
+          cache-targets: true
+          cache-on-failure: true
+          save-if: ${{ github.ref == 'refs/heads/develop' }}
+
+      - name: Run tests
+        run: cargo test
