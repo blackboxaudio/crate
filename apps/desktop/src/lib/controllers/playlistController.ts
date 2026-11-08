@@ -94,10 +94,12 @@ export function createPlaylistController(
 				filter.tag_ids = selectedTagIds
 				filter.tag_filter_mode = tagFilterMode
 			}
+			discoveryStore.setSearch('')
 			await discoveryStore.loadReleases(Object.keys(filter).length > 0 ? filter : undefined)
 		} else {
 			libraryStore.clearPlaylistTracks()
 			if (selectedTagIds.length > 0) {
+				libraryStore.setSearch('')
 				await libraryStore.loadTracks({ tag_ids: selectedTagIds, tag_filter_mode: tagFilterMode })
 			} else {
 				libraryStore.clearFilters()

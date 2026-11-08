@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Added interface zoom on desktop: scale the whole UI from 75% to 150% via Settings → Appearance or View → Zoom In / Zoom Out / Actual Size (⌘= / ⌘- / ⌘0); the level is remembered per device and never cloud-synced
 
+### Fixed
+
+- Fixed the library and discovery search box periodically clearing itself (on cloud sync, followed-release checks, or tag edits) on desktop and mobile
+
 ## [0.3.0] - 2026-09-24
 
 ### Added
