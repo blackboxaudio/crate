@@ -90,7 +90,6 @@ export function createPlaylistController(
 
 		if (getActiveView() === 'discovery') {
 			// Tag filters apply client-side (`sortedReleases`), so the feed always loads whole.
-			discoveryStore.setSearch('')
 			await discoveryStore.loadReleases()
 		} else {
 			libraryStore.clearPlaylistTracks()
