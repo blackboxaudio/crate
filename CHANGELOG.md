@@ -29,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Fixed a preview session restored on mobile launch staying inside its one release instead of following the discovery feed and its filters
 - Fixed preview playback started from the mobile Purchased view continuing in the feed's order instead of the on-screen purchase order, and made the Purchased view's search match labels, notes, and track names like the feed
 
+### Fixed
+
+- Fixed the library and discovery search box periodically clearing itself (on cloud sync, followed-release checks, or tag edits) on desktop and mobile
+
 ## [0.3.0] - 2026-09-24
 
 ### Added

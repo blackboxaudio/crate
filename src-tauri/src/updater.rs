@@ -39,8 +39,9 @@ fn channel_of(version: &Version) -> ReleaseChannel {
 }
 
 /// Whether `remote` should be offered to a build running `current`: it must be newer *and*
-/// on the same channel. A channel mismatch means the binary is reading the wrong manifest, so
-/// it is logged rather than silently reported as "up to date".
+/// on the same channel, and that channel must not be `Other`, since dev builds never update. A
+/// channel mismatch means the binary is reading the wrong manifest, so it is logged rather than
+/// silently reported as "up to date".
 pub fn accepts_release(current: &Version, remote: &Version) -> bool {
     let (current_channel, remote_channel) = (channel_of(current), channel_of(remote));
     if current_channel != remote_channel {
@@ -50,7 +51,7 @@ pub fn accepts_release(current: &Version, remote: &Version) -> bool {
         );
         return false;
     }
-    remote > current
+    current_channel != ReleaseChannel::Other && remote > current
 }
 
 #[cfg(feature = "desktop")]
