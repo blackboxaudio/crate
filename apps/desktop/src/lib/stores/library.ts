@@ -52,13 +52,18 @@ function createLibraryStore() {
 		async loadTracks(filter?: TrackFilter) {
 			update((state) => ({ ...state, loading: true, error: null }))
 
+			// Search is a client-side, user-owned filter: background reloads (cloud-sync merge, tag edits,
+			// relocate) must not wipe what the user typed, and the backend never sees it.
+			const requestFilter: TrackFilter = { ...(filter ?? {}) }
+			delete requestFilter.search
+
 			try {
-				const tracks = await libraryApi.getTracks(filter)
+				const tracks = await libraryApi.getTracks(requestFilter)
 				update((state) => ({
 					...state,
 					tracks,
 					loading: false,
-					filter: filter ?? {},
+					filter: { ...requestFilter, ...(state.filter.search ? { search: state.filter.search } : {}) },
 				}))
 			} catch (error) {
 				const errorMessage = error instanceof Error ? error.message : 'Failed to load tracks'

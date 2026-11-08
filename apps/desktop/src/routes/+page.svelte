@@ -268,6 +268,7 @@
 
 		if (view === 'discovery') {
 			discoveryPlaylistStore.clearReleases()
+			discoveryStore.setSearch('')
 			await discoveryStore.loadReleases()
 		} else {
 			libraryStore.clearPlaylistTracks()
@@ -346,6 +347,8 @@
 			libraryStore.setSort(sortConfig)
 			discoverySortConfig = { field: 'date_added', direction: 'desc' }
 			discoveryStore.setSort(discoverySortConfig)
+			if (view === 'discovery') discoveryStore.setSearch('')
+			else libraryStore.setSearch('')
 		}
 
 		// Cache discovery playlist releases before switching away

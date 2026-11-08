@@ -124,12 +124,17 @@ function createDiscoveryStore() {
 				return { ...state, loading: true, error: null }
 			})
 
+			// Search is a client-side, user-owned filter: background reloads (cloud-sync merge, followed
+			// releases, tag edits) must not wipe what the user typed, and the backend never sees it.
+			const requestFilter: DiscoveryFilter = { ...(filter ?? {}) }
+			delete requestFilter.search
+
 			try {
 				let offset = 0
 				let pageSize = FIRST_PAGE_SIZE
 				let accumulated: DiscoveryRelease[] = []
 				for (;;) {
-					const page = await discoveryApi.getReleases({ ...(filter ?? {}), limit: pageSize, offset })
+					const page = await discoveryApi.getReleases({ ...requestFilter, limit: pageSize, offset })
 					if (generation !== loadGeneration) return // superseded by a newer load
 					accumulated = offset === 0 ? page : accumulated.concat(page)
 					const done = page.length < pageSize
@@ -143,7 +148,7 @@ function createDiscoveryStore() {
 							...state,
 							releases,
 							loading: !done,
-							filter: filter ?? {},
+							filter: { ...requestFilter, ...(state.filter.search ? { search: state.filter.search } : {}) },
 						}))
 					}
 					if (done) break
