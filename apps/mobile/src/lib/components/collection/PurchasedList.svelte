@@ -1,17 +1,8 @@
 <script lang="ts">
 	import { translate } from '$shared/i18n'
-	import type { CollectionItem, DiscoveryRelease } from '$shared/types'
-	import { collectionItems, collectionStore, hasLinkedCollection, ownedReleaseIds } from '$shared/stores/collection'
-	import { discoveryStore, facetFilters } from '$shared/stores/discovery'
-	import { applyDiscoveryFilters, hasActiveFacets } from '$shared/utils/discoveryFilters'
-	import {
-		applyTagFilter,
-		mobileUIStore,
-		tagFilterIds,
-		tagFilterMode,
-		DISCOVERY_ROW_HEIGHT,
-	} from '$lib/stores/mobileUI'
-	import { fullyCachedIds } from '$shared/stores/offlineCache'
+	import { collectionItems, collectionStore, hasLinkedCollection } from '$shared/stores/collection'
+	import { mobileUIStore, mobilePurchasedRows, DISCOVERY_ROW_HEIGHT } from '$lib/stores/mobileUI'
+	import type { PurchasedRow } from '$lib/utils/purchasedRows'
 	import ReleaseFeedList from '$lib/components/discovery/ReleaseFeedList.svelte'
 	import ReleaseCard from '$lib/components/discovery/ReleaseCard.svelte'
 	import CollectionItemCard from './CollectionItemCard.svelte'
@@ -20,47 +11,9 @@
 	// purchases first (the backend's order). Items matched to a discovery release render the normal
 	// `ReleaseCard` (badges, swipe actions, detail on tap); unmatched items render the lightweight
 	// `CollectionItemCard` (open on Bandcamp / add to discovery). Shown when the toolbar's Purchased
-	// filter is active — the discovery feed swaps to this list, and the toolbar's search box keeps
-	// working (client-side, over artist/title).
-	type Row = { id: string; item: CollectionItem; release: DiscoveryRelease | undefined }
-
-	const releaseById = $derived(new Map($discoveryStore.releases.map((r) => [r.id, r])))
-
-	// Liked / New / Downloaded / tags are properties of a *release*, so they can only be evaluated on
-	// matched items — with any of them active the unmatched collection items drop out rather than
-	// riding along unfiltered (the toolbar shows them as active, so they have to actually narrow the
-	// list). The facets go through the same shared helper as the feed so "Purchased + X" means the same
-	// thing in both views; the Purchased facet itself is moot here (every row is owned by definition —
-	// this view only shows while it is `include`), so it's forced off.
-	const releaseFacets = $derived({ ...$facetFilters, purchased: 'off' as const })
-	const releaseFiltersActive = $derived(hasActiveFacets(releaseFacets) || $tagFilterIds.length > 0)
-
-	const rows = $derived.by(() => {
-		let all: Row[] = $collectionItems.map((item) => ({
-			id: item.id,
-			item,
-			release: item.matchedReleaseId ? releaseById.get(item.matchedReleaseId) : undefined,
-		}))
-
-		if (releaseFiltersActive) {
-			const matched = all.flatMap(({ release }) => (release ? [release] : []))
-			const kept = new Set(
-				applyDiscoveryFilters(applyTagFilter(matched, $tagFilterIds, $tagFilterMode), releaseFacets, {
-					ownedIds: $ownedReleaseIds,
-					cachedIds: $fullyCachedIds,
-				}).map((r) => r.id)
-			)
-			all = all.filter(({ release }) => release && kept.has(release.id))
-		}
-
-		const search = ($discoveryStore.filter.search ?? '').trim().toLowerCase()
-		if (!search) return all
-		return all.filter(({ item, release }) => {
-			const artist = release?.artist ?? item.artist
-			const title = release?.title ?? item.title
-			return artist?.toLowerCase().includes(search) || title?.toLowerCase().includes(search)
-		})
-	})
+	// filter is active — the discovery feed swaps to this list, and the toolbar's filters and search keep
+	// working with the feed's semantics (unmatched items match a search by their own artist / title).
+	// The rows come from `mobilePurchasedRows`, the same list a preview started here plays through.
 
 	async function refresh() {
 		await collectionStore.refreshAllAccounts()
@@ -68,14 +21,14 @@
 </script>
 
 <ReleaseFeedList
-	releases={rows}
+	releases={$mobilePurchasedRows}
 	rowHeight={DISCOVERY_ROW_HEIGHT}
 	onRefresh={refresh}
 	empty={emptyState}
 	row={itemRow}
 />
 
-{#snippet itemRow({ release: row }: { release: Row })}
+{#snippet itemRow({ release: row }: { release: PurchasedRow })}
 	{#if row.release}
 		<ReleaseCard release={row.release} />
 	{:else}

@@ -8,6 +8,7 @@ import * as nativePreviewPlayer from '../services/nativePreviewPlayer'
 import type { NativeTrack } from '../services/nativePreviewPlayer'
 import * as playbackQueue from './playbackQueue'
 import type { PreviewPick, RepeatMode } from './playbackQueue'
+import type { PreviewPlaybackContext } from '../utils/discoveryFilters'
 import { isIOS } from '../utils/platform'
 import { toastStore } from './toast'
 import { translate } from '../i18n'
@@ -845,7 +846,7 @@ function createPlayerStore() {
 		async playPreview(
 			release: DiscoveryRelease,
 			trackIndex: number = 0,
-			queue?: DiscoveryRelease[],
+			queue?: PreviewPlaybackContext,
 			startPositionMs = 0,
 			opts?: { silentError?: boolean }
 		): Promise<boolean> {
@@ -858,11 +859,12 @@ function createPlayerStore() {
 			// advanced synchronously by the caller) stays the single source of truth.
 			const gen = ++previewLoadGen
 
-			// Capture the playback queue (the whole list from the view) on a user-initiated preview, so
-			// next/previous/auto-advance + shuffle span every release on screen. Internal re-drives
-			// (next/previous, the iOS mode re-feed) omit `queue` to preserve the captured list + session.
+			// Capture the playback queue (the whole list from the view, scoped to the tracks its filters
+			// show) on a user-initiated preview, so next/previous/auto-advance + shuffle span exactly what's
+			// on screen. Internal re-drives (next/previous, the iOS mode re-feed) omit `queue` to preserve
+			// the captured list + session.
 			if (queue) {
-				playbackQueue.startPreviewSession(release, trackIndex, queue)
+				playbackQueue.startPreviewSession(release, trackIndex, queue.releases, { scope: queue.scope })
 			}
 
 			// Clear stale preview events before the async gap to prevent the old

@@ -564,7 +564,9 @@
 		"purchased": "Comprado",
 		"off": "Não",
 		"only": "Só",
-		"not": "Exceto"
+		"not": "Exceto",
+		"applyToPlayback": "Aplicar à reprodução",
+		"applyToPlaybackHint": "Aleatório e Próximo reproduzem apenas faixas correspondentes"
 	},
 	"collection": {
 		"notInCrate": "Não em {appName}",

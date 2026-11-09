@@ -2,6 +2,7 @@
 	import type { DiscoveryRelease, DiscoverySortConfig } from '$shared/types'
 	import { tick } from 'svelte'
 	import { handleSelection } from '$shared/utils'
+	import { releaseTrackMatcher, type TrackScope } from '$shared/utils/discoveryFilters'
 	import { createVirtualList } from '$shared/utils/virtualizer.svelte'
 	import { pendingScrollReleaseId, locateStore } from '$lib/stores'
 	import { translate } from '$shared/i18n'
@@ -40,7 +41,8 @@
 		onTrackLikeToggle?: (releaseId: string, trackId: string) => void
 		onTrackContextMenu?: (release: DiscoveryRelease, trackIndex: number, canPlay: boolean, e: MouseEvent) => void
 		onScrollChange?: (offset: number) => void
-		likedOnly?: boolean
+		/** The tracks the active filters show (null = all): expanded rows hide the rest. */
+		trackScope?: TrackScope | null
 		/** Releases exist but the active search/filters hid them all — show the "no matches" state
 		 *  rather than the add-your-first-release CTA. */
 		hasAnyReleases?: boolean
@@ -69,7 +71,7 @@
 		onTrackLikeToggle,
 		onTrackContextMenu,
 		onScrollChange,
-		likedOnly = false,
+		trackScope = null,
 		hasAnyReleases = false,
 	}: Props = $props()
 
@@ -79,11 +81,19 @@
 	let scrollRestoredForView = $state(false)
 	let scrollDebounceTimer: ReturnType<typeof setTimeout> | null = null
 
+	function visibleTrackCount(release: DiscoveryRelease): number {
+		if (!trackScope) return release.tracks.length
+		const matches = releaseTrackMatcher(release, trackScope.criteria, trackScope.ctx)
+		let n = 0
+		for (let i = 0; i < release.tracks.length; i++) if (matches(i)) n++
+		return n
+	}
+
 	function getEstimateSize(index: number): number {
 		const release = releases[index]
 		if (!release) return ROW_HEIGHT
 		if (!expandedIds.has(release.id) || release.tracks.length === 0) return ROW_HEIGHT
-		const visibleTracks = likedOnly ? release.tracks.filter((t) => t.is_liked).length : release.tracks.length
+		const visibleTracks = visibleTrackCount(release)
 		// Header (49px) + first track (28px, no border-t) + remaining tracks (29px each, with border-t) + container border-b (1px)
 		// = 49 + 28 + (N-1)*29 + 1 = 49 + 29N
 		return ROW_HEIGHT + visibleTracks * TRACK_ROW_HEIGHT
@@ -92,10 +102,10 @@
 	const virtualList = createVirtualList({
 		count: () => releases.length,
 		getScrollElement: () => scrollContainerEl ?? null,
-		// Read expandedIds and likedOnly so the virtualizer's $effect.pre re-runs when they change
+		// Read expandedIds and trackScope so the virtualizer's $effect.pre re-runs when they change
 		estimateSize: () => {
 			void expandedIds
-			void likedOnly
+			void trackScope
 			return getEstimateSize
 		},
 		overscan: 10,
@@ -151,12 +161,15 @@
 	}
 
 	// Shift-range over tracks follows what is on screen: the expanded releases in list order, each
-	// narrowed by the liked filter exactly as the rows render them.
+	// narrowed by the track scope exactly as the rows render them.
 	function visibleTrackItems(): { id: string }[] {
 		const items: { id: string }[] = []
 		for (const r of releases) {
 			if (!expandedIds.has(r.id)) continue
-			for (const t of r.tracks) if (!likedOnly || t.is_liked) items.push({ id: t.id })
+			const matches = trackScope ? releaseTrackMatcher(r, trackScope.criteria, trackScope.ctx) : null
+			r.tracks.forEach((t, i) => {
+				if (!matches || matches(i)) items.push({ id: t.id })
+			})
 		}
 		return items
 	}
@@ -259,7 +272,7 @@
 							dragReleaseIds={Array.from(selectedIds)}
 							{categoryColors}
 							{categorySortOrders}
-							{likedOnly}
+							{trackScope}
 							onclick={(e) => handleReleaseClick(release, e)}
 							ondblclick={() => handleReleaseDoubleClick(release)}
 							oncontextmenu={(e) => handleReleaseContextMenu(release, e)}

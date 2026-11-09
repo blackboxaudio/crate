@@ -6,6 +6,7 @@
 	import type { DiscoveryFacet, FilterTriState, TagFilterMode } from '$shared/types'
 	import { cycleTriState } from '$shared/utils/discoveryFilters'
 	import TriStateControl from '$shared/components/TriStateControl.svelte'
+	import SwitchRow from '$shared/components/SwitchRow.svelte'
 	import { lightTap } from '$lib/utils/haptics'
 	import MobileModal from '$lib/components/common/MobileModal.svelte'
 
@@ -34,9 +35,23 @@
 			onToggleTag: (id: string) => void
 			onToggleMode: () => void
 		}
+		/** "Apply to playback": whether these filters also shape what shuffle / next play. A preference,
+		 *  not a filter — never counted as active, untouched by Clear all. */
+		playbackFollowsFilters?: { value: boolean; onChange: (enabled: boolean) => void }
 		onClearAll: () => void
 	}
-	let { open, onClose, liked, newReleases, downloaded, purchased, purchasedSetup, tags, onClearAll }: Props = $props()
+	let {
+		open,
+		onClose,
+		liked,
+		newReleases,
+		downloaded,
+		purchased,
+		purchasedSetup,
+		tags,
+		playbackFollowsFilters,
+		onClearAll,
+	}: Props = $props()
 
 	// Lazy-load categories the first time the sheet opens (only when the tags facet is shown).
 	let loadedOnce = $state(false)
@@ -102,7 +117,7 @@
 	</svg>
 {/snippet}
 
-<!-- Downloaded: releases whose audio is fully cached, i.e. playable in airplane mode. -->
+<!-- Downloaded: tracks whose audio is cached, i.e. playable in airplane mode. -->
 {#snippet downloadIcon(state: FilterTriState)}
 	<svg
 		class="h-4 w-4 {state === 'include' ? 'text-brand-primary' : 'text-text-tertiary'}"
@@ -118,7 +133,7 @@
 	</svg>
 {/snippet}
 
-<!-- Purchased: releases owned in the linked Bandcamp collection(s). -->
+<!-- Purchased: tracks owned in the linked Bandcamp collection(s) — bought whole or on their own. -->
 {#snippet bagIcon(state: FilterTriState)}
 	<svg
 		class="h-4 w-4 {state === 'include' ? 'text-brand-primary' : 'text-text-tertiary'}"
@@ -308,6 +323,17 @@
 					{/each}
 				</div>
 			{/if}
+		{/if}
+
+		{#if playbackFollowsFilters}
+			<div class="border-t border-stroke-subtle"></div>
+			<SwitchRow
+				checked={playbackFollowsFilters.value}
+				onChange={(enabled) => tick(() => playbackFollowsFilters.onChange(enabled))}
+				label={$translate('filters.applyToPlayback')}
+				hint={$translate('filters.applyToPlaybackHint')}
+				size="md"
+			/>
 		{/if}
 	</div>
 </MobileModal>

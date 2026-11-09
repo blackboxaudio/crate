@@ -564,7 +564,9 @@
 		"purchased": "已购买",
 		"off": "关",
 		"only": "仅",
-		"not": "非"
+		"not": "非",
+		"applyToPlayback": "应用于播放",
+		"applyToPlaybackHint": "随机播放和下一首仅播放匹配的曲目"
 	},
 	"collection": {
 		"notInCrate": "不在 {appName} 中",

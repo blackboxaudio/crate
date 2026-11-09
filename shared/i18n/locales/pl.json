@@ -564,7 +564,9 @@
 		"purchased": "Kupione",
 		"off": "Brak",
 		"only": "Tylko",
-		"not": "Nie"
+		"not": "Nie",
+		"applyToPlayback": "Zastosuj do odtwarzania",
+		"applyToPlaybackHint": "Losowo i Następna odtwarzają tylko pasujące utwory"
 	},
 	"collection": {
 		"notInCrate": "Nie w {appName}",
