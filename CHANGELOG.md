@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 - Discovery filters and sort are now remembered per device: the Liked / New / Purchased / Downloaded filters and the sort order on desktop and mobile, plus the tag filter on mobile, come back after a restart or when iOS reloads the app in the background, so the feed and preview playback pick up with the same filters (search still starts empty)
 
-## [0.3.1-staging.1] - 2026-10-06
+## [0.3.1] - 2026-11-09
 
 ### Added
 
@@ -28,9 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Fixed preview shuffle replaying tracks before the rest of the list had played, and sequential preview playback stopping after the current release instead of continuing through the list
 - Fixed a preview session restored on mobile launch staying inside its one release instead of following the discovery feed and its filters
 - Fixed preview playback started from the mobile Purchased view continuing in the feed's order instead of the on-screen purchase order, and made the Purchased view's search match labels, notes, and track names like the feed
-
-### Fixed
-
 - Fixed the library and discovery search box periodically clearing itself (on cloud sync, followed-release checks, or tag edits) on desktop and mobile
 
 ## [0.3.0] - 2026-09-24
@@ -243,8 +240,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - Waveform display with cue point management
 - Search and filter across entire collection
 
-[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.3.1-staging.1...HEAD
-[0.3.1-staging.1]: https://github.com/blackboxaudio/crate/compare/v0.3.0...v0.3.1-staging.1
+[Unreleased]: https://github.com/blackboxaudio/crate/compare/v0.3.1...HEAD
+[0.3.1]: https://github.com/blackboxaudio/crate/compare/v0.3.1-staging.1...v0.3.1
 [0.3.0]: https://github.com/blackboxaudio/crate/compare/v0.2.9...v0.3.0
 [0.2.9]: https://github.com/blackboxaudio/crate/compare/v0.2.8...v0.2.9
 [0.2.8]: https://github.com/blackboxaudio/crate/compare/v0.2.7...v0.2.8
